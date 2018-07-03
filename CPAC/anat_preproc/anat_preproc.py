@@ -1,5 +1,6 @@
 
 from nipype.interfaces import afni
+from nipype.interfaces import fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
