@@ -11,70 +11,66 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
                                    use_edge, exp_frac, smooth_final,
                                    push_to_edge, use_skull, perc_int,
                                    max_inter_iter, blur_fwhm, fac):
-   
-    if var_shrink_fac:
-        var_shrink_str = '-var_shrink_fac'
-    else:
-        var_shrink_str = '-no_var_shrink_fac'
 
-    if avoid_vent:
-        avoid_vent_str = '-avoid_vent'
-    else:
-        avoid_vent_str = '-no_avoid_vent'
+    expr = ''
+    fill_hole_def = 10
 
-    if pushout:
-        pushout_str = '-pushout'
-    else:
-        pushout_str = '-no_pushout'
-    
-    if touchup:
-        touchup_str = '-touchup'
-    else:
-        touchup_str = '-no_touchup'
-    
-    if use_skull:
-        use_skull_str = '-use_skull'
-    else:
-        use_skull_str = '-no_use_skull'
-    
-    if avoid_eyes:
-        avoid_eyes_str = '-avoid_eyes'
-    else:
-        avoid_eyes_str = '-no_avoid_eyes'
-    
+    if float(shrink_fac) != 0.6:
+        expr = ' '.join([expr, '-shrink_fac {0}'.format(shrink_fac)])
+
+    if not var_shrink_fac:
+        expr = ' '.join([expr, '-no_var_shrink_fac'])
+
     if use_edge:
-        use_edge_str = '-use_edge'
+        if float(shrink_fac_bot_lim) != 0.4:
+            expr = ' '.join([expr, '-shrink_fac_bot_lim {0}'.format(shrink_fac_bot_lim)])
     else:
-        use_edge_str = '-no_use_edge'
-    
-    if push_to_edge:
-        push_to_edge_str = '-push_to_edge'
-    else:
-        push_to_edge_str = '-no_push_to_edge'
+        if float(shrink_fac_bot_lim) != 0.65:
+            expr = ' '.join([expr, '-shrink_fac_bot_lim {0}'.format(shrink_fac_bot_lim)])
+        expr = ' '.join([expr, '-no_use_edge'])
 
-    expr = '-shrink_fac {0} ' \
-           '{1} ' \
-           '-shrink_fac_bot_lim {2} ' \
-           '{3} ' \
-           '-niter {4} ' \
-           '{5} ' \
-           '{6} ' \
-           '-fill_hole {7} ' \
-           '{8} ' \
-           '{9} ' \
-           '-exp_frac {10} ' \
-           '-smooth_final {11} ' \
-           '{12} ' \
-           '{13} ' \
-           '-perc_int {14} ' \
-           '-max_inter_iter {15} ' \
-           '-blur_fwhm {16} ' \
-           '-fac {17} '.format(shrink_fac, var_shrink_str, shrink_fac_bot_lim,
-                               avoid_vent_str, niter, pushout_str,
-                               touchup_str, fill_hole, avoid_eyes_str,
-                               use_edge_str, exp_frac, smooth_final,
-                               push_to_edge_str, use_skull_str, perc_int,
-                               max_inter_iter, blur_fwhm, fac)
+    if not avoid_vent:
+        expr = ' '.join([expr, '-no_avoid_vent'])
+
+    if int(niter) != 250:
+        expr = ' '.join([expr, '-niter {0}'.format(niter)])
+
+    if not pushout:
+        expr = ' '.join([expr, '-no_pushout'])
+
+    if not touchup:
+        fill_hole_def = 0
+        expr = ' '.join([expr, '-no_touchup'])
+
+    if int(fill_hole) != fill_hole_def:
+        expr = ' '.join([expr, '-fill_hole {0}'.format(fill_hole)])
+
+    if not avoid_eyes:
+        expr = ' '.join([expr, '-no_avoid_eyes'])
+
+    if float(exp_frac) != 0.1:
+        expr = ' '.join([expr, '-exp_frac {0}'.format(exp_frac)])
+
+    if int(smooth_final) != 20:
+        expr = ' '.join([expr, '-smooth_final {0}'.format(smooth_final)])
+
+    if push_to_edge:
+        expr = ' '.join([expr, '-push_to_edge'])
+
+    if use_skull:
+        expr = ' '.join([expr, '-use_skull'])
+
+    if float(perc_int) != 0:
+        expr = ' '.join([expr, '-perc_int {0}'.format(perc_int)])
+
+    if int(max_inter_iter) != 4:
+        expr = ' '.join([expr, '-max_inter_iter {0}'.format(max_inter_iter)])
+
+    if float(blur_fwhm) != 0:
+        expr = ' '.join([expr, '-blur_fwhm {0}'.format(blur_fwhm)])
+
+    if float(fac) != 1.0:
+        expr = ' '.join([expr, '-fac {0}'.format(fac)])
 
     return expr
 
