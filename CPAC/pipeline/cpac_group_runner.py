@@ -23,6 +23,11 @@ def load_config_yml(config_file):
 
         config = Configuration(config_dict)
 
+        config.logDirectory = os.path.abspath(config.logDirectory)
+        config.workingDirectory = os.path.abspath(config.workingDirectory)
+        config.outputDirectory = os.path.abspath(config.outputDirectory)
+        config.crashLogDirectory = os.path.abspath(config.crashLogDirectory)
+
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \
         	  "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
@@ -1351,7 +1356,7 @@ def manage_processes(procss, output_dir, num_parallel=1):
     pid.close()
 
 
-def run_feat(config_file, pipeline_output_folder):
+def run_feat(config_file, pipeline_output_folder=None):
 
     from multiprocessing import Process
 
@@ -1360,6 +1365,11 @@ def run_feat(config_file, pipeline_output_folder):
 
     # get MAIN pipeline config loaded
     c = load_config_yml(config_file)
+
+    if not pipeline_output_folder:
+        import os
+        pipeline_output_folder = os.path.join(c.outputDirectory, 
+                                              'pipeline_{0}'.c.pipelineName)
 
     # create the analysis DF dictionary
     analysis_dict = prep_analysis_df_dict(config_file,

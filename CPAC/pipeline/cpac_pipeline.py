@@ -147,7 +147,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     sub_dict : dictionary
         subject dictionary with anatomical and functional image paths
     c : Configuration object
-        CPAC pipelin configuration dictionary object
+        CPAC pipeline configuration dictionary object
     strategies : obj
         strategies object describing what strategies to run the pipeline
         through

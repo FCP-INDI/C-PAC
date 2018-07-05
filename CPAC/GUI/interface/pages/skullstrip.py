@@ -240,9 +240,13 @@ class AFNI_options(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='skullstrip_blur_fwhm',
                       type=dtype.NUM,
-                      comment="Blur dataset after spatial normalization.",
+                      comment="Blur dataset after spatial normalization. "
+                              "Recommended when you have lots of CSF in "
+                              "brain and when you have protruding gyri "
+                              "(finger like). If so, recommended value "
+                              "range is 2-4. Otherwise, leave at 0.",
                       validator=CharValidator("no-alpha"),
-                      values="2")
+                      values="0")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
