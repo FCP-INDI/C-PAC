@@ -50,7 +50,10 @@ class ComputerSettings(wx.ScrolledWindow):
                       name='FSLDIR',
                       type=dtype.STR,
                       values=fsl,
-                      comment="Full path to the FSL version to be used by CPAC.\n\nIf you have specified an FSL path in your .bashrc file, this path will be set automatically.")
+                      comment="Full path to the FSL version to be used by "
+                              "CPAC.\n\nIf you have specified an FSL path "
+                              "in your .bashrc file, this path will be set "
+                              "automatically.")
 
         self.page.add(label="Job Scheduler / Resource Manager ",
                       control=control.CHOICE_BOX,

@@ -26,6 +26,7 @@ import click
 #     cpac utils pipe_config
 #         cpac utils pipe_config new_template
 
+
 @click.group()
 def main():
     pass
