@@ -166,7 +166,7 @@ skullstrip_exp_frac :  0.1
 
 
 # Perform aggressive push to edge. This might cause leakage. Default is Off.
-skullstrip_push_to_edge :  True
+skullstrip_push_to_edge :  False
 
 
 # Use outer skull to limit expansion of surface into the skull in case of very strong shading artifacts. Use this only if you have leakage into the skull.
