@@ -4491,8 +4491,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     qc_montage_id_s[3] = 'snr_s'
                     qc_hist_id[3] = 'snr_hist'
 
-            except:
-                logStandardError('QC', 'unable to get resources for SNR plot', '0051')
+            except Exception as e:
+                logStandardError('QC', 'unable to get resources for SNR plot',
+                                 '0051', e)
                 raise
 
             # make motion parameters plot

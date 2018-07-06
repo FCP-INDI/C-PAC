@@ -52,7 +52,7 @@ pipelineName :  cpac_default
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  /tmp
+workingDirectory :  ./cpac_runs/working
 
 
 # Directory where CPAC should write crash logs.
