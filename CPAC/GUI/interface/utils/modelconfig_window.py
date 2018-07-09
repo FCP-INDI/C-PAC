@@ -525,8 +525,7 @@ class ModelConfig(wx.Frame):
         for ctrl in self.page.get_ctrl_list():
             name = ctrl.get_name()
             self.gpa_settings[name] = str(ctrl.get_selection())
-            
-                
+
         ### CHECK PHENOFILE if can open etc.
         # function for file path checking
         def testFile(filepath, paramName):

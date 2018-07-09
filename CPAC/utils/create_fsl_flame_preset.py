@@ -198,6 +198,28 @@ def create_design_matrix_df(group_list, pheno_df=None,
                 # get specific covariates!
                 pheno_df = pheno_df[ev_selections]
 
+            # check for inconsistency with leading zeroes
+            # (sometimes, the sub_ids from individual will be something like
+            #  '0002601' and the phenotype will have '2601')
+            sublist_subs = map_df['participant_id']
+            pheno_subs = pheno_df['participant_id']
+            for sub in sublist_subs:
+                if sub in pheno_subs:
+                    # okay, there's at least one match
+                    break
+            else:
+                new_pheno_subs = [x.lstrip('0') for x in pheno_subs]
+                for sub in sublist_subs:
+                    if sub in new_pheno_subs:
+                        # that's better
+                        pheno_df['participant_id'] = new_pheno_subs
+                        break
+                else:
+                    raise Exception('the participant IDs in your group '
+                                    'analysis participant list and the '
+                                    'participant IDs in your phenotype file '
+                                    'do not match')
+
             # merge
             if pheno_ses_label:
                 design_df = pheno_df.merge(map_df, on=['participant_id'])
@@ -396,6 +418,9 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
             # TODO: message
             raise Exception("more than two groups provided, but this is a"
                             "model for a two-group difference")
+        elif len(group_set) == 0:
+            raise Exception("no groups were found - something went wrong "
+                            "with reading the phenotype information")
 
         # create the two new dummy-coded columns
         # column 1
@@ -718,7 +743,7 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
     else:
         # TODO: msg
         raise Exception
-    
+
     # let's check to make sure it came out right
     #   first third
     for val in condition_ev_one[0:(len(condition_ev_one) / 3) - 1]:
