@@ -1,6 +1,6 @@
 
 
-def load_config_yml(config_file):
+def load_config_yml(config_file, individual=False):
 
     # loads a configuration YAML file
     #
@@ -15,7 +15,6 @@ def load_config_yml(config_file):
     from CPAC.utils import Configuration
 
     try:
-
         config_path = os.path.realpath(config_file)
 
         with open(config_path,"r") as f:
@@ -23,15 +22,16 @@ def load_config_yml(config_file):
 
         config = Configuration(config_dict)
 
-        config.logDirectory = os.path.abspath(config.logDirectory)
-        config.workingDirectory = os.path.abspath(config.workingDirectory)
-        config.outputDirectory = os.path.abspath(config.outputDirectory)
-        config.crashLogDirectory = os.path.abspath(config.crashLogDirectory)
-
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \
         	  "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
         raise Exception(err)
+
+    if individual:
+        config.logDirectory = os.path.abspath(config.logDirectory)
+        config.workingDirectory = os.path.abspath(config.workingDirectory)
+        config.outputDirectory = os.path.abspath(config.outputDirectory)
+        config.crashLogDirectory = os.path.abspath(config.crashLogDirectory)
 
     return config
 
@@ -99,10 +99,27 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
 
     import os
     import glob
+    import pandas as pd
+    import pkg_resources as pp
     from __builtin__ import any as b_any
 
     ext = ".nii"
     nifti_globs = []
+
+    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    try:
+        keys = pd.read_csv(keys_csv)
+    except Exception as e:
+        err = "\n[!] Could not access or read the cpac_outputs.csv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        raise Exception(err)
+
+    derivative_list = list(
+        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+            keys['Values'] == 'z-score']['Resource'])
+    derivative_list = derivative_list + list(
+        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+            keys['Values'] == 'z-stat']['Resource'])
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
@@ -117,8 +134,15 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
     print "\n\nGathering the output file paths from %s..." \
           % pipeline_output_folder
 
-    for resource_name in resource_list:
+    # this is just to keep the fsl feat config file derivative_list entries
+    # nice and lean
+    derivs_to_run = []
+    for derivative_name in derivative_list:
+        for resource_name in resource_list:
+            if resource_name in derivative_name:
+                derivs_to_run.append(derivative_name)
 
+    for resource_name in derivs_to_run:
         glob_string = os.path.join(pipeline_output_folder, "*",
                                        resource_name, "*", "*")
 

@@ -143,7 +143,7 @@ class ModelConfig(wx.Frame):
                               "Regression SCA, you must have more degrees of "
                               "freedom (subjects) than there were time "
                               "series.",
-                    size = (350,170))
+                    size = (350,180))
 
         self.page.add(label="Coding Scheme ", 
                      control=control.CHOICE_BOX, 

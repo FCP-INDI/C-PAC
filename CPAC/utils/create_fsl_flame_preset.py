@@ -147,13 +147,17 @@ def create_design_matrix_df(group_list, pheno_df=None,
     group_list_map = {}
     for part_ses in group_list:
         sub_id = part_ses.split("_")[0]
-        ses_id = part_ses.split("_")[1]
+        try:
+            ses_id = part_ses.split("_")[1]
+        except IndexError:
+            raise Exception('the group analysis participant list may not be '
+                            'in the appropriate format.')
         group_list_map[part_ses] = [sub_id, ses_id, part_ses]
 
     # create a dataframe mapping the 'sub01_ses-1' CPAC-style unique IDs to
     # subject and session columns, like this:
-    #     sub01_ses-1    sub01    ses-1
-    #     sub02_ses-1    sub02    ses-1
+    #     sub01    ses-1    sub01_ses-1
+    #     sub02    ses-1    sub02_ses-1
     map_df = pd.DataFrame.from_dict(group_list_map, orient='index')
 
     # also, rename the columns to be easier
@@ -224,7 +228,7 @@ def create_design_matrix_df(group_list, pheno_df=None,
                 for sub in new_sublist_subs:
                     if sub in pheno_subs:
                         # that's better
-                        map_df['participant'] = new_sublist_subs
+                        map_df['participant_id'] = new_sublist_subs
                         break
                 else:
                     raise Exception('the participant IDs in your group '
@@ -251,7 +255,7 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
     import pandas as pd
 
     contrast_cols = list(design_df.columns)
-    contrast_cols.remove('participant_session_id')
+    contrast_cols.remove('participant_id')
 
     # TODO:
     # if session, if site, remove

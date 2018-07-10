@@ -95,7 +95,7 @@ class FlamePresetsOne(wx.Frame):
                               "Multiple Regression SCA, you must have more "
                               "degrees of freedom (subjects) than there were "
                               "time series.",
-                      size=(350,170))
+                      size=(350,180))
 
         self.page.add(label="Z threshold ",
                       control=control.FLOAT_CTRL,
@@ -402,7 +402,12 @@ class FlamePresetsTwoPheno(wx.Frame):
     def test_pheno_contents(self):
         with open(os.path.abspath(self.gpa_settings['pheno_file']), "rU") as phenoFile:
             phenoHeaderString = phenoFile.readline().rstrip('\r\n')
-            self.phenoHeaderItems = phenoHeaderString.split(',')
+            if '.csv' in self.gpa_settings['pheno_file'] or \
+                    '.CSV' in self.gpa_settings['pheno_file']:
+                self.phenoHeaderItems = phenoHeaderString.split(',')
+            if '.tsv' in self.gpa_settings['pheno_file'] or \
+                    '.TSV' in self.gpa_settings['pheno_file']:
+                self.phenoHeaderItems = phenoHeaderString.split('\t')
 
         if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
             self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
