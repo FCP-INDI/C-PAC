@@ -367,6 +367,10 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
         # drop whatever is not in the inclusion lists
         if inclusion_list:
             new_df = new_df[new_df.participant_id.isin(inclusion_list)]
+
+        if new_df.empty:
+            raise Exception("the group analysis participant list you used "
+                            "resulted in no outputs")
                    
         # unique_resource_id is tuple (resource_id,strat_info)
         if unique_resource_id not in output_df_dict.keys():
@@ -876,7 +880,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
                         # this can be removed/modified once sessions are no
                         # longer integrated in the full unique participant IDs
-                        print newer_pheno_df
                         if "Session" in newer_pheno_df.columns:
                             # TODO: re-visit why there is a "participant_ID"
                             # TODO: column? will this still work without
@@ -903,7 +906,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
                 # iterate over the Series/Scans
                 for series_df_tuple in output_df.groupby("Series"):
-                    print series_df_tuple
                     series = series_df_tuple[0]
                     # series_df = output_df but with only one of the Series
                     series_df = series_df_tuple[1]
@@ -1028,16 +1030,11 @@ def find_other_res_template(template_path, new_resolution):
     if "mm" in template_path:
         template_parts = template_path.rsplit('mm', 1)
 
-        print template_parts
-
         if len(template_parts) < 2:
             # TODO: better message
             raise Exception('no resolution in the file path!')
 
         template_parts[0] = str(new_resolution).join(template_parts[0].rsplit(template_parts[0][-1], 1))
-
-        print template_parts
-
         ref_file = "{0}{1}".format(template_parts[0], template_parts[1])
 
     elif "${resolution_for_func_preproc}" in template_path:
