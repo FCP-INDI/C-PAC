@@ -100,7 +100,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
     import os
     import glob
     import pandas as pd
-    import pkg_resources as pp
+    import pkg_resources as p
     from __builtin__ import any as b_any
 
     ext = ".nii"
@@ -128,21 +128,21 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
 
-    # grab MeanFD_Jenkinson just in case
-    resource_list.append("power_params")
-
     print "\n\nGathering the output file paths from %s..." \
           % pipeline_output_folder
 
     # this is just to keep the fsl feat config file derivative_list entries
     # nice and lean
-    derivs_to_run = []
+    dirs_to_grab = []
     for derivative_name in derivative_list:
         for resource_name in resource_list:
             if resource_name in derivative_name:
-                derivs_to_run.append(derivative_name)
+                dirs_to_grab.append(derivative_name)
 
-    for resource_name in derivs_to_run:
+    # grab MeanFD_Jenkinson just in case
+    dirs_to_grab.append("power_params")
+
+    for resource_name in dirs_to_grab:
         glob_string = os.path.join(pipeline_output_folder, "*",
                                        resource_name, "*", "*")
 
@@ -680,6 +680,8 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                   "{0}\n".format(group_config_file)
             raise Exception(err)
 
+        # removing this due to the recent change
+        '''
         for deriv_name in group_model.derivative_list:
             if deriv_name not in derivatives:
                 err = "\n\n[!] One of the derivative names you provided " \
@@ -688,6 +690,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                       "output name.\n\nConfiguration file: {1}" \
                       "\n".format(deriv_name, group_config_file)
                 raise Exception(err)
+        '''
 
         # load original phenotype CSV into a dataframe
         pheno_df = load_pheno_csv_into_df(group_model.pheno_file)
