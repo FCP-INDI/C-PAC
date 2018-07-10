@@ -16,13 +16,22 @@ def read_group_list_text_file(group_list_text_file):
     return group_list
 
 
-def read_pheno_csv_into_df(pheno_csv):
-    """Read the phenotypic file CSV into a Pandas DataFrame."""
+def read_pheno_csv_into_df(pheno_csv, id_label=None):
+    """Read the phenotypic file CSV or TSV into a Pandas DataFrame."""
 
     import pandas as pd
 
     with open(pheno_csv, "r") as f:
-        pheno_df = pd.read_csv(f)
+        if id_label:
+            if '.tsv' in pheno_csv or '.TSV' in pheno_csv:
+                pheno_df = pd.read_table(f, dtype={id_label: object})
+            else:
+                pheno_df = pd.read_csv(f, dtype={id_label: object})
+        else:
+            if '.tsv' in pheno_csv or '.TSV' in pheno_csv:
+                pheno_df = pd.read_table(f)
+            else:
+                pheno_df = pd.read_csv(f)
 
     return pheno_df
 
@@ -149,21 +158,23 @@ def create_design_matrix_df(group_list, pheno_df=None,
 
     # also, rename the columns to be easier
     map_df = map_df.rename(
-        columns={0: 'participant', 1: 'session', 2: 'participant_id'})
+        columns={0: 'participant_id', 1: 'session_id',
+                 2: 'participant_session_id'})
 
     # sort by ses_id, then sub_id
     #     need everything grouped by session first, in case of the paired
     #     analyses where the first condition is all on top and the second is
     #     all on the bottom
-    map_df = map_df.sort_values(by=['session', 'participant'])
+    map_df = map_df.sort_values(by=['session_id', 'participant_id'])
 
     # drop unique_id column (does it ever need to really be included?)
     # was just keeping it in up until here for mental book-keeping if anything
-    map_df = map_df[['participant_id', 'participant', 'session']]
+    map_df = map_df[['participant_session_id', 'participant_id',
+                     'session_id']]
 
     if pheno_df is None:
         # no phenotypic matrix provided; simpler design models
-        design_df = map_df[['participant_id']]
+        design_df = map_df[['participant_session_id']]
 
     else:
         # if a phenotype CSV file is provided with the data
@@ -179,20 +190,21 @@ def create_design_matrix_df(group_list, pheno_df=None,
                 columns={pheno_sub_label: 'participant_id'})
             if ev_selections:
                 ev_selections.insert(0, 'participant_id')
+            pheno_df['participant_id'] = [str(x) for x in pheno_df['participant_id']]
 
             if pheno_ses_label:
                 # if sessions are important in the model, do this also
                 pheno_df = pheno_df.rename(
-                    columns={pheno_ses_label: 'session'})
+                    columns={pheno_ses_label: 'session_id'})
                 if ev_selections:
-                    ev_selections.append(1, 'session')
+                    ev_selections.append(1, 'session_id')
 
             if pheno_site_label:
                 # and if sites are important as well, same here
                 pheno_df = pheno_df.rename(
-                    columns={pheno_site_label: 'site'})
+                    columns={pheno_site_label: 'site_id'})
                 if ev_selections:
-                    ev_selections.append(2, 'site')
+                    ev_selections.append(2, 'site_id')
 
             if ev_selections:
                 # get specific covariates!
@@ -202,17 +214,17 @@ def create_design_matrix_df(group_list, pheno_df=None,
             # (sometimes, the sub_ids from individual will be something like
             #  '0002601' and the phenotype will have '2601')
             sublist_subs = map_df['participant_id']
-            pheno_subs = pheno_df['participant_id']
+            pheno_subs = list(pheno_df['participant_id'])
             for sub in sublist_subs:
                 if sub in pheno_subs:
                     # okay, there's at least one match
                     break
             else:
-                new_pheno_subs = [x.lstrip('0') for x in pheno_subs]
-                for sub in sublist_subs:
-                    if sub in new_pheno_subs:
+                new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
+                for sub in new_sublist_subs:
+                    if sub in pheno_subs:
                         # that's better
-                        pheno_df['participant_id'] = new_pheno_subs
+                        map_df['participant'] = new_sublist_subs
                         break
                 else:
                     raise Exception('the participant IDs in your group '
@@ -239,7 +251,7 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
     import pandas as pd
 
     contrast_cols = list(design_df.columns)
-    contrast_cols.remove('participant_id')
+    contrast_cols.remove('participant_session_id')
 
     # TODO:
     # if session, if site, remove
@@ -291,7 +303,8 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
     if not output_dir:
         output_dir = os.getcwd()
 
-    id_cols = ["participant_id", "participant", "session", "site"]
+    id_cols = ["participant_session_id", "participant_id", "session_id",
+               "site_id"]
 
     ev_selections = None
     if pheno_df is not None:
@@ -391,7 +404,8 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
     if not output_dir:
         output_dir = os.getcwd()
 
-    id_cols = ["participant_id", "participant", "session", "site"]
+    id_cols = ["participant_session_id", "participant_id", "session_id",
+               "site_id"]
 
     # if the two groups are encoded in one categorical EV/column, then we will
     # have to dummy code them out
@@ -538,7 +552,7 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
         # note: the participant_id column in design_df should be in order, so
         #       the condition_ev should come out in order:
         #           1,1,1,1,-1,-1,-1,-1  (this is checked further down)
-        for sub_ses_id in design_df["participant_id"]:
+        for sub_ses_id in design_df["participant_session_id"]:
             if sub_ses_id.split("_")[-1] == conditions[0]:
                 condition_ev.append(1)
             elif sub_ses_id.split("_")[-1] == conditions[1]:
@@ -556,9 +570,9 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
         # half of this list (will need to ensure these scans exist for each
         # selected derivative in the output directory later on)
 
-        for sub_ses_id in design_df["participant_id"]:
+        for sub_ses_id in design_df["participant_session_id"]:
             condition_ev.append(1)
-        for sub_ses_id in design_df["participant_id"]:
+        for sub_ses_id in design_df["participant_session_id"]:
             condition_ev.append(-1)
 
         # NOTE: there is only one iteration of the sub_ses list in
@@ -594,7 +608,7 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     design_formula = "{0}".format(condition_type)
 
     # create the participant identity columns
-    for sub_ses_id in design_df["participant_id"]:
+    for sub_ses_id in design_df["participant_session_id"]:
         new_part_col = []
         sub_id = sub_ses_id.split("_")[0]
         new_part_label = "participant_{0}".format(sub_id)
@@ -699,7 +713,7 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
         #       the condition_ev's should come out in order:
         #           1,1,1,-1,-1,-1, 0, 0, 0  (this is checked further down)
         #           1,1,1, 0, 0, 0,-1,-1,-1
-        for sub_ses_id in design_df["participant_id"]:
+        for sub_ses_id in design_df["participant_session_id"]:
             if sub_ses_id.split("_")[-1] == conditions[0]:
                 condition_ev_one.append(1)
                 condition_ev_two.append(1)
@@ -722,13 +736,13 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
         # half of this list (will need to ensure these scans exist for each
         # selected derivative in the output directory later on)
 
-        for sub_ses_id in design_df["participant_id"]:
+        for sub_ses_id in design_df["participant_session_id"]:
             condition_ev_one.append(1)
             condition_ev_two.append(1)
-        for sub_ses_id in design_df["participant_id"]:
+        for sub_ses_id in design_df["participant_session_id"]:
             condition_ev_one.append(-1)
             condition_ev_two.append(0)
-        for sub_ses_id in design_df["participant_id"]:
+        for sub_ses_id in design_df["participant_session_id"]:
             condition_ev_one.append(0)
             condition_ev_two.append(-1)
 
@@ -791,7 +805,7 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
     design_formula = "{0} + {1}".format(column_one, column_two)
 
     # create the participant identity columns
-    for sub_ses_id in design_df["participant_id"]:
+    for sub_ses_id in design_df["participant_session_id"]:
         new_part_col = []
         sub_id = sub_ses_id.split("_")[0]
         new_part_label = "participant_{0}".format(sub_id)
@@ -866,39 +880,34 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         preset=None, pheno_file=None, pheno_sub_label=None, output_dir=None,
         model_name=None, covariate=None, condition_type=None, run=False):
 
-    # TODO: set this up to run regular group analysis with no changes to its
-    # TODO: original flow- use the generated pheno as the pheno, use the
-    # TODO: contrasts DF as a custom contrasts matrix, and auto-generate the
-    # TODO: group analysis config YAML as well - but factor in how to have the
-    # TODO: user easily/seamlessly decide on derivatives, output dir, and
-    # TODO: model name
-
-    # TODO: up next- create some kind of CLI to run this easily from the
-    # TODO: command line- test it for single grp AVG, then fix the .grp thing
-    # TODO: THEN continue expanding this
+    # FSL FEAT presets: run regular group analysis with no changes to its
+    # original flow- use the generated pheno as the pheno, use the
+    # contrasts DF as a custom contrasts matrix, and auto-generate the
+    # group analysis config YAML as well
 
     # NOTE: the input parameters above may come in as a dictionary instead
     #       or something
 
     import os
+    import pandas as pd
+    import pkg_resources as p
 
     # make life easy
+    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    try:
+        keys = pd.read_csv(keys_csv)
+    except Exception as e:
+        err = "\n[!] Could not access or read the cpac_outputs.csv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        raise Exception(err)
+
     if derivative_list == 'all':
-        derivative_list = ['alff_to_standard_zstd',
-                           'alff_to_standard_zstd_smooth',
-                           'falff_to_standard_zstd',
-                           'falff_to_standard_zstd_smooth',
-                           'reho_to_standard_zstd',
-                           'reho_to_standard_zstd_smooth',
-                           'sca_roi_files_to_standard_fisher_zstd',
-                           'sca_roi_files_to_standard_fisher_zstd_smooth',
-                           'sca_tempreg_maps_zstat_files',
-                           'sca_tempreg_maps_zstat_files_smooth',
-                           'vmhc_fisher_zstd_zstat_map',
-                           'centrality_outputs_zstd',
-                           'centrality_outputs_zstd_smooth',
-                           'dr_tempreg_maps_zstat_files_to_standard',
-                           'dr_tempreg_maps_zstat_files_to_standard_smooth']
+        derivative_list = list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-score']['Resource'])
+        derivative_list = derivative_list + list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-stat']['Resource'])
 
     if pheno_file and not pheno_sub_label:
         # TODO: message
@@ -953,7 +962,7 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
             # TODO: message
             raise Exception("covariate not provided")
 
-        pheno_df = read_pheno_csv_into_df(pheno_file)
+        pheno_df = read_pheno_csv_into_df(pheno_file, pheno_sub_label)
 
         design_df, contrasts_df, group_config_update = \
             preset_single_group_avg(group_list, pheno_df, covariate=covariate,
@@ -978,7 +987,7 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         #     either way, it needs to be in list form in this case, not string
         covariate = covariate.split(",")
 
-        pheno_df = read_pheno_csv_into_df(pheno_file)
+        pheno_df = read_pheno_csv_into_df(pheno_file, pheno_sub_label)
 
         # in this case, "covariate" gets sent in as a list of two covariates
         design_df, contrasts_df, group_config_update = \

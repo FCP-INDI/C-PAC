@@ -15,7 +15,8 @@ class ModelConfig(wx.Frame):
     def __init__(self, parent, gpa_settings=None):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 650))
+            self, parent=parent, title="CPAC - Create New FSL FEAT Model",
+            size=(900, 650))
 
         if not gpa_settings:
             self.gpa_settings = {}
@@ -127,22 +128,22 @@ class ModelConfig(wx.Frame):
                     name = "derivative_list",
                     type = dtype.LSTR,
                     values = ['ALFF',
-                              'ALFF (smoothed)',
                               'f/ALFF',
-                              'f/ALFF (smoothed)',
                               'ReHo',
-                              'ReHo (smoothed)',
                               'ROI Average SCA',
-                              'ROI Average SCA (smoothed)',
                               'Dual Regression',
-                              'Dual Regression (smoothed)',
                               'Multiple Regression SCA',
-                              'Multiple Regression SCA (smoothed)',
                               'Network Centrality',
-                              'Network Centrality (smoothed)',
                               'VMHC'],
-                    comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
-                    size = (350,160))
+                    comment = "Select which derivatives you would like to "
+                              "include when running group analysis.\n\nWhen "
+                              "including Dual Regression, make sure to "
+                              "correct your P-value for the number of maps "
+                              "you are comparing.\n\nWhen including Multiple "
+                              "Regression SCA, you must have more degrees of "
+                              "freedom (subjects) than there were time "
+                              "series.",
+                    size = (350,170))
 
         self.page.add(label="Coding Scheme ", 
                      control=control.CHOICE_BOX, 

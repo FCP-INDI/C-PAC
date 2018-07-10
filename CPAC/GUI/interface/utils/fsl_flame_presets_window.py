@@ -15,7 +15,7 @@ class FlamePresetsOne(wx.Frame):
     def __init__(self, parent, gpa_settings=None):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - FSL FLAME Presets",
+            self, parent=parent, title="CPAC - FSL FEAT Presets",
             size=(900, 550))
 
         self.parent = parent
@@ -26,7 +26,7 @@ class FlamePresetsOne(wx.Frame):
         self.panel = wx.Panel(self)
         self.window = wx.ScrolledWindow(self.panel, size=(-1, 255))
         self.page = generic_class.GenericClass(self.window,
-                                               " FSL FLAME Group-Level "
+                                               " FSL FEAT Group-Level "
                                                "Analysis - Model Presets")
 
         if not gpa_settings:
@@ -80,19 +80,12 @@ class FlamePresetsOne(wx.Frame):
                       name="derivative_list",
                       type=dtype.LSTR,
                       values=['ALFF',
-                              'ALFF (smoothed)',
                               'f/ALFF',
-                              'f/ALFF (smoothed)',
                               'ReHo',
-                              'ReHo (smoothed)',
                               'ROI Average SCA',
-                              'ROI Average SCA (smoothed)',
                               'Dual Regression',
-                              'Dual Regression (smoothed)',
                               'Multiple Regression SCA',
-                              'Multiple Regression SCA (smoothed)',
                               'Network Centrality',
-                              'Network Centrality (smoothed)',
                               'VMHC'],
                       comment="Select which derivatives you would like to "
                               "include when running group analysis.\n\nWhen "
@@ -102,7 +95,7 @@ class FlamePresetsOne(wx.Frame):
                               "Multiple Regression SCA, you must have more "
                               "degrees of freedom (subjects) than there were "
                               "time series.",
-                      size=(350,160))
+                      size=(350,170))
 
         self.page.add(label="Z threshold ",
                       control=control.FLOAT_CTRL,
@@ -247,7 +240,7 @@ class FlamePresetsOne(wx.Frame):
         elif "One-Sample" in self.gpa_settings["flame_preset"]:
             # no additional info is needed, and we can run the preset
             # generation straight away
-            print "Generating FLAME model configuration...\n"
+            print "Generating FSL FEAT/FLAME model configuration...\n"
             create_fsl_flame_preset.run(self.gpa_settings["participant_list"],
                                         self.gpa_settings["derivative_list"],
                                         self.gpa_settings["z_threshold"],
@@ -271,7 +264,7 @@ class FlamePresetsTwoPheno(wx.Frame):
     def __init__(self, parent, gpa_settings):
 
         wx.Frame.__init__(self, parent=parent,
-                          title="CPAC - FSL Flame Presets",
+                          title="CPAC - FSL FEAT Presets",
                           size=(700, 275))
 
         self.parent = parent
@@ -289,7 +282,7 @@ class FlamePresetsTwoPheno(wx.Frame):
         self.window = wx.ScrolledWindow(self.panel)
 
         self.page = generic_class.GenericClass(self.window,
-                                               " FSL FLAME Group-Level "
+                                               " FSL FEAT Group-Level "
                                                "Analysis - Model Presets")
 
         self.page.add(label="Phenotype/EV File ",
@@ -297,12 +290,7 @@ class FlamePresetsTwoPheno(wx.Frame):
                       name="pheno_file",
                       type=dtype.STR,
                       comment="Full path to a .csv file containing EV "
-                              "information for each subject.\n\nTip: A "
-                              "file in this format (containing a single "
-                              "column listing all subjects run through "
-                              "CPAC) was generated along with the main "
-                              "CPAC subject list (see phenotypic_template_"
-                              "X.csv).",
+                              "information for each subject.",
                       values=self.gpa_settings['pheno_file'])
 
         self.page.add(label="Participant Column Name ",
@@ -466,7 +454,7 @@ class FlamePresetsTwoPheno(wx.Frame):
             preset = "unpaired_two"
 
         # generate the preset files
-        print "Generating FLAME model configuration...\n"
+        print "Generating FSL FEAT/FLAME model configuration...\n"
         create_fsl_flame_preset.run(self.gpa_settings["participant_list"],
                                     self.gpa_settings["derivative_list"],
                                     self.gpa_settings["z_threshold"],
@@ -492,7 +480,7 @@ class FlamePresetsTwoConditions(wx.Frame):
     def __init__(self, parent, gpa_settings):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - FSL Flame Presets",
+            self, parent=parent, title="CPAC - FSL FEAT Presets",
             size=(550, 325))
 
         self.parent = parent
@@ -514,7 +502,7 @@ class FlamePresetsTwoConditions(wx.Frame):
 
         self.page = generic_class.GenericClass(self.window,
                                                " Group-Level Analysis - FSL "
-                                               "FLAME Presets")
+                                               "FEAT Presets")
 
         # TODO
         # text blurb depending on the specific preset
@@ -653,7 +641,7 @@ class FlamePresetsTwoConditions(wx.Frame):
             preset = "tripled_two"
 
         # generate the preset files
-        print "Generating FLAME model configuration...\n"
+        print "Generating FSL FEAT/FLAME model configuration...\n"
         create_fsl_flame_preset.run(self.gpa_settings["participant_list"],
                                     self.gpa_settings["derivative_list"],
                                     self.gpa_settings["z_threshold"],

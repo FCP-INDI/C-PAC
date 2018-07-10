@@ -545,24 +545,18 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     #                     /home/cpac_run_1/output/pipeline_040_ANTS
 
     import pandas as pd
+    import pkg_resources as p
 
-    # TODO
-    # make this a global list somewhere
-    derivatives = ['alff_to_standard_zstd',
-                   'alff_to_standard_zstd_smooth',
-                   'falff_to_standard_zstd',
-                   'falff_to_standard_zstd_smooth',
-                   'reho_to_standard_zstd',
-                   'reho_to_standard_zstd_smooth',
-                   'sca_roi_files_to_standard_fisher_zstd',
-                   'sca_roi_files_to_standard_fisher_zstd_smooth',
-                   'sca_tempreg_maps_zstat_files',
-                   'sca_tempreg_maps_zstat_files_smooth',
-                   'vmhc_fisher_zstd_zstat_map',
-                   'centrality_outputs_zstd',
-                   'centrality_outputs_zstd_smooth',
-                   'dr_tempreg_maps_zstat_files_to_standard',
-                   'dr_tempreg_maps_zstat_files_to_standard_smooth']
+    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    try:
+        keys = pd.read_csv(keys_csv)
+    except Exception as e:
+        err = "\n[!] Could not access or read the cpac_outputs.csv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        raise Exception(err)
+
+    derivatives = list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
+    derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
 
     # Load the MAIN PIPELINE config file into 'c' as a CONFIGURATION OBJECT
     c = load_config_yml(config_file)
@@ -685,7 +679,19 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
             resource_id = unique_resource[0]
 
-            if resource_id not in group_model.derivative_list:
+            # do this backwards, because the group_model.derivative_list is a
+            # list of substrings that would be in a derivative name
+            # for example:
+            #     group_model.derivative_list = ['centrality']
+            #     this would include both 'centrality_zstd' and
+            #     'centrality_smooth_zstd', both of which could be the current
+            #     value of 'resource_id'
+            # also, 'derivatives' is a list of group-analysis eligible
+            # derivatives (standard space, z-score standardized)
+            for derivative in group_model.derivative_list:
+                if derivative in resource_id and resource_id in derivatives:
+                    break
+            else:
                 continue
 
             strat_info = unique_resource[1]

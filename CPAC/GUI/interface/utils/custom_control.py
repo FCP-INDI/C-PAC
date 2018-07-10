@@ -19,7 +19,7 @@ class FileSelectorCombo(wx.combo.ComboCtrl):
         path = ""
         name = ""
         wildcard = "CPAC files (*.gz,*.nii,*.txt,*.mat.*.cnf,*.sch,*.csv)|" \
-                   "*gz;*.nii;*.txt;*.cnf;*.sch;*.mat;*.csv"
+                   "*gz;*.nii;*.txt;*.cnf;*.sch;*.mat;*.csv;*.tsv"
         if self.GetValue():
             path, name = os.path.split(self.GetValue())
         
@@ -379,18 +379,18 @@ class ConfigFslFrame(wx.Frame):
     
     def __init__(self, parent, values):
         wx.Frame.__init__(self, parent,
-                          title="Specify FSL FLAME Model",
+                          title="Specify FSL FEAT Model",
                           size = (680,200))
         sizer_vert = wx.BoxSizer(wx.VERTICAL)
         sizer_horz = wx.BoxSizer(wx.HORIZONTAL)
         panel = wx.Panel(self)
 
-        button0 = wx.Button(panel, -1, 'Choose FLAME Model Preset',
+        button0 = wx.Button(panel, -1, 'Choose FEAT Model Preset',
                             size=(210, 50))
         button0.Bind(wx.EVT_BUTTON, self.onPresetClick)
         sizer_horz.Add(button0, 0, wx.ALIGN_CENTER | wx.TOP, border=15)
 
-        button1 = wx.Button(panel, -1, 'FLAME Model Builder/Editor',
+        button1 = wx.Button(panel, -1, 'FEAT Model Builder/Editor',
                                 size= (210, 50))
         button1.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer_horz.Add(button1, 1, wx.ALIGN_CENTER | wx.TOP, border=15)
@@ -402,7 +402,7 @@ class ConfigFslFrame(wx.Frame):
                                            'GUI/resources/images/help.png'),
                                          wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 
-        label2 = wx.StaticText(panel, -1, label='FSL FLAME Model Config')
+        label2 = wx.StaticText(panel, -1, label='FSL FEAT Model Config')
         self.box2 = FSLModelSelectorCombo(panel, id = wx.ID_ANY,
                                           size = (500, -1))
         
@@ -461,7 +461,7 @@ class ConfigFslFrame(wx.Frame):
                                "in which an F-Test is specified must also "
                                "include a .fts file.", 500)
         elif flag == 2:
-            wx.TipWindow(self, "Full path to a CPAC FSL FLAME group analysis "
+            wx.TipWindow(self, "Full path to a CPAC FSL FEAT group analysis "
                                "model configuration YAML file. You can "
                                "either create one using one of the presets, "
                                "or by using the model builder to build one "
