@@ -443,7 +443,7 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
         # create the two new dummy-coded columns
         # column 1
         # new column name
-        new_name = "{0}-{1}".format(groups[0], group_set[0])
+        new_name = "{0}_{1}".format(groups[0], group_set[0])
         # create new column encoded in 0's
         design_df[new_name] = 0
         # map the relevant values into 1's
@@ -454,7 +454,7 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
 
         # column 2
         # new column name
-        new_name = "{0}-{1}".format(groups[0], group_set[1])
+        new_name = "{0}_{1}".format(groups[0], group_set[1])
         # create new column encoded in 0's
         design_df[new_name] = 0
         # map the relevant values into 1's
@@ -635,12 +635,12 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     #     ses-1 - ses-2:   1,  0,  0,  0, 0...
     #     ses-2 - ses-1:  -1,  0,  0,  0, etc.
     contrast_one.update({
-        "contrasts": "{0}-{1} - {2}-{3}".format(condition_type,
+        "contrasts": "{0}_{1} - {2}_{3}".format(condition_type,
                                                 conditions[0],
                                                 condition_type,
                                                 conditions[1])})
     contrast_two.update({
-        "contrasts": "{0}-{1} - {2}-{3}".format(condition_type,
+        "contrasts": "{0}_{1} - {2}_{3}".format(condition_type,
                                                 conditions[1],
                                                 condition_type,
                                                 conditions[0])})
@@ -834,18 +834,18 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
     #     ses-1 - ses-3:   1,  2,  0,  0,  0...
     #     ses-2 - ses-3:  -1,  1,  0,  0,  0, etc.
     contrast_one.update({
-        "contrasts": "{0}-{1} - {2}-{3}".format(condition_type,
+        "contrasts": "{0}_{1} - {2}_{3}".format(condition_type,
                                                 conditions[0],
                                                 condition_type,
                                                 conditions[1])})
     contrast_two.update({
-        "contrasts": "{0}-{1} - {2}-{3}".format(condition_type,
+        "contrasts": "{0}_{1} - {2}_{3}".format(condition_type,
                                                 conditions[0],
                                                 condition_type,
                                                 conditions[2])})
 
     contrast_three.update({
-        "contrasts": "{0}-{1} - {2}-{3}".format(condition_type,
+        "contrasts": "{0}_{1} - {2}_{3}".format(condition_type,
                                                 conditions[1],
                                                 condition_type,
                                                 conditions[2])})

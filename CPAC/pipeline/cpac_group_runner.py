@@ -65,27 +65,24 @@ def load_text_file(filepath, label="file"):
     return lines_list
 
 
-def load_pheno_csv_into_df(pheno_file):
+def read_pheno_csv_into_df(pheno_csv, id_label=None):
+    """Read the phenotypic file CSV or TSV into a Pandas DataFrame."""
 
-    import os
     import pandas as pd
 
-    if not os.path.isfile(pheno_file):
-        err = "\n\n[!] CPAC says: The group-level analysis phenotype file "\
-              "provided does not exist!\nPath provided: %s\n\n" \
-              % pheno_file
-        raise Exception(err)
+    with open(pheno_csv, "r") as f:
+        if id_label:
+            if '.tsv' in pheno_csv or '.TSV' in pheno_csv:
+                pheno_df = pd.read_table(f, dtype={id_label: object})
+            else:
+                pheno_df = pd.read_csv(f, dtype={id_label: object})
+        else:
+            if '.tsv' in pheno_csv or '.TSV' in pheno_csv:
+                pheno_df = pd.read_table(f)
+            else:
+                pheno_df = pd.read_csv(f)
 
-    if not pheno_file.endswith(".csv"):
-        err = "\n\n[!] CPAC says: The group-level analysis phenotype " \
-              "file should be a CSV file (.csv).\nPath provided: %s\n\n" \
-              % pheno_file
-        raise Exception(err)
-
-    with open(os.path.abspath(pheno_file),"r") as f:
-        pheno_dataframe = pd.read_csv(f)
-
-    return pheno_dataframe
+    return pheno_df
 
 
 def gather_nifti_globs(pipeline_output_folder, resource_list):
@@ -323,19 +320,21 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             
             new_row_dict = {}
             
-            new_row_dict["participant_id"] = unique_id
+            new_row_dict["participant_session_id"] = unique_id
+            new_row_dict["participant_id"] = unique_id.split('_')[0]
+            new_row_dict["session_id"] = unique_id.split('_')[1]
             new_row_dict["Series"] = series_id
                                    
             new_row_dict["Filepath"] = filepath
                         
             if get_motion:
                 # if we're including motion measures
-                power_params_file = find_power_params_file(filepath, \
+                power_params_file = find_power_params_file(filepath,
                     resource_id, series_id)
-                power_params_lines = load_text_file(power_params_file, \
+                power_params_lines = load_text_file(power_params_file,
                     "power parameters file")
                 meanfd_p, meanfd_j, meandvars = \
-                    extract_power_params(power_params_lines, \
+                    extract_power_params(power_params_lines,
                                          power_params_file)
                 new_row_dict["MeanFD_Power"] = meanfd_p
                 new_row_dict["MeanFD_Jenkinson"] = meanfd_j
@@ -343,7 +342,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
             if get_raw_score:
                 # grab raw score for measure mean just in case
-                raw_score_path = grab_raw_score_filepath(filepath, \
+                raw_score_path = grab_raw_score_filepath(filepath,
                                                          resource_id)                    
                 new_row_dict["Raw_Filepath"] = raw_score_path
                        
@@ -366,7 +365,7 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
         
         # drop whatever is not in the inclusion lists
         if inclusion_list:
-            new_df = new_df[new_df.participant_id.isin(inclusion_list)]
+            new_df = new_df[new_df.participant_session_id.isin(inclusion_list)]
 
         if new_df.empty:
             raise Exception("the group analysis participant list you used "
@@ -426,7 +425,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
         if "participant" in col_names:
             num_partic_cols += 1
     if num_partic_cols > 1 and ("session" in pheno_df.columns or "session_column_one" in pheno_df.columns):
-        for part_ses_id in pheno_df["participant_id"]:
+        for part_ses_id in pheno_df["participant_session_id"]:
             if "participant_{0}".format(part_ses_id.split("_")[0]) in pheno_df.columns:
                 continue
             break
@@ -443,8 +442,8 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     # participant IDs new columns
     participant_id_cols = {}
     i = 0
-    for participant_unique_id in list(pheno_df["participant_id"]):
-        part_col = [0] * len(pheno_df["participant_id"])
+    for participant_unique_id in list(pheno_df["participant_session_id"]):
+        part_col = [0] * len(pheno_df["participant_session_id"])
         for session in sessions_list:
             if session in participant_unique_id.split("_")[1]:
                 # generate/update sessions categorical column
@@ -489,7 +488,7 @@ def pheno_series_to_repeated_measures(pheno_df, series_list,
         if "participant" in col_names:
             num_partic_cols += 1
     if num_partic_cols > 1 and "scan" in pheno_df.columns:
-        for part_ses_id in pheno_df["participant_id"]:
+        for part_ses_id in pheno_df["participant_session_id"]:
             if "participant_{0}".format(part_ses_id.split("_")[0]) in pheno_df.columns:
                 continue
             break
@@ -510,9 +509,9 @@ def pheno_series_to_repeated_measures(pheno_df, series_list,
         participant_id_cols = {}
         i = 0
 
-        for participant_unique_id in pheno_df["participant_id"]:
+        for participant_unique_id in pheno_df["participant_session_id"]:
 
-            part_col = [0] * len(pheno_df["participant_id"])
+            part_col = [0] * len(pheno_df["participant_session_id"])
             header_title = "participant_%s" % participant_unique_id
 
             if header_title not in participant_id_cols.keys():
@@ -697,7 +696,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
         '''
 
         # load original phenotype CSV into a dataframe
-        pheno_df = load_pheno_csv_into_df(group_model.pheno_file)
+        pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
 
         # enforce the sub ID label to "Participant"
         pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
@@ -740,10 +739,32 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
             inclusion_list = load_text_file(group_model.participant_list,
                                             "group-level analysis participant list")
             output_df = \
-                output_df[output_df["participant_id"].isin(inclusion_list)]
+                output_df[output_df["participant_session_id"].isin(inclusion_list)]
 
             new_pheno_df = pheno_df.copy()
-            
+
+            # check for inconsistency with leading zeroes
+            # (sometimes, the sub_ids from individual will be something like
+            #  '0002601' and the phenotype will have '2601')
+            sublist_subs = output_df['participant_id']
+            pheno_subs = list(new_pheno_df['participant_id'])
+            for sub in sublist_subs:
+                if sub in pheno_subs:
+                    # okay, there's at least one match
+                    break
+            else:
+                new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
+                for sub in new_sublist_subs:
+                    if sub in pheno_subs:
+                        # that's better
+                        output_df['participant_id'] = new_sublist_subs
+                        break
+                else:
+                    raise Exception('the participant IDs in your group '
+                                    'analysis participant list and the '
+                                    'participant IDs in your phenotype file '
+                                    'do not match')
+
             repeated_measures = False
             repeated_sessions = False
             repeated_series = False
@@ -1399,7 +1420,7 @@ def run_feat(config_file, pipeline_output_folder=None):
     if not pipeline_output_folder:
         import os
         pipeline_output_folder = os.path.join(c.outputDirectory, 
-                                              'pipeline_{0}'.c.pipelineName)
+                                              'pipeline_{0}'.format(c.pipelineName))
 
     # create the analysis DF dictionary
     analysis_dict = prep_analysis_df_dict(config_file,
