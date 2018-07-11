@@ -448,7 +448,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     # participant IDs new columns
     participant_id_cols = {}
     i = 0
-    for participant_unique_id in list(pheno_df["participant_session_id"]):
+    for participant_unique_id in pheno_df["participant_session_id"]:
         part_col = [0] * len(pheno_df["participant_session_id"])
         for session in sessions_list:
             if session in participant_unique_id.split("_")[1]:

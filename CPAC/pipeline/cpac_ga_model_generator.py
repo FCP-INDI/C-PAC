@@ -125,7 +125,7 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
 
     mm_dict_list = []
     
-    for raw_file in list(model_df["Raw_Filepath"]):
+    for raw_file in model_df["Raw_Filepath"]:
     
         mask_string = ["3dmaskave", "-mask", merge_mask, raw_file]
         
@@ -238,7 +238,7 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
     # calculate the ROI means
     roi_dict_list = []
     
-    for raw_file in list(model_df["Raw_Filepath"]):
+    for raw_file in model_df["Raw_Filepath"]:
         
         roi_string = ["3dROIstats", "-mask", roi_mask, raw_file]
 
@@ -336,7 +336,7 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
         if val not in keymap.keys():
             keymap[val] = idx
             idx += 1
-    grp_vector = list(pheno_df[group_ev].map(keymap))
+    grp_vector = pheno_df[group_ev].map(keymap)
             
     # start the split
     pheno_df["subject_key"] = pheno_df["Participant"]
@@ -616,7 +616,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     # create new subject list based on which subjects are left after checking
     # for missing outputs
     new_participant_list = []
-    for part in list(model_df["participant_id"]):
+    for part in model_df["participant_id"]:
         # do this instead of using "set" just in case, to preserve order
         #   only reason there may be duplicates is because of multiple-series
         #   repeated measures runs
@@ -651,7 +651,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
     merge_outfile = os.path.join(model_path, merge_outfile)
 
-    merge_file = create_merged_copefile(list(model_df["Filepath"]),
+    merge_file = create_merged_copefile(model_df["Filepath"],
                                         merge_outfile)
 
     # create merged group mask
@@ -732,7 +732,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     if "Session" in model_df.columns:
         # if these columns were added by the model builder automatically
-        for col in list(model_df.columns):
+        for col in model_df.columns:
             # should only grab the repeated measures-designed participant_{ID}
             # columns, not the "participant_id" column!
             if "participant_" in col and "_id" not in col:
