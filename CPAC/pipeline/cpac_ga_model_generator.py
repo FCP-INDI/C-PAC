@@ -513,7 +513,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # remove file names from preproc_strat
     filename = preproc_strat.split("/")[-1]
-    preproc_strat = preproc_strat.replace(filename,"")
+    preproc_strat = preproc_strat.replace('.nii', '').replace('.gz', '')
     preproc_strat = preproc_strat.lstrip("/").rstrip("/")
 
     # get thresholds

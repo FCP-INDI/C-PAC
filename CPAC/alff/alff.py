@@ -221,6 +221,8 @@ def create_alff(wf_name='alff_workflow'):
     falff.inputs.args = '-float'
     falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c))'
     falff.inputs.outputtype = 'NIFTI_GZ'
+    falff.inputs.out_file = os.path.join(os.path.curdir,
+                                         'falff.nii.gz')
 
     wf.connect(inputNode, 'rest_mask', falff, 'in_file_a')
     wf.connect(stddev_fltrd, 'out_file', falff, 'in_file_b')

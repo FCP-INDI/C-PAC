@@ -293,7 +293,6 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
     # parse each result of each "valid" glob string
     output_dict_list = {}
-    output_df_dict = {}
 
     for nifti_glob_string in nifti_globs:
 
@@ -307,8 +306,9 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             resource_id = second_half_filepath.split("/")[2]
             series_id_string = second_half_filepath.split("/")[3]
             strat_info = second_half_filepath.split(series_id_string)[1]
+            strat_info = strat_info.replace('.nii', '').replace('.gz', '')
             
-            unique_resource_id = (resource_id,strat_info)
+            unique_resource_id = (resource_id, strat_info)
                         
             if unique_resource_id not in output_dict_list.keys():
                 output_dict_list[unique_resource_id] = []
@@ -360,7 +360,10 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
 
     # unique_resource_id is tuple (resource_id,strat_info)
     for unique_resource_id in output_dict_list.keys():
-    
+
+        # NOTE: this dataframe reflects what was found in the C-PAC output
+        #       directory for individual-level analysis outputs,
+        #       NOT what is in the pheno file
         new_df = pd.DataFrame(output_dict_list[unique_resource_id])
         
         # drop whatever is not in the inclusion lists
@@ -368,8 +371,11 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
             new_df = new_df[new_df.participant_session_id.isin(inclusion_list)]
 
         if new_df.empty:
-            raise Exception("the group analysis participant list you used "
-                            "resulted in no outputs")
+            print("No outputs found for {0} for the participant-sessions "
+                  "listed in the the group analysis participant list you "
+                  "used. Skipping generating a model for this "
+                  "output.".format(unique_resource_id))
+            continue
                    
         # unique_resource_id is tuple (resource_id,strat_info)
         if unique_resource_id not in output_df_dict.keys():
