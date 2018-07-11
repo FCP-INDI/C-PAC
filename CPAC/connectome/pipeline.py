@@ -13,7 +13,8 @@ from nilearn.connectome import ConnectivityMeasure
 
 
 class FunctionalConnectivityInputSpec(BaseInterfaceInputSpec):
-    functional = traits.File(exists=True, desc='Functional file. It can be 2-D or a 4-D.', mandatory=True)
+    functional = traits.File(exists=True, desc='Functional file. It can be 2-D or a 4-D.',
+                             mandatory=True)
     metric = traits.Enum('correlation', 'partial correlation', 'tangent',
                          desc='The measure to be used to compute the connectivity matrix',
                          mandatory=True)
@@ -44,13 +45,14 @@ class FunctionalConnectivity(BaseInterface):
         metric_name = self.inputs.metric
         if metric_name == 'partial correlation':
             metric_name = 'partial'
-        
+
         correlation_measure = ConnectivityMeasure(kind=metric,
                                                   vectorize=self.inputs.vectorize,
                                                   discard_diagonal=True)
         correlation_matrix = correlation_measure.fit_transform([data])[0]
 
-        correlation_file = os.path.join(os.getcwd(), 'correlation_%s.npy' % metric_name)
+        correlation_file = os.path.join(
+            os.getcwd(), 'correlation_%s.npy' % metric_name)
         np.save(correlation_file, correlation_matrix)
 
         return runtime
@@ -63,7 +65,8 @@ class FunctionalConnectivity(BaseInterface):
         if metric_name == 'partial correlation':
             metric_name = 'partial'
 
-        correlation_file = os.path.join(os.getcwd(), 'correlation_%s.npy' % metric_name)
+        correlation_file = os.path.join(
+            os.getcwd(), 'correlation_%s.npy' % metric_name)
         outputs['connectivity'] = correlation_file
         return outputs
 
@@ -106,7 +109,7 @@ def create_connectivity(name='connectivity'):
     .. [1] G. Varoquaux et al. “Detection of brain functional-connectivity difference in post-stroke patients using group-level covariance modeling, MICCAI 2010.
     
     """
-    
+
     inputspec = pe.Node(util.IdentityInterface(fields=['functional',
                                                        'metric',
                                                        'vectorize']),
