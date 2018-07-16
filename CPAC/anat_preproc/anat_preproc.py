@@ -225,7 +225,7 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False,
             preproc.connect(anat_reorient, 'out_file',anat_skullstrip, 'in_file')
             preproc.connect(skullstrip_args, 'expr', anat_skullstrip, 'args')
             preproc.connect(anat_skullstrip, 'out_file', outputNode, 'skullstrip')
-            
+
 
         else:
             anat_skullstrip = pe.Node(interface=fsl.BET(),name='anat_skullstrip')

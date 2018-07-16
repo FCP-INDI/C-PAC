@@ -3154,13 +3154,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for roi_path in tsa_roi_dict.keys():
 
             for analysis_type in tsa_roi_dict[roi_path].split(","):
-
                 analysis_type = analysis_type.replace(" ", "")
 
-            if analysis_type not in ts_analysis_dict.keys():
+                if analysis_type not in ts_analysis_dict.keys():
                     ts_analysis_dict[analysis_type] = []
-
-            ts_analysis_dict[analysis_type].append(roi_path)
+                ts_analysis_dict[analysis_type].append(roi_path)
 
     if 1 in c.runSCA:
 
@@ -3176,7 +3174,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for roi_path in sca_roi_dict.keys():
 
             for analysis_type in sca_roi_dict[roi_path].split(","):
-
                 analysis_type = analysis_type.replace(" ", "")
 
                 if analysis_type not in sca_analysis_dict.keys():
@@ -4369,12 +4366,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
    
     if 1 in c.generateQualityControlImages:
 
-        preproc, out_file = strat.get_node_from_resource_pool('functional_preprocessed')
-        brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
-        func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-        anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
-        mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
-
         # register color palettes
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'red.py')), 'red')
@@ -4395,6 +4386,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for strat in strat_list:
 
             nodes = getNodeList(strat)
+
+            preproc, out_file = strat.get_node_from_resource_pool(
+                'functional_preprocessed')
+            brain_mask, mask_file = strat.get_node_from_resource_pool(
+                'functional_brain_mask')
+            func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool(
+                'functional_to_anat_linear_xfm')
+            anat_ref, ref_file = strat.get_node_from_resource_pool(
+                'anatomical_brain')
+            mfa, mfa_file = strat.get_node_from_resource_pool(
+                'mean_functional_in_anat')
 
             # make SNR plot
             try:

@@ -357,7 +357,6 @@ tsa_roi_paths:
     /cpac_resources/cpac_templates/rois_3mm.nii.gz: Avg
 
 
-
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
 roiTSOutputs :  [True, True]
 

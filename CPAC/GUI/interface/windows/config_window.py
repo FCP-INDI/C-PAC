@@ -131,9 +131,9 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
 
         self.AddPage(page4,"Skull-Strip", wx.ID_ANY)
-        self.AddSubPage(page5,"SkullStripOptions", wx.ID_ANY)
-        self.AddSubPage(page6, "AFNI options", wx.ID_ANY)
-        self.AddSubPage(page7,"BET options", wx.ID_ANY)
+        self.AddSubPage(page5,"Skull-Stripping ", wx.ID_ANY)
+        self.AddSubPage(page6, "3dSkullStrip options", wx.ID_ANY)
+        self.AddSubPage(page7,"FSL BET options", wx.ID_ANY)
 
         self.AddPage(page8, "Anatomical Preprocessing", wx.ID_ANY)
         self.AddSubPage(page9, "Anatomical Registration", wx.ID_ANY)

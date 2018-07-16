@@ -511,9 +511,8 @@ runROITimeseries :  [0]
 tsa_roi_paths: None
 
 
-
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
-roiTSOutputs :  [False, False]
+roiTSOutputs :  [True, True]
 
 
 # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.

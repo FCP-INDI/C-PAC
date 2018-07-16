@@ -13,7 +13,11 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, output_size, bootstrap_list, proc_mem, similarity_metric, cross_cluster=False, roi2_mask_file=None, blocklength=1, affinity_threshold=0.5, out_dir=None, run=True):
+def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps,
+                      timeseries_bootstraps, n_clusters, output_size,
+                      bootstrap_list, proc_mem, similarity_metric,
+                      cross_cluster=False, roi2_mask_file=None, blocklength=1,
+                      affinity_threshold=0.5, out_dir=None, run=True):
     """Run the 'template_workflow' function to execute the modular workflow
     with the provided inputs.
     :type input_resource: str
@@ -70,16 +74,6 @@ def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, time
     basc.inputs.inputspec.roi2_mask_file=roi2_mask_file
     basc.inputs.inputspec.blocklength=blocklength
     basc.inputs.inputspec.affinity_threshold=affinity_threshold
-    
-    
-    # shitty Steve pseudo-code that is shitty
-#    thing = basc.outputs.outputspec.individual_cluster_voxel_scores_imgs
-#    print(thing)
-#    print(thing)
-#    print(thing)
-#    for filepath in basc.outputs.outputspec.individual_cluster_voxel_scores_imgs:
-#        filename = os.path.basename(filepath)
-#        resource_pool[filename] = filepath
 
     resource_pool['group_stability_matrix'] = (basc, 'outputspec.group_stability_matrix')
     resource_pool['clusters_G'] = (basc, 'outputspec.clusters_G')
@@ -101,12 +95,11 @@ def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, time
         node, out_file = resource_pool[output]
         workflow.connect(node, out_file, ds, output)
 
-    plugin_args = { 'n_procs' : int(proc_mem[0]),'memory_gb': int(proc_mem[1])}#, 'raise_insufficient': True, 'maxtasksperchild': 1,'chunksize':1}
-
+    plugin_args = {'n_procs' : int(proc_mem[0]),
+                   'memory_gb': int(proc_mem[1])}
 
     if run == True:
-        workflow.run(plugin='MultiProc', plugin_args= plugin_args) #
-                     # {'n_procs': 1})
+        workflow.run(plugin='MultiProc', plugin_args=plugin_args)
         outpath = glob.glob(os.path.join(workflow_dir, "*", "*"))
         return outpath
     else:

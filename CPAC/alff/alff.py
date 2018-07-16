@@ -191,7 +191,7 @@ def create_alff(wf_name='alff_workflow'):
 
     stddev_fltrd.inputs.outputtype = 'NIFTI_GZ'
     stddev_fltrd.inputs.out_file = os.path.join(os.path.curdir,
-                                                'residual_filtered_3dT.nii.gz')
+                                                'alff.nii.gz')
     wf.connect(bandpass, 'out_file', stddev_fltrd, 'in_file')
     wf.connect(get_option_string, 'option_string', stddev_fltrd, 'options')
 

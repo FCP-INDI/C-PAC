@@ -127,6 +127,7 @@ class ROITimeseries(wx.ScrolledWindow):
                               '\n\nNote that all ROI masks values are converted '
                               'to integers within C-PAC.',
                       values="None")
+
         '''
 
         self.page.add(label="Output Options ",
