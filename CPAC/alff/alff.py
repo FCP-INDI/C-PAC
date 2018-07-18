@@ -177,27 +177,28 @@ def create_alff(wf_name='alff_workflow'):
     wf.connect(input_node, 'rest_mask', get_option_string, 'mask')
 
     # standard deviation over frequency
-    stddev_fltrd = pe.Node(interface=preprocess.TStat(),
-                           name='stddev_fltrd')
+    stddev_filtered = pe.Node(interface=preprocess.TStat(),
+                           name='stddev_filtered')
 
-    stddev_fltrd.inputs.outputtype = 'NIFTI_GZ'
-    stddev_fltrd.inputs.out_file = os.path.join(os.getcwd(),
+    stddev_filtered.inputs.outputtype = 'NIFTI_GZ'
+    stddev_filtered.inputs.out_file = os.path.join(os.getcwd(),
                                                 'alff.nii.gz')
-    wf.connect(bandpass, 'out_file', stddev_fltrd, 'in_file')
-    wf.connect(get_option_string, 'option_string', stddev_fltrd, 'options')
+                                                
+    wf.connect(bandpass, 'out_file', stddev_filtered, 'in_file')
+    wf.connect(get_option_string, 'option_string', stddev_filtered, 'options')
 
-    wf.connect(stddev_fltrd, 'out_file', output_node, 'alff_img')
+    wf.connect(stddev_filtered, 'out_file', output_node, 'alff_img')
 
     # standard deviation of the unfiltered nuisance corrected image
-    stddev_unfltrd = pe.Node(interface=preprocess.TStat(),
-                             name='stddev_unfltrd')
+    stddev_unfiltered = pe.Node(interface=preprocess.TStat(),
+                             name='stddev_unfiltered')
 
-    stddev_unfltrd.inputs.outputtype = 'NIFTI_GZ'
-    stddev_unfltrd.inputs.out_file = os.path.join(os.getcwd(),
+    stddev_unfiltered.inputs.outputtype = 'NIFTI_GZ'
+    stddev_unfiltered.inputs.out_file = os.path.join(os.getcwd(),
                                                   'residual_3dT.nii.gz')
 
-    wf.connect(input_node, 'rest_res', stddev_unfltrd, 'in_file')
-    wf.connect(get_option_string, 'option_string', stddev_unfltrd, 'options')
+    wf.connect(input_node, 'rest_res', stddev_unfiltered, 'in_file')
+    wf.connect(get_option_string, 'option_string', stddev_unfiltered, 'options')
 
     # falff calculations
     falff = pe.Node(interface=preprocess.Calc(), name='falff')
@@ -209,8 +210,8 @@ def create_alff(wf_name='alff_workflow'):
                                          'falff.nii.gz')
 
     wf.connect(input_node, 'rest_mask', falff, 'in_file_a')
-    wf.connect(stddev_fltrd, 'out_file', falff, 'in_file_b')
-    wf.connect(stddev_unfltrd, 'out_file', falff, 'in_file_c')
+    wf.connect(stddev_filtered, 'out_file', falff, 'in_file_b')
+    wf.connect(stddev_unfiltered, 'out_file', falff, 'in_file_c')
 
     wf.connect(falff, 'out_file', output_node, 'falff_img')
 
