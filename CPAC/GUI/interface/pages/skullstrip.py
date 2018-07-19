@@ -370,7 +370,7 @@ class BET_options(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='bet_vertical_gradient',
                       comment="Vertical gradient in fractional intensity threshold (-1,1)",
-                      type=dtype.LNUM,
+                      type=dtype.NUM,
                       validator=CharValidator("no-alpha"),
                       values="0.000")
         self.page.set_sizer()
