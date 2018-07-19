@@ -12,7 +12,7 @@ def get_opt_string(mask):
     Returns
     -------
     opt_str : string
-        ptions
+        Command args
     
     """
 
