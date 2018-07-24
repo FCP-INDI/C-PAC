@@ -761,3 +761,67 @@ mdmr_permutations :  500
 mdmr_parallel_nodes :  1
 
 
+connectome:
+
+  roi:
+    - aal
+    - harvard_oxford
+    - power
+    - basc
+    - ward
+    - k_means
+    - group_ica
+    - dict_learning
+
+  connectivity: 
+    - partial
+    - tangent
+    - correlation
+
+  classifier:
+
+    - type: knn
+      parameters:
+
+    - type: random_forest
+      parameters:
+
+    - type: naive_bayes
+      parameters:
+
+    - type: ridge
+      parameters:
+
+    - type: svc
+      parameters:
+        penalty: l1
+      feature_extraction:
+        - type: anova
+          parameters:
+            percentile: 10
+          
+    - type: svc
+      parameters:
+        penalty: l2
+      feature_extraction:
+        - type: anova
+          parameters:
+            percentile: 10
+
+    - type: svc
+      parameters:
+        penalty: l1
+
+    - type: svc
+      parameters:
+        penalty: l2
+
+    - type: logistic
+      parameters:
+        penalty: l1
+
+    - type: logistic
+      parameters:
+        penalty: l2
+
+
