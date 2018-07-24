@@ -3,6 +3,7 @@
 import os
 import nipype.pipeline.engine as pe
 from nipype.interfaces.afni import preprocess
+import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string
 
 
@@ -177,12 +178,16 @@ def create_alff(wf_name='alff_workflow'):
     wf.connect(input_node, 'rest_mask', get_option_string, 'mask')
 
     # standard deviation over frequency
-    stddev_filtered = pe.Node(interface=preprocess.TStat(),
-                           name='stddev_filtered')
+    try:
+        from nipype.interfaces.afni import utils as afni_utils
+        stddev_filtered = pe.Node(interface=afni_utils.TStat(),
+                                  name='stddev_filtered')
+    except ImportError:
+        stddev_filtered = pe.Node(interface=preprocess.TStat(),
+                                  name='stddev_filtered')
 
     stddev_filtered.inputs.outputtype = 'NIFTI_GZ'
-    stddev_filtered.inputs.out_file = os.path.join(os.getcwd(),
-                                                'alff.nii.gz')
+    stddev_filtered.inputs.out_file = os.path.join(os.getcwd(), 'alff.nii.gz')
                                                 
     wf.connect(bandpass, 'out_file', stddev_filtered, 'in_file')
     wf.connect(get_option_string, 'option_string', stddev_filtered, 'options')
@@ -190,24 +195,31 @@ def create_alff(wf_name='alff_workflow'):
     wf.connect(stddev_filtered, 'out_file', output_node, 'alff_img')
 
     # standard deviation of the unfiltered nuisance corrected image
-    stddev_unfiltered = pe.Node(interface=preprocess.TStat(),
-                             name='stddev_unfiltered')
+    try:
+        stddev_unfiltered = pe.Node(interface=afni_utils.TStat(),
+                                    name='stddev_unfiltered')
+    except UnboundLocalError:
+        stddev_unfiltered = pe.Node(interface=preprocess.TStat(),
+                                    name='stddev_unfiltered')
 
     stddev_unfiltered.inputs.outputtype = 'NIFTI_GZ'
     stddev_unfiltered.inputs.out_file = os.path.join(os.getcwd(),
-                                                  'residual_3dT.nii.gz')
+                                                     'residual_3dT.nii.gz')
 
     wf.connect(input_node, 'rest_res', stddev_unfiltered, 'in_file')
-    wf.connect(get_option_string, 'option_string', stddev_unfiltered, 'options')
+    wf.connect(get_option_string, 'option_string', stddev_unfiltered,
+               'options')
 
     # falff calculations
-    falff = pe.Node(interface=preprocess.Calc(), name='falff')
+    try:
+        falff = pe.Node(interface=afni_utils.Calc(), name='falff')
+    except UnboundLocalError:
+        falff = pe.Node(interface=preprocess.Calc(), name='falff')
 
     falff.inputs.args = '-float'
     falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c))'
     falff.inputs.outputtype = 'NIFTI_GZ'
-    falff.inputs.out_file = os.path.join(os.getcwd(),
-                                         'falff.nii.gz')
+    falff.inputs.out_file = os.path.join(os.getcwd(), 'falff.nii.gz')
 
     wf.connect(input_node, 'rest_mask', falff, 'in_file_a')
     wf.connect(stddev_filtered, 'out_file', falff, 'in_file_b')
