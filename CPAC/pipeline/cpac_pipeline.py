@@ -633,13 +633,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             try:
                 node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_reorient')
-                node, out_file = strat.get_node_from_resource_pool(
                     'anatomical_brain')
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.input_brain')
 
-                
+                node, out_file = strat.get_node_from_resource_pool(
+                    'anatomical_reorient')
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.input_skull')
 

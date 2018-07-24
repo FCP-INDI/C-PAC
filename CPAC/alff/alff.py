@@ -187,7 +187,8 @@ def create_alff(wf_name='alff_workflow'):
                                   name='stddev_filtered')
 
     stddev_filtered.inputs.outputtype = 'NIFTI_GZ'
-    stddev_filtered.inputs.out_file = os.path.join(os.getcwd(), 'alff.nii.gz')
+    stddev_filtered.inputs.out_file = os.path.join(os.path.curdir,
+                                                   'alff.nii.gz')
                                                 
     wf.connect(bandpass, 'out_file', stddev_filtered, 'in_file')
     wf.connect(get_option_string, 'option_string', stddev_filtered, 'options')
@@ -203,7 +204,7 @@ def create_alff(wf_name='alff_workflow'):
                                     name='stddev_unfiltered')
 
     stddev_unfiltered.inputs.outputtype = 'NIFTI_GZ'
-    stddev_unfiltered.inputs.out_file = os.path.join(os.getcwd(),
+    stddev_unfiltered.inputs.out_file = os.path.join(os.path.curdir,
                                                      'residual_3dT.nii.gz')
 
     wf.connect(input_node, 'rest_res', stddev_unfiltered, 'in_file')
@@ -219,7 +220,7 @@ def create_alff(wf_name='alff_workflow'):
     falff.inputs.args = '-float'
     falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c))'
     falff.inputs.outputtype = 'NIFTI_GZ'
-    falff.inputs.out_file = os.path.join(os.getcwd(), 'falff.nii.gz')
+    falff.inputs.out_file = os.path.join(os.path.curdir, 'falff.nii.gz')
 
     wf.connect(input_node, 'rest_mask', falff, 'in_file_a')
     wf.connect(stddev_filtered, 'out_file', falff, 'in_file_b')
