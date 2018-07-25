@@ -764,14 +764,98 @@ mdmr_parallel_nodes :  1
 connectome:
 
   roi:
-    - aal
-    - harvard_oxford
-    - power
-    - basc
-    - ward
-    - k_means
-    - group_ica
-    - dict_learning
+    - type: aal
+      parameters:
+
+    - type: harvard_oxford
+      parameters:
+
+    - type: power
+      parameters:
+
+    - type: basc
+      parameters:
+
+    - type: ward
+      parameters: 40
+
+    - type: ward
+      parameters: 60
+
+    - type: ward
+      parameters: 80
+
+    - type: ward
+      parameters: 100
+
+    - type: ward
+      parameters: 120
+
+    - type: ward
+      parameters: 150
+
+    - type: ward
+      parameters: 200
+
+    - type: ward
+      parameters: 300
+
+    - type: k_means
+      parameters: 40
+
+    - type: k_means
+      parameters: 60
+
+    - type: k_means
+      parameters: 80
+
+    - type: k_means
+      parameters: 100
+
+    - type: k_means
+      parameters: 120
+
+    - type: k_means
+      parameters: 150
+
+    - type: k_means
+      parameters: 200
+
+    - type: k_means
+      parameters: 300
+
+    - type: group_ica
+      parameters:
+        components: 40
+    - type: group_ica
+      parameters:
+        components: 60
+    - type: group_ica
+      parameters:
+        components: 80
+    - type: group_ica
+      parameters:
+        components: 100
+    - type: group_ica
+      parameters:
+        components: 120
+
+    - type: dict_learning
+      parameters:
+        components: 40
+    - type: dict_learning
+      parameters:
+        components: 60
+    - type: dict_learning
+      parameters:
+        components: 80
+    - type: dict_learning
+      parameters:
+        components: 100
+    - type: dict_learning
+      parameters:
+        components: 120
+
 
   connectivity: 
     - partial
@@ -823,5 +907,3 @@ connectome:
     - type: logistic
       parameters:
         penalty: l2
-
-
