@@ -20,6 +20,7 @@ from nipype.interfaces.base import BaseInterface, \
 def test_wf():
 
     from CPAC.connectome.cross_validation import CVInterface
+    from CPAC.connectome.classifiers import SVM
 
     import numpy as np
     import nibabel as nb
@@ -27,15 +28,9 @@ def test_wf():
     wf = pe.Workflow(name='test')
 
     cv = pe.Node(CVInterface(), name='cv')
-    cv.inputs.folds = 5
-    cv.inputs.X = [
-        'a1', 'a2', 'a3',
-        'b1', 'b2', 'b3',
-        'c1', 'c2', 'c3',
-        'd1', 'd2', 'd3',
-        'e1', 'e2', 'e3',
-    ]
-    cv.inputs.y = ['asd'] * len(cv.inputs.X)
+    cv.inputs.folds = 2
+    cv.inputs.X = np.array([[-1, -1], [1, 1], [2, 1], [-2, -1]])
+    cv.inputs.y = np.array([1, 2, 2, 1])
     cv.synchronize = True
 
     def std_func(X, y, fold, model=None):
@@ -49,20 +44,10 @@ def test_wf():
         function=std_func
     )
 
-    def svm_func(X, y, fold, model=None):
-        print('SVM ' + ('Train ' if not model else 'Test ') + str(fold))
-        print(X, y)
-        return (X, y, fold, model if model else True)
-
-    svm = util.Function(
-        input_names=['X', 'y', 'fold', 'model'],
-        output_names=['X', 'y', 'fold', 'model'],
-        function=svm_func
-    )
-
     std_train = pe.MapNode(interface=std, name='std_train', iterfield=['X', 'y', 'fold'])
     std_valid = pe.MapNode(interface=std, name='std_valid', iterfield=['X', 'y', 'fold', 'model'])
 
+    svm = SVM()
     svm_train = pe.MapNode(interface=svm, name='svm_train', iterfield=['X', 'y', 'fold'])
     svm_valid = pe.MapNode(interface=svm, name='svm_valid', iterfield=['X', 'y', 'fold', 'model'])
 
@@ -87,6 +72,8 @@ def test_wf():
     wf.connect(svm_train, 'model', svm_valid, 'model')
 
     wf.base_dir = '/tmp/cv'
+
+    wf.write_graph(graph2use='exec')
 
     runtime = wf.run(plugin='Linear')
 

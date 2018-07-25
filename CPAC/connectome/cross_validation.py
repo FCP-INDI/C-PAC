@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.base import BaseInterface, \
@@ -12,13 +13,10 @@ from sklearn.preprocessing import LabelEncoder
 class CVInputSpec(BaseInterfaceInputSpec):
     folds = traits.Int(mandatory=True)
 
-    X = traits.List(trait=traits.String,
-                           mandatory=True)
+    X = traits.Array(mandatory=True)
+    y = traits.Array(mandatory=False)
 
-    y = traits.List(trait=traits.String,
-                    mandatory=False)
-
-    stratification = traits.List(trait=traits.String,
+    stratification = traits.List(trait=traits.Any,
                                  mandatory=False)
 
 
@@ -28,11 +26,11 @@ class CVOutputSpec(TraitedSpec):
 
     fold = traits.List(trait=traits.Int)
 
-    train_X = traits.List(trait=traits.List(trait=traits.String))
-    train_y = traits.List(trait=traits.List(trait=traits.Int))
+    train_X = traits.List(trait=traits.Array)
+    train_y = traits.List(trait=traits.Array)
 
-    valid_X = traits.List(trait=traits.List(trait=traits.String))
-    valid_y = traits.List(trait=traits.List(trait=traits.Int))
+    valid_X = traits.List(trait=traits.Array)
+    valid_y = traits.List(trait=traits.Array)
 
 
 class CVInterface(BaseInterface):
@@ -47,11 +45,11 @@ class CVInterface(BaseInterface):
         y = self.inputs.y
 
         self._le = None
-        if y:
+        if isinstance(y, np.ndarray):
             self._le = LabelEncoder()
             self._le.fit(y)
 
-        kf = KFold(n_splits=self.inputs.folds)
+        kf = KFold(n_splits=self.inputs.folds, shuffle=False)
         self._folds = list(kf.split(X))
 
         return runtime
@@ -66,34 +64,32 @@ class CVInterface(BaseInterface):
 
         outputs = self._outputs().get()
 
-        if y:
+        if isinstance(y, np.ndarray):
             y = self._le.transform(y)
-            outputs['train_y'] = [g(y, d[0]) for d in self._folds]
-            outputs['valid_y'] = [g(y, d[1]) for d in self._folds]
+            outputs['train_y'] = [y[d[0]] for d in self._folds]
+            outputs['valid_y'] = [y[d[1]] for d in self._folds]
             outputs['label_encoder'] = self._le
-        outputs['train_X'] = [g(X, d[0]) for d in self._folds]
-        outputs['valid_X'] = [g(X, d[1]) for d in self._folds]
+        outputs['train_X'] = [X[d[0]] for d in self._folds]
+        outputs['valid_X'] = [X[d[1]] for d in self._folds]
         outputs['fold'] = list(range(self.inputs.folds))
 
         return outputs
 
 
 class CVedInputSpec(BaseInterfaceInputSpec):
-    X = traits.List(trait=traits.File(exists=True),
-                    mandatory=True)
-    y = traits.List(trait=traits.Int,
-                    mandatory=False)
+    X = traits.Array(mandatory=True)
+    y = traits.Array(mandatory=False)
 
-    model = trait=traits.File(exists=True, mandatory=False)
+    fold = traits.Int(mandatory=True)
+    model = traits.Any(mandatory=False)
 
 
 class CVedOutputSpec(TraitedSpec):
-    X = traits.List(trait=traits.File(exists=True),
-                    mandatory=True)
-    y = traits.List(trait=traits.Int,
-                    mandatory=False)
+    X = traits.Array(mandatory=True)
+    y = traits.Array(mandatory=False)
 
-    model = trait=traits.File(exists=True, mandatory=False)
+    fold = traits.Int(mandatory=True)
+    model = traits.Any(mandatory=False)
 
 
 class CVedInterface(BaseInterface):
@@ -109,13 +105,14 @@ class CVedInterface(BaseInterface):
     def _run_interface(self, runtime):
         self._model = self.inputs.model
 
-        if not model:
+        if not self._model:
             self._model = self.fit(self.inputs.X, self.inputs.y)
 
         return runtime
 
     def _list_outputs(self):
         outputs = self._outputs().get()
-        outputs['X'], outputs['y'] = self._model.transform(self.inputs.X, self.inputs.y)
+        outputs['X'], outputs['y'] = self.transform(self._model, self.inputs.X, self.inputs.y)
         outputs['model'] = self._model
+        outputs['fold'] = self.inputs.fold
         return outputs
