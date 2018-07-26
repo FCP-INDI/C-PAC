@@ -75,7 +75,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     expr = ''
     defaults = dict(
-        fill_hole=0 if touchup else 10,
+        fill_hole=10 if touchup else 0,
         shrink_fac=0.6,
         shrink_fac_bot_lim=0.4 if use_edge else 0.65,
         niter=250,
@@ -96,7 +96,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
     if float(shrink_fac_bot_lim) != defaults['shrink_fac_bot_lim']:
         expr += ' -shrink_fac_bot_lim {0}'.format(shrink_fac_bot_lim)
 
-    if use_edge:
+    if not use_edge:
         expr += ' -no_use_edge'
 
     if not avoid_vent:

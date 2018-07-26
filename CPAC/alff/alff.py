@@ -163,7 +163,7 @@ def create_alff(wf_name='alff_workflow'):
     bandpass = pe.Node(interface=preprocess.Bandpass(),
                        name='bandpass_filtering')
     bandpass.inputs.outputtype = 'NIFTI_GZ'
-    bandpass.inputs.out_file = os.path.join(os.getcwd(),
+    bandpass.inputs.out_file = os.path.join(os.path.curdir(),
                                             'residual_filtered.nii.gz')
 
     wf.connect(input_node_hp, 'hp', bandpass, 'highpass')
