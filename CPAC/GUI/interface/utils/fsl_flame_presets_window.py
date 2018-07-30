@@ -60,7 +60,7 @@ class FlamePresetsOne(wx.Frame):
                               "Paired Two-Group Difference (Two-Sample Paired T-Test)",
                               "Tripled Two-Group Difference ('Tripled' T-Test)"])
 
-        self.page.add(label="Participant Inclusion List (Optional) ",
+        self.page.add(label="Participant Inclusion List ",
                       control=control.COMBO_BOX,
                       name="participant_list",
                       type=dtype.STR,

@@ -435,10 +435,16 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
         if len(group_set) > 2:
             # TODO: message
             raise Exception("more than two groups provided, but this is a"
-                            "model for a two-group difference")
+                            "model for a two-group difference\n\ngroups "
+                            "found in column:\n{0}".format(str(group_set)))
         elif len(group_set) == 0:
             raise Exception("no groups were found - something went wrong "
                             "with reading the phenotype information")
+        elif len(group_set) == 1:
+            raise Exception("only one group found in the column provided, "
+                            "but this is a model for a two-group difference"
+                            "\n\ngroups found in column:\n"
+                            "{0}".format(str(group_set)))
 
         # create the two new dummy-coded columns
         # column 1
