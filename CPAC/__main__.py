@@ -33,6 +33,12 @@ def main():
 
 
 @main.command()
+def version():
+    import CPAC
+    print('C-PAC version: {0}'.format(CPAC.__version__))
+
+
+@main.command()
 def gui():
     import CPAC.GUI
     CPAC.GUI.run()

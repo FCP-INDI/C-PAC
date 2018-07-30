@@ -929,7 +929,7 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         group_list_text_file = os.path.join(output_dir, model_name,
                                             "gpa_participant_list_"
                                             "{0}.txt".format(model_name))
-    else:
+    elif os.path.isfile(group_list_text_file):
         group_list = read_group_list_text_file(group_list_text_file)
 
     group_config = {"participant_list": group_list_text_file,

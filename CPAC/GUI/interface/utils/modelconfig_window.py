@@ -20,7 +20,7 @@ class ModelConfig(wx.Frame):
 
         if not gpa_settings:
             self.gpa_settings = {}
-            self.gpa_settings['participant_list'] = ''
+            self.gpa_settings['participant_list'] = 'None'
             self.gpa_settings['pheno_file'] = ''
             self.gpa_settings['participant_id_label'] = ''
             self.gpa_settings['design_formula'] = ''
@@ -544,10 +544,22 @@ class ModelConfig(wx.Frame):
                 errDlgFileTest.Destroy()
                 raise Exception
 
-        testFile(self.gpa_settings['participant_list'], 'Participant List')
+        '''
+        # get participant inclusion list
+        self.subs = []
+        if '/' in self.gpa_settings['participant_list'] and \
+                '.' in self.gpa_settings['participant_list']:
+            testFile(self.gpa_settings['participant_list'], 'Participant List')
+            subFile = open(
+                os.path.abspath(self.gpa_settings['participant_list']))
+            sub_IDs = subFile.readlines()
+            for sub in sub_IDs:
+                self.subs.append(sub.rstrip("\n"))
+        '''
+
+        # deal with phenotype file
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
-        subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
         phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
@@ -567,14 +579,9 @@ class ModelConfig(wx.Frame):
             raise Exception
             
         # some more checks
-        sub_IDs = subFile.readlines()
-        self.subs = []
-        
-        for sub in sub_IDs:
-            self.subs.append(sub.rstrip("\n"))        
-        
         pheno_rows = phenoFile.readlines()
-        
+
+        '''
         for row in pheno_rows:
         
             # check if the pheno file produces any rows such as ",,,,," due
@@ -589,6 +596,7 @@ class ModelConfig(wx.Frame):
                 for sub in self.subs:  
                     if sub in row:
                         break
+        '''
 
         for ctrl in self.page.get_ctrl_list():
 
@@ -1273,7 +1281,8 @@ class ModelConfig(wx.Frame):
             raise Exception
 
         column_names = dmatrix.design_info.column_names
-        
+
+        '''
         subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
 
         sub_IDs = subFile.readlines()
@@ -1300,7 +1309,8 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
                 
             raise Exception
-        
+        '''
+
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings,
                                        dmatrix, column_names)

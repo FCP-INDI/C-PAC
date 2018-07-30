@@ -33,7 +33,7 @@ class FlamePresetsOne(wx.Frame):
             # if this window is being opened for the first time
             self.gpa_settings = {}
             self.gpa_settings["flame_preset"] = ""
-            self.gpa_settings["participant_list"] = ""
+            self.gpa_settings["participant_list"] = "None"
             self.gpa_settings['derivative_list'] = ""
             self.gpa_settings['z_threshold'] = 2.3
             self.gpa_settings['p_threshold'] = 0.05
@@ -60,7 +60,7 @@ class FlamePresetsOne(wx.Frame):
                               "Paired Two-Group Difference (Two-Sample Paired T-Test)",
                               "Tripled Two-Group Difference ('Tripled' T-Test)"])
 
-        self.page.add(label="Participant List ",
+        self.page.add(label="Participant Inclusion List (Optional) ",
                       control=control.COMBO_BOX,
                       name="participant_list",
                       type=dtype.STR,
@@ -73,7 +73,7 @@ class FlamePresetsOne(wx.Frame):
                               "uration builder for individual-level "
                               "analysis. This can be used as is, or "
                               "modified, or used as a template.",
-                      values="")
+                      values=self.gpa_settings['participant_list'])
 
         self.page.add(label="Select Derivatives ",
                       control=control.CHECKLIST_BOX,
@@ -103,7 +103,7 @@ class FlamePresetsOne(wx.Frame):
                       type=dtype.NUM,
                       comment="Only voxels with a Z-score higher than this "
                               "value will be considered significant.",
-                      values=2.3)
+                      values=self.gpa_settings['z_threshold'])
 
         self.page.add(label="Cluster Significance Threshold (P-value) ",
                       control=control.FLOAT_CTRL,
@@ -112,7 +112,7 @@ class FlamePresetsOne(wx.Frame):
                       comment="Significance threshold (P-value) to use when "
                               "doing cluster correction for multiple "
                               "comparisons.",
-                      values=0.05)
+                      values=self.gpa_settings['p_threshold'])
 
         self.page.add(label="Model Name ",
                       control=control.TEXT_BOX,

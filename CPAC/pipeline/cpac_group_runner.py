@@ -566,7 +566,7 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     return pheno_df, dropped_parts
 
 
-def prep_analysis_df_dict(config_file, pipeline_output_folder):
+def prep_feat_inputs(config_file, pipeline_output_folder):
     
     # Preps group analysis run
 
@@ -577,6 +577,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     #                   example:
     #                     /home/cpac_run_1/output/pipeline_040_ANTS
 
+    import os
     import pandas as pd
     import pkg_resources as p
 
@@ -620,8 +621,20 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
         group_model = group_model_tuple[1]
 
-        inclusion = load_text_file(group_model.participant_list,
-                                   "group-level analysis participant list")
+        if '.' in group_model.participant_list:
+            if not os.path.isfile(group_model.participant_list):
+                raise Exception('\n[!] C-PAC says: Your participant '
+                                'inclusion list is not a valid file!\n\n'
+                                'File path: {0}'
+                                '\n'.format(group_model.participant_list))
+
+        if os.path.isfile(group_model.participant_list):
+            inclusion = load_text_file(group_model.participant_list,
+                                       "group-level analysis participant "
+                                       "list")
+        else:
+            inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+
         full_inclusion_list = full_inclusion_list + inclusion
 
         full_output_measure_list = full_output_measure_list + \
@@ -742,8 +755,13 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
             # prune the output_df for this specific group model and output +
             # preprocessing strategy
-            inclusion_list = load_text_file(group_model.participant_list,
-                                            "group-level analysis participant list")
+            if os.path.isfile(group_model.participant_list):
+                inclusion_list = load_text_file(group_model.participant_list,
+                                                "group-level analysis "
+                                                "participant list")
+            else:
+                inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+
             output_df = \
                 output_df[output_df["participant_session_id"].isin(inclusion_list)]
 
@@ -948,6 +966,61 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                                    strat_info, series)] = newer_pheno_df
 
     return analysis_dict
+
+
+def run_feat(config_file, pipeline_output_folder=None):
+
+    from multiprocessing import Process
+
+    # let's get the show on the road
+    procss = []
+
+    # get MAIN pipeline config loaded
+    c = load_config_yml(config_file)
+
+    if not pipeline_output_folder:
+        import os
+        pipeline_output_folder = os.path.join(c.outputDirectory,
+                                              'pipeline_{0}'.format(c.pipelineName))
+
+    # create the analysis DF dictionary
+    analysis_dict = prep_feat_inputs(config_file,
+                                     pipeline_output_folder)
+
+    for unique_resource_id in analysis_dict.keys():
+        # unique_resource_id is a 5-long tuple:
+        #    ( model name, group model config file, output measure name,
+        #          preprocessing strategy string,
+        #          series_id or "repeated_measures" )
+
+        model_name = unique_resource_id[0]
+        group_config_file = unique_resource_id[1]
+        resource_id = unique_resource_id[2]
+        preproc_strat = unique_resource_id[3]
+        series_or_repeated = unique_resource_id[4]
+
+        model_df = analysis_dict[unique_resource_id]
+
+        if not c.runOnGrid:
+            from CPAC.pipeline.cpac_ga_model_generator import \
+                prep_group_analysis_workflow
+
+            procss.append(Process(target=prep_group_analysis_workflow,
+                                  args=(model_df, config_file, model_name,
+                                        group_config_file, resource_id,
+                                        preproc_strat,
+                                        series_or_repeated)))
+        else:
+            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
+                  "been implemented to handle runs on a cluster or " \
+                  "grid.\n\nPlease turn off 'Run CPAC On A Cluster/" \
+                  "Grid' in order to continue with group-level " \
+                  "analysis. This will submit the job to only one " \
+                  "node, however.\n\nWe will update users on when this " \
+                  "feature will be available through release note " \
+                  "announcements.\n\n"
+
+    manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
 
 
 def run_cwas_group(output_dir, working_dir, roi_file,
@@ -1411,61 +1484,6 @@ def manage_processes(procss, output_dir, num_parallel=1):
                         idx += 1
 
     pid.close()
-
-
-def run_feat(config_file, pipeline_output_folder=None):
-
-    from multiprocessing import Process
-
-    # let's get the show on the road
-    procss = []
-
-    # get MAIN pipeline config loaded
-    c = load_config_yml(config_file)
-
-    if not pipeline_output_folder:
-        import os
-        pipeline_output_folder = os.path.join(c.outputDirectory, 
-                                              'pipeline_{0}'.format(c.pipelineName))
-
-    # create the analysis DF dictionary
-    analysis_dict = prep_analysis_df_dict(config_file,
-                                          pipeline_output_folder)
-
-    for unique_resource_id in analysis_dict.keys():
-        # unique_resource_id is a 5-long tuple:
-        #    ( model name, group model config file, output measure name,
-        #          preprocessing strategy string,
-        #          series_id or "repeated_measures" )
-
-        model_name = unique_resource_id[0]
-        group_config_file = unique_resource_id[1]
-        resource_id = unique_resource_id[2]
-        preproc_strat = unique_resource_id[3]
-        series_or_repeated = unique_resource_id[4]
-
-        model_df = analysis_dict[unique_resource_id]
-
-        if not c.runOnGrid:
-            from CPAC.pipeline.cpac_ga_model_generator import \
-                prep_group_analysis_workflow
-
-            procss.append(Process(target=prep_group_analysis_workflow,
-                                  args=(model_df, config_file, model_name,
-                                        group_config_file, resource_id,
-                                        preproc_strat,
-                                        series_or_repeated)))
-        else:
-            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
-                  "been implemented to handle runs on a cluster or " \
-                  "grid.\n\nPlease turn off 'Run CPAC On A Cluster/" \
-                  "Grid' in order to continue with group-level " \
-                  "analysis. This will submit the job to only one " \
-                  "node, however.\n\nWe will update users on when this " \
-                  "feature will be available through release note " \
-                  "announcements.\n\n"
-
-    manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
 
 
 def run(config_file, pipeline_output_folder):
