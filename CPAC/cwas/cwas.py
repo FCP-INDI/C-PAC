@@ -22,15 +22,15 @@ def joint_mask(subjects, mask_file):
     import nibabel as nb
     import numpy as np
     import os
-    from CPAC.pipeline.new_cpac_ga_model_generator import (
-        create_merged_copefile, create_merged_mask)
+    from CPAC.pipeline.cpac_ga_model_generator import (
+        create_merged_copefile, create_merge_mask)
     
     if not mask_file:
         files = list(subjects.values())
         cope_file = os.path.join(os.getcwd(), 'joint_cope.nii.gz')
         mask_file = os.path.join(os.getcwd(), 'joint_mask.nii.gz')
         create_merged_copefile(files, cope_file)
-        create_merged_mask(cope_file, mask_file)
+        create_merge_mask(cope_file, mask_file)
 
     return mask_file
 

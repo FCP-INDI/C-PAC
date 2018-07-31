@@ -1,4 +1,5 @@
 
+import os
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -11,7 +12,7 @@ from .cwas import (
 )
 
 
-def create_cwas(name='cwas'):
+def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     """
     Connectome Wide Association Studies
     
@@ -76,6 +77,11 @@ def create_cwas(name='cwas'):
     
     """
     
+    if not working_dir:
+        working_dir = os.path.join(os.getcwd(), 'MDMR_work_dir')
+    if not crash_dir:
+        crash_dir = os.path.join(os.getcwd(), 'MDMR_crash_dir')
+
     inputspec = pe.Node(util.IdentityInterface(fields=['roi',
                                                        'subjects',
                                                        'regressor',
@@ -90,6 +96,9 @@ def create_cwas(name='cwas'):
                          name='outputspec')
     
     cwas = pe.Workflow(name=name)
+    cwas.base_dir = working_dir
+    cwas.config['execution'] = {'hash_method': 'timestamp',
+                                'crashdump_dir': os.path.abspath(crash_dir)}
     
     ccb = pe.Node(util.Function(input_names=['mask_file',
                                              'batches'],

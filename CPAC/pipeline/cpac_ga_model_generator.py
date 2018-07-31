@@ -562,8 +562,10 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # create path for output directory
     out_dir = os.path.join(group_config_obj.output_dir,
-                           "group_analysis_results_%s" % pipeline_ID,
-                           "group_model_%s" % model_name, resource_id,
+                           'cpac_group_analysis',
+                           'FSL_FEAT',
+                           'pipeline_{0}'.format(pipeline_ID),
+                           'group_model_{0}'.format(model_name), resource_id,
                            series_or_repeated_label, preproc_strat)
 
     if 'sca_roi' in resource_id:
@@ -602,10 +604,12 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # generate working directory for this output's group analysis run
     work_dir = os.path.join(pipeline_config_obj.workingDirectory,
-                            "group_analysis", second_half_out.lstrip("/"))
+                            'cpac_group_analysis', 'FSL_FEAT', 
+                            second_half_out.lstrip("/"))
 
     log_dir = os.path.join(pipeline_config_obj.logDirectory,
-                           "group_analysis", second_half_out.lstrip("/"))
+                           'cpac_group_analysis', 'FSL_FEAT',
+                           second_half_out.lstrip("/"))
 
     # create the actual directories
     create_dir(model_path, "group analysis output")

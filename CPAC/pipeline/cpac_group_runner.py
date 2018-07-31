@@ -85,7 +85,7 @@ def read_pheno_csv_into_df(pheno_csv, id_label=None):
     return pheno_df
 
 
-def gather_nifti_globs(pipeline_output_folder, resource_list):
+def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
 
     # the number of directory levels under each participant's output folder
     # can vary depending on what preprocessing strategies were chosen, and
@@ -117,6 +117,9 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
     derivative_list = derivative_list + list(
         keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
             keys['Values'] == 'z-stat']['Resource'])
+
+    if pull_func:
+        derivative_list = derivative_list + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
@@ -385,11 +388,11 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
 
 
 def gather_outputs(pipeline_folder, resource_list, inclusion_list,
-                       get_motion, get_raw_score):
+                   get_motion, get_raw_score, get_func=False):
 
     # probably won't have a session list due to subject ID format!
 
-    nifti_globs = gather_nifti_globs(pipeline_folder, resource_list)
+    nifti_globs = gather_nifti_globs(pipeline_folder, resource_list, get_func)
     output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder,
                            get_motion, get_raw_score)
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
@@ -1023,7 +1026,7 @@ def run_feat(config_file, pipeline_output_folder=None):
     manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
 
 
-def run_cwas_group(output_dir, working_dir, roi_file,
+def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
                    regressor_file, participant_column, columns,
                    permutations, parallel_nodes, inclusion=None):
 
@@ -1032,18 +1035,26 @@ def run_cwas_group(output_dir, working_dir, roi_file,
     from multiprocessing import pool
     from CPAC.cwas.pipeline import create_cwas
 
-    output_dir = os.path.abspath(output_dir)
+    pipeline_dir = os.path.abspath(pipeline_dir)
+
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'MDMR',
+                           os.path.basename(pipeline_dir))
+
     working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'MDMR',
-                               os.path.basename(output_dir))
+                               os.path.basename(pipeline_dir))
+
+    crash_dir = os.path.join(crash_dir, 'cpac_group_analysis', 'MDMR',
+                             os.path.basename(pipeline_dir))
 
     inclusion_list = None
     if inclusion:
         inclusion_list = load_text_file(inclusion, "MDMR participant "
                                                    "inclusion list")
 
-    output_df_dct = gather_outputs(output_dir,
+    output_df_dct = gather_outputs(pipeline_dir,
                                    ["functional_to_standard"],
-                                   inclusion_list, False, False)
+                                   inclusion_list, False, False,
+                                   get_func=True)
 
     for preproc_strat in output_df_dct.keys():
         # go over each preprocessing strategy
@@ -1066,12 +1077,14 @@ def run_cwas_group(output_dir, working_dir, roi_file,
                 p.split("_")[0]: f
                 for p, f in
                 zip(
-                    df_dct[df_scan].Participant,
+                    df_dct[df_scan].participant_id,
                     df_dct[df_scan].Filepath
                 )
             }
 
-            cwas_wf = create_cwas(name="MDMR_{0}".format(df_scan))
+            cwas_wf = create_cwas(name="MDMR_{0}".format(df_scan),
+                                  working_dir=working_dir,
+                                  crash_dir=crash_dir)
             cwas_wf.inputs.inputspec.subjects = func_paths
             cwas_wf.inputs.inputspec.roi = roi_file
             cwas_wf.inputs.inputspec.regressor = regressor_file
@@ -1094,6 +1107,7 @@ def run_cwas(pipeline_config):
 
     output_dir = pipeconfig_dct["outputDirectory"]
     working_dir = pipeconfig_dct["workingDirectory"]
+    crash_dir = pipeconfig_dct["crashLogDirectory"]
 
     roi_file = pipeconfig_dct["mdmr_roi_file"]
     regressor_file = pipeconfig_dct["mdmr_regressor_file"]
@@ -1106,10 +1120,16 @@ def run_cwas(pipeline_config):
     if not inclusion or "None" in inclusion or "none" in inclusion:
         inclusion = None
 
-    run_cwas_group(output_dir, working_dir, roi_file,
-                   regressor_file, participant_column, columns,
-                   permutations, parallel_nodes,
-                   inclusion=inclusion)
+    pipeline_dirs = []
+    for dirname in os.listdir(output_dir):
+        if "pipeline_" in dirname:
+            pipeline_dirs.append(os.path.join(output_dir, dirname))
+
+    for pipeline in pipeline_dirs:
+        run_cwas_group(pipeline, output_dir, working_dir, crash_dir, roi_file,
+                       regressor_file, participant_column, columns,
+                       permutations, parallel_nodes,
+                       inclusion=inclusion)
 
 
 def find_other_res_template(template_path, new_resolution):
@@ -1253,7 +1273,8 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
     output_df_dct = gather_outputs(pipeline_dir,
                                    ["functional_to_standard",
                                     "functional_mni"],
-                                   inclusion_list, False, False)
+                                   inclusion_list, False, False,
+                                   get_func=True)
 
     for preproc_strat in output_df_dct.keys():
         # go over each preprocessing strategy
