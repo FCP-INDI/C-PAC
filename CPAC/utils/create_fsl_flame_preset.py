@@ -151,6 +151,14 @@ def create_design_matrix_df(group_list, pheno_df=None,
     # kill duplicates
     pheno_df = pheno_df.drop_duplicates()
 
+    # replace spaces and dashes with underscores, to prevent confusion with 
+    # the Patsy design formula
+    rename_pheno_cols = {}
+    for col_name in pheno_df.columns:
+        if ' ' in col_name or '-' in col_name:
+            rename_pheno_cols.update({col_name: col_name.replace(' ', '_').replace('-', '_')})
+    pheno_df = pheno_df.rename(columns=rename_pheno_cols)
+
     # map the participant-session IDs to just participant IDs
     group_list_map = {}
     for part_ses in group_list:
@@ -336,6 +344,11 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
     id_cols = ["participant_session_id", "participant_id", "session_id",
                "site_id"]
 
+    # change spaces and dashes to underscores to prevent confusion with the
+    # Patsy design formula
+    covariate = covariate.lstrip(' ').rstrip(' ')
+    covariate = covariate.replace(' ', '_').replace('-', '_')
+
     ev_selections = None
     if pheno_df is not None:
         if covariate and pheno_sub_label:
@@ -437,6 +450,15 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
     id_cols = ["participant_session_id", "participant_id", "session_id",
                "site_id"]
 
+    # change spaces and dashes to underscores to prevent confusion with the
+    # Patsy design formula
+    old_groups = groups
+    groups = []
+    for group in old_groups:
+        group = group.lstrip(' ').rstrip(' ')
+        group = group.replace(' ', '_').replace('-', '_')
+        groups.append(group)
+
     # if the two groups are encoded in one categorical EV/column, then we will
     # have to dummy code them out
     #     if this is the case, then "groups" will be a list with only one
@@ -455,6 +477,15 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
 
         # get full range of values in one-column categorical EV
         group_set = list(set(design_df[groups[0]]))
+
+        # run this again!
+        # change spaces and dashes to underscores to prevent confusion with the
+        # Patsy design formula
+        new_group_set = []
+        for group in group_set:
+            group = group.lstrip(' ').rstrip(' ')
+            group = group.replace(' ', '_').replace('-', '_')
+            new_group_set.append(group)
 
         # this preset is for an unpaired two-group difference- should only be
         # two groups encoded in this EV!
@@ -475,7 +506,7 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
         # create the two new dummy-coded columns
         # column 1
         # new column name
-        new_name = "{0}_{1}".format(groups[0], group_set[0])
+        new_name = "{0}_{1}".format(groups[0], new_group_set[0])
         # create new column encoded in 0's
         design_df[new_name] = 0
         # map the relevant values into 1's
@@ -486,7 +517,7 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
 
         # column 2
         # new column name
-        new_name = "{0}_{1}".format(groups[0], group_set[1])
+        new_name = "{0}_{1}".format(groups[0], new_group_set[1])
         # create new column encoded in 0's
         design_df[new_name] = 0
         # map the relevant values into 1's

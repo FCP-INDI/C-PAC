@@ -334,7 +334,7 @@ class ModelConfig(wx.Frame):
                     new_derlist = []
 
                     for val in values:
-                        new_derlist.append(val)                      
+                        new_derlist.append(val)       
 
                     ctrl.set_value(new_derlist)
 

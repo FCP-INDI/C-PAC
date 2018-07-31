@@ -462,7 +462,10 @@ class Control(wx.Control):
                 elif self.get_type() in [control_types.INT_CTRL,
                                          control_types.FLOAT_CTRL]:
                     if str(val) != 'None':
-                        val = ast.literal_eval(val)
+                        try:
+                            val = ast.literal_eval(val)
+                        except:
+                            pass
                     self.ctrl.SetValue(val)
                 elif self.get_type() in [control_types.COMBO_BOX,
                                          control_types.DIR_COMBO_BOX,
