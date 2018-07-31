@@ -518,7 +518,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # get thresholds
     z_threshold = float(group_config_obj.z_threshold[0])
-
     p_threshold = float(group_config_obj.p_threshold[0])
 
     ftest_list = []
@@ -651,7 +650,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
     merge_outfile = os.path.join(model_path, merge_outfile)
 
-    merge_file = create_merged_copefile(model_df["Filepath"],
+    merge_file = create_merged_copefile(model_df["Filepath"].tolist(),
                                         merge_outfile)
 
     # create merged group mask

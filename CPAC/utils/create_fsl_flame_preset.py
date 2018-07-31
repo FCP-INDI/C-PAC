@@ -82,6 +82,11 @@ def write_dataframe_to_csv(matrix_df, out_file=None):
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+    try:
+        matrix_df = matrix_df.drop(labels='participant_session_id', axis=1)
+    except ValueError:
+        pass
+
     matrix_df.to_csv(out_file, index=False)
 
     if os.path.exists(out_file):
@@ -143,6 +148,9 @@ def create_design_matrix_df(group_list, pheno_df=None,
 
     import pandas as pd
 
+    # kill duplicates
+    pheno_df = pheno_df.drop_duplicates()
+
     # map the participant-session IDs to just participant IDs
     group_list_map = {}
     for part_ses in group_list:
@@ -194,7 +202,7 @@ def create_design_matrix_df(group_list, pheno_df=None,
                 columns={pheno_sub_label: 'participant_id'})
             if ev_selections:
                 ev_selections.insert(0, 'participant_id')
-            pheno_df['participant_id'] = [str(x) for x in pheno_df['participant_id']]
+            sort_by = ['participant_id']
 
             if pheno_ses_label:
                 # if sessions are important in the model, do this also
@@ -202,6 +210,9 @@ def create_design_matrix_df(group_list, pheno_df=None,
                     columns={pheno_ses_label: 'session_id'})
                 if ev_selections:
                     ev_selections.append(1, 'session_id')
+                # again, sort by session ID first in case of repeated
+                # measures, where the sessions have to be all together first
+                sort_by.insert(0, 'session_id')
 
             if pheno_site_label:
                 # and if sites are important as well, same here
@@ -219,11 +230,19 @@ def create_design_matrix_df(group_list, pheno_df=None,
             #  '0002601' and the phenotype will have '2601')
             sublist_subs = map_df['participant_id']
             pheno_subs = list(pheno_df['participant_id'])
+
+            for index, row in pheno_df.iterrows():
+                pheno_sub_id = str(row['participant_id'])
+                for sub_id in sublist_subs:
+                    if str(sub_id).lstrip('0') == pheno_sub_id:
+                        pheno_df.at[index, 'participant_id'] = sub_id
+
             for sub in sublist_subs:
                 if sub in pheno_subs:
                     # okay, there's at least one match
                     break
             else:
+                '''
                 new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
                 for sub in new_sublist_subs:
                     if sub in pheno_subs:
@@ -231,17 +250,22 @@ def create_design_matrix_df(group_list, pheno_df=None,
                         map_df['participant_id'] = new_sublist_subs
                         break
                 else:
-                    raise Exception('the participant IDs in your group '
-                                    'analysis participant list and the '
-                                    'participant IDs in your phenotype file '
-                                    'do not match')
-
+                '''
+                raise Exception('the participant IDs in your group '
+                                'analysis participant list and the '
+                                'participant IDs in your phenotype file '
+                                'do not match')
+            
             # merge
             if pheno_ses_label:
                 design_df = pheno_df.merge(map_df, on=['participant_id'])
             else:
-                design_df = pheno_df.merge(map_df[['participant_id']],
+                design_df = pheno_df.merge(map_df[['participant_id',
+                                                   'participant_session_id']],
                                            on='participant_id')
+
+            design_df = design_df.sort_values(sort_by)
+
 
     return design_df
 
@@ -253,6 +277,8 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
     design matrix."""
 
     import pandas as pd
+
+    design_df = design_df.drop(labels='participant_session_id', axis=1)
 
     contrast_cols = list(design_df.columns)
     contrast_cols.remove('participant_id')
@@ -363,7 +389,7 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
         design_formula = "{0} + {1}".format(design_formula, covariate)
 
     group_config = {"pheno_file": design_mat_path,
-                    "ev_selections": {"demean": [covariate],
+                    "ev_selections": {"demean": [str(covariate)],
                                       "categorical": ["Group_Mean"]},
                     "design_formula": design_formula,
                     "group_sep": "Off",
@@ -510,10 +536,10 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
 
     group_config = {"pheno_file": design_mat_path,
                     "ev_selections": {"demean": [],
-                                      "categorical": groups},
+                                      "categorical": str(groups)},
                     "design_formula": design_formula,
                     "group_sep": "On",
-                    "grouping_var": groups,
+                    "grouping_var": str(groups),
                     "sessions_list": [],
                     "series_list": [],
                     "custom_contrasts": contrasts_mat_path,
@@ -912,12 +938,8 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         raise Exception(err)
 
     if derivative_list == 'all':
-        derivative_list = list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-                keys['Values'] == 'z-score']['Resource'])
-        derivative_list = derivative_list + list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-                keys['Values'] == 'z-stat']['Resource'])
+        derivative_list = ['alff', 'falff', 'reho', 'sca_roi', 'sca_tempreg',
+                           'vmhc', 'centrality', 'dr_tempreg']
 
     if pheno_file and not pheno_sub_label:
         # TODO: message
@@ -937,6 +959,11 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
                                             "{0}.txt".format(model_name))
     elif os.path.isfile(group_list_text_file):
         group_list = read_group_list_text_file(group_list_text_file)
+        # write out a group analysis sublist text file so that it can be
+        # linked in the group analysis config yaml
+        group_list_text_file = os.path.join(output_dir, model_name,
+                                            "gpa_participant_list_"
+                                            "{0}.txt".format(model_name))
 
     group_config = {"participant_list": group_list_text_file,
                     "participant_id_label": "participant_id",
@@ -944,8 +971,8 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
                     "custom_roi_mask": None,
                     "derivative_list": derivative_list,
                     "coding_scheme": ["Treatment"],
-                    "z_threshold": [z_thresh],
-                    "p_threshold": [p_thresh],
+                    "z_threshold": [float(z_thresh)],
+                    "p_threshold": [float(p_thresh)],
                     "contrasts": [],
                     "f_tests": []}
 
@@ -1079,7 +1106,7 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         raise Exception("not one of the valid presets")
 
     # write participant list text file
-    write_group_list_text_file(design_df["participant_id"],
+    write_group_list_text_file(design_df["participant_session_id"],
                                group_list_text_file)
 
     # write design matrix CSV
