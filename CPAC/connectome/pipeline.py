@@ -15,7 +15,7 @@ from nilearn.connectome import ConnectivityMeasure
 class FunctionalConnectivityInputSpec(BaseInterfaceInputSpec):
     functional = traits.File(exists=True, desc='Functional file. It can be 2-D or a 4-D.',
                              mandatory=True)
-    metric = traits.Enum('correlation', 'partial correlation', 'tangent',
+    metric = traits.Enum('correlation', 'partial correlation', 'partial', 'tangent',
                          desc='The measure to be used to compute the connectivity matrix',
                          mandatory=True)
     vectorize = traits.Bool(desc='If True, connectivity matrices are reshaped into 1D '
@@ -71,7 +71,7 @@ class FunctionalConnectivity(BaseInterface):
         return outputs
 
 
-def create_connectivity(name='connectivity'):
+def create_connectome_study(configuration, name='connectivity'):
     """
     Functional Connectivity
     
@@ -92,7 +92,7 @@ def create_connectivity(name='connectivity'):
     
     Workflow Inputs::
     
-        inputspec.functional : string (nifti file)
+        inputspec.functional : string
             Path of the subject's functional nifti file.
         inputspec.metric : string
             Metric to compute connectivity: correlation,
@@ -101,8 +101,8 @@ def create_connectivity(name='connectivity'):
         
     Workflow Outputs::
 
-        outputspec.connectivity : string (nifti file)
-            Pseudo F values of CWAS
+        outputspec.connectivity : string
+           Path to numpy file with correlation matrix
     
     References
     ----------
@@ -110,25 +110,50 @@ def create_connectivity(name='connectivity'):
     
     """
 
-    inputspec = pe.Node(util.IdentityInterface(fields=['functional',
-                                                       'metric',
-                                                       'vectorize']),
+    inputspec = pe.Node(util.IdentityInterface(fields=[]),
                         name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['connectivity']),
+    outputspec = pe.Node(util.IdentityInterface(fields=[]),
                          name='outputspec')
 
     wf = pe.Workflow(name=name)
 
+    {
+    'classifier': [{'parameters': None, 'type': 'knn'},
+                    {'parameters': None, 'type': 'random_forest'},
+                    {'parameters': None, 'type': 'naive_bayes'},
+                    {'parameters': None, 'type': 'ridge'},
+                    {'feature_extraction': [{'parameters': {'percentile': 10},
+                                             'type': 'anova'}],
+                     'parameters': {'penalty': 'l1'},
+                     'type': 'svc'},
+                    {'feature_extraction': [{'parameters': {'percentile': 10},
+                                             'type': 'anova'}],
+                     'parameters': {'penalty': 'l2'},
+                     'type': 'svc'},
+                    {'parameters': {'penalty': 'l1'}, 'type': 'svc'},
+                    {'parameters': {'penalty': 'l2'}, 'type': 'svc'},
+                    {'parameters': {'penalty': 'l1'},
+                     'type': 'logistic'},
+                    {'parameters': {'penalty': 'l2'}, 'type': 'logistic'}],
+
+    'connectivity': ['partial', 'tangent', 'correlation'],
+
+    'roi': ['aal', 'harvard_oxford', 'power', 'basc', 'ward', 'k_means', 'group_ica', 'dict_learning']}
+
+
     conn = pe.Node(FunctionalConnectivity(),
                    name='connectivity')
+    
+    conn.inputs.vectorize = True
+    conn.iterables = ('metric', [
+        'correlation',
+        'partial',
+        'tangent',
+    ])
 
     wf.connect(inputspec, 'functional',
                conn, 'functional')
-    wf.connect(inputspec, 'metric',
-               conn, 'metric')
-    wf.connect(inputspec, 'vectorize',
-               conn, 'vectorize')
 
     wf.connect(conn, 'connectivity',
                outputspec, 'connectivity')

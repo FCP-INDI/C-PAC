@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-from nipype.interfaces.base import BaseInterface, \
-    BaseInterfaceInputSpec, traits, File, TraitedSpec
-
 from CPAC.connectome.cross_validation import CVedInterface
 from sklearn.svm import SVC
 
 
-class SVM(CVedInterface):
+class SVMInterface(CVedInterface):
 
     def fit(self, X, y=None):
         clf = SVC()
