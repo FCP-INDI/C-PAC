@@ -924,7 +924,7 @@ def prep_feat_inputs(config_file, pipeline_output_folder):
                         # trim down the pheno DF to match the output DF and
                         # merge
                         newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
-                        newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["participant_id"])
+                        newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id"])
 
                         # this can be removed/modified once sessions are no
                         # longer integrated in the full unique participant IDs
@@ -960,7 +960,7 @@ def prep_feat_inputs(config_file, pipeline_output_folder):
                     # trim down the pheno DF to match the output DF and merge
                     newer_pheno_df = \
                         new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
-                    newer_pheno_df = pd.merge(new_pheno_df, series_df,
+                    newer_pheno_df = pd.merge(newer_pheno_df, series_df,
                                               how="inner",
                                               on=["participant_id"])
 

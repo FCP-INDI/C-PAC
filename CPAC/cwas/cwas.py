@@ -145,25 +145,44 @@ def nifti_cwas(subjects, mask_file, regressor, participant_column,
     import os
     from CPAC.cwas.cwas import calc_cwas
 
-    regressor_data = pd.read_table(regressor, sep=None, engine="python",
-                                   dtype={ participant_column: str })
+    try:
+        regressor_data = pd.read_table(regressor, sep=None, engine="python",
+                                       dtype={ participant_column: str })
+    except:
+        regressor_data = pd.read_table(regressor, sep=None, engine="python")
+        regressor_data = regressor_data.astype({participant_column: str})
+
+    # drop duplicates
+    regressor_data = regressor_data.drop_duplicates()
 
     regressor_cols = list(regressor_data.columns)
     if not participant_column in regressor_cols:
-        raise ValueError('Participant column was not found on regressor file.')
+        raise ValueError('Participant column was not found in regressor file.')
 
     if participant_column in columns:
         raise ValueError('Participant column can not be a regressor.')
 
-    regressor_data.index = regressor_data[participant_column]
-
     subject_ids = list(subjects.keys())
     subject_files = list(subjects.values())
+
+    # check for inconsistency with leading zeroes
+    # (sometimes, the sub_ids from individual will be something like
+    #  '0002601' and the phenotype will have '2601')
+    for index, row in regressor_data.iterrows():
+        pheno_sub_id = str(row[participant_column])
+        for sub_id in subject_ids:
+            if str(sub_id).lstrip('0') == str(pheno_sub_id):
+                regressor_data.at[index, participant_column] = str(sub_id)
+
+    regressor_data.index = regressor_data[participant_column]
 
     # Keep only data from specific subjects
     ordered_regressor_data = regressor_data.loc[subject_ids]
 
+    columns = columns.split(',')
+
     regressor_selected_cols = [i for i, c in enumerate(regressor_cols) if c in columns]
+
     if len(regressor_selected_cols) == 0:
         regressor_selected_cols = [i for i, c in enumerate(regressor_cols)]
     regressor_selected_cols = np.array(regressor_selected_cols)
