@@ -856,11 +856,15 @@ connectome:
       parameters:
         components: 120
 
-
   connectivity: 
-    - partial
-    - tangent
-    - correlation
+    - type: partial
+      parameters:
+
+    - type: tangent
+      parameters:
+
+    - type: correlation
+      parameters:
 
   classifier:
 
