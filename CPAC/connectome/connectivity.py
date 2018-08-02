@@ -2,15 +2,18 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from nipype.interfaces.base import traits
 from nilearn.connectome import ConnectivityMeasure
-from CPAC.connectome.cross_validation import CVedInterface, CVedInputSpec, CVedOutputSpec
+from CPAC.connectome.cross_validation import CVedInterface
+
+
+def _normalize(X):
+    return [x.reshape((np.prod(x.shape[0:-1]), -1)).T for x in X]
 
 
 class FunctionalConnectivity(CVedInterface):
 
     def fit(self, X, y=None):
-        X = [x.reshape((np.prod(x.shape[0:-1]), -1)).T for x in X]
+        X = _normalize(X)
 
         metric = self.metric
         if metric == 'partial':
@@ -23,7 +26,7 @@ class FunctionalConnectivity(CVedInterface):
         return correlation_measure
 
     def transform(self, model, X, y=None):
-        X = [x.reshape((np.prod(x.shape[0:-1]), -1)).T for x in X]
+        X = _normalize(X)
         return list(model.transform(X)), y
 
 
