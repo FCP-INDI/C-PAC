@@ -5,7 +5,7 @@ from CPAC.connectome.cross_validation import CVedInterface
 from sklearn.svm import SVC
 
 
-class SVMInterface(CVedInterface):
+class SVCClassifierInterface(CVedInterface):
 
     def fit(self, X, y=None):
         clf = SVC()
