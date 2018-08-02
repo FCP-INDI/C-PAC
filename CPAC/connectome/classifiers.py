@@ -13,4 +13,4 @@ class SVMInterface(CVedInterface):
         return clf
 
     def transform(self, model, X, y=None):
-        return model.predict(X), y
+        return list(model.predict(X)), y

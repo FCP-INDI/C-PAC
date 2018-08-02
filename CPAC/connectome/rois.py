@@ -17,4 +17,4 @@ class DictLearningInterface(CVedInterface):
 
     def transform(self, model, X, y=None):
         X = [nib.Nifti1Image(x, np.eye(len(x.shape))) for x in X]
-        return model.transform(X), y
+        return [x.T for x in model.transform(X)], y
