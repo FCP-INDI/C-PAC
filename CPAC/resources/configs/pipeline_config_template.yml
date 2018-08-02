@@ -883,18 +883,12 @@ connectome:
     - type: svc
       parameters:
         penalty: l1
-      feature_extraction:
-        - type: anova
-          parameters:
-            percentile: 10
+        anova_percentile: 10
           
     - type: svc
       parameters:
         penalty: l2
-      feature_extraction:
-        - type: anova
-          parameters:
-            percentile: 10
+        anova_percentile: 10
 
     - type: svc
       parameters:
