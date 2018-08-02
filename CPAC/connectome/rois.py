@@ -7,7 +7,7 @@ import nibabel as nib
 import numpy as np
 
 
-class DictLearningInterface(CVedInterface):
+class DictLearningRoiInterface(CVedInterface):
 
     def fit(self, X, y=None):
         X = [nib.Nifti1Image(x, np.eye(len(x.shape))) for x in X]
