@@ -20,16 +20,16 @@ from nipype.interfaces.base import BaseInterface, \
 def test_wf():
 
     from CPAC.connectome.cross_validation import CVInterface
-    from CPAC.connectome.classifiers import SVMInterface
+    from CPAC.connectome.classifiers import SVCClassifierInterface
     from CPAC.connectome.connectivity import FunctionalConnectivity
-    from CPAC.connectome.rois import DictLearningInterface
+    from CPAC.connectome.rois import DictLearningRoiInterface
 
     import numpy as np
     import nibabel as nb
-    from nilearn import datasets
 
     wf = pe.Workflow(name='test')
 
+    from nilearn import datasets
     adhd_dataset = datasets.fetch_adhd(n_subjects=5)
     func_filenames = adhd_dataset.func
     
@@ -41,7 +41,7 @@ def test_wf():
     cv.inputs.y = [1, 2, 2, 1, 2]
     # cv.synchronize = True
 
-    dictlearn = DictLearningInterface()
+    dictlearn = DictLearningRoiInterface()
     dictlearn_train = pe.MapNode(interface=dictlearn, name='dictlearn_train', iterfield=['X', 'y', 'fold'])
     dictlearn_valid = pe.MapNode(interface=dictlearn, name='dictlearn_valid', iterfield=['X', 'y', 'fold', 'model'])
 
@@ -53,7 +53,7 @@ def test_wf():
     connectivity_valid.inputs.metric = 'correlation'
     connectivity_valid.inputs.vectorize = True
 
-    svm = SVMInterface()
+    svm = SVCClassifierInterface()
     svm_train = pe.MapNode(interface=svm, name='svm_train', iterfield=['X', 'y', 'fold'])
     svm_valid = pe.MapNode(interface=svm, name='svm_valid', iterfield=['X', 'y', 'fold', 'model'])
 
