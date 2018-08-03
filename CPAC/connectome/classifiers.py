@@ -14,9 +14,6 @@ from sklearn import feature_selection
 
 class Classifier:
 
-    def __init__(self, **parameters):
-        self.parameters = parameters
-
     def fit(self, X, y=None):
         raise NotImplementedError
 

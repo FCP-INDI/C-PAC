@@ -9,9 +9,6 @@ from nilearn.regions import Parcellations
 
 class ROI:
 
-    def __init__(self, **parameters):
-        self.parameters = parameters
-
     def fit(self, X, y=None):
         X = [nib.Nifti1Image(x, np.eye(len(x.shape))) for x in X]
         return self.fit_images(X, y)
@@ -29,8 +26,11 @@ class ROI:
 
 class DictLearning(ROI):
 
+    def __init__(self, components=40):
+        self.components = components
+
     def fit_images(self, X, y=None):
-        self.dict_learn = _DictLearning()
+        self.dict_learn = _DictLearning(n_components=self.components)
         self.dict_learn.fit(X)
 
     def transform_images(self, X, y=None):
@@ -38,6 +38,9 @@ class DictLearning(ROI):
 
 
 class KMeans(ROI):
+
+    def __init__(self, components=40):
+        self.components = components
 
     def fit_images(self, X, y=None):
         self.parc = Parcellations(method='kmeans', n_parcels=self.components)
@@ -49,6 +52,9 @@ class KMeans(ROI):
 
 class Ward(ROI):
 
+    def __init__(self, components=40):
+        self.components = components
+
     def fit_images(self, X, y=None):
         self.parc = Parcellations(method='ward', n_parcels=self.components)
         self.parc.fit(X)
@@ -58,6 +64,9 @@ class Ward(ROI):
 
 
 class GroupICA(ROI):
+
+    def __init__(self, components=40):
+        self.components = components
 
     def fit_images(self, X, y=None):
         self.ica = CanICA(n_components=self.components)
