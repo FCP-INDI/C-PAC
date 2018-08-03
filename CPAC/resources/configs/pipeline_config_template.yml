@@ -736,6 +736,10 @@ basc_scan_inclusion :  None
 runMDMR :  [0]
 
 
+# Inclusion list text file listing the participant IDs you wish to include in the MDMR analysis. If left as None, will include all subjects.
+mdmr_inclusion : None
+
+
 # Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
 mdmr_roi_file :  
 

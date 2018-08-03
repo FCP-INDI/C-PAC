@@ -1011,8 +1011,14 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     for file_ in qc_files:
         if not (file_.endswith('.txt')):
             continue
-        make_page(os.path.join(qc_path, file_), sub_output_dir,
-                  qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
+        try:
+            make_page(os.path.join(qc_path, file_), sub_output_dir,
+                      qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                      qc_hist_id)
+        except IndexError as e:
+            print('\n[!] Did not generate QC sub-page: {0}\n\nDetails:\n'
+                  '{1}\n'.format(os.path.join(qc_path, file_), e))
+            pass
 
 
 def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
