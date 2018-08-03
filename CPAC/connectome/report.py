@@ -117,7 +117,7 @@ class ReportInterface(BaseInterface):
                     'valid tp',
                 ]
 
-        self._df.to_csv('./report.csv', cols=cols_order)
+        self._df.to_csv('./report.csv', cols=cols_order, index=False)
 
         return outputs
 
