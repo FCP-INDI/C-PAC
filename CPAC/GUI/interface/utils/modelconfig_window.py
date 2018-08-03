@@ -15,11 +15,12 @@ class ModelConfig(wx.Frame):
     def __init__(self, parent, gpa_settings=None):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 650))
+            self, parent=parent, title="CPAC - Create New FSL FEAT Model",
+            size=(900, 650))
 
         if not gpa_settings:
             self.gpa_settings = {}
-            self.gpa_settings['participant_list'] = ''
+            self.gpa_settings['participant_list'] = 'None'
             self.gpa_settings['pheno_file'] = ''
             self.gpa_settings['participant_id_label'] = ''
             self.gpa_settings['design_formula'] = ''
@@ -47,7 +48,7 @@ class ModelConfig(wx.Frame):
         self.window = wx.ScrolledWindow(self.panel, size=(-1,300))
 
         self.page = generic_class.GenericClass(self.window,
-                                               " FSL FLAME Group-Level "
+                                               " FSL FEAT Group-Level "
                                                "Analysis - Model Builder")
 
         self.page.add(label="Participant List ",
@@ -64,13 +65,8 @@ class ModelConfig(wx.Frame):
                       control=control.COMBO_BOX,
                       name="pheno_file",
                       type=dtype.STR,
-                      comment="Full path to a .csv file containing EV "
-                              "information for each subject.\n\nTip: A "
-                              "file in this format (containing a single "
-                              "column listing all subjects run through "
-                              "CPAC) was generated along with the main "
-                              "CPAC subject list (see phenotypic_template_"
-                              "X.csv).",
+                      comment="Full path to a .csv or .tsv file containing "
+                              "EV information for each subject.",
                       values=self.gpa_settings['pheno_file'])
 
         self.page.add(label="Participant Column Name ",
@@ -84,21 +80,33 @@ class ModelConfig(wx.Frame):
                       size=(160, -1))
         
         load_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        load_pheno_btn = wx.Button(self.window, 2, 'Load Phenotype File', (220,10), wx.DefaultSize, 0)
+        load_pheno_btn = wx.Button(self.window, 2, 'Load Phenotype File',
+                                   (220,10), wx.DefaultSize, 0)
         load_panel_sizer.Add(load_pheno_btn)
 
         self.Bind(wx.EVT_BUTTON, self.populateEVs, id=2)
 
-
         self.page.add_pheno_load_panel(load_panel_sizer)
 
-        self.page.add(label = "Model Setup ",
-                      control = control.GPA_CHECKBOX_GRID,
-                      name = "model_setup",
-                      type = 10,
-                      values = '',
-                      comment="A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). 'MeanFD', 'MeanFD_Jenkinson', 'Measure Mean', and 'Custom_ROI_Mean' will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.",
-                      size = (450, -1))
+        self.page.add(label="Model Setup ",
+                      control=control.GPA_CHECKBOX_GRID,
+                      name="model_setup",
+                      type=10,
+                      values='',
+                      comment="A list of EVs from your phenotype file will "
+                              "populate in this window. From here, you can "
+                              "select whether the EVs should be treated as "
+                              "categorical or if they should be demeaned "
+                              "(continuous/non-categorical EVs only). "
+                              "'MeanFD', 'MeanFD_Jenkinson', 'Measure Mean', "
+                              "and 'Custom_ROI_Mean' will also appear in "
+                              "this window automatically as options to be "
+                              "used as regressors that can be included in "
+                              "your model design. Note that the MeanFD and "
+                              "mean of measure values are automatically "
+                              "calculated and supplied by C-PAC via "
+                              "individual-level analysis.",
+                      size=(450, -1))
 
         self.page.add(label="Design Matrix Formula ",
                       control=control.TEXT_BOX,
@@ -120,22 +128,22 @@ class ModelConfig(wx.Frame):
                     name = "derivative_list",
                     type = dtype.LSTR,
                     values = ['ALFF',
-                              'ALFF (smoothed)',
                               'f/ALFF',
-                              'f/ALFF (smoothed)',
                               'ReHo',
-                              'ReHo (smoothed)',
                               'ROI Average SCA',
-                              'ROI Average SCA (smoothed)',
                               'Dual Regression',
-                              'Dual Regression (smoothed)',
                               'Multiple Regression SCA',
-                              'Multiple Regression SCA (smoothed)',
                               'Network Centrality',
-                              'Network Centrality (smoothed)',
                               'VMHC'],
-                    comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
-                    size = (350,160))
+                    comment = "Select which derivatives you would like to "
+                              "include when running group analysis.\n\nWhen "
+                              "including Dual Regression, make sure to "
+                              "correct your P-value for the number of maps "
+                              "you are comparing.\n\nWhen including Multiple "
+                              "Regression SCA, you must have more degrees of "
+                              "freedom (subjects) than there were time "
+                              "series.",
+                    size = (350,180))
 
         self.page.add(label="Coding Scheme ", 
                      control=control.CHOICE_BOX, 
@@ -326,7 +334,7 @@ class ModelConfig(wx.Frame):
                     new_derlist = []
 
                     for val in values:
-                        new_derlist.append(val)                      
+                        new_derlist.append(val)       
 
                     ctrl.set_value(new_derlist)
 
@@ -342,7 +350,6 @@ class ModelConfig(wx.Frame):
 
     ''' button: LOAD SETTINGS '''
     def load(self, event):
-
         # when the user clicks 'Load Settings', which loads the
         # self.gpa_settings dictionary - it populates the values for both
         # windows, so when they hit Next, the next window is also populated
@@ -498,7 +505,6 @@ class ModelConfig(wx.Frame):
                 else:
                     pheno_data_dict[key].append(line[key])
 
-   
             #pheno_dict_list.append(line)
         
             # pheno_dict_list is a list of dictionaries of phenotype header items
@@ -508,51 +514,52 @@ class ModelConfig(wx.Frame):
             
             # these dictionaries are UNORDERED, i.e. header items ARE NOT ORDERED
 
-
         return pheno_data_dict
 
-          
     ''' button: LOAD PHENOTYPE FILE '''
     def populateEVs(self, event):
 
         # this runs when the user clicks 'Load Phenotype File'
-               
         if self.gpa_settings is None:
             self.gpa_settings = {}
-               
-               
-        for ctrl in self.page.get_ctrl_list():
-            
-            name = ctrl.get_name()
 
+        for ctrl in self.page.get_ctrl_list():
+            name = ctrl.get_name()
             self.gpa_settings[name] = str(ctrl.get_selection())
-            
-                
+
         ### CHECK PHENOFILE if can open etc.
-        
         # function for file path checking
         def testFile(filepath, paramName):
             try:
                 fileTest = open(filepath)
                 fileTest.close()
-                    
             except:
-                    
                 errDlgFileTest = wx.MessageDialog(
-                    self, 'Error reading file - either it does not exist or you' \
-                          ' do not have read access. \n\n' \
+                    self, 'Error reading file - either it does not exist or '
+                          'you do not have read access. \n\n' \
                           'Parameter: %s' % paramName,
                     'File Access Error',
                     wx.OK | wx.ICON_ERROR)
                 errDlgFileTest.ShowModal()
                 errDlgFileTest.Destroy()
                 raise Exception
-                
-        
-        testFile(self.gpa_settings['participant_list'], 'Participant List')
+
+        '''
+        # get participant inclusion list
+        self.subs = []
+        if '/' in self.gpa_settings['participant_list'] and \
+                '.' in self.gpa_settings['participant_list']:
+            testFile(self.gpa_settings['participant_list'], 'Participant List')
+            subFile = open(
+                os.path.abspath(self.gpa_settings['participant_list']))
+            sub_IDs = subFile.readlines()
+            for sub in sub_IDs:
+                self.subs.append(sub.rstrip("\n"))
+        '''
+
+        # deal with phenotype file
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
-        subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
         phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
@@ -561,8 +568,9 @@ class ModelConfig(wx.Frame):
         if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
             self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
         else:
+            print('Header labels found:\n{0}'.format(self.phenoHeaderItems))
             errSubID = wx.MessageDialog(
-                self, 'Please enter the name of the participant ID column' \
+                self, 'Please enter the name of the participant ID column'
                 ' as it is labeled in the phenotype file.',
                 'Blank/Incorrect Subject Header Input',
                 wx.OK | wx.ICON_ERROR)
@@ -570,16 +578,10 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
             raise Exception
             
-            
         # some more checks
-        sub_IDs = subFile.readlines()
-        self.subs = []
-        
-        for sub in sub_IDs:
-            self.subs.append(sub.rstrip("\n"))        
-        
         pheno_rows = phenoFile.readlines()
-        
+
+        '''
         for row in pheno_rows:
         
             # check if the pheno file produces any rows such as ",,,,," due
@@ -594,6 +596,7 @@ class ModelConfig(wx.Frame):
                 for sub in self.subs:  
                     if sub in row:
                         break
+        '''
 
         for ctrl in self.page.get_ctrl_list():
 
@@ -1278,7 +1281,8 @@ class ModelConfig(wx.Frame):
             raise Exception
 
         column_names = dmatrix.design_info.column_names
-        
+
+        '''
         subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
 
         sub_IDs = subFile.readlines()
@@ -1305,7 +1309,8 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
                 
             raise Exception
-        
+        '''
+
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings,
                                        dmatrix, column_names)

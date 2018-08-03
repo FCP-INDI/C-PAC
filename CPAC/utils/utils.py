@@ -120,11 +120,11 @@ files_folders_wf = {
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
     'vertices_timeseries': 'timeseries',
-    'centrality_outputs': 'centrality',
-    'centrality_outputs_smooth': 'centrality',
-    'centrality_outputs_zstd': 'centrality',
-    'centrality_outputs_smooth_zstd': 'centrality',
-    'centrality_outputs_zstd_smooth': 'centrality',
+    'centrality': 'centrality',
+    'centrality_smooth': 'centrality',
+    'centrality_zstd': 'centrality',
+    'centrality_smooth_zstd': 'centrality',
+    'centrality_zstd_smooth': 'centrality',
     'centrality_graphs': 'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -257,7 +257,7 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
     wflow.connect(mean, 'out_stat', op_string, 'mean')
     wflow.connect(standard_deviation, 'out_stat', op_string, 'std_dev')
 
-    z_score.inputs.out_file = input_name + '_zstd.nii.gz'
+    #z_score.inputs.out_file = input_name + '_zstd.nii.gz'
 
     wflow.connect(op_string, 'op_string', z_score, 'op_string')
     wflow.connect(inputNode, 'input_file', z_score, 'in_file')

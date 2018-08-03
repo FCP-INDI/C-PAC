@@ -44,6 +44,11 @@ def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
               "--use-histogram-matching", "1",
               "--winsorize-image-intensities", "[0.01,0.99]"]
 
+    # write out the actual command-line entry for testing/validation later
+    command_file = os.path.join(os.getcwd(), 'command.txt')
+    with open(command_file, 'wt') as f:
+        f.write(' '.join(regcmd))
+
     try:
         retcode = subprocess.check_output(regcmd)
     except Exception as e:

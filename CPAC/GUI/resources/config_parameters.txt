@@ -103,5 +103,8 @@ run_smoothing,Run Smoothing,After Warping Options
 smoothing_order,Smoothing Before/After z-Scoring,After Warping Options
 fwhm,Kernel FWHM (in mm),After Warping Options
 runZScoring,Z-score Standardize Derivatives,After Warping Options
-numGPAModelsAtOnce,Number of Models to Run Simultaneously,Group Analysis Settings
-modelConfigs,Models to Run,Group Analysis Settings
+run_fsl_feat,Run FSL FEAT,FSL FEAT Group Analysis
+numGPAModelsAtOnce,Number of Models to Run Simultaneously,FSL FEAT Group Analysis
+modelConfigs,Models to Run,FSL FEAT Group Analysis
+run_basc,Run BASC,Bootstrapped Analysis of Stable Clusters
+basc_resolution,Output File Resolution,Bootstrapped Analysis of Stable Clusters

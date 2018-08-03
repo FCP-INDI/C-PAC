@@ -218,6 +218,10 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
     # Init variables
     s3_str = 's3://'
+    if creds_path:
+        if "None" in creds_path or "none" in creds_path or \
+                "null" in creds_path:
+            creds_path = None
     if dl_dir is None:
         dl_dir = os.getcwd()
 

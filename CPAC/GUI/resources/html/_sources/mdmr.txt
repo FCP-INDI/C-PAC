@@ -1,11 +1,9 @@
-Connectome-wide Association Studies (CWAS)
+Multivariate Distance Matrix Regression (MDMR)
 ------------------------------------------
 
 Introduction & Background
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Connectome-wide Association Studies (CWAS) allow researchers to explore relationships between patterns of functional connectivity (the functional connectome), behavior, and phenotypic factors.The CWAS method that will be implemented in C-PAC (Shehzad et al., 2014) examines the correlation among patterns of functional connectivity and phenotypes using a combination of Multivariate Pattern Analysis (MVPA) and Multivariate Distance Matrix Regression (MDMR; Reiss et al., 2010). Compared to traditional univariate techniques which require rigorous correction for multiple comparisons, a multivariate approach significantly reduces the number of connectivity-phenotype comparisons needed to run a CWAS (Shehzad et al., 2014).
-
-**Important Note: CWAS is currently not fully implemented in C-PAC.  This page is a reference for how to use it in future releases.  An interface is available in the C-PAC GUI, but it is not functional.**
+Connectome-wide Association Studies (CWAS) allow researchers to explore relationships between patterns of functional connectivity (the functional connectome), behavior, and phenotypic factors. The CWAS method that is implemented in C-PAC (Shehzad et al., 2014) examines the correlation among patterns of functional connectivity and phenotypes using the Multivariate Distance Matrix Regression (MDMR; Reiss et al., 2010). Compared to traditional univariate techniques which require rigorous correction for multiple comparisons, a multivariate approach significantly reduces the number of connectivity-phenotype comparisons needed to run a CWAS (Shehzad et al., 2014).
 
 Computation and Analysis Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -43,17 +41,18 @@ Using the GUI
 
 #. **Run CWAS - [Off, On]:** Used to determine if CWAS will be added to the pipeline or not.
 
-#. **CWAS ROI File - [path]:** Path to a mask file. Voxels outside of the mask will be excluded from CWAS.
+#. **Mask ROI File - [path]:** Path to a mask file. Voxels outside of the mask will be excluded from CWAS.
 
-#. **CWAS Regressor File - [path]:** Path to a text file containing the phenotypic regressor.
+#. **Regressor File - [path]:** Path to a text file containing the phenotypic regressor.
 
-#. **CWAS FSamples - [integer]:** Number of permutation tests to run on the Pseudo-F statistics.
+#. **Regressor Participant Column Name - [string]:** Name of the participants column in your regressor file.
 
-#. **CWAS Parallel Nodes - [integer]:** Number of Nipype nodes created while computing CWAS.  Dependent upon computing resources.
+#. **Regressor of Interest columns - [string]:** Columns of the regressor of interest in your regressor file.
 
-#. **Column Number with Regressor of Interest - [integer]:** The index for the regressor of interest.  Indexing starts at 0.
+#. **Permutations - [integer]:** Number of permutation tests to run on the Pseudo-F statistics.
 
-#. **CWAS Regressor Strata - [list]:** A list with length equal to the total number of rows in your regressor file. Each element of the list, indicates that elements group. Leave it as None. if you have a between-subject design and give it a value if not.  For instance, if you have multiple scans per subject, then you would want to do a permutation within-subject between scans. For this to occur, the list below could be something like ['s1', 's1', 's2', 's2', 's3', 's3', ...], indicating what subject each element/scan is associated with and permutations would only be done between scans within each subject.
+#. **Parallel Nodes - [integer]:** Number of Nipype nodes created while computing CWAS.  Dependent upon computing resources.
+
 
 Configuration Using a YAML File
 """"""""""""""""""""""""""""""""
@@ -61,10 +60,12 @@ Configuration Using a YAML File
 To configure CWAS options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
  
     runCWAS = [0]
-    cwasROIFile = '/path/to/cwas_mask_file'
-    cwasFSamples = 5000
-    cwasParallelNodes = 10
-    cwasRegressorFile = '/path/to/cwas_regressor_file'
+    cwas_roi_file = '/path/to/cwas_mask_file'
+    cwas_regressor_file = '/path/to/cwas_regressor_file'
+    cwas_regressor_participant_column = 'ID
+    cwas_regressor_columns = ['FIQ', 'VIQ', 'PIQ']
+    cwas_permutations = 500
+    cwas_parallel_nodes = 3
     
 References
 ^^^^^^^^^^

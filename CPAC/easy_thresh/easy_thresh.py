@@ -1,7 +1,7 @@
+
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-
 
 
 def easy_thresh(wf_name):

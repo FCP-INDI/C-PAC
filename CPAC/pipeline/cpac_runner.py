@@ -400,9 +400,14 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     except IOError:
         print "config file %s doesn't exist" % config_file
         raise
-    except Exception:
-        print "Error reading config file - %s" % config_file
-        raise Exception
+    except Exception as e:
+        raise Exception("Error reading config file - {0}\n\nError details:"
+                        "\n{1}\n\n".format(config_file, e))
+
+    c.logDirectory = os.path.abspath(c.logDirectory)
+    c.workingDirectory = os.path.abspath(c.workingDirectory)
+    c.outputDirectory = os.path.abspath(c.outputDirectory)
+    c.crashLogDirectory = os.path.abspath(c.crashLogDirectory)
 
     # Do some validation
     validate(c)

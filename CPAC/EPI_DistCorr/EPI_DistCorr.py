@@ -10,6 +10,10 @@ import nipype.pipeline.engine as pe
 from nipype.interfaces import afni,fsl
 import nipype.interfaces.utility as util
 
+def createAFNIiterable(shrink_fac):
+    expr = '-shrink_fac {0} '.format(shrink_fac)
+    return expr
+
 
 def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     """
@@ -76,6 +80,10 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     
     inputNode_bet_frac = pe.Node(util.IdentityInterface(fields=['bet_frac']),
                                  name='bet_frac_input')
+
+    inputNode_afni_threshold = pe.Node(util.IdentityInterface(fields=['afni_threshold']),
+        name='afni_threshold_input')
+    
     
     outputNode = pe.Node(util.IdentityInterface(fields=['fieldmap',
                                                         'fmap_despiked',
@@ -85,10 +93,12 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     
     # Skull-strip
     if use_BET == False:
+        skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac'],output_names=['expr'],function=createAFNIiterable),name='distcorr_skullstrip_arg')
+        preproc.connect(inputNode_afni_threshold,'afni_threshold',skullstrip_args,'shrink_fac')
+
         bet = pe.Node(interface=afni.SkullStrip(),name='bet')
         bet.inputs.outputtype = 'NIFTI_GZ'
-        bet.inputs.args = '-shrink_fac SF'
-        preproc.connect(inputNode_bet_frac, str('bet_frac'), bet, 'args')
+        preproc.connect(skullstrip_args,'expr', bet, 'args')
         preproc.connect(inputNode, 'fmap_mag', bet, 'in_file')
         preproc.connect(bet, 'out_file', outputNode, 'magnitude_image')
     else:

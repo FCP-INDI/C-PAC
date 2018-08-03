@@ -24,7 +24,7 @@ Contents:
     scrubbing
     group_analysis
     easy_thresh     
-    cwas
+    mdmr
     median_angle
     registration
     timeseries

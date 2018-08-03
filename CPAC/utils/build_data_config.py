@@ -1474,6 +1474,59 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     return data_dct
 
 
+def util_copy_template(template_type=None):
+    """Copy the data settings YAML file template to the current directory."""
+
+    import os
+    import shutil
+    import pkg_resources as p
+
+    if not template_type:
+        type = 'data_settings'
+    else:
+        type = template_type
+
+    settings_template = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs",
+                                         "{0}_template.yml".format(type)))
+
+    settings_file = os.path.join(os.getcwd(), "{0}.yml".format(type))
+
+    try:
+        if os.path.exists(settings_file):
+            settings_file = os.path.join(os.getcwd(),
+                                         "{0}_1.yml".format(type))
+            while os.path.exists(settings_file):
+                idx = int(
+                    os.path.basename(settings_file).split("_")[2].replace(
+                        ".yml", ""))
+                settings_file = os.path.join(os.getcwd(),
+                                             "{0}_{1}.yml".format(
+                                                 type, idx + 1))
+        shutil.copy(settings_template, settings_file)
+    except:
+        err = "\n[!] Could not write the {0} file template " \
+              "to the current directory.\n".format(type)
+        raise Exception(err)
+
+    print "\nGenerated a default {0} YAML file for editing:\n" \
+          "{1}\n\n".format(type, settings_file)
+    if type == 'data_settings':
+        print("This file can be completed and entered into the C-PAC "
+          "command-line interface to generate a data configuration file "
+          "for individual-level analysis by running 'cpac utils "
+          "data_config build {data settings file}'.\nAdditionally, it can "
+          "also be loaded into the CPAC data configuration file builder UI "
+          "using the 'Load Preset' button.\n")
+    elif type == 'pipeline_config':
+        print("This file can be edited and then used in a C-PAC run by "
+              "running 'cpac run --pipe_config {pipeline config file} "
+              "{data config file}', or by loading it into the C-PAC GUI "
+              "under 'Pipelines'.\n")
+
+
 def run(data_settings_yml):
     """Generate and write out a CPAC data configuration (participant list)
     YAML file."""

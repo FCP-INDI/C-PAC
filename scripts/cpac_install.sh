@@ -80,7 +80,7 @@ ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 
 conda_packages=("pandas" "cython" "numpy==1.11" "scipy" "matplotlib" "networkx==1.11" "traits" "pyyaml" "jinja2==2.7.2" "nose" "ipython" "pip" "wxpython==3.0.0.0")
 
-pip_packages=("future==0.16.0" "python-dateutil==2.2" "prov==1.5.0" "simplejson" "lockfile" "pygraphviz" "nibabel" "nipype==0.13.1" "patsy" "memory_profiler" "psutil" "configparser" "INDI-Tools" "fs==0.5.4" "boto3")
+pip_packages=("future==0.16.0" "python-dateutil==2.5" "prov==1.5.0" "simplejson" "lockfile" "pygraphviz" "nibabel" "nipype==0.13.1" "patsy" "memory_profiler" "psutil" "configparser" "INDI-Tools" "fs==0.5.4" "boto3")
 
 ##### Helper functions for installing system dependencies.
 

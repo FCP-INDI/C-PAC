@@ -3,6 +3,7 @@ from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
 from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     Segmentation, Registration, FunctionalPreProcessing,\
+    SkullStripProcessing,SkullStripOptions,AFNI_options,BET_options,\
     Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
     SCA, SCASettings, \
@@ -13,8 +14,8 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
     TimeSeries, EPI_DistCorr, ROITimeseries, \
-    GroupAnalysis, GPASettings, TimeSeriesOptions
-
+    GroupAnalysis, GPASettings, MDMRSettings, TimeSeriesOptions, \
+    BASCSettings
 
 ID_SUBMIT = 6
 
@@ -75,27 +76,34 @@ class Mybook(wx.Treebook):
         page2 = ComputerSettings(self)
         page3 = DirectorySettings(self)
 
-        page5 = AnatomicalPreprocessing(self)
-        page6 = Registration(self, 1)
-        page7 = Segmentation(self, 2)
+        page4 = SkullStripProcessing(self)
+        page5 = SkullStripOptions(self)
+        page6 = AFNI_options(self)
+        page7 = BET_options(self)
 
-        page8 = FunctionalPreProcessing(self)
-        page9 = TimeSeriesOptions(self)
-        page10 = EPI_DistCorr(self)                     
-        page11 = AnatToFuncRegistration(self, 5)
-        page12 = FuncToMNIRegistration(self, 6)
+        page8 = AnatomicalPreprocessing(self)
+        page9 = Registration(self, 1)
+        page10 = Segmentation(self, 2)
 
-        page13= Nuisance(self)
-        page14= NuisanceRegression(self, 7)
-        page15= MedianAngleCorrection(self, 8)
+        page11 = FunctionalPreProcessing(self)
+        page12 = TimeSeriesOptions(self)
+        page13 = EPI_DistCorr(self)
+        page14 = AnatToFuncRegistration(self, 5)
+        page15 = FuncToMNIRegistration(self, 6)
 
-        page16 = FilteringSettings(self, 9)
+        page16= Nuisance(self)
+        page17= NuisanceRegression(self, 7)
+        page18= MedianAngleCorrection(self, 8)
+
+        page19 = FilteringSettings(self, 9)
 
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
-
-        page26 = SCA(self)
-        page27 = SCASettings(self)
+        
+        
+        
+        page27 = SCA(self)
+        page28 = SCASettings(self)
 
         page31 = VMHC(self)
         page32 = VMHCSettings(self)
@@ -114,33 +122,41 @@ class Mybook(wx.Treebook):
 
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
+        page47 = BASCSettings(self)
+        page48 = MDMRSettings(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
 
-        self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page7, "Tissue Segmentation", wx.ID_ANY)
+        self.AddPage(page4,"Skull-Strip", wx.ID_ANY)
+        self.AddSubPage(page5,"Skull-Stripping ", wx.ID_ANY)
+        self.AddSubPage(page6, "3dSkullStrip options", wx.ID_ANY)
+        self.AddSubPage(page7,"FSL BET options", wx.ID_ANY)
 
-        self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page9, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(page10, "Distortion Correction", wx.ID_ANY)
-        self.AddSubPage(page11,"Functional to Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page12,"Functional to MNI Registration", wx.ID_ANY)
+        self.AddPage(page8, "Anatomical Preprocessing", wx.ID_ANY)
+        self.AddSubPage(page9, "Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page10, "Tissue Segmentation", wx.ID_ANY)
+        self.AddPage(page11, "Functional Preprocessing", wx.ID_ANY)
+        self.AddSubPage(page12, "Time Series Options", wx.ID_ANY)
+        self.AddSubPage(page13, "Distortion Correction", wx.ID_ANY)
+        self.AddSubPage(page14,"Functional to Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page15,"Functional to MNI Registration", wx.ID_ANY)
 
-        self.AddPage(page13,"Nuisance", wx.ID_ANY)
-        self.AddSubPage(page14,"Nuisance Regression", wx.ID_ANY)
-        self.AddSubPage(page15,"Median Angle Correction", wx.ID_ANY)
+        self.AddPage(page16,"Nuisance", wx.ID_ANY)
+        self.AddSubPage(page17,"Nuisance Regression", wx.ID_ANY)
+        self.AddSubPage(page18,"Median Angle Correction", wx.ID_ANY)
 
-        self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
+        self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-
-        self.AddPage(page26, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
-        self.AddSubPage(page27, "SCA Options", wx.ID_ANY)
+        
+        
+        
+        self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
+        self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
 
         self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity", wx.ID_ANY)
         self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
@@ -158,7 +174,10 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
-        self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
+        self.AddSubPage(page46, "FSL FEAT Settings", wx.ID_ANY)
+        self.AddSubPage(page47, "PyBASC Settings",
+                        wx.ID_ANY)
+        self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -296,6 +315,8 @@ class MainFrame(wx.Frame):
                                 val = [11]
 
                             if '3dAutoMask' in val and 'BET' in val:
+                                val = [12]
+                            if 'AFNI' in val and 'BET' in val:
                                 val = [12]
                             
                             value = [s_map.get(item)
@@ -549,7 +570,7 @@ class MainFrame(wx.Frame):
         from CPAC.pipeline.cpac_runner import build_strategies
 
         def display(win, msg, changeBg=True):
-            wx.MessageBox(msg, "Error")
+            wx.MessageBox(msg, "Error", style=wx.OK | wx.ICON_ERROR)
             if changeBg:
                 win.SetBackgroundColour("pink")
             win.SetFocus()
@@ -621,8 +642,8 @@ class MainFrame(wx.Frame):
                         value = ctrl.get_selection()
                         if not value:
                             display(
-                                win, "%s field is empty or the items are " \
-                                     "not checked!" % ctrl.get_name(), False)
+                                win, "\"%s\" field is empty or the items are " \
+                                     "not checked!" % ctrl.get_pretty_name(), False)
                             return
 
                     elif (option_name == "tsa_roi_paths") or \
@@ -639,7 +660,7 @@ class MainFrame(wx.Frame):
                         value = str(ctrl.get_selection())
 
                     if len(value) == 0:
-                        display(win, "%s field is empty!" % ctrl.get_name())
+                        display(win, "\"%s\" field is empty!" % ctrl.get_pretty_name())
                         return
                         
                     if '/' in value and '$' not in value and not \
@@ -648,8 +669,8 @@ class MainFrame(wx.Frame):
                         if not os.path.exists(ctrl.get_selection()) and \
                                         value != 'On/Off':
                             display(
-                                win, "%s field contains incorrect path. " \
-                                "Please update the path!" % ctrl.get_name())
+                                win, "\"%s\" field contains incorrect path. " \
+                                "Please update the path!" % ctrl.get_pretty_name())
                             return
                     
                 config_list.append(ctrl)
@@ -819,12 +840,11 @@ class MainFrame(wx.Frame):
             okDlg1.Destroy()
 
     def submit_item(self, event):
-
         import os
         import linecache
 
         def display(win, msg, changeBg=True):
-            wx.MessageBox(msg, "Error")
+            wx.MessageBox(msg, "Error", style=wx.OK | wx.ICON_ERROR)
             if changeBg:
                 win.SetBackgroundColour("pink")
             win.SetFocus()
@@ -858,8 +878,7 @@ class MainFrame(wx.Frame):
 
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and (option_name != 'derivativeList') and \
-                        (option_name != 'modelConfigs'):
+                    and option_name not in ['derivativeList', 'modelConfigs']:
                 
                     win = ctrl.get_ctrl()
                     
@@ -872,7 +891,7 @@ class MainFrame(wx.Frame):
 
                         if not value:
                             display(
-                                win, "%s field is empty or the items are " \
+                                win, "\"%s\" field is empty or the items are " \
                                      "not checked!" % ctrl.get_name(), False)
                             return
 
@@ -893,8 +912,8 @@ class MainFrame(wx.Frame):
                                 not ctrl.get_selection().endswith(".nii.gz"):
                             display(
                                 win, "The Mask Specification File field "
-                                    "must contain a NIFTI file (ending in "
-                                    ".nii or .nii.gz).", False)
+                                     "must contain a NIFTI file (ending in "
+                                     ".nii or .nii.gz).", False)
                             return
 
                     else:
@@ -902,7 +921,7 @@ class MainFrame(wx.Frame):
                         value = str(ctrl.get_selection())
 
                     if len(value) == 0:
-                        display(win, "%s field is empty!" % ctrl.get_name())
+                        display(win, "\"%s\" field is empty!" % ctrl.get_pretty_name())
                         return
 
                     if '/' in value and '$' not in value and \
@@ -911,9 +930,9 @@ class MainFrame(wx.Frame):
                         if not os.path.exists(ctrl.get_selection()) and \
                                         value != 'On/Off':
                             display(
-                                win, "%s field contains incorrect path. "
+                                win, "\"%s\" field contains incorrect path. "
                                      "Please update the path!"
-                                     % ctrl.get_name())
+                                     % ctrl.get_pretty_name())
                             return
 
                 config_list.append(ctrl)

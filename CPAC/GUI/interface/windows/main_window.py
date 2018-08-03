@@ -704,8 +704,8 @@ class ListBox(wx.Frame):
                                   'be loaded properly - the file might be '\
                                   'access-protected or you might have ' \
                                   'chosen the wrong file.\n'
-                            print 'Error name: main_window_0001\n\n'
-                            print 'Exception: %s' % e
+                            print 'Error name: main_window_0001\n'
+                            print 'Exception: %s\n\n' % e
                     # Valid pipeline name
                     if c.pipelineName != None:
                             if self.pipeline_map.get(c.pipelineName) == None:

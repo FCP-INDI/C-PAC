@@ -1,7 +1,6 @@
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
-
 import re
 import os
 import sys

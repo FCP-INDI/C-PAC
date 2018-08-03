@@ -257,6 +257,43 @@ def get_voxel_timeseries(wf_name='voxel_timeseries'):
     return wflow
 
 
+def clean_roi_csv(roi_csv):
+    """Remove the file path comments from every other row of the output of
+    AFNI's 3dROIstats.
+
+    3dROIstats has a -nobriklab and a -quiet option, but neither remove the
+    file path comments while retaining the ROI label header, which is needed.
+
+    If there are no file path comments to remove, this function simply
+    passes the original file as output, instead of unnecessarily opening and
+    re-writing it.
+    """
+
+    with open(roi_csv, 'r') as f:
+        csv_lines = f.readlines()
+
+    modified = False
+    edited_lines = []
+    for line in csv_lines:
+        line = line.replace('\t\t\t', '')
+        line = line.replace('\t\t', '')
+        if '#' in line:
+            if '/' in line and '.' in line:
+                modified = True
+                continue
+        edited_lines.append(line)
+
+    if modified:
+        edited_roi_csv = os.path.join(os.getcwd(), os.path.basename(roi_csv))
+        with open(edited_roi_csv, 'wt') as f:
+            for line in edited_lines:
+                f.write(line)
+    else:
+        edited_roi_csv = roi_csv
+
+    return edited_roi_csv
+
+
 def get_roi_timeseries(wf_name='roi_timeseries'):
 
     """
@@ -329,8 +366,16 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     wflow.connect(inputnode_roi, 'roi',
                   timeseries_roi, 'mask')
 
-    wflow.connect(timeseries_roi, 'stats',
-                  outputNode, 'roi_outputs')
+    clean_csv_imports = ['import os']
+    clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
+                                      output_names=['edited_roi_csv'],
+                                      function=clean_roi_csv,
+                                      imports=clean_csv_imports),
+                        name='clean_roi_csv')
+
+    wflow.connect(timeseries_roi, 'stats', clean_csv, 'roi_csv')
+
+    wflow.connect(clean_csv, 'edited_roi_csv', outputNode, 'roi_outputs')
 
     return wflow
 
@@ -610,8 +655,9 @@ def gen_roi_timeseries(data_file, template, output_type):
 
     # writing to 1Dfile
     print("writing 1D file..")
+
     f = open(oneD_file, 'w')
-    writer = csv.writer(f, delimiter='\t')
+    writer = csv.writer(f, delimiter=',')
 
     value_list = []
 
@@ -624,7 +670,7 @@ def gen_roi_timeseries(data_file, template, output_type):
         roi_number_str.append("#" + number)
 
     for key in new_keys:
-        value_list.append(node_dict['node_{0}'.format(key)])
+        value_list.append(str('{0}\n'.format(node_dict['node_{0}'.format(key)])))
 
     column_list = zip(*value_list)
 
@@ -633,6 +679,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     for column in column_list:
         writer.writerow(list(column))
     f.close()
+
     out_list.append(oneD_file)
 
     # copy the 1D contents to txt file
@@ -720,6 +767,7 @@ def gen_voxel_timeseries(data_file, template, output_type):
         string = 'vol {0}'.format(t)
         vol_dict[string] = node_array[t]
         f.write(str(np.round(np.mean(node_array[t]), 6)))
+        f.write('\n')
         val = node_array[t].tolist()
         val.insert(0, t)
         sorted_list.append(val)

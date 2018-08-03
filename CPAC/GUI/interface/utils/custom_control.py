@@ -19,7 +19,7 @@ class FileSelectorCombo(wx.combo.ComboCtrl):
         path = ""
         name = ""
         wildcard = "CPAC files (*.gz,*.nii,*.txt,*.mat.*.cnf,*.sch,*.csv)|" \
-                   "*gz;*.nii;*.txt;*.cnf;*.sch;*.mat;*.csv"
+                   "*gz;*.nii;*.txt;*.cnf;*.sch;*.mat;*.csv;*.tsv"
         if self.GetValue():
             path, name = os.path.split(self.GetValue())
         
@@ -198,7 +198,7 @@ class TextBoxFrame(wx.Frame):
         panel.SetSizer(sizer)
         
         self.Show()
-    
+
     def onButtonClick(self,event):
         parent = self.Parent
         
@@ -216,6 +216,66 @@ class TextBoxFrame(wx.Frame):
                 parent.listbox.Append(str(val))
                 self.Close()
 
+    
+class BETCoordinateFrame(wx.Frame):
+    def __init__(self, parent, values):
+       wx.Frame.__init__(self, parent, \
+                             title="Enter Center of gravity coordinates", \
+                             size = (450,150))
+        
+       panel = wx.Panel(self)
+        
+       sizer = wx.BoxSizer(wx.VERTICAL)
+        
+       flexsizer = wx.FlexGridSizer(cols=3, hgap=10, vgap=15) 
+        
+       label1 = wx.StaticText(panel, -1, label = 'x-coordinate')
+       self.box1 = NumCtrl(panel, id = wx.ID_ANY, value= values[0],
+                           integerWidth=2, fractionWidth = 3, 
+                           allowNegative=True, allowNone = True)
+        
+    
+       flexsizer.Add(label1)
+       flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)
+        
+       label2 = wx.StaticText(panel, -1, label = 'y-coordinate')
+       self.box2 = NumCtrl(panel, id = wx.ID_ANY, value= values[1],
+                           integerWidth=2, fractionWidth = 3, 
+                           allowNegative=True, allowNone = True)
+
+       flexsizer.Add(label2, 0, wx.EXPAND, 2)
+       flexsizer.Add(self.box2,0, wx.ALIGN_LEFT, 5)
+
+       label3 = wx.StaticText(panel, -1, label = 'z-coordinate')
+       self.box3 = NumCtrl(panel, id = wx.ID_ANY, value= values[2],
+                           integerWidth=2, fractionWidth = 3, 
+                           allowNegative=True, allowNone = True)
+        
+       flexsizer.Add(label3, 0, wx.EXPAND, 3)
+       flexsizer.Add(self.box3,0, wx.ALIGN_LEFT, 5)
+        
+       button = wx.Button(panel, -1, 'OK', size= (90,30))
+       button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+       sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+       sizer.Add(button,0, wx.ALIGN_CENTER)
+       panel.SetSizer(sizer)
+        
+       self.Show()
+
+    def onButtonClick(self,event):
+       parent = self.Parent
+        
+       if type(self.box1.GetValue() or self.box2.GetValue() or self.box3.GetValue()) is not int:
+            
+           dlg = wx.MessageDialog(self, "the values should be int or long" \
+                                      'Error!',
+                                  wx.OK | wx.ICON_ERROR)
+           dlg.ShowModal()
+           dlg.Destroy()
+       else:
+               val = [self.box1.GetValue() , self.box2.GetValue(), self.box3.GetValue()]
+               parent.listbox.Append(str(val))
+               self.Close()
 
 class ResampleNumBoxFrame(wx.Frame):
 
@@ -319,18 +379,18 @@ class ConfigFslFrame(wx.Frame):
     
     def __init__(self, parent, values):
         wx.Frame.__init__(self, parent,
-                          title="Specify FSL FLAME Model",
+                          title="Specify FSL FEAT Model",
                           size = (680,200))
         sizer_vert = wx.BoxSizer(wx.VERTICAL)
         sizer_horz = wx.BoxSizer(wx.HORIZONTAL)
         panel = wx.Panel(self)
 
-        button0 = wx.Button(panel, -1, 'Choose FLAME Model Preset',
+        button0 = wx.Button(panel, -1, 'Choose FEAT Model Preset',
                             size=(210, 50))
         button0.Bind(wx.EVT_BUTTON, self.onPresetClick)
         sizer_horz.Add(button0, 0, wx.ALIGN_CENTER | wx.TOP, border=15)
 
-        button1 = wx.Button(panel, -1, 'FLAME Model Builder/Editor',
+        button1 = wx.Button(panel, -1, 'FEAT Model Builder/Editor',
                                 size= (210, 50))
         button1.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer_horz.Add(button1, 1, wx.ALIGN_CENTER | wx.TOP, border=15)
@@ -342,7 +402,7 @@ class ConfigFslFrame(wx.Frame):
                                            'GUI/resources/images/help.png'),
                                          wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 
-        label2 = wx.StaticText(panel, -1, label='FSL FLAME Model Config')
+        label2 = wx.StaticText(panel, -1, label='FSL FEAT Model Config')
         self.box2 = FSLModelSelectorCombo(panel, id = wx.ID_ANY,
                                           size = (500, -1))
         
@@ -401,7 +461,7 @@ class ConfigFslFrame(wx.Frame):
                                "in which an F-Test is specified must also "
                                "include a .fts file.", 500)
         elif flag == 2:
-            wx.TipWindow(self, "Full path to a CPAC FSL FLAME group analysis "
+            wx.TipWindow(self, "Full path to a CPAC FSL FEAT group analysis "
                                "model configuration YAML file. You can "
                                "either create one using one of the presets, "
                                "or by using the model builder to build one "

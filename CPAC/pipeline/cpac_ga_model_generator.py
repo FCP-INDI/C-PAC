@@ -125,7 +125,7 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
 
     mm_dict_list = []
     
-    for raw_file in list(model_df["Raw_Filepath"]):
+    for raw_file in model_df["Raw_Filepath"]:
     
         mask_string = ["3dmaskave", "-mask", merge_mask, raw_file]
         
@@ -238,7 +238,7 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
     # calculate the ROI means
     roi_dict_list = []
     
-    for raw_file in list(model_df["Raw_Filepath"]):
+    for raw_file in model_df["Raw_Filepath"]:
         
         roi_string = ["3dROIstats", "-mask", roi_mask, raw_file]
 
@@ -336,7 +336,7 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
         if val not in keymap.keys():
             keymap[val] = idx
             idx += 1
-    grp_vector = list(pheno_df[group_ev].map(keymap))
+    grp_vector = pheno_df[group_ev].map(keymap)
             
     # start the split
     pheno_df["subject_key"] = pheno_df["Participant"]
@@ -513,12 +513,11 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # remove file names from preproc_strat
     filename = preproc_strat.split("/")[-1]
-    preproc_strat = preproc_strat.replace(filename,"")
+    preproc_strat = preproc_strat.replace('.nii', '').replace('.gz', '')
     preproc_strat = preproc_strat.lstrip("/").rstrip("/")
 
     # get thresholds
     z_threshold = float(group_config_obj.z_threshold[0])
-
     p_threshold = float(group_config_obj.p_threshold[0])
 
     ftest_list = []
@@ -563,8 +562,10 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # create path for output directory
     out_dir = os.path.join(group_config_obj.output_dir,
-                           "group_analysis_results_%s" % pipeline_ID,
-                           "group_model_%s" % model_name, resource_id,
+                           'cpac_group_analysis',
+                           'FSL_FEAT',
+                           'pipeline_{0}'.format(pipeline_ID),
+                           'group_model_{0}'.format(model_name), resource_id,
                            series_or_repeated_label, preproc_strat)
 
     if 'sca_roi' in resource_id:
@@ -603,10 +604,12 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # generate working directory for this output's group analysis run
     work_dir = os.path.join(pipeline_config_obj.workingDirectory,
-                            "group_analysis", second_half_out.lstrip("/"))
+                            'cpac_group_analysis', 'FSL_FEAT', 
+                            second_half_out.lstrip("/"))
 
     log_dir = os.path.join(pipeline_config_obj.logDirectory,
-                           "group_analysis", second_half_out.lstrip("/"))
+                           'cpac_group_analysis', 'FSL_FEAT',
+                           second_half_out.lstrip("/"))
 
     # create the actual directories
     create_dir(model_path, "group analysis output")
@@ -616,7 +619,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     # create new subject list based on which subjects are left after checking
     # for missing outputs
     new_participant_list = []
-    for part in list(model_df["participant_id"]):
+    for part in model_df["participant_id"]:
         # do this instead of using "set" just in case, to preserve order
         #   only reason there may be duplicates is because of multiple-series
         #   repeated measures runs
@@ -651,7 +654,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
     merge_outfile = os.path.join(model_path, merge_outfile)
 
-    merge_file = create_merged_copefile(list(model_df["Filepath"]),
+    merge_file = create_merged_copefile(model_df["Filepath"].tolist(),
                                         merge_outfile)
 
     # create merged group mask
@@ -732,7 +735,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     if "Session" in model_df.columns:
         # if these columns were added by the model builder automatically
-        for col in list(model_df.columns):
+        for col in model_df.columns:
             # should only grab the repeated measures-designed participant_{ID}
             # columns, not the "participant_id" column!
             if "participant_" in col and "_id" not in col:
