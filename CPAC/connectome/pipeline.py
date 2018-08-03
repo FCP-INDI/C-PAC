@@ -14,7 +14,7 @@ from collections import OrderedDict as Odict
 
 from CPAC.connectome.cross_validation import (
     CVInterface, JoinerInterface,
-    Roi, Connectivity, Classifier
+    ROI, Connectivity, Classifier
 )
 
 from CPAC.connectome.report import ReportInterface
@@ -79,7 +79,7 @@ def create_connectome_study(configuration, name='connectivity'):
     cv_fields_connection = list(zip(cv_fields, cv_fields))
 
     roi = pe.MapNode(
-        interface=Roi(),
+        interface=ROI(),
         name='roi',
         iterfield=cv_fields
     )

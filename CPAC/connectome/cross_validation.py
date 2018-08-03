@@ -16,11 +16,19 @@ from sklearn.preprocessing import LabelEncoder
 from nilearn.connectome import ConnectivityMeasure
 
 from CPAC.connectome.rois import (
-    DictLearning
+    DictLearning,
+    KMeans,
+    Ward,
+    GroupICA
 )
 
 from CPAC.connectome.classifiers import (
-    SVC
+    SVC,
+    Ridge,
+    LogisticRegression,
+    RandomForest,
+    KNearestNeighbors,
+    NaiveBayes,
 )
 
 from nipype import logging
@@ -183,13 +191,17 @@ class CVedInterface(BaseInterface):
         return outputs
 
 
-class Roi(CVedInterface):
+class ROI(CVedInterface):
 
     config_key = "roi"
 
     def factory(self, config):
         methods = {
             'dict_learning': DictLearning,
+            'k_means': KMeans,
+            'kmeans': KMeans,
+            'ward': Ward,
+            'group_ica': GroupICA,
         }
         config['parameters'] = {} if not config['parameters'] else config['parameters']
         return methods[config['type']](**config['parameters'])
@@ -234,6 +246,13 @@ class Classifier(CVedInterface):
         methods = {
             'svc': SVC,
             'svm': SVC,
+            'ridge': Ridge,
+            'logistic': LogisticRegression,
+            'random_forest': RandomForest,
+            'knn': KNearestNeighbors,
+            'knearestneighbors': KNearestNeighbors,
+            'k_nearest_neighbors': KNearestNeighbors,
+            'naive_bayes': NaiveBayes,
         }
         config['parameters'] = {} if not config['parameters'] else config['parameters']
         return methods[config['type']](**config['parameters'])
