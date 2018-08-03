@@ -1,20 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from CPAC.connectome.cross_validation import CVedInterface
-from nilearn.decomposition import DictLearning
-import nibabel as nib
 import numpy as np
+import nibabel as nib
+from nilearn.decomposition import DictLearning as _DictLearning
 
 
-class DictLearningRoiInterface(CVedInterface):
+class Roi:
+
+    def __init__(self, **parameters):
+        self.parameters = parameters
+
+    def fit(self, X, y=None):
+        raise NotImplementedError
+
+    def transform(self, model, X, y=None):
+        raise NotImplementedError
+
+
+class DictLearning(Roi):
 
     def fit(self, X, y=None):
         X = [nib.Nifti1Image(x, np.eye(len(x.shape))) for x in X]
-        dict_learn = DictLearning()
-        dict_learn.fit(X)
-        return dict_learn
+        self.dict_learn = _DictLearning()
+        self.dict_learn.fit(X)
 
-    def transform(self, model, X, y=None):
+    def transform(self, X, y=None):
         X = [nib.Nifti1Image(x, np.eye(len(x.shape))) for x in X]
-        return [x.T for x in model.transform(X)], y
+        return [x.T for x in self.dict_learn.transform(X)], y

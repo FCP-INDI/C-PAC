@@ -1,16 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from CPAC.connectome.cross_validation import CVedInterface
-from sklearn.svm import SVC
+from sklearn.svm import SVC as _SVC
 
 
-class SVCClassifierInterface(CVedInterface):
+class Classifier:
 
     def fit(self, X, y=None):
-        clf = SVC()
-        clf.fit(X, y) 
-        return clf
+        raise NotImplementedError
 
-    def transform(self, model, X, y=None):
-        return list(model.predict(X)), y
+    def transform(self, X, y=None):
+        raise NotImplementedError
+
+
+class SVC(Classifier):
+
+    def __init__(self, **parameters):
+        self.parameters = parameters
+
+    def fit(self, X, y=None):
+        self.clf = _SVC()
+        self.clf.fit(X, y) 
+
+    def transform(self, X, y=None):
+        return list(self.clf.predict(X)), y

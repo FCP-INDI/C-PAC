@@ -12,18 +12,11 @@ import numpy as np
 import nibabel as nb
 from collections import OrderedDict as Odict
 
-from CPAC.connectome.cross_validation import CVInterface, JoinerInterface, Roi, Connectivity, Classifier
-from CPAC.connectome.classifiers import (
-    SVCClassifierInterface
+from CPAC.connectome.cross_validation import (
+    CVInterface, JoinerInterface,
+    Roi, Connectivity, Classifier
 )
-from CPAC.connectome.connectivity import (
-    CorrelationConnectivityInterface,
-    PartialCorrelationConnectivityInterface,
-    TangentConnectivityInterface
-)
-from CPAC.connectome.rois import (
-    DictLearningRoiInterface
-)
+
 from CPAC.connectome.report import ReportInterface
 
 

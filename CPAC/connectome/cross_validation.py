@@ -2,16 +2,26 @@
 # -*- coding: utf-8 -*-
 
 import six
+import copy
 import numpy as np
 import nibabel as nb
+from collections import OrderedDict
+
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.base import BaseInterface, \
     BaseInterfaceInputSpec, traits, File, TraitedSpec
 
 from sklearn.preprocessing import LabelEncoder
-from collections import OrderedDict
-import copy
+from nilearn.connectome import ConnectivityMeasure
+
+from CPAC.connectome.rois import (
+    DictLearning
+)
+
+from CPAC.connectome.classifiers import (
+    SVC
+)
 
 from nipype import logging
 logger = logging.getLogger('interface')
@@ -24,6 +34,10 @@ def _load(x):
         return nb.load(x).get_data()
     else:
         return x
+
+
+def _normalize(X):
+    return [x.reshape((np.prod(x.shape[0:-1]), -1)).T for x in X]
 
 
 class CVInputSpec(TraitedSpec):
@@ -173,11 +187,21 @@ class Roi(CVedInterface):
 
     config_key = "roi"
 
+    def factory(self, config):
+        methods = {
+            'dict_learning': DictLearning,
+        }
+        config['parameters'] = {} if not config['parameters'] else config['parameters']
+        return methods[config['type']](**config['parameters'])
+
     def fit(self, X, y=None):
-        return {}
+        config = copy.deepcopy(self.inputs.node_config)
+        model = self.factory(config)
+        model.fit(X, y)
+        return model
 
     def transform(self, model, X, y=None):
-        return list(np.zeros((len(X), 10))), y
+        return model.transform(X, y)
 
 
 class Connectivity(CVedInterface):
@@ -185,21 +209,43 @@ class Connectivity(CVedInterface):
     config_key = "connectivity"
 
     def fit(self, X, y=None):
-        return {}
+        X = _normalize(X)
+
+        metric = self.inputs.node_config['type']
+        if metric == 'partial':
+            metric = 'partial correlation'
+
+        correlation_measure = ConnectivityMeasure(kind=metric,
+                                                  vectorize=True,
+                                                  discard_diagonal=True)
+        correlation_measure.fit(X)
+        return correlation_measure
 
     def transform(self, model, X, y=None):
-        return list(np.zeros((len(X), 10))), y
+        X = _normalize(X)
+        return list(model.transform(X)), y
 
 
 class Classifier(CVedInterface):
 
     config_key = "classifier"
 
+    def factory(self, config):
+        methods = {
+            'svc': SVC,
+            'svm': SVC,
+        }
+        config['parameters'] = {} if not config['parameters'] else config['parameters']
+        return methods[config['type']](**config['parameters'])
+
     def fit(self, X, y=None):
-        return {}
+        config = copy.deepcopy(self.inputs.node_config)
+        model = self.factory(config)
+        model.fit(X, y)
+        return model
 
     def transform(self, model, X, y=None):
-        return y.tolist(), y
+        return model.transform(X, y)
 
 
 class JoinerInputSpec(TraitedSpec):

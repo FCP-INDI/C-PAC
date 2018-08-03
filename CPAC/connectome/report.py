@@ -72,22 +72,21 @@ class ReportInterface(BaseInterface):
             row['roi'] = config['roi']['type']
             row['roi parameters'] = \
                 '' if not config['roi']['parameters'] \
-                else serialize_parameters(config['roi']['parameters'][k])
+                else serialize_parameters(config['roi']['parameters'])
 
             row['connectivity'] = config['connectivity']['type']
             row['connectivity parameters'] = \
                 '' if not config['connectivity']['parameters'] \
-                else serialize_parameters(config['connectivity']['parameters'][k])
+                else serialize_parameters(config['connectivity']['parameters'])
                 
 
             row['classifier'] = config['classifier']['type']
             row['classifier parameters'] = \
                 '' if not config['classifier']['parameters'] \
-                else serialize_parameters(config['classifier']['parameters'][k])
+                else serialize_parameters(config['classifier']['parameters'])
 
             rows += [row]
 
-        
         self._df = pd.DataFrame(rows)
                 
         return runtime
@@ -96,7 +95,29 @@ class ReportInterface(BaseInterface):
         outputs = self._outputs().get()
         outputs['data'] = self._df
 
-        self._df.to_csv('./report.csv')
+        cols_order = [
+            'roi', 'roi parameters',
+            'connectivity', 'connectivity parameters',
+            'classifier', 'classifier parameters',
+            'train roc auc',
+            'valid roc auc',
+        ]
+
+        if self.inputs.label_encoder:
+            le = self.inputs.label_encoder
+            if len(le.classes_) == 2:
+                cols_order += [
+                    'train tn',
+                    'train fp',
+                    'train fn',
+                    'train tp',
+                    'valid tn',
+                    'valid fp',
+                    'valid fn',
+                    'valid tp',
+                ]
+
+        self._df.to_csv('./report.csv', cols=cols_order)
 
         return outputs
 
