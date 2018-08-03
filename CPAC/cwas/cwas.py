@@ -107,8 +107,8 @@ def calc_cwas(subjects_data, regressor, regressor_selected_cols, permutations, v
     return F_set, p_set
 
 
-def nifti_cwas(subjects, mask_file, regressor, participant_column,
-               columns, permutations, voxel_range):
+def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
+               columns_string, permutations, voxel_range):
     """
     Performs CWAS for a group of subjects
     
@@ -118,10 +118,10 @@ def nifti_cwas(subjects, mask_file, regressor, participant_column,
         A length `N` dict of id and file paths of the nifti files of subjects
     mask_file : string
         Path to a mask file in nifti format
-    regressor : ndarray
-        Vector of shape (`S`) or (`S`, `1`), `S` subjects
-    columns : list
-        todo
+    regressor_file : string
+        file path to regressor CSV or TSV file (phenotypic info)
+    columns_string : string
+        comma-separated string of regressor labels
     permutations : integer
         Number of pseudo f values to sample using a random permutation test
     voxel_range : ndarray
@@ -146,10 +146,10 @@ def nifti_cwas(subjects, mask_file, regressor, participant_column,
     from CPAC.cwas.cwas import calc_cwas
 
     try:
-        regressor_data = pd.read_table(regressor, sep=None, engine="python",
+        regressor_data = pd.read_table(regressor_file, sep=None, engine="python",
                                        dtype={ participant_column: str })
     except:
-        regressor_data = pd.read_table(regressor, sep=None, engine="python")
+        regressor_data = pd.read_table(regressor_file, sep=None, engine="python")
         regressor_data = regressor_data.astype({participant_column: str})
 
     # drop duplicates
@@ -159,7 +159,7 @@ def nifti_cwas(subjects, mask_file, regressor, participant_column,
     if not participant_column in regressor_cols:
         raise ValueError('Participant column was not found in regressor file.')
 
-    if participant_column in columns:
+    if participant_column in columns_string:
         raise ValueError('Participant column can not be a regressor.')
 
     subject_ids = list(subjects.keys())
@@ -179,8 +179,7 @@ def nifti_cwas(subjects, mask_file, regressor, participant_column,
     # Keep only data from specific subjects
     ordered_regressor_data = regressor_data.loc[subject_ids]
 
-    columns = columns.split(',')
-
+    columns = columns_string.split(',')
     regressor_selected_cols = [i for i, c in enumerate(regressor_cols) if c in columns]
 
     if len(regressor_selected_cols) == 0:

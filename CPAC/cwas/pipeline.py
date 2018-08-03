@@ -108,9 +108,9 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     
     ncwas = pe.MapNode(util.Function(input_names=['subjects',
                                                   'mask_file',
-                                                  'regressor', 
+                                                  'regressor_file', 
                                                   'participant_column',
-                                                  'columns', 
+                                                  'columns_string', 
                                                   'permutations',
                                                   'voxel_range'],
                                      output_names=['result_batch'],
@@ -149,13 +149,13 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     cwas.connect(inputspec, 'subjects',
                  ncwas, 'subjects')
     cwas.connect(inputspec, 'regressor',
-                 ncwas, 'regressor')
+                 ncwas, 'regressor_file')
     cwas.connect(inputspec, 'permutations',
                  ncwas, 'permutations')
     cwas.connect(inputspec, 'participant_column',
                  ncwas, 'participant_column')
     cwas.connect(inputspec, 'columns',
-                 ncwas, 'columns')
+                 ncwas, 'columns_string')
                  
     cwas.connect(ccb, 'batch_list',
                  ncwas, 'voxel_range')
