@@ -107,14 +107,14 @@ class ReportInterface(BaseInterface):
             le = self.inputs.label_encoder
             if len(le.classes_) == 2:
                 cols_order += [
+                    'train tp',
                     'train tn',
                     'train fp',
                     'train fn',
-                    'train tp',
+                    'valid tp',
                     'valid tn',
                     'valid fp',
                     'valid fn',
-                    'valid tp',
                 ]
 
         self._df.to_csv('./report.csv', cols=cols_order, index=False)
