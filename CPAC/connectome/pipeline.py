@@ -7,10 +7,12 @@ from nipype.interfaces.base import BaseInterface, \
     BaseInterfaceInputSpec, traits, File, TraitedSpec
 
 import os
+import copy
 import numpy as np
 import nibabel as nb
+from collections import OrderedDict as Odict
 
-from CPAC.connectome.cross_validation import CVInterface
+from CPAC.connectome.cross_validation import CVInterface, JoinerInterface, Roi, Connectivity, Classifier
 from CPAC.connectome.classifiers import (
     SVCClassifierInterface
 )
@@ -22,51 +24,7 @@ from CPAC.connectome.connectivity import (
 from CPAC.connectome.rois import (
     DictLearningRoiInterface
 )
-
-
-def generate_layer(wf, ifaces_ref, configs, leafs):
-
-    nodes = []
-
-    for leaf, leaf_train, leaf_valid in leafs:
-
-        for config in configs:
-
-            iface = ifaces_ref[config['type']]()
-            params = config['parameters'] if 'parameters' in config else {}
-
-            name = "%s_%s" % (
-                config['type'],
-                '_'.join(
-                    '%s_%s' % (k, params[k])
-                    for k in sorted(params.keys())
-                ))
-            name = name.strip('_')
-            if leaf != '':
-                name = '%s_%s' % (leaf, name)
-
-            node_train = pe.MapNode(interface=iface, name='%s_train' % name, iterfield=['X', 'y', 'fold'])
-            node_valid = pe.MapNode(interface=iface, name='%s_valid' % name, iterfield=['X', 'y', 'fold', 'model'])
-            # TODO setup parameters
-
-            wf.connect(node_train, 'model', node_valid, 'model')
-
-            wf.connect([
-                (leaf_train, node_train, [
-                    ('X', 'X'),
-                    ('y', 'y'),
-                    ('fold', 'fold')
-                ]),
-                (leaf_valid, node_valid, [
-                    ('X', 'X'),
-                    ('y', 'y'),
-                    ('fold', 'fold')
-                ]),
-            ])
-
-            nodes += [(name, node_train, node_valid)]
-
-    return nodes
+from CPAC.connectome.report import ReportInterface
 
 
 def create_connectome_study(configuration, name='connectivity'):
@@ -116,56 +74,72 @@ def create_connectome_study(configuration, name='connectivity'):
 
     wf = pe.Workflow(name=name)
 
-    cv = pe.Node(CVInterface(), name='cv')
-    cv.inputs.folds = 2
     from nilearn import datasets
     adhd_dataset = datasets.fetch_adhd(n_subjects=5)
     func_filenames = adhd_dataset.func
-    cv.inputs.X = func_filenames
+    cv = pe.Node(CVInterface(), name='cv')
+    cv.inputs.X = func_filenames 
     cv.inputs.y = [1, 2, 2, 1, 2]
+    cv.inputs.folds = int(configuration['folds'])
 
-    input_train = pe.MapNode(util.IdentityInterface(fields=['X', 'y', 'fold']), name='input_train', iterfield=['X', 'y', 'fold'])
-    input_valid = pe.MapNode(util.IdentityInterface(fields=['X', 'y', 'fold']), name='input_valid', iterfield=['X', 'y', 'fold'])
+    cv_fields = ['X_train', 'y_train', 'X_valid', 'y_valid', 'fold', 'config']
+    cv_fields_connection = list(zip(cv_fields, cv_fields))
 
+    roi = pe.MapNode(
+        interface=Roi(),
+        name='roi',
+        iterfield=cv_fields
+    )
+    roi.iterables = ('node_config', configuration['roi'])
+
+    connectivity = pe.MapNode(
+        interface=Connectivity(),
+        name='connectivity',
+        iterfield=cv_fields
+    )
+    connectivity.iterables = ('node_config', configuration['connectivity'])
+
+    classifier = pe.MapNode(
+        interface=Classifier(),
+        name='classifier',
+        iterfield=cv_fields
+    )
+    classifier.iterables = ('node_config', configuration['classifier'])
+
+    joiner_classifier = pe.JoinNode(
+        JoinerInterface(),
+        name='joiner_classifier',
+        joinsource=classifier,
+        joinfield=cv_fields
+    )
+
+    joiner_connectivity = pe.JoinNode(
+        JoinerInterface(),
+        name='joiner_connectivity',
+        joinsource=connectivity,
+        joinfield=cv_fields
+    )
+
+    joiner_roi = pe.JoinNode(
+        JoinerInterface(),
+        name='joiner_roi',
+        joinsource=roi,
+        joinfield=cv_fields
+    )
+
+    report = pe.Node(interface=ReportInterface(),
+                     name="report")
+    
     wf.connect([
-        (cv, input_train, [
-            ('train_X', 'X'),
-            ('train_y', 'y'),
-            ('fold', 'fold')
-        ]),
-        (cv, input_valid, [
-            ('train_X', 'X'),
-            ('train_y', 'y'),
-            ('fold', 'fold')
-        ]),
+        (cv, roi, cv_fields_connection),
+        (roi, connectivity, cv_fields_connection),
+        (connectivity, classifier, cv_fields_connection),
+        (classifier, joiner_classifier, cv_fields_connection),
+        (joiner_classifier, joiner_connectivity, cv_fields_connection),
+        (joiner_connectivity, joiner_roi, cv_fields_connection),
+        (joiner_roi, report, cv_fields_connection),
+        (cv, report, [('label_encoder', 'label_encoder')]),
     ])
 
-    input_leafs = [('', input_train, input_valid)]
-
-    roi_ifaces = {
-        # 'aal': DictLearningRoiInterface,
-        # 'harvard_oxford': DictLearningRoiInterface,
-        # 'power': DictLearningRoiInterface,
-        # 'basc': DictLearningRoiInterface,
-        # 'ward': DictLearningRoiInterface,
-        # 'k_means': DictLearningRoiInterface,
-        # 'group_ica': DictLearningRoiInterface,
-        'dict_learning': DictLearningRoiInterface
-    }
-
-    connectivity_ifaces = {
-        'correlation': CorrelationConnectivityInterface,
-        'partial correlation': PartialCorrelationConnectivityInterface,
-        'partial': PartialCorrelationConnectivityInterface,
-        'tangent': TangentConnectivityInterface,
-    }
-
-    classifier_ifaces = {
-        'svc': SVCClassifierInterface
-    }
-
-    roi_nodes          = generate_layer(wf, roi_ifaces,          configuration['roi'],          input_leafs)
-    connectivity_nodes = generate_layer(wf, connectivity_ifaces, configuration['connectivity'], roi_nodes)
-    classifier_nodes   = generate_layer(wf, classifier_ifaces,   configuration['classifier'],   connectivity_nodes)
 
     return wf

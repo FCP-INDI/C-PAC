@@ -49,3 +49,5 @@ connectome:
     """)
 
     wf = create_connectome_study(config['connectome'])
+    wf.write_graph(simple_form=False, graph2use='exec', format='png')
+    wf.run()
