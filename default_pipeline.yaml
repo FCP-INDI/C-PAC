@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.1.0
+# Version 1.2.0
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -101,6 +101,138 @@ removeWorkingDir :  True
 # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
 # Requires an intact Working Directory from a previous CPAC run.
 reGenerateOutputs :  False
+
+
+# Choice of using AFNI or FSL-BET to perform SkullStripping
+skullstrip_option :  AFNI
+
+
+# Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
+skullstrip_shrink_factor :  0.6
+
+
+# Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
+skullstrip_var_shrink_fac :  True
+
+
+# The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, for when edge detection is used (which is On by default), otherwise the default value is 0.65.
+skullstrip_shrink_factor_bot_lim :  0.4
+
+
+# Avoids ventricles while skullstripping.
+skullstrip_avoid_vent :  True
+
+
+# Set the number of iterations. Default is 250.The number of iterations should depend upon the density of your mesh.
+skullstrip_n_iterations :  250
+
+
+# While expanding, consider the voxels above and not only the voxels below
+skullstrip_pushout :  True
+
+
+# Perform touchup operations at the end to include areas not covered by surface expansion.
+skullstrip_touchup :  True
+
+
+# Give the maximum number of pixels on either side of the hole that can be filled. The default is 10 only if 'Touchup' is On - otherwise, the default is 0.
+skullstrip_fill_hole :  10
+
+
+# Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
+skullstrip_NN_smooth :  72
+
+
+# Perform final surface smoothing after all iterations. Default is 20.
+skullstrip_smooth_final :  20
+
+
+# Avoid eyes while skull stripping. Default is On.
+skullstrip_avoid_eyes :  True
+
+
+# Use edge detection to reduce leakage into meninges and eyes. Default is On.
+skullstrip_use_edge :  True
+
+
+# Speed of expansion.
+skullstrip_exp_frac :  0.1
+
+
+# Perform aggressive push to edge. This might cause leakage. Default is Off.
+skullstrip_push_to_edge :  False
+
+
+# Use outer skull to limit expansion of surface into the skull in case of very strong shading artifacts. Use this only if you have leakage into the skull.
+skullstrip_use_skull :  Off
+
+
+# Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection).
+skullstrip_perc_int :  0
+
+
+# Number of iterations to remove intersection problems. With each iteration, the program automatically increases the amount of smoothing to get rid of intersections. Default is 4.
+skullstrip_max_inter_iter :  4
+
+
+# Multiply input dataset by FAC if range of values is too small.
+skullstrip_fac :  1
+
+
+# Blur dataset after spatial normalization. Recommended when you have lots of CSF in brain and when you have protruding gyri (finger like). If so, recommended value range is 2-4. Otherwise, leave at 0.
+skullstrip_blur_fwhm :  0
+
+
+# Set the threshold value controling the brain vs non-brain voxels, default is 0.5
+bet_frac :  0.5
+
+
+# Mask created along with skull stripping
+bet_mask_boolean :  Off
+
+
+# Mesh created along with skull stripping
+bet_mesh_boolean :  Off
+
+
+# Create a surface outline image
+bet_outline :  Off
+
+
+# Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bet_padding :  Off
+
+
+# Integer value of head radius
+bet_radius :  0
+
+
+# Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bet_reduce_bias :  Off
+
+
+# Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bet_remove_eyes :  Off
+
+
+# Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bet_robust :  Off
+
+
+# Create a skull image
+bet_skull :  Off
+
+
+# Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
+bet_surfaces :  Off
+
+
+# Apply thresholding to segmented brain image and mask
+bet_threshold :  Off
+
+
+# Vertical gradient in fractional intensity threshold (-1,1)
+bet_vertical_gradient : 0.0
 
 
 # The resolution to which anatomical images should be transformed during registration.
@@ -304,40 +436,27 @@ runFrequencyFiltering :  [1, 0]
 nuisanceBandpassFreq : [[0.01, 0.1]]
 
 
-# Remove volumes exhibiting excessive motion.
-runScrubbing :  [0]
+# Remove or regress out volumes exhibiting excessive motion.
+# Each of these options are mutually exclusive, and selecting more than one will create a new pipeline fork for each option. For example, de-spiking and scrubbing will not run within the same pipeline strategy.
+runMotionSpike :  ['None']
 
 
-# Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
-# Any volume exhibiting FD greater than this value will be removed.
-scrubbingThreshold : [0.2]
+# (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) calculation to apply the threshold to during de-spiking or scrubbing.
+fdCalc :  ['Jenkinson']
 
 
-# Number of volumes to remove preceeding a volume with excessive FD.
+# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
+# Any volume exhibiting FD greater than the value will be regressed out or scrubbed.
+spikeThreshold : [0.5]
+
+
+# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub preceding a volume with excessive FD.
 numRemovePrecedingFrames :  1
 
 
-# Number of volumes to remove subsequent to a volume with excessive FD.
+# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub subsequent to a volume with excessive FD.
 numRemoveSubsequentFrames :  2
 
-# Motion Spike De-Noising. Remove or regress out volumes exhibiting
-# excessive motion.
-# Options: ['Off'], ['De-Spiking'], or ['Scrubbing']
-runMotionSpike :  ['Off']
-
-
-# (Motion Spike De-Noising only) Choose which Framewise Displacement (FD)
-# calculation to apply the threshold to during de-spiking or scrubbing.
-# Options: ['Jenkinson'] or ['Power']
-fdCalc: ['Jenkinson']
-
-
-# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise
-# Displacement (FD) in millimeters or in percentage (with a %). Any volume
-# exhibiting FD greater than the value (or within the top percentage of the
-# percent value, if given) will be regressed out or scrubbed.
-# Options: float value like [0.2] or [1.5], or a percent ['5%'] or ['10%']
-spikeThreshold : [0.5]
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
 runROITimeseries :  [1]
@@ -493,7 +612,7 @@ run_smoothing :  [1]
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
 # Can be a single value or multiple values separated by commas.
 # Note that spatial smoothing is run as the last step in the individual-level analysis pipeline, such that all derivatives are output both smoothed and unsmoothed.
-fwhm : [6]
+fwhm : [4]
 
 
 # Choose whether to smooth outputs before or after z-scoring.
@@ -507,6 +626,10 @@ smoothing_order :  ['Before']
 runZScoring :  [1]
 
 
+# Run FSL FEAT group-level analysis.
+run_fsl_feat :  [0]
+
+
 # This number depends on computing resources.
 numGPAModelsAtOnce :  1
 
@@ -514,4 +637,34 @@ numGPAModelsAtOnce :  1
 # Use the + to add FSL model configuration to be run.
 modelConfigs :  []
 
-disable_log : False
+
+# Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
+runMDMR :  [0]
+
+
+# Inclusion list text file listing the participant IDs you wish to include in the MDMR analysis. If left as None, will include all subjects.
+mdmr_inclusion : None
+
+
+# Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
+mdmr_roi_file :
+
+
+# Path to a CSV file containing the phenotypic regressor.
+mdmr_regressor_file :
+
+
+# Name of the participants column in your regressor file.
+mdmr_regressor_participant_column :
+
+
+# Columns from the CSV file indicating factor variables. Other columns will be handled as covariates. Separated by commas.
+mdmr_regressor_columns :
+
+
+# Number of permutation tests to run on the Pseudo-F statistics.
+mdmr_permutations :  500
+
+
+# Number of Nipype nodes created while computing MDMR. Dependent upon computing resources.
+mdmr_parallel_nodes :  1

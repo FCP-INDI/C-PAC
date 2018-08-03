@@ -189,7 +189,7 @@ skullstrip_fac :  1
 skullstrip_blur_fwhm :  0
 
 
-# Set the threshold value controling the brain vs non-brain voxels                              default is 0.5
+# Set the threshold value controling the brain vs non-brain voxels, default is 0.5
 bet_frac :  0.5
 
 
