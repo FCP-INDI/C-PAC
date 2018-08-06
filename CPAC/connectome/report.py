@@ -33,7 +33,9 @@ class ReportInputSpec(TraitedSpec):
 
 
 class ReportOutputSpec(TraitedSpec):
-    data = traits.Instance(klass=pd.DataFrame)
+    report = File(desc="CSV report with all the combinations"
+                       " and cross-validation folds",
+                  exists=True, mandatory=True)
 
 
 class ReportInterface(BaseInterface):
@@ -73,18 +75,18 @@ class ReportInterface(BaseInterface):
                 
             row['roi'] = config['roi']['type']
             row['roi parameters'] = \
-                '' if not config['roi']['parameters'] \
+                ' ' if not config['roi']['parameters'] \
                 else serialize_parameters(config['roi']['parameters'])
 
             row['connectivity'] = config['connectivity']['type']
             row['connectivity parameters'] = \
-                '' if not config['connectivity']['parameters'] \
+                ' ' if not config['connectivity']['parameters'] \
                 else serialize_parameters(config['connectivity']['parameters'])
                 
 
             row['classifier'] = config['classifier']['type']
             row['classifier parameters'] = \
-                '' if not config['classifier']['parameters'] \
+                ' ' if not config['classifier']['parameters'] \
                 else serialize_parameters(config['classifier']['parameters'])
 
             rows += [row]
@@ -95,7 +97,7 @@ class ReportInterface(BaseInterface):
 
     def _list_outputs(self):
         outputs = self._outputs().get()
-        outputs['data'] = self._df
+        outputs['report'] = './connectome_report.csv'
 
         cols_order = [
             'roi', 'roi parameters',
