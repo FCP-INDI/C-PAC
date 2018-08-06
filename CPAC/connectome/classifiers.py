@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import (
-    Ridge as _Ridge,
+    RidgeClassifier,
     LogisticRegression as _LogisticRegression
 )
 from sklearn import feature_selection
@@ -44,17 +44,17 @@ class SVC(Classifier):
         self.clf.fit(X, y) 
 
     def transform(self, X, y=None):
-        return list(self.clf.predict(X)), y
+        return list(self.clf.decision_function(X)), y
 
 
 class Ridge(Classifier):
 
     def fit(self, X, y=None):
-        self.clf = _Ridge()
+        self.clf = RidgeClassifier()
         self.clf.fit(X, y) 
 
     def transform(self, X, y=None):
-        return list(self.clf.predict(X)), y
+        return list(self.clf.decision_function(X)), y
 
 
 class LogisticRegression(Classifier):
@@ -67,7 +67,7 @@ class LogisticRegression(Classifier):
         self.clf.fit(X, y) 
 
     def transform(self, X, y=None):
-        return list(self.clf.predict(X)), y
+        return list(self.clf.decision_function(X)), y
 
 
 class RandomForest(Classifier):
@@ -77,7 +77,7 @@ class RandomForest(Classifier):
         self.clf.fit(X, y) 
 
     def transform(self, X, y=None):
-        return list(self.clf.predict(X)), y
+        return list(self.clf.predict_proba(X)), y
 
 
 class KNearestNeighbors(Classifier):
@@ -87,7 +87,7 @@ class KNearestNeighbors(Classifier):
         self.clf.fit(X, y) 
 
     def transform(self, X, y=None):
-        return list(self.clf.predict(X)), y
+        return list(self.clf.predict_proba(X)), y
 
 
 class NaiveBayes(Classifier):
@@ -97,5 +97,5 @@ class NaiveBayes(Classifier):
         self.clf.fit(X, y) 
 
     def transform(self, X, y=None):
-        return list(self.clf.predict(X)), y
+        return list(self.clf.predict_proba(X)), y
     
