@@ -44,14 +44,16 @@ class ReportInterface(BaseInterface):
         from nipype import logging
         logger = logging.getLogger('interface')
 
-        combination = zip(self.inputs.X_train, self.inputs.y_train,
+        combinations = zip(self.inputs.X_train, self.inputs.y_train,
                           self.inputs.X_valid, self.inputs.y_valid,
                           self.inputs.fold, self.inputs.config)
 
         rows = []
 
-        for X_train, y_train, X_valid, y_valid, fold, config in combination:
-            row = {}
+        for X_train, y_train, X_valid, y_valid, fold, config in combinations:
+            row = {
+                'fold': fold
+            }
 
             if self.inputs.label_encoder:
                 le = self.inputs.label_encoder
@@ -99,6 +101,7 @@ class ReportInterface(BaseInterface):
             'roi', 'roi parameters',
             'connectivity', 'connectivity parameters',
             'classifier', 'classifier parameters',
+            'fold',
             'train roc auc',
             'valid roc auc',
         ]
@@ -117,7 +120,7 @@ class ReportInterface(BaseInterface):
                     'valid fn',
                 ]
 
-        self._df.to_csv('./report.csv', cols=cols_order, index=False)
+        self._df.to_csv('./connectome_report.csv', cols=cols_order, index=False)
 
         return outputs
 
