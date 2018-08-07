@@ -13,18 +13,20 @@ from .smoothing import AfterWarping, AfterWarpingOptions
 from .timeseries import TimeSeries, ROITimeseries
 from .group_analysis import GroupAnalysis, GPASettings, BASCSettings
 from .mdmr import MDMRSettings
+from .connectome import ConnectomeSettings
 
-__all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
-           'AnatomicalPreprocessing', 'Segmentation', \
-           'Registration', 'FunctionalPreProcessing',\
-           'MotionOptions', 'Scrubbing','AnatToFuncRegistration',\
-           'VMHC', 'VMHCSettings', 'ReHo', 'ReHoSettings','TimeSeriesOptions', \
-           'SCA', 'SCASettings', 'FuncToMNIRegistration', \
-           'Settings', 'ComputerSettings', 'DirectorySettings', \
-           'Nuisance', 'NuisanceRegression', 'MedianAngleCorrection',\
-           'CentralitySettings', 'Centrality',\
-           'ALFF', 'ALFFSettings',\
-           'AfterWarping', 'AfterWarpingOptions',\
-           'FilteringSettings',\
-           'TimeSeries', 'ROITimeseries', \
-           'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
+__all__ = ['SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',
+           'AnatomicalPreprocessing', 'Segmentation',
+           'Registration', 'FunctionalPreProcessing',
+           'MotionOptions', 'Scrubbing', 'AnatToFuncRegistration',
+           'VMHC', 'VMHCSettings', 'ReHo', 'ReHoSettings', 'TimeSeriesOptions',
+           'SCA', 'SCASettings', 'FuncToMNIRegistration',
+           'Settings', 'ComputerSettings', 'DirectorySettings',
+           'Nuisance', 'NuisanceRegression', 'MedianAngleCorrection',
+           'CentralitySettings', 'Centrality',
+           'ALFF', 'ALFFSettings',
+           'AfterWarping', 'AfterWarpingOptions',
+           'FilteringSettings',
+           'TimeSeries', 'ROITimeseries',
+           'GroupAnalysis', 'GPASettings', 'MDMRSettings', 'EPI_DistCorr', 'BASCSettings',
+           'ConnectomeSettings']

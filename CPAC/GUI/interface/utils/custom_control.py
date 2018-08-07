@@ -566,6 +566,14 @@ class f_test_frame(wx.Frame):
             self.Close()
 
 
+class ListBoxComboEditor(wx.Frame):
+
+    def __call__(self):
+        self.Show()
+
+    def __iter__(self):
+        return iter([str(v) for v in self.parent.values])
+
 
 class ListBoxCombo(wx.Panel):
     
@@ -573,40 +581,43 @@ class ListBoxCombo(wx.Panel):
         wx.Panel.__init__(self, parent)
         
         self.parent = parent
-
         self.ctype = combo_type
+        self.ctype_instance = None
         
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.values = values
+        self.options = []
+
         self.listbox = wx.CheckListBox(self, id = wx.ID_ANY, size = size, \
                                            style = wx.LB_HSCROLL)
         self.listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.onHover)
+
         bmp = wx.Bitmap(p.resource_filename('CPAC', \
-                                          'GUI/resources/images/plus12.jpg'),\
-                                          wx.BITMAP_TYPE_ANY)
+                                            'GUI/resources/images/plus12.jpg'),\
+                                            wx.BITMAP_TYPE_ANY)
         self.button = wx.BitmapButton(self, -1, bmp,size = (bmp.GetWidth(), \
                                                             bmp.GetHeight()))
         self.button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        
         sizer.Add(self.listbox,wx.EXPAND | wx.ALL, 10)
         sizer.Add(self.button)
         self.SetSizer(sizer)
 
-        self.options = []
-        #self.listbox_selections = []
+        if hasattr(self.ctype, '__call__'):
+            self.ctype_instance = self.ctype(self)
+            for val in self.ctype_instance:
+                self.listbox.Append(val)
+                self.options.append(val)
 
         # if it is the Contrasts checklist box in the group analysis model
         # builder GUI
-        if self.ctype == 4:
+        elif self.ctype == 4:
 
             # if this is a 'load' situation when the user loads their group
             # analysis .yml file and they already have contrasts inserted into
             # the list
             if values:
-
-                selected_contrasts = []
-
                 for val in values:
-
                     # insert the contrast strings into the GUI's checkbox list
                     self.listbox.Append(str(val))
                     self.options.append(str(val))
@@ -621,18 +632,13 @@ class ListBoxCombo(wx.Panel):
                 # populates
                 self.raise_listbox_options()
 
-
-        if self.ctype == 5:
+        elif self.ctype == 5:
 
             # if this is a 'load' situation when the user loads their group
             # analysis .yml file and they already have f-tests inserted into
             # the list
             if values:
-
-                selected_ftests = []
-
                 for val in values:
-
                     # insert the f-test strings into the GUI's checkbox list
                     self.listbox.Append(str(val))
                     self.options.append(str(val))
@@ -641,9 +647,11 @@ class ListBoxCombo(wx.Panel):
                 # they load their gpa config.yml file into the model builder
                 self.listbox.SetCheckedStrings(values)
 
-                   
-        
+
     def onButtonClick(self, event):
+
+        if self.ctype_instance is not None:
+            self.ctype_instance()
 
         if self.ctype == 1:
             CheckBox(self, self.values)

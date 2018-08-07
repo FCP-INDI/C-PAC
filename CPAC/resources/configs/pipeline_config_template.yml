@@ -763,6 +763,16 @@ mdmr_parallel_nodes :  1
 
 connectome:
 
+  run: false
+
+  phenotype: 
+    file: 
+    participant_column: SUB_ID
+    variable_column: DX_GROUP
+    stratification_column: SITE
+
+  folds: 5
+
   roi:
     - type: aal
       parameters:
