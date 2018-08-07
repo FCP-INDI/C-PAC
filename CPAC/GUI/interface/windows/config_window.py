@@ -1,5 +1,5 @@
 import wx
-from CPAC.GUI.interface.utils.constants import substitution_map, dtype, control
+from CPAC.GUI.interface.utils.constants import substitution_map, dtype as dtypes, control
 import pkg_resources as p
 from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     Segmentation, Registration, FunctionalPreProcessing,\
@@ -292,12 +292,12 @@ class MainFrame(wx.Frame):
 
                 if val:
 
-                    if ctrl.get_datatype() == dtype.BOOL:
+                    if ctrl.get_datatype() == dtypes.BOOL:
                         if type(val) in [bool, int]:
                             value = sample_list[int(val)]
                         
                     if isinstance(val, list):
-                        if ctrl.get_datatype() == dtype.LDICT:
+                        if ctrl.get_datatype() == dtypes.LDICT:
                             value = []
                             for item in val:
                                 data = ""
@@ -309,16 +309,16 @@ class MainFrame(wx.Frame):
                                             data = k
                                 value.append(data)
 
-                        elif ctrl.get_datatype() == dtype.LOFL:
+                        elif ctrl.get_datatype() == dtypes.LOFL:
                             value = []
                             for v in val:
                                 value.append(str(v))
 
-                        elif ctrl.get_datatype() == dtype.LBOOL:
+                        elif ctrl.get_datatype() == dtypes.LBOOL:
                             value = [sample_list[int(i)]
                                      for i, x in enumerate(val) if x == True]
 
-                        elif ctrl.get_datatype() == dtype.LSTR:
+                        elif ctrl.get_datatype() == dtypes.LSTR:
 
                             if 1 in val and 0 in val:
                                 val = [10]
@@ -337,11 +337,11 @@ class MainFrame(wx.Frame):
                             if not value:
                                 value = [str(item) for item in val]
 
-                        elif ctrl.get_datatype() == dtype.LNUM and \
+                        elif ctrl.get_datatype() == dtypes.LNUM and \
                                 ctrl.get_type() == control.CHECKLIST_BOX:
                             value = [sample_list[v] for v in val]
 
-                        elif ctrl.get_datatype() == dtype.LOBJ:
+                        elif ctrl.get_datatype() == dtypes.LOBJ:
                             meta = ctrl.get_datatype_metadata()
                             value = [meta['class'](**v) for v in val]
 
@@ -357,12 +357,12 @@ class MainFrame(wx.Frame):
                                     value = str(v)
                     else:
 
-                        if ctrl.get_datatype() == dtype.NUM and \
+                        if ctrl.get_datatype() == dtypes.NUM and \
                             ctrl.get_type() == control.COMBO_BOX and \
                                 str(val) not in sample_list:
                             value = sample_list[val]
 
-                        elif ctrl.get_datatype() == dtype.OBJ:
+                        elif ctrl.get_datatype() == dtypes.OBJ:
                             meta = ctrl.get_datatype_metadata()
                             value = meta['class'](**val)
                             
@@ -1092,18 +1092,19 @@ class MainFrame(wx.Frame):
                 # pipeline_config file, using a different set of code depending on the data type
 
                 # parameters that are strings (ex. " False " or a path)
-                if dtype == 0 or dtype == 1:
+                if dtype == dtypes.BOOL or dtype == dtypes.STR:
 
                     print >>f, label, ": ", str(value)
                     print >>f, "\n"
 
                 # parameters that are integers
-                elif dtype == 2:
+                elif dtype == dtypes.NUM:
 
                     # Add check for ReHo cluster
                     if label == 'clusterSize':
                         # print 'Using ReHo cluster size of ', value
                         pass
+                        
                     elif item_type == 0:
                         value = sample_list.index(value)
                     else:
@@ -1121,7 +1122,7 @@ class MainFrame(wx.Frame):
                     print >>f, "\n"
 
                 # parameters that are lists (ex. " [False, False] ")
-                elif dtype == 3:
+                elif dtype == dtypes.LBOOL:
 
                     map = ast.literal_eval(str(value))
                     values = []
@@ -1135,7 +1136,7 @@ class MainFrame(wx.Frame):
                     print>>f, "\n"
 
                 # parameters that are switches (ex. [0] or [1] )
-                elif dtype == 4:
+                elif dtype == dtypes.LSTR:
 
                     values = []
 
@@ -1163,7 +1164,7 @@ class MainFrame(wx.Frame):
                     print>>f, "\n"
 
                 # parameters that are bracketed numbers (int or float)
-                elif dtype == 5:
+                elif dtype == dtypes.LNUM:
 
                     # parse user input   ### can't use internal function
                     # type() here???
@@ -1193,7 +1194,7 @@ class MainFrame(wx.Frame):
                     print>>f, "\n"
 
                 # parameters that are ? (bandpass filter specs)
-                elif dtype == 6:
+                elif dtype == dtypes.LOFL:
 
                     values = []
 
@@ -1212,7 +1213,7 @@ class MainFrame(wx.Frame):
 
                 # parameters that are whole words
                 #     ALSO: the Nuisance Corrections lists
-                elif dtype == 8:
+                elif dtype == dtypes.LDICT:
 
                     print>>f, label, ":"
 
@@ -1235,7 +1236,7 @@ class MainFrame(wx.Frame):
 
                     print >>f, "\n"
 
-                elif dtype == 99:
+                elif dtype == dtypes.UNKNOWN:
 
                     # checkbox grid (ROI extraction etc.)
                     string = gen_checkboxgrid_config_string(label, value)
