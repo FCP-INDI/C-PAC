@@ -39,7 +39,6 @@ def load_yaml_config(config_filename, aws_input_creds):
     return(config_data)
 
 
-
 def run(command, env={}):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                shell=True, env=env)
@@ -315,10 +314,8 @@ if not args.data_config_file:
         print ("Did not find any files to process")
         sys.exit(1)
 
-    # TODO: once CPAC is updated to use per-scan parameters from subject list,
-    # change the 3rd arguement to the config dict returned from
-    # collect_bids_files_configs
-    sub_list = bids_gen_cpac_sublist(args.bids_dir, file_paths, [], args.aws_input_creds)
+    sub_list = bids_gen_cpac_sublist(args.bids_dir, file_paths, config,
+                                     args.aws_input_creds)
 
     if not sub_list:
         print("Did not find data in {0}".format(args.bids_dir))
