@@ -50,7 +50,7 @@ class SCASettings(wx.ScrolledWindow):
         self.page.add(label = "SCA ROI Paths ",
                       control = control.CHECKBOX_GRID,
                       name = "sca_roi_paths",
-                      type = 9,
+                      type = 99,
                       values = '',
                       selections = ["Avg","DualReg","MultReg"],
                       comment="Enter paths to region-of-interest (ROI) " \

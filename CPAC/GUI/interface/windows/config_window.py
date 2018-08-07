@@ -284,17 +284,17 @@ class MainFrame(wx.Frame):
             for ctrl in ctrl_list:
 
                 name = ctrl.get_name().split('.')
-                val = get_nested_dict_key(config_file_map, name)
-
                 sample_list = ctrl.get_values()
+                val = get_nested_dict_key(config_file_map, name)
 
                 s_map = dict((v, k)
                              for k, v in substitution_map.iteritems())
 
                 if val:
 
-                    if ctrl.get_datatype() == dtype.LBOOL:
-                        value = sample_list[int(val)]
+                    if ctrl.get_datatype() == dtype.BOOL:
+                        if type(val) in [bool, int]:
+                            value = sample_list[int(val)]
                         
                     if isinstance(val, list):
                         if ctrl.get_datatype() == dtype.LDICT:
@@ -341,7 +341,11 @@ class MainFrame(wx.Frame):
                                 ctrl.get_type() == control.CHECKLIST_BOX:
                             value = [sample_list[v] for v in val]
 
-                        elif ctrl.get_datatype() == 9:
+                        elif ctrl.get_datatype() == dtype.LOBJ:
+                            meta = ctrl.get_datatype_metadata()
+                            value = [meta['class'](**v) for v in val]
+
+                        elif ctrl.get_datatype() == 99: # TODO please someone identify this one
                             value = val[0]  # pass the dictionary straight up
 
                         else:
@@ -352,10 +356,16 @@ class MainFrame(wx.Frame):
                                 else:
                                     value = str(v)
                     else:
+
                         if ctrl.get_datatype() == dtype.NUM and \
                             ctrl.get_type() == control.COMBO_BOX and \
                                 str(val) not in sample_list:
                             value = sample_list[val]
+
+                        elif ctrl.get_datatype() == dtype.OBJ:
+                            meta = ctrl.get_datatype_metadata()
+                            value = meta['class'](**val)
+                            
                         else:
                             value = str(val)
                 else:
@@ -1225,7 +1235,7 @@ class MainFrame(wx.Frame):
 
                     print >>f, "\n"
 
-                elif dtype == 9:
+                elif dtype == 99:
 
                     # checkbox grid (ROI extraction etc.)
                     string = gen_checkboxgrid_config_string(label, value)

@@ -92,7 +92,7 @@ class ROITimeseries(wx.ScrolledWindow):
         self.page.add(label = "TSE ROI Paths ",
                       control = control.CHECKBOX_GRID,
                       name = "tsa_roi_paths",
-                      type = 9,
+                      type = 99,
                       values = '',
                       selections = ["Avg","Voxel","SpatialReg"],
                       comment="Enter paths to region-of-interest (ROI) " \

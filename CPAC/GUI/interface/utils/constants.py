@@ -23,7 +23,10 @@ dtype = enum(BOOL = 0,
              LNUM = 5,
              LOFL = 6,
              COMBO = 7,
-             LDICT = 8 ) 
+             LDICT = 8,
+             LOBJ = 9,
+             OBJ = 10,
+             UNKNOWN = 99) 
 
 substitution_map = {'On': 1,
                     'Off': 0,

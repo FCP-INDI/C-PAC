@@ -1,11 +1,14 @@
-from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid, GPAModelCheckBoxGrid
-from ..utils.constants import control as control_types
-from ..utils.constants import dtype as data_types
+import types
+import pkg_resources as p
+
 from wx.lib import masked
 from wx.lib.masked import NumCtrl
 from wx.lib.intctrl import IntCtrl
 import wx.lib.intctrl
-import pkg_resources as p
+
+from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid, GPAModelCheckBoxGrid
+from ..utils.constants import control as control_types
+from ..utils.constants import dtype as data_types
 
 
 class GenericClass(wx.ScrolledWindow):
@@ -57,7 +60,7 @@ class GenericClass(wx.ScrolledWindow):
     def add(self, label, control, name, type=0, 
             comment="", values="", style=0, size= wx.DefaultSize, 
             validator=wx.DefaultValidator, wkf_switch=False,
-            validation_req=True, combo_type=None, selections=None):
+            validation_req=True, combo_type=None, selections=None, type_metadata=None):
 
         label = label.strip()
             
@@ -84,7 +87,8 @@ class GenericClass(wx.ScrolledWindow):
                        help=comment, pretty_name=label,
                        validation_req=validation_req,
                        combo_type=combo_type,
-                       selections=selections)
+                       selections=selections,
+                       datatype_metadata=type_metadata)
         
         self.ctrl_list.append(ctrl)
         
@@ -191,17 +195,26 @@ class Control(wx.Control):
                  style=0, size=wx.DefaultSize, 
                  validator=wx.DefaultValidator, wkf_switch=False,
                  help="", pretty_name=None,
-                 validation_req=True, combo_type=None, selections=None):
+                 validation_req=True, combo_type=None,
+                 selections=None, datatype_metadata=None):
         
         self.name = name
         self.default_values = values
         self.type = type
         self.datatype = datatype
+        self.datatype_metadata = datatype_metadata
         self.wfk_switch = wkf_switch
         self.help = help
         self.id = None
         self.validation = validation_req
         self.pretty_name = pretty_name
+
+        if datatype in [data_types.OBJ, data_types.LOBJ]:
+            assert datatype_metadata is not None
+            if datatype == data_types.OBJ:
+                values = datatype_metadata['class'](**values)
+            else:
+                values = [datatype_metadata['class'](**v) for v in values]
 
         if type == control_types.CHOICE_BOX:
             self.ctrl = wx.Choice(parent, wx.ID_ANY,
@@ -366,6 +379,9 @@ class Control(wx.Control):
     
     def get_datatype(self):
         return self.datatype
+
+    def get_datatype_metadata(self):
+        return self.datatype_metadata
     
     def get_values(self):
         return self.default_values
@@ -422,11 +438,18 @@ class Control(wx.Control):
         if val in [None, "", "None", "none"]:
             val = self.get_values()
         else:
+
             if self.get_type() == control_types.LISTBOX_COMBO:
                 listbox = self.ctrl.GetListBoxCtrl()
                 for v in val:
-                    if v:                       
-                        listbox.Insert(v, 0)
+                    if v:
+                        # TODO revisit this implementation
+                        meta = None
+                        if self.get_datatype() == data_types.LOBJ:
+                            meta = v
+                            v = str(v)
+
+                        listbox.Insert(v, 0, meta)
                         listbox.Check(0)
                         self.set_selection(v)
 

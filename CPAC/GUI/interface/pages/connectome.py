@@ -22,10 +22,13 @@ class RoiOption:
         self.parameters = parameters
 
     def __repr__(self):
-        return self.labels[self.type]
+        return self.__str__()
 
     def __str__(self):
-        return self.labels[self.type]
+        return '%s [%s]' % (
+            self.labels[self.type],
+            ";".join(['%s: %s' % (k, v) for k, v in self.parameters.items()])
+        )
 
 
 class RoiEditor(ListBoxComboEditor):
@@ -65,6 +68,9 @@ class RoiEditor(ListBoxComboEditor):
             option = RoiOption(val, {})
             
             parent.listbox.Append(str(option), option)
+            # TODO check appended item
+            # TODO check for duplicates
+
             self.Close()
 
     def __iter__(self):
@@ -130,11 +136,14 @@ class ConnectomeSettings(wx.ScrolledWindow):
         self.page.add(label="Regions of Interest",
                       control=control.LISTBOX_COMBO,
                       name='connectome.roi',
-                      type=dtype.LSTR,
                       values="",
                       comment="",
-                      size=(400,100),
-                      combo_type=RoiEditor)
+                      size=(400, 100),
+                      combo_type=RoiEditor,
+                      type=dtype.LOBJ,
+                      type_metadata={
+                          "class": RoiOption
+                      })
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
