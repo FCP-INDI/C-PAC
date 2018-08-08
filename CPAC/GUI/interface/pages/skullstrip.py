@@ -266,8 +266,8 @@ class BET_options(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name = 'bet_frac',
                       type=dtype.NUM,
-                      comment="Set the threshold value controling the brain vs non-brain voxels\
-                              default is 0.5",
+                      comment="Set the threshold value controling the brain" \
+                              "vs non-brain voxels default is 0.5",
                       validator=CharValidator("no-alpha"),
                       values="0.5")
         

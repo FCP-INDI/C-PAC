@@ -732,11 +732,6 @@ class ListBoxCombo(wx.Panel):
         self.dmatrix_obj = design_matrix_obj
 
 
-    #def get_listbox_selections(self):
-    #    return self.listbox_selections
-            
-
-            
 class ParametersCheckBox(wx.Frame):
     
     def __init__(self, parent):
