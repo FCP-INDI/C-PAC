@@ -173,6 +173,10 @@ else:
     print("\nRunning BIDS validator")
     run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
+# otherwise, if we are running group, participant, or dry run we
+# begin by conforming the configuration
+c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+
 # get the aws_input_credentials, if any are specified
 if args.aws_input_creds:
     if args.aws_input_creds is "env":
@@ -190,10 +194,6 @@ if args.aws_input_creds:
         c['awsCredentialsFile'] = args.aws_input_creds
     else:
         raise IOError("Could not find aws credentials {0}".format(args.aws_input_creds))
-
-# otherwise, if we are running group, participant, or dry run we
-# begin by conforming the configuration
-c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
 # set the parameters using the command line arguements
 # TODO: we will need to check that the directories exist, and

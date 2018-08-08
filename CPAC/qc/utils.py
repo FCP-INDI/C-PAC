@@ -2131,7 +2131,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     max_ = np.max(np.abs(Y))
 
     try:
-        grid = ImageGrid1(fig, 111, nrows_ncols=(3, 6), share_all=True,
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
                           aspect=True, cbar_mode="None", direction="row")
     except:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
@@ -2223,7 +2223,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     max_ = np.max(np.abs(Y))
 
     try:
-        grid = ImageGrid1(fig, 111, nrows_ncols=(3, 6), share_all=True,
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
                           aspect=True, cbar_mode="None", direction="row")
     except:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
