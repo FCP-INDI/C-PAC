@@ -216,6 +216,8 @@ class Control(wx.Control):
             else:
                 values = [datatype_metadata['class'](**v) for v in values]
 
+        self.selection_metadata = None
+
         if type == control_types.CHOICE_BOX:
             self.ctrl = wx.Choice(parent, wx.ID_ANY,
                                   style=style, size=wx.DefaultSize, 
@@ -281,9 +283,12 @@ class Control(wx.Control):
             self.ctrl = ListBoxCombo(parent, size=size, 
                                      validator=validator,style=style, 
                                      values=values, combo_type=combo_type)
+
             self.listbox_ctrl = self.ctrl.GetListBoxCtrl()
             self.id = self.listbox_ctrl.GetId()
+
             self.selection = []
+            self.selection_metadata = []
             
             if (combo_type == 4) or (combo_type == 5):
 
@@ -298,10 +303,8 @@ class Control(wx.Control):
                         # this re-checks the user's past contrast option
                         # SELECTIONS (which ones were checked) in the listbox
                         self.selection.append(val)
-                            
            
             self.options = self.ctrl.get_listbox_options()
-
             
         elif type == control_types.TEXTBOX_COMBO:
             self.ctrl = TextBoxCombo(parent, id=wx.ID_ANY, 
@@ -389,7 +392,7 @@ class Control(wx.Control):
     def get_validation(self):
         return self.validation
     
-    def set_selection(self, value, index=0, remove=False, convert_to_string=True):
+    def set_selection(self, value, index=0, remove=False, convert_to_string=True, metadata=None):
         
         if isinstance(self.selection, list):
             if convert_to_string:
@@ -400,9 +403,12 @@ class Control(wx.Control):
             # selections
 
             if remove:
-                self.selection.remove(value)
+                i_selection = self.selection.index(value)
+                del self.selection[i_selection]
+                del self.selection_metadata[i_selection]
             else:
                 self.selection.append(value)
+                self.selection_metadata.append(metadata)
 
         elif self.get_type() == control_types.CHECKBOX_GRID:
             self.ctrl.onReload_set_selections(value)
@@ -419,14 +425,11 @@ class Control(wx.Control):
         else:
             self.selection = value
 
-        if self.get_type() == control_types.LISTBOX_COMBO:
-            self.listbox_selections = self.selection
-
     def get_selection(self):
         return self.selection
 
-    def set_new_selection(self, selection):
-        self.selection = selection
+    def get_selection_metadata(self):
+        return self.selection_metadata
 
     def get_switch(self):
         return self.wfk_switch
@@ -441,6 +444,7 @@ class Control(wx.Control):
 
             if self.get_type() == control_types.LISTBOX_COMBO:
                 listbox = self.ctrl.GetListBoxCtrl()
+
                 for v in val:
                     if v:
                         # TODO revisit this implementation
@@ -451,7 +455,7 @@ class Control(wx.Control):
 
                         listbox.Insert(v, 0, meta)
                         listbox.Check(0)
-                        self.set_selection(v)
+                        self.set_selection(v, metadata=meta)
 
             elif self.get_type() == control_types.CHECKLIST_BOX:
 

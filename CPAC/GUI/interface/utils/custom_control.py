@@ -731,7 +731,7 @@ class ListBoxCombo(wx.Panel):
     def set_design_matrix(self, design_matrix_obj):
         self.dmatrix_obj = design_matrix_obj
 
-
+            
 class ParametersCheckBox(wx.Frame):
     
     def __init__(self, parent):

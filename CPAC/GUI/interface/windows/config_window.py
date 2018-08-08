@@ -1,6 +1,10 @@
 import wx
-from CPAC.GUI.interface.utils.constants import substitution_map, dtype as dtypes, control
+import yaml
+import ast
+import itertools
 import pkg_resources as p
+
+from CPAC.GUI.interface.utils.constants import substitution_map, dtype as dtypes, control
 from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     Segmentation, Registration, FunctionalPreProcessing,\
     SkullStripProcessing, SkullStripOptions, AFNI_options, BET_options,\
@@ -27,16 +31,12 @@ def gen_checkboxgrid_config_string(label, value):
     #     value (dictionary):
     #         {'/path/to/roi.nii.gz': ['Voxel', 'Avg']}
 
-    string = ""
-
     if len(value.keys()) == 0:
-        string = string + label + ": None\n"
-        return string
-    else:
-        string = string + label + ":\n"
+        return label + ": None\n"
+
+    string += label + ":\n"
 
     flag = 0
-
     for entry in value.keys():
 
         # each "entry" is a filepath to an ROI .nii.gz file
@@ -1060,196 +1060,22 @@ class MainFrame(wx.Frame):
 
     def write(self, path, config_list):
 
-        import ast
-        import CPAC
+        from CPAC import version
 
         try:
-
             f = open(path, 'w')
+            
+            f.write("# CPAC Pipeline Configuration YAML file\n")
+            f.write("# Version %s\n" % str(version))
+            f.write("#\n")
+            f.write("# http://fcp-indi.github.io for more info.\n")
+            f.write("\n")
+            f.write("# Tip: This file can be edited manually with a "
+                    "text editor for quick modifications.\n")
+            f.write("\n")
+            f.write("\n")
 
-            print >>f, "# CPAC Pipeline Configuration YAML file"
-            print >>f, "# Version %s\n#" % str(CPAC.__version__)
-            print >>f, "# http://fcp-indi.github.io for more info.\n#"
-            print >>f, "# Tip: This file can be edited manually with a " \
-                       "text editor for quick modifications.\n\n"
-
-            for item in config_list:
-
-                label = item.get_name()
-                value = item.get_selection()
-                dtype = item.get_datatype()
-                item_type = item.get_type()
-
-                sample_list = item.get_values()
-
-                comment = item.get_help()
-
-                for line in comment.split("\n"):
-                    if line:
-                        print>>f, "#", line
-
-                # prints setting names and values (ex. " runAnatomicalProcessing: [1] ") into the
-                # pipeline_config file, using a different set of code depending on the data type
-
-                # parameters that are strings (ex. " False " or a path)
-                if dtype == dtypes.BOOL or dtype == dtypes.STR:
-
-                    print >>f, label, ": ", str(value)
-                    print >>f, "\n"
-
-                # parameters that are integers
-                elif dtype == dtypes.NUM:
-
-                    # Add check for ReHo cluster
-                    if label == 'clusterSize':
-                        # print 'Using ReHo cluster size of ', value
-                        pass
-                        
-                    elif item_type == 0:
-                        value = sample_list.index(value)
-                    else:
-                        if substitution_map.get(value) != None:
-                            value = substitution_map.get(value)
-                        elif value != 'None':
-                            try:
-                                value = ast.literal_eval(str(value))
-                            except Exception as e:
-                                raise Exception("could not parse value: "
-                                                "{0}\n\n{1}"
-                                                "\n".format(str(value), e))
-
-                    print >>f, label, ": ", value
-                    print >>f, "\n"
-
-                # parameters that are lists (ex. " [False, False] ")
-                elif dtype == dtypes.LBOOL:
-
-                    map = ast.literal_eval(str(value))
-                    values = []
-                    for x in range(0, len(map.keys())):
-                        values.append(False)
-                    for k, v in map.iteritems():
-                        item, idx = k
-                        values[idx] = v
-
-                    print>>f, label, ": ", values
-                    print>>f, "\n"
-
-                # parameters that are switches (ex. [0] or [1] )
-                elif dtype == dtypes.LSTR:
-
-                    values = []
-
-                    if isinstance(value, list):
-                        value = ast.literal_eval(str(value))
-                    else:
-                        value = str(value).split(",")
-
-                    for val in value:
-                        val = val.strip()
-                        sval = substitution_map.get(val)
-                        if sval != None:
-                            values.append(sval)
-                        else:
-                            values.append(val)
-
-                    if values == [10]:
-                        values = [1, 0]
-                    elif values == [11]:
-                        values = ['ANTS', 'FSL']
-                    elif values == [12]:
-                        values = ['3dAutoMask', 'BET']
-
-                    print>>f, label, ": ", values
-                    print>>f, "\n"
-
-                # parameters that are bracketed numbers (int or float)
-                elif dtype == dtypes.LNUM:
-
-                    # parse user input   ### can't use internal function
-                    # type() here???
-                    if value.find(',') != -1:
-                        lvalue = value.split(',')
-                    elif value.find(';') != -1:
-                        lvalue = value.split(';')
-                    elif value.find(':') != -1:
-                        lvalue = value.split(':')
-                    else:
-                        lvalue = [value]
-
-                    if value.find('.') != -1:
-                        lvalue = [float(item) for item in lvalue]
-                    elif len(value) > 0:
-                        try:
-                            new_lvalue = [int(item) for item in lvalue]
-                        except ValueError:
-                            # this trips only if user inputs a percentage for
-                            # de-spiking/scrubbing motion threshold
-                            new_lvalue = [str(item) for item in lvalue]
-                        lvalue = new_lvalue
-                    else:
-                        lvalue = 0
-
-                    print>>f, label, ":", lvalue
-                    print>>f, "\n"
-
-                # parameters that are ? (bandpass filter specs)
-                elif dtype == dtypes.LOFL:
-
-                    values = []
-
-                    for val in ast.literal_eval(str(value)):
-                        try:
-                            val = ast.literal_eval(str(val))
-                        except Exception as err:
-                            print "Exception trying to translate: " \
-                                  "%s, %s, %s, %s" % (
-                                      label, str(value), val, err)
-                            print "value type: %s" % (type(val))
-                        values.append(ast.literal_eval(str(val)))
-
-                    print>>f, label, ":", values
-                    print>>f, "\n"
-
-                # parameters that are whole words
-                #     ALSO: the Nuisance Corrections lists
-                elif dtype == dtypes.LDICT:
-
-                    print>>f, label, ":"
-
-                    value = ast.literal_eval(str(value))
-
-                    for val in value:
-                        val = val.split(',')
-                        f.write("  - ")
-                        flag = 0
-                        for sample in sample_list:
-                            if flag == 0:
-                                space = ""
-                                flag = 1
-                            else:
-                                space = "    "
-                            if sample in val:
-                                print>>f, space, sample, ": ", 1
-                            else:
-                                print>>f, space, sample, ": ", 0
-
-                    print >>f, "\n"
-
-                elif dtype == dtypes.UNKNOWN:
-
-                    # checkbox grid (ROI extraction etc.)
-                    string = gen_checkboxgrid_config_string(label, value)
-
-                    print >>f, string
-                    print >>f, "\n"
-
-                else:
-
-                    value = ast.literal_eval(str(value))
-
-                    print>>f, label, ":", value
-                    print>>f, "\n"
+            write_yaml_controls(f, config_list, depth=0)
 
             f.close()
 
@@ -1257,3 +1083,224 @@ class MainFrame(wx.Frame):
             print e
             print "Error Writing the pipeline configuration file %s" % path
             raise
+
+
+def nestedness(label, depth=0):
+    """ Return the relative depth of a label
+        based on the informed initial depth.
+
+        >>> nestedness('connectome.run', depth=0)
+        'connectome'
+        
+        >>> nestedness('connectome.run', depth=1)
+        ''
+        
+        >>> nestedness('connectome.config.run', depth=1)
+        'config.run'
+    """
+    return '' if label.count('.') <= depth else label.split('.')[depth:][0]
+
+
+def write_yaml_controls(f, controls, depth=0):
+
+
+    w = lambda *args, **kwargs: \
+            f.write(
+                "".join(
+                    ['  '] * (kwargs['depth'] if 'depth' in kwargs else 0) +
+                    list(map(str, args))
+                ) + "\n"
+            )
+
+    c = lambda *args, **kwargs: w("# ", *args, **kwargs)
+
+    for key, items in itertools.groupby(controls, lambda x: nestedness(x.get_name(), depth=depth)):
+
+        if len(key) > 0:
+            w(key, ":", depth=depth)
+            write_yaml_controls(f, list(items), depth=depth+1)
+            continue
+
+        for item in items:
+
+            label = item.get_name().split('.')[-1]
+            value = item.get_selection()
+            value_metadata = item.get_selection_metadata()
+            dtype = item.get_datatype()
+            item_type = item.get_type()
+            sample_list = item.get_values()
+            comment = item.get_help()
+
+            for line in comment.split("\n"):
+                if line:
+                    c(line, depth=depth)
+
+            # prints setting names and values (ex. " runAnatomicalProcessing: [1] ") into the
+            # pipeline_config file, using a different set of code depending on the data type
+
+            # parameters that are strings (ex. " False " or a path)
+            if dtype == dtypes.BOOL or dtype == dtypes.STR:
+                w(label, ": ", str(value), depth=depth)
+                w()
+
+            # parameters that are integers
+            elif dtype == dtypes.NUM:
+
+                # Add check for ReHo cluster
+                if label == 'clusterSize':
+                    # print 'Using ReHo cluster size of ', value
+                    pass
+                    
+                elif item_type == 0:
+                    value = sample_list.index(value)
+                else:
+                    if substitution_map.get(value) != None:
+                        value = substitution_map.get(value)
+                    elif value != 'None':
+                        try:
+                            value = ast.literal_eval(str(value))
+                        except Exception as e:
+                            raise Exception("could not parse value: "
+                                            "{0}\n\n{1}"
+                                            "\n".format(str(value), e))
+
+                w(label, ": ", value, depth=depth)
+                w()
+
+            # parameters that are lists (ex. " [False, False] ")
+            elif dtype == dtypes.LBOOL:
+
+                mapping = ast.literal_eval(str(value))
+                values = []
+                for x in range(0, len(mapping.keys())):
+                    values.append(False)
+                for k, v in mapping.iteritems():
+                    item, idx = k
+                    values[idx] = v
+
+                w(label, ": ", values, depth=depth)
+                w()
+
+            # parameters that are switches (ex. [0] or [1] )
+            elif dtype == dtypes.LSTR:
+
+                values = []
+
+                if isinstance(value, list):
+                    value = ast.literal_eval(str(value))
+                else:
+                    value = str(value).split(",")
+
+                for val in value:
+                    val = val.strip()
+                    sval = substitution_map.get(val)
+                    if sval != None:
+                        values.append(sval)
+                    else:
+                        values.append(val)
+
+                if values == [10]:
+                    values = [1, 0]
+                elif values == [11]:
+                    values = ['ANTS', 'FSL']
+                elif values == [12]:
+                    values = ['3dAutoMask', 'BET']
+
+                w(label, ": ", values, depth=depth)
+                w()
+
+            # parameters that are bracketed numbers (int or float)
+            elif dtype == dtypes.LNUM:
+
+                # parse user input   ### can't use internal function
+                # type() here???
+                if value.find(',') != -1:
+                    lvalue = value.split(',')
+                elif value.find(';') != -1:
+                    lvalue = value.split(';')
+                elif value.find(':') != -1:
+                    lvalue = value.split(':')
+                else:
+                    lvalue = [value]
+
+                if value.find('.') != -1:
+                    lvalue = [float(item) for item in lvalue]
+                elif len(value) > 0:
+                    try:
+                        new_lvalue = [int(item) for item in lvalue]
+                    except ValueError:
+                        # this trips only if user inputs a percentage for
+                        # de-spiking/scrubbing motion threshold
+                        new_lvalue = [str(item) for item in lvalue]
+                    lvalue = new_lvalue
+                else:
+                    lvalue = 0
+
+                w(label, ": ", lvalue, depth=depth)
+                w()
+
+            # parameters that are ? (bandpass filter specs)
+            elif dtype == dtypes.LOFL:
+                values = []
+                for val in ast.literal_eval(str(value)):
+                    try:
+                        val = ast.literal_eval(str(val))
+                    except Exception as err:
+                        print "Exception trying to translate: " \
+                                "%s, %s, %s, %s" % (
+                                    label, str(value), val, err)
+                        print "value type: %s" % (type(val))
+                    values.append(ast.literal_eval(str(val)))
+
+                w(label, ": ", values, depth=depth)
+                w()
+
+            # parameters that are whole words
+            #     ALSO: the Nuisance Corrections lists
+            elif dtype == dtypes.LDICT:
+
+                w(label, ":", depth=depth)
+
+                value = ast.literal_eval(str(value))
+                for val in value:
+                    val = val.split(',')
+                    f.write("  - ")
+                    flag = 0
+                    for sample in sample_list:
+                        if flag == 0:
+                            space = ""
+                            flag = 1
+                        else:
+                            space = "    "
+                        if sample in val:
+                            w(space, sample, ": ", 1, depth=depth)
+                        else:
+                            w(space, sample, ": ", 0, depth=depth)
+                w()
+
+            elif dtype == dtypes.OBJ:
+                w(label, ":", depth=depth)
+                obj = value_metadata.__dict__
+                lines = yaml.dump(obj, default_flow_style=False).split('\n')
+                for l in lines:
+                    w(l, depth=depth+1)
+
+            elif dtype == dtypes.LOBJ:
+                w(label, ":", depth=depth)
+                objs = [o.__dict__ for o in value_metadata]
+                lines = yaml.dump(objs, default_flow_style=False).split('\n')
+                for l in lines:
+                    w(l, depth=depth+1)
+
+            elif dtype == dtypes.UNKNOWN:
+                # checkbox grid (ROI extraction etc.)
+                config = gen_checkboxgrid_config_string(label, value)
+
+                for l in config.split('\n'):
+                    w(l, depth=depth)
+                w()
+
+            else:
+                value = ast.literal_eval(str(value))
+                w(label, ": ", value, depth=depth)
+                w()
