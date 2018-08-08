@@ -360,8 +360,8 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     raise IOError("Did not receive any parameters for %s," % (p) +
                                   " is this a problem?")
 
-                task_info = {"path": os.path.join(bids_dir,p),
-                             "params": t_params}
+                task_info = {"scan": os.path.join(bids_dir,p),
+                             "scan_parameters": t_params}
             else:
                 task_info = os.path.join(bids_dir,p)
 
@@ -405,16 +405,16 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                 if "acq" in f_dict:
                     task_key = "_".join([task_key,
                                          "-".join(["acq", f_dict["acq"]])])
-                if "rest" not in subdict[f_dict["sub"]][f_dict["ses"]]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["rest"] = {}
+                if "func" not in subdict[f_dict["sub"]][f_dict["ses"]]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["func"] = {}
 
                 if task_key not in \
-                        subdict[f_dict["sub"]][f_dict["ses"]]["rest"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["rest"][task_key] = \
+                        subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = \
                         task_info
                 else:
                     print( "Func file (%s)" %
-                        subdict[f_dict["sub"]][f_dict["ses"]]["rest"][task_key] +
+                        subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] +
                         " already found for ( % s: %s: % s) discarding % s" % (
                                f_dict["sub"],
                                f_dict["ses"],
@@ -424,10 +424,10 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     sublist = []
     for ksub, sub in subdict.iteritems():
         for kses, ses in sub.iteritems():
-            if "anat" in ses and "rest" in ses:
+            if "anat" in ses and "func" in ses:
                 sublist.append(ses)
             else:
-                print( "%s %s is missing either an anat or rest (or both)" %
+                print( "%s %s is missing either an anat or func (or both)" %
                        (ses["subject_id"],
                         ses["unique_id"]))
                 if dbg:

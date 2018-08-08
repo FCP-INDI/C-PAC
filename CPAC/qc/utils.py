@@ -2053,14 +2053,22 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
         xx += spacing
 
-    cbar = grid.cbar_axes[0].colorbar(im)
+    try:
+        cbar = grid.cbar_axes[0].colorbar(im)
 
-    if 'snr' in png_name:
-        cbar.ax.set_yticks(drange(0, max_))
-    elif ('reho' in png_name) or ('vmhc' in png_name) or \
-            ('sca_' in png_name) or ('alff' in png_name) or \
-            ('centrality' in png_name) or ('dr_tempreg' in png_name):
-        cbar.ax.set_yticks(drange(-max_, max_))
+        if 'snr' in png_name:
+            cbar.ax.set_yticks(drange(0, max_))
+        elif ('reho' in png_name) or ('vmhc' in png_name) or \
+                ('sca_' in png_name) or ('alff' in png_name) or \
+                ('centrality' in png_name) or ('dr_tempreg' in png_name):
+            cbar.ax.set_yticks(drange(-max_, max_))
+
+    except AttributeError as e:
+        # TODO: send this to the logger instead
+        print("\n[!] QC Interface: Had a problem with creating the "
+              "sagittal montage for {0}\n\nDetails:{1}"
+              "\n".format(png_name, e))
+        pass
 
     plt.axis("off")
     png_name = os.path.join(os.getcwd(), png_name)
