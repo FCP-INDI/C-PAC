@@ -351,15 +351,6 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
     """
 
     # Relativize files path to include on output
-    f_html_pieces = os.path.dirname(f_html_).split('/')
-    f_html_0_pieces = os.path.dirname(f_html_0).split('/')
-    f_html_1_pieces = os.path.dirname(f_html_1).split('/')
-    for i, (p_, p0, p10 in enumerate(zip(f_html_pieces, f_html_0_pieces, f_html_1_pieces)):
-        if p_ == p0 == p1:
-            continue
-        else
-            break
-
     f_html_0_relative_name = os.path.join(['qc_html', os.path.basename(f_html_0)])
     f_html_1_relative_name = os.path.join(['qc_html', os.path.basename(f_html_1)])
 
