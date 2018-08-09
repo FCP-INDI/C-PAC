@@ -155,13 +155,13 @@ class GenericClass(wx.ScrolledWindow):
             ctrl.set_selection(label,index, True)
     
     def EvtListBoxCombo(self, event, ctrl):
-        
         index = event.GetSelection()
         label = ctrl.get_ctrl().GetListBoxCtrl().GetString(index)
+        metadata = ctrl.get_ctrl().GetListBoxCtrl().GetClientData(index)
         if ctrl.get_ctrl().GetListBoxCtrl().IsChecked(index):
-            ctrl.set_selection(label, index)
+            ctrl.set_selection(label, index, metadata=metadata)
         else:
-            ctrl.set_selection(label,index, True)
+            ctrl.set_selection(label, index, True)
 
     '''
     NEEDS DEV!
