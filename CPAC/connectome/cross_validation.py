@@ -224,7 +224,7 @@ class Connectivity(CVedInterface):
         X = _normalize(X)
 
         metric = self.inputs.node_config['type']
-        if metric == 'partial':
+        if metric == 'partial' or metric == 'partial_correlation':
             metric = 'partial correlation'
 
         correlation_measure = ConnectivityMeasure(kind=metric,
