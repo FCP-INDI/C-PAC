@@ -54,7 +54,11 @@ def main():
     work_dir = os.path.abspath(args.working_directory)
 
     for sub_id in os.listdir(work_dir):
-        for dirname in os.listdir(os.path.join(work_dir, sub_id)):
+        try:
+            folders = os.listdir(os.path.join(work_dir, sub_id))
+        except OSError:
+            continue
+        for dirname in folders:
             keep = False
             for substring in working_dir_keep:
                 if substring in dirname:
