@@ -5314,7 +5314,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 pipeline_base = os.path.join(c.outputDirectory,
                                              'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,
-                                                'qc_files_here')
+                                                'qc_html')
                 sub_output_dir = os.path.join(c.outputDirectory,
                                               'pipeline_{0}'.format(pip_id),
                                               subject_id)
