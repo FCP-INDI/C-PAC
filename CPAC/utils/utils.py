@@ -885,9 +885,9 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
         try:
             if wf == 'qc':
                 # if the output file is QC related, send it over to
-                # 'qc_files_here'. these files are often the .png images for
+                # 'qc_html'. these files are often the .png images for
                 # the QC dashboard
-                new_f_path = os.path.join(file_path, 'qc_files_here')
+                new_f_path = os.path.join(file_path, 'qc_html')
                 os.makedirs(new_f_path)
             else:
                 # if the output file is not QC related, send it over to

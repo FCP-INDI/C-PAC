@@ -5110,10 +5110,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
 
                 # Write QC outputs to log directory
-                if 'qc' in key.lower():
-                    ds.inputs.base_directory = c.logDirectory
-                else:
-                    ds.inputs.base_directory = c.outputDirectory
+                #if 'qc' in key.lower():
+                #    ds.inputs.base_directory = c.logDirectory
+                #else:
+                #    ds.inputs.base_directory = c.outputDirectory
                     # For each pipeline ID, generate the QC pages
                     #  for pip_id in pip_ids:
                         # Define pipeline-level logging for QC
@@ -5121,6 +5121,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         #qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
                         #For each subject, create a QC index.html page
                         #make_QC_html_pages(qc_output_folder)
+                ds.inputs.base_directory = c.outputDirectory
 
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -5310,12 +5311,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if 1 in c.generateQualityControlImages:
             for pip_id in pip_ids:
                 #try:
-                pipeline_base = os.path.join(c.logDirectory,
+                pipeline_base = os.path.join(c.outputDirectory,
                                              'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,
-                                                'qc_files_here')
+                                                'qc_html')
                 sub_output_dir = os.path.join(c.outputDirectory,
-                                              'pipeline_{0}'.format(pipeline_id),
+                                              'pipeline_{0}'.format(pip_id),
                                               subject_id)
                 generateQCPages(qc_output_folder, sub_output_dir,
                                 qc_montage_id_a, qc_montage_id_s, qc_plot_id,
