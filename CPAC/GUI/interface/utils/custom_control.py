@@ -603,15 +603,9 @@ class ListBoxCombo(wx.Panel):
         sizer.Add(self.button)
         self.SetSizer(sizer)
 
-        if hasattr(self.ctype, '__call__'):
-            self.ctype_instance = self.ctype(self)
-            for val in self.ctype_instance:
-                self.listbox.Append(val)
-                self.options.append(val)
-
         # if it is the Contrasts checklist box in the group analysis model
         # builder GUI
-        elif self.ctype == 4:
+        if self.ctype == 4:
 
             # if this is a 'load' situation when the user loads their group
             # analysis .yml file and they already have contrasts inserted into
@@ -650,10 +644,14 @@ class ListBoxCombo(wx.Panel):
 
     def onButtonClick(self, event):
 
-        if self.ctype_instance is not None:
+        if hasattr(self.ctype, '__call__'):
+            self.ctype_instance = self.ctype(self)
+            for val in self.ctype_instance:
+                self.listbox.Append(val)
+                self.options.append(val)
             self.ctype_instance()
 
-        if self.ctype == 1:
+        elif self.ctype == 1:
             CheckBox(self, self.values)
         elif self.ctype == 2:    
             TextBoxFrame(self, self.values)
