@@ -1,5 +1,6 @@
 import wx
 import wx.html
+from wx.lib.intctrl import IntCtrl
 from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
 from ..utils.custom_control import ListBoxComboEditor
@@ -12,7 +13,7 @@ class TypeOption:
     def __init__(self, type, parameters):
         assert type in self.labels
         self.type = type
-        self.parameters = parameters
+        self.parameters = parameters or {}
 
     def __repr__(self):
         return self.__str__()
@@ -26,8 +27,10 @@ class TypeOption:
         return self.labels[self.type] + params
 
     def __eq__(self, other): 
-        return self.__dict__ == other.__dict__
+        return self.type == other.type and self.parameters == other.parameters
 
+    def __ne__(self, other):
+        return not self == other
 
 class RoiOption(TypeOption):
     
@@ -65,42 +68,61 @@ class RoiEditor(ListBoxComboEditor):
             parent=parent, title="Region of Interest Selector",
             size=(300, 300)
         )
-        
+
         self.parent = parent
 
-        panel = wx.Panel(self)
+        self.panel = wx.self.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
+        self.flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
 
         labels = RoiOption.labels
 
-        type_label = wx.StaticText(panel, -1, label='Type')
-        self.type = wx.Choice(panel, wx.ID_ANY,
+        type_label = wx.StaticText(self.panel, -1, label='Type')
+        self.type = wx.Choice(self.panel, wx.ID_ANY,
                               validator=wx.DefaultValidator,
                               choices=[labels[k] for k in sorted(labels.keys())])
 
-        flexsizer.Add(type_label)
-        flexsizer.Add(self.type)
+        self.flexsizer.Add(type_label)
+        self.flexsizer.Add(self.type)
 
-        button = wx.Button(panel, -1, 'OK', size=(90, 30))
+        components_label = wx.StaticText(self.panel, -1, label='Components')
+        self.components = IntCtrl(self.panel, id=wx.ID_ANY,
+                                  validator=wx.DefaultValidator,
+                                  max=999999)
+
+        self.flexsizer.Add(components_label)
+        self.flexsizer.Add(self.components)
+
+        button = wx.Button(self.panel, -1, 'OK', size=(90, 30))
         button.Bind(wx.EVT_BUTTON, self.onFinish)
-        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(self.flexsizer, 1, wx.EXPAND | wx.ALL, 10)
         sizer.Add(button, 0, wx.ALIGN_CENTER)
-        panel.SetSizer(sizer)
 
-    def onFinish(self,event):
+        self.panel.SetSizer(sizer)
+        self.flexsizer.Layout()
+        self.panel.Fit()
+        self.Fit()
+
+    def onFinish(self, event):
         parent = self.Parent
+        listbox = parent.listbox
         if self.type.GetSelection() > -1:
             labels = sorted(RoiOption.labels.keys())
             val = labels[self.type.GetSelection()]
 
-            option = RoiOption(val, {})
-            
-            parent.listbox.Append(str(option), option)
-            # TODO check appended item
-            # TODO check for duplicates
+            option = RoiOption(val, {
+                'components': self.components.GetValue()
+            })
 
-            self.Close()
+            diff = [
+                listbox.GetClientData(i) != option
+                for i, it in enumerate(listbox.GetItems())
+            ]
+
+            if all(diff):
+                listbox.Append(str(option), option)
+
+        self.Close()
 
 
 class ConnectivityEditor(ListBoxComboEditor):
@@ -108,44 +130,52 @@ class ConnectivityEditor(ListBoxComboEditor):
     def __init__(self, parent):
         super(ConnectivityEditor, self).__init__(
             parent=parent, title="Region of Interest Selector",
-            size=(300, 300)
+            size=(300, 100)
         )
-        
+
         self.parent = parent
 
-        panel = wx.Panel(self)
+        self.panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
+        self.flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
 
         labels = ConnectivityOption.labels
 
-        type_label = wx.StaticText(panel, -1, label='Type')
-        self.type = wx.Choice(panel, wx.ID_ANY,
+        type_label = wx.StaticText(self.panel, -1, label='Type')
+        self.type = wx.Choice(self.panel, wx.ID_ANY,
                               validator=wx.DefaultValidator,
                               choices=[labels[k] for k in sorted(labels.keys())])
 
-        flexsizer.Add(type_label)
-        flexsizer.Add(self.type)
+        self.flexsizer.Add(type_label)
+        self.flexsizer.Add(self.type)
 
-        button = wx.Button(panel, -1, 'OK', size=(90, 30))
+        button = wx.Button(self.panel, -1, 'OK', size=(90, 30))
         button.Bind(wx.EVT_BUTTON, self.onFinish)
-        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(self.flexsizer, 1, wx.EXPAND | wx.ALL, 10)
         sizer.Add(button, 0, wx.ALIGN_CENTER)
-        panel.SetSizer(sizer)
+        self.panel.SetSizer(sizer)
+        self.flexsizer.Layout()
+        self.panel.Fit()
+        self.Fit()
 
-    def onFinish(self,event):
+    def onFinish(self, event):
         parent = self.Parent
+        listbox = parent.listbox
         if self.type.GetSelection() > -1:
             labels = sorted(ConnectivityOption.labels.keys())
             val = labels[self.type.GetSelection()]
 
             option = ConnectivityOption(val, {})
-            
-            parent.listbox.Append(str(option), option)
-            # TODO check appended item
-            # TODO check for duplicates
 
-            self.Close()
+            diff = [
+                listbox.GetClientData(i) != option
+                for i, it in enumerate(listbox.GetItems())
+            ]
+
+            if all(diff):
+                listbox.Append(str(option), option)
+
+        self.Close()
 
 
 class ClassifierEditor(ListBoxComboEditor):
@@ -155,42 +185,89 @@ class ClassifierEditor(ListBoxComboEditor):
             parent=parent, title="Region of Interest Selector",
             size=(300, 300)
         )
-        
+
         self.parent = parent
 
-        panel = wx.Panel(self)
+        self.panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
+        self.flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
 
         labels = ClassifierOption.labels
 
-        type_label = wx.StaticText(panel, -1, label='Type')
-        self.type = wx.Choice(panel, wx.ID_ANY,
+        type_label = wx.StaticText(self.panel, -1, label='Type')
+        self.type = wx.Choice(self.panel, wx.ID_ANY,
                               validator=wx.DefaultValidator,
                               choices=[labels[k] for k in sorted(labels.keys())])
+        self.type.Bind(wx.EVT_CHOICE, self.onChange)
 
-        flexsizer.Add(type_label)
-        flexsizer.Add(self.type)
+        self.flexsizer.Add(type_label)
+        self.flexsizer.Add(self.type)
 
-        button = wx.Button(panel, -1, 'OK', size=(90, 30))
+        button = wx.Button(self.panel, -1, 'OK', size=(90, 30))
         button.Bind(wx.EVT_BUTTON, self.onFinish)
-        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(self.flexsizer, 1, wx.EXPAND | wx.ALL, 10)
         sizer.Add(button, 0, wx.ALIGN_CENTER)
-        panel.SetSizer(sizer)
+        self.panel.SetSizer(sizer)
+        self.flexsizer.Layout()
+        self.panel.Fit()
+        self.Fit()
 
-    def onFinish(self,event):
-        parent = self.Parent
+    def onChange(self, event):
+        # Remove old options
+        [i.Destroy() for i in list(self.panel.Children)[3:]]
+
+        labels = sorted(ClassifierOption.labels.keys())
         if self.type.GetSelection() > -1:
             labels = sorted(ClassifierOption.labels.keys())
             val = labels[self.type.GetSelection()]
 
-            option = ClassifierOption(val, {})
-            
-            parent.listbox.Append(str(option), option)
-            # TODO check appended item
-            # TODO check for duplicates
+            if val == 'svm':
+                penalty_label = wx.StaticText(self.panel, -1, label='Penalty')
+                self.penalty = wx.Choice(self.panel, wx.ID_ANY,
+                                         validator=wx.DefaultValidator,
+                                         choices=['', 'l1', 'l2'])
+                self.flexsizer.Add(penalty_label)
+                self.flexsizer.Add(self.penalty)
 
-            self.Close()
+                anova_label = wx.StaticText(
+                    self.panel, -1, label='ANOVA percentile')
+                self.anova = IntCtrl(self.panel, id=wx.ID_ANY,
+                                     validator=wx.DefaultValidator,
+                                     max=100, value=100)
+                self.flexsizer.Add(anova_label)
+                self.flexsizer.Add(self.anova)
+
+        self.flexsizer.Layout()
+        self.panel.Fit()
+        self.Fit()
+
+    def onFinish(self, event):
+        parent = self.Parent
+        listbox = parent.listbox
+        if self.type.GetSelection() > -1:
+            labels = sorted(ClassifierOption.labels.keys())
+            val = labels[self.type.GetSelection()]
+            parameters = {}
+
+            if val == 'svm':
+                if self.penalty.GetSelection() > 0:
+                    parameters['penalty'] = [
+                        '', 'l1', 'l2'][self.penalty.GetSelection()]
+                if self.anova.GetSelection() < 100:
+                    parameters['anova_percentile'] = self.anova.GetSelection()
+
+            option = ClassifierOption(val, parameters)
+
+            diff = [
+                listbox.GetClientData(i) != option
+                for i, it in enumerate(listbox.GetItems())
+            ]
+
+            if all(diff):
+                listbox.Append(str(option), option)
+
+        self.Close()
+
 
     
 class ConnectomeSettings(wx.ScrolledWindow):
