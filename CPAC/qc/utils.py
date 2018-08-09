@@ -351,8 +351,8 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
     """
 
     # Relativize files path to include on output
-    f_html_0_relative_name = os.path.join(['qc_html', os.path.basename(f_html_0)])
-    f_html_1_relative_name = os.path.join(['qc_html', os.path.basename(f_html_1)])
+    f_html_0_relative_name = os.path.join('qc_html', os.path.basename(f_html_0.name))
+    f_html_1_relative_name = os.path.join('qc_html', os.path.basename(f_html_1.name))
 
     print >>f_html_, "<html>"
     print >>f_html_, "<head>"
