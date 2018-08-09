@@ -7,14 +7,7 @@ import os
 import pkg_resources as p
 
 
-class RoiOption:
-    
-    labels = {
-        'dict_learning': 'Dictionary Learning',
-        'k_means': 'k-Means',
-        'ward': 'Ward',
-        'group_ica': 'Group ICA',
-    }
+class TypeOption:
 
     def __init__(self, type, parameters):
         assert type in self.labels
@@ -25,10 +18,44 @@ class RoiOption:
         return self.__str__()
 
     def __str__(self):
-        return '%s [%s]' % (
-            self.labels[self.type],
-            ";".join(['%s: %s' % (k, v) for k, v in self.parameters.items()])
-        )
+        params = ''
+        if self.parameters:
+            fparams = ['%s: %s' % (k, v) for k, v in self.parameters.items()]
+            params = ' [%s]' %  ("; ".join(fparams))
+
+        return self.labels[self.type] + params
+
+    def __eq__(self, other): 
+        return self.__dict__ == other.__dict__
+
+
+class RoiOption(TypeOption):
+    
+    labels = {
+        'dict_learning': 'Dictionary Learning',
+        'k_means': 'k-Means',
+        'ward': 'Ward',
+        'group_ica': 'Group ICA',
+    }
+
+class ConnectivityOption(TypeOption):
+    
+    labels = {
+        'correlation': 'Correlation',
+        'partial_correlation': 'Partial Correlation',
+        'tangent': 'Tangent',
+    }
+
+class ClassifierOption(TypeOption):
+    
+    labels = {
+        'svm': 'Support Vector Machine',
+        'ridge': 'Ridge',
+        'logistic': 'Logistic Regresson',
+        'random_forest': 'Random Forest',
+        'knn': 'K Nearest Neighbors',
+        'naive_bayes': 'Gaussian Naive Bayes',
+    }
 
 
 class RoiEditor(ListBoxComboEditor):
@@ -38,6 +65,8 @@ class RoiEditor(ListBoxComboEditor):
             parent=parent, title="Region of Interest Selector",
             size=(300, 300)
         )
+        
+        self.parent = parent
 
         panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -73,8 +102,95 @@ class RoiEditor(ListBoxComboEditor):
 
             self.Close()
 
-    def __iter__(self):
-        return iter([])
+
+class ConnectivityEditor(ListBoxComboEditor):
+
+    def __init__(self, parent):
+        super(ConnectivityEditor, self).__init__(
+            parent=parent, title="Region of Interest Selector",
+            size=(300, 300)
+        )
+        
+        self.parent = parent
+
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
+
+        labels = ConnectivityOption.labels
+
+        type_label = wx.StaticText(panel, -1, label='Type')
+        self.type = wx.Choice(panel, wx.ID_ANY,
+                              validator=wx.DefaultValidator,
+                              choices=[labels[k] for k in sorted(labels.keys())])
+
+        flexsizer.Add(type_label)
+        flexsizer.Add(self.type)
+
+        button = wx.Button(panel, -1, 'OK', size=(90, 30))
+        button.Bind(wx.EVT_BUTTON, self.onFinish)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button, 0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+
+    def onFinish(self,event):
+        parent = self.Parent
+        if self.type.GetSelection() > -1:
+            labels = sorted(ConnectivityOption.labels.keys())
+            val = labels[self.type.GetSelection()]
+
+            option = ConnectivityOption(val, {})
+            
+            parent.listbox.Append(str(option), option)
+            # TODO check appended item
+            # TODO check for duplicates
+
+            self.Close()
+
+
+class ClassifierEditor(ListBoxComboEditor):
+
+    def __init__(self, parent):
+        super(ClassifierEditor, self).__init__(
+            parent=parent, title="Region of Interest Selector",
+            size=(300, 300)
+        )
+        
+        self.parent = parent
+
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
+
+        labels = ClassifierOption.labels
+
+        type_label = wx.StaticText(panel, -1, label='Type')
+        self.type = wx.Choice(panel, wx.ID_ANY,
+                              validator=wx.DefaultValidator,
+                              choices=[labels[k] for k in sorted(labels.keys())])
+
+        flexsizer.Add(type_label)
+        flexsizer.Add(self.type)
+
+        button = wx.Button(panel, -1, 'OK', size=(90, 30))
+        button.Bind(wx.EVT_BUTTON, self.onFinish)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button, 0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+
+    def onFinish(self,event):
+        parent = self.Parent
+        if self.type.GetSelection() > -1:
+            labels = sorted(ClassifierOption.labels.keys())
+            val = labels[self.type.GetSelection()]
+
+            option = ClassifierOption(val, {})
+            
+            parent.listbox.Append(str(option), option)
+            # TODO check appended item
+            # TODO check for duplicates
+
+            self.Close()
 
     
 class ConnectomeSettings(wx.ScrolledWindow):
@@ -136,13 +252,34 @@ class ConnectomeSettings(wx.ScrolledWindow):
         self.page.add(label="Regions of Interest",
                       control=control.LISTBOX_COMBO,
                       name='connectome.roi',
-                      values="",
                       comment="",
                       size=(400, 100),
                       combo_type=RoiEditor,
                       type=dtype.LOBJ,
                       type_metadata={
                           "class": RoiOption
+                      })
+
+        self.page.add(label="Connectivity Measures",
+                      control=control.LISTBOX_COMBO,
+                      name='connectome.connectivity',
+                      comment="",
+                      size=(400, 100),
+                      combo_type=ConnectivityEditor,
+                      type=dtype.LOBJ,
+                      type_metadata={
+                          "class": ConnectivityOption
+                      })
+
+        self.page.add(label="Classifiers",
+                      control=control.LISTBOX_COMBO,
+                      name='connectome.classifier',
+                      comment="",
+                      size=(400, 100),
+                      combo_type=ClassifierEditor,
+                      type=dtype.LOBJ,
+                      type_metadata={
+                          "class": ClassifierOption
                       })
 
         self.page.set_sizer()
