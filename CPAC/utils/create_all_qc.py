@@ -272,7 +272,7 @@ def prep_resources(pip_path):
         subj_path = os.path.join(pip_path, subj)
 
         if os.path.isdir(subj_path):
-            qc_path = os.path.join(subj_path, 'qc_files_here')
+            qc_path = os.path.join(subj_path, 'qc_html')
             path_files_here = os.path.join(subj_path, 'path_files_here')
             path_copy = os.path.join(qc_path, 'path')
 
@@ -424,7 +424,7 @@ def organize_resources(output_path, pipelines):
          for subj in sorted(subjects):
  
              subj_path = os.path.join(pip_path, subj)
-             qc_path = os.path.join(subj_path, 'qc_files_here')
+             qc_path = os.path.join(subj_path, 'qc_html')
              html_files = os.listdir(qc_path)
              html_files = [html for html in html_files if not (html.endswith('_0.html') or html.endswith('_1.html') or html.endswith('.txt'))]
              dict_ = get_path_files_in_dict(qc_path, html_files)
@@ -582,7 +582,7 @@ def make_group_htmls(pip_path):
 
 
             if os.path.isdir(subj_path):
-                qc_path = os.path.join(subj_path, 'qc_files_here')
+                qc_path = os.path.join(subj_path, 'qc_html')
                 path_files_here = os.path.join(subj_path, 'path_files_here')
                 path_copy = os.path.join(qc_path, 'path')
                 os.makedirs(path_copy)

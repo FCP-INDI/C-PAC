@@ -69,7 +69,7 @@ def first_pass_organizing_files(qc_path):
     Parameters
     ----------
     qc_path : string
-        existing path of qc_files_here directory
+        existing path of qc_html directory
 
     Returns
     -------
@@ -137,7 +137,7 @@ def second_pass_organizing_files(qc_path):
     Parameters
     ----------
     qc_path : string
-        existing path of qc_files_here directory
+        existing path of qc_html directory
 
     Returns
     -------
@@ -322,6 +322,14 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
+import base64
+
+def encode_to_url(f, type):
+    with open(f, "rb") as image_file:
+        b64 = str(base64.b64encode(image_file.read()).decode("utf-8"))
+        return "data:" + type + ";" + "base64," + b64
+
+
 def add_head(f_html_, f_html_0, f_html_1, name=None):
     """Write HTML Headers to various html files.
 
@@ -342,6 +350,19 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
 
     """
 
+    # Relativize files path to include on output
+    f_html_pieces = os.path.dirname(f_html_).split('/')
+    f_html_0_pieces = os.path.dirname(f_html_0).split('/')
+    f_html_1_pieces = os.path.dirname(f_html_1).split('/')
+    for i, (p_, p0, p10 in enumerate(zip(f_html_pieces, f_html_0_pieces, f_html_1_pieces)):
+        if p_ == p0 == p1:
+            continue
+        else
+            break
+
+    f_html_0_relative_name = os.path.join(['qc_html', os.path.basename(f_html_0)])
+    f_html_1_relative_name = os.path.join(['qc_html', os.path.basename(f_html_1)])
+
     print >>f_html_, "<html>"
     print >>f_html_, "<head>"
     print >>f_html_, "<title>C-PAC QC</title>"
@@ -351,15 +372,20 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
     print >>f_html_, ""
     print >>f_html_, "    <frame src=\"%s\" name=\"menu\"><frame src=\"%s" \
                      "\" name=\"content\">" \
-                     "</frameset>" %(f_html_0.name, f_html_1.name)
+                     "</frameset>" %(f_html_0_relative_name, f_html_1_relative_name)
     print >>f_html_, ""
     print >>f_html_, "</html>"
 
     print >>f_html_0, "<html>"
-    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" " \
-                      "media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"))
-    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" " \
-                      "media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"))
+
+    with open(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"), 'r') as content_file:
+        content = content_file.read()
+        print >>f_html_0, "<style>%s</style>" % (content)
+
+    with open(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"), 'r') as content_file:
+        content = content_file.read()
+        print >>f_html_0, "<style>%s</style>" % (content)
+
     print >>f_html_0, "<head>"
     print >>f_html_0, "<base target=\"content\">"
     print >>f_html_0, "</head>"
@@ -369,8 +395,10 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
     print >>f_html_0, "<p class=\"logo\"><a href=\"" \
                       "https://fcp-indi.github.io\" target=\"website\">"
     print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
+
     print >>f_html_0, "<img class=\"logo\" src=\"%s\" " \
-                      "alt=\"Logo\"/>"%(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"))
+                      "alt=\"Logo\"/>" % (encode_to_url(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"), 'image/jpeg'))
+                      
     print >>f_html_0, "</a></p>"
     print >>f_html_0, "<h3>Table Of Contents</h3>"
     print >>f_html_0, "<ul>"
@@ -888,7 +916,7 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
 
 def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
               qc_plot_id, qc_hist_id):
-    """Convert a 'qc_files_here' text file in the CPAC output directory into
+    """Convert a 'qc_html' text file in the CPAC output directory into
     a QC HTML page.
 
     Parameters
@@ -940,8 +968,8 @@ def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     # and give it a more obvious name
     html_f_name = "{0}.html".format(html_f_name.replace("qc_scan",
                                                         "QC-interface_scan"))
-    log_dir = html_f_name.split('/qc_files_here')[0]
-    html_f_name = html_f_name.replace("/qc_files_here", "")
+    log_dir = html_f_name.split('/qc_html')[0]
+    html_f_name = html_f_name.replace("/qc_html", "")
     html_f_name = html_f_name.replace(log_dir, sub_output_dir)
 
     f_html_ = open(html_f_name, 'wb')
@@ -970,13 +998,13 @@ def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     
 def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
                   qc_plot_id, qc_hist_id):
-    """Generates a QC HTML file for each text file in the 'qc_files_here'
+    """Generates a QC HTML file for each text file in the 'qc_html'
     folder in the CPAC output directory.
 
     Parameters
     ----------
     qc_path : string
-        path to qc_files_here directory
+        path to qc_html directory
 
     sub_output_dir : string
         path to subject's output directory
@@ -1031,7 +1059,7 @@ def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     Parameters
     ----------
     qc_path : string
-        path to qc_files_here directory
+        path to qc_html directory
 
     sub_output_dir : string
         path to subject's output directory
