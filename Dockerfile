@@ -95,18 +95,18 @@ RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh &
 ENV PATH=/usr/local/miniconda/bin:$PATH
 
 # install conda dependencies
-RUN conda install -y cython
-RUN conda install -y ipython
-RUN conda install -y jinja2==2.7.2
-RUN conda install -y matplotlib
-RUN conda install -y networkx==1.11
-RUN conda install -y nose
-RUN conda install -y numpy==1.11.3
-RUN conda install -y pandas
-RUN conda install -y pip
-RUN conda install -y pyyaml
-RUN conda install -y scipy
-RUN conda install -y traits
+RUN conda install -y  \
+       cython \
+       jinja2==2.7.2 \
+       matplotlib \
+       networkx==1.11 \
+       nose \
+       numpy==1.11.3 \
+       pandas \
+       pip \
+       pyyaml \
+       scipy \
+       traits
 
 # install python dependencies
 RUN pip install \
