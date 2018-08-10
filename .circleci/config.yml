@@ -5,4 +5,4 @@ jobs:
       - image: circleci/python:2.7.15-stretch
     steps:
       - checkout
-      - run: pip install -r requirements.txt
+      - run: pip install --user -r requirements.txt

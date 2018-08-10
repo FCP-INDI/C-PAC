@@ -101,7 +101,7 @@ RUN conda install -y jinja2==2.7.2
 RUN conda install -y matplotlib
 RUN conda install -y networkx==1.11
 RUN conda install -y nose
-RUN conda install -y numpy==1.11
+RUN conda install -y numpy==1.11.3
 RUN conda install -y pandas
 RUN conda install -y pip
 RUN conda install -y pyyaml
