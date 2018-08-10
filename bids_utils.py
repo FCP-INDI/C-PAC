@@ -198,7 +198,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
             bids_config.update(t_params)
 
         # add in the information from this config file
-        t_config = config_dict[cp][0]
+        t_config = config_dict[cp]
         if t_config is list:
             t_config = t_config[0]
         bids_config.update(t_config)
