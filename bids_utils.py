@@ -90,7 +90,6 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
       should be printed, defaults to "False"
     :return: returns a dictionary that contains the BIDS parameters
     """
-
     params = {}
 
     t_dict = bids_config_dict  # pointer to current dictionary
@@ -111,7 +110,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
             t_dict = t_dict[key]
         else:
             if dbg:
-                print "Could find %s, so going with %s" % (key,
+                print "Couldn't find %s, so going with %s" % (key,
                         "-".join([level, "none"]))
             key = "-".join([level, "none"])
             if key in t_dict:
@@ -198,7 +197,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
             bids_config.update(t_params)
 
         # add in the information from this config file
-        t_config = config_dict[cp][0]
+        t_config = config_dict[cp]
         if t_config is list:
             t_config = t_config[0]
         bids_config.update(t_config)
