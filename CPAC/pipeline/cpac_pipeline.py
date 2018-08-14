@@ -1522,7 +1522,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                          'tpattern')
 
                         logger.info("connected slice timing pattern %s" %
-                                    c.slice_timing_patter)
+                                    c.slice_timing_pattern)
                     except Exception as xxx:
                         logger.info(
                             "Error connecting input 'acquisition' to "
