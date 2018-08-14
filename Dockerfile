@@ -125,7 +125,8 @@ RUN pip install \
       pygraphviz \
       simplejson \
       nilearn \
-      sklearn
+      sklearn \
+      wxpython==3.0.0.0
 
 # install AFNI
 COPY required_afni_pkgs.txt /opt/required_afni_pkgs.txt
