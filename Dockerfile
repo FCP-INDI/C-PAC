@@ -96,37 +96,22 @@ ENV PATH=/usr/local/miniconda/bin:$PATH
 
 # install conda dependencies
 RUN conda install -y  \
-       cython \
-       jinja2==2.7.2 \
-       matplotlib \
-       networkx==1.11 \
-       nose \
-       numpy==1.11.3 \
-       pandas \
-       pip \
-       pyyaml \
-       scipy \
-       traits
+        cython==0.26 \
+        jinja2==2.7.2 \
+        matplotlib=2.0.2 \
+        networkx==1.11 \
+        nose==1.3.7 \
+        numpy==1.11.0 \
+        pandas==0.20.1 \
+        pyyaml==3.12 \
+        scipy==0.18.1 \
+        traits==4.6.0 \
+        wxpython==3.0.0.0 \
+        pip==9.0.1
 
 # install python dependencies
-RUN pip install \
-      boto3 \
-      configparser \
-      fs==0.5.4 \
-      future==0.15.2 \
-      INDI-Tools \
-      lockfile \
-      memory_profiler \
-      nibabel \
-      nipype==0.13.1 \
-      patsy \
-      psutil \
-      prov \
-      pygraphviz \
-      simplejson \
-      nilearn \
-      sklearn \
-      wxpython==3.0.0.0
+COPY requirements.txt /opt/requirements.txt
+RUN pip install -r /opt/requirements.txt
 
 # install AFNI
 COPY required_afni_pkgs.txt /opt/required_afni_pkgs.txt
@@ -161,8 +146,7 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
 
 # install ANTs
 RUN apt-get update && \
-    apt-get install -y \
-    ants
+    apt-get install -y ants
 
 # install cpac resources
 RUN cd /tmp && \
@@ -180,19 +164,15 @@ RUN cd /tmp && \
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
 RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
     rm -f /cpac_resources/cpac_templates.tar.gz
-    
-# install cpac
-RUN pip install git+https://github.com/FCP-INDI/C-PAC.git@1.2.0_dev
 
 # clean up
 RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# copy container scripts
-COPY version /code/version
-COPY bids_utils.py /code/bids_utils.py
-COPY run.py /code/run.py
+# install cpac
+COPY . /code
+RUN pip install -e /code
 
 # make the run.py executable
 RUN chmod +x /code/run.py
