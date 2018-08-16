@@ -200,30 +200,38 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # outputs to send into smoothing, if smoothing is enabled, and
     # outputs to write out if the user selects to write non-smoothed outputs
     # "_mult" is for items requiring mapnodes
-    outputs_native_nonsmooth = list(keys[keys['Optional outputs: Native space'] == 'yes'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] != 'yes']['Resource'])
-    outputs_native_nonsmooth_mult = list(keys[keys['Optional outputs: Native space'] == 'yes'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] == 'yes']['Resource'])
-    outputs_template_nonsmooth = list(keys[keys['Space'] == 'template'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] != 'yes']['Resource'])
-    outputs_template_nonsmooth_mult = list(keys[keys['Space'] == 'template'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] == 'yes']['Resource'])
+    outputs_template_filter         = keys['Space'] == 'template'
+    outputs_native_filter           = keys['Optional outputs: Native space'] == 'yes'
+
+    nonsmoothed_filter              = keys['Optional outputs: Non-smoothed'] == 'yes'
+    multiple_outputs_filter         = keys['Multiple outputs'] == 'yes'
+    derivative_filter               = keys['Derivative'] == 'yes'
+
+    outputs_native_nonsmooth        = list(keys[outputs_native_filter   & nonsmoothed_filter & ~multiple_outputs_filter]['Resource'])
+    outputs_native_nonsmooth_mult   = list(keys[outputs_native_filter   & nonsmoothed_filter &  multiple_outputs_filter]['Resource'])
+    outputs_template_nonsmooth      = list(keys[outputs_template_filter & nonsmoothed_filter & ~multiple_outputs_filter]['Resource'])
+    outputs_template_nonsmooth_mult = list(keys[outputs_template_filter & nonsmoothed_filter &  multiple_outputs_filter]['Resource'])
 
     # don't write these, unless the user selects to write native-space outputs
-    outputs_native_smooth = list(keys[keys['Space'] != 'template'][keys['Derivative'] == 'yes'][keys['Optional outputs: Non-smoothed'] != 'yes']['Resource'])
+    outputs_native_smooth   = list(keys[~outputs_template_filter & ~nonsmoothed_filter & derivative_filter]['Resource'])
 
     # ever used??? contains template-space, smoothed, both raw and z-scored
-    outputs_template_smooth = list(keys[keys['Space'] == 'template'][keys['Derivative'] == 'yes'][keys['Optional outputs: Non-smoothed'] != 'yes']['Resource'])
+    outputs_template_smooth = list(keys[ outputs_template_filter & ~nonsmoothed_filter & derivative_filter]['Resource'])
 
     # outputs to send into z-scoring, if z-scoring is enabled, and
     # outputs to write out if user selects to write non-z-scored outputs
     # "_mult" is for items requiring mapnodes
-    outputs_template_raw = list(keys[keys['Space'] == 'template'][keys['Multiple outputs'] != 'yes'][keys['Optional outputs: Raw scores'] == 'yes']['Resource'])
-    outputs_template_raw_mult = list(keys[keys['Space'] == 'template'][keys['Multiple outputs'] == 'yes'][keys['Optional outputs: Raw scores'] == 'yes']['Resource'])
+    outputs_template_raw      = list(keys[outputs_template_filter & ~multiple_outputs_filter & (keys['Optional outputs: Raw scores'] == 'yes')]['Resource'])
+    outputs_template_raw_mult = list(keys[outputs_template_filter &  multiple_outputs_filter & (keys['Optional outputs: Raw scores'] == 'yes')]['Resource'])
 
     # outputs to send into the average calculation nodes
     # "_mult" is for items requiring mapnodes
-    outputs_average = list(keys[keys['Calculate averages'] == 'yes'][keys['Multiple outputs'] != 'yes']['Resource'])
-    outputs_average_mult = list(keys[keys['Calculate averages'] == 'yes'][keys['Multiple outputs'] == 'yes']['Resource'])
+    outputs_average = list(keys[~multiple_outputs_filter & (keys['Calculate averages'] == 'yes')]['Resource'])
+    outputs_average_mult = list(keys[multiple_outputs_filter & (keys['Calculate averages'] == 'yes')]['Resource'])
 
     # outputs to link for QC pages
-    qc_outputs = list(keys[keys['Derivative'] == 'yes']['Resource'])
+    qc_outputs = list(keys[derivative_filter]['Resource'])
+
 
     # Start timing here
     pipeline_start_time = time.time()
