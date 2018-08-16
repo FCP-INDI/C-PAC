@@ -136,7 +136,7 @@ REQUIREMENTS        = [
     "boto3==1.7.37",
     "cython==0.26",
     "fs==0.5.4",
-    "future==0.15.2",
+    "future==0.16.0",
     "INDI-Tools==0.0.6",
     "jinja2==2.7.2",
     "lockfile==0.12.2",
