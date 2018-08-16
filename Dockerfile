@@ -86,6 +86,53 @@ RUN mkdir -p /opt/c3d && \
 ENV C3DPATH /opt/c3d/
 ENV PATH $C3DPATH/bin:$PATH
 
+# install AFNI
+COPY required_afni_pkgs.txt /opt/required_afni_pkgs.txt
+RUN libs_path=/usr/lib/x86_64-linux-gnu && \
+    if [ -f $libs_path/libgsl.so.19 ]; then \
+           ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
+    fi && \
+    mkdir -p /opt/afni && \
+    wget -q http://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
+    tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz $(cat /opt/required_afni_pkgs.txt) && \
+    rm -rf linux_openmp_64.tgz
+
+# set up AFNI
+ENV PATH=/opt/afni:$PATH
+
+# install FSL
+RUN apt-get update  && \
+    apt-get install -y --no-install-recommends \
+                    fsl-core \
+                    fsl-atlases \
+                    fsl-mni152-templates
+
+# setup FSL environment
+ENV FSLDIR=/usr/share/fsl/5.0 \
+    FSLOUTPUTTYPE=NIFTI_GZ \
+    FSLMULTIFILEQUIT=TRUE \
+    POSSUMDIR=/usr/share/fsl/5.0 \
+    LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH \
+    FSLTCLSH=/usr/bin/tclsh \
+    FSLWISH=/usr/bin/wish \
+    PATH=/usr/lib/fsl/5.0:$PATH
+
+# install CPAC resources into FSL
+RUN cd /tmp && \
+    wget -q http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
+    tar xfz cpac_resources.tar.gz && \
+    cd cpac_image_resources && \
+    cp -n MNI_3mm/* $FSLDIR/data/standard && \
+    cp -n MNI_4mm/* $FSLDIR/data/standard && \
+    cp -n symmetric/* $FSLDIR/data/standard && \
+    cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
+    cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
+    cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
+
+# install ANTs
+RUN apt-get update && \
+    apt-get install -y ants
+
 # install miniconda
 RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
     bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
@@ -112,53 +159,6 @@ RUN conda install -y  \
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
-
-# install AFNI
-COPY required_afni_pkgs.txt /opt/required_afni_pkgs.txt
-RUN libs_path=/usr/lib/x86_64-linux-gnu && \
-    if [ -f $libs_path/libgsl.so.19 ]; then \
-           ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
-    fi && \
-    mkdir -p /opt/afni && \
-    wget -q http://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
-    tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz $(cat /opt/required_afni_pkgs.txt) && \
-    rm -rf linux_openmp_64.tgz
-
-# set up afni
-ENV PATH=/opt/afni:$PATH
-
-# install FSL
-RUN apt-get update  && \
-    apt-get install -y --no-install-recommends \
-                    fsl-core \
-                    fsl-atlases \
-                    fsl-mni152-templates
-
-# setup fsl environment
-ENV FSLDIR=/usr/share/fsl/5.0 \
-    FSLOUTPUTTYPE=NIFTI_GZ \
-    FSLMULTIFILEQUIT=TRUE \
-    POSSUMDIR=/usr/share/fsl/5.0 \
-    LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH \
-    FSLTCLSH=/usr/bin/tclsh \
-    FSLWISH=/usr/bin/wish \
-    PATH=/usr/lib/fsl/5.0:$PATH
-
-# install ANTs
-RUN apt-get update && \
-    apt-get install -y ants
-
-# install cpac resources
-RUN cd /tmp && \
-    wget -q http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
-    tar xfz cpac_resources.tar.gz && \
-    cd cpac_image_resources && \
-    cp -n MNI_3mm/* $FSLDIR/data/standard && \
-    cp -n MNI_4mm/* $FSLDIR/data/standard && \
-    cp -n symmetric/* $FSLDIR/data/standard && \
-    cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-    cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-    cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
 
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
