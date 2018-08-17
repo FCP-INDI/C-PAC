@@ -4463,21 +4463,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(snr, 'new_fname',
                                  hist_, 'measure_file')
 
-                drop_percent = pe.Node(
+                snr_drop_percent = pe.Node(
                     util.Function(input_names=['measure_file',
                                                'percent'],
                                   output_names=['modified_measure_file'],
                                   function=drop_percent),
                     name='dp_snr_%d' % num_strat)
-                drop_percent.inputs.percent = 99
+                snr_drop_percent.inputs.percent = 99
 
                 workflow.connect(snr, 'new_fname',
-                                 drop_percent, 'measure_file')
+                                 snr_drop_percent, 'measure_file')
 
                 montage_snr = create_montage('montage_snr_%d' % num_strat,
                                              'red_to_blue', 'snr')
 
-                workflow.connect(drop_percent, 'modified_measure_file',
+                workflow.connect(snr_drop_percent, 'modified_measure_file',
                                  montage_snr, 'inputspec.overlay')
                                                         
                 workflow.connect(anat_ref, ref_file,
@@ -4750,21 +4750,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 try:
                     overlay, out_file = strat.get_node_from_resource_pool(measure)
 
-                    drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                    overlay_drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
                                                                          'percent'],
                                                             output_names=['modified_measure_file'],
                                                             function=drop_percent),
                                               name='dp_%s_%d' % (measure, num_strat),
                                               iterfield=['measure_file'])
-                    drop_percent.inputs.percent = 99.999
+                    overlay_drop_percent.inputs.percent = 99.999
 
                     workflow.connect(overlay, out_file,
-                                     drop_percent, 'measure_file')
+                                     overlay_drop_percent, 'measure_file')
 
                     montage = create_montage('montage_%s_%d' % (measure, num_strat), 'cyan_to_yellow', measure)
                     montage.inputs.inputspec.underlay = c.template_brain_only_for_func
 
-                    workflow.connect(drop_percent, 'modified_measure_file',
+                    workflow.connect(overlay_drop_percent, 'modified_measure_file',
                                      montage, 'inputspec.overlay')
 
                     if 'centrality' in measure:
