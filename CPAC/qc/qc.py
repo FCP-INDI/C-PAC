@@ -3,6 +3,9 @@ from CPAC.utils.function import Function
 from CPAC.qc.utils import resample_1mm, montage_axial, montage_sagittal, \
                           montage_gm_wm_csf_axial, montage_gm_wm_csf_sagittal
 
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
+
 
 def create_montage(wf_name, cbar_name, png_name):
 
