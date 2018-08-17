@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 
-import pkg_resources as p
 import os
+import pkg_resources as p
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
 import nipype.interfaces.utility as util
@@ -82,8 +82,6 @@ def first_pass_organizing_files(qc_path):
 
     """
 
-    import os
-    from CPAC.qc.utils import append_to_files_in_dict_way
 
     if not os.path.exists(qc_path):
         os.makedirs(qc_path)
@@ -149,9 +147,6 @@ def second_pass_organizing_files(qc_path):
     falff , alff with others
 
     """
-
-    import os
-    from CPAC.qc.utils import append_to_files_in_dict_way
 
     qc_files = os.listdir(qc_path)
 
@@ -304,8 +299,6 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
         list of png id nos
 
     """
-
-    from CPAC.qc.utils import organize
 
     dict_a = {}
     dict_s = {}
@@ -641,15 +634,6 @@ def get_map_id(str_, id_):
 
     map_id = None
 
-    '''
-    id_:  centrality_
-    str_:  degree_centrality_binarize_99_1mm_centrality_outputs_a.png
-    str_ post-split:  degree_centrality_binarize_99_1mm_centrality_outputs
-    180515-20:46:14,382 workflow ERROR:
-    [!] Error: The QC interface page generator ran into a problem.
-    Details: too many values to unpack
-    '''
-
     # so whatever goes into "type_" and then "map_id" becomes the "Map: "
     # Mask: should be the ROI nifti, but right now it's the nuisance strat...
     # Measure: should be eigenvector binarize etc., but it's just "centrality_outputs"
@@ -704,9 +688,6 @@ def get_map_and_measure(png_a):
         proper name for measure    
 
     """
-
-    import os
-    from CPAC.qc.utils import get_map_id
 
     measure_name = None
     map_name = None
@@ -783,9 +764,6 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
     None
 
     """
-    from CPAC.qc.utils import feed_line_nav
-    from CPAC.qc.utils import feed_line_body
-    from CPAC.qc.utils import get_map_and_measure
 
     if id_ in dict_a:
 
@@ -940,10 +918,6 @@ def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
 
     """
 
-    import os
-    from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
-        feed_lines_html
-
     with open(file_, 'r') as f:
         pngs_ = [line.rstrip('\r\n') for line in f.readlines()]
 
@@ -1022,9 +996,6 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     None
 
     """
-    import os
-    from CPAC.qc.utils import make_page
-
     qc_files = os.listdir(qc_path)
 
     for file_ in qc_files:
@@ -1076,10 +1047,6 @@ def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     None
 
     """
-
-    from CPAC.qc.utils import first_pass_organizing_files, \
-        second_pass_organizing_files
-    from CPAC.qc.utils import make_qc_pages
 
     # according to preprocessing strategy combines the files
     first_pass_organizing_files(qc_path)
@@ -1546,9 +1513,9 @@ def make_histogram(measure_file, measure):
     return hist_path
 
 
-def drop_percent_(measure_file, percent_):
+def drop_percent(measure_file, percent):
     """
-    Zeros out voxels in measure files whose intensity doesnt fall in percent_
+    Zeros out voxels in measure files whose intensity doesnt fall in percent
     of voxel intensities
 
     Parameters
@@ -1557,53 +1524,37 @@ def drop_percent_(measure_file, percent_):
     measure_file : string
                 Input nifti file
 
-    percent_ : percentage of the voxels to keep
+    percent : percentage of the voxels to keep
 
     
     Returns
     -------
 
     modified_measure_file : string
-                    measure_file with 1 - percent_ voxels zeroed out
+                    measure_file with 1 - percent voxels zeroed out
     """
 
+    import os
     import nibabel as nb
     import numpy as np
-    import os
-    import commands
 
     img = nb.load(measure_file)
-
     data = img.get_data()
-
     x, y, z = data.shape
-
-    max_val= float(commands.getoutput('fslstats %s -P %f' %(measure_file, percent_)))
-
-    for i in range(x):
-
-        for j in range(y):
-
-            for k in range(z):
-                if data[i][j][k] > 0.0:
-                    if data[i][j][k] >= max_val:
-                        data[i][j][k] = 0.0
+    
+    max_val = np.percentile(data[data != 0.0], percent)
+    data[data >= max_val] = 0.0
 
     save_img = nb.Nifti1Image(data, header=img.get_header(), affine=img.get_affine())
-
-    f_name = os.path.basename(os.path.splitext(os.path.splitext(measure_file)[0])[0])
-
-    saved_name = None
-    saved_name_correct_header = None
-    ext = None
-
+   
     if '.nii.gz' in measure_file:
         ext = '.nii.gz'
     else:
         ext = '.nii'
 
-    saved_name = '%s_%d_%s' % (f_name, percent_, ext)
-    saved_name_correct_header = '%s_%d%s' % (f_name, percent_, ext)
+    f_name = os.path.basename(os.path.splitext(os.path.splitext(measure_file)[0])[0])
+    saved_name = '%s_%d_%s' % (f_name, percent, ext)
+    saved_name_correct_header = '%s_%d%s' % (f_name, percent, ext)
     save_img.to_filename(saved_name)
 
     commands.getoutput("3dcalc -a %s -expr 'a' -prefix %s" % (saved_name, saved_name_correct_header))
@@ -1807,14 +1758,10 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     import matplotlib
     matplotlib.rcParams.update({'font.size': 5})
     import matplotlib.cm as cm
-    try:
-        from mpl_toolkits.axes_grid1 import ImageGrid   
-    except:
-        from mpl_toolkits.axes_grid import ImageGrid
+    from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.pyplot as plt
     import nibabel as nb
     import numpy as np
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
@@ -2127,6 +2074,11 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     png_name : Path to generated PNG
 
     """
+    import numpy as np
+    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    import matplotlib.pyplot as plt
+    import nibabel as nb
+    import matplotlib.cm as cm
 
     Y = nb.load(underlay).get_data()
     z1, z2 = determine_start_and_end(Y, 'axial', 0.0001)
@@ -2219,6 +2171,12 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     png_name : Path to generated PNG
 
     """
+
+    import numpy as np
+    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import nibabel as nb
 
     Y = nb.load(underlay).get_data()
     x1, x2 = determine_start_and_end(Y, 'sagittal', 0.0001)
@@ -2346,7 +2304,6 @@ def resample_1mm(file_):
         path to 1mm resampled nifti file
 
     """
-
     new_fname = None
 
     if isinstance(file_, list):
@@ -2381,7 +2338,6 @@ def make_resample_1mm(file_):
     import commands
 
     remainder, ext_ = os.path.splitext(file_)
-
     remainder, ext1_ = os.path.splitext(remainder)
 
     ext = ''.join([ext1_, ext_])

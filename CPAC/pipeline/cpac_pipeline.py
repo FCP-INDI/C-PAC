@@ -63,7 +63,7 @@ from CPAC.utils import Configuration, create_all_qc, function
 
 # TODO - QA pages - re-introduce these
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
-from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
+from CPAC.qc.utils import register_pallete, make_edge, drop_percent, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
     gen_std_dev, gen_func_anat_xfm, gen_snr, \
     generateQCPages, cal_snr_val
@@ -4465,11 +4465,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 drop_percent = pe.Node(
                     util.Function(input_names=['measure_file',
-                                               'percent_'],
+                                               'percent'],
                                   output_names=['modified_measure_file'],
-                                  function=drop_percent_),
+                                  function=drop_percent),
                     name='dp_snr_%d' % num_strat)
-                drop_percent.inputs.percent_ = 99
+                drop_percent.inputs.percent = 99
 
                 workflow.connect(snr, 'new_fname',
                                  drop_percent, 'measure_file')
@@ -4751,17 +4751,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     overlay, out_file = strat.get_node_from_resource_pool(measure)
 
                     drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
-                                                                         'percent_'],
+                                                                         'percent'],
                                                             output_names=['modified_measure_file'],
-                                                            function=drop_percent_),
+                                                            function=drop_percent),
                                               name='dp_%s_%d' % (measure, num_strat),
                                               iterfield=['measure_file'])
-                    drop_percent.inputs.percent_ = 99.999
+                    drop_percent.inputs.percent = 99.999
 
                     workflow.connect(overlay, out_file,
                                      drop_percent, 'measure_file')
 
-                    montage = create_montage('montage_%s_%d' % (measure, num_strat),'cyan_to_yellow', measure)
+                    montage = create_montage('montage_%s_%d' % (measure, num_strat), 'cyan_to_yellow', measure)
                     montage.inputs.inputspec.underlay = c.template_brain_only_for_func
 
                     workflow.connect(drop_percent, 'modified_measure_file',
