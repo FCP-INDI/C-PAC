@@ -59,7 +59,7 @@ from CPAC.timeseries import create_surface_registration, get_roi_timeseries, \
 from CPAC.network_centrality import create_resting_state_graphs, \
     get_cent_zscore
 from CPAC.utils.datasource import *
-from CPAC.utils import Configuration, create_all_qc
+from CPAC.utils import Configuration, create_all_qc, function
 
 # TODO - QA pages - re-introduce these
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
@@ -1184,13 +1184,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         Add in nodes to get parameters from configuration file
         """
 
-        scan_imports = ['import os', 'import json', 'import warnings',
-                        'from CPAC.utils import check']
-
-        try:
-            # a node which checks if scan_parameters are present for each scan
-            scan_params = \
-                pe.Node(util.Function(input_names=['data_config_scan_params',
+        # a node which checks if scan_parameters are present for each scan
+        scan_params = \
+            pe.Node(function.Function(input_names=['data_config_scan_params',
                                                    'subject_id',
                                                    'scan',
                                                    'pipeconfig_tr',
@@ -1198,17 +1194,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                    'pipeconfig_start_indx',
                                                    'pipeconfig_stop_indx'],
                                       output_names=['tr',
-                                                    'tpattern',
-                                                    'ref_slice',
-                                                    'start_indx',
-                                                    'stop_indx'],
+                                                  'tpattern',
+                                                  'ref_slice',
+                                                  'start_indx',
+                                                  'stop_indx'],
                                       function=get_scan_params,
-                                      imports=scan_imports),
-                        name='scan_params_%d' % num_strat)
-        except Exception as xxx:
-            logger.info("Error creating scan_params node. (%s:%d)"
-                        % dbg_file_lineno())
-            raise
+                                      as_module=True),
+                    name='scan_params_%d' % num_strat)
 
         if "Selected Functional Volume" in c.func_reg_input:
 
@@ -5165,7 +5157,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
 
                 sink_idx += 1
-                logger.info('sink index: %s' % sink_idx)
+                logger.debug('sink index: %s' % sink_idx)
 
             d_name = os.path.join(c.logDirectory, ds.inputs.container)
 

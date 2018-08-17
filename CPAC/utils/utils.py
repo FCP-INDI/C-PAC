@@ -1446,6 +1446,10 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
         ending TR or ending volume index
     """
 
+    import os
+    import json
+    import warnings
+
     check2 = lambda val: val if val == None or val == '' or \
                                 isinstance(val, str) else int(val)
 
