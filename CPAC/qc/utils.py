@@ -1554,13 +1554,10 @@ def drop_percent(measure_file, percent):
 
     f_name = os.path.basename(os.path.splitext(os.path.splitext(measure_file)[0])[0])
     saved_name = '%s_%d_%s' % (f_name, percent, ext)
-    saved_name_correct_header = '%s_%d%s' % (f_name, percent, ext)
     save_img.to_filename(saved_name)
 
-    commands.getoutput("3dcalc -a %s -expr 'a' -prefix %s" % (saved_name, saved_name_correct_header))
-
     modified_measure_file = os.path.join(os.getcwd(),
-                                         saved_name_correct_header)
+                                         saved_name)
 
     return modified_measure_file
 
