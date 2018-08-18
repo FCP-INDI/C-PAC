@@ -380,7 +380,7 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
                       "https://fcp-indi.github.io\" target=\"website\">"
     print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
 
-    print >>f_html_0, "<img class=\"logo\" src=\"%s\" " \
+    print >>f_html_0, "<img class=\"logo\" src=\"%s\" style=\"width:100%\" " \
                       "alt=\"Logo\"/>" % (encode_to_url(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"), 'image/jpeg'))
                       
     print >>f_html_0, "</a></p>"
