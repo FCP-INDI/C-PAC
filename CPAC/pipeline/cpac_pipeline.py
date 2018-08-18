@@ -4464,10 +4464,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  hist_, 'measure_file')
 
                 snr_drop_percent = pe.Node(
-                    util.Function(input_names=['measure_file',
+                    function.Function(input_names=['measure_file',
                                                'percent'],
                                   output_names=['modified_measure_file'],
-                                  function=drop_percent),
+                                  function=drop_percent,
+                                  as_module=True),
                     name='dp_snr_%d' % num_strat)
                 snr_drop_percent.inputs.percent = 99
 
@@ -4513,7 +4514,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 workflow.connect(mov_param, out_file, mov_plot, 'motion_parameters')
 
-                strat.update_resource_pool({'qc___movement_trans_plot': (mov_plot, 'translation_plot'),'qc___movement_rot_plot': (mov_plot, 'rotation_plot')})
+                strat.update_resource_pool({
+                    'qc___movement_trans_plot': (mov_plot, 'translation_plot'),
+                    'qc___movement_rot_plot': (mov_plot, 'rotation_plot')
+                })
             
                 if not 6 in qc_plot_id:
                     qc_plot_id[6] = 'movement_trans_plot'
@@ -4586,7 +4590,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(anat_underlay, out_file,
                                  montage_skull, 'inputspec.underlay')
 
-                strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')})
+                strat.update_resource_pool({
+                    'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),
+                    'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')
+                })
                 #skull_edge = #pe.Node(util.Function(input_names=['file_'],output_names=['new_fname#'],function=make_edge),name='skull_edge_%d' % num_strat)
 
                 #workflow.connect(skull, out_file_s,skull_edge, 'file_')
@@ -4681,32 +4688,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(m_f_a, out_file_mfa,
                                  montage_anat, 'inputspec.underlay')
 
-                # workflow.connect(anat_edge, 'new_fname', montage_anat,
-                #                  'inputspec.overlay')
-                                    
-                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, 'outputspec.axial_png'),'qc___mean_func_with_t1_edge_s': (montage_anat, 'outputspec.sagittal_png')})
-                                    
-                #anat_edge = pe.Node(util.Function(input_names=['file_'],
-                #                                                   output_names=['new_fname'],
-                #                                                  function=make_edge),
-                #                                     name='anat_edge_%d' % num_strat)
+                strat.update_resource_pool({
+                    'qc___mean_func_with_t1_edge_a': (montage_anat, 'outputspec.axial_png'),
+                    'qc___mean_func_with_t1_edge_s': (montage_anat, 'outputspec.sagittal_png')
+                })
 
-                #                workflow.connect(anat, out_file,
-                #                                 anat_edge, 'file_')
-
-                #
-                #                workflow.connect(m_f_a, out_file_mfa,
-                #                                 montage_anat, 'inputspec.underlay')
-                #
-                #                workflow.connect(anat_edge, 'new_fname',
-                #                                 montage_anat, 'inputspec.overlay')
-                #
-                #                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, #'outputspec.axial_png'),
-                #                                        'qc___mean_func_with_t1_edge_s': (montage_anat, #'outputspec.sagittal_png')})
 
                 if not 4 in qc_montage_id_a:
-                        qc_montage_id_a[4] = 'mean_func_with_t1_edge_a'
-                        qc_montage_id_s[4] = 'mean_func_with_t1_edge_s'
+                    qc_montage_id_a[4] = 'mean_func_with_t1_edge_a'
+                    qc_montage_id_s[4] = 'mean_func_with_t1_edge_s'
 
             except:
                 logStandardError('QC', 'Cannot generate QC montages for Mean Functional in T1 with T1 edge: Resources Not Found', '0056')
@@ -4750,12 +4740,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 try:
                     overlay, out_file = strat.get_node_from_resource_pool(measure)
 
-                    overlay_drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
-                                                                         'percent'],
-                                                            output_names=['modified_measure_file'],
-                                                            function=drop_percent),
-                                              name='dp_%s_%d' % (measure, num_strat),
-                                              iterfield=['measure_file'])
+                    overlay_drop_percent = pe.MapNode(function.Function(input_names=['measure_file',
+                                                                                     'percent'],
+                                                                        output_names=[
+                                                                            'modified_measure_file'],
+                                                                        function=drop_percent,
+                                                                        as_module=True),
+                                                      name='dp_%s_%d' % (
+                                                          measure, num_strat),
+                                                      iterfield=['measure_file'])
                     overlay_drop_percent.inputs.percent = 99.999
 
                     workflow.connect(overlay, out_file,
