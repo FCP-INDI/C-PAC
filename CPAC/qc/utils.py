@@ -1,3 +1,4 @@
+import re
 import commands
 import numpy as np
 import matplotlib
@@ -8,6 +9,81 @@ import pkg_resources as p
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
 import nipype.interfaces.utility as util
+
+
+derivative_descriptions = {
+    'alff_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_to_standard': 'Amplitude of Low-Frequency Fluctuation',
+    'alff_to_standard_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation',
+    'alff_to_standard_zstd': 'Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+    'alff_to_standard_zstd_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+    'alff_to_standard_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_to_standard_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_to_standard_smooth_zstd': 'Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+    'alff_to_standard_smooth_zstd_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+
+    'centrality_hist': 'Histogram of Network Centrality',
+    'centrality_smooth_hist': 'Histogram of Network Centrality (smoothed)',
+    'centrality_smooth_zstd_hist': 'Histogram of Network Centrality (smoothed, z-score standardized)',
+    'centrality_smooth_zstd': 'Network Centrality (smoothed, z-score standardized)',
+    'centrality_smooth': 'Network Centrality (smoothed)',
+    'centrality_zstd_hist': 'Histogram of Network Centrality (z-score standardized)',
+    'centrality_zstd_smooth_hist': 'Histogram of Network Centrality (z-score standardized, smoothed)',
+    'centrality_zstd_smooth': 'Network Centrality (z-score standardized, smoothed)',
+    'centrality_zstd': 'Network Centrality (z-score standardized)',
+    'centrality': 'Network Centrality',
+    
+    'csf_gm_wm': 'Grey Matter, White Matter & CSF',
+
+    'falff_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_smooth': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_to_standard': 'Fractional Amplitude of Low-Frequency Fluctuation',
+    'falff_to_standard_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation',
+    'falff_to_standard_smooth': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_to_standard_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_to_standard_smooth_zstd': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+    'falff_to_standard_smooth_zstd_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+    'falff_to_standard_zstd': 'Fractional Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+    'falff_to_standard_zstd_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+
+    'fd_plot': 'Framewise Displacement Plot',
+    'mean_func_with_mni_edge': 'MNI Edge Overlapped on Mean Functional Image',
+    'mean_func_with_t1_edge': 'T1 Edge Overlapped on Mean Functional Image',
+    'mni_normalized_anatomical': 'MNI Edge Overlapped on Normalized Anatomical',
+    'movement_rot_plot': 'Head Rotation Plot',
+    'movement_trans_plot': 'Head Displacement Plot',
+
+    'reho_smooth': 'Regional Homogeneity (smoothed)',
+    'reho_smooth_hist': 'Histogram of Regional Homogeneity (smoothed)',
+    'reho_to_standard': 'Regional Homogeneity',
+    'reho_to_standard_hist': 'Histogram of Regional Homogeneity',
+    'reho_to_standard_smooth': 'Regional Homogeneity (smoothed)',
+    'reho_to_standard_smooth_hist': 'Histogram of Regional Homogeneity (smoothed)',
+    'reho_to_standard_smooth_zstd': 'Regional Homogeneity (smoothed, z-score standardized)',
+    'reho_to_standard_smooth_zstd_hist': 'Histogram of Regional Homogeneity (smoothed, z-score standardized)',
+    'reho_to_standard_zstd': 'Regional Homogeneity (z-score standardized)',
+    'reho_to_standard_zstd_hist': 'Histogram of Regional Homogeneity (z-score standardized)',
+
+    'sca_roi_smooth_hist': 'Histogram of Seed-based Correlation Analysis (smoothed)',
+    'sca_roi_smooth': 'Seed-based Correlation Analysis (smoothed)',
+    
+    'skullstrip_vis': 'Visual Result of Skull Strip',
+    'snr_hist': 'Histogram of Signal to Noise Ratio',
+    'snr': 'Signal to Noise Ratio',
+
+    'temporal_dual_regression_smooth_hist': 'Histogram of Temporal Dual Regression',
+    'temporal_dual_regression_smooth': 'Temporal Dual Regression',
+    
+    'vmhc_smooth': 'Voxel-Mirrored Homotopic Connectivity (smoothed)',
+    'vmhc_smooth_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity (smoothed)',
+    'vmhc_fisher_zstd': 'Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_fisher_zstd_hist': 'Histogram of Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_fisher_zstd_zstat_map': 'Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_fisher_zstd_zstat_map_hist': 'Histogram of Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_raw_score': 'Voxel-Mirrored Homotopic Connectivity',
+    'vmhc_raw_score_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity',
+}
 
 
 def append_to_files_in_dict_way(list_files, file_):
@@ -323,18 +399,18 @@ def encode_to_url(f, type):
         return "data:" + type + ";" + "base64," + b64
 
 
-def add_head(f_html_, f_html_0, f_html_1, name=None):
+def add_head(frameset_html_fd, menu_html_fd, content_html_fd, name):
     """Write HTML Headers to various html files.
 
     Parameters
     ----------
-    f_html_ : string
+    frameset_html_fd : string
         path to main html file
 
-    f_html_0 : string
+    menu_html_fd : string
         path to navigation bar html file
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
     Returns
@@ -344,84 +420,94 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
     """
 
     # Relativize files path to include on output
-    f_html_0_relative_name = os.path.join('qc_html', os.path.basename(f_html_0.name))
-    f_html_1_relative_name = os.path.join('qc_html', os.path.basename(f_html_1.name))
+    html_menu_relative_name = os.path.join('qc_html', os.path.basename(menu_html_fd.name))
+    html_content_relative_name = os.path.join('qc_html', os.path.basename(content_html_fd.name))
 
-    print >>f_html_, "<html>"
-    print >>f_html_, "<head>"
-    print >>f_html_, "<title>C-PAC QC</title>"
-    print >>f_html_, "</head>"
-    print >>f_html_, ""
-    print >>f_html_, "<frameset cols=\"20%,80%\">"
-    print >>f_html_, ""
-    print >>f_html_, "    <frame src=\"%s\" name=\"menu\"><frame src=\"%s" \
-                     "\" name=\"content\">" \
-                     "</frameset>" %(f_html_0_relative_name, f_html_1_relative_name)
-    print >>f_html_, ""
-    print >>f_html_, "</html>"
+    frameset_html = """
 
-    print >>f_html_0, "<html>"
+<html>
+    <head>
+        <title>C-PAC QC</title>
+    </head>
+    <frameset cols="20%,80%">
+        <frame src="{menu_file}" name="menu">
+        <frame src="{content_file}" name="content">
+    </frameset>
+</html>
+
+"""
+
+    frameset_html_fd.write(frameset_html.format(
+        menu_file=html_menu_relative_name,
+        content_file=html_content_relative_name
+    ))
+
+
+    menu_html = """
+
+<html>
+    <head>
+        <style>{css_nature}</style>
+        <style>{css_pygments}</style>
+        <base target="content">
+    </head>
+
+    <body bgcolor="#FFFF00">
+        <div>
+            <div class="sphinxsidebarwrapper">
+                <p class="logo">
+                    <a href="https://fcp-indi.github.io" target="website">
+                        <img class="logo" src="{logo}" style="width:100%" alt="Logo"/>
+                    </a>
+                </p>
+                <h3>Table Of Contents</h3>
+                <ul>
+
+"""
 
     with open(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"), 'r') as content_file:
-        content = content_file.read()
-        print >>f_html_0, "<style>%s</style>" % (content)
+        css_nature_content = content_file.read()
 
     with open(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"), 'r') as content_file:
-        content = content_file.read()
-        print >>f_html_0, "<style>%s</style>" % (content)
+        css_pygments_content = content_file.read()
 
-    print >>f_html_0, "<head>"
-    print >>f_html_0, "<base target=\"content\">"
-    print >>f_html_0, "</head>"
-    print >>f_html_0, "<body bgcolor = \"#FFFF00\">"
-    print >>f_html_0, "<div>"
-    print >>f_html_0, "<div class=\"sphinxsidebarwrapper\">"
-    print >>f_html_0, "<p class=\"logo\"><a href=\"" \
-                      "https://fcp-indi.github.io\" target=\"website\">"
-    print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
-
-    print >>f_html_0, "<img class=\"logo\" src=\"%s\" style=\"width:100%\" " \
-                      "alt=\"Logo\"/>" % (encode_to_url(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"), 'image/jpeg'))
-                      
-    print >>f_html_0, "</a></p>"
-    print >>f_html_0, "<h3>Table Of Contents</h3>"
-    print >>f_html_0, "<ul>"
-
-    print >>f_html_1, '<link href="default.css" rel="stylesheet" ' \
-                      'type="text/css" />'
-    print >>f_html_1, "<html>"
-    print >>f_html_1, "</style>"
-    print >>f_html_1, "<body>"
-    print >>f_html_1, "<a name='reverse'>"
-    if name:
-        print >>f_html_1, "<br><h1>C-PAC Visual Data Quality Control " \
-                          "Interface</h1>"
-        print >>f_html_1, "<h3>C-PAC Website: <a href=\"" \
-                          "https://fcp-indi.github.io/\" target=" \
-                          "\"website\">https://fcp-indi.github.io</a>" \
-                          "<br><br>"
-        print >>f_html_1, "C-PAC Support Forum: <a href=\"" \
-                          "https://groups.google.com/forum/#!forum" \
-                          "/cpax_forum\" target=\"forum\">" \
-                          "https://groups.google.com/forum/#!forum/" \
-                          "cpax_forum</a>"
-        print >>f_html_1, "<hr><br>Scan and strategy identifiers:" \
-                          "<br>{0}".format(name)
-        print >>f_html_1, "</h3><br>"
+    menu_html_fd.write(menu_html.format(
+        css_nature=css_nature_content,
+        css_pygments=css_pygments_content,
+        logo=encode_to_url(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"), 'image/jpeg')
+    ))
 
 
-def add_tail(f_html_, f_html_0, f_html_1):
+    content_html = """
+
+<html>
+    <body>
+        <a name="reverse"></a>
+        <h1>C-PAC Visual Data Quality Control Interface</h1>
+        <h3>C-PAC Website: <a href=\"https://fcp-indi.github.io/\" target=\"website\">https://fcp-indi.github.io</a></h3>
+        <h3>C-PAC Support Forum: <a href=\"https://groups.google.com/forum/#!forum/cpax_forum\" target=\"forum\">https://groups.google.com/forum/#!forum/cpax_forum</a></h3>
+        <hr>
+        <h3>Scan and strategy identifiers: {name}</h3>
+    
+"""
+
+    content_html_fd.write(content_html.format(
+        name=name
+    ))
+
+
+def add_tail(frameset_html_fd, menu_html_fd, content_html_fd):
     """Write HTML Tail Tags to various html files.
 
     Parameters
     ----------
-    f_html_ : string
+    frameset_html_fd : string
         path to main html file
 
-    f_html_0 : string
+    menu_html_fd : string
         path to navigation bar html file
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
 
@@ -431,33 +517,39 @@ def add_tail(f_html_, f_html_0, f_html_1):
 
     """
 
-    print >>f_html_0, "</ul>"
-    print >>f_html_0, "</div>"
-    print >>f_html_0, "</div>"
-    print >>f_html_0, "</body>"
-    print >>f_html_0, "</html>"
-    print >>f_html_1, "</body>"
-    print >>f_html_1, "</html>"
+    menu_html_fd.write("""
+    
+                </ul>
+            </div>
+        </div>
+    </body>
+</html>
+
+""")
+
+    content_html_fd.write("""
+
+    </body>
+</html>
+    
+""")
 
 
-def feed_line_nav(id_, image_name, anchor, f_html_0, f_html_1):
+def feed_line_nav(image_name, anchor, menu_html_fd, content_html_fd):
     """Write to navigation bar html file.
 
     Parameters
     ----------
-    id_ : string
-        id of the image
-
     anchor : string
         anchor id of the image
 
     image_name : string
         name of image
     
-    f_html_0 : string
+    menu_html_fd : string
         path to navigation bar html file
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
     Returns
@@ -465,62 +557,22 @@ def feed_line_nav(id_, image_name, anchor, f_html_0, f_html_1):
     None
 
     """
-    image_readable = image_name
-    if image_name == 'skullstrip_vis':
-        image_readable = 'Visual Result of Skull Strip'
-    if image_name == 'csf_gm_wm':
-        image_readable = 'Grey Matter, White Matter & CSF'
-    if image_name == 'snr':
-        image_readable = 'Signal to Noise Ratio'
-    if image_name.find('snr_hist') > -1:
-        image_readable = 'Histogram of Signal to Noise Ratio'
-    if image_name.find('mni_normalized') > -1:
-        image_readable = 'MNI Edge Overlapped on Normalized Anatomical'
-    if image_name == 'mean_func_with_t1_edge':
-        image_readable = 'T1 Edge Overlapped on Mean Functional Image'
-    if image_name == 'mean_func_with_mni_edge':
-        image_readable = 'MNI Edge Overlapped on Mean Functional Image'
-    if image_name.find('movement_trans_plot') >-1:
-        image_readable = 'Head Displacement Plot'
-    if image_name.find('movement_rot_plot') >-1:
-        image_readable = 'Head Rotation Plot'
-    if image_name.find('fd_plot') > -1:
-        image_readable = 'Framewise Displacement Plot'
-    if image_name == 'sca_roi_smooth':
-        image_readable = 'Seed-based Correlation Analysis'
-    if image_name == 'sca_roi_smooth_hist':
-        image_readable = 'Histogram of Seed-based Correlation Analysis'
-    if image_name == 'centrality_smooth':
-        image_readable = 'Network Centrality'
-    if image_name == 'centrality_smooth_hist':
-        image_readable = 'Histogram of Network Centrality'
-    if image_name == 'temporal_dual_regression_smooth':
-        image_readable = 'Temporal Dual Regression'
-    if image_name == 'temporal_dual_regression_smooth_hist':
-        image_readable = 'Histogram of Temporal Dual Regression'
-    if image_name == 'vmhc_smooth':
-        image_readable = 'Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'vmhc_smooth_hist':
-        image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'reho_smooth':
-        image_readable = 'Regional Homogeneity'
-    if image_name == 'reho_smooth_hist':
-        image_readable = 'Histogram of Regional Homogeneity'
-    if image_name == 'alff_smooth':
-        image_readable = 'Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'alff_smooth_hist':
-        image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth':
-        image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
-    print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name,
-                                                             anchor,
-                                                             image_readable)
+    image_readable = derivative_descriptions[image_name]
+
+    html_content_relative_name = os.path.join('qc_html', os.path.basename(content_html_fd.name))
+    menu_html = """
+                    <li><a href="{page}#{anchor}">{description}</a></li>
+"""
+
+    menu_html_fd.write(menu_html.format(
+        page=html_content_relative_name,
+        anchor=anchor,
+        description=image_readable
+    ))
 
 
-def feed_line_body(image_name, anchor, image, f_html_1):
+def feed_line_body(image_name, anchor, image, content_html_fd):
     """Write to html file that has to contain images.
 
     Parameters
@@ -534,7 +586,7 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     image : string
         path to the image
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
     Returns
@@ -542,76 +594,32 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     None
 
     """
+
+    description_html = """
+        <h3><a name="{anchor}">{description}</a> <a href="#reverse">TOP</a></h3>
+"""
+    image_html = """
+        <p><img src="{image}" alt="{description}"></p>
+"""
+
     image_readable = image_name
-    if image_name == 'skullstrip_vis':
-        image_readable = 'Visual Result of Skull Strip'
-    if image_name == 'csf_gm_wm':
-        image_readable = 'Grey Matter, White Matter & CSF'
-    if image_name == 'snr':
-        image_readable = 'Signal to Noise Ratio'
-    if image_name.find('snr_hist') > -1:
-        image_readable = 'Histogram of Signal to Noise Ratio'
-    if image_name.find('mni_normalized') > -1:
-        image_readable = 'MNI Edge Overlapped on Normalized Anatomical'
-    if image_name == 'mean_func_with_t1_edge':
-        image_readable = 'T1 Edge Overlapped on Mean Functional Image'
-    if image_name == 'mean_func_with_mni_edge':
-        image_readable = 'MNI Edge Overlapped on Mean Functional Image'
-    if image_name.find('movement_trans_plot') >-1:
-        image_readable = 'Head Displacement Plot'
-    if image_name.find('movement_rot_plot') >-1:
-        image_readable = 'Head Rotation Plot'
-    if image_name.find('fd_plot') > -1:
-        image_readable = 'Framewise Displacement Plot'
-    if image_name == 'sca_roi_smooth':
-        image_readable = 'Seed-based Correlation Analysis'
-    if image_name == 'sca_roi_smooth_hist':
-        image_readable = 'Histogram of Seed-based Correlation Analysis'
-    if image_name == 'centrality':
-        image_readable = 'Network Centrality'
-    if image_name == 'centrality_hist':
-        image_readable = 'Histogram of Network Centrality'
-    if image_name == 'centrality_smooth':
-        image_readable = 'Network Centrality (smoothed)'
-    if image_name == 'centrality_smooth_hist':
-        image_readable = 'Histogram of Network Centrality (smoothed)'
-    if image_name == 'centrality_zstd':
-        image_readable = 'Network Centrality (z-score standardized)'
-    if image_name == 'centrality_zstd_hist':
-        image_readable = 'Histogram of Network Centrality (z-score standardized)'
-    if image_name == 'centrality_smooth_zstd':
-        image_readable = 'Network Centrality (smoothed, z-score standardized)'
-    if image_name == 'centrality_smooth_zstd_hist':
-        image_readable = 'Histogram of Network Centrality (smoothed, z-score standardized)'
-    if image_name == 'centrality_zstd_smooth':
-        image_readable = 'Network Centrality (z-score standardized, smoothed)'
-    if image_name == 'centrality_zstd_smooth_hist':
-        image_readable = 'Histogram of Network Centrality (z-score standardized, smoothed)'
-    if image_name == 'temporal_dual_regression_smooth':
-        image_readable = 'Temporal Dual Regression'
-    if image_name == 'temporal_dual_regression_smooth_hist':
-        image_readable = 'Histogram of Temporal Dual Regression'
-    if image_name == 'vmhc_smooth':
-        image_readable = 'Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'vmhc_smooth_hist':
-        image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'reho_smooth':
-        image_readable = 'Regional Homogeneity'
-    if image_name == 'reho_smooth_hist':
-        image_readable = 'Histogram of Regional Homogeneity'
-    if image_name == 'alff_smooth':
-        image_readable = 'Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'alff_smooth_hist':
-        image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth':
-        image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
-    print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_readable)
+    if image_name:
+        image_readable = derivative_descriptions[image_name]
 
-    img_tag = "<br><img src='%s', alt='%s'>" %(image, image_readable)
-    print >>f_html_1, img_tag
+        content_html_fd.write(
+            description_html.format(
+                anchor=anchor,
+                description=image_readable
+            )
+        )
+        
+    content_html_fd.write(
+        image_html.format(
+            image=image,
+            description=image_readable
+        )
+    )
 
 
 def get_map_id(str_, id_):
@@ -685,7 +693,7 @@ def get_map_and_measure(png_a):
         proper name for map
 
     measure_name : string
-        proper name for measure    
+        proper name for measure
 
     """
 
@@ -714,9 +722,9 @@ def get_map_and_measure(png_a):
     return map_name, measure_name
 
 
-def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
+def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
                     qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id,
-                    f_html_0, f_html_1):
+                    menu_html_fd, content_html_fd):
     """Write HTML Tags to various html files and embeds images.
 
     Parameters
@@ -765,24 +773,24 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
 
     """
 
-    if id_ in dict_a:
+    if montage_id in montages_a:
 
-        dict_a[id_] = sorted(dict_a[id_])
-        dict_s[id_] = sorted(dict_s[id_])
+        montages_a[montage_id] = sorted(montages_a[montage_id])
+        montages_s[montage_id] = sorted(montages_s[montage_id])
 
-        if id_ in dict_hist:
-            dict_hist[id_] = sorted(dict_hist[id_])
+        if montage_id in histograms:
+            histograms[montage_id] = sorted(histograms[montage_id])
 
-        idxs = len(dict_a[id_])
+        idxs = len(montages_a[montage_id])
 
         for idx in range(0, idxs):
-            png_a = dict_a[id_][idx]
-            png_s = dict_s[id_][idx]
+            png_a = montages_a[montage_id][idx]
+            png_s = montages_s[montage_id][idx]
             png_h = None
 
-            if id_ in dict_hist:
+            if montage_id in histograms:
                 try:
-                    png_h = dict_hist[id_][idx]
+                    png_h = histograms[montage_id][idx]
                 except:
                     pass
 
@@ -792,24 +800,34 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
             if idxs > 1:
                 map_name, measure_name = get_map_and_measure(png_a)
 
-            id_a = str(id_)
-            id_s = str(id_) + '_s'
-            id_h = str(id_) + '_' + str(id_)
+            id_a = str(montage_id)
+            id_s = str(montage_id) + '_s'
+            id_h = str(montage_id) + '_' + str(montage_id)
 
             image_name_a = None
             image_name_h = None
 
-            image_name_a_nav = qc_montage_id_a[id_].replace('_a', '')
-            if id_ in qc_hist_id:
-                image_name_h_nav = qc_hist_id[id_]
+            image_name_a_nav = re.sub('_a$', '', qc_montage_id_a[montage_id])
+            if montage_id in qc_hist_id:
+                image_name_h_nav = qc_hist_id[montage_id]
+                
             if map_name is not None:
-                image_name_a = 'Measure: ' + qc_montage_id_a[id_].replace('_a', '') + '    Mask: ' + measure_name + '   Map: ' + map_name
-                if id_ in qc_hist_id:
-                    image_name_h = 'Measure: ' + qc_hist_id[id_] + '    Mask:'+ measure_name + '    Map: ' + map_name
+                image_name_a = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                    measure=image_name_a_nav,
+                    mask=measure_name,
+                    map=map_name
+                )
+
+                if montage_id in qc_hist_id:
+                    image_name_h = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                        measure=qc_hist_id[montage_id],
+                        mask=measure_name,
+                        map=map_name
+                    )
             else:
-                image_name_a = qc_montage_id_a[id_].replace('_a', '')
-                if id_ in qc_hist_id:
-                    image_name_h = qc_hist_id[id_]
+                image_name_a = image_name_a_nav
+                if montage_id in qc_hist_id:
+                    image_name_h = qc_hist_id[montage_id]
 
             if idx != 0:
                 id_a = '_'.join([id_a, str(idx), 'a'])
@@ -817,73 +835,26 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
                 id_h = '_'.join([id_h, str(idx), 'h' ])
 
             if idx == 0:
-                if image_name_a_nav == 'skullstrip_vis':
-                    image_readable = 'Visual Result of Skull Strip'
-                if image_name_a_nav == 'csf_gm_wm':
-                    image_readable = 'Grey Matter, White Matter & CSF'
-                if image_name_a_nav == 'snr':
-                    image_readable = 'Signal to Noise Ratio'
-                if image_name_a_nav == 'snr_hist':
-                    image_readable = 'Histogram of Signal to Noise Ratio'
-                if image_name_a_nav == 'mean_func_with_t1_edge':
-                    image_readable = 'T1 Edge Overlapped on Mean Functional Image'
-                if image_name_a_nav == 'mean_func_with_mni_edge':
-                    image_readable = 'MNI Edge Overlapped on Mean Functional Image'
-                if image_name_a_nav == 'movement_trans_plot':
-                    image_readable = 'Head Displacement Plot'
-                if image_name_a_nav == 'movement_rot_plot':
-                    image_readable = 'Head Rotation Plot'
-                if image_name_a_nav == 'fd_plot':
-                    image_readable = 'Framewise Displacement Plot'
-                if image_name_a_nav == 'sca_roi_smooth':
-                    image_readable = 'Seed-based Correlation Analysis'
-                if image_name_a_nav == 'sca_roi_smooth_hist':
-                    image_readable = 'Histogram of Seed-based Correlation Analysis'
-                if image_name_a_nav == 'centrality_smooth':
-                    image_readable = 'Network Centrality'
-                if image_name_a_nav == 'centrality_smooth_hist':
-                    image_readable = 'Histogram of Network Centrality'
-                if image_name_a_nav == 'temporal_dual_regression_smooth':
-                    image_readable = 'Temporal Dual Regression'
-                if image_name_a_nav == 'temporal_dual_regression_smooth_hist':
-                    image_readable = 'Histogram of Temporal Dual Regression'
-                if image_name_a_nav == 'vmhc_smooth':
-                    image_readable = 'Voxel-Mirrored Homotopic Connectivity'
-                if image_name_a_nav == 'vmhc_smooth_hist':
-                    image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
-                if image_name_a_nav == 'reho_smooth':
-                    image_readable = 'Regional Homogeneity'
-                if image_name_a_nav == 'reho_smooth_hist':
-                    image_readable = 'Histogram of Regional Homogeneity'
-                if image_name_a_nav == 'alff_smooth':
-                    image_readable = 'Amplitude of Low-Frequency Fluctuation'
-                if image_name_a_nav == 'alff_smooth_hist':
-                    image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
-                if image_name_a_nav == 'falff_smooth':
-                    image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
-                if image_name_a_nav == 'falff_smooth_hist':
-                    image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
-                feed_line_nav(id_, image_name_a_nav, id_a, f_html_0, f_html_1)
+                feed_line_nav(image_name_a_nav, id_a, menu_html_fd, content_html_fd)
 
-            feed_line_body(image_name_a, id_a, png_a, f_html_1)
-            feed_line_body('', id_s, png_s, f_html_1)
+            feed_line_body(image_name_a, id_a, png_a, content_html_fd)
+            feed_line_body(None, id_s, png_s, content_html_fd)
 
-            if id_ in dict_hist.keys():
+            if montage_id in histograms.keys():
                 if idx == 0:
-                    feed_line_nav(id_, image_name_h_nav, id_h, f_html_0,
-                                  f_html_1)
+                    feed_line_nav(image_name_h_nav, id_h, menu_html_fd, content_html_fd)
+                feed_line_body(image_name_h, id_h, png_h, content_html_fd)
 
-                feed_line_body(image_name_h, id_h, png_h, f_html_1)
-
-    if id_ in dict_plot:
-        id_a = str(id_)
-        image_name = qc_plot_id[id_]
-        png_a = dict_plot[id_][0]
-        feed_line_nav(id_, image_name, id_a, f_html_0, f_html_1)
-        feed_line_body(image_name, id_a, png_a, f_html_1)
+    if montage_id in dict_plot:
+        id_a = str(montage_id)
+        image_name = qc_plot_id[montage_id]
+        png_a = dict_plot[montage_id][0]
+        feed_line_nav(image_name, id_a, menu_html_fd, content_html_fd)
+        feed_line_body(image_name, id_a, png_a, content_html_fd)
 
 
-def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
+def make_page(qc_file, sub_output_dir,
+              qc_montage_id_a, qc_montage_id_s,
               qc_plot_id, qc_hist_id):
     """Convert a 'qc_html' text file in the CPAC output directory into
     a QC HTML page.
@@ -918,47 +889,46 @@ def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
 
     """
 
-    with open(file_, 'r') as f:
-        pngs_ = [line.rstrip('\r\n') for line in f.readlines()]
+    with open(qc_file, 'r') as f:
+        qc_images = [line.rstrip('\r\n') for line in f.readlines()]
 
-    html_f_name = file_.replace('.txt', '')
-    html_f_name = html_f_name.replace("'", "")
+    frameset_html = qc_file.replace('.txt', '')
+    frameset_html = frameset_html.replace("'", "")
 
-    html_f_name_0 = html_f_name + '_navbar.html'
-    html_f_name_1 = html_f_name + '_page.html'
+    menu_html = frameset_html + '_navbar.html'
+    content_html = frameset_html + '_page.html'
 
-    # TODO: this is a temporary patch until the completed QC interface is
-    # TODO: implemented
-    # pop the combined (navbar + content) page back into the output directory
-    # and give it a more obvious name
-    html_f_name = "{0}.html".format(html_f_name.replace("qc_scan",
-                                                        "QC-interface_scan"))
-    log_dir = html_f_name.split('/qc_html')[0]
-    html_f_name = html_f_name.replace("/qc_html", "")
-    html_f_name = html_f_name.replace(log_dir, sub_output_dir)
+    frameset_html = "{0}.html".format(frameset_html.replace("qc_scan",
+                                                            "QC-interface_scan"))
+    log_dir = frameset_html.split('/qc_html')[0]
+    frameset_html = frameset_html.replace("/qc_html", "")
+    frameset_html = frameset_html.replace(log_dir, sub_output_dir)
 
-    f_html_ = open(html_f_name, 'wb')
-    f_html_0 = open(html_f_name_0, 'wb')
-    f_html_1 = open(html_f_name_1, 'wb')
+    frameset_html_fd = open(frameset_html, 'wb')
+    menu_html_fd = open(menu_html, 'wb')
+    content_html_fd = open(content_html, 'wb')
 
     dict_a, dict_s, dict_hist, dict_plot, all_ids = \
-        grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                       qc_hist_id)
+        grp_pngs_by_id(qc_images,
+                       qc_montage_id_a, qc_montage_id_s,
+                       qc_plot_id, qc_hist_id)
 
-    qc_path_file_id = os.path.basename(html_f_name).replace(".html", "")
+    qc_path_file_id = os.path.basename(frameset_html).replace(".html", "")
 
-    add_head(f_html_, f_html_0, f_html_1, qc_path_file_id)
 
-    for id_ in sorted(all_ids):
-        feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
+    add_head(frameset_html_fd, menu_html_fd, content_html_fd, qc_path_file_id)
+
+    for montage_id in sorted(all_ids):
+        feed_lines_html(montage_id, dict_a, dict_s, dict_hist, dict_plot,
                         qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                        qc_hist_id, f_html_0, f_html_1)
+                        qc_hist_id, menu_html_fd, content_html_fd)
 
-    add_tail(f_html_, f_html_0, f_html_1)
+    add_tail(frameset_html_fd, menu_html_fd, content_html_fd)
 
-    f_html_.close()
-    f_html_0.close()
-    f_html_1.close()
+
+    frameset_html_fd.close()
+    menu_html_fd.close()
+    content_html_fd.close()
 
     
 def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
@@ -998,16 +968,16 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     """
     qc_files = os.listdir(qc_path)
 
-    for file_ in qc_files:
-        if not (file_.endswith('.txt')):
+    for qc_file in qc_files:
+        if not qc_file.endswith('.txt'):
             continue
         try:
-            make_page(os.path.join(qc_path, file_), sub_output_dir,
+            make_page(os.path.join(qc_path, qc_file), sub_output_dir,
                       qc_montage_id_a, qc_montage_id_s, qc_plot_id,
                       qc_hist_id)
         except IndexError as e:
             print('\n[!] Did not generate QC sub-page: {0}\n\nDetails:\n'
-                  '{1}\n'.format(os.path.join(qc_path, file_), e))
+                  '{1}\n'.format(os.path.join(qc_path, qc_file), e))
             pass
 
 
