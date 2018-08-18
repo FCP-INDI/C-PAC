@@ -16,8 +16,8 @@ def test_isfc():
     # across brains in the following manner. The neural signals Xi measured from
     # subject i, i = 1...k, are in the form of a p x n matrix that contains 
     # signals from p neural sources over n time points.
-    k, x, y, z, n = subjects.shape
-    p = x * y * z
+    dims = subjects.shape
+    k, p, n = dims[0], np.prod(dims[1:-1]), dims[-1]
     subjects = subjects.reshape((k, p, n))
 
     # All time courses were z-scored within subjects to zero mean and unit variance. 
