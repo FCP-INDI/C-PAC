@@ -230,7 +230,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     outputs_average_mult = list(keys[multiple_outputs_filter & (keys['Calculate averages'] == 'yes')]['Resource'])
 
     # outputs to link for QC pages
-    qc_outputs = list(keys[derivative_filter]['Resource'])
+    qc_outputs = list(keys[derivative_filter & outputs_template_filter]['Resource'])
 
 
     # Start timing here
