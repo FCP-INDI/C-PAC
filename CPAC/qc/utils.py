@@ -981,7 +981,7 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
             pass
 
 
-def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
+def generate_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
                     qc_plot_id, qc_hist_id):
     """Generates the QC HTML files populated with the QC images that were
     created during the CPAC pipeline run.

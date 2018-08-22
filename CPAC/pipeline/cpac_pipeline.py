@@ -66,7 +66,7 @@ from CPAC.utils import Configuration, create_all_qc, function
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf, QA_montages
 from CPAC.qc.utils import register_pallete, drop_percent, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
-    gen_std_dev, generateQCPages, cal_snr_val
+    gen_std_dev, generate_qc_pages, cal_snr_val
 
 from CPAC.utils.utils import extract_one_d, set_gauss, \
     process_outputs, get_scan_params, \
@@ -4372,7 +4372,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 p.resource_filename('CPAC', 'qc/colors/%s.csv' % pallete),
                 pallete
             )
-                
+
         hist = pe.Node(util.Function(input_names=['measure_file','measure'],
                                      output_names=['hist_path'],
                                      function=gen_histogram),
@@ -5213,9 +5213,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                               'pipeline_{0}'.format(pip_id),
                                               subject_id)
                                               
-                generateQCPages(qc_output_folder, sub_output_dir,
-                                qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                                qc_hist_id)
+                generate_qc_pages(qc_output_folder, sub_output_dir,
+                                  qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                                  qc_hist_id)
 
         # pipeline timing code starts here
 
