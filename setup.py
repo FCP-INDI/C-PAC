@@ -102,7 +102,8 @@ def main(**extra_args):
               ]
           },
           package_data={'CPAC': ['test_data/*',
-                                 'test/templates/*']},
+                                 'test/templates/*',
+                                 'qc/colors/*.txt']},
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 

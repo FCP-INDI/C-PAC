@@ -63,7 +63,7 @@ from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc, function
 
 # TODO - QA pages - re-introduce these
-from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
+from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf, QA_montages
 from CPAC.qc.utils import register_pallete, drop_percent, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
     gen_std_dev, generateQCPages, cal_snr_val
@@ -4366,16 +4366,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     if 1 in c.generateQualityControlImages:
 
         # register color palettes
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'red.py')), 'red')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'green.py')), 'green')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'blue.py')), 'blue')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'red_to_blue.py')), 'red_to_blue')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
+        palletes = ['red', 'green', 'blue', 'red_to_blue', 'cyan_to_yellow']
+        for pallete in palletes:
+            register_pallete(
+                p.resource_filename('CPAC', 'qc/colors/%s.csv' % pallete),
+                pallete
+            )
                 
         hist = pe.Node(util.Function(input_names=['measure_file','measure'],
                                      output_names=['hist_path'],
@@ -4700,65 +4696,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 raise
 
             # QA pages function
-            def QA_montages(measure, idx):
-                try:
-                    overlay, out_file = strat.get_node_from_resource_pool(measure)
-
-                    overlay_drop_percent = pe.MapNode(function.Function(input_names=['measure_file',
-                                                                                     'percent'],
-                                                                        output_names=[
-                                                                            'modified_measure_file'],
-                                                                        function=drop_percent,
-                                                                        as_module=True),
-                                                      name='dp_%s_%d' % (
-                                                          measure, num_strat),
-                                                      iterfield=['measure_file'])
-                    overlay_drop_percent.inputs.percent = 99.999
-
-                    workflow.connect(overlay, out_file,
-                                     overlay_drop_percent, 'measure_file')
-
-                    montage = create_montage('montage_%s_%d' % (measure, num_strat), 'cyan_to_yellow', measure)
-                    montage.inputs.inputspec.underlay = c.template_brain_only_for_func
-
-                    workflow.connect(overlay_drop_percent, 'modified_measure_file',
-                                     montage, 'inputspec.overlay')
-
-                    if 'centrality' in measure:
-                        histogram = pe.MapNode(
-                            util.Function(input_names=['measure_file',
-                                                       'measure'],
-                                          output_names=['hist_path'],
-                                          function=gen_histogram),
-                            name='hist_{0}_{1}'.format(measure, num_strat),
-                            iterfield=['measure_file'])
-                    else:
-                        histogram = pe.Node(
-                            util.Function(input_names=['measure_file',
-                                                       'measure'],
-                                          output_names=['hist_path'],
-                                          function=gen_histogram),
-                            name='hist_{0}_{1}'.format(measure, num_strat))
-
-                    histogram.inputs.measure = measure
-
-                    workflow.connect(overlay, out_file,
-                                     histogram, 'measure_file')
-
-                    strat.update_resource_pool({'qc___%s_a' % measure: (montage, 'outputspec.axial_png'),
-                                                'qc___%s_s' % measure: (montage, 'outputspec.sagittal_png'),
-                                                'qc___%s_hist' % measure: (histogram, 'hist_path')})
-
-                    if not idx in qc_montage_id_a:
-                        qc_montage_id_a[idx] = '%s_a' % measure
-                        qc_montage_id_s[idx] = '%s_s' % measure
-                        qc_hist_id[idx] = '%s_hist' % measure
-
-                except Exception as e:
-                    print "[!] Connection of QA montages workflow for %s " \
-                          "has failed.\n" % measure
-                    print "Error: %s" % e
-                    pass
 
             # Link all the derivatives to the QC pages
             idx = 7
@@ -5267,7 +5204,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
         if 1 in c.generateQualityControlImages:
             for pip_id in pip_ids:
-                #try:
+
                 pipeline_base = os.path.join(c.outputDirectory,
                                              'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,
@@ -5275,22 +5212,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 sub_output_dir = os.path.join(c.outputDirectory,
                                               'pipeline_{0}'.format(pip_id),
                                               subject_id)
+                                              
                 generateQCPages(qc_output_folder, sub_output_dir,
                                 qc_montage_id_a, qc_montage_id_s, qc_plot_id,
                                 qc_hist_id)
-                #except Exception as e:
-                #    print "Error: The QC function page generation did not " \
-                #          "run.\nError details: {0}\n\n".format(e)
-                #    raise Exception
-
-            # Generate the QC pages -- this function isn't even running, because there is noparameter for qc_montage_id_a/qc_montage_id_s/qc_plot_id,qc_hist_id
-                #two methods can be done here:
-                #i) group all the qc_montage_ids in the resource pool or
-                #add a loop for all the files in the qc output folder, generate the html pages using the same functions, but with different parameters
-                # generateQCPages(qc_output_folder, qc_montage_id_a,
-                #  qc_montage_id_s, qc_plot_id, qc_hist_id)
-                # Automatically generate QC index page
-                #create_all_qc.run(pipeline_out_base)
 
         # pipeline timing code starts here
 
