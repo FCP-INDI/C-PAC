@@ -31,7 +31,7 @@ def hatify(X):
 @cython.wraparound(False)
 def gower_center(Y):
     n = Y.shape[0]
-    I = np.eye(n,n)
+    I = np.eye(n)
     uno = np.ones((n, 1))
     
     A = -0.5 * (Y ** 2)
@@ -65,12 +65,13 @@ def gen_h(x, columns, permutations):
 @cython.wraparound(False)
 def gen_H2_perms(X, columns, permutation_indexes):
     permutations, observations = permutation_indexes.shape
-    variables = X.shape[1]
+    variables                  = X.shape[1]
     
     H2_permutations = np.zeros((observations ** 2, permutations))
     for i in range(permutations):
         perm_X = X[permutation_indexes[i, :]]
         cols_X = perm_X[:, columns]
+
         H = hatify(cols_X)
         other_columns = [i for i in range(variables) if i not in columns]
         H2 = H - hatify(X[:, other_columns])
@@ -83,7 +84,7 @@ def gen_H2_perms(X, columns, permutation_indexes):
 @cython.wraparound(False)
 def gen_IH_perms(X, columns, permutation_indexes):
     permutations, observations = permutation_indexes.shape
-    I            = np.eye(observations, observations)
+    I                          = np.eye(observations)
     
     IH_permutations = np.zeros((observations ** 2, permutations))
     for i in range(permutations):
