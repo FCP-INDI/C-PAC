@@ -139,7 +139,6 @@ class FlamePresetsOne(wx.Frame):
             for ctrl in self.page.get_ctrl_list():
 
                 name = ctrl.get_name()
-
                 if name == 'z_threshold':
                     ctrl.set_value(self.gpa_settings['z_threshold'])
 
@@ -149,7 +148,6 @@ class FlamePresetsOne(wx.Frame):
                 elif ("list" in name) and (name != "participant_list"):
 
                     value = self.gpa_settings[name]
-
                     if isinstance(value, str):
                         value = value.replace("[", "").replace("]", "")
                         if "\"" in value:
@@ -161,13 +159,12 @@ class FlamePresetsOne(wx.Frame):
                         # instead, is a list- most likely when clicking
                         # "Back" on the modelDesign_window
                         values = value
-
                     new_derlist = []
 
                     for val in values:
                         new_derlist.append(val)
-
                     ctrl.set_value(new_derlist)
+                    ctrl.set_selection(new_derlist)
 
                 else:
                     ctrl.set_value(self.gpa_settings[name])
@@ -308,7 +305,7 @@ class FlamePresetsTwoPheno(wx.Frame):
                           control=control.TEXT_BOX,
                           name='covariate',
                           type=dtype.STR,
-                          values="",
+                          values=self.gpa_settings['covariate'],
                           comment="For the additional covariate for the "
                                   "single group average, enter the column "
                                   "name of the covariate in the phenotype "
@@ -319,7 +316,7 @@ class FlamePresetsTwoPheno(wx.Frame):
                           control=control.TEXT_BOX,
                           name='covariate',
                           type=dtype.STR,
-                          values="",
+                          values=self.gpa_settings['covariate'],
                           comment="Enter the two column names of the group "
                                   "variables in the phenotype provided, "
                                   "separated by a comma. If the two groups "
