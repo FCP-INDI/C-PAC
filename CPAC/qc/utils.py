@@ -2090,7 +2090,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     return png_name
 
 
-def register_pallete(file_, cbar_name):
+def register_pallete(colors_file, cbar_name):
 
     """
     Registers color pallete to matplotlib
@@ -2098,7 +2098,7 @@ def register_pallete(file_, cbar_name):
     Parameters
     ----------
 
-    file_ : string
+    colors_file : string
         file containing colors in hexadecimal formats in each line
 
     cbar_name : string
@@ -2114,18 +2114,11 @@ def register_pallete(file_, cbar_name):
 
     import matplotlib.colors as col
     import matplotlib.cm as cm
-    f = open(file_, 'r')
-
-    colors_ = f.readlines()
-
-    colors = []
-
-    for color in reversed(colors_):
-
-        colors.append(color.rstrip('\r\n'))
-
-    cmap3 = col.ListedColormap(colors, cbar_name)
-    cm.register_cmap(cmap=cmap3)
+    
+    with open(colors_file, 'r') as f:
+        colors = [c.rstrip('\r\n') for c in f.readlines()]
+        cmap3 = col.ListedColormap(colors, cbar_name)
+        cm.register_cmap(cmap=cmap3)
 
 
 def resample_1mm(file_):
