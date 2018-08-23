@@ -4390,7 +4390,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # make SNR plot
             try:
 
-                std_dev = pe.Node(afni.TStat()),
+                std_dev = pe.Node(afni.TStat(),
                                   name='std_dev_%d' % num_strat)
                 std_dev.inputs.args = '-stdev'
 

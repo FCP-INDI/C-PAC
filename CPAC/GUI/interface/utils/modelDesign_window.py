@@ -39,11 +39,8 @@ class ModelDesign(wx.Frame):
         self.parent = parent
 
         self.gpa_settings = gpa_settings
-
         self.dmatrix_obj = dmatrix_obj
-
         self.contrasts_list = varlist
-
 
         if 'contrasts' not in self.gpa_settings.keys():
             self.gpa_settings['contrasts'] = {}
@@ -60,31 +57,11 @@ class ModelDesign(wx.Frame):
         if 'output_dir' not in self.gpa_settings.keys():
             self.gpa_settings['output_dir'] = ''
 
-
         mainSizer = wx.BoxSizer(wx.VERTICAL)
 
         self.panel = wx.Panel(self)
-
         self.window = wx.ScrolledWindow(self.panel)
-
         self.page = generic_class.GenericClass(self.window, " FSL Model Design")
-        
-        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
-        phenoHeaderString = phenoFile.readline().rstrip('\r\n')
-        self.phenoHeaderItems = phenoHeaderString.split(',')
-        
-        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
-        else:
-            errSubID = wx.MessageDialog(
-                self, 'Please enter the name of the subject ID column' \
-                ' as it is labeled in the phenotype file.',
-                'Blank/Incorrect Subject Header Input',
-                wx.OK | wx.ICON_ERROR)
-            errSubID.ShowModal()
-            errSubID.Destroy()
-            raise Exception
-        
 
         # build 'Available contrasts' string
         contrasts_text = 'Available EVs for contrasts:\n'
@@ -97,7 +74,6 @@ class ModelDesign(wx.Frame):
             if len(contrasts_text) > con_length:
                 contrasts_text = contrasts_text + '\n'
                 con_length += 50
-            
 
         varlist_sizer = wx.BoxSizer(wx.HORIZONTAL)
         var_list_text = wx.StaticText(self.window, label=str(contrasts_text))
@@ -188,8 +164,6 @@ class ModelDesign(wx.Frame):
         self.Bind(wx.EVT_BUTTON, lambda event: self.save(
             event, 'save'), id=wx.ID_SAVE)
         hbox.Add(save, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
-
-
         btnPanel.SetSizer(hbox)
 
         mainSizer.Add(
@@ -198,8 +172,6 @@ class ModelDesign(wx.Frame):
         self.panel.SetSizer(mainSizer)
 
         self.Show()
-        
-        
 
     def cancel(self, event):
         self.Close()
@@ -210,7 +182,6 @@ class ModelDesign(wx.Frame):
         win.SetFocus()
         win.Refresh()
         raise ValueError
-
 
     def parse_contrast(self, contrast_string):
 
@@ -237,8 +208,6 @@ class ModelDesign(wx.Frame):
 
         return split_contrast
 
-
-
     def collect_input(self):
 
         for ctrl in self.page.get_ctrl_list():
@@ -258,7 +227,6 @@ class ModelDesign(wx.Frame):
 
                     if ret == 0:
                         self.gpa_settings['contrasts'].append(option)
-
 
             if name == 'f_tests':
 
@@ -291,11 +259,9 @@ class ModelDesign(wx.Frame):
                             errSubID.ShowModal()
                             errSubID.Destroy()
                             raise Exception
-                            
 
                     # then, add them to gpa_settings appropriately
                     self.gpa_settings['f_tests'].append(option)
-
 
             if name == 'custom_contrasts':
 
@@ -319,17 +285,11 @@ class ModelDesign(wx.Frame):
                         errSubID.Destroy()
                         raise Exception
 
-
             if name == 'model_name':
-
                 self.gpa_settings['model_name'] = ctrl.get_selection()
 
-
             if name == 'output_dir':
-
                 self.gpa_settings['output_dir'] = ctrl.get_selection()
-
-
 
     def back(self, event):
 
@@ -338,7 +298,6 @@ class ModelDesign(wx.Frame):
         modelconfig_window.ModelConfig(self.parent, self.gpa_settings)
 
         self.Close()
-
 
         '''
         done:
@@ -351,7 +310,6 @@ class ModelDesign(wx.Frame):
         to do:
         but if the user changes the pheno or something, you need to warn them
         '''
-
 
     def save(self, event, flag):
 
@@ -535,7 +493,6 @@ class ModelDesign(wx.Frame):
             
 
         try:
-
             dlg = wx.FileDialog(self, message="Save file as ...",
                                 defaultDir=os.getcwd(),
                                 defaultFile="gpa_fsl_config_%s.yaml" % self.gpa_settings['model_name'],
@@ -543,7 +500,6 @@ class ModelDesign(wx.Frame):
                                 style=wx.SAVE)
 
             if dlg.ShowModal() == wx.ID_OK:
-
                 path = dlg.GetPath()
                 f = open(path, 'w')
                 dlg.Destroy()
@@ -584,9 +540,7 @@ class ModelDesign(wx.Frame):
                     else:
                         value = str(item[1])
 
-
                     if item[0] == 'derivative_list':
-
                         value = []
 
                         # this takes the user selection in the derivative
@@ -601,7 +555,6 @@ class ModelDesign(wx.Frame):
                             elif val != 'None':
                                 value.append(ast.literal_eval(val))
 
-
                     # print out 'help' (comments describing values)
                     for lines in item[3].split('\n'):
                         print >> f, '#', lines
@@ -615,10 +568,8 @@ class ModelDesign(wx.Frame):
                     
                 self.Parent.box2.GetTextCtrl().SetValue(path)
                 self.Close()
-
         
         except Exception as e:
-
             errmsg = '\n\n[!] CPAC says: Couldn\'t save the group analysis ' \
                       'model configuration file! Maybe check if you have ' \
                       'write permissions?\n\nPath you selected: %s\n\n' \
