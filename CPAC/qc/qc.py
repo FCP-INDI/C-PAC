@@ -147,7 +147,8 @@ def create_montage_gm_wm_csf(wf_name, png_name):
     return wf
 
 
-def QA_montages(measure, idx):
+def qa_montages(measure, idx):
+
     try:
         overlay, out_file = strat.get_node_from_resource_pool(measure)
 

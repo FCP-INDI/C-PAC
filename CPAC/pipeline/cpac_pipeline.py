@@ -63,7 +63,7 @@ from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc, function
 
 # TODO - QA pages - re-introduce these
-from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf, QA_montages
+from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf, qa_montages
 from CPAC.qc.utils import register_pallete, drop_percent, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
     gen_std_dev, generate_qc_pages, cal_snr_val
@@ -4697,7 +4697,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             for key in sorted(rp.keys()):
                 # qc_outputs is from the outputs CSV
                 if key in qc_outputs:
-                    QA_montages(key, idx)
+                    qa_montages(key, idx)
                     idx += 1
 
             num_strat += 1
