@@ -4363,7 +4363,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         palletes = ['red', 'green', 'blue', 'red_to_blue', 'cyan_to_yellow']
         for pallete in palletes:
             register_pallete(
-                p.resource_filename('CPAC', 'qc/colors/%s.csv' % pallete),
+                p.resource_filename('CPAC', 'qc/colors/%s.txt' % pallete),
                 pallete
             )
 
