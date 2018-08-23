@@ -145,3 +145,64 @@ def create_montage_gm_wm_csf(wf_name, png_name):
     wf.connect(montage_s, 'png_name', outputNode, 'sagittal_png')
 
     return wf
+
+
+def QA_montages(measure, idx):
+    try:
+        overlay, out_file = strat.get_node_from_resource_pool(measure)
+
+        overlay_drop_percent = pe.MapNode(function.Function(input_names=['measure_file',
+                                                                            'percent'],
+                                                            output_names=[
+                                                                'modified_measure_file'],
+                                                            function=drop_percent,
+                                                            as_module=True),
+                                            name='dp_%s_%d' % (
+                                                measure, num_strat),
+                                            iterfield=['measure_file'])
+        overlay_drop_percent.inputs.percent = 99.999
+
+        workflow.connect(overlay, out_file,
+                            overlay_drop_percent, 'measure_file')
+
+        montage = create_montage('montage_%s_%d' % (measure, num_strat), 'cyan_to_yellow', measure)
+        montage.inputs.inputspec.underlay = c.template_brain_only_for_func
+
+        workflow.connect(overlay_drop_percent, 'modified_measure_file',
+                            montage, 'inputspec.overlay')
+
+        if 'centrality' in measure:
+            histogram = pe.MapNode(
+                util.Function(input_names=['measure_file',
+                                            'measure'],
+                                output_names=['hist_path'],
+                                function=gen_histogram),
+                name='hist_{0}_{1}'.format(measure, num_strat),
+                iterfield=['measure_file'])
+        else:
+            histogram = pe.Node(
+                util.Function(input_names=['measure_file',
+                                            'measure'],
+                                output_names=['hist_path'],
+                                function=gen_histogram),
+                name='hist_{0}_{1}'.format(measure, num_strat))
+
+        histogram.inputs.measure = measure
+
+        workflow.connect(overlay, out_file,
+                            histogram, 'measure_file')
+
+        strat.update_resource_pool({'qc___%s_a' % measure: (montage, 'outputspec.axial_png'),
+                                    'qc___%s_s' % measure: (montage, 'outputspec.sagittal_png'),
+                                    'qc___%s_hist' % measure: (histogram, 'hist_path')})
+
+        if not idx in qc_montage_id_a:
+            qc_montage_id_a[idx] = '%s_a' % measure
+            qc_montage_id_s[idx] = '%s_s' % measure
+            qc_hist_id[idx] = '%s_hist' % measure
+
+    except Exception as e:
+        print "[!] Connection of QA montages workflow for %s " \
+                "has failed.\n" % measure
+        print "Error: %s" % e
+        pass

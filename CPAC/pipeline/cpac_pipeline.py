@@ -20,6 +20,7 @@ import nipype
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
+import nipype.interfaces.afni as afni
 from nipype.interfaces.afni import preprocess
 from nipype.pipeline.engine.utils import format_dot
 import nipype.interfaces.ants as ants
@@ -62,11 +63,10 @@ from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc, function
 
 # TODO - QA pages - re-introduce these
-from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
-from CPAC.qc.utils import register_pallete, make_edge, drop_percent, \
+from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf, QA_montages
+from CPAC.qc.utils import register_pallete, drop_percent, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
-    gen_std_dev, gen_func_anat_xfm, gen_snr, \
-    generateQCPages, cal_snr_val
+    gen_std_dev, generate_qc_pages, cal_snr_val
 
 from CPAC.utils.utils import extract_one_d, set_gauss, \
     process_outputs, get_scan_params, \
@@ -4366,17 +4366,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     if 1 in c.generateQualityControlImages:
 
         # register color palettes
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'red.py')), 'red')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'green.py')), 'green')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'blue.py')), 'blue')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'red_to_blue.py')), 'red_to_blue')
-        register_pallete(os.path.realpath(
-                os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
-                
+        palletes = ['red', 'green', 'blue', 'red_to_blue', 'cyan_to_yellow']
+        for pallete in palletes:
+            register_pallete(
+                p.resource_filename('CPAC', 'qc/colors/%s.csv' % pallete),
+                pallete
+            )
+
         hist = pe.Node(util.Function(input_names=['measure_file','measure'],
                                      output_names=['hist_path'],
                                      function=gen_histogram),
@@ -4399,50 +4395,32 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # make SNR plot
             try:
-                std_dev_imports = ['import os', 'import subprocess']
-                std_dev = pe.Node(util.Function(input_names=['mask_',
-                                                             'func_'],
-                                                output_names=['new_fname'],
-                                                function=gen_std_dev,
-                                                imports=std_dev_imports),
+
+                std_dev = pe.Node(afni.TStat()),
                                   name='std_dev_%d' % num_strat)
+                std_dev.inputs.args = '-stdev'
 
-                workflow.connect(preproc, out_file,
-                                 std_dev, 'func_')
 
-                workflow.connect(brain_mask, mask_file,
-                                 std_dev, 'mask_')
-
-                std_dev_anat_imports = ['import os',
-                                        'import subprocess']
-                std_dev_anat = pe.Node(util.Function(input_names=['func_',
-                                                                  'ref_',
-                                                                  'xfm_',
-                                                                  'interp_'],
-                                                     output_names=['new_fname'],
-                                                     function=gen_func_anat_xfm,
-                                                     imports=std_dev_anat_imports),
+                std_dev_anat = pe.Node(fsl.ApplyWarp(), 
                                        name='std_dev_anat_%d' % num_strat)
+                std_dev_anat.inputs.interp = 'trilinear'
 
-                workflow.connect(std_dev, 'new_fname',
-                                 std_dev_anat, 'func_')
 
-                workflow.connect(func_to_anat_xfm, xfm_file,
-                                 std_dev_anat, 'xfm_')
+                snr = pe.Node(afni.Calc(), name='snr_%d' % num_strat)
+                snr.inputs.expr = 'b/a'
 
-                workflow.connect(anat_ref, ref_file,
-                                 std_dev_anat, 'ref_')
+                workflow.connect(preproc, out_file, std_dev, 'in_file')
 
-                snr_imports = ['import os', 'import subprocess']
-                snr = pe.Node(util.Function(input_names=['std_dev',
-                                                         'mean_func_anat'],
-                                            output_names=['new_fname'],
-                                            function=gen_snr,
-                                            imports=snr_imports),
-                              name='snr_%d' % num_strat)
+                workflow.connect(brain_mask, mask_file, std_dev, 'mask')
 
-                workflow.connect(std_dev_anat, 'new_fname', snr, 'std_dev')
-                workflow.connect(mfa, mfa_file, snr, 'mean_func_anat')
+                workflow.connect(std_dev, 'out_file', std_dev_anat, 'in_file')
+
+                workflow.connect(func_to_anat_xfm, xfm_file, std_dev_anat, 'premat')
+
+                workflow.connect(anat_ref, ref_file, std_dev_anat, 'ref_file')
+
+                workflow.connect(std_dev_anat, 'out_file', snr, 'in_file_a')
+                workflow.connect(mfa, mfa_file, snr, 'in_file_b')
 
                 snr_val_imports = ['import os',
                                    'import nibabel as nb',
@@ -4452,15 +4430,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                 function=cal_snr_val,
                                                 imports=snr_val_imports),
                                   name='snr_val%d' % num_strat)
-                std_dev_anat.inputs.interp_ = 'trilinear'
 
-                workflow.connect(snr, 'new_fname',
+                workflow.connect(snr, 'out_file',
                                  snr_val, 'measure_file')
 
                 hist_ = hist.clone('hist_snr_%d' % num_strat)
                 hist_.inputs.measure = 'snr'
 
-                workflow.connect(snr, 'new_fname',
+                workflow.connect(snr, 'out_file',
                                  hist_, 'measure_file')
 
                 snr_drop_percent = pe.Node(
@@ -4472,7 +4449,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     name='dp_snr_%d' % num_strat)
                 snr_drop_percent.inputs.percent = 99
 
-                workflow.connect(snr, 'new_fname',
+                workflow.connect(snr, 'out_file',
                                  snr_drop_percent, 'measure_file')
 
                 montage_snr = create_montage('montage_snr_%d' % num_strat,
@@ -4577,15 +4554,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 anat_underlay, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 skull, out_file_s = strat.get_node_from_resource_pool('anatomical_reorient')
 
-                skull_edge = make_edge(wf_name='skull_edge_%d' % num_strat)
-
-                workflow.connect(skull, out_file_s,
-                                 skull_edge, 'inputspec.file_')
-
+                skull_edge = pe.Node(afni.Edge3(), name='skull_edge_%d' % num_strat)
                 montage_skull = create_montage('montage_skull_%d' % num_strat,
                                                'red', 'skull_vis')
 
-                workflow.connect(skull_edge, 'outputspec.new_fname',
+                workflow.connect(skull, out_file_s,
+                                 skull_edge, 'in_file')
+                workflow.connect(skull_edge, 'out_file',
                                  montage_skull, 'inputspec.overlay')
                 workflow.connect(anat_underlay, out_file,
                                  montage_skull, 'inputspec.underlay')
@@ -4594,15 +4569,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),
                     'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')
                 })
-                #skull_edge = #pe.Node(util.Function(input_names=['file_'],output_names=['new_fname#'],function=make_edge),name='skull_edge_%d' % num_strat)
-
-                #workflow.connect(skull, out_file_s,skull_edge, 'file_')
-
-                #workflow.connect(anat_underlay, out_file,montage_skull,'inputspec.underlay')
-
-                # workflow.connect(skull_edge, 'new_fname',montage_skull,'inputspec.overlay')
-
-                # strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, #'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, #'outputspec.sagittal_png')})
 
                 if not 1 in qc_montage_id_a:
                     qc_montage_id_a[1] = 'skullstrip_vis_a'
@@ -4675,14 +4641,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 anat, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 m_f_a, out_file_mfa = strat.get_node_from_resource_pool('mean_functional_in_anat')
 
-                anat_edge = make_edge(wf_name='anat_edge_%d' % num_strat)
-
-                workflow.connect(anat, out_file, anat_edge, 'inputspec.file_')
+                anat_edge = pe.Node(afni.Edge3(), name='anat_edge_%d' % num_strat)
+                montage_skull = create_montage('montage_skull_%d' % num_strat,
+                                               'red', 'skull_vis')
 
                 montage_anat = create_montage('montage_anat_%d' % num_strat,
                                               'red', 't1_edge_on_mean_func_in_t1')
 
-                workflow.connect(anat_edge, 'outputspec.new_fname',
+                workflow.connect(anat, out_file, anat_edge, 'in_file')
+
+                workflow.connect(anat_edge, 'out_file',
                                  montage_anat, 'inputspec.overlay')
 
                 workflow.connect(m_f_a, out_file_mfa,
@@ -4709,14 +4677,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 montage_mfi = create_montage('montage_mfi_%d' % num_strat,
                                     'red', 'MNI_edge_on_mean_func_mni')   ###
 
-                #   MNI_edge = pe.Node(util.Function(input_names=['file_'],
-                #                                      output_names=['new_fname'],
-                #                                      function=make_edge),
-                #                        name='MNI_edge_%d' % num_strat)
-                #   #MNI_edge.inputs.file_ = c.template_brain_only_for_func
-                #  workflow.connect(MNI_edge, 'new_fname',
-                #                   montage_mfi, 'inputspec.overlay')
-
                 workflow.connect(m_f_i, out_file,
                                  montage_mfi, 'inputspec.underlay')
 
@@ -4736,65 +4696,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 raise
 
             # QA pages function
-            def QA_montages(measure, idx):
-                try:
-                    overlay, out_file = strat.get_node_from_resource_pool(measure)
-
-                    overlay_drop_percent = pe.MapNode(function.Function(input_names=['measure_file',
-                                                                                     'percent'],
-                                                                        output_names=[
-                                                                            'modified_measure_file'],
-                                                                        function=drop_percent,
-                                                                        as_module=True),
-                                                      name='dp_%s_%d' % (
-                                                          measure, num_strat),
-                                                      iterfield=['measure_file'])
-                    overlay_drop_percent.inputs.percent = 99.999
-
-                    workflow.connect(overlay, out_file,
-                                     overlay_drop_percent, 'measure_file')
-
-                    montage = create_montage('montage_%s_%d' % (measure, num_strat), 'cyan_to_yellow', measure)
-                    montage.inputs.inputspec.underlay = c.template_brain_only_for_func
-
-                    workflow.connect(overlay_drop_percent, 'modified_measure_file',
-                                     montage, 'inputspec.overlay')
-
-                    if 'centrality' in measure:
-                        histogram = pe.MapNode(
-                            util.Function(input_names=['measure_file',
-                                                       'measure'],
-                                          output_names=['hist_path'],
-                                          function=gen_histogram),
-                            name='hist_{0}_{1}'.format(measure, num_strat),
-                            iterfield=['measure_file'])
-                    else:
-                        histogram = pe.Node(
-                            util.Function(input_names=['measure_file',
-                                                       'measure'],
-                                          output_names=['hist_path'],
-                                          function=gen_histogram),
-                            name='hist_{0}_{1}'.format(measure, num_strat))
-
-                    histogram.inputs.measure = measure
-
-                    workflow.connect(overlay, out_file,
-                                     histogram, 'measure_file')
-
-                    strat.update_resource_pool({'qc___%s_a' % measure: (montage, 'outputspec.axial_png'),
-                                                'qc___%s_s' % measure: (montage, 'outputspec.sagittal_png'),
-                                                'qc___%s_hist' % measure: (histogram, 'hist_path')})
-
-                    if not idx in qc_montage_id_a:
-                        qc_montage_id_a[idx] = '%s_a' % measure
-                        qc_montage_id_s[idx] = '%s_s' % measure
-                        qc_hist_id[idx] = '%s_hist' % measure
-
-                except Exception as e:
-                    print "[!] Connection of QA montages workflow for %s " \
-                          "has failed.\n" % measure
-                    print "Error: %s" % e
-                    pass
 
             # Link all the derivatives to the QC pages
             idx = 7
@@ -5303,7 +5204,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
         if 1 in c.generateQualityControlImages:
             for pip_id in pip_ids:
-                #try:
+
                 pipeline_base = os.path.join(c.outputDirectory,
                                              'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,
@@ -5311,22 +5212,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 sub_output_dir = os.path.join(c.outputDirectory,
                                               'pipeline_{0}'.format(pip_id),
                                               subject_id)
-                generateQCPages(qc_output_folder, sub_output_dir,
-                                qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                                qc_hist_id)
-                #except Exception as e:
-                #    print "Error: The QC function page generation did not " \
-                #          "run.\nError details: {0}\n\n".format(e)
-                #    raise Exception
-
-            # Generate the QC pages -- this function isn't even running, because there is noparameter for qc_montage_id_a/qc_montage_id_s/qc_plot_id,qc_hist_id
-                #two methods can be done here:
-                #i) group all the qc_montage_ids in the resource pool or
-                #add a loop for all the files in the qc output folder, generate the html pages using the same functions, but with different parameters
-                # generateQCPages(qc_output_folder, qc_montage_id_a,
-                #  qc_montage_id_s, qc_plot_id, qc_hist_id)
-                # Automatically generate QC index page
-                #create_all_qc.run(pipeline_out_base)
+                                              
+                generate_qc_pages(qc_output_folder, sub_output_dir,
+                                  qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                                  qc_hist_id)
 
         # pipeline timing code starts here
 
