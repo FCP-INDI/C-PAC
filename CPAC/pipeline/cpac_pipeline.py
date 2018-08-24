@@ -84,6 +84,7 @@ logger = logging.getLogger('workflow')
 
 
 class strategy:
+
     def __init__(self):
         self.resource_pool = {}
         self.leaf_node = None
@@ -105,6 +106,12 @@ class strategy:
 
     def get_resource_pool(self):
         return self.resource_pool
+
+    def get_nodes_names(self):
+        return [
+            '_'.join(n.split('_')[:-1])
+            for n in self.name
+        ]
 
     def get_node_from_resource_pool(self, resource_key):
         try:
@@ -435,12 +442,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         logger.info(
             "\n\n" + 'WARNING: %s - %s' % (sectionName, warnLine) + "\n\n")
 
-    def getNodeList(strategy):
-        nodes = []
-        for node in strategy.name:
-            nodes.append(node[:-2])
-        return nodes
-
     strat_list = []
 
     workflow_bit_id = {}
@@ -501,33 +502,37 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     for strat in strat_list:
 
         if "AFNI" in c.skullstrip_option:
-            anat_preproc = create_anat_preproc(True,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
 
-            anat_preproc.inputs.AFNI_options.shrink_factor =      c.skullstrip_shrink_factor
-            anat_preproc.inputs.AFNI_options.var_shrink_fac =     c.skullstrip_var_shrink_fac
+            anat_preproc = create_anat_preproc(use_afni=True,
+                                               already_skullstripped=already_skullstripped,
+                                               wf_name='anat_preproc_%d' % num_strat)
+
+            anat_preproc.inputs.AFNI_options.shrink_factor = c.skullstrip_shrink_factor
+            anat_preproc.inputs.AFNI_options.var_shrink_fac = c.skullstrip_var_shrink_fac
             anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.skullstrip_shrink_factor_bot_lim
-            anat_preproc.inputs.AFNI_options.avoid_vent =         c.skullstrip_avoid_vent
-            anat_preproc.inputs.AFNI_options.niter =              c.skullstrip_n_iterations
-            anat_preproc.inputs.AFNI_options.pushout =            c.skullstrip_pushout
-            anat_preproc.inputs.AFNI_options.touchup =            c.skullstrip_touchup
-            anat_preproc.inputs.AFNI_options.fill_hole =          c.skullstrip_fill_hole
-            anat_preproc.inputs.AFNI_options.avoid_eyes =         c.skullstrip_avoid_eyes
-            anat_preproc.inputs.AFNI_options.use_edge =           c.skullstrip_use_edge
-            anat_preproc.inputs.AFNI_options.exp_frac =           c.skullstrip_exp_frac
-            anat_preproc.inputs.AFNI_options.smooth_final =       c.skullstrip_smooth_final
-            anat_preproc.inputs.AFNI_options.push_to_edge =       c.skullstrip_push_to_edge
-            anat_preproc.inputs.AFNI_options.use_skull =          c.skullstrip_use_skull
-            anat_preproc.inputs.AFNI_options.perc_int =           c.skullstrip_perc_int
-            anat_preproc.inputs.AFNI_options.max_inter_iter =     c.skullstrip_max_inter_iter
-            anat_preproc.inputs.AFNI_options.blur_fwhm =          c.skullstrip_blur_fwhm
-            anat_preproc.inputs.AFNI_options.fac =                c.skullstrip_fac
+            anat_preproc.inputs.AFNI_options.avoid_vent = c.skullstrip_avoid_vent
+            anat_preproc.inputs.AFNI_options.niter = c.skullstrip_n_iterations
+            anat_preproc.inputs.AFNI_options.pushout = c.skullstrip_pushout
+            anat_preproc.inputs.AFNI_options.touchup = c.skullstrip_touchup
+            anat_preproc.inputs.AFNI_options.fill_hole = c.skullstrip_fill_hole
+            anat_preproc.inputs.AFNI_options.avoid_eyes = c.skullstrip_avoid_eyes
+            anat_preproc.inputs.AFNI_options.use_edge = c.skullstrip_use_edge
+            anat_preproc.inputs.AFNI_options.exp_frac = c.skullstrip_exp_frac
+            anat_preproc.inputs.AFNI_options.smooth_final = c.skullstrip_smooth_final
+            anat_preproc.inputs.AFNI_options.push_to_edge = c.skullstrip_push_to_edge
+            anat_preproc.inputs.AFNI_options.use_skull = c.skullstrip_use_skull
+            anat_preproc.inputs.AFNI_options.perc_int = c.skullstrip_perc_int
+            anat_preproc.inputs.AFNI_options.max_inter_iter = c.skullstrip_max_inter_iter
+            anat_preproc.inputs.AFNI_options.blur_fwhm = c.skullstrip_blur_fwhm
+            anat_preproc.inputs.AFNI_options.fac = c.skullstrip_fac
 
             try:
                 node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
+                workflow.connect(node, out_file, anat_preproc,
+                                 'inputspec.anat')
             except:
                 logConnectionError('Anatomical Preprocessing No valid Previous for strat',
-                num_strat, strat.get_resource_pool(), '0001')
+                                   num_strat, strat.get_resource_pool(), '0001')
                 continue
 
             if "BET" in c.skullstrip_option:
@@ -535,23 +540,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = strat.leaf_node
                 tmp.leaf_out_file = (strat.leaf_out_file)
-                tmp.name=list(strat.name)
-                strat=tmp
+                tmp.name = list(strat.name)
+                strat = tmp
                 new_strat_list.append(strat)
-            
-            strat.append_name(anat_preproc.name)    
+
+            strat.append_name(anat_preproc.name)
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
 
-            # add stuff to resource pool
-            strat.update_resource_pool(
-            {'anatomical_brain': (anat_preproc, 'outputspec.brain')})
-            strat.update_resource_pool(
-            {'anatomical_reorient': (anat_preproc, 'outputspec.reorient')})
+            strat.update_resource_pool({
+                'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+            })
 
-            # write to log
             create_log_node(anat_preproc, 'outputspec.brain', num_strat)
 
-            num_strat += 1 
+            num_strat += 1
     
     strat_list += new_strat_list
     
@@ -559,10 +562,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     
     for strat in strat_list:
 
-        nodes = getNodeList(strat)
-        if ("BET" in c.skullstrip_option) and ('anat_preproc' not in nodes):
+        nodes = strat.get_nodes_names()
 
-            anat_preproc = create_anat_preproc(False,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
+        if "BET" in c.skullstrip_option and 'anat_preproc' not in nodes:
+
+            anat_preproc = create_anat_preproc(use_afni=False,
+                                               already_skullstripped=already_skullstripped,
+                                               wf_name='anat_preproc_%d' % num_strat)
 
             anat_preproc.inputs.BET_options.frac =              c.bet_frac
             anat_preproc.inputs.BET_options.mask_boolean =      c.bet_mask_boolean
@@ -592,6 +598,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.update_resource_pool({'anatomical_reorient': (anat_preproc, 'outputspec.reorient')})
             # write to log
             create_log_node(anat_preproc, 'outputspec.brain', num_strat)
+
             num_strat += 1
     
     strat_list += new_strat_list
@@ -694,7 +701,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     for strat in strat_list:
 
-        nodes = getNodeList(strat)
+        nodes = strat.get_nodes_names()
 
         # or run ANTS anatomical-to-MNI registration instead
         if ('ANTS' in c.regOption) and \
@@ -849,7 +856,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             if 'FSL' in c.regOption and \
                     ('anat_mni_ants_register' not in nodes):
@@ -924,7 +931,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             # or run ANTS anatomical-to-MNI registration instead
             if ('ANTS' in c.regOption) and \
@@ -997,40 +1004,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             reference_brain = c.template_symmetric_brain_only
 
                     ants_reg_anat_symm_mni.inputs.inputspec.dimension = 3
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        use_histogram_matching = True
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        winsorize_lower_quantile = 0.01
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        winsorize_upper_quantile = 0.99
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        metric = ['MI', 'MI', 'CC']
-                    ants_reg_anat_symm_mni.inputs.inputspec.metric_weight = [
-                        1, 1, 1]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        radius_or_number_of_bins = [32, 32, 4]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        sampling_strategy = ['Regular', 'Regular', None]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        sampling_percentage = [0.25, 0.25, None]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        number_of_iterations = [[1000, 500, 250, 100], \
-                                                [1000, 500, 250, 100],
-                                                [100, 100, 70, 20]]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        convergence_threshold = [1e-8, 1e-8, 1e-9]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        convergence_window_size = [10, 10, 15]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        transforms = ['Rigid', 'Affine', 'SyN']
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        transform_parameters = [[0.1], [0.1], [0.1, 3, 0]]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        shrink_factors = [[8, 4, 2, 1], [8, 4, 2, 1],
-                                          [6, 4, 2, 1]]
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        smoothing_sigmas = [[3, 2, 1, 0], [3, 2, 1, 0],
-                                            [3, 2, 1, 0]]
+                    ants_reg_anat_symm_mni.inputs.inputspec.use_histogram_matching = True
+                    ants_reg_anat_symm_mni.inputs.inputspec.winsorize_lower_quantile = 0.01
+                    ants_reg_anat_symm_mni.inputs.inputspec.winsorize_upper_quantile = 0.99
+                    ants_reg_anat_symm_mni.inputs.inputspec.metric = ['MI', 'MI', 'CC']
+                    ants_reg_anat_symm_mni.inputs.inputspec.metric_weight = [1, 1, 1]
+                    ants_reg_anat_symm_mni.inputs.inputspec.radius_or_number_of_bins = [32, 32, 4]
+                    ants_reg_anat_symm_mni.inputs.inputspec.sampling_strategy = ['Regular', 'Regular', None]
+                    ants_reg_anat_symm_mni.inputs.inputspec.sampling_percentage = [0.25, 0.25, None]
+                    ants_reg_anat_symm_mni.inputs.inputspec.number_of_iterations = [[1000, 500, 250, 100], \
+                                                                                    [1000, 500, 250, 100],
+                                                                                    [100, 100, 70, 20]]
+                    ants_reg_anat_symm_mni.inputs.inputspec.convergence_threshold = [1e-8, 1e-8, 1e-9]
+                    ants_reg_anat_symm_mni.inputs.inputspec.convergence_window_size = [10, 10, 15]
+                    ants_reg_anat_symm_mni.inputs.inputspec.transforms = ['Rigid', 'Affine', 'SyN']
+                    ants_reg_anat_symm_mni.inputs.inputspec.transform_parameters = [[0.1], [0.1], [0.1, 3, 0]]
+                    ants_reg_anat_symm_mni.inputs.inputspec.shrink_factors = [[8, 4, 2, 1],
+                                                                              [8, 4, 2, 1],
+                                                                              [6, 4, 2, 1]]
+                    ants_reg_anat_symm_mni.inputs.inputspec.smoothing_sigmas = [[3, 2, 1, 0],
+                                                                                [3, 2, 1, 0],
+                                                                                [3, 2, 1, 0]]
 
                 except:
                     logConnectionError(
@@ -1071,7 +1065,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         workflow_bit_id['seg_preproc'] = workflow_counter
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             if 'anat_mni_fnirt_register' in nodes:
                 seg_preproc = create_seg_preproc(False,
@@ -1641,7 +1635,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     for strat in strat_list:
 
-        nodes = getNodeList(strat)
+        nodes = strat.get_nodes_names()
 
         if ('BET' in c.functionalMasking) and ('func_preproc_automask' not in nodes):
 
@@ -1759,7 +1753,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             # if field map-based distortion correction is on, but BBR is off,
             # send in the distortion correction files here
@@ -1873,7 +1867,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             # this is needed here in case tissue segmentation is set on/off
             # and you have bbreg enabled- this will ensure bbreg will run for
@@ -2129,7 +2123,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             # this is needed here in case tissue segmentation is set on/off
             # and you have nuisance enabled- this will ensure nuisance will
@@ -2262,7 +2256,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     for strat in strat_list:
 
-        nodes = getNodeList(strat)
+        nodes = strat.get_nodes_names()
 
         if 0 in c.runNuisance and \
                 ("nuisance" not in nodes and "nuisance_with_despiking" not in nodes):
@@ -2547,7 +2541,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             if 0 in c.runNuisance and \
                     "nuisance" not in nodes and \
@@ -2619,7 +2613,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             # Run FSL ApplyWarp
             if 'anat_mni_fnirt_register' in nodes:
@@ -2718,7 +2712,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             if 'ANTS' in c.regOption and \
                     'anat_mni_fnirt_register' not in nodes:
@@ -2990,7 +2984,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
 
             if 'func_mni_fsl_warp' in nodes:
                 vmhc = create_vmhc(False, 'vmhc_%d' % num_strat)
@@ -3087,14 +3081,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     num_strat = 0
 
     if 1 in c.runReHo:
+        
         for strat in strat_list:
 
             preproc = create_reho()
             cluster_size = c.clusterSize
             # Check the cluster size is supported
-            if not (cluster_size == 27 or \
-                                cluster_size == 19 or \
-                                cluster_size == 7):
+            if cluster_size not in [7, 19, 27]:
                 err_msg = 'Cluster size specified: %d, is not supported. ' \
                           'Change to 7, 19, or 27 and try again' % cluster_size
                 raise Exception(err_msg)
@@ -3123,6 +3116,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             create_log_node(reho, 'outputspec.raw_reho_map', num_strat)
 
             num_strat += 1
+
     strat_list += new_strat_list
 
     '''
@@ -3189,8 +3183,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     # if 1 in c.runSpatialRegression:
 
-    if ("SpatialReg" in ts_analysis_dict.keys()) or \
-            ("DualReg" in sca_analysis_dict.keys()):
+    if "SpatialReg" in ts_analysis_dict.keys() or \
+        "DualReg" in sca_analysis_dict.keys():
 
         for strat in strat_list:
 
@@ -3910,7 +3904,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     def output_to_standard(output_name, strat, num_strat, pipeline_config_obj,
                            map_node=False, input_image_type=0):
 
-        nodes = getNodeList(strat)
+        nodes = strat.get_nodes_names()
 
         if 'apply_ants_warp_functional_to_standard' in nodes:
 
@@ -4369,7 +4363,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         palletes = ['red', 'green', 'blue', 'red_to_blue', 'cyan_to_yellow']
         for pallete in palletes:
             register_pallete(
-                p.resource_filename('CPAC', 'qc/colors/%s.csv' % pallete),
+                p.resource_filename('CPAC', 'qc/colors/%s.txt' % pallete),
                 pallete
             )
 
@@ -4380,7 +4374,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names() 
 
             preproc, out_file = strat.get_node_from_resource_pool(
                 'functional_preprocessed')
@@ -4957,7 +4951,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # TODO: modified at the gen motion params level
             # ensure X_frames_included/excluded only gets sent to output dir
             # for appropriate strats
-            nodes = getNodeList(strat)
+            nodes = strat.get_nodes_names()
+
             if "nuisance_with_despiking" not in nodes:
                 if "despiking_frames_included" in rp.keys():
                     del rp["despiking_frames_included"]
