@@ -849,7 +849,7 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
             if montage_id in histograms.keys():
                 if idx == 0:
                     feed_line_nav(image_name_h_nav, id_h, menu_html_fd, content_html_fd)
-                if png_h is not None
+                if png_h is not None:
                     feed_line_body(image_name_h, id_h, png_h, content_html_fd)
 
     if montage_id in dict_plot:
