@@ -321,11 +321,11 @@ def create_qc_motion(wf_name='qc_motion'):
                                                          'motion_rotation_plot']),
                           name='outputspec')
 
-    mov_plot = pe.Node(util.Function(input_names=['motion_parameters'],
-                                     output_names=['translation_plot',
-                                                   'rotation_plot'],
-                                     function=gen_motion_plt,
-                                     as_module=True),
+    mov_plot = pe.Node(Function(input_names=['motion_parameters'],
+                                output_names=['translation_plot',
+                                              'rotation_plot'],
+                                function=gen_motion_plt,
+                                as_module=True),
                        name='motion_plot')
 
     wf.connect(input_node, 'motion_parameters', mov_plot, 'motion_parameters')
