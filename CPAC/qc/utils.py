@@ -1,6 +1,7 @@
 import os
 import re
 import math
+import base64
 import commands
 import pkg_resources as p
 
@@ -388,12 +389,14 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
-import base64
-
 def encode_to_url(f, type):
     with open(f, "rb") as image_file:
         b64 = str(base64.b64encode(image_file.read()).decode("utf-8"))
         return "data:" + type + ";" + "base64," + b64
+
+
+def commonprefix(args, sep='/'):
+	return os.path.commonprefix(args).rpartition(sep)[0]
 
 
 def add_head(frameset_html_fd, menu_html_fd, content_html_fd, name):
@@ -592,6 +595,12 @@ def feed_line_body(image_name, anchor, image, content_html_fd):
 
     """
 
+    folder = commonprefix([image, content_html_fd.name])
+
+    html_rel = '/'.join(['..'] * content_html_fd.name.replace(folder + '/', '').count('/'))
+    image_rel = image.replace(folder + '/', '')
+    image_rel = '/'.join([html_rel, image_rel])
+
     description_html = """
         <h3><a name="{anchor}">{description}</a> <a href="#reverse">TOP</a></h3>
 """
@@ -613,7 +622,7 @@ def feed_line_body(image_name, anchor, image, content_html_fd):
         
     content_html_fd.write(
         image_html.format(
-            image=image,
+            image=image_rel,
             description=image_readable
         )
     )
@@ -840,7 +849,8 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
             if montage_id in histograms.keys():
                 if idx == 0:
                     feed_line_nav(image_name_h_nav, id_h, menu_html_fd, content_html_fd)
-                feed_line_body(image_name_h, id_h, png_h, content_html_fd)
+                if png_h is not None
+                    feed_line_body(image_name_h, id_h, png_h, content_html_fd)
 
     if montage_id in dict_plot:
         id_a = str(montage_id)
