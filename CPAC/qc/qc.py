@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 
 import CPAC.utils.afni as afni_utils
 from CPAC.utils.function import Function
