@@ -1,13 +1,19 @@
-import re
-import commands
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-
 import os
+import re
+import math
+import commands
 import pkg_resources as p
-import nipype.pipeline.engine as pe
+
+import numpy as np
+import nibabel as nb
+import numpy.ma as ma
+
+import matplotlib
+from matplotlib import pyplot
+from matplotlib import pyplot as plt
+
 from nipype.interfaces import afni
+import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
@@ -105,17 +111,9 @@ def append_to_files_in_dict_way(list_files, file_):
 
     """
 
-    f_1 = open(file_, 'r')
-
-    lines = f_1.readlines()
-    lines = [line.rstrip('\r\n') for line in lines]
-    one_dict = {}
-
-    for line in lines:
-        if not line in one_dict:
-            one_dict[line] = 1
-
-    f_1.close()
+    with open(file_, 'r') as f:
+        lines = [line.rstrip('\r\n') for line in f.readlines()]
+        one_dict = {line: 1 for line in lines}
 
     for f_ in list_files:
         two_dict = {}
@@ -1050,8 +1048,7 @@ def cal_snr_val(measure_file):
     snr_val = ma.mean(data_no0)
 
     avg_snr_file = os.path.join(os.getcwd(), 'average_snr_file.txt')
-    f = open(avg_snr_file, 'w')
-    with open(avg_snr_file, 'wt') as f:
+    with open(avg_snr_file, 'w') as f:
         f.write(str(snr_val) + '\n')
 
     return avg_snr_file
@@ -1385,7 +1382,6 @@ def drop_percent(measure_file, percent):
 
     img = nb.load(measure_file)
     data = img.get_data()
-    x, y, z = data.shape
     
     max_val = np.percentile(data[data != 0.0], percent)
     data[data >= max_val] = 0.0

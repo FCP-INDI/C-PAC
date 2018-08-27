@@ -95,7 +95,7 @@ def get_cent_zscore(wf_name = 'z_score'):
     wflow.connect(mean, 'out_stat',
                   op_string, 'mean')
     wflow.connect(standard_deviation, 'out_stat',
-                 op_string, 'std_dev')
+                  op_string, 'std_dev')
     
     z_score = pe.MapNode(interface=fsl.MultiImageMaths(),
                         name='z_score',

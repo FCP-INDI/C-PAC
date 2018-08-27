@@ -898,14 +898,14 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp',
             'reference_image', 'transforms', 'dimension', 'input_image_type', 
             'interpolation']), name='inputspec')
 
-    if map_node == 0:
-        apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
-                name='apply_ants_warp')
-
-    elif map_node == 1:
+    if map_node:
         apply_ants_warp = pe.MapNode(interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_mapnode', iterfield=['input_image', \
                 'transforms'])
+
+    else:
+        apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
+                name='apply_ants_warp')
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = ants_threads
