@@ -646,13 +646,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 'anat_mni_fnirt_register_%d' % num_strat
             )
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'anatomical_brain')
+            node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
                              fnirt_reg_anat_mni, 'inputspec.input_brain')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'anatomical_reorient')
+            node, out_file = strat['anatomical_reorient']
             workflow.connect(node, out_file,
                              fnirt_reg_anat_mni, 'inputspec.input_skull')
 
@@ -725,9 +723,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     raise Exception
 
                 # get the skull-stripped anatomical from resource pool
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_brain'
-                )
+                node, out_file = strat['anatomical_brain']
 
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
@@ -740,9 +736,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 )
 
                 # get the reorient skull-on anatomical from resource pool
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_reorient'
-                )
+                node, out_file = strat['anatomical_reorient']
 
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
@@ -756,9 +750,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             else:
                 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_brain'
-                )
+                node, out_file = strat['anatomical_brain']
 
                 workflow.connect(node, out_file, ants_reg_anat_mni,
                                  'inputspec.anatomical_brain')
@@ -868,16 +860,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'anat_symmetric_mni_fnirt_register_%d' % num_strat
                 )
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_brain'
-                )
+                node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_symm_mni,
                                  'inputspec.input_brain')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_reorient'
-                )
+                node, out_file = strat['anatomical_reorient']
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_symm_mni,
                                  'inputspec.input_skull')
@@ -948,9 +936,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         raise Exception
 
                     # get the skullstripped anatomical from resource pool
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'anatomical_brain'
-                    )
+                    node, out_file = strat['anatomical_brain']
 
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
@@ -963,9 +949,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                     # get the reorient skull-on anatomical from resource
                     # pool
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'anatomical_reorient'
-                    )
+                    node, out_file = strat['anatomical_reorient']
 
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
@@ -978,8 +962,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 else:
                     # get the skullstripped anatomical from resource pool
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'anatomical_brain')
+                    node, out_file = strat['anatomical_brain']
 
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni,
@@ -1061,38 +1044,28 @@ Maximum potential number of cores that might be used during this run: {max_cores
             if seg_preproc is None:
                 continue
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'anatomical_brain'
-            )
+            node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
                              seg_preproc, 'inputspec.brain')
 
             if 'anat_mni_fnirt_register' in nodes:
-                node, out_file = strat.get_node_from_resource_pool(
-                    'mni_to_anatomical_linear_xfm'
-                )
+                node, out_file = strat['mni_to_anatomical_linear_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
 
             elif 'anat_mni_ants_register' in nodes:
-                node, out_file = strat.get_node_from_resource_pool(
-                    'ants_initial_xfm'
-                )
+                node, out_file = strat['ants_initial_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
                                  'inputspec.standard2highres_init')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'ants_rigid_xfm'
-                )
+                node, out_file = strat['ants_rigid_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
                                  'inputspec.standard2highres_rig')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'ants_affine_xfm'
-                )
+                node, out_file = strat['ants_affine_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
@@ -1300,21 +1273,15 @@ Maximum potential number of cores that might be used during this run: {max_cores
             workflow.connect(node, out_file, epi_distcorr,
                              'inputspec.func_file')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'anatomical_reorient'
-            )
+            node, out_file = strat['anatomical_reorient']
             workflow.connect(node, out_file, epi_distcorr,
                              'inputspec.anat_file')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'fmap_phase_diff'
-            )
+            node, out_file = strat['fmap_phase_diff']
             workflow.connect(node, out_file, epi_distcorr,
                              'inputspec.fmap_pha')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'fmap_magnitude'
-            )
+            node, out_file = strat['fmap_magnitude']
             workflow.connect(node, out_file, epi_distcorr,
                              'inputspec.fmap_mag')
 
@@ -1506,9 +1473,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 wf_name='fristons_parameter_model_%d' % num_strat
             )
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'movement_parameters'
-            )
+            node, out_file = strat['movement_parameters']
 
             workflow.connect(node, out_file,
                              fristons_model, 'inputspec.movement_file')
@@ -1575,24 +1540,18 @@ Maximum potential number of cores that might be used during this run: {max_cores
             # TODO ASH normalize strings with enums?
             if 'Mean Functional' in c.func_reg_input:
                 # Input functional image (mean functional)
-                node, out_file = strat.get_node_from_resource_pool(
-                    'mean_functional'
-                )
+                node, out_file = strat['mean_functional']
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.func')
 
             elif 'Selected Functional Volume' in c.func_reg_input:
                 # Input functional image (specific volume)
-                node, out_file = strat.get_node_from_resource_pool(
-                    'selected_func_volume'
-                )
+                node, out_file = strat['selected_func_volume']
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.func')
 
             # Input skull-stripped anatomical (anat.nii.gz)
-            node, out_file = strat.get_node_from_resource_pool(
-                'anatomical_brain'
-            )
+            node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
                              func_to_anat, 'inputspec.anat')
 
@@ -1607,15 +1566,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     pedir=c.fmap_distcorr_pedir
                 )
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    "despiked_fieldmap"
-                )
+                node, out_file = strat["despiked_fieldmap"]
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.fieldmap')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    "fieldmap_mask"
-                )
+                node, out_file = strat["fieldmap_mask"]
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.fieldmapmask')
 
@@ -1673,35 +1628,30 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 # TODO ASH normalize strings with enums?
                 if 'Mean Functional' in c.func_reg_input:
                     # Input functional image (mean functional)
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'mean_functional')
+                    node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
                                      func_to_anat_bbreg, 'inputspec.func')
 
                 elif 'Selected Functional Volume' in c.func_reg_input:
                     # Input functional image (specific volume)
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'selected_func_volume')
+                    node, out_file = strat['selected_func_volume']
                     workflow.connect(node, out_file,
                                      func_to_anat_bbreg, 'inputspec.func')
 
                 # Input anatomical whole-head image (reoriented)
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_reorient')
+                node, out_file = strat['anatomical_reorient']
                 workflow.connect(node, out_file,
                                  func_to_anat_bbreg,
                                  'inputspec.anat_skull')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_anat_linear_xfm')
+                node, out_file = strat['functional_to_anat_linear_xfm']
                 workflow.connect(node, out_file,
                                  func_to_anat_bbreg,
                                  'inputspec.linear_reg_matrix')
 
                 # Input segmentation probability maps for white matter
                 # segmentation
-                node, out_file = strat.get_node_from_resource_pool(
-                    'seg_probability_maps')
+                node, out_file = strat['seg_probability_maps']
                 workflow.connect(node, (out_file, pick_wm),
                                  func_to_anat_bbreg,
                                  'inputspec.anat_wm_segmentation')
@@ -1714,14 +1664,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         0]
                     func_to_anat_bbreg.inputs.pedir_input.pedir = c.fmap_distcorr_pedir
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        "despiked_fieldmap")
+                    node, out_file = strat["despiked_fieldmap"]
                     workflow.connect(node, out_file,
                                      func_to_anat_bbreg,
                                      'inputspec.fieldmap')
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        "fieldmap_mask")
+                    node, out_file = strat["fieldmap_mask"]
                     workflow.connect(node, out_file,
                                      func_to_anat_bbreg,
                                      'inputspec.fieldmapmask')
@@ -1785,30 +1733,24 @@ Maximum potential number of cores that might be used during this run: {max_cores
         workflow.connect(func_wf, 'outputspec.scan',
                          gen_motion_stats, 'inputspec.scan_id')
 
-        node, out_file = strat.get_node_from_resource_pool('motion_correct')
+        node, out_file = strat['motion_correct']
         workflow.connect(node, out_file,
                          gen_motion_stats, 'inputspec.motion_correct')
 
-        node, out_file = strat.get_node_from_resource_pool(
-            'movement_parameters'
-        )
+        node, out_file = strat['movement_parameters']
         workflow.connect(node, out_file,
                          gen_motion_stats,
                          'inputspec.movement_parameters')
 
-        node, out_file = strat.get_node_from_resource_pool('max_displacement')
+        node, out_file = strat['max_displacement']
         workflow.connect(node, out_file,
                          gen_motion_stats, 'inputspec.max_displacement')
 
-        node, out_file = strat.get_node_from_resource_pool(
-            'functional_brain_mask'
-        )
+        node, out_file = strat['functional_brain_mask']
         workflow.connect(node, out_file,
                          gen_motion_stats, 'inputspec.mask')
 
-        node, out_file = strat.get_node_from_resource_pool(
-            'coordinate_transformation'
-        )
+        node, out_file = strat['coordinate_transformation']
         workflow.connect(node, out_file,
                          gen_motion_stats, 'inputspec.oned_matrix_save')
 
@@ -1880,50 +1822,36 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.subject')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_gm_mask'
-                )
+                node, out_file = strat['anatomical_gm_mask']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.gm_mask')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_wm_mask'
-                )
+                node, out_file = strat['anatomical_wm_mask']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.wm_mask')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_csf_mask'
-                )
+                node, out_file = strat['anatomical_csf_mask']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.csf_mask')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'movement_parameters'
-                )
+                node, out_file = strat['movement_parameters']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.motion_components')
 
                 if "De-Spiking" in c.runMotionSpike:
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'despiking_frames_excluded'
-                    )
+                    node, out_file = strat['despiking_frames_excluded']
                     workflow.connect(node, out_file,
                                      nuisance, 'inputspec.frames_ex')
                 else:
                     nuisance.inputs.inputspec.frames_ex = None
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_anat_linear_xfm'
-                )
+                node, out_file = strat['functional_to_anat_linear_xfm']
                 workflow.connect(node, out_file,
                                  nuisance,
                                  'inputspec.func_to_anat_linear_xfm')
 
                 if 'anat_mni_fnirt_register' in nodes:
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'mni_to_anatomical_linear_xfm'
-                    )
+                    node, out_file = strat['mni_to_anatomical_linear_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.mni_to_anat_linear_xfm')
@@ -1932,20 +1860,17 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     # INVERSE transform, but ants_affine_xfm gets inverted
                     # within the workflow
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'ants_initial_xfm')
+                    node, out_file = strat['ants_initial_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.anat_to_mni_initial_xfm')
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'ants_rigid_xfm')
+                    node, out_file = strat['ants_rigid_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.anat_to_mni_rigid_xfm')
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'ants_affine_xfm')
+                    node, out_file = strat['ants_affine_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.anat_to_mni_affine_xfm')
@@ -2043,35 +1968,29 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.subject')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_gm_mask')
+                node, out_file = strat['anatomical_gm_mask']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.gm_mask')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_wm_mask')
+                node, out_file = strat['anatomical_wm_mask']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.wm_mask')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_csf_mask')
+                node, out_file = strat['anatomical_csf_mask']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.csf_mask')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'movement_parameters')
+                node, out_file = strat['movement_parameters']
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.motion_components')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_anat_linear_xfm')
+                node, out_file = strat['functional_to_anat_linear_xfm']
                 workflow.connect(node, out_file,
                                  nuisance,
                                  'inputspec.func_to_anat_linear_xfm')
 
                 if 'anat_mni_fnirt_register' in nodes:
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'mni_to_anatomical_linear_xfm')
+                    node, out_file = strat['mni_to_anatomical_linear_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.mni_to_anat_linear_xfm')
@@ -2080,20 +1999,17 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     # INVERSE transform, but ants_affine_xfm gets inverted
                     # within the workflow
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'ants_initial_xfm')
+                    node, out_file = strat['ants_initial_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.anat_to_mni_initial_xfm')
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'ants_rigid_xfm')
+                    node, out_file = strat['ants_rigid_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.anat_to_mni_rigid_xfm')
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'ants_affine_xfm')
+                    node, out_file = strat['ants_affine_xfm']
                     workflow.connect(node, out_file,
                                      nuisance,
                                      'inputspec.anat_to_mni_affine_xfm')
@@ -2170,9 +2086,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file,
                              alff, 'inputspec.rest_res')
-            node, out_file = strat.get_node_from_resource_pool(
-                'functional_brain_mask'
-            )
+            node, out_file = strat['functional_brain_mask']
             workflow.connect(node, out_file,
                              alff, 'inputspec.rest_mask')
 
@@ -2276,13 +2190,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  scrubbing, 'inputspec.preprocessed')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'scrubbing_frames_included')
+                node, out_file = strat['scrubbing_frames_included']
                 workflow.connect(node, out_file,
                                  scrubbing, 'inputspec.frames_in_1D')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'movement_parameters')
+                node, out_file = strat['movement_parameters']
                 workflow.connect(node, out_file,
                                  scrubbing, 'inputspec.movement_parameters')
 
@@ -2342,13 +2254,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 )
                 motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_to_mni_nonlinear_xfm')
+                node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                 workflow.connect(node, out_file,
                                  func_mni_warp, 'field_file')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_anat_linear_xfm')
+                node, out_file = strat['functional_to_anat_linear_xfm']
                 workflow.connect(node, out_file,
                                  func_mni_warp, 'premat')
 
@@ -2356,8 +2266,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  func_mni_warp, 'in_file')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_to_mni_nonlinear_xfm')
+                node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                 workflow.connect(node, out_file,
                                  functional_brain_mask_to_standard, 'field_file')
                 workflow.connect(node, out_file,
@@ -2365,8 +2274,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  motion_correct_warp, 'field_file')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_anat_linear_xfm')
+                node, out_file = strat['functional_to_anat_linear_xfm']
                 workflow.connect(node, out_file,
                                  functional_brain_mask_to_standard, 'premat')
                 workflow.connect(node, out_file,
@@ -2374,18 +2282,15 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  motion_correct_warp, 'premat')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_brain_mask')
+                node, out_file = strat['functional_brain_mask']
                 workflow.connect(node, out_file,
                                  functional_brain_mask_to_standard, 'in_file')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'mean_functional')
+                node, out_file = strat['mean_functional']
                 workflow.connect(node, out_file,
                                  mean_functional_warp, 'in_file')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'motion_correct')
+                node, out_file = strat['motion_correct']
                 workflow.connect(node, out_file,
                                  motion_correct_warp, 'in_file')
 
@@ -2415,7 +2320,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 # 4D FUNCTIONAL apply warp
                 node, out_file = strat.get_leaf_properties()
                 node2, out_file2 = \
-                    strat.get_node_from_resource_pool("mean_functional")
+                    strat["mean_functional"]
 
                 warp_func_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
@@ -2431,9 +2336,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 # 4D FUNCTIONAL MOTION-CORRECTED apply warp
                 node, out_file = \
-                    strat.get_node_from_resource_pool('motion_correct')
+                    strat['motion_correct']
                 node2, out_file2 = \
-                    strat.get_node_from_resource_pool("mean_functional")
+                    strat["mean_functional"]
 
                 warp_motion_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
@@ -2449,7 +2354,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 # FUNCTIONAL BRAIN MASK (binary, no timeseries) apply warp
                 node, out_file = \
-                    strat.get_node_from_resource_pool("functional_brain_mask")
+                    strat["functional_brain_mask"]
 
                 warp_mask_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
@@ -2465,7 +2370,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 # FUNCTIONAL MEAN (no timeseries) apply warp
                 node, out_file = \
-                    strat.get_node_from_resource_pool("mean_functional")
+                    strat["mean_functional"]
 
                 warp_mean_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
@@ -2507,27 +2412,19 @@ Maximum potential number of cores that might be used during this run: {max_cores
             workflow.connect(node, out_file,
                              vmhc, 'inputspec.rest_res')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'functional_to_anat_linear_xfm'
-            )
+            node, out_file = strat['functional_to_anat_linear_xfm']
             workflow.connect(node, out_file,
                              vmhc, 'inputspec.example_func2highres_mat')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'functional_brain_mask'
-            )
+            node, out_file = strat['functional_brain_mask']
             workflow.connect(node, out_file,
                              vmhc, 'inputspec.rest_mask')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'mean_functional'
-            )
+            node, out_file = strat['mean_functional']
             workflow.connect(node, out_file,
                              vmhc, 'inputspec.mean_functional')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'anatomical_brain'
-            )
+            node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
                              vmhc, 'inputspec.brain')
 
@@ -2536,34 +2433,24 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 'anat_mni_fnirt_register' not in nodes and \
                     'anat_symmetric_mni_fnirt_register' not in nodes:
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'ants_symmetric_initial_xfm'
-                )
+                node, out_file = strat['ants_symmetric_initial_xfm']
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.ants_symm_initial_xfm')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'ants_symmetric_rigid_xfm'
-                )
+                node, out_file = strat['ants_symmetric_rigid_xfm']
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.ants_symm_rigid_xfm')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'ants_symmetric_affine_xfm'
-                )
+                node, out_file = strat['ants_symmetric_affine_xfm']
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.ants_symm_affine_xfm')
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_to_symmetric_mni_nonlinear_xfm'
-                )
+                node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.ants_symm_warp_field')
 
             else:
-                node, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_to_symmetric_mni_nonlinear_xfm'
-                )
+                node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.fnirt_nonlinear_warp')
 
@@ -2605,8 +2492,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             workflow.connect(node, out_file,
                              reho, 'inputspec.rest_res_filt')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'functional_brain_mask')
+            node, out_file = strat['functional_brain_mask']
             workflow.connect(node, out_file,
                              reho, 'inputspec.rest_mask')
 
@@ -2735,10 +2621,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 spatial_map_timeseries_for_dr.inputs.inputspec.demean = True  # c.spatialDemean
 
             if "SpatialReg" in ts_analysis_dict.keys():
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_standard')
-                node2, out_file2 = strat.get_node_from_resource_pool(
-                    'functional_brain_mask_to_standard')
+                node, out_file = strat['functional_to_standard']
+                node2, out_file2 = strat['functional_brain_mask_to_standard']
 
                 # resample the input functional file and functional mask
                 # to spatial map
@@ -2763,12 +2647,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.subject_rest')
 
             if "DualReg" in sca_analysis_dict.keys():
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_standard'
-                )
-                node2, out_file2 = strat.get_node_from_resource_pool(
-                    'functional_brain_mask_to_standard'
-                )
+                node, out_file = strat['functional_to_standard']
+                node2, out_file2 = strat['functional_brain_mask_to_standard']
 
                 # resample the input functional file and functional mask
                 # to spatial map
@@ -2896,9 +2776,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             if "Avg" in ts_analysis_dict.keys():
 
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_standard'
-                )
+                node, out_file = strat['functional_to_standard']
 
                 # resample the input functional file to roi
                 workflow.connect(node, out_file,
@@ -2913,9 +2791,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  roi_timeseries, 'inputspec.rest')
 
             if "Avg" in sca_analysis_dict.keys():
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_standard'
-                )
+                node, out_file = strat['functional_to_standard']
 
                 # resample the input functional file to roi
                 workflow.connect(node, out_file,
@@ -2935,9 +2811,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  roi_timeseries_for_sca, 'inputspec.rest')
 
             if "MultReg" in sca_analysis_dict.keys():
-                node, out_file = strat.get_node_from_resource_pool(
-                    'functional_to_standard'
-                )
+                node, out_file = strat['functional_to_standard']
 
                 # resample the input functional file to roi
                 workflow.connect(node, out_file,
@@ -3007,8 +2881,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 'voxel_timeseries_%d' % num_strat)
             voxel_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'functional_to_standard')
+            node, out_file = strat['functional_to_standard']
 
             # resample the input functional file to mask
             workflow.connect(node, out_file,
@@ -3045,8 +2918,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             workflow.connect(node, out_file,
                              sca_roi, 'inputspec.functional_file')
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'roi_timeseries_for_SCA')
+            node, out_file = strat['roi_timeseries_for_SCA']
             workflow.connect(node, (out_file, extract_one_d),
                              sca_roi, 'inputspec.timeseries_one_d')
 
@@ -3076,12 +2948,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
             dr_temp_reg.inputs.inputspec.normalize = c.mrsNorm
             dr_temp_reg.inputs.inputspec.demean = True
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'spatial_map_timeseries_for_DR')
+            node, out_file = strat['spatial_map_timeseries_for_DR']
 
             node2, out_file2 = strat.get_leaf_properties()
-            node3, out_file3 = strat.get_node_from_resource_pool(
-                'functional_brain_mask')
+            node3, out_file3 = strat['functional_brain_mask']
 
             workflow.connect(node2, out_file2,
                              dr_temp_reg, 'inputspec.subject_rest')
@@ -3119,12 +2989,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
             sc_temp_reg.inputs.inputspec.normalize = c.mrsNorm
             sc_temp_reg.inputs.inputspec.demean = True
 
-            node, out_file = strat.get_node_from_resource_pool(
-                'functional_to_standard')
-            node2, out_file2 = strat.get_node_from_resource_pool(
-                'roi_timeseries_for_SCA_multreg')
-            node3, out_file3 = strat.get_node_from_resource_pool(
-                'functional_brain_mask_to_standard')
+            node, out_file = strat['functional_to_standard']
+            node2, out_file2 = strat['roi_timeseries_for_SCA_multreg']
+            node3, out_file3 = strat['functional_brain_mask_to_standard']
 
             workflow.connect(node, out_file,
                              sc_temp_reg, 'inputspec.subject_rest')
@@ -3335,11 +3202,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             nodes = strat.get_nodes_names()
 
-            preproc, out_file = strat.get_node_from_resource_pool('functional_preprocessed')
-            brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
-            func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-            anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
-            mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
+            preproc, out_file = strat['functional_preprocessed']
+            brain_mask, mask_file = strat['functional_brain_mask']
+            func_to_anat_xfm, xfm_file = strat['functional_to_anat_linear_xfm']
+            anat_ref, ref_file = strat['anatomical_brain']
+            mfa, mfa_file = strat['mean_functional_in_anat']
 
             # make SNR plot
             qc_workflow = create_qc_snr('qc_snr_{0}'.format(num_strat))
@@ -3362,8 +3229,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 qc_hist_id[3] = 'snr_hist'
 
             # make motion parameters plot
-            mov_param, out_file = strat.get_node_from_resource_pool(
-                'movement_parameters')
+            mov_param, out_file = strat['movement_parameters']
 
             qc_workflow = create_qc_motion('qc_motion_{0}'.format(num_strat))
             workflow.connect(mov_param, out_file, qc_workflow,
@@ -3383,29 +3249,21 @@ Maximum potential number of cores that might be used during this run: {max_cores
             # make FD plot and volumes removed
             if 'gen_motion_stats' in nodes and 1 in c.runNuisance:
                 if c.fdCalc == 'Power':
-                    fd, out_file = strat.get_node_from_resource_pool(
-                        'frame_wise_displacement_power'
-                    )
+                    fd, out_file = strat['frame_wise_displacement_power']
                 else:
-                    fd, out_file = strat.get_node_from_resource_pool(
-                        'frame_wise_displacement_jenkinson'
-                    )
+                    fd, out_file = strat['frame_wise_displacement_jenkinson']
 
                 qc_workflow = create_qc_fd('qc_fd_{0}'.format(num_strat))
 
                 workflow.connect(fd, out_file, qc_workflow, 'inputspec.fd')
 
                 if "De-Spiking" in c.runMotionSpike:
-                    excluded, out_file_ex = strat.get_node_from_resource_pool(
-                        'despiking_frames_excluded'
-                    )
+                    excluded, out_file_ex = strat['despiking_frames_excluded']
                     workflow.connect(excluded, out_file_ex,
                                      qc_workflow, 'inputspec.excluded_volumes')
 
                 elif "Scrubbing" in c.runMotionSpike:
-                    excluded, out_file_ex = strat.get_node_from_resource_pool(
-                        'scrubbing_frames_excluded'
-                    )
+                    excluded, out_file_ex = strat['scrubbing_frames_excluded']
                     workflow.connect(excluded, out_file_ex,
                                      qc_workflow, 'inputspec.excluded_volumes')
 
@@ -3417,12 +3275,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     qc_plot_id[8] = 'fd_plot'
 
             # make QC montages for Skull Stripping Visualization
-            anat_underlay, out_file = strat.get_node_from_resource_pool(
-                'anatomical_brain'
-            )
-            skull, out_file_s = strat.get_node_from_resource_pool(
-                'anatomical_reorient'
-            )
+            anat_underlay, out_file = strat['anatomical_brain']
+            skull, out_file_s = strat['anatomical_reorient']
 
             qc_workflow = create_qc_skullstrip(
                 'qc_skullstrip_{0}'.format(num_strat)
@@ -3442,9 +3296,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 qc_montage_id_s[1] = 'skullstrip_vis_s'
 
             # make QC montages for mni normalized anatomical image
-            mni_anat_underlay, out_file = strat.get_node_from_resource_pool(
-                'mean_functional_in_anat'
-            )
+            mni_anat_underlay, out_file = strat['mean_functional_in_anat']
 
             montage_mni_anat = create_montage('montage_mni_anat_{0}'.format(num_strat),
                                               'red',
@@ -3466,18 +3318,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
             # make QC montages for CSF WM GM
             if 'seg_preproc' in nodes:
 
-                anat_underlay, out_file = strat.get_node_from_resource_pool(
-                    'anatomical_brain'
-                )
-                csf_overlay, out_file_csf = strat.get_node_from_resource_pool(
-                    'anatomical_csf_mask'
-                )
-                wm_overlay, out_file_wm = strat.get_node_from_resource_pool(
-                    'anatomical_wm_mask'
-                )
-                gm_overlay, out_file_gm = strat.get_node_from_resource_pool(
-                    'anatomical_gm_mask'
-                )
+                anat_underlay, out_file = strat['anatomical_brain']
+                csf_overlay, out_file_csf = strat['anatomical_csf_mask']
+                wm_overlay, out_file_wm = strat['anatomical_wm_mask']
+                gm_overlay, out_file_gm = strat['anatomical_gm_mask']
 
                 montage_csf_gm_wm = create_montage_gm_wm_csf('montage_csf_gm_wm_%d' % num_strat,
                                                              'montage_csf_gm_wm')
@@ -3501,12 +3345,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     qc_montage_id_s[2] = 'csf_gm_wm_s'
 
             # make QC montage for Mean Functional in T1 with T1 edge
-            anat, out_file = strat.get_node_from_resource_pool(
-                'anatomical_brain'
-            )
-            m_f_a, out_file_mfa = strat.get_node_from_resource_pool(
-                'mean_functional_in_anat'
-            )
+            anat, out_file = strat['anatomical_brain']
+            m_f_a, out_file_mfa = strat['mean_functional_in_anat']
 
             anat_edge = pe.Node(afni_utils.Edge3(),
                                 name='anat_edge_%d' % num_strat)
@@ -3531,8 +3371,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 qc_montage_id_s[4] = 'mean_func_with_t1_edge_s'
 
             # make QC montage for Mean Functional in MNI with MNI edge
-            m_f_i, out_file = strat.get_node_from_resource_pool(
-                'mean_functional_to_standard')
+            m_f_i, out_file = strat['mean_functional_to_standard']
 
             montage_mfi = create_montage(
                 'montage_mfi_%d' % num_strat, 'red', 'MNI_edge_on_mean_func_mni')

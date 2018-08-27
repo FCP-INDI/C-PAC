@@ -148,8 +148,7 @@ def create_montage_gm_wm_csf(wf_name, png_name):
     wf.connect(resample_o_wm, 'new_fname', montage_s, 'overlay_wm')
 
     wf.connect(resample_u, 'new_fname', outputNode, 'resampled_underlay')
-    wf.connect(resample_o_csf, 'new_fname',
-               outputNode, 'resampled_overlay_csf')
+    wf.connect(resample_o_csf, 'new_fname', outputNode, 'resampled_overlay_csf')
     wf.connect(resample_o_wm, 'new_fname', outputNode, 'resampled_overlay_wm')
     wf.connect(resample_o_gm, 'new_fname', outputNode, 'resampled_overlay_gm')
     wf.connect(montage_a, 'png_name', outputNode, 'axial_png')
@@ -163,7 +162,7 @@ def qa_montages(workflow, c, strat, num_strat,
                 measure, idx):
 
     try:
-        overlay, out_file = strat.get_node_from_resource_pool(measure)
+        overlay, out_file = strat[measure]
 
         overlay_drop_percent = pe.MapNode(
             Function(input_names=['measure_file',

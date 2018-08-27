@@ -56,38 +56,38 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
             input_image_type
 
         # affine from FLIRT func->anat linear registration
-        node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+        node, out_file = strat['functional_to_anat_linear_xfm']
         workflow.connect(node, out_file, fsl_to_itk_convert,
                             'inputspec.affine_file')
 
         # reference used in FLIRT func->anat linear registration
-        node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+        node, out_file = strat['anatomical_brain']
         workflow.connect(node, out_file, fsl_to_itk_convert,
                             'inputspec.reference_file')
 
         # output file to be converted
         node, out_file = \
-            strat.get_node_from_resource_pool(output_name)
+            strat[output_name]
         workflow.connect(node, out_file, fsl_to_itk_convert,
                             'inputspec.source_file')
 
         # nonlinear warp from anatomical->template ANTS registration
-        node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
         workflow.connect(node, out_file, collect_transforms,
                             'inputspec.warp_file')
 
         # linear initial from anatomical->template ANTS registration
-        node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
+        node, out_file = strat['ants_initial_xfm']
         workflow.connect(node, out_file, collect_transforms,
                             'inputspec.linear_initial')
 
         # linear affine from anatomical->template ANTS registration
-        node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
+        node, out_file = strat['ants_affine_xfm']
         workflow.connect(node, out_file, collect_transforms,
                             'inputspec.linear_affine')
 
         # rigid affine from anatomical->template ANTS registration
-        node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
+        node, out_file = strat['ants_rigid_xfm']
         workflow.connect(node, out_file, collect_transforms,
                             'inputspec.linear_rigid')
 
@@ -98,7 +98,7 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
                             'inputspec.fsl_to_itk_affine')
 
         # output file to be converted
-        node, out_file = strat.get_node_from_resource_pool(output_name)
+        node, out_file = strat[output_name]
         workflow.connect(node, out_file, apply_ants_warp,
                             'inputspec.input_image')
 
@@ -131,15 +131,15 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
             pipeline_config_obj.template_skull_for_func
 
         # output file to be warped
-        node, out_file = strat.get_node_from_resource_pool(output_name)
+        node, out_file = strat[output_name]
         workflow.connect(node, out_file, apply_fsl_warp, 'in_file')
 
         # linear affine from func->anat linear FLIRT registration
-        node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+        node, out_file = strat['functional_to_anat_linear_xfm']
         workflow.connect(node, out_file, apply_fsl_warp, 'premat')
 
         # nonlinear warp from anatomical->template FNIRT registration
-        node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
         workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
 
         strat.update_resource_pool({'{0}_to_standard'.format(output_name): (apply_fsl_warp, 'out_file')})
@@ -155,7 +155,7 @@ def z_score_standardize(workflow, output_name, mask_name,
     z_score_std = get_zscore(output_name, map_node,
                              'z_score_std_%s_%d' % (output_name, num_strat))
 
-    node, out_file = strat.get_node_from_resource_pool(output_name)
+    node, out_file = strat[output_name]
     workflow.connect(node, out_file,
                      z_score_std, 'inputspec.input_file')
 
@@ -165,7 +165,7 @@ def z_score_standardize(workflow, output_name, mask_name,
         # resource pool key
         z_score_std.inputs.inputspec.mask_file = mask_name
     else:
-        node, out_file = strat.get_node_from_resource_pool(mask_name)
+        node, out_file = strat[mask_name]
         workflow.connect(node, out_file,
                          z_score_std, 'inputspec.mask_file')
 
@@ -183,14 +183,12 @@ def fisher_z_score_standardize(workflow, output_name, timeseries_oned_file,
                                             'fisher_z_score_std_%s_%d' \
                                             % (output_name, num_strat))
 
-    node, out_file = strat. \
-        get_node_from_resource_pool(output_name)
+    node, out_file = strat[output_name]
 
     workflow.connect(node, out_file, fisher_z_score_std,
                         'inputspec.correlation_file')
 
-    node, out_file = strat. \
-        get_node_from_resource_pool(timeseries_oned_file)
+    node, out_file = strat[timeseries_oned_file]
     workflow.connect(node, out_file, fisher_z_score_std,
                         'inputspec.timeseries_one_d')
 
@@ -219,7 +217,7 @@ def output_smooth(workflow, output_name, mask_name, fwhm,
     inputnode_fwhm.iterables = ("fwhm", fwhm)
 
     # get the resource to be smoothed
-    node, out_file = strat.get_node_from_resource_pool(output_name)
+    node, out_file = strat[output_name]
 
     workflow.connect(node, out_file, output_smooth, 'in_file')
 
@@ -233,7 +231,7 @@ def output_smooth(workflow, output_name, mask_name, fwhm,
         # resource pool key
         output_smooth.inputs.operand_files = mask_name
     else:
-        node, out_file = strat.get_node_from_resource_pool(mask_name)
+        node, out_file = strat[mask_name]
         workflow.connect(node, out_file,
                             output_smooth, 'operand_files')
 
@@ -277,7 +275,7 @@ def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
 
     mean_to_csv.inputs.output_name = output_name
 
-    node, out_file = strat.get_node_from_resource_pool(output_name)
+    node, out_file = strat[output_name]
     workflow.connect(node, out_file, calc_average, 'in_file')
     workflow.connect(calc_average, 'out_file', mean_to_csv, 'in_file')
 
@@ -327,15 +325,11 @@ def ants_apply_warps_func_mni(
 
     # convert the .mat from linear Func->Anat to
     # ANTS format
-    node, out_file = strat.get_node_from_resource_pool(
-        'functional_to_anat_linear_xfm'
-    )
+    node, out_file = strat['functional_to_anat_linear_xfm']
     workflow.connect(node, out_file, fsl_to_itk_func_mni,
                      'inputspec.affine_file')
 
-    node, out_file = strat.get_node_from_resource_pool(
-        "anatomical_brain"
-    )
+    node, out_file = strat["anatomical_brain"]
     workflow.connect(node, out_file, fsl_to_itk_func_mni,
                      'inputspec.reference_file')
 
@@ -344,33 +338,25 @@ def ants_apply_warps_func_mni(
                      'inputspec.source_file')
 
     # Field file from anatomical nonlinear registration
-    node, out_file = strat.get_node_from_resource_pool(
-        'anatomical_to_mni_nonlinear_xfm'
-    )
+    node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
     workflow.connect(node, out_file,
                      collect_transforms_func_mni,
                      'inputspec.warp_file')
 
     # initial transformation from anatomical registration
-    node, out_file = strat.get_node_from_resource_pool(
-        'ants_initial_xfm'
-    )
+    node, out_file = strat['ants_initial_xfm']
     workflow.connect(node, out_file,
                      collect_transforms_func_mni,
                      'inputspec.linear_initial')
 
     # affine transformation from anatomical registration
-    node, out_file = strat.get_node_from_resource_pool(
-        'ants_affine_xfm'
-    )
+    node, out_file = strat['ants_affine_xfm']
     workflow.connect(node, out_file,
                      collect_transforms_func_mni,
                      'inputspec.linear_affine')
 
     # rigid transformation from anatomical registration
-    node, out_file = strat.get_node_from_resource_pool(
-        'ants_rigid_xfm'
-    )
+    node, out_file = strat['ants_rigid_xfm']
     workflow.connect(node, out_file,
                      collect_transforms_func_mni,
                      'inputspec.linear_rigid')

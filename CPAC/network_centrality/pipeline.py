@@ -57,9 +57,7 @@ def create_network_centrality_workflow(workflow, c, strategies):
         )
 
         # Get nipype  node and out file of the func mni img
-        node, out_file = strat.get_node_from_resource_pool(
-            'functional_to_standard'
-        )
+        node, out_file = strat['functional_to_standard']
 
         # Resample the input functional file to template(roi/mask)
         workflow.connect(node, out_file,
