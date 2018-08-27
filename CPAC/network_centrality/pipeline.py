@@ -12,27 +12,27 @@ from CPAC.network_centrality import (
 
 logger = logging.getLogger('workflow')
 
-# TODO ASH redo?
-# Check for the existence of AFNI 3dDegreeCentrality/LFCD binaries
-import subprocess
-try:
-    ret_code = subprocess.check_call(['which', '3dDegreeCentrality'],
-                                     stdout=open(os.devnull, 'wb'))
-    if ret_code == 0:
-        afni_centrality_found = True
-except subprocess.CalledProcessError as exc:
-    afni_centrality_found = False
-
-try:
-    ret_code = subprocess.check_call(['which', '3dLFCD'],
-                                     stdout=open(os.devnull, 'wb'))
-    if ret_code == 0:
-        afni_lfcd_found = True
-except subprocess.CalledProcessError as exc:
-    afni_lfcd_found = False
-
 
 def create_network_centrality_workflow(workflow, c, strategies):
+
+    # TODO ASH redo?
+    # Check for the existence of AFNI 3dDegreeCentrality/LFCD binaries
+    import subprocess
+    try:
+        ret_code = subprocess.check_call(['which', '3dDegreeCentrality'],
+                                        stdout=open(os.devnull, 'wb'))
+        if ret_code == 0:
+            afni_centrality_found = True
+    except subprocess.CalledProcessError as exc:
+        afni_centrality_found = False
+
+    try:
+        ret_code = subprocess.check_call(['which', '3dLFCD'],
+                                        stdout=open(os.devnull, 'wb'))
+        if ret_code == 0:
+            afni_lfcd_found = True
+    except subprocess.CalledProcessError as exc:
+        afni_lfcd_found = False
 
     if not any((
         True in c.degWeightOptions,
