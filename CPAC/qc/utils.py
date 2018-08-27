@@ -156,51 +156,50 @@ def first_pass_organizing_files(qc_path):
 
     """
 
-
     if not os.path.exists(qc_path):
         os.makedirs(qc_path)
 
     qc_files = os.listdir(qc_path)
     strat_dict = {}
 
-    for file_ in sorted(qc_files, reverse=True):
-        if not ('.txt' in file_):
+    for qc_file in sorted(qc_files, reverse=True):
+        if not ('.txt' in qc_file):
             continue
 
-        file_ = os.path.join(qc_path, file_)
-        str_ = os.path.basename(file_)
+        qc_file = os.path.join(qc_path, qc_file)
+        qc_filename = os.path.basename(qc_file)
 
-        str_ = str_.replace('qc_', '')
-        str_ = str_.replace('scan_', '')
-        str_ = str_.replace('.txt', '')
-        str_ = str_.replace('____', '_')
-        str_ = str_.replace('___', '_')
-        str_ = str_.replace('__', '_')
+        qc_filename = qc_filename.replace('qc_', '')
+        qc_filename = qc_filename.replace('scan_', '')
+        qc_filename = qc_filename.replace('.txt', '')
+        qc_filename = qc_filename.replace('____', '_')
+        qc_filename = qc_filename.replace('___', '_')
+        qc_filename = qc_filename.replace('__', '_')
 
-        if '_hp_' in str_ and '_fwhm_' in str_ and \
-                not ('_bandpass_freqs_' in str_):
-            str_, fwhm_val = str_.split('_fwhm_')
+        if '_hp_' in qc_filename and '_fwhm_' in qc_filename and \
+                not ('_bandpass_freqs_' in qc_filename):
+            qc_filename, fwhm_val = qc_filename.split('_fwhm_')
 
             fwhm_val = '_fwhm_' + fwhm_val
 
-            str_, hp_lp_ = str_.split('_hp_')
+            qc_filename, hp_lp_ = qc_filename.split('_hp_')
             hp_lp_ = '_hp_' + hp_lp_
 
-            str_ = str_ + fwhm_val + hp_lp_
+            qc_filename = qc_filename + fwhm_val + hp_lp_
 
         if strat_dict.keys() == []:
-            strat_dict[str_] = [file_]
+            strat_dict[qc_filename] = [qc_file]
         else:
             flag_ = 0
             for key_ in strat_dict.keys():
-                if str_ in key_:
-                    append_to_files_in_dict_way(strat_dict[key_], file_)
+                if qc_filename in key_:
+                    append_to_files_in_dict_way(strat_dict[key_], qc_file)
                     flag_ = 1
 
             if flag_ == 1:
-                os.system('rm -f %s' % file_)
+                os.system('rm -f %s' % qc_file)
             else:
-                strat_dict[str_] = [file_]
+                strat_dict[qc_filename] = [qc_file]
 
 
 def second_pass_organizing_files(qc_path):
@@ -979,8 +978,9 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
             pass
 
 
-def generate_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
-                    qc_plot_id, qc_hist_id):
+def generate_qc_pages(qc_path, sub_output_dir,
+                      qc_montage_id_a, qc_montage_id_s,
+                      qc_plot_id, qc_hist_id):
     """Generates the QC HTML files populated with the QC images that were
     created during the CPAC pipeline run.
 
@@ -1053,33 +1053,6 @@ def cal_snr_val(measure_file):
 
     return avg_snr_file
 
-
-def gen_std_dev(mask_, func_):
-    """Generate std dev file.
-
-    Parameters
-    ----------
-    mask_ : string
-        path to whole brain mask file
-
-    func_ : string
-        path to functional scan
-
-    Returns
-    -------
-    new_fname : string
-        path to standard deviation file
-
-    """
-
-    new_fname = os.path.join(os.getcwd(), 'std_dev.nii.gz')
-
-    cmd = ["3dTstat", "-stdev", "-mask", "{0}".format(mask_), "-prefix",
-           "{0}".format(new_fname), "{0}".format(func_)]
-
-    retcode = subprocess.check_output(cmd)
-
-    return new_fname
 
 
 def drange(min_, max_):
@@ -1682,12 +1655,12 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     cbar = grid.cbar_axes[0].colorbar(im)
 
     if 'snr' in png_name:
-        cbar.ax.set_yticks(drange(0, max_))
+        cbar.ax.set_yticks(np.linspace(0, max_, 8))
 
     elif ('reho' in png_name) or ('vmhc' in png_name) or \
             ('sca_' in png_name) or ('alff' in png_name) or \
             ('centrality' in png_name) or ('dr_tempreg' in png_name):
-        cbar.ax.set_yticks(drange(-max_, max_))
+        cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
 
     plt.axis("off")
     png_name = os.path.join(os.getcwd(), png_name)
@@ -1769,7 +1742,9 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     import matplotlib
     import os
     import numpy as np
+
     matplotlib.rcParams.update({'font.size': 5})
+
     try:
         from mpl_toolkits.axes_grid1 import ImageGrid   
     except:
@@ -1861,11 +1836,11 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         cbar = grid.cbar_axes[0].colorbar(im)
 
         if 'snr' in png_name:
-            cbar.ax.set_yticks(drange(0, max_))
+            cbar.ax.set_yticks(np.linspace(0, max_, 8))
         elif ('reho' in png_name) or ('vmhc' in png_name) or \
                 ('sca_' in png_name) or ('alff' in png_name) or \
                 ('centrality' in png_name) or ('dr_tempreg' in png_name):
-            cbar.ax.set_yticks(drange(-max_, max_))
+            cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
 
     except AttributeError as e:
         # TODO: send this to the logger instead
@@ -1935,9 +1910,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     X_wm[X_wm != 0.0] = max_wm
     max_gm = np.nanmax(np.abs(X_gm.flatten()))
     X_gm[X_gm != 0.0] = max_gm
-    x, y, z = Y.shape
     fig = plt.figure(1)
-    max_ = np.max(np.abs(Y))
 
     try:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
