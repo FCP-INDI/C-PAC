@@ -12,6 +12,7 @@ from CPAC.network_centrality import (
 
 logger = logging.getLogger('workflow')
 
+# TODO ASH redo?
 # Check for the existence of AFNI 3dDegreeCentrality/LFCD binaries
 import subprocess
 try:
@@ -19,21 +20,16 @@ try:
                                      stdout=open(os.devnull, 'wb'))
     if ret_code == 0:
         afni_centrality_found = True
-        logger.info('Using AFNI centrality function')
 except subprocess.CalledProcessError as exc:
     afni_centrality_found = False
-    logger.info('Using C-PAC centrality function')
 
-# TODO ASH redo?
 try:
     ret_code = subprocess.check_call(['which', '3dLFCD'],
                                      stdout=open(os.devnull, 'wb'))
     if ret_code == 0:
         afni_lfcd_found = True
-        logger.info('Using AFNI LFCD function')
 except subprocess.CalledProcessError as exc:
     afni_lfcd_found = False
-    logger.info('Using C-PAC LFCD function')
 
 
 def create_network_centrality_workflow(workflow, c, strategies):
