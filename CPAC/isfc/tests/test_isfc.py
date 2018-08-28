@@ -47,6 +47,7 @@ def isfc(subjects):
 
     return C_hat
 
+
 def isfc_window(subjects, start, step):
 
     # Network correlation patterns over time.
@@ -63,12 +64,42 @@ def isfc_window(subjects, start, step):
     # @ASH: lower off-diagonal terms == lower-triangle of matrix
     isfc_t = isfc_t[np.tril_indices(isfc_t.shape[0], -1)]
 
+    return isfc_t
+
     # The mean network correlation, at time interval (t, t + t_win) was 
     # defined as the mean of the lower off-diagonal terms of the
     # correlation matrix.
-    return isfc_t.mean()
+    # return isfc_t.mean()
 
-def isfc_window_reliability(subjects):
+
+def isfc_window_reliability_permutation(subjects, window_step=30):
+
+    n = subjects.shape[-1]
+
+    # beginning each time with a new random partition,
+    ix = np.arange(subjects.shape[0])
+    np.random.shuffle(ix)
+    group_1, group_2 = np.array_split(ix, 2)
+
+    # and computed the ISFC patterns in the DMN nodes at each
+    # sliding window in each group.
+    for t in range(0, n, window_step):
+
+        # prevent invalid window
+        if t + window_step > n:
+            break
+
+        # Network-based ISFC was calculated over a sliding window
+        # t_win, C_hat_t, within each time interval (t, t + t_win).
+        r, _ = pearsonr(
+            isfc_window(subjects[group_1], t, window_step),
+            isfc_window(subjects[group_2], t, window_step)
+        )
+
+        yield r
+
+
+def isfc_window_reliability(subjects, permutations=100, window_step=30):
 
     # Reliability of network correlation patterns ('Network States') over time.
 
@@ -76,78 +107,31 @@ def isfc_window_reliability(subjects):
     # correlated the ISFC patterns across the two independent groups at each
     # sliding window.
 
-    # For each condition (rest, word scramble, intact story), we randomly
-    # partitioned the group of 36 subjects into two independent groups of
-    # 18 subjects,
-    k = subjects.shape[0]
-    n = subjects.shape[-1]
-
-    window_step = 30
-
-    isfc_means = []
-
     # We repeated this procedure 100 times,
-    permutations = 100
+    isfc_corrs = []
+
     for _ in range(permutations):
+        isfc_corrs += list(isfc_window_reliability_permutation(subjects))
 
-        # beginning each time with a new random partition,
-        ix = np.arange(k)
-        np.random.shuffle(ix)
-        splits = np.array_split(ix, 2)
-
-        # and computed the ISFC patterns in the DMN nodes at each
-        # sliding window in each group.
-        for group in splits:
-            for t in range(0, n, window_step):
-
-                # prevent invalid window
-                if t + window_step > n:
-                    break
-
-                # Network-based ISFC was calculated over a sliding window
-                # t_win, C_hat_t, within each time interval (t, t + t_win).
-                isfc_means += [isfc_window(subjects, t, window_step)]
+    isfc_corrs = np.array(isfc_corrs)
 
     # and calculated the mean correlation and the s.d. of
     # the mean across the 100 iterations.
-    isfc_means = np.array(isfc_means)
-    return isfc_means.mean(), isfc_means.std()
-
-
-def isfc_reliability(subjects):
-
-    k = subjects.shape[0]
-    n = subjects.shape[-1]
-
-    isfc_ref = isfc(subjects)
-    isfc_means = []
-
-    permutations = 100
-    for _ in range(permutations):
-        ix = np.arange(k)
-        np.random.shuffle(ix)
-        splits = np.array_split(ix, 2)
-
-        for group in splits:
-            isfc_means += [isfc(subjects)]
-
-    # and calculated the mean correlation and the s.d. of
-    # the mean across the 100 iterations.
-    isfc_means = np.array(isfc_means)
-    return isfc_means.mean(), isfc_means.std()
+    return isfc_corrs.mean(), isfc_corrs.std()
 
 
 def test_isfc():
 
     subjects = np.random.uniform(0.0, 10.0, (
-        36,
-        2,
-        3,
-        5,
-        200
+        36,  # subjects
+        4,   # scans
+        2,   # x
+        3,   # y
+        5,   # z
+        200  # t
     ))
 
-    u, o = isfc_reliability(subjects)
-
-    assert np.isclose(u, 0.0, atol=1e-03)
-    assert np.isclose(o, 0.0, atol=1e-03)
+    for scan in range(subjects.shape[1]):
+        u, o = isfc_window_reliability(subjects[:, scan])
+        assert 0.0 < np.abs(u) < 0.05
+        assert o < 0.1
