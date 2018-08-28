@@ -81,9 +81,12 @@ from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
 
-# TODO ASH remove wildcard
-from CPAC.utils.datasource import *
-from CPAC.utils import Configuration, Strategy, function, find_files
+from CPAC.utils.datasource import (
+    create_func_datasource,
+    create_anat_datasource,
+    create_roi_mask_dataflow,
+    create_spatial_map_dataflow
+)
 
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.utils import generate_qc_pages
