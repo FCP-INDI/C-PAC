@@ -266,58 +266,9 @@ def new_template():
     util_copy_template('pipeline_config')
 
 
-@click.group()
+@utils.group()
 def test():
     pass
-
-
-@test.command()
-@click.argument('data_config')
-@click.option('--pipe_config')
-def run(data_config, pipe_config=None):
-    if not pipe_config:
-        import os
-        import pkg_resources as p
-        pipe_config = \
-            p.resource_filename("CPAC",
-                                os.path.join("resources",
-                                             "configs",
-                                             "pipeline_config_template.yml"))
-    if data_config == 'ADHD200':
-        import os
-        import pkg_resources as p
-        data_config = \
-            p.resource_filename("CPAC",
-                                os.path.join("resources",
-                                             "configs",
-                                             "data_config_S3-BIDS-ADHD200.yml"))
-    if data_config == 'ADHD200_2':
-        import os
-        import pkg_resources as p
-        data_config = \
-            p.resource_filename("CPAC",
-                                os.path.join("resources",
-                                             "configs",
-                                             "data_config_S3-BIDS-ADHD200_only2.yml"))
-    if data_config == 'ABIDE':
-        import os
-        import pkg_resources as p
-        data_config = \
-            p.resource_filename("CPAC",
-                                os.path.join("resources",
-                                             "configs",
-                                             "data_config_S3-BIDS-ABIDE.yml"))
-    if data_config == 'NKI-RS':
-        import os
-        import pkg_resources as p
-        data_config = \
-            p.resource_filename("CPAC",
-                                os.path.join("resources",
-                                             "configs",
-                                             "data_config_S3-BIDS-NKI-RocklandSample.yml"))
-
-    import CPAC.pipeline.cpac_runner as cpac_runner
-    cpac_runner.run(pipe_config, data_config)
 
 
 @test.command()
