@@ -311,8 +311,8 @@ def run_suite():
                 no_params = True
             else:
                 data = data_test
-        # run
-        cpac_runner.run(pipe, data)
+            # run
+            cpac_runner.run(pipe, data)
 
 
 if __name__ == "__main__":
