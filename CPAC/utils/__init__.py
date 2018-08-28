@@ -12,3 +12,4 @@ from .datasource import create_grp_analysis_dataflow
 from .datasource import create_spatial_map_dataflow
 from .configuration import Configuration
 from .strategy import Strategy
+from .outputs import Outputs
