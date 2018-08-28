@@ -266,5 +266,103 @@ def new_template():
     util_copy_template('pipeline_config')
 
 
+@click.group()
+def test():
+    pass
+
+
+@test.command()
+@click.argument('data_config')
+@click.option('--pipe_config')
+def run(data_config, pipe_config=None):
+    if not pipe_config:
+        import os
+        import pkg_resources as p
+        pipe_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_template.yml"))
+    if data_config == 'ADHD200':
+        import os
+        import pkg_resources as p
+        data_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "data_config_S3-BIDS-ADHD200.yml"))
+    if data_config == 'ADHD200_2':
+        import os
+        import pkg_resources as p
+        data_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "data_config_S3-BIDS-ADHD200_only2.yml"))
+    if data_config == 'ABIDE':
+        import os
+        import pkg_resources as p
+        data_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "data_config_S3-BIDS-ABIDE.yml"))
+    if data_config == 'NKI-RS':
+        import os
+        import pkg_resources as p
+        data_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "data_config_S3-BIDS-NKI-RocklandSample.yml"))
+
+    import CPAC.pipeline.cpac_runner as cpac_runner
+    cpac_runner.run(pipe_config, data_config)
+
+
+@test.command()
+def run_suite():
+    import os
+    import pkg_resources as p
+    import CPAC.pipeline.cpac_runner as cpac_runner
+
+    test_config_dir = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs"))
+
+    data_test = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs",
+                                         "data-test_S3-ADHD200_1.yml"))
+
+    data_test_no_scan_param = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs",
+                                         "data-test_S3-ADHD200_no-params.yml"))
+
+    data_test_fmap = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs",
+                                         "data-test_S3-NKI-RS_fmap.yml"))
+
+    no_params = False
+    for config_file in os.listdir(test_config_dir):
+        if 'pipe-test' in config_file:
+            pipe = os.path.join(test_config_dir, config_file)
+            if 'DistCorr' in pipe:
+                data = data_test_fmap
+            elif not no_params:
+                data = data_test_no_scan_param
+                no_params = True
+            else:
+                data = data_test
+        # run
+        cpac_runner.run(pipe, data)
+
+
 if __name__ == "__main__":
     main()
