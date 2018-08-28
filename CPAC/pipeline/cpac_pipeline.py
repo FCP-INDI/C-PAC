@@ -16,6 +16,7 @@ import nipype
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
+import nipype.interfaces.utility as util
 import nipype.interfaces.afni as afni
 from nipype.interfaces.afni import preprocess
 from nipype.pipeline.engine.utils import format_dot
@@ -228,11 +229,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
         max_cores=max_core_usage
     ))
 
-    qc_montage_id_a = {}
-    qc_montage_id_s = {}
-    qc_plot_id = {}
-    qc_hist_id = {}
-
     subject_id = sub_dict['subject_id']
     if sub_dict['unique_id']:
         subject_id += "_" + sub_dict['unique_id']
@@ -323,10 +319,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
             else:
                 shutil.rmtree(f)
 
-    strat_list = []
-
-    workflow_bit_id = {}
-    workflow_counter = 0
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
@@ -336,9 +328,13 @@ Maximum potential number of cores that might be used during this run: {max_cores
     Initialize Anatomical Input Data Flow
     '''
 
-    num_strat = 0
-
     strat_initial = Strategy()
+
+    strat_list = []
+
+    workflow_bit_id = {}
+    workflow_counter = 0
+    num_strat = 0
 
     # Extract credentials path if it exists
     try:
@@ -1032,9 +1028,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
         )
 
         # node to convert TR between seconds and milliseconds
-        convert_tr = pe.Node(util.Function(input_names=['tr'],
-                                           output_names=['tr'],
-                                           function=get_tr),
+        convert_tr = pe.Node(function.Function(input_names=['tr'],
+                                               output_names=['tr'],
+                                               function=get_tr,
+                                               as_module=True),
                              name='convert_tr_%d' % num_strat)
 
         workflow.connect(scan_params, 'tr',
@@ -3045,6 +3042,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
 
     # Quality Control
+    qc_montage_id_a = {}
+    qc_montage_id_s = {}
+    qc_plot_id = {}
+    qc_hist_id = {}
 
     if 1 in c.generateQualityControlImages:
         qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
@@ -3229,7 +3230,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             for name in strat.get_name():
                 import re
-                extra_string = re.search('_\d+', name).group(0)
+                extra_string = re.search(r'_\d+', name).group(0)
 
                 if extra_string:
                     name = name.split(extra_string)[0]
