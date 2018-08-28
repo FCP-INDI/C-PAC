@@ -1,4 +1,3 @@
-import create_all_qc 
 import extract_data_multiscan
 import create_fsl_model
 import extract_parameters

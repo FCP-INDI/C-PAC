@@ -11,7 +11,7 @@ from CPAC.registration import create_nonlinear_register, \
     create_wf_c3d_fsl_to_itk, \
     create_wf_collect_transforms
 
-from CPAC.utils import Configuration, create_all_qc, function, find_files
+from CPAC.utils import Configuration, function, find_files
 from CPAC.utils.utils import extract_one_d, set_gauss, \
     process_outputs, get_scan_params, \
     get_tr, extract_txt, create_log, \
