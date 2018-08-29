@@ -239,20 +239,16 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
-        file_path_sp = file_path.split('/')
-        file_path_sp[0] = file_path_sp[0].lower()
-        file_path = '/'.join(file_path_sp)
+        file_path = s3_str + file_path[len(s3_str):]
 
-    # Check for s3 string in filepaths
-    if file_path.startswith(s3_str):
         # Get bucket name and bucket object
-        bucket_name = file_path.replace(s3_str, '').split('/')[0]
+        bucket_name = file_path[len(s3_str):].split('/')[0]
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
         # Extract relative key path from bucket and local path
-        s3_prefix = os.path.join(s3_str, bucket_name)
-        s3_key = file_path.replace(s3_prefix, '').lstrip('/')
-        local_path = os.path.join(dl_dir, s3_key)
+        s3_prefix = s3_str + bucket_name
+        s3_key = file_path[len(s3_prefix):]
+        local_path = os.path.join(dl_dir, bucket_name, s3_key)
 
         # Get local directory and create folders if they dont exist
         local_dir = os.path.dirname(local_path)
