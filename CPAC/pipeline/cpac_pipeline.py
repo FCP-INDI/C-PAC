@@ -272,9 +272,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     # Check system dependencies
     check_system_deps(check_ants='ANTS' in c.regOption)
 
-    # Retrieve outputs reference
-    outputs = Outputs()
-
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=workflow_name)
@@ -2904,12 +2901,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
             rp = strat.get_resource_pool()
             for key in sorted(rp.keys()):
                 # connect nodes to apply warps to template
-                if key in outputs.native_nonsmooth:
+                if key in Outputs.native_nonsmooth:
                     # smoothing happens at the end, so only the non-smooth
                     # named output labels for the native-space outputs
                     strat = output_to_standard(
                         workflow, key, strat, num_strat, c)
-                elif key in outputs.native_nonsmooth_mult:
+                elif key in Outputs.native_nonsmooth_mult:
                     strat = output_to_standard(workflow, key, strat, num_strat, c,
                                                map_node=True)
 
@@ -2924,20 +2921,20 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         strat = output_smooth(workflow, key,
                                               c.templateSpecificationFile, c.fwhm,
                                               strat, num_strat, map_node=True)
-                    elif key in outputs.native_nonsmooth:
+                    elif key in Outputs.native_nonsmooth:
                         # native space
                         strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
                                               strat, num_strat)
-                    elif key in outputs.native_nonsmooth_mult:
+                    elif key in Outputs.native_nonsmooth_mult:
                         # native space with multiple files (map nodes)
                         strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
                                               strat, num_strat, map_node=True)
-                    elif key in outputs.template_nonsmooth:
+                    elif key in Outputs.template_nonsmooth:
                         # template space
                         strat = output_smooth(workflow, key,
                                               "functional_brain_mask_to_standard", c.fwhm,
                                               strat, num_strat)
-                    elif key in outputs.template_nonsmooth_mult:
+                    elif key in Outputs.template_nonsmooth_mult:
                         # template space with multiple files (map nodes)
                         strat = output_smooth(workflow, key,
                                               "functional_brain_mask_to_standard", c.fwhm,
@@ -2959,12 +2956,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                     c.templateSpecificationFile,
                                                     strat, num_strat,
                                                     map_node=True)
-                    elif key in outputs.template_raw:
+                    elif key in Outputs.template_raw:
                         # raw score, in template space
                         strat = z_score_standardize(workflow, key,
                                                     "functional_brain_mask_to_standard",
                                                     strat, num_strat)
-                    elif key in outputs.template_raw_mult:
+                    elif key in Outputs.template_raw_mult:
                         # same as above but multiple files so mapnode required
                         strat = z_score_standardize(workflow, key,
                                                     "functional_brain_mask_to_standard",
@@ -2989,12 +2986,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                     c.templateSpecificationFile,
                                                     strat, num_strat,
                                                     map_node=True)
-                    elif key in outputs.template_raw:
+                    elif key in Outputs.template_raw:
                         # raw score, in template space
                         strat = z_score_standardize(workflow, key,
                                                     "functional_brain_mask_to_standard",
                                                     strat, num_strat)
-                    elif key in outputs.template_raw_mult:
+                    elif key in Outputs.template_raw_mult:
                         # same as above but multiple files so mapnode required
                         strat = z_score_standardize(workflow, key,
                                                     "functional_brain_mask_to_standard",
@@ -3010,20 +3007,20 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         strat = output_smooth(workflow, key,
                                               c.templateSpecificationFile, c.fwhm,
                                               strat, num_strat, map_node=True)
-                    elif key in outputs.native_nonsmooth:
+                    elif key in Outputs.native_nonsmooth:
                         # native space
                         strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
                                               strat, num_strat)
-                    elif key in outputs.native_nonsmooth_mult:
+                    elif key in Outputs.native_nonsmooth_mult:
                         # native space with multiple files (map nodes)
                         strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
                                               strat, num_strat, map_node=True)
-                    elif key in outputs.template_nonsmooth:
+                    elif key in Outputs.template_nonsmooth:
                         # template space
                         strat = output_smooth(workflow, key,
                                               "functional_brain_mask_to_standard", c.fwhm,
                                               strat, num_strat)
-                    elif key in outputs.template_nonsmooth_mult:
+                    elif key in Outputs.template_nonsmooth_mult:
                         # template space with multiple files (map nodes)
                         strat = output_smooth(workflow, key,
                                               "functional_brain_mask_to_standard", c.fwhm,
@@ -3032,10 +3029,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
         rp = strat.get_resource_pool()
         for key in sorted(rp.keys()):
             # connect nodes to calculate averages
-            if key in outputs.average:
+            if key in Outputs.average:
                 # the outputs we need the averages for
                 strat = calc_avg(workflow, key, strat, num_strat)
-            elif key in outputs.average_mult:
+            elif key in Outputs.average_mult:
                 # those outputs, but the ones with multiple files (map nodes)
                 strat = calc_avg(workflow, key, strat,
                                  num_strat, map_node=True)
@@ -3049,7 +3046,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     if 1 in c.generateQualityControlImages:
         qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
-            create_qc_workflow(workflow, c, strat_list, outputs.qc)
+            create_qc_workflow(workflow, c, strat_list, Outputs.qc)
 
 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
@@ -3310,34 +3307,34 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             for key in sorted(rp.keys()):
 
-                if key not in outputs.override_optional:
+                if key not in Outputs.override_optional:
 
                     if 1 not in c.write_func_outputs:
-                        if key in outputs.extra_functional:
+                        if key in Outputs.extra_functional:
                             continue
 
                     if 1 not in c.write_debugging_outputs:
-                        if key in outputs.debugging:
+                        if key in Outputs.debugging:
                             continue
 
                     if 0 not in c.runRegisterFuncToMNI:
-                        if key in outputs.native_nonsmooth or \
-                            key in outputs.native_nonsmooth_mult or \
-                                key in outputs.native_smooth:
+                        if key in Outputs.native_nonsmooth or \
+                            key in Outputs.native_nonsmooth_mult or \
+                                key in Outputs.native_smooth:
                             continue
 
                     if 0 not in c.runZScoring:
                         # write out only the z-scored outputs
-                        if key in outputs.template_raw or \
-                                key in outputs.template_raw_mult:
+                        if key in Outputs.template_raw or \
+                                key in Outputs.template_raw_mult:
                             continue
 
                     if 0 not in c.run_smoothing:
                         # write out only the smoothed outputs
-                        if key in outputs.native_nonsmooth or \
-                            key in outputs.template_nonsmooth or \
-                                key in outputs.native_nonsmooth_mult or \
-                                key in outputs.template_nonsmooth_mult:
+                        if key in Outputs.native_nonsmooth or \
+                            key in Outputs.template_nonsmooth or \
+                                key in Outputs.native_nonsmooth_mult or \
+                                key in Outputs.template_nonsmooth_mult:
                             continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
