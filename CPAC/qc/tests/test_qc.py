@@ -25,6 +25,7 @@ def test_qc():
     c = Configuration({
         "workingDirectory": "",
         "crashLogDirectory": "",
+        "outputDirectory":""
     })
 
     workflow = pe.Workflow(name='workflow_name')
@@ -38,7 +39,7 @@ def test_qc():
     strat_list = [strat_initial]
 
     output_df_dct = gather_outputs(
-        "<pipeline output>",
+        c.outputDirectory,
         [
             "functional_brain_mask",
             "functional_to_anat_linear_xfm",
