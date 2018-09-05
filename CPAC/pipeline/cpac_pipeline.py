@@ -952,12 +952,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     # Inserting Functional Data workflow
 
     for num_strat, strat in enumerate(strat_list):
-        # create a new node, Remember to change its name!
-        # Flow = create_func_datasource(sub_dict['rest'])
-        # Flow.inputs.inputnode.subject = subject_id
-
-        # keep this in so that older participant lists that still have the
-        # "rest" flag will still work
 
         if 'func' in sub_dict:
             func_paths_dict = sub_dict['func']
@@ -2425,11 +2419,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
     new_strat_list = []
 
     if "SpatialReg" in ts_analysis_dict.keys() or \
-            "DualReg" in sca_analysis_dict.keys():
+        "DualReg" in sca_analysis_dict.keys():
 
         for num_strat, strat in enumerate(strat_list):
 
             if "SpatialReg" in ts_analysis_dict.keys():
+
                 resample_spatial_map_to_native_space = pe.Node(
                     interface=fsl.FLIRT(),
                     name='resample_spatial_map_to_native_space_%d' % num_strat
@@ -2445,34 +2440,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'spatial_map_dataflow_%d' % num_strat
                 )
 
+                spatial_map_dataflow.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
                 spatial_map_timeseries = get_spatial_map_timeseries(
                     'spatial_map_timeseries_%d' % num_strat
                 )
                 spatial_map_timeseries.inputs.inputspec.demean = True  # c.spatialDemean
 
-            if "DualReg" in sca_analysis_dict.keys():
-                resample_spatial_map_to_native_space_for_dr = pe.Node(
-                    interface=fsl.FLIRT(),
-                    name='resample_spatial_map_to_native_space_for_DR_%d' % num_strat
-                )
-                resample_spatial_map_to_native_space_for_dr.inputs.set(
-                    interp='nearestneighbour',
-                    apply_xfm=True,
-                    in_matrix_file=c.identityMatrix
-                )
-
-                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
-                    sca_analysis_dict["DualReg"],
-                    'spatial_map_dataflow_for_DR_%d' % num_strat
-                )
-
-                spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
-                    'spatial_map_timeseries_for_DR_%d' % num_strat
-                )
-
-                spatial_map_timeseries_for_dr.inputs.inputspec.demean = True  # c.spatialDemean
-
-            if "SpatialReg" in ts_analysis_dict.keys():
                 node, out_file = strat['functional_to_standard']
                 node2, out_file2 = strat['functional_brain_mask_to_standard']
 
@@ -2498,7 +2475,42 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  spatial_map_timeseries,
                                  'inputspec.subject_rest')
 
+                strat.append_name(spatial_map_timeseries.name)
+
+                strat.update_resource_pool({
+                    'spatial_map_timeseries': (spatial_map_timeseries, 'outputspec.subject_timeseries')
+                })
+
+                create_log_node(workflow, spatial_map_timeseries,
+                                'outputspec.subject_timeseries', num_strat)
+
             if "DualReg" in sca_analysis_dict.keys():
+                resample_spatial_map_to_native_space_for_dr = pe.Node(
+                    interface=fsl.FLIRT(),
+                    name='resample_spatial_map_to_native_space_for_DR_%d' % num_strat
+                )
+                resample_spatial_map_to_native_space_for_dr.inputs.set(
+                    interp='nearestneighbour',
+                    apply_xfm=True,
+                    in_matrix_file=c.identityMatrix
+                )
+
+                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
+                    sca_analysis_dict["DualReg"],
+                    'spatial_map_dataflow_for_DR_%d' % num_strat
+                )
+
+                spatial_map_dataflow_for_dr.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
+                spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
+                    'spatial_map_timeseries_for_DR_%d' % num_strat
+                )
+
+                spatial_map_timeseries_for_dr.inputs.inputspec.demean = True  # c.spatialDemean
+
                 node, out_file = strat['functional_to_standard']
                 node2, out_file2 = strat['functional_brain_mask_to_standard']
 
@@ -2517,7 +2529,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     resample_spatial_map_to_native_space_for_dr,
                     'out_file',
                     spatial_map_timeseries_for_dr,
-                    'inputspec.spatial_map')
+                    'inputspec.spatial_map'
+                )
 
                 workflow.connect(node2, out_file2,
                                  spatial_map_timeseries_for_dr,
@@ -2526,18 +2539,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  spatial_map_timeseries_for_dr,
                                  'inputspec.subject_rest')
-
-            if "SpatialReg" in ts_analysis_dict.keys():
-                strat.append_name(spatial_map_timeseries.name)
-
-                strat.update_resource_pool({
-                    'spatial_map_timeseries': (spatial_map_timeseries, 'outputspec.subject_timeseries')
-                })
-
-                create_log_node(workflow, spatial_map_timeseries,
-                                'outputspec.subject_timeseries', num_strat)
-
-            if "DualReg" in sca_analysis_dict.keys():
 
                 strat.append_name(spatial_map_timeseries_for_dr.name)
 
@@ -2554,13 +2555,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     new_strat_list = []
 
-    if ("Avg" in ts_analysis_dict.keys()) or \
-        ("Avg" in sca_analysis_dict.keys()) or \
-            ("MultReg" in sca_analysis_dict.keys()):
+    if "Avg" in ts_analysis_dict.keys() or \
+        "Avg" in sca_analysis_dict.keys() or \
+        "MultReg" in sca_analysis_dict.keys():
 
         for num_strat, strat in enumerate(strat_list):
 
             if "Avg" in ts_analysis_dict.keys():
+
                 resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                      name='resample_functional_to_roi_%d' % num_strat)
 
@@ -2571,12 +2573,39 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 )
 
                 roi_dataflow = create_roi_mask_dataflow(
-                    ts_analysis_dict["Avg"], 'roi_dataflow_%d' % num_strat
+                    ts_analysis_dict["Avg"],
+                    'roi_dataflow_%d' % num_strat
+                )
+
+                roi_dataflow.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
                 )
 
                 roi_timeseries = get_roi_timeseries(
                     'roi_timeseries_%d' % num_strat
                 )
+
+                node, out_file = strat['functional_to_standard']
+
+                # resample the input functional file to roi
+                workflow.connect(node, out_file,
+                                 resample_functional_to_roi, 'in_file')
+                workflow.connect(roi_dataflow, 'outputspec.out_file',
+                                 resample_functional_to_roi, 'reference')
+
+                # connect it to the roi_timeseries
+                workflow.connect(roi_dataflow, 'outputspec.out_file',
+                                 roi_timeseries, 'input_roi.roi')
+                workflow.connect(resample_functional_to_roi, 'out_file',
+                                 roi_timeseries, 'inputspec.rest')
+
+                strat.append_name(roi_timeseries.name)
+                strat.update_resource_pool({
+                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs')
+                })
+                create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
+                                num_strat)
 
             if "Avg" in sca_analysis_dict.keys():
 
@@ -2598,9 +2627,40 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_for_sca_%d' % num_strat
                 )
 
+                roi_dataflow_for_sca.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
                 roi_timeseries_for_sca = get_roi_timeseries(
                     'roi_timeseries_for_sca_%d' % num_strat
                 )
+
+                node, out_file = strat['functional_to_standard']
+
+                # resample the input functional file to roi
+                workflow.connect(node, out_file,
+                                 resample_functional_to_roi_for_sca,
+                                 'in_file')
+                workflow.connect(roi_dataflow_for_sca,
+                                 'outputspec.out_file',
+                                 resample_functional_to_roi_for_sca,
+                                 'reference')
+
+                # connect it to the roi_timeseries
+                workflow.connect(roi_dataflow_for_sca,
+                                 'outputspec.out_file',
+                                 roi_timeseries_for_sca, 'input_roi.roi')
+                workflow.connect(resample_functional_to_roi_for_sca,
+                                 'out_file',
+                                 roi_timeseries_for_sca, 'inputspec.rest')
+
+                strat.append_name(roi_timeseries_for_sca.name)
+                strat.update_resource_pool({
+                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs')
+                })
+                create_log_node(workflow, roi_timeseries_for_sca,
+                                'outputspec.roi_outputs', num_strat)
 
             if "MultReg" in sca_analysis_dict.keys():
 
@@ -2622,47 +2682,15 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_for_mult_reg_%d' % num_strat
                 )
 
+                roi_dataflow_for_multreg.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
                 roi_timeseries_for_multreg = get_roi_timeseries(
                     'roi_timeseries_for_mult_reg_%d' % num_strat
                 )
 
-            if "Avg" in ts_analysis_dict.keys():
-
-                node, out_file = strat['functional_to_standard']
-
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                 resample_functional_to_roi, 'in_file')
-                workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                 resample_functional_to_roi, 'reference')
-
-                # connect it to the roi_timeseries
-                workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                 roi_timeseries, 'input_roi.roi')
-                workflow.connect(resample_functional_to_roi, 'out_file',
-                                 roi_timeseries, 'inputspec.rest')
-
-            if "Avg" in sca_analysis_dict.keys():
-                node, out_file = strat['functional_to_standard']
-
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                 resample_functional_to_roi_for_sca,
-                                 'in_file')
-                workflow.connect(roi_dataflow_for_sca,
-                                 'outputspec.out_file',
-                                 resample_functional_to_roi_for_sca,
-                                 'reference')
-
-                # connect it to the roi_timeseries
-                workflow.connect(roi_dataflow_for_sca,
-                                 'outputspec.out_file',
-                                 roi_timeseries_for_sca, 'input_roi.roi')
-                workflow.connect(resample_functional_to_roi_for_sca,
-                                 'out_file',
-                                 roi_timeseries_for_sca, 'inputspec.rest')
-
-            if "MultReg" in sca_analysis_dict.keys():
                 node, out_file = strat['functional_to_standard']
 
                 # resample the input functional file to roi
@@ -2684,23 +2712,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  roi_timeseries_for_multreg,
                                  'inputspec.rest')
 
-            if "Avg" in ts_analysis_dict.keys():
-                strat.append_name(roi_timeseries.name)
-                strat.update_resource_pool({
-                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs')
-                })
-                create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
-                                num_strat)
-
-            if "Avg" in sca_analysis_dict.keys():
-                strat.append_name(roi_timeseries_for_sca.name)
-                strat.update_resource_pool({
-                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs')
-                })
-                create_log_node(workflow, roi_timeseries_for_sca,
-                                'outputspec.roi_outputs', num_strat)
-
-            if "MultReg" in sca_analysis_dict.keys():
                 strat.append_name(roi_timeseries_for_multreg.name)
                 strat.update_resource_pool({
                     'roi_timeseries_for_SCA_multreg': (roi_timeseries_for_multreg, 'outputspec.roi_outputs')
