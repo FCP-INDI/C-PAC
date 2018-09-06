@@ -86,7 +86,8 @@ from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
     create_roi_mask_dataflow,
-    create_spatial_map_dataflow
+    create_spatial_map_dataflow,
+    create_check_for_s3_node
 )
 from CPAC.utils import Configuration, Strategy, Outputs, function, find_files
 
@@ -281,6 +282,37 @@ Maximum potential number of cores that might be used during this run: {max_cores
         'crashdump_dir': os.path.abspath(c.crashLogDirectory)
     }
 
+    # Extract credentials path if it exists
+    try:
+        creds_path = sub_dict['creds_path']
+        if creds_path and 'none' not in creds_path.lower():
+            if os.path.exists(creds_path):
+                input_creds_path = os.path.abspath(creds_path)
+            else:
+                err_msg = 'Credentials path: "%s" for subject "%s" was not ' \
+                          'found. Check this path and try again.' % (
+                              creds_path, subject_id)
+                raise Exception(err_msg)
+        else:
+            input_creds_path = None
+    except KeyError:
+        input_creds_path = None
+
+    # TODO ASH normalize file with schema validator
+    c.template_brain_only_for_anat = create_check_for_s3_node(c.template_brain_only_for_anat, 'anat', input_creds_path, c.workingDirectory)
+    c.template_skull_for_anat = create_check_for_s3_node(c.template_skull_for_anat, 'anat', input_creds_path, c.workingDirectory)
+    c.ref_mask = create_check_for_s3_node(c.ref_mask, 'anat', input_creds_path, c.workingDirectory)
+    c.template_symmetric_brain_only = create_check_for_s3_node(c.template_symmetric_brain_only, 'anat', input_creds_path, c.workingDirectory)
+    c.template_symmetric_skull = create_check_for_s3_node(c.template_symmetric_skull, 'anat', input_creds_path, c.workingDirectory)
+    c.dilated_symmetric_brain_mask = create_check_for_s3_node(c.dilated_symmetric_brain_mask, 'anat', input_creds_path, c.workingDirectory)
+    c.templateSpecificationFile = create_check_for_s3_node(c.templateSpecificationFile, 'anat', input_creds_path, c.workingDirectory)
+
+    c.configFileTwomm = create_check_for_s3_node(c.configFileTwomm, 'other', input_creds_path, c.workingDirectory)
+
+    c.PRIORS_CSF = create_check_for_s3_node(c.PRIORS_CSF, 'anat', input_creds_path, c.workingDirectory)
+    c.PRIORS_GRAY = create_check_for_s3_node(c.PRIORS_GRAY, 'anat', input_creds_path, c.workingDirectory)
+    c.PRIORS_WHITE = create_check_for_s3_node(c.PRIORS_WHITE, 'anat', input_creds_path, c.workingDirectory)
+
     try:
         # TODO ASH Enforce c.run_logging to be boolean
         # TODO ASH Schema validation
@@ -332,22 +364,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     workflow_bit_id = {}
     workflow_counter = 0
     num_strat = 0
-
-    # Extract credentials path if it exists
-    try:
-        creds_path = sub_dict['creds_path']
-        if creds_path and 'none' not in creds_path.lower():
-            if os.path.exists(creds_path):
-                input_creds_path = os.path.abspath(creds_path)
-            else:
-                err_msg = 'Credentials path: "%s" for subject "%s" was not ' \
-                          'found. Check this path and try again.' % (
-                              creds_path, subject_id)
-                raise Exception(err_msg)
-        else:
-            input_creds_path = None
-    except KeyError:
-        input_creds_path = None
 
     flow = create_anat_datasource()
     flow.inputs.inputnode.subject = subject_id
@@ -506,10 +522,17 @@ Maximum potential number of cores that might be used during this run: {max_cores
                              fnirt_reg_anat_mni, 'inputspec.input_skull')
 
             # pass the reference files
-            fnirt_reg_anat_mni.inputs.inputspec.set(
-                reference_brain=c.template_brain_only_for_anat,
-                reference_skull=c.template_skull_for_anat,
-                ref_mask=c.ref_mask
+            workflow.connect(
+                c.template_brain_only_for_anat, 'local_path',
+                fnirt_reg_anat_mni, 'inputspec.reference_brain'
+            )
+            workflow.connect(
+                c.template_skull_for_anat, 'local_path',
+                fnirt_reg_anat_mni, 'inputspec.reference_skull'
+            )
+            workflow.connect(
+                c.ref_mask, 'local_path',
+                fnirt_reg_anat_mni, 'inputspec.ref_mask'
             )
 
             # assign the FSL FNIRT config file specified in pipeline
@@ -582,8 +605,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.anatomical_brain')
 
                 # pass the reference file
-                ants_reg_anat_mni.inputs.inputspec.set(
-                    reference_brain=c.template_brain_only_for_anat
+                workflow.connect(
+                    c.template_brain_only_for_anat, 'local_path',
+                    ants_reg_anat_mni, 'inputspec.reference_brain'
                 )
 
                 # get the reorient skull-on anatomical from resource pool
@@ -595,8 +619,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.anatomical_skull')
 
                 # pass the reference file
-                ants_reg_anat_mni.inputs.inputspec.set(
-                    reference_skull=c.template_skull_for_anat
+                workflow.connect(
+                    c.template_skull_for_anat, 'local_path',
+                    ants_reg_anat_mni, 'inputspec.reference_skull'
                 )
 
             else:
@@ -607,8 +632,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.anatomical_brain')
 
                 # pass the reference file
-                ants_reg_anat_mni.inputs.inputspec.set(
-                    reference_brain=c.template_brain_only_for_anat
+                workflow.connect(
+                    c.template_brain_only_for_anat, 'local_path',
+                    ants_reg_anat_mni, 'inputspec.reference_brain'
                 )
 
             ants_reg_anat_mni.inputs.inputspec.set(
@@ -669,19 +695,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     if 1 in c.runVMHC:
 
-        # TODO ASH schema validator
-        if not os.path.exists(c.template_symmetric_brain_only):
-            logger.info("\n\n" + (
-                "ERROR: Missing file - %s" % c.template_symmetric_brain_only) + "\n\n" +
-                "Error name: cpac_pipeline_0017" + "\n\n")
-            raise Exception
-
-        if not os.path.exists(c.template_symmetric_skull):
-            logger.info("\n\n" + (
-                "ERROR: Missing file - %s" % c.template_symmetric_skull) + "\n\n" +
-                "Error name: cpac_pipeline_0018" + "\n\n")
-            raise Exception
-
         workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
@@ -721,16 +734,19 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  fnirt_reg_anat_symm_mni,
                                  'inputspec.input_skull')
 
-                # pass the reference files
-                fnirt_reg_anat_symm_mni.inputs.inputspec.set(
-                    reference_brain=c.template_symmetric_brain_only,
-                    reference_skull=c.template_symmetric_skull,
-                    ref_mask=c.dilated_symmetric_brain_mask,
+                
+                workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                    # assign the FSL FNIRT config file
-                    # specified in pipeline config.yml
-                    fnirt_config=c.configFileTwomm
-                )
+                workflow.connect(c.template_symmetric_skull, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.reference_skull')
+
+                workflow.connect(c.dilated_symmetric_brain_mask, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.ref_mask')
+
+                workflow.connect(c.configFileTwomm, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.fnirt_config')
+
 
                 strat.append_name(fnirt_reg_anat_symm_mni.name)
                 strat.set_leaf_properties(fnirt_reg_anat_symm_mni,
@@ -746,7 +762,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 create_log_node(workflow, fnirt_reg_anat_symm_mni,
                                 'outputspec.output_brain', num_strat)
 
-                num_strat += 1
 
         strat_list += new_strat_list
 
@@ -795,8 +810,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                      'inputspec.anatomical_brain')
 
                     # pass the reference file
-                    ants_reg_anat_symm_mni.inputs.inputspec.reference_brain = \
-                        c.template_symmetric_brain_only
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                     # get the reorient skull-on anatomical from resource
                     # pool
@@ -808,8 +823,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                      'inputspec.anatomical_skull')
 
                     # pass the reference file
-                    ants_reg_anat_symm_mni.inputs.inputspec.reference_skull = \
-                        c.template_symmetric_skull
+                    workflow.connect(c.template_symmetric_skull, 'local_path',
+                                     ants_reg_anat_symm_mni, 'inputspec.reference_skull')
+
 
                 else:
                     # get the skullstripped anatomical from resource pool
@@ -820,8 +836,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                      'inputspec.anatomical_brain')
 
                     # pass the reference file
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        reference_brain = c.template_symmetric_brain_only
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                 ants_reg_anat_symm_mni.inputs.inputspec.set(
                     dimension=3,
@@ -921,11 +937,15 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
 
-            seg_preproc.inputs.inputspec.set(
-                PRIOR_CSF=c.PRIORS_CSF,
-                PRIOR_GRAY=c.PRIORS_GRAY,
-                PRIOR_WHITE=c.PRIORS_WHITE
-            )
+            
+            workflow.connect(c.PRIORS_CSF, 'local_path,
+                             seg_preproc, 'inputspec.PRIOR_CSF')
+
+            workflow.connect(c.PRIORS_GRAY, 'local_path,
+                             seg_preproc, 'inputspec.PRIOR_GRAY')
+
+            workflow.connect(c.PRIORS_CSF, 'local_path,
+                             seg_preproc, 'inputspec.PRIOR_CSF')
 
             # TODO ASH review with forking function
             if 0 in c.runSegmentationPreprocessing:
@@ -2885,14 +2905,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
         # TODO ASH move to schema validator
         # validate the mask file path
-        if not c.templateSpecificationFile.endswith(".nii") and \
-                not c.templateSpecificationFile.endswith(".nii.gz"):
-            err = "\n\n[!] CPAC says: The Network Centrality mask " \
-                  "specification file must be a NIFTI file (ending in .nii " \
-                  "or .nii.gz).\nFile path you provided: %s\n\n" \
-                  % c.templateSpecificationFile
+        # if not c.templateSpecificationFile.endswith(".nii") and \
+        #         not c.templateSpecificationFile.endswith(".nii.gz"):
+        #     err = "\n\n[!] CPAC says: The Network Centrality mask " \
+        #           "specification file must be a NIFTI file (ending in .nii " \
+        #           "or .nii.gz).\nFile path you provided: %s\n\n" \
+        #           % c.templateSpecificationFile
 
-            raise Exception(err)
+        #     raise Exception(err)
 
         strat_list = create_network_centrality_workflow(
             workflow, c, strat_list, {
@@ -3419,7 +3439,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                             'graph, dot or/and pygraphviz is not installed')
 
             logger.info('%s*' % pipeline_dir)
-            num_strat += 1
 
             pipes.append(pipeline_id)
 

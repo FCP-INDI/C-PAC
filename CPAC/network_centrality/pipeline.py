@@ -42,18 +42,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
         True in c.lfcdWeightOptions
     )):
         return strategies
-        
 
-    check_s3_node = pe.Node(function.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'dl_dir',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3),
-                            name='check_for_s3')
-
-    check_s3_node.inputs.file_path = c.templateSpecificationFile
-    check_s3_node.inputs.set(**s3_config)
 
     for num_strat, strat in enumerate(strategies[:]):
 
@@ -76,7 +65,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
         workflow.connect(node, out_file,
                          resample_functional_to_template, 'in_file')
         
-        workflow.connect(check_s3_node, 'local_path',
+        workflow.connect(c.templateSpecificationFile, 'local_path',
                          resample_functional_to_template, 'reference')
 
         # Init merge node for appending method output lists to one another
@@ -96,7 +85,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.degWeightOptions:
                 connect_afni_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, check_s3_node, merge_node,
+                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
                     'degree',
                     c.degCorrelationThresholdOption,
                     c.degCorrelationThreshold
@@ -104,7 +93,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.eigWeightOptions:
                 connect_afni_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, check_s3_node, merge_node,
+                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
                     'eigenvector',
                     c.eigCorrelationThresholdOption,
                     c.eigCorrelationThreshold
@@ -115,7 +104,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.degWeightOptions:
                 connect_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, check_s3_node, merge_node,
+                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
                     'degree',
                     c.degCorrelationThresholdOption,
                     c.degCorrelationThreshold,
@@ -126,7 +115,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.eigWeightOptions:
                 connect_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, check_s3_node, merge_node,
+                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
                     'eigenvector',
                     c.eigCorrelationThresholdOption,
                     c.eigCorrelationThreshold,
@@ -139,7 +128,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.lfcdWeightOptions:
                 connect_afni_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, check_s3_node, merge_node,
+                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
                     'lfcd',
                     c.lfcdCorrelationThresholdOption,
                     c.lfcdCorrelationThreshold
@@ -150,7 +139,7 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.lfcdWeightOptions:
                 connect_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, check_s3_node, merge_node,
+                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
                     'lfcd',
                     c.lfcdCorrelationThresholdOption,
                     c.lfcdCorrelationThreshold,

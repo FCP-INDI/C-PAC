@@ -206,6 +206,26 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
+def create_check_for_s3_node(file_path, img_type, creds_path, dl_dir):
+
+    check_s3_node = pe.Node(util.Function(input_names=['file_path',
+                                                       'creds_path',
+                                                       'dl_dir',
+                                                       'img_type'],
+                                          output_names=['local_path'],
+                                          function=check_for_s3),
+                            name='check_for_s3')
+
+    check_s3_node.inputs.set(
+        file_path=file_path,
+        creds_path=creds_path,
+        dl_dir=dl_dir,
+        img_type=img_type
+    )
+
+    return check_s3_node
+
+
 # Check if passed-in file is on S3
 def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
@@ -283,7 +303,7 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
         local_path = file_path
 
     # Check image dimensionality
-    if '.nii' in local_path:
+    if local_path.endswith('.nii') or local_path.endswith('.nii.gz'):
         try:
             img_nii = nib.load(local_path)
         except Exception as e:
@@ -302,8 +322,6 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
                 raise IOError('File: %s must be a functional image with 4 '\
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
-        elif img_type == "other":
-            pass
 
     # Return the local path
     return local_path
