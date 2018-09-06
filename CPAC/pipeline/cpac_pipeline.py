@@ -2895,7 +2895,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
             raise Exception(err)
 
         strat_list = create_network_centrality_workflow(
-            workflow, c, strat_list
+            workflow, c, strat_list, {
+                "creds_path": input_creds_path,
+                "dl_dir": c.workingDirectory
+            }
         )
 
     '''
