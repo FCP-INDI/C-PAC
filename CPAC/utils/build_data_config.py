@@ -1051,6 +1051,9 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         label = new_template.split(part1, 1)[1]
         label = label.split(part2, 1)[0]
 
+        if label in path_dct.keys():
+            continue
+
         if label == "*":
             # if current key is a wildcard
             continue
@@ -1179,10 +1182,10 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             data_dct[site_id][sub_id][ses_id] = temp_sub_dct
         else:
             # doubt this ever happens, but just be safe
-            warn = "\n\n[!] WARNING: Duplicate site-participant-session " \
-                   "entry found in your input data directory!\n\nDuplicate " \
-                   "sets:\n\n{0}\n\n{1}\n\nOnly adding the first one to " \
-                   "the data configuration file." \
+            warn = "\n\n[!] WARNING: Multiple site-participant-session " \
+                   "entries found for anatomical scans in your input data " \
+                   "directory.\n\nDuplicate sets:\n\n{0}\n\n{1}\n\nOnly " \
+                   "adding the first one to the data configuration file." \
                    "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
                                  str(temp_sub_dct))
             print warn
@@ -1201,7 +1204,8 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
         if site_id not in data_dct.keys():
             if verbose:
-                print "No anatomical found for functional for site {0}:" \
+                print "No anatomical entries found for functional for " \
+                      "site {0}:" \
                       "\n{1}\n".format(site_id, file_path)
             return data_dct
         if sub_id not in data_dct[site_id].keys():
@@ -1262,8 +1266,8 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
         if site_id not in data_dct.keys():
             if verbose:
-                print "No anatomical found for field map file for site {0}:" \
-                      "\n{1}\n".format(site_id, file_path)
+                print "No anatomical entries found for field map file for " \
+                      "site {0}:\n{1}\n".format(site_id, file_path)
             return data_dct
         if sub_id not in data_dct[site_id].keys():
             if verbose:
@@ -1272,8 +1276,26 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             return data_dct
         if ses_id not in data_dct[site_id][sub_id].keys():
             if verbose:
-                print "No anatomical found for field map file for session " \
-                      "{0}:\n{1}\n".format(ses_id, file_path)
+                for temp_ses in data_dct[site_id][sub_id].keys():
+                    if 'anat' in data_dct[site_id][sub_id][temp_ses].keys():
+                        warn = "Field map file found for session {0}, but " \
+                               "the anatomical scan chosen for this " \
+                               "participant-session is for session {1}, " \
+                               "so this field map file is being " \
+                               "skipped:\n{2}\n".format(ses_id, temp_ses,
+                                                        file_path)
+                        warn = "{0}\nIf you wish to use the anatomical " \
+                               "scan for session {1} for all participants " \
+                               "with this session instead, use the 'Which " \
+                               "Anatomical Scan?' option in the data " \
+                               "configuration builder (or populate the " \
+                               "'anatomical_scan' field in the data " \
+                               "settings file).\n".format(warn, ses_id)
+                        break
+                else:
+                    warn = "No anatomical found for field map file for " \
+                           "session {0}:\n{1}\n".format(ses_id, file_path)
+                print(warn)
             return data_dct
 
         if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
@@ -1337,6 +1359,10 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
               "(anatomical_scan) setting for more information.\n\n"
         raise Exception(err)
 
+    if anat_scan:
+        if "None" in anat_scan or "none" in anat_scan:
+            anat_scan = None
+
     # replace the keywords with wildcards
     for keyword in keywords:
         if keyword in anat_glob:
@@ -1388,9 +1414,22 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         # this fires if no anatomicals were found
         # collect some possible examples of anat files that got missed
         possible_anats = []
+        all_tags = []
         for anat_path in anat_pool:
-            if "T1w" in anat_path or "mprage" in anat_path:
+            if "T1w" in anat_path or "mprage" in anat_path or \
+                    "anat" in anat_path:
                 possible_anats.append(anat_path)
+                all_tags += anat_path.replace('.nii', '').replace('.gz', '').split('_')
+
+        from collections import Counter
+        count = Counter(all_tags)
+        all_tags = [k for k, v in count.items() if v > 1]
+
+        tags = []
+        for tag in all_tags:
+            if '/' in tag or 'ses-' in tag:
+                continue
+            tags.append(tag)
 
         err = "\n\n[!] No anatomical input files were found given the " \
               "data settings provided.\n\n"
@@ -1400,6 +1439,11 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                   "that were missed. Here are a few examples:\n".format(err)
             for anat in possible_anats[0:5]:
                 err = "{0}{1}\n".format(err, anat)
+            err = "{0}\nAnd here are some of the possible tags that were " \
+                  "found in the anatomical file paths that were grabbed:" \
+                  "\n".format(err)
+            for tag in tags[0:20]:
+                err = "{0}{1}\n".format(err, tag)
             err = "{0}\nCPAC only needs one anatomical scan defined for " \
                   "each participant-session. If there are multiple " \
                   "anatomical scans per participant-session, you can use " \
