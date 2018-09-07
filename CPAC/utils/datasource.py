@@ -1,6 +1,8 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
+from CPAC.utils import function
+
 
 def get_rest(scan, rest_dict, resource="scan"):
     """Return the file path of the chosen resource stored in the functional
@@ -91,21 +93,23 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     # have this here for now because of the big change in the data
     # configuration format
-    check_scan = pe.Node(util.Function(input_names=['func_scan_dct',
-                                                    'scan'],
-                                       output_names=[],
-                                       function=check_func_scan),
+    check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
+                                                        'scan'],
+                                           output_names=[],
+                                           function=check_func_scan,
+                                           as_module=True),
                          name='check_func_scan')
 
     check_scan.inputs.func_scan_dct = rest_dict
     wf.connect(inputnode, 'scan', check_scan, 'scan')
 
     # get the functional scan itself
-    selectrest = pe.Node(util.Function(input_names=['scan',
-                                                    'rest_dict',
-                                                    'resource'],
-                                       output_names=['file_path'],
-                                       function=get_rest),
+    selectrest = pe.Node(function.Function(input_names=['scan',
+                                                        'rest_dict',
+                                                        'resource'],
+                                           output_names=['file_path'],
+                                           function=get_rest,
+                                           as_module=True),
                          name='selectrest')
     selectrest.inputs.rest_dict = rest_dict
     selectrest.inputs.resource = "scan"
@@ -113,12 +117,13 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
     # is - otherwise, just return the local file path
-    check_s3_node = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='check_for_s3')
 
     wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
@@ -131,23 +136,25 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
     # scan parameters CSV
-    select_scan_params = pe.Node(util.Function(input_names=['scan',
-                                                            'rest_dict',
-                                                            'resource'],
-                                               output_names=['file_path'],
-                                               function=get_rest),
+    select_scan_params = pe.Node(function.Function(input_names=['scan',
+                                                                'rest_dict',
+                                                                'resource'],
+                                                   output_names=['file_path'],
+                                                   function=get_rest,
+                                                   as_module=True),
                                  name='select_scan_params')
     select_scan_params.inputs.rest_dict = rest_dict
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')
 
     # if the scan parameters file is on AWS S3, download it
-    s3_scan_params = pe.Node(util.Function(input_names=['file_path',
-                                                        'creds_path',
-                                                        'dl_dir',
-                                                        'img_type'],
-                                           output_names=['local_path'],
-                                           function=check_for_s3),
+    s3_scan_params = pe.Node(function.Function(input_names=['file_path',
+                                                            'creds_path',
+                                                            'dl_dir',
+                                                            'img_type'],
+                                               output_names=['local_path'],
+                                               function=check_for_s3,
+                                               as_module=True),
                              name='s3_scan_params')
 
     wf.connect(select_scan_params, 'file_path', s3_scan_params, 'file_path')
@@ -156,22 +163,24 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
 
     # field map phase file, for field map distortion correction
-    select_fmap_phase = pe.Node(util.Function(input_names=['scan',
-                                                           'rest_dict',
-                                                           'resource'],
-                                              output_names=['file_path'],
-                                              function=get_rest),
+    select_fmap_phase = pe.Node(function.Function(input_names=['scan',
+                                                               'rest_dict',
+                                                               'resource'],
+                                                  output_names=['file_path'],
+                                                  function=get_rest,
+                                                  as_module=True),
                                 name='select_fmap_phase')
     select_fmap_phase.inputs.rest_dict = rest_dict
     select_fmap_phase.inputs.resource = "fmap_phase"
     wf.connect(inputnode, 'scan', select_fmap_phase, 'scan')
 
-    s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    s3_fmap_phase = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='s3_fmap_phase')
     s3_fmap_phase.inputs.img_type = "other"
     wf.connect(select_fmap_phase, 'file_path', s3_fmap_phase, 'file_path')
@@ -180,22 +189,24 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
 
     # field map magnitude file, for field map distortion correction
-    select_fmap_mag = pe.Node(util.Function(input_names=['scan',
-                                                         'rest_dict',
-                                                         'resource'],
-                                            output_names=['file_path'],
-                                            function=get_rest),
+    select_fmap_mag = pe.Node(function.Function(input_names=['scan',
+                                                             'rest_dict',
+                                                             'resource'],
+                                                output_names=['file_path'],
+                                                function=get_rest,
+                                                as_module=True),
                               name='select_fmap_mag')
     select_fmap_mag.inputs.rest_dict = rest_dict
     select_fmap_mag.inputs.resource = "fmap_mag"
     wf.connect(inputnode, 'scan', select_fmap_mag, 'scan')
 
-    s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
-                                                     'creds_path',
-                                                     'dl_dir',
-                                                     'img_type'],
-                                        output_names=['local_path'],
-                                        function=check_for_s3),
+    s3_fmap_mag = pe.Node(function.Function(input_names=['file_path',
+                                                         'creds_path',
+                                                         'dl_dir',
+                                                         'img_type'],
+                                            output_names=['local_path'],
+                                            function=check_for_s3,
+                                            as_module=True),
                           name='s3_fmap_mag')
     s3_fmap_mag.inputs.img_type = "other"
     wf.connect(select_fmap_mag, 'file_path', s3_fmap_mag, 'file_path')
@@ -206,15 +217,16 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
-def create_check_for_s3_node(file_path, img_type, creds_path, dl_dir):
+def create_check_for_s3_node(name, file_path, img_type, creds_path, dl_dir):
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
-                            name='check_for_s3')
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3_%s' % name)
 
     check_s3_node.inputs.set(
         file_path=file_path,
@@ -267,7 +279,7 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
         # Extract relative key path from bucket and local path
         s3_prefix = s3_str + bucket_name
-        s3_key = file_path[len(s3_prefix):]
+        s3_key = file_path[len(s3_prefix) + 1:]
         local_path = os.path.join(dl_dir, bucket_name, s3_key)
 
         # Get local directory and create folders if they dont exist
@@ -340,12 +352,13 @@ def create_anat_datasource(wf_name='anat_datasource'):
                                 mandatory_inputs=True),
                         name='inputnode')
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='check_for_s3')
 
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
@@ -424,12 +437,13 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
         ('mask_file', mask_values),
     ]
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='check_for_s3')
 
     wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
@@ -500,12 +514,13 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
         ('spatial_map_file', spatial_map_values),
     ]
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='check_for_s3')
 
     wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
@@ -536,15 +551,16 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
                                                 mandatory_inputs=True),
                         name='inputspec')
 
-    selectmodel = pe.Node(util.Function(input_names=['model',
-                                                        'ftest',
-                                                        'model_name'],
-                                        output_names=['fts_file',
-                                                        'con_file',
-                                                        'grp_file',
-                                                        'mat_file'],
-                                        function=select_model_files),
-                            name='selectnode')
+    selectmodel = pe.Node(function.Function(input_names=['model',
+                                                         'ftest',
+                                                         'model_name'],
+                                            output_names=['fts_file',
+                                                          'con_file',
+                                                          'grp_file',
+                                                          'mat_file'],
+                                            function=select_model_files,
+                                            as_module=True),
+                          name='selectnode')
 
     wf.connect(inputnode, 'ftest',
                 selectmodel, 'ftest')

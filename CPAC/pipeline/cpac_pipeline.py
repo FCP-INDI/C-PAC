@@ -298,20 +298,36 @@ Maximum potential number of cores that might be used during this run: {max_cores
     except KeyError:
         input_creds_path = None
 
-    # TODO ASH normalize file with schema validator
-    c.template_brain_only_for_anat = create_check_for_s3_node(c.template_brain_only_for_anat, 'anat', input_creds_path, c.workingDirectory)
-    c.template_skull_for_anat = create_check_for_s3_node(c.template_skull_for_anat, 'anat', input_creds_path, c.workingDirectory)
-    c.ref_mask = create_check_for_s3_node(c.ref_mask, 'anat', input_creds_path, c.workingDirectory)
-    c.template_symmetric_brain_only = create_check_for_s3_node(c.template_symmetric_brain_only, 'anat', input_creds_path, c.workingDirectory)
-    c.template_symmetric_skull = create_check_for_s3_node(c.template_symmetric_skull, 'anat', input_creds_path, c.workingDirectory)
-    c.dilated_symmetric_brain_mask = create_check_for_s3_node(c.dilated_symmetric_brain_mask, 'anat', input_creds_path, c.workingDirectory)
-    c.templateSpecificationFile = create_check_for_s3_node(c.templateSpecificationFile, 'anat', input_creds_path, c.workingDirectory)
+    # TODO ASH normalize file paths with schema validator
+    template_anat_keys = [
+        "template_brain_only_for_anat",
+        "template_skull_for_anat",
+        "ref_mask",
+        "template_symmetric_brain_only",
+        "template_symmetric_skull",
+        "dilated_symmetric_brain_mask",
+        "templateSpecificationFile",
 
-    c.configFileTwomm = create_check_for_s3_node(c.configFileTwomm, 'other', input_creds_path, c.workingDirectory)
+        "PRIORS_CSF",
+        "PRIORS_GRAY",
+        "PRIORS_WHITE",
+    ]
 
-    c.PRIORS_CSF = create_check_for_s3_node(c.PRIORS_CSF, 'anat', input_creds_path, c.workingDirectory)
-    c.PRIORS_GRAY = create_check_for_s3_node(c.PRIORS_GRAY, 'anat', input_creds_path, c.workingDirectory)
-    c.PRIORS_WHITE = create_check_for_s3_node(c.PRIORS_WHITE, 'anat', input_creds_path, c.workingDirectory)
+    for key in template_anat_keys:
+
+        node = create_check_for_s3_node(
+            key,
+            getattr(c, key), 'anat',
+            input_creds_path, c.workingDirectory
+        )
+
+        setattr(c, key, node)
+
+    c.configFileTwomm = create_check_for_s3_node(
+        'configFileTwomm',
+        c.configFileTwomm, 'other',
+        input_creds_path, c.workingDirectory
+    )
 
     try:
         # TODO ASH Enforce c.run_logging to be boolean
@@ -938,14 +954,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.standard2highres_mat')
 
             
-            workflow.connect(c.PRIORS_CSF, 'local_path,
+            workflow.connect(c.PRIORS_CSF, 'local_path',
                              seg_preproc, 'inputspec.PRIOR_CSF')
 
-            workflow.connect(c.PRIORS_GRAY, 'local_path,
+            workflow.connect(c.PRIORS_GRAY, 'local_path',
                              seg_preproc, 'inputspec.PRIOR_GRAY')
 
-            workflow.connect(c.PRIORS_CSF, 'local_path,
-                             seg_preproc, 'inputspec.PRIOR_CSF')
+            workflow.connect(c.PRIORS_WHITE, 'local_path',
+                             seg_preproc, 'inputspec.PRIOR_WHITE')
 
             # TODO ASH review with forking function
             if 0 in c.runSegmentationPreprocessing:
