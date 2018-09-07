@@ -10,8 +10,8 @@ import nibabel as nb
 import numpy.ma as ma
 
 import matplotlib
-from matplotlib import pyplot
 from matplotlib import pyplot as plt
+
 
 from nipype.interfaces import afni
 import nipype.pipeline.engine as pe
@@ -1622,8 +1622,9 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             im = grid[i].imshow(np.rot90(Y[:, :, zz]), cmap=cm.Greys_r)
         except IndexError as e:
             # TODO: send this to the logger instead
-            print("\n[!] QC Interface: Had a problem with creating the "
-                  "axial montage for {0}\n\nDetails:{1}"
+            print("\n[!] QC Interface: Had a problem with creating the "      
+                  "axial montage for {0}\n\nDetails:{1}. This error might occur because of a registration error encountered while using ANTs.\
+                  Please refer to the png image located in your working directory for more insight."
                   "\n".format(png_name, e))
             pass
         zz += spacing
@@ -1654,7 +1655,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "axial montage for {0}\n\nDetails:{1}"
+                  "axial montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs.\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
@@ -1803,7 +1805,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "sagittal montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
@@ -1836,7 +1839,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "sagittal montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs.\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
