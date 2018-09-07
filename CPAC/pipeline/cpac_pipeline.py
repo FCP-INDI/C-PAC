@@ -307,6 +307,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
         "template_symmetric_skull",
         "dilated_symmetric_brain_mask",
         "templateSpecificationFile",
+        "lateral_ventricles_mask",
 
         "PRIORS_CSF",
         "PRIORS_GRAY",
@@ -1698,7 +1699,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     ('compcor_ncomponents', c.nComponents)
                 ])
 
-                nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
+                workflow.connect(c.lateral_ventricles_mask, 'local_path',
+                                 nuisance, 'inputspec.lat_ventricles_mask')
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
@@ -1838,7 +1840,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     ('compcor_ncomponents', c.nComponents)
                 ])
 
-                nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
+                workflow.connect(c.lateral_ventricles_mask, 'local_path',
+                                 nuisance, 'inputspec.lat_ventricles_mask')
 
                 # enforcing no de-spiking here!
                 # TODO: when condensing these sub-wf builders, pass
