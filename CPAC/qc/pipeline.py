@@ -1,3 +1,4 @@
+import os
 import pkg_resources as p
 import nipype.pipeline.engine as pe
 import CPAC.utils.afni as afni_utils
@@ -139,8 +140,10 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
 
         workflow.connect(mni_anat_underlay, out_file,
                             montage_mni_anat, 'inputspec.underlay')
-        montage_mni_anat.inputs.inputspec.overlay = p.resource_filename(
-            'CPAC', 'resources/templates/MNI152_Edge_AllTissues.nii.gz'
+        montage_mni_anat.inputs.inputspec.overlay = os.path.abspath(
+            p.resource_filename(
+                'CPAC', 'resources/templates/MNI152_Edge_AllTissues.nii.gz'
+            )
         )
 
         strat.update_resource_pool({'qc___mni_normalized_anatomical_a': (montage_mni_anat, 'outputspec.axial_png'),
@@ -212,8 +215,11 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
             'montage_mfi_%d' % num_strat, 'red', 'MNI_edge_on_mean_func_mni')
         workflow.connect(m_f_i, out_file, montage_mfi,
                             'inputspec.underlay')
-        montage_mfi.inputs.inputspec.overlay = p.resource_filename(
-            'CPAC', 'resources/templates/MNI152_Edge_AllTissues.nii.gz')
+        montage_mfi.inputs.inputspec.overlay =  os.path.abspath(
+            p.resource_filename(
+                'CPAC', 'resources/templates/MNI152_Edge_AllTissues.nii.gz'
+            )
+        )
 
         strat.update_resource_pool({'qc___mean_func_with_mni_edge_a': (montage_mfi, 'outputspec.axial_png'),
                                     'qc___mean_func_with_mni_edge_s': (montage_mfi, 'outputspec.sagittal_png')})

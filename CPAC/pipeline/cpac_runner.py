@@ -76,14 +76,12 @@ def get_vectors(strat):
 def make_entries(paths, path_iterables):
 
     entries = []
-    idx = 1
     for path in sorted(paths):
 
         sub_entries = []
         values = path.split('#')
 
-        indx = 0
-        for value in values:
+        for indx, value in enumerate(values):
 
             if '[' or '(' in value:
 
@@ -95,7 +93,6 @@ def make_entries(paths, path_iterables):
                 value = re.sub(r',', '.', value)
                 value = re.sub(r' ', '', value)
             sub_entries.append(path_iterables[indx] + '_' + value)
-            indx += 1
 
         sub_entries = map(lambda x: x.replace("'", ""), sub_entries)
       

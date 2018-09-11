@@ -160,13 +160,14 @@ def z_score_standardize(workflow, output_name, mask_name,
                      z_score_std, 'inputspec.input_file')
 
     # get the mask
-    if "/" in mask_name:
-        # mask_name is a direct file path and not the name of a
-        # resource pool key
-        z_score_std.inputs.inputspec.mask_file = mask_name
-    else:
+    if type(mask_name) == str:
         node, out_file = strat[mask_name]
         workflow.connect(node, out_file,
+                         z_score_std, 'inputspec.mask_file')
+    else:
+        # mask_name is a direct file path and not the name of a
+        # resource pool key
+        workflow.connect(mask_name, 'local_path',
                          z_score_std, 'inputspec.mask_file')
 
     strat.append_name(z_score_std.name)
@@ -226,15 +227,15 @@ def output_smooth(workflow, output_name, mask_name, fwhm,
                      output_smooth, 'op_string')
 
     # get the mask
-    if "/" in mask_name:
-        # mask_name is a direct file path and not the name of a
-        # resource pool key
-        output_smooth.inputs.operand_files = mask_name
-    else:
+    if type(mask_name) == str:
         node, out_file = strat[mask_name]
         workflow.connect(node, out_file,
-                            output_smooth, 'operand_files')
-
+                         output_smooth, 'operand_files')
+    else:
+        # mask_name is a direct file path and not the name of a
+        # resource pool key
+        workflow.connect(mask_name, 'local_path',
+                         output_smooth, 'operand_files')
 
     strat.append_name(output_smooth.name)
     strat.update_resource_pool({'{0}_smooth'.format(output_name): (output_smooth, 'out_file')})
