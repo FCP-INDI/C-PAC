@@ -1,6 +1,7 @@
-from inspect import currentframe, getframeinfo
-
+import os
+import fnmatch
 import threading
+from inspect import currentframe, getframeinfo , stack
 
 global_lock = threading.Lock()
 
@@ -1847,9 +1848,8 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     tvars['wf_list'] = "%s" % wf_list
     tvars['wf_keys'] = "%s" % wf_keys
     tvars['pipeline_indices'] = range(len(tvars['pipelines']))
-    tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
-    tvars['gui_resources'] = os.path.join(CPAC.__path__[0], 'GUI',
-                                          'resources')
+    tvars['resources'] = p.resource_filename('CPAC', 'resources')
+    tvars['gui_resources'] = p.resource_filename('CPAC', 'GUI/resources')
 
     reportdir = op.join(log_dir, "reports")
     if not op.exists(reportdir):
@@ -1865,17 +1865,15 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
 
         fname = p.resource_filename('CPAC', 'resources/templates/'
                                             'cpac_runner.html')
-        tfile = open(fname, 'r')
-        raw_text = tfile.read()
-        tfile.close()
+        with open(fname, 'r') as tfile:
+            raw_text = tfile.read()
 
         template = Template(raw_text)
         text = template.render(**tvars)
 
         htmlfile = op.join(reportdir, "%s.html" % scan)
-        html = open(htmlfile, 'w')
-        html.write(text)
-        html.close()
+        with open(htmlfile, 'w') as html:
+            html.write(text)
 
     # Index File
     fname = p.resource_filename('CPAC',
@@ -1926,6 +1924,14 @@ def create_group_log_template(subject_scan_map, log_dir):
         f.write(text)
 
     return
+
+
+def find_files(directory, pattern):
+    for root, dirs, files in os.walk(directory):
+        for basename in files:
+            if fnmatch.fnmatch(basename, pattern):
+                filename = os.path.join(root, basename)
+                yield filename
 
 
 def extract_output_mean(in_file, output_name):

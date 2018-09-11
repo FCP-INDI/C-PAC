@@ -110,18 +110,18 @@ def build_strategies(configuration):
 
     ### make paths shorter
     path_iterables = ['_threshold', '_compcor', '_target_angle_deg']
-    non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
 
-    proper_names = {'_threshold':'Scrubbing Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
-                    '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = '}
-
-    config_iterables = {'_threshold': eval('configuration.spikeThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+    config_iterables = {
+        '_threshold': configuration.spikeThreshold,
+        '_compcor': configuration.Regressors,
+        '_target_angle_deg': configuration.targetAngleDeg,
+    }
 
     # This is really dirty code and ordering of corrections in
     # in output directory is dependant on the nuisance workflow
     # when the workflow is changed , change this section as well
-    corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion', 'quadratic', 'gm', 'compcor', 'csf']
+    corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion',
+                         'quadratic', 'gm', 'compcor', 'csf']
 
     corrections_dict_list = config_iterables['_compcor']
     main_all_options = []
@@ -131,12 +131,10 @@ def build_strategies(configuration):
         for corrections_dict in corrections_dict_list:
             string = ""
             for correction in corrections_order:
-
                 string += correction + str(corrections_dict[correction]) + '.'
-
             string = string[0:len(string) -1]
 
-            cmpcor_components = eval('configuration.nComponents')
+            cmpcor_components = configuration.nComponents
 
             all_options = []
             for comp in cmpcor_components:
@@ -156,10 +154,6 @@ def build_strategies(configuration):
         raise Exception
 
     strategy_entries = make_entries(paths, sorted(path_iterables))
-
-    print 'strategy_entries: ', strategy_entries, '\n\n'
-
-
     return strategy_entries
 
 

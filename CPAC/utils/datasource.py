@@ -39,7 +39,7 @@ def check_func_scan(func_scan_dct, scan):
     scan_resources = func_scan_dct[scan]
 
     try:
-        keys = scan_resources.keys()
+        scan_resources.keys()
     except AttributeError:
         err = "\n[!] The data configuration file you provided is " \
               "missing a level under the 'func:' key. CPAC versions " \
