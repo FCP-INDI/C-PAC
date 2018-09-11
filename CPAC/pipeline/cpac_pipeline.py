@@ -111,7 +111,6 @@ from CPAC.utils.utils import (
     add_afni_prefix
 )
 
-
 logger = logging.getLogger('workflow')
 
 
@@ -3499,17 +3498,17 @@ Maximum potential number of cores that might be used during this run: {max_cores
         cb_logger.addHandler(handler)
 
         # Add status callback function that writes in callback log
-        if nipype.__version__ not in ('0.13.1'):
-            err_msg = "This version of nipype may not be compatible with " \
-                      "CPAC v%s, please install version 0.13.1\n" \
-                % (CPAC.__version__)
+        if nipype.__version__ not in ('1.1.2'):
+            err_msg = "This version of Nipype may not be compatible with " \
+                      "CPAC v%s, please install Nipype version 1.1.2\n" \
+                       % (CPAC.__version__)
             logger.error(err_msg)
         else:
-            if nipype.__version__ == '0.13.1':
-                from nipype.pipeline.plugins.callback_log import log_nodes_cb
+            if nipype.__version__ == '1.1.2':
+                from nipype.utils.profiler import log_nodes_cb
                 plugin_args['status_callback'] = log_nodes_cb
             else:
-                from nipype.utils.profiler import log_nodes_cb
+                from nipype.pipeline.plugins.callback_log import log_nodes_cb
                 plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject

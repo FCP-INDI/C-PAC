@@ -266,5 +266,54 @@ def new_template():
     util_copy_template('pipeline_config')
 
 
+@utils.group()
+def test():
+    pass
+
+
+@test.command()
+def run_suite():
+    import os
+    import pkg_resources as p
+    import CPAC.pipeline.cpac_runner as cpac_runner
+
+    test_config_dir = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs"))
+
+    data_test = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs",
+                                         "data-test_S3-ADHD200_1.yml"))
+
+    data_test_no_scan_param = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs",
+                                         "data-test_S3-ADHD200_no-params.yml"))
+
+    data_test_fmap = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs", "test_configs",
+                                         "data-test_S3-NKI-RS_fmap.yml"))
+
+    no_params = False
+    for config_file in os.listdir(test_config_dir):
+        if 'pipe-test' in config_file:
+            pipe = os.path.join(test_config_dir, config_file)
+            if 'DistCorr' in pipe:
+                data = data_test_fmap
+            elif not no_params:
+                data = data_test_no_scan_param
+                no_params = True
+            else:
+                data = data_test
+            # run
+            cpac_runner.run(pipe, data)
+
+
 if __name__ == "__main__":
     main()

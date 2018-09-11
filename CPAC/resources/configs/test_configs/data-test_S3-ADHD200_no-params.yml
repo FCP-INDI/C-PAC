@@ -1,0 +1,14 @@
+# CPAC Data Configuration File
+# Version 1.2.0
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+- anat: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-1019436/ses-1/anat/sub-1019436_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_acq-1_run-1:
+      scan: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-1019436/ses-1/func/sub-1019436_ses-1_task-rest_acq-1_run-1_bold.nii.gz
+  site: KKI
+  subject_id: '1019436'
+  unique_id: '1'
