@@ -86,7 +86,8 @@ from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
     create_roi_mask_dataflow,
-    create_spatial_map_dataflow
+    create_spatial_map_dataflow,
+    create_check_for_s3_node
 )
 from CPAC.utils import Configuration, Strategy, Outputs, function, find_files
 
@@ -281,6 +282,54 @@ Maximum potential number of cores that might be used during this run: {max_cores
         'crashdump_dir': os.path.abspath(c.crashLogDirectory)
     }
 
+    # Extract credentials path if it exists
+    try:
+        creds_path = sub_dict['creds_path']
+        if creds_path and 'none' not in creds_path.lower():
+            if os.path.exists(creds_path):
+                input_creds_path = os.path.abspath(creds_path)
+            else:
+                err_msg = 'Credentials path: "%s" for subject "%s" was not ' \
+                          'found. Check this path and try again.' % (
+                              creds_path, subject_id)
+                raise Exception(err_msg)
+        else:
+            input_creds_path = None
+    except KeyError:
+        input_creds_path = None
+
+    # TODO ASH normalize file paths with schema validator
+    template_anat_keys = [
+        "template_brain_only_for_anat",
+        "template_skull_for_anat",
+        "ref_mask",
+        "template_symmetric_brain_only",
+        "template_symmetric_skull",
+        "dilated_symmetric_brain_mask",
+        "templateSpecificationFile",
+        "lateral_ventricles_mask",
+
+        "PRIORS_CSF",
+        "PRIORS_GRAY",
+        "PRIORS_WHITE",
+    ]
+
+    for key in template_anat_keys:
+
+        node = create_check_for_s3_node(
+            key,
+            getattr(c, key), 'anat',
+            input_creds_path, c.workingDirectory
+        )
+
+        setattr(c, key, node)
+
+    c.configFileTwomm = create_check_for_s3_node(
+        'configFileTwomm',
+        c.configFileTwomm, 'other',
+        input_creds_path, c.workingDirectory
+    )
+
     try:
         # TODO ASH Enforce c.run_logging to be boolean
         # TODO ASH Schema validation
@@ -332,22 +381,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     workflow_bit_id = {}
     workflow_counter = 0
     num_strat = 0
-
-    # Extract credentials path if it exists
-    try:
-        creds_path = sub_dict['creds_path']
-        if creds_path and 'none' not in creds_path.lower():
-            if os.path.exists(creds_path):
-                input_creds_path = os.path.abspath(creds_path)
-            else:
-                err_msg = 'Credentials path: "%s" for subject "%s" was not ' \
-                          'found. Check this path and try again.' % (
-                              creds_path, subject_id)
-                raise Exception(err_msg)
-        else:
-            input_creds_path = None
-    except KeyError:
-        input_creds_path = None
 
     flow = create_anat_datasource()
     flow.inputs.inputnode.subject = subject_id
@@ -506,10 +539,17 @@ Maximum potential number of cores that might be used during this run: {max_cores
                              fnirt_reg_anat_mni, 'inputspec.input_skull')
 
             # pass the reference files
-            fnirt_reg_anat_mni.inputs.inputspec.set(
-                reference_brain=c.template_brain_only_for_anat,
-                reference_skull=c.template_skull_for_anat,
-                ref_mask=c.ref_mask
+            workflow.connect(
+                c.template_brain_only_for_anat, 'local_path',
+                fnirt_reg_anat_mni, 'inputspec.reference_brain'
+            )
+            workflow.connect(
+                c.template_skull_for_anat, 'local_path',
+                fnirt_reg_anat_mni, 'inputspec.reference_skull'
+            )
+            workflow.connect(
+                c.ref_mask, 'local_path',
+                fnirt_reg_anat_mni, 'inputspec.ref_mask'
             )
 
             # assign the FSL FNIRT config file specified in pipeline
@@ -582,8 +622,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.anatomical_brain')
 
                 # pass the reference file
-                ants_reg_anat_mni.inputs.inputspec.set(
-                    reference_brain=c.template_brain_only_for_anat
+                workflow.connect(
+                    c.template_brain_only_for_anat, 'local_path',
+                    ants_reg_anat_mni, 'inputspec.reference_brain'
                 )
 
                 # get the reorient skull-on anatomical from resource pool
@@ -595,8 +636,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.anatomical_skull')
 
                 # pass the reference file
-                ants_reg_anat_mni.inputs.inputspec.set(
-                    reference_skull=c.template_skull_for_anat
+                workflow.connect(
+                    c.template_skull_for_anat, 'local_path',
+                    ants_reg_anat_mni, 'inputspec.reference_skull'
                 )
 
             else:
@@ -607,8 +649,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'inputspec.anatomical_brain')
 
                 # pass the reference file
-                ants_reg_anat_mni.inputs.inputspec.set(
-                    reference_brain=c.template_brain_only_for_anat
+                workflow.connect(
+                    c.template_brain_only_for_anat, 'local_path',
+                    ants_reg_anat_mni, 'inputspec.reference_brain'
                 )
 
             ants_reg_anat_mni.inputs.inputspec.set(
@@ -669,19 +712,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     if 1 in c.runVMHC:
 
-        # TODO ASH schema validator
-        if not os.path.exists(c.template_symmetric_brain_only):
-            logger.info("\n\n" + (
-                "ERROR: Missing file - %s" % c.template_symmetric_brain_only) + "\n\n" +
-                "Error name: cpac_pipeline_0017" + "\n\n")
-            raise Exception
-
-        if not os.path.exists(c.template_symmetric_skull):
-            logger.info("\n\n" + (
-                "ERROR: Missing file - %s" % c.template_symmetric_skull) + "\n\n" +
-                "Error name: cpac_pipeline_0018" + "\n\n")
-            raise Exception
-
         workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
@@ -721,16 +751,19 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  fnirt_reg_anat_symm_mni,
                                  'inputspec.input_skull')
 
-                # pass the reference files
-                fnirt_reg_anat_symm_mni.inputs.inputspec.set(
-                    reference_brain=c.template_symmetric_brain_only,
-                    reference_skull=c.template_symmetric_skull,
-                    ref_mask=c.dilated_symmetric_brain_mask,
+                
+                workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                    # assign the FSL FNIRT config file
-                    # specified in pipeline config.yml
-                    fnirt_config=c.configFileTwomm
-                )
+                workflow.connect(c.template_symmetric_skull, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.reference_skull')
+
+                workflow.connect(c.dilated_symmetric_brain_mask, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.ref_mask')
+
+                workflow.connect(c.configFileTwomm, 'local_path',
+                                 fnirt_reg_anat_symm_mni, 'inputspec.fnirt_config')
+
 
                 strat.append_name(fnirt_reg_anat_symm_mni.name)
                 strat.set_leaf_properties(fnirt_reg_anat_symm_mni,
@@ -746,7 +779,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 create_log_node(workflow, fnirt_reg_anat_symm_mni,
                                 'outputspec.output_brain', num_strat)
 
-                num_strat += 1
 
         strat_list += new_strat_list
 
@@ -795,8 +827,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                      'inputspec.anatomical_brain')
 
                     # pass the reference file
-                    ants_reg_anat_symm_mni.inputs.inputspec.reference_brain = \
-                        c.template_symmetric_brain_only
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                     # get the reorient skull-on anatomical from resource
                     # pool
@@ -808,8 +840,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                      'inputspec.anatomical_skull')
 
                     # pass the reference file
-                    ants_reg_anat_symm_mni.inputs.inputspec.reference_skull = \
-                        c.template_symmetric_skull
+                    workflow.connect(c.template_symmetric_skull, 'local_path',
+                                     ants_reg_anat_symm_mni, 'inputspec.reference_skull')
+
 
                 else:
                     # get the skullstripped anatomical from resource pool
@@ -820,8 +853,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                      'inputspec.anatomical_brain')
 
                     # pass the reference file
-                    ants_reg_anat_symm_mni.inputs.inputspec. \
-                        reference_brain = c.template_symmetric_brain_only
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                 ants_reg_anat_symm_mni.inputs.inputspec.set(
                     dimension=3,
@@ -921,11 +954,15 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
 
-            seg_preproc.inputs.inputspec.set(
-                PRIOR_CSF=c.PRIORS_CSF,
-                PRIOR_GRAY=c.PRIORS_GRAY,
-                PRIOR_WHITE=c.PRIORS_WHITE
-            )
+            
+            workflow.connect(c.PRIORS_CSF, 'local_path',
+                             seg_preproc, 'inputspec.PRIOR_CSF')
+
+            workflow.connect(c.PRIORS_GRAY, 'local_path',
+                             seg_preproc, 'inputspec.PRIOR_GRAY')
+
+            workflow.connect(c.PRIORS_WHITE, 'local_path',
+                             seg_preproc, 'inputspec.PRIOR_WHITE')
 
             # TODO ASH review with forking function
             if 0 in c.runSegmentationPreprocessing:
@@ -952,12 +989,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     # Inserting Functional Data workflow
 
     for num_strat, strat in enumerate(strat_list):
-        # create a new node, Remember to change its name!
-        # Flow = create_func_datasource(sub_dict['rest'])
-        # Flow.inputs.inputnode.subject = subject_id
-
-        # keep this in so that older participant lists that still have the
-        # "rest" flag will still work
 
         if 'func' in sub_dict:
             func_paths_dict = sub_dict['func']
@@ -1668,7 +1699,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     ('compcor_ncomponents', c.nComponents)
                 ])
 
-                nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
+                workflow.connect(c.lateral_ventricles_mask, 'local_path',
+                                 nuisance, 'inputspec.lat_ventricles_mask')
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
@@ -1808,7 +1840,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     ('compcor_ncomponents', c.nComponents)
                 ])
 
-                nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
+                workflow.connect(c.lateral_ventricles_mask, 'local_path',
+                                 nuisance, 'inputspec.lat_ventricles_mask')
 
                 # enforcing no de-spiking here!
                 # TODO: when condensing these sub-wf builders, pass
@@ -2425,11 +2458,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
     new_strat_list = []
 
     if "SpatialReg" in ts_analysis_dict.keys() or \
-            "DualReg" in sca_analysis_dict.keys():
+        "DualReg" in sca_analysis_dict.keys():
 
         for num_strat, strat in enumerate(strat_list):
 
             if "SpatialReg" in ts_analysis_dict.keys():
+
                 resample_spatial_map_to_native_space = pe.Node(
                     interface=fsl.FLIRT(),
                     name='resample_spatial_map_to_native_space_%d' % num_strat
@@ -2445,34 +2479,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'spatial_map_dataflow_%d' % num_strat
                 )
 
+                spatial_map_dataflow.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
                 spatial_map_timeseries = get_spatial_map_timeseries(
                     'spatial_map_timeseries_%d' % num_strat
                 )
                 spatial_map_timeseries.inputs.inputspec.demean = True  # c.spatialDemean
 
-            if "DualReg" in sca_analysis_dict.keys():
-                resample_spatial_map_to_native_space_for_dr = pe.Node(
-                    interface=fsl.FLIRT(),
-                    name='resample_spatial_map_to_native_space_for_DR_%d' % num_strat
-                )
-                resample_spatial_map_to_native_space_for_dr.inputs.set(
-                    interp='nearestneighbour',
-                    apply_xfm=True,
-                    in_matrix_file=c.identityMatrix
-                )
-
-                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
-                    sca_analysis_dict["DualReg"],
-                    'spatial_map_dataflow_for_DR_%d' % num_strat
-                )
-
-                spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
-                    'spatial_map_timeseries_for_DR_%d' % num_strat
-                )
-
-                spatial_map_timeseries_for_dr.inputs.inputspec.demean = True  # c.spatialDemean
-
-            if "SpatialReg" in ts_analysis_dict.keys():
                 node, out_file = strat['functional_to_standard']
                 node2, out_file2 = strat['functional_brain_mask_to_standard']
 
@@ -2498,7 +2514,42 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  spatial_map_timeseries,
                                  'inputspec.subject_rest')
 
+                strat.append_name(spatial_map_timeseries.name)
+
+                strat.update_resource_pool({
+                    'spatial_map_timeseries': (spatial_map_timeseries, 'outputspec.subject_timeseries')
+                })
+
+                create_log_node(workflow, spatial_map_timeseries,
+                                'outputspec.subject_timeseries', num_strat)
+
             if "DualReg" in sca_analysis_dict.keys():
+                resample_spatial_map_to_native_space_for_dr = pe.Node(
+                    interface=fsl.FLIRT(),
+                    name='resample_spatial_map_to_native_space_for_DR_%d' % num_strat
+                )
+                resample_spatial_map_to_native_space_for_dr.inputs.set(
+                    interp='nearestneighbour',
+                    apply_xfm=True,
+                    in_matrix_file=c.identityMatrix
+                )
+
+                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
+                    sca_analysis_dict["DualReg"],
+                    'spatial_map_dataflow_for_DR_%d' % num_strat
+                )
+
+                spatial_map_dataflow_for_dr.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
+                spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
+                    'spatial_map_timeseries_for_DR_%d' % num_strat
+                )
+
+                spatial_map_timeseries_for_dr.inputs.inputspec.demean = True  # c.spatialDemean
+
                 node, out_file = strat['functional_to_standard']
                 node2, out_file2 = strat['functional_brain_mask_to_standard']
 
@@ -2517,7 +2568,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     resample_spatial_map_to_native_space_for_dr,
                     'out_file',
                     spatial_map_timeseries_for_dr,
-                    'inputspec.spatial_map')
+                    'inputspec.spatial_map'
+                )
 
                 workflow.connect(node2, out_file2,
                                  spatial_map_timeseries_for_dr,
@@ -2526,18 +2578,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  spatial_map_timeseries_for_dr,
                                  'inputspec.subject_rest')
-
-            if "SpatialReg" in ts_analysis_dict.keys():
-                strat.append_name(spatial_map_timeseries.name)
-
-                strat.update_resource_pool({
-                    'spatial_map_timeseries': (spatial_map_timeseries, 'outputspec.subject_timeseries')
-                })
-
-                create_log_node(workflow, spatial_map_timeseries,
-                                'outputspec.subject_timeseries', num_strat)
-
-            if "DualReg" in sca_analysis_dict.keys():
 
                 strat.append_name(spatial_map_timeseries_for_dr.name)
 
@@ -2554,13 +2594,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     new_strat_list = []
 
-    if ("Avg" in ts_analysis_dict.keys()) or \
-        ("Avg" in sca_analysis_dict.keys()) or \
-            ("MultReg" in sca_analysis_dict.keys()):
+    if "Avg" in ts_analysis_dict.keys() or \
+        "Avg" in sca_analysis_dict.keys() or \
+        "MultReg" in sca_analysis_dict.keys():
 
         for num_strat, strat in enumerate(strat_list):
 
             if "Avg" in ts_analysis_dict.keys():
+
                 resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                      name='resample_functional_to_roi_%d' % num_strat)
 
@@ -2571,12 +2612,39 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 )
 
                 roi_dataflow = create_roi_mask_dataflow(
-                    ts_analysis_dict["Avg"], 'roi_dataflow_%d' % num_strat
+                    ts_analysis_dict["Avg"],
+                    'roi_dataflow_%d' % num_strat
+                )
+
+                roi_dataflow.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
                 )
 
                 roi_timeseries = get_roi_timeseries(
                     'roi_timeseries_%d' % num_strat
                 )
+
+                node, out_file = strat['functional_to_standard']
+
+                # resample the input functional file to roi
+                workflow.connect(node, out_file,
+                                 resample_functional_to_roi, 'in_file')
+                workflow.connect(roi_dataflow, 'outputspec.out_file',
+                                 resample_functional_to_roi, 'reference')
+
+                # connect it to the roi_timeseries
+                workflow.connect(roi_dataflow, 'outputspec.out_file',
+                                 roi_timeseries, 'input_roi.roi')
+                workflow.connect(resample_functional_to_roi, 'out_file',
+                                 roi_timeseries, 'inputspec.rest')
+
+                strat.append_name(roi_timeseries.name)
+                strat.update_resource_pool({
+                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs')
+                })
+                create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
+                                num_strat)
 
             if "Avg" in sca_analysis_dict.keys():
 
@@ -2598,9 +2666,40 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_for_sca_%d' % num_strat
                 )
 
+                roi_dataflow_for_sca.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
                 roi_timeseries_for_sca = get_roi_timeseries(
                     'roi_timeseries_for_sca_%d' % num_strat
                 )
+
+                node, out_file = strat['functional_to_standard']
+
+                # resample the input functional file to roi
+                workflow.connect(node, out_file,
+                                 resample_functional_to_roi_for_sca,
+                                 'in_file')
+                workflow.connect(roi_dataflow_for_sca,
+                                 'outputspec.out_file',
+                                 resample_functional_to_roi_for_sca,
+                                 'reference')
+
+                # connect it to the roi_timeseries
+                workflow.connect(roi_dataflow_for_sca,
+                                 'outputspec.out_file',
+                                 roi_timeseries_for_sca, 'input_roi.roi')
+                workflow.connect(resample_functional_to_roi_for_sca,
+                                 'out_file',
+                                 roi_timeseries_for_sca, 'inputspec.rest')
+
+                strat.append_name(roi_timeseries_for_sca.name)
+                strat.update_resource_pool({
+                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs')
+                })
+                create_log_node(workflow, roi_timeseries_for_sca,
+                                'outputspec.roi_outputs', num_strat)
 
             if "MultReg" in sca_analysis_dict.keys():
 
@@ -2622,47 +2721,15 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_for_mult_reg_%d' % num_strat
                 )
 
+                roi_dataflow_for_multreg.inputs.inputnode.set(
+                    creds_path=input_creds_path,
+                    dl_dir=c.workingDirectory
+                )
+
                 roi_timeseries_for_multreg = get_roi_timeseries(
                     'roi_timeseries_for_mult_reg_%d' % num_strat
                 )
 
-            if "Avg" in ts_analysis_dict.keys():
-
-                node, out_file = strat['functional_to_standard']
-
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                 resample_functional_to_roi, 'in_file')
-                workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                 resample_functional_to_roi, 'reference')
-
-                # connect it to the roi_timeseries
-                workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                 roi_timeseries, 'input_roi.roi')
-                workflow.connect(resample_functional_to_roi, 'out_file',
-                                 roi_timeseries, 'inputspec.rest')
-
-            if "Avg" in sca_analysis_dict.keys():
-                node, out_file = strat['functional_to_standard']
-
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                 resample_functional_to_roi_for_sca,
-                                 'in_file')
-                workflow.connect(roi_dataflow_for_sca,
-                                 'outputspec.out_file',
-                                 resample_functional_to_roi_for_sca,
-                                 'reference')
-
-                # connect it to the roi_timeseries
-                workflow.connect(roi_dataflow_for_sca,
-                                 'outputspec.out_file',
-                                 roi_timeseries_for_sca, 'input_roi.roi')
-                workflow.connect(resample_functional_to_roi_for_sca,
-                                 'out_file',
-                                 roi_timeseries_for_sca, 'inputspec.rest')
-
-            if "MultReg" in sca_analysis_dict.keys():
                 node, out_file = strat['functional_to_standard']
 
                 # resample the input functional file to roi
@@ -2684,23 +2751,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  roi_timeseries_for_multreg,
                                  'inputspec.rest')
 
-            if "Avg" in ts_analysis_dict.keys():
-                strat.append_name(roi_timeseries.name)
-                strat.update_resource_pool({
-                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs')
-                })
-                create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
-                                num_strat)
-
-            if "Avg" in sca_analysis_dict.keys():
-                strat.append_name(roi_timeseries_for_sca.name)
-                strat.update_resource_pool({
-                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs')
-                })
-                create_log_node(workflow, roi_timeseries_for_sca,
-                                'outputspec.roi_outputs', num_strat)
-
-            if "MultReg" in sca_analysis_dict.keys():
                 strat.append_name(roi_timeseries_for_multreg.name)
                 strat.update_resource_pool({
                     'roi_timeseries_for_SCA_multreg': (roi_timeseries_for_multreg, 'outputspec.roi_outputs')
@@ -2874,17 +2924,20 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
         # TODO ASH move to schema validator
         # validate the mask file path
-        if not c.templateSpecificationFile.endswith(".nii") and \
-                not c.templateSpecificationFile.endswith(".nii.gz"):
-            err = "\n\n[!] CPAC says: The Network Centrality mask " \
-                  "specification file must be a NIFTI file (ending in .nii " \
-                  "or .nii.gz).\nFile path you provided: %s\n\n" \
-                  % c.templateSpecificationFile
+        # if not c.templateSpecificationFile.endswith(".nii") and \
+        #         not c.templateSpecificationFile.endswith(".nii.gz"):
+        #     err = "\n\n[!] CPAC says: The Network Centrality mask " \
+        #           "specification file must be a NIFTI file (ending in .nii " \
+        #           "or .nii.gz).\nFile path you provided: %s\n\n" \
+        #           % c.templateSpecificationFile
 
-            raise Exception(err)
+        #     raise Exception(err)
 
         strat_list = create_network_centrality_workflow(
-            workflow, c, strat_list
+            workflow, c, strat_list, {
+                "creds_path": input_creds_path,
+                "dl_dir": c.workingDirectory
+            }
         )
 
     '''
@@ -3405,7 +3458,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                             'graph, dot or/and pygraphviz is not installed')
 
             logger.info('%s*' % pipeline_dir)
-            num_strat += 1
 
             pipes.append(pipeline_id)
 
