@@ -80,7 +80,7 @@ from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
 
 # Init variables
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 
 class strategy:
@@ -5127,17 +5127,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         cb_logger.addHandler(handler)
 
         # Add status callback function that writes in callback log
-        if nipype.__version__ not in ('0.13.1'):
-            err_msg = "This version of nipype may not be compatible with " \
-                      "CPAC v%s, please install version 0.13.1\n" \
+        if nipype.__version__ not in ('1.1.2'):
+            err_msg = "This version of Nipype may not be compatible with " \
+                      "CPAC v%s, please install Nipype version 1.1.2\n" \
                        % (CPAC.__version__)
             logger.error(err_msg)
         else:
-            if nipype.__version__ == '0.13.1':
-                from nipype.pipeline.plugins.callback_log import log_nodes_cb
+            if nipype.__version__ == '1.1.2':
+                from nipype.utils.profiler import log_nodes_cb
                 plugin_args['status_callback'] = log_nodes_cb
             else:
-                from nipype.utils.profiler import log_nodes_cb
+                from nipype.pipeline.plugins.callback_log import log_nodes_cb
                 plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject

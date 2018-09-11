@@ -7,13 +7,19 @@ from builtins import str, bytes
 import inspect
 
 from nipype import logging
-from nipype.interfaces.base import (traits, DynamicTraitedSpec, Undefined, isdefined, runtime_profile,
-                    BaseInterfaceInputSpec)
+from nipype.utils import config
+from nipype.utils.misc import str2bool
+from nipype.interfaces.base import (traits, DynamicTraitedSpec, Undefined, isdefined, BaseInterfaceInputSpec)
 from nipype.interfaces.io import IOBase, add_traits
 from nipype.utils.filemanip import filename_to_list
-from nipype.utils.misc import getsource, create_function_from_source
+from nipype.utils.functions import getsource, create_function_from_source
 
-logger = logging.getLogger('interface')
+logger = logging.getLogger('nipype.interface')
+
+npconfig = config.NipypeConfig()
+
+runtime_profile = str2bool(npconfig.get('execution', 'profile_runtime'))
+
 if runtime_profile:
     try:
         import psutil

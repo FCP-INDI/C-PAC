@@ -248,12 +248,12 @@ resolution_for_anat :  2mm
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -267,7 +267,7 @@ fnirtConfig :  T1_2_MNI152_2mm
 
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
 
 # Register skull-on anatomical image to a template.
@@ -281,7 +281,7 @@ runSegmentationPreprocessing :  [1]
 # Full path to a directory containing binarized prior probability maps.
 # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use non-standard priors.
-priors_path :  /usr/share/fsl/5.0/data/standard/tissuepriors/2mm
+priors_path :  $FSLDIR/data/standard/tissuepriors/2mm
 
 
 # Full path to a binarized White Matter prior probability map.
@@ -373,7 +373,7 @@ runBBReg :  [1]
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
 
 
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
@@ -402,16 +402,16 @@ resolution_for_func_derivative :  2mm
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 
 
 # Run Nuisance Signal Regression
@@ -419,7 +419,7 @@ runNuisance :  [1]
 
 
 # Standard Lateral Ventricles Binary Mask
-lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 
 # Select which nuisance signal corrections to apply:
@@ -578,7 +578,7 @@ runNetworkCentrality :  [1]
 
 
 # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
-templateSpecificationFile :  /cpac_team/cpac/resources/mask-thr50-3mm.nii.gz
+templateSpecificationFile :  /resources/mask-thr50-3mm.nii.gz
 
 
 # Enable/Disable degree centrality by selecting the connectivity weights
