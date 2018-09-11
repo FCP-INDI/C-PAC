@@ -1,6 +1,8 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
+from CPAC.utils import function
+
 
 def get_rest(scan, rest_dict, resource="scan"):
     """Return the file path of the chosen resource stored in the functional
@@ -39,7 +41,7 @@ def check_func_scan(func_scan_dct, scan):
     scan_resources = func_scan_dct[scan]
 
     try:
-        keys = scan_resources.keys()
+        scan_resources.keys()
     except AttributeError:
         err = "\n[!] The data configuration file you provided is " \
               "missing a level under the 'func:' key. CPAC versions " \
@@ -91,21 +93,23 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     # have this here for now because of the big change in the data
     # configuration format
-    check_scan = pe.Node(util.Function(input_names=['func_scan_dct',
-                                                    'scan'],
-                                       output_names=[],
-                                       function=check_func_scan),
+    check_scan = pe.Node(function.Function(input_names=['func_scan_dct',
+                                                        'scan'],
+                                           output_names=[],
+                                           function=check_func_scan,
+                                           as_module=True),
                          name='check_func_scan')
 
     check_scan.inputs.func_scan_dct = rest_dict
     wf.connect(inputnode, 'scan', check_scan, 'scan')
 
     # get the functional scan itself
-    selectrest = pe.Node(util.Function(input_names=['scan',
-                                                    'rest_dict',
-                                                    'resource'],
-                                       output_names=['file_path'],
-                                       function=get_rest),
+    selectrest = pe.Node(function.Function(input_names=['scan',
+                                                        'rest_dict',
+                                                        'resource'],
+                                           output_names=['file_path'],
+                                           function=get_rest,
+                                           as_module=True),
                          name='selectrest')
     selectrest.inputs.rest_dict = rest_dict
     selectrest.inputs.resource = "scan"
@@ -113,12 +117,13 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
     # is - otherwise, just return the local file path
-    check_s3_node = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='check_for_s3')
 
     wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
@@ -131,23 +136,25 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
     # scan parameters CSV
-    select_scan_params = pe.Node(util.Function(input_names=['scan',
-                                                            'rest_dict',
-                                                            'resource'],
-                                               output_names=['file_path'],
-                                               function=get_rest),
+    select_scan_params = pe.Node(function.Function(input_names=['scan',
+                                                                'rest_dict',
+                                                                'resource'],
+                                                   output_names=['file_path'],
+                                                   function=get_rest,
+                                                   as_module=True),
                                  name='select_scan_params')
     select_scan_params.inputs.rest_dict = rest_dict
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')
 
     # if the scan parameters file is on AWS S3, download it
-    s3_scan_params = pe.Node(util.Function(input_names=['file_path',
-                                                        'creds_path',
-                                                        'dl_dir',
-                                                        'img_type'],
-                                           output_names=['local_path'],
-                                           function=check_for_s3),
+    s3_scan_params = pe.Node(function.Function(input_names=['file_path',
+                                                            'creds_path',
+                                                            'dl_dir',
+                                                            'img_type'],
+                                               output_names=['local_path'],
+                                               function=check_for_s3,
+                                               as_module=True),
                              name='s3_scan_params')
 
     wf.connect(select_scan_params, 'file_path', s3_scan_params, 'file_path')
@@ -156,22 +163,24 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
 
     # field map phase file, for field map distortion correction
-    select_fmap_phase = pe.Node(util.Function(input_names=['scan',
-                                                           'rest_dict',
-                                                           'resource'],
-                                              output_names=['file_path'],
-                                              function=get_rest),
+    select_fmap_phase = pe.Node(function.Function(input_names=['scan',
+                                                               'rest_dict',
+                                                               'resource'],
+                                                  output_names=['file_path'],
+                                                  function=get_rest,
+                                                  as_module=True),
                                 name='select_fmap_phase')
     select_fmap_phase.inputs.rest_dict = rest_dict
     select_fmap_phase.inputs.resource = "fmap_phase"
     wf.connect(inputnode, 'scan', select_fmap_phase, 'scan')
 
-    s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    s3_fmap_phase = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='s3_fmap_phase')
     s3_fmap_phase.inputs.img_type = "other"
     wf.connect(select_fmap_phase, 'file_path', s3_fmap_phase, 'file_path')
@@ -180,22 +189,24 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
 
     # field map magnitude file, for field map distortion correction
-    select_fmap_mag = pe.Node(util.Function(input_names=['scan',
-                                                         'rest_dict',
-                                                         'resource'],
-                                            output_names=['file_path'],
-                                            function=get_rest),
+    select_fmap_mag = pe.Node(function.Function(input_names=['scan',
+                                                             'rest_dict',
+                                                             'resource'],
+                                                output_names=['file_path'],
+                                                function=get_rest,
+                                                as_module=True),
                               name='select_fmap_mag')
     select_fmap_mag.inputs.rest_dict = rest_dict
     select_fmap_mag.inputs.resource = "fmap_mag"
     wf.connect(inputnode, 'scan', select_fmap_mag, 'scan')
 
-    s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
-                                                     'creds_path',
-                                                     'dl_dir',
-                                                     'img_type'],
-                                        output_names=['local_path'],
-                                        function=check_for_s3),
+    s3_fmap_mag = pe.Node(function.Function(input_names=['file_path',
+                                                         'creds_path',
+                                                         'dl_dir',
+                                                         'img_type'],
+                                            output_names=['local_path'],
+                                            function=check_for_s3,
+                                            as_module=True),
                           name='s3_fmap_mag')
     s3_fmap_mag.inputs.img_type = "other"
     wf.connect(select_fmap_mag, 'file_path', s3_fmap_mag, 'file_path')
@@ -204,6 +215,27 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
 
     return wf
+
+
+def create_check_for_s3_node(name, file_path, img_type, creds_path, dl_dir):
+
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3_%s' % name)
+
+    check_s3_node.inputs.set(
+        file_path=file_path,
+        creds_path=creds_path,
+        dl_dir=dl_dir,
+        img_type=img_type
+    )
+
+    return check_s3_node
 
 
 # Check if passed-in file is on S3
@@ -239,20 +271,16 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
-        file_path_sp = file_path.split('/')
-        file_path_sp[0] = file_path_sp[0].lower()
-        file_path = '/'.join(file_path_sp)
+        file_path = s3_str + file_path[len(s3_str):]
 
-    # Check for s3 string in filepaths
-    if file_path.startswith(s3_str):
         # Get bucket name and bucket object
-        bucket_name = file_path.replace(s3_str, '').split('/')[0]
+        bucket_name = file_path[len(s3_str):].split('/')[0]
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
         # Extract relative key path from bucket and local path
-        s3_prefix = os.path.join(s3_str, bucket_name)
-        s3_key = file_path.replace(s3_prefix, '').lstrip('/')
-        local_path = os.path.join(dl_dir, s3_key)
+        s3_prefix = s3_str + bucket_name
+        s3_key = file_path[len(s3_prefix) + 1:]
+        local_path = os.path.join(dl_dir, bucket_name, s3_key)
 
         # Get local directory and create folders if they dont exist
         local_dir = os.path.dirname(local_path)
@@ -287,7 +315,7 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
         local_path = file_path
 
     # Check image dimensionality
-    if '.nii' in local_path:
+    if local_path.endswith('.nii') or local_path.endswith('.nii.gz'):
         try:
             img_nii = nib.load(local_path)
         except Exception as e:
@@ -306,8 +334,6 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
                 raise IOError('File: %s must be a functional image with 4 '\
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
-        elif img_type == "other":
-            pass
 
     # Return the local path
     return local_path
@@ -326,12 +352,13 @@ def create_anat_datasource(wf_name='anat_datasource'):
                                 mandatory_inputs=True),
                         name='inputnode')
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'dl_dir',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
                             name='check_for_s3')
 
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
@@ -352,10 +379,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
 def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 
-    import nipype.interfaces.io as nio
     import os
-
-    wf = pe.Workflow(name=wf_name)  
 
     mask_dict = {}
 
@@ -363,55 +387,74 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 
         mask_file = mask_file.rstrip('\r\n')
 
-        if not os.path.exists(mask_file):
-            err = '\n\n[!] CPAC says: One of your ROI/mask specification ' \
-                  'files (under ROI TSE Options) does not have a correct ' \
-                  'path or does not exist.\nTip: If all the paths are okay, '\
-                  'then ensure there are no whitespaces or blank lines in ' \
-                  'your ROI specification file.\n\n'
-            raise Exception(err)
-
         if mask_file.strip() == '' or mask_file.startswith('#'):
             continue
 
         base_file = os.path.basename(mask_file)
-        base_name = ''
-        if base_file.endswith('.nii'):
-            base_name = os.path.splitext(base_file)[0]
-        elif(base_file.endswith('.nii.gz')):
-            base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
-        else:
-            err = "\n\n[!] CPAC says: One of your ROI/mask specification " \
-                  "files (under ROI TSE options) does not have '.nii' or " \
-                  "'.nii.gz' as an extension.\n\nMask file: %s\n\n" \
-                  % mask_file
-            raise Exception(err)
 
-        if not (base_name in mask_dict):
+        try:
+            valid_extensions = ['.nii', '.nii.gz']
+
+            base_name = [
+                base_file[-len(ext)]
+                for ext in valid_extensions
+                if base_file.endswith(ext)
+            ][0]
+
+            if base_name in mask_dict:
+                raise ValueError(
+                    'Files with same name not allowed: %s %s' % (
+                        mask_file,
+                        mask_dict[base_name]
+                    )
+                )
+
             mask_dict[base_name] = mask_file
-        else:
-            err = "\n\n[!] CPAC says: You have two or more ROI/mask files " \
-            "with the same name - please make sure these files are named " \
-            "differently.\n\nDuplicate name: %s\n\n" % mask_file
-            raise Exception(err)
 
-    inputnode = pe.Node(util.IdentityInterface(fields=['mask'],
+        except IndexError as e:
+            raise Exception('Error in spatial_map_dataflow: '
+                            'File extension not in .nii and .nii.gz')
+
+        except Exception as e:
+            raise e
+
+
+    wf = pe.Workflow(name=wf_name)  
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['mask',
+                                                       'mask_file',
+                                                       'creds_path',
+                                                       'dl_dir'],
                                                mandatory_inputs=True),
                         name='inputspec')
 
-    inputnode.iterables = [('mask', mask_dict.keys())]
+    mask_keys, mask_values = \
+        zip(*mask_dict.items())
 
-    selectmask = pe.Node(util.Function(input_names=['map', 'map_dct'],
-                                       output_names=['out_file'],
-                                       function=get_map),
-                         name='select_mask')
-    selectmask.inputs.map_dct = mask_dict
+    inputnode.synchronize = True
+    inputnode.iterables = [
+        ('mask', mask_keys),
+        ('mask_file', mask_values),
+    ]
+
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+
+    wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+    check_s3_node.inputs.img_type = 'anat'
 
     outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
                          name='outputspec')
 
-    wf.connect(inputnode, 'mask', selectmask, 'map')
-    wf.connect(selectmask, 'out_file', outputnode, 'out_file')
+    wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
 
     return wf
 
@@ -427,101 +470,118 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
     for spatial_map_file in spatial_maps:
 
         spatial_map_file = spatial_map_file.rstrip('\r\n')
-
-        if not os.path.exists(spatial_map_file):
-            print "\n\nERROR: One of your spatial map files (under " \
-                  "Spatial Regression options) does not have a correct " \
-                  "path or does not exist. \nTip: If all the paths are " \
-                  "okay, then ensure there are no whitespaces or blank " \
-                  "lines in your spatial map specification file.\n\nError " \
-                  "name: datasource_0001\n\n"
-            raise Exception
-
         base_file = os.path.basename(spatial_map_file)
-        base_name = ''
+
         try:
-            if base_file.endswith('.nii'):
-                base_name = os.path.splitext(base_file)[0]
-            elif base_file.endswith('.nii.gz'):
-                base_name = \
-                    os.path.splitext(os.path.splitext(base_file)[0])[0]
-            else:
-                raise Exception("File extension not in .nii and .nii.gz "
-                                "File: %s" % spatial_map_file)
-        except Exception, e:
-            print('error in spatial_map_dataflow: ', e)
+            valid_extensions = ['.nii', '.nii.gz']
 
-        if not (base_name in spatial_map_dict):
+            base_name = [
+                base_file[-len(ext)]
+                for ext in valid_extensions
+                if base_file.endswith(ext)
+            ][0]
+
+            if base_name in spatial_map_dict:
+                raise ValueError(
+                    'Files with same name not allowed: %s %s' % (
+                        spatial_map_file,
+                        spatial_map_dict[base_name]
+                    )
+                )
+        
             spatial_map_dict[base_name] = spatial_map_file
-        else:
-            raise ValueError('Files with same name not allowed %s %s'
-                             % (spatial_map_file,
-                                spatial_map_dict[base_name]))
+        
+        except IndexError as e:
+            raise Exception('Error in spatial_map_dataflow: '
+                            'File extension not in .nii and .nii.gz')
 
-    inputnode = pe.Node(util.IdentityInterface(fields=['spatial_map'],
+        except Exception as e:
+            raise e
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['spatial_map',
+                                                       'spatial_map_file',
+                                                       'creds_path',
+                                                       'dl_dir'],
                                                mandatory_inputs=True),
                         name='inputspec')
 
-    inputnode.iterables = [('spatial_map', spatial_map_dict.keys())]
+    spatial_map_keys, spatial_map_values = \
+        zip(*spatial_map_dict.items())
 
-    select_spatial_map = pe.Node(util.Function(input_names=['map',
-                                                            'map_dct'],
-                                               output_names=['out_file'],
-                                               function=get_map),
+    inputnode.synchronize = True
+    inputnode.iterables = [
+        ('spatial_map', spatial_map_keys),
+        ('spatial_map_file', spatial_map_values),
+    ]
+
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+
+    wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+    check_s3_node.inputs.img_type = 'anat'
+
+    select_spatial_map = pe.Node(util.IdentityInterface(fields=['out_file'],
+                                                        mandatory_inputs=True),
                                  name='select_spatial_map')
-    select_spatial_map.inputs.map_dct = spatial_map_dict
 
-    wf.connect(inputnode, 'spatial_map', select_spatial_map, 'map')
+    wf.connect(check_s3_node, 'local_path', select_spatial_map, 'out_file')
 
     return wf
 
 
 def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
-        import nipype.pipeline.engine as pe
-        import nipype.interfaces.utility as util
-        from CPAC.utils import select_model_files
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    from CPAC.utils import select_model_files
 
-        wf = pe.Workflow(name=wf_name)
+    wf = pe.Workflow(name=wf_name)
 
-        inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
-                                                           'grp_model',
-                                                           'model_name'],
-                                                   mandatory_inputs=True),
-                            name='inputspec')
+    inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
+                                                        'grp_model',
+                                                        'model_name'],
+                                                mandatory_inputs=True),
+                        name='inputspec')
 
-        selectmodel = pe.Node(util.Function(input_names=['model',
+    selectmodel = pe.Node(function.Function(input_names=['model',
                                                          'ftest',
                                                          'model_name'],
                                             output_names=['fts_file',
                                                           'con_file',
                                                           'grp_file',
                                                           'mat_file'],
-                                            function=select_model_files),
-                              name='selectnode')
+                                            function=select_model_files,
+                                            as_module=True),
+                          name='selectnode')
 
-        wf.connect(inputnode, 'ftest',
-                   selectmodel, 'ftest')
-        wf.connect(inputnode, 'grp_model',
-                   selectmodel, 'model')
-        wf.connect(inputnode, 'model_name', selectmodel, 'model_name')
+    wf.connect(inputnode, 'ftest',
+                selectmodel, 'ftest')
+    wf.connect(inputnode, 'grp_model',
+                selectmodel, 'model')
+    wf.connect(inputnode, 'model_name', selectmodel, 'model_name')
 
-        outputnode = pe.Node(util.IdentityInterface(fields=['fts',
-                                                            'grp',
-                                                            'mat',
-                                                            'con'],
-                                                    mandatory_inputs=True),
-                             name='outputspec')
+    outputnode = pe.Node(util.IdentityInterface(fields=['fts',
+                                                        'grp',
+                                                        'mat',
+                                                        'con'],
+                                                mandatory_inputs=True),
+                            name='outputspec')
 
-        wf.connect(selectmodel, 'mat_file',
-                   outputnode, 'mat')
-        wf.connect(selectmodel, 'grp_file',
-                   outputnode, 'grp') 
-        wf.connect(selectmodel, 'fts_file',
-                   outputnode, 'fts')
-        wf.connect(selectmodel, 'con_file',
-                   outputnode, 'con')
+    wf.connect(selectmodel, 'mat_file',
+                outputnode, 'mat')
+    wf.connect(selectmodel, 'grp_file',
+                outputnode, 'grp')
+    wf.connect(selectmodel, 'fts_file',
+                outputnode, 'fts')
+    wf.connect(selectmodel, 'con_file',
+                outputnode, 'con')
 
-        return wf
-
-
+    return wf

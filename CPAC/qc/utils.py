@@ -1,13 +1,20 @@
-import re
-import commands
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-
 import os
+import re
+import math
+import base64
+import commands
 import pkg_resources as p
-import nipype.pipeline.engine as pe
+
+import numpy as np
+import nibabel as nb
+import numpy.ma as ma
+
+import matplotlib
+from matplotlib import pyplot as plt
+
+
 from nipype.interfaces import afni
+import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
@@ -105,17 +112,9 @@ def append_to_files_in_dict_way(list_files, file_):
 
     """
 
-    f_1 = open(file_, 'r')
-
-    lines = f_1.readlines()
-    lines = [line.rstrip('\r\n') for line in lines]
-    one_dict = {}
-
-    for line in lines:
-        if not line in one_dict:
-            one_dict[line] = 1
-
-    f_1.close()
+    with open(file_, 'r') as f:
+        lines = [line.rstrip('\r\n') for line in f.readlines()]
+        one_dict = {line: 1 for line in lines}
 
     for f_ in list_files:
         two_dict = {}
@@ -158,51 +157,50 @@ def first_pass_organizing_files(qc_path):
 
     """
 
-
     if not os.path.exists(qc_path):
         os.makedirs(qc_path)
 
     qc_files = os.listdir(qc_path)
     strat_dict = {}
 
-    for file_ in sorted(qc_files, reverse=True):
-        if not ('.txt' in file_):
+    for qc_file in sorted(qc_files, reverse=True):
+        if not ('.txt' in qc_file):
             continue
 
-        file_ = os.path.join(qc_path, file_)
-        str_ = os.path.basename(file_)
+        qc_file = os.path.join(qc_path, qc_file)
+        qc_filename = os.path.basename(qc_file)
 
-        str_ = str_.replace('qc_', '')
-        str_ = str_.replace('scan_', '')
-        str_ = str_.replace('.txt', '')
-        str_ = str_.replace('____', '_')
-        str_ = str_.replace('___', '_')
-        str_ = str_.replace('__', '_')
+        qc_filename = qc_filename.replace('qc_', '')
+        qc_filename = qc_filename.replace('scan_', '')
+        qc_filename = qc_filename.replace('.txt', '')
+        qc_filename = qc_filename.replace('____', '_')
+        qc_filename = qc_filename.replace('___', '_')
+        qc_filename = qc_filename.replace('__', '_')
 
-        if '_hp_' in str_ and '_fwhm_' in str_ and \
-                not ('_bandpass_freqs_' in str_):
-            str_, fwhm_val = str_.split('_fwhm_')
+        if '_hp_' in qc_filename and '_fwhm_' in qc_filename and \
+                not ('_bandpass_freqs_' in qc_filename):
+            qc_filename, fwhm_val = qc_filename.split('_fwhm_')
 
             fwhm_val = '_fwhm_' + fwhm_val
 
-            str_, hp_lp_ = str_.split('_hp_')
+            qc_filename, hp_lp_ = qc_filename.split('_hp_')
             hp_lp_ = '_hp_' + hp_lp_
 
-            str_ = str_ + fwhm_val + hp_lp_
+            qc_filename = qc_filename + fwhm_val + hp_lp_
 
         if strat_dict.keys() == []:
-            strat_dict[str_] = [file_]
+            strat_dict[qc_filename] = [qc_file]
         else:
             flag_ = 0
             for key_ in strat_dict.keys():
-                if str_ in key_:
-                    append_to_files_in_dict_way(strat_dict[key_], file_)
+                if qc_filename in key_:
+                    append_to_files_in_dict_way(strat_dict[key_], qc_file)
                     flag_ = 1
 
             if flag_ == 1:
-                os.system('rm -f %s' % file_)
+                os.system('rm -f %s' % qc_file)
             else:
-                strat_dict[str_] = [file_]
+                strat_dict[qc_filename] = [qc_file]
 
 
 def second_pass_organizing_files(qc_path):
@@ -391,12 +389,14 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
-import base64
-
 def encode_to_url(f, type):
     with open(f, "rb") as image_file:
         b64 = str(base64.b64encode(image_file.read()).decode("utf-8"))
         return "data:" + type + ";" + "base64," + b64
+
+
+def commonprefix(args, sep='/'):
+	return os.path.commonprefix(args).rpartition(sep)[0]
 
 
 def add_head(frameset_html_fd, menu_html_fd, content_html_fd, name):
@@ -595,6 +595,12 @@ def feed_line_body(image_name, anchor, image, content_html_fd):
 
     """
 
+    folder = commonprefix([image, content_html_fd.name])
+
+    html_rel = '/'.join(['..'] * content_html_fd.name.replace(folder + '/', '').count('/'))
+    image_rel = image.replace(folder + '/', '')
+    image_rel = '/'.join([html_rel, image_rel])
+
     description_html = """
         <h3><a name="{anchor}">{description}</a> <a href="#reverse">TOP</a></h3>
 """
@@ -616,7 +622,7 @@ def feed_line_body(image_name, anchor, image, content_html_fd):
         
     content_html_fd.write(
         image_html.format(
-            image=image,
+            image=image_rel,
             description=image_readable
         )
     )
@@ -843,7 +849,8 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
             if montage_id in histograms.keys():
                 if idx == 0:
                     feed_line_nav(image_name_h_nav, id_h, menu_html_fd, content_html_fd)
-                feed_line_body(image_name_h, id_h, png_h, content_html_fd)
+                if png_h is not None:
+                    feed_line_body(image_name_h, id_h, png_h, content_html_fd)
 
     if montage_id in dict_plot:
         id_a = str(montage_id)
@@ -981,8 +988,9 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
             pass
 
 
-def generate_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
-                    qc_plot_id, qc_hist_id):
+def generate_qc_pages(qc_path, sub_output_dir,
+                      qc_montage_id_a, qc_montage_id_s,
+                      qc_plot_id, qc_hist_id):
     """Generates the QC HTML files populated with the QC images that were
     created during the CPAC pipeline run.
 
@@ -1050,39 +1058,11 @@ def cal_snr_val(measure_file):
     snr_val = ma.mean(data_no0)
 
     avg_snr_file = os.path.join(os.getcwd(), 'average_snr_file.txt')
-    f = open(avg_snr_file, 'w')
-    with open(avg_snr_file, 'wt') as f:
+    with open(avg_snr_file, 'w') as f:
         f.write(str(snr_val) + '\n')
 
     return avg_snr_file
 
-
-def gen_std_dev(mask_, func_):
-    """Generate std dev file.
-
-    Parameters
-    ----------
-    mask_ : string
-        path to whole brain mask file
-
-    func_ : string
-        path to functional scan
-
-    Returns
-    -------
-    new_fname : string
-        path to standard deviation file
-
-    """
-
-    new_fname = os.path.join(os.getcwd(), 'std_dev.nii.gz')
-
-    cmd = ["3dTstat", "-stdev", "-mask", "{0}".format(mask_), "-prefix",
-           "{0}".format(new_fname), "{0}".format(func_)]
-
-    retcode = subprocess.check_output(cmd)
-
-    return new_fname
 
 
 def drange(min_, max_):
@@ -1385,7 +1365,6 @@ def drop_percent(measure_file, percent):
 
     img = nb.load(measure_file)
     data = img.get_data()
-    x, y, z = data.shape
     
     max_val = np.percentile(data[data != 0.0], percent)
     data[data >= max_val] = 0.0
@@ -1643,8 +1622,9 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             im = grid[i].imshow(np.rot90(Y[:, :, zz]), cmap=cm.Greys_r)
         except IndexError as e:
             # TODO: send this to the logger instead
-            print("\n[!] QC Interface: Had a problem with creating the "
-                  "axial montage for {0}\n\nDetails:{1}"
+            print("\n[!] QC Interface: Had a problem with creating the "      
+                  "axial montage for {0}\n\nDetails:{1}. This error might occur because of a registration error encountered while using ANTs.\
+                  Please refer to the png image located in your working directory for more insight."
                   "\n".format(png_name, e))
             pass
         zz += spacing
@@ -1675,7 +1655,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "axial montage for {0}\n\nDetails:{1}"
+                  "axial montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs.\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
@@ -1686,12 +1667,12 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     cbar = grid.cbar_axes[0].colorbar(im)
 
     if 'snr' in png_name:
-        cbar.ax.set_yticks(drange(0, max_))
+        cbar.ax.set_yticks(np.linspace(0, max_, 8))
 
     elif ('reho' in png_name) or ('vmhc' in png_name) or \
             ('sca_' in png_name) or ('alff' in png_name) or \
             ('centrality' in png_name) or ('dr_tempreg' in png_name):
-        cbar.ax.set_yticks(drange(-max_, max_))
+        cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
 
     plt.axis("off")
     png_name = os.path.join(os.getcwd(), png_name)
@@ -1773,7 +1754,9 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     import matplotlib
     import os
     import numpy as np
+
     matplotlib.rcParams.update({'font.size': 5})
+
     try:
         from mpl_toolkits.axes_grid1 import ImageGrid   
     except:
@@ -1822,7 +1805,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "sagittal montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
@@ -1855,7 +1839,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "sagittal montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs.\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
@@ -1865,11 +1850,11 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         cbar = grid.cbar_axes[0].colorbar(im)
 
         if 'snr' in png_name:
-            cbar.ax.set_yticks(drange(0, max_))
+            cbar.ax.set_yticks(np.linspace(0, max_, 8))
         elif ('reho' in png_name) or ('vmhc' in png_name) or \
                 ('sca_' in png_name) or ('alff' in png_name) or \
                 ('centrality' in png_name) or ('dr_tempreg' in png_name):
-            cbar.ax.set_yticks(drange(-max_, max_))
+            cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
 
     except AttributeError as e:
         # TODO: send this to the logger instead
@@ -1939,9 +1924,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     X_wm[X_wm != 0.0] = max_wm
     max_gm = np.nanmax(np.abs(X_gm.flatten()))
     X_gm[X_gm != 0.0] = max_gm
-    x, y, z = Y.shape
     fig = plt.figure(1)
-    max_ = np.max(np.abs(Y))
 
     try:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
@@ -2090,7 +2073,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     return png_name
 
 
-def register_pallete(file_, cbar_name):
+def register_pallete(colors_file, cbar_name):
 
     """
     Registers color pallete to matplotlib
@@ -2098,7 +2081,7 @@ def register_pallete(file_, cbar_name):
     Parameters
     ----------
 
-    file_ : string
+    colors_file : string
         file containing colors in hexadecimal formats in each line
 
     cbar_name : string
@@ -2114,18 +2097,11 @@ def register_pallete(file_, cbar_name):
 
     import matplotlib.colors as col
     import matplotlib.cm as cm
-    f = open(file_, 'r')
-
-    colors_ = f.readlines()
-
-    colors = []
-
-    for color in reversed(colors_):
-
-        colors.append(color.rstrip('\r\n'))
-
-    cmap3 = col.ListedColormap(colors, cbar_name)
-    cm.register_cmap(cmap=cmap3)
+    
+    with open(colors_file, 'r') as f:
+        colors = [c.rstrip('\r\n') for c in reversed(f.readlines())]
+        cmap3 = col.ListedColormap(colors, cbar_name)
+        cm.register_cmap(cmap=cmap3)
 
 
 def resample_1mm(file_):

@@ -265,7 +265,7 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
 
         collect_transforms_vmhc = create_wf_collect_transforms(0, name='collect_transforms_vmhc')
 
-        apply_ants_xfm_vmhc = create_wf_apply_ants_warp(0, name='apply_ants_xfm_vmhc',
+        apply_ants_xfm_vmhc = create_wf_apply_ants_warp(map_node=False, name='apply_ants_xfm_vmhc',
                                                         ants_threads=ants_threads)
 
         # this has to be 3 instead of default 0 because it is a 4D file
