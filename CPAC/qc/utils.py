@@ -2095,13 +2095,31 @@ def register_pallete(colors_file, cbar_name):
 
     """
 
+
+   
     import matplotlib.colors as col
     import matplotlib.cm as cm
     
-    with open(colors_file, 'r') as f:
-        colors = [c.rstrip('\r\n') for c in f.readlines()]
-        cmap3 = col.ListedColormap(colors, cbar_name)
-        cm.register_cmap(cmap=cmap3)
+    f = open(colors_file, 'r')
+    colors_ = f.readlines()
+
+    colors = []
+
+    for color in reversed(colors_):
+
+        colors.append(color.rstrip('\r\n'))
+
+    cmap3 = col.ListedColormap(colors, cbar_name)
+    cm.register_cmap(cmap=cmap3)
+
+#def resample_files(file_):
+
+   # resample_files = pe.Node(afni.Resample
+   # resample_files.inputs.outputtype="NIFTI_GZ"
+   # resample_files.inputs.voxel_size=(1.,1.,1.)
+    
+   # wf.connect(inputnode, 'underlay', resample_u, 'in_file')
+   # wf.connect(resample_u, 'out_file', outputnode, 'resampled_underlay')
 
 
 def resample_1mm(file_):
