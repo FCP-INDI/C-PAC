@@ -1131,23 +1131,23 @@ def gen_plot_png(arr, measure, ex_vol=None):
 
     ex_vol = np.array(del_el)
 
-    fig = pyplot.figure(figsize=(10, 6))
-    pyplot.plot([i for i in xrange(len(arr))], arr, '-')
+    fig = plt.figure(figsize=(10, 6))
+    plt.plot([i for i in xrange(len(arr))], arr, '-')
     fig.suptitle('%s plot with Mean %s = %0.4f' % (measure, measure,
                                                    arr.mean()))
     if measure == 'FD' and len(ex_vol) > 0:
 
-        pyplot.scatter(ex_vol, arr[ex_vol], c="red", zorder=2)
+        plt.scatter(ex_vol, arr[ex_vol], c="red", zorder=2)
 
         for x in ex_vol:
-            pyplot.annotate('( %d , %0.3f)' % (x, arr[x]), xy=(x, arr[x]),
+            plt.annotate('( %d , %0.3f)' % (x, arr[x]), xy=(x, arr[x]),
                             arrowprops=dict(facecolor='black', shrink=0.0))
 
-    pyplot.xlabel('Volumes')
-    pyplot.ylabel('%s' % measure)
+    plt.xlabel('Volumes')
+    plt.ylabel('%s' % measure)
     png_name = os.path.join(os.getcwd(), '%s_plot.png' % measure)
     fig.savefig(os.path.join(os.getcwd(), png_name))
-    pyplot.close()
+    plt.close()
     matplotlib.rcdefaults()
     return png_name
 
@@ -1303,7 +1303,8 @@ def make_histogram(measure_file, measure):
 
     """
 
-    from matplotlib import pyplot
+    import matplotlib 
+    from matplotlib import pyplot as plt 
     import numpy as np
     import nibabel as nb
     import os
@@ -1313,16 +1314,16 @@ def make_histogram(measure_file, measure):
     y, binEdges = np.histogram(data_flat[data_flat != 0], bins=100)
     bincenters = 0.5*(binEdges[1:]+binEdges[:-1])
 
-    fig = pyplot.figure()
+    fig = plt.figure()
     fig.suptitle('%s intensity plot' % measure)
-    pyplot.plot(bincenters, y, '-')
-    pyplot.xlabel('intensity')
-    pyplot.ylabel('# of voxels')
+    plt.plot(bincenters, y, '-')
+    plt.xlabel('intensity')
+    plt.ylabel('# of voxels')
 
     png_name = os.path.join(os.getcwd(), '%s_hist_plot.png' % measure)
     fig.savefig(os.path.join(os.getcwd(), png_name))
 
-    pyplot.close()
+    plt.close()
     hist_path = os.path.join(os.getcwd(), png_name)
 
     """
