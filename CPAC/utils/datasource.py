@@ -446,10 +446,10 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
                                               as_module=True),
                             name='check_for_s3')
 
-    wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'mask_file', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
-    check_s3_node.inputs.img_type = 'anat'
+    check_s3_node.inputs.img_type = 'mask'
 
     outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
                          name='outputspec')
@@ -526,7 +526,7 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
     wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
-    check_s3_node.inputs.img_type = 'anat'
+    check_s3_node.inputs.img_type = 'mask'
 
     select_spatial_map = pe.Node(util.IdentityInterface(fields=['out_file'],
                                                         mandatory_inputs=True),

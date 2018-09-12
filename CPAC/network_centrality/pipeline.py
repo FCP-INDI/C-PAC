@@ -35,14 +35,12 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
     except subprocess.CalledProcessError as exc:
         afni_lfcd_found = False
 
-
     if not any((
         True in c.degWeightOptions,
         True in c.eigWeightOptions,
         True in c.lfcdWeightOptions
     )):
         return strategies
-
 
     for num_strat, strat in enumerate(strategies[:]):
 
@@ -55,7 +53,8 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
         resample_functional_to_template.inputs.set(
             interp='trilinear',
             in_matrix_file=c.identityMatrix,
-            apply_xfm=True
+            apply_xfm=True,
+            local_path=c.templateSpecificationFile
         )
 
         # Get nipype  node and out file of the func mni img
@@ -64,9 +63,6 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
         # Resample the input functional file to template(roi/mask)
         workflow.connect(node, out_file,
                          resample_functional_to_template, 'in_file')
-        
-        workflow.connect(c.templateSpecificationFile, 'local_path',
-                         resample_functional_to_template, 'reference')
 
         # Init merge node for appending method output lists to one another
         merge_node = pe.Node(function.Function(input_names=['deg_list',
@@ -85,7 +81,9 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.degWeightOptions:
                 connect_afni_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
+                    resample_functional_to_template,
+                    c.templateSpecificationFile,
+                    merge_node,
                     'degree',
                     c.degCorrelationThresholdOption,
                     c.degCorrelationThreshold
@@ -93,7 +91,9 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.eigWeightOptions:
                 connect_afni_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
+                    resample_functional_to_template,
+                    c.templateSpecificationFile,
+                    merge_node,
                     'eigenvector',
                     c.eigCorrelationThresholdOption,
                     c.eigCorrelationThreshold
@@ -128,7 +128,9 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.lfcdWeightOptions:
                 connect_afni_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
+                    resample_functional_to_template,
+                    c.templateSpecificationFile,
+                    merge_node,
                     'lfcd',
                     c.lfcdCorrelationThresholdOption,
                     c.lfcdCorrelationThreshold
@@ -139,7 +141,9 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
             if True in c.lfcdWeightOptions:
                 connect_centrality_workflow(
                     workflow, c, strat, num_strat,
-                    resample_functional_to_template, c.templateSpecificationFile, merge_node,
+                    resample_functional_to_template,
+                    c.templateSpecificationFile,
+                    merge_node,
                     'lfcd',
                     c.lfcdCorrelationThresholdOption,
                     c.lfcdCorrelationThreshold,
@@ -160,12 +164,8 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
 
 
 def connect_centrality_workflow(workflow, c, strat, num_strat,
-
-                                resample_functional_to_template,
-                                template,
-                                merge_node,
-                                
-                                methodOption, thresholdOption,
+                                resample_functional_to_template, template,
+                                merge_node, methodOption, thresholdOption,
                                 threshold, weightOptions, mList):
 
     # Create centrality workflow
@@ -180,10 +180,8 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
     workflow.connect(resample_functional_to_template, 'out_file',
                      network_centrality, 'inputspec.in_file')
 
-    workflow.connect(template, 'local_file',
-                     network_centrality, 'inputspec.template')
-
     network_centrality.inputs.inputspec.set(
+        template=template,
         # Give which method we're doing
         method_option=methodOption,
         # Type of threshold
@@ -203,13 +201,9 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
 # Function to connect the afni 3dDegreeCentrality workflow
 # into pipeline
 def connect_afni_centrality_workflow(workflow, c, strat, num_strat,
-                                     
                                      resample_functional_to_template,
-                                     template,
-                                     merge_node,
-                                     
-                                     method_option, threshold_option,
-                                     threshold):
+                                     template, merge_node, method_option,
+                                     threshold_option, threshold):
 
     # Import packages
     from CPAC.network_centrality.afni_network_centrality \
@@ -246,14 +240,11 @@ def connect_afni_centrality_workflow(workflow, c, strat, num_strat,
         create_afni_centrality_wf(wf_name, method_option,
                                   threshold_option,
                                   threshold, num_threads, memory)
+    afni_centrality_wf.inputs.inputspec.template = template
 
     # Connect pipeline resources to workflow
     workflow.connect(resample_functional_to_template, 'out_file',
                      afni_centrality_wf, 'inputspec.in_file')
-
-    # Mask
-    workflow.connect(template, 'local_file',
-                     afni_centrality_wf, 'inputspec.template')
 
     # Connect outputs to merge node
     workflow.connect(afni_centrality_wf,

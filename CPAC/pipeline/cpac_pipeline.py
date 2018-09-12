@@ -111,7 +111,7 @@ from CPAC.utils.utils import (
     add_afni_prefix
 )
 
-logger = logging.getLogger('workflow')
+logger = logging.getLogger('nipype.workflow')
 
 
 # TODO ASH move to somewhere else
@@ -259,6 +259,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
         if isinstance(val, six.string_types) and '/' in val:
             if ('.txt' in val) or ('.nii' in val) or ('.nii.gz' in val) \
                     or ('.mat' in val) or ('.cnf' in val) or ('.sch' in val):
+                if 's3://' in val:
+                    continue
                 if not os.path.isfile(val):
                     wrong_filepath_list.append((label, val))
 
@@ -271,6 +273,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     # Check system dependencies
     check_system_deps(check_ants='ANTS' in c.regOption)
+
+    # absolute paths of the dirs
+    c.workingDirectory = os.path.abspath(c.workingDirectory)
+    c.outputDirectory = os.path.abspath(c.outputDirectory)
 
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)
@@ -307,7 +313,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
         "dilated_symmetric_brain_mask",
         "templateSpecificationFile",
         "lateral_ventricles_mask",
-
         "PRIORS_CSF",
         "PRIORS_GRAY",
         "PRIORS_WHITE",
@@ -2478,7 +2483,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'spatial_map_dataflow_%d' % num_strat
                 )
 
-                spatial_map_dataflow.inputs.inputnode.set(
+                spatial_map_dataflow.inputs.inputspec.set(
                     creds_path=input_creds_path,
                     dl_dir=c.workingDirectory
                 )
@@ -2538,7 +2543,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'spatial_map_dataflow_for_DR_%d' % num_strat
                 )
 
-                spatial_map_dataflow_for_dr.inputs.inputnode.set(
+                spatial_map_dataflow_for_dr.inputs.inputspec.set(
                     creds_path=input_creds_path,
                     dl_dir=c.workingDirectory
                 )
@@ -2615,7 +2620,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_%d' % num_strat
                 )
 
-                roi_dataflow.inputs.inputnode.set(
+                roi_dataflow.inputs.inputspec.set(
                     creds_path=input_creds_path,
                     dl_dir=c.workingDirectory
                 )
@@ -2665,7 +2670,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_for_sca_%d' % num_strat
                 )
 
-                roi_dataflow_for_sca.inputs.inputnode.set(
+                roi_dataflow_for_sca.inputs.inputspec.set(
                     creds_path=input_creds_path,
                     dl_dir=c.workingDirectory
                 )
@@ -2720,7 +2725,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_for_mult_reg_%d' % num_strat
                 )
 
-                roi_dataflow_for_multreg.inputs.inputnode.set(
+                roi_dataflow_for_multreg.inputs.inputspec.set(
                     creds_path=input_creds_path,
                     dl_dir=c.workingDirectory
                 )

@@ -30,28 +30,35 @@ def create_montage(wf_name, cbar_name, png_name):
                                                         'resampled_overlay']),
                          name='outputspec')
 
-    # node for resamplincreate_montageg images to 1mm for QC pages
-    resample_u = pe.Node(Function(input_names=['file_'],output_names=['new_fname'],function=resample_1mm,as_module=True),name='resample_u')
+    # node for resampling create_montage images to 1mm for QC pages
+    resample_u = pe.Node(Function(input_names=['file_'],
+                                  output_names=['new_fname'],
+                                  function=resample_1mm,
+                                  as_module=True),
+                         name='resample_u')
     
     wf.connect(inputnode, 'underlay', resample_u, 'file_')
     wf.connect(resample_u, 'new_fname', outputnode,'resampled_underlay')
 
     # same for overlays (resampling to 1mm)
-    resample_o = pe.Node(Function(input_names=['file_'],output_names=['new_fname'],function=resample_1mm,as_module=True),name='resample_o')
+    resample_o = pe.Node(Function(input_names=['file_'],
+                                  output_names=['new_fname'],
+                                  function=resample_1mm,
+                                  as_module=True),
+                         name='resample_o')
     wf.connect(inputnode, 'overlay', resample_o, 'file_')
     wf.connect(resample_o, 'new_fname', outputnode,'resampled_overlay')
-   
 
     # node for axial montages
     montage_a = pe.MapNode(Function(input_names=['overlay',
                                               'underlay',
                                               'png_name',
                                               'cbar_name'],
-                                 output_names=['png_name'],
-                                 function=montage_axial,
-                                 as_module=True),
-                        name='montage_a',
-                        iterfield=['overlay', 'underlay'])
+                                    output_names=['png_name'],
+                                    function=montage_axial,
+                                    as_module=True),
+                           name='montage_a',
+                           iterfield=['overlay', 'underlay'])
     montage_a.inputs.cbar_name = cbar_name
     montage_a.inputs.png_name = png_name + '_a.png'
 
@@ -61,14 +68,14 @@ def create_montage(wf_name, cbar_name, png_name):
 
     # node for sagittal montages
     montage_s = pe.MapNode(Function(input_names=['overlay',
-                                              'underlay',
-                                              'png_name',
-                                              'cbar_name'],
-                                 output_names=['png_name'],
-                                 function=montage_sagittal,
-                                 as_module=True),
-                        name='montage_s',
-                        iterfield=['overlay', 'underlay'])
+                                                 'underlay',
+                                                 'png_name',
+                                                 'cbar_name'],
+                                    output_names=['png_name'],
+                                    function=montage_sagittal,
+                                    as_module=True),
+                           name='montage_s',
+                           iterfield=['overlay', 'underlay'])
     montage_s.inputs.cbar_name = cbar_name
     montage_s.inputs.png_name = png_name + '_s.png'
 
@@ -114,8 +121,6 @@ def create_montage_gm_wm_csf(wf_name, png_name):
     wf.connect(inputNode, 'overlay_gm', resample_o_gm, 'file_')
     wf.connect(inputNode, 'overlay_wm', resample_o_wm, 'file_')
 
-
-
     montage_a = pe.Node(Function(input_names=['overlay_csf',
                                               'overlay_wm',
                                               'overlay_gm',
@@ -132,8 +137,6 @@ def create_montage_gm_wm_csf(wf_name, png_name):
     wf.connect(resample_o_gm, 'new_fname', montage_a, 'overlay_gm')
     wf.connect(resample_o_wm, 'new_fname', montage_a, 'overlay_wm')
     montage_a.inputs.png_name = png_name + '_a.png'
-
-   
 
     montage_s = pe.Node(Function(input_names=['overlay_csf',
                                               'overlay_wm',
