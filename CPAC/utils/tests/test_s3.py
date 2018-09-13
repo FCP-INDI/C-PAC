@@ -1,9 +1,9 @@
 
 def test_check_s3():
-    
+
     import os
     from CPAC.utils.datasource import check_for_s3
-    
+
     data = check_for_s3(
         file_path='s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz',
         creds_path=None,
@@ -15,7 +15,7 @@ def test_check_s3():
 
 
 def test_check_s3_node():
-    
+
     import os
     from CPAC.utils.datasource import create_check_for_s3_node
 
