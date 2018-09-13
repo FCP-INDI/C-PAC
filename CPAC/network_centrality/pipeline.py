@@ -180,7 +180,7 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
     workflow.connect(resample_functional_to_template, 'out_file',
                      network_centrality, 'inputspec.in_file')
 
-    workflow.connect(template, 'local_file',
+    workflow.connect(template, 'local_path',
                      network_centrality, 'inputspec.template')
 
     network_centrality.inputs.inputspec.set(
@@ -252,7 +252,7 @@ def connect_afni_centrality_workflow(workflow, c, strat, num_strat,
                      afni_centrality_wf, 'inputspec.in_file')
 
     # Mask
-    workflow.connect(template, 'local_file',
+    workflow.connect(template, 'local_path',
                      afni_centrality_wf, 'inputspec.template')
 
     # Connect outputs to merge node
