@@ -40,3 +40,5 @@ pip-log.txt
 # Transpiling and compiling
 *.c
 *.so
+
+cpac_runs
