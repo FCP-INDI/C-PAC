@@ -1808,40 +1808,46 @@ def create_log(wf_name="log", scan_id=None):
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
+    import CPAC.utils.function as function
 
     wf = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
+    input_node = pe.Node(util.IdentityInterface(fields=['workflow',
+                                                        'log_dir',
+                                                        'index',
+                                                        'inputs']),
+                         name='inputspec')
+
+    output_node = pe.Node(util.IdentityInterface(fields=['out_file']),
+                          name='outputspec')
+
+    write_log = pe.Node(function.Function(input_names=['workflow',
                                                        'log_dir',
                                                        'index',
-                                                       'inputs']),
-                        name='inputspec')
-
-    outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
-                         name='outputspec')
-
-    write_log = pe.Node(util.Function(input_names=['workflow',
-                                                   'log_dir',
-                                                   'index',
-                                                   'inputs',
-                                                   'scan_id'],
-                                      output_names=['out_file'],
-                                      function=write_to_log),
+                                                       'inputs',
+                                                       'scan_id'],
+                                          output_names=['out_file'],
+                                          function=write_to_log,
+                                          as_module=True),
                         name='write_log')
-
-    wf.connect(inputNode, 'workflow',
-               write_log, 'workflow')
-    wf.connect(inputNode, 'log_dir',
-               write_log, 'log_dir')
-    wf.connect(inputNode, 'index',
-               write_log, 'index')
-    wf.connect(inputNode, 'inputs',
-               write_log, 'inputs')
 
     write_log.inputs.scan_id = scan_id
 
-    wf.connect(write_log, 'out_file',
-               outputNode, 'out_file')
+    wf.connect([
+        (
+            input_node, write_log, [
+                ('workflow', 'workflow'),
+                ('log_dir', 'log_dir'),
+                ('index', 'index'),
+                ('inputs', 'inputs')
+            ]
+        ),
+        (
+            write_log, output_node, [
+                ('out_file', 'out_file')
+            ]
+        )
+    ])
 
     return wf
 

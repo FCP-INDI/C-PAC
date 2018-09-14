@@ -1,7 +1,7 @@
 import os
 import pkg_resources as p
 import nipype.pipeline.engine as pe
-import CPAC.utils.afni as afni_utils
+from nipype.interfaces import afni
 
 from CPAC.qc.qc import (
     create_montage,
@@ -186,7 +186,7 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
         anat, out_file = strat['anatomical_brain']
         m_f_a, out_file_mfa = strat['mean_functional_in_anat']
 
-        anat_edge = pe.Node(afni_utils.Edge3(),
+        anat_edge = pe.Node(afni.Edge3(),
                             name='anat_edge_%d' % num_strat)
         anat_edge.inputs.outputtype = 'NIFTI_GZ'
 

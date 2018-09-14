@@ -28,7 +28,6 @@ from nipype import logging
 from indi_aws import aws_utils, fetch_creds
 
 import CPAC
-import CPAC.utils.afni as afni_utils
 from CPAC.network_centrality.utils import merge_lists
 from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
@@ -3513,12 +3512,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                        % (CPAC.__version__)
             logger.error(err_msg)
         else:
-            if nipype.__version__ == '1.1.2':
-                from nipype.utils.profiler import log_nodes_cb
-                plugin_args['status_callback'] = log_nodes_cb
-            else:
-                from nipype.pipeline.plugins.callback_log import log_nodes_cb
-                plugin_args['status_callback'] = log_nodes_cb
+            from CPAC.utils.monitoring import log_nodes_cb
+            plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)

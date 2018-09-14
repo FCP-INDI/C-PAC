@@ -271,6 +271,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
 
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
+        
         file_path = s3_str + file_path[len(s3_str):]
 
         # Get bucket name and bucket object
