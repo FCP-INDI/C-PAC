@@ -3521,7 +3521,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
-        workflow.run(plugin='Linear', plugin_args={})
+        workflow.run(plugin=plugin, plugin_args=plugin_args)
 
         # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
