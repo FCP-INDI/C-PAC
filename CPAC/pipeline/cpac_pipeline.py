@@ -209,7 +209,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     information = """
 
-Version: {cpac_version}
+C-PAC version: {cpac_version}
 
 Setting maximum number of cores per participant to {cores}
 Setting number of participants at once to {participants}
@@ -3468,7 +3468,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
         # creates the HTML files used to represent the logging-based status
         create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
 
-        logger.info("\n\nStrategy forks: {0}\n\n".format(str(set(pipes))))
+        forks = "\n\nStrategy forks:\n" + \
+                "\n".join(["- " + pipe for pipe in pipes]) + \
+                "\n\n"
+
+        logger.info(forks)
 
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
@@ -3517,7 +3521,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
-        workflow.run(plugin=plugin, plugin_args=plugin_args)
+        workflow.run(plugin='Linear', plugin_args={})
 
         # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
