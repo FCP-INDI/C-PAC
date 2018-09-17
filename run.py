@@ -26,18 +26,19 @@ def load_yaml_config(config_filename, aws_input_creds):
 
         from indi_aws import fetch_creds
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
-
-        bucket.download_file(prefix, '/tmp/'+os.path.basename(config_filename))
-
-        config_filename = '/tmp/'+os.path.basename(config_filename)
+        downloaded_config = '/tmp/' + os.path.basename(config_filename)
+        bucket.download_file(prefix, downloaded_config)
+        config_filename = downloaded_config
 
     config_filename = os.path.realpath(config_filename)
-    if os.path.isfile(config_filename):
-        with open(config_filename,'r') as infd:
-            config_data = yaml.load(infd)
 
-    return(config_data)
-
+    try:
+        with open(config_filename, 'r') as f:
+            config_data = yaml.load(f)
+            return config_data
+    except FileNotFoundError:
+        print("Error! Could not find config file {0}".format(config_filename))
+        raise
 
 
 def run(command, env={}):
@@ -174,6 +175,10 @@ else:
     print("\nRunning BIDS validator")
     run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
+# otherwise, if we are running group, participant, or dry run we
+# begin by conforming the configuration
+c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+
 # get the aws_input_credentials, if any are specified
 if args.aws_input_creds:
     if args.aws_input_creds is "env":
@@ -191,10 +196,6 @@ if args.aws_input_creds:
         c['awsCredentialsFile'] = args.aws_input_creds
     else:
         raise IOError("Could not find aws credentials {0}".format(args.aws_input_creds))
-
-# otherwise, if we are running group, participant, or dry run we
-# begin by conforming the configuration
-c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
 # set the parameters using the command line arguements
 # TODO: we will need to check that the directories exist, and
@@ -315,10 +316,8 @@ if not args.data_config_file:
         print ("Did not find any files to process")
         sys.exit(1)
 
-    # TODO: once CPAC is updated to use per-scan parameters from subject list,
-    # change the 3rd arguement to the config dict returned from
-    # collect_bids_files_configs
-    sub_list = bids_gen_cpac_sublist(args.bids_dir, file_paths, [], args.aws_input_creds)
+    sub_list = bids_gen_cpac_sublist(args.bids_dir, file_paths, config,
+                                     args.aws_input_creds)
 
     if not sub_list:
         print("Did not find data in {0}".format(args.bids_dir))

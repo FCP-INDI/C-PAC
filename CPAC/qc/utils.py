@@ -1,13 +1,96 @@
-import commands
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-
-import pkg_resources as p
 import os
-import nipype.pipeline.engine as pe
+import re
+import math
+import base64
+import commands
+import pkg_resources as p
+
+import numpy as np
+import nibabel as nb
+import numpy.ma as ma
+
+import matplotlib
+from matplotlib import pyplot as plt
+
+
 from nipype.interfaces import afni
+import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+
+
+derivative_descriptions = {
+    'alff_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_to_standard': 'Amplitude of Low-Frequency Fluctuation',
+    'alff_to_standard_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation',
+    'alff_to_standard_zstd': 'Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+    'alff_to_standard_zstd_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+    'alff_to_standard_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_to_standard_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'alff_to_standard_smooth_zstd': 'Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+    'alff_to_standard_smooth_zstd_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+
+    'centrality_hist': 'Histogram of Network Centrality',
+    'centrality_smooth_hist': 'Histogram of Network Centrality (smoothed)',
+    'centrality_smooth_zstd_hist': 'Histogram of Network Centrality (smoothed, z-score standardized)',
+    'centrality_smooth_zstd': 'Network Centrality (smoothed, z-score standardized)',
+    'centrality_smooth': 'Network Centrality (smoothed)',
+    'centrality_zstd_hist': 'Histogram of Network Centrality (z-score standardized)',
+    'centrality_zstd_smooth_hist': 'Histogram of Network Centrality (z-score standardized, smoothed)',
+    'centrality_zstd_smooth': 'Network Centrality (z-score standardized, smoothed)',
+    'centrality_zstd': 'Network Centrality (z-score standardized)',
+    'centrality': 'Network Centrality',
+    
+    'csf_gm_wm': 'Grey Matter, White Matter & CSF',
+
+    'falff_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_smooth': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_to_standard': 'Fractional Amplitude of Low-Frequency Fluctuation',
+    'falff_to_standard_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation',
+    'falff_to_standard_smooth': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_to_standard_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+    'falff_to_standard_smooth_zstd': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+    'falff_to_standard_smooth_zstd_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+    'falff_to_standard_zstd': 'Fractional Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+    'falff_to_standard_zstd_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+
+    'fd_plot': 'Framewise Displacement Plot',
+    'mean_func_with_mni_edge': 'MNI Edge Overlapped on Mean Functional Image',
+    'mean_func_with_t1_edge': 'T1 Edge Overlapped on Mean Functional Image',
+    'mni_normalized_anatomical': 'MNI Edge Overlapped on Normalized Anatomical',
+    'movement_rot_plot': 'Head Rotation Plot',
+    'movement_trans_plot': 'Head Displacement Plot',
+
+    'reho_smooth': 'Regional Homogeneity (smoothed)',
+    'reho_smooth_hist': 'Histogram of Regional Homogeneity (smoothed)',
+    'reho_to_standard': 'Regional Homogeneity',
+    'reho_to_standard_hist': 'Histogram of Regional Homogeneity',
+    'reho_to_standard_smooth': 'Regional Homogeneity (smoothed)',
+    'reho_to_standard_smooth_hist': 'Histogram of Regional Homogeneity (smoothed)',
+    'reho_to_standard_smooth_zstd': 'Regional Homogeneity (smoothed, z-score standardized)',
+    'reho_to_standard_smooth_zstd_hist': 'Histogram of Regional Homogeneity (smoothed, z-score standardized)',
+    'reho_to_standard_zstd': 'Regional Homogeneity (z-score standardized)',
+    'reho_to_standard_zstd_hist': 'Histogram of Regional Homogeneity (z-score standardized)',
+
+    'sca_roi_smooth_hist': 'Histogram of Seed-based Correlation Analysis (smoothed)',
+    'sca_roi_smooth': 'Seed-based Correlation Analysis (smoothed)',
+    
+    'skullstrip_vis': 'Visual Result of Skull Strip',
+    'snr_hist': 'Histogram of Signal to Noise Ratio',
+    'snr': 'Signal to Noise Ratio',
+
+    'temporal_dual_regression_smooth_hist': 'Histogram of Temporal Dual Regression',
+    'temporal_dual_regression_smooth': 'Temporal Dual Regression',
+    
+    'vmhc_smooth': 'Voxel-Mirrored Homotopic Connectivity (smoothed)',
+    'vmhc_smooth_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity (smoothed)',
+    'vmhc_fisher_zstd': 'Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_fisher_zstd_hist': 'Histogram of Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_fisher_zstd_zstat_map': 'Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_fisher_zstd_zstat_map_hist': 'Histogram of Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+    'vmhc_raw_score': 'Voxel-Mirrored Homotopic Connectivity',
+    'vmhc_raw_score_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity',
+}
 
 
 def append_to_files_in_dict_way(list_files, file_):
@@ -29,17 +112,9 @@ def append_to_files_in_dict_way(list_files, file_):
 
     """
 
-    f_1 = open(file_, 'r')
-
-    lines = f_1.readlines()
-    lines = [line.rstrip('\r\n') for line in lines]
-    one_dict = {}
-
-    for line in lines:
-        if not line in one_dict:
-            one_dict[line] = 1
-
-    f_1.close()
+    with open(file_, 'r') as f:
+        lines = [line.rstrip('\r\n') for line in f.readlines()]
+        one_dict = {line: 1 for line in lines}
 
     for f_ in list_files:
         two_dict = {}
@@ -69,7 +144,7 @@ def first_pass_organizing_files(qc_path):
     Parameters
     ----------
     qc_path : string
-        existing path of qc_files_here directory
+        existing path of qc_html directory
 
     Returns
     -------
@@ -82,53 +157,50 @@ def first_pass_organizing_files(qc_path):
 
     """
 
-    import os
-    from CPAC.qc.utils import append_to_files_in_dict_way
-
     if not os.path.exists(qc_path):
         os.makedirs(qc_path)
 
     qc_files = os.listdir(qc_path)
     strat_dict = {}
 
-    for file_ in sorted(qc_files, reverse=True):
-        if not ('.txt' in file_):
+    for qc_file in sorted(qc_files, reverse=True):
+        if not ('.txt' in qc_file):
             continue
 
-        file_ = os.path.join(qc_path, file_)
-        str_ = os.path.basename(file_)
+        qc_file = os.path.join(qc_path, qc_file)
+        qc_filename = os.path.basename(qc_file)
 
-        str_ = str_.replace('qc_', '')
-        str_ = str_.replace('scan_', '')
-        str_ = str_.replace('.txt', '')
-        str_ = str_.replace('____', '_')
-        str_ = str_.replace('___', '_')
-        str_ = str_.replace('__', '_')
+        qc_filename = qc_filename.replace('qc_', '')
+        qc_filename = qc_filename.replace('scan_', '')
+        qc_filename = qc_filename.replace('.txt', '')
+        qc_filename = qc_filename.replace('____', '_')
+        qc_filename = qc_filename.replace('___', '_')
+        qc_filename = qc_filename.replace('__', '_')
 
-        if '_hp_' in str_ and '_fwhm_' in str_ and \
-                not ('_bandpass_freqs_' in str_):
-            str_, fwhm_val = str_.split('_fwhm_')
+        if '_hp_' in qc_filename and '_fwhm_' in qc_filename and \
+                not ('_bandpass_freqs_' in qc_filename):
+            qc_filename, fwhm_val = qc_filename.split('_fwhm_')
 
             fwhm_val = '_fwhm_' + fwhm_val
 
-            str_, hp_lp_ = str_.split('_hp_')
+            qc_filename, hp_lp_ = qc_filename.split('_hp_')
             hp_lp_ = '_hp_' + hp_lp_
 
-            str_ = str_ + fwhm_val + hp_lp_
+            qc_filename = qc_filename + fwhm_val + hp_lp_
 
         if strat_dict.keys() == []:
-            strat_dict[str_] = [file_]
+            strat_dict[qc_filename] = [qc_file]
         else:
             flag_ = 0
             for key_ in strat_dict.keys():
-                if str_ in key_:
-                    append_to_files_in_dict_way(strat_dict[key_], file_)
+                if qc_filename in key_:
+                    append_to_files_in_dict_way(strat_dict[key_], qc_file)
                     flag_ = 1
 
             if flag_ == 1:
-                os.system('rm -f %s' % file_)
+                os.system('rm -f %s' % qc_file)
             else:
-                strat_dict[str_] = [file_]
+                strat_dict[qc_filename] = [qc_file]
 
 
 def second_pass_organizing_files(qc_path):
@@ -137,7 +209,7 @@ def second_pass_organizing_files(qc_path):
     Parameters
     ----------
     qc_path : string
-        existing path of qc_files_here directory
+        existing path of qc_html directory
 
     Returns
     -------
@@ -149,9 +221,6 @@ def second_pass_organizing_files(qc_path):
     falff , alff with others
 
     """
-
-    import os
-    from CPAC.qc.utils import append_to_files_in_dict_way
 
     qc_files = os.listdir(qc_path)
 
@@ -305,8 +374,6 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
 
     """
 
-    from CPAC.qc.utils import organize
-
     dict_a = {}
     dict_s = {}
     dict_hist = {}
@@ -322,18 +389,28 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
-def add_head(f_html_, f_html_0, f_html_1, name=None):
+def encode_to_url(f, type):
+    with open(f, "rb") as image_file:
+        b64 = str(base64.b64encode(image_file.read()).decode("utf-8"))
+        return "data:" + type + ";" + "base64," + b64
+
+
+def commonprefix(args, sep='/'):
+	return os.path.commonprefix(args).rpartition(sep)[0]
+
+
+def add_head(frameset_html_fd, menu_html_fd, content_html_fd, name):
     """Write HTML Headers to various html files.
 
     Parameters
     ----------
-    f_html_ : string
+    frameset_html_fd : string
         path to main html file
 
-    f_html_0 : string
+    menu_html_fd : string
         path to navigation bar html file
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
     Returns
@@ -342,74 +419,95 @@ def add_head(f_html_, f_html_0, f_html_1, name=None):
 
     """
 
-    print >>f_html_, "<html>"
-    print >>f_html_, "<head>"
-    print >>f_html_, "<title>C-PAC QC</title>"
-    print >>f_html_, "</head>"
-    print >>f_html_, ""
-    print >>f_html_, "<frameset cols=\"20%,80%\">"
-    print >>f_html_, ""
-    print >>f_html_, "    <frame src=\"%s\" name=\"menu\"><frame src=\"%s" \
-                     "\" name=\"content\">" \
-                     "</frameset>" %(f_html_0.name, f_html_1.name)
-    print >>f_html_, ""
-    print >>f_html_, "</html>"
+    # Relativize files path to include on output
+    html_menu_relative_name = os.path.join('qc_html', os.path.basename(menu_html_fd.name))
+    html_content_relative_name = os.path.join('qc_html', os.path.basename(content_html_fd.name))
 
-    print >>f_html_0, "<html>"
-    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" " \
-                      "media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"))
-    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" " \
-                      "media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"))
-    print >>f_html_0, "<head>"
-    print >>f_html_0, "<base target=\"content\">"
-    print >>f_html_0, "</head>"
-    print >>f_html_0, "<body bgcolor = \"#FFFF00\">"
-    print >>f_html_0, "<div>"
-    print >>f_html_0, "<div class=\"sphinxsidebarwrapper\">"
-    print >>f_html_0, "<p class=\"logo\"><a href=\"" \
-                      "https://fcp-indi.github.io\" target=\"website\">"
-    print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
-    print >>f_html_0, "<img class=\"logo\" src=\"%s\" " \
-                      "alt=\"Logo\"/>"%(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"))
-    print >>f_html_0, "</a></p>"
-    print >>f_html_0, "<h3>Table Of Contents</h3>"
-    print >>f_html_0, "<ul>"
+    frameset_html = """
 
-    print >>f_html_1, '<link href="default.css" rel="stylesheet" ' \
-                      'type="text/css" />'
-    print >>f_html_1, "<html>"
-    print >>f_html_1, "</style>"
-    print >>f_html_1, "<body>"
-    print >>f_html_1, "<a name='reverse'>"
-    if name:
-        print >>f_html_1, "<br><h1>C-PAC Visual Data Quality Control " \
-                          "Interface</h1>"
-        print >>f_html_1, "<h3>C-PAC Website: <a href=\"" \
-                          "https://fcp-indi.github.io/\" target=" \
-                          "\"website\">https://fcp-indi.github.io</a>" \
-                          "<br><br>"
-        print >>f_html_1, "C-PAC Support Forum: <a href=\"" \
-                          "https://groups.google.com/forum/#!forum" \
-                          "/cpax_forum\" target=\"forum\">" \
-                          "https://groups.google.com/forum/#!forum/" \
-                          "cpax_forum</a>"
-        print >>f_html_1, "<hr><br>Scan and strategy identifiers:" \
-                          "<br>{0}".format(name)
-        print >>f_html_1, "</h3><br>"
+<html>
+    <head>
+        <title>C-PAC QC</title>
+    </head>
+    <frameset cols="20%,80%">
+        <frame src="{menu_file}" name="menu">
+        <frame src="{content_file}" name="content">
+    </frameset>
+</html>
+
+"""
+
+    frameset_html_fd.write(frameset_html.format(
+        menu_file=html_menu_relative_name,
+        content_file=html_content_relative_name
+    ))
 
 
-def add_tail(f_html_, f_html_0, f_html_1):
+    menu_html = """
+
+<html>
+    <head>
+        <style>{css_nature}</style>
+        <style>{css_pygments}</style>
+        <base target="content">
+    </head>
+
+    <body bgcolor="#FFFF00">
+        <div>
+            <div class="sphinxsidebarwrapper">
+                <p class="logo">
+                    <a href="https://fcp-indi.github.io" target="website">
+                        <img class="logo" src="{logo}" style="width:100%" alt="Logo"/>
+                    </a>
+                </p>
+                <h3>Table Of Contents</h3>
+                <ul>
+
+"""
+
+    with open(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"), 'r') as content_file:
+        css_nature_content = content_file.read()
+
+    with open(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"), 'r') as content_file:
+        css_pygments_content = content_file.read()
+
+    menu_html_fd.write(menu_html.format(
+        css_nature=css_nature_content,
+        css_pygments=css_pygments_content,
+        logo=encode_to_url(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"), 'image/jpeg')
+    ))
+
+
+    content_html = """
+
+<html>
+    <body>
+        <a name="reverse"></a>
+        <h1>C-PAC Visual Data Quality Control Interface</h1>
+        <h3>C-PAC Website: <a href=\"https://fcp-indi.github.io/\" target=\"website\">https://fcp-indi.github.io</a></h3>
+        <h3>C-PAC Support Forum: <a href=\"https://groups.google.com/forum/#!forum/cpax_forum\" target=\"forum\">https://groups.google.com/forum/#!forum/cpax_forum</a></h3>
+        <hr>
+        <h3>Scan and strategy identifiers: {name}</h3>
+    
+"""
+
+    content_html_fd.write(content_html.format(
+        name=name
+    ))
+
+
+def add_tail(frameset_html_fd, menu_html_fd, content_html_fd):
     """Write HTML Tail Tags to various html files.
 
     Parameters
     ----------
-    f_html_ : string
+    frameset_html_fd : string
         path to main html file
 
-    f_html_0 : string
+    menu_html_fd : string
         path to navigation bar html file
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
 
@@ -419,33 +517,39 @@ def add_tail(f_html_, f_html_0, f_html_1):
 
     """
 
-    print >>f_html_0, "</ul>"
-    print >>f_html_0, "</div>"
-    print >>f_html_0, "</div>"
-    print >>f_html_0, "</body>"
-    print >>f_html_0, "</html>"
-    print >>f_html_1, "</body>"
-    print >>f_html_1, "</html>"
+    menu_html_fd.write("""
+    
+                </ul>
+            </div>
+        </div>
+    </body>
+</html>
+
+""")
+
+    content_html_fd.write("""
+
+    </body>
+</html>
+    
+""")
 
 
-def feed_line_nav(id_, image_name, anchor, f_html_0, f_html_1):
+def feed_line_nav(image_name, anchor, menu_html_fd, content_html_fd):
     """Write to navigation bar html file.
 
     Parameters
     ----------
-    id_ : string
-        id of the image
-
     anchor : string
         anchor id of the image
 
     image_name : string
         name of image
     
-    f_html_0 : string
+    menu_html_fd : string
         path to navigation bar html file
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
     Returns
@@ -453,62 +557,22 @@ def feed_line_nav(id_, image_name, anchor, f_html_0, f_html_1):
     None
 
     """
-    image_readable = image_name
-    if image_name == 'skullstrip_vis':
-        image_readable = 'Visual Result of Skull Strip'
-    if image_name == 'csf_gm_wm':
-        image_readable = 'Grey Matter, White Matter & CSF'
-    if image_name == 'snr':
-        image_readable = 'Signal to Noise Ratio'
-    if image_name.find('snr_hist') > -1:
-        image_readable = 'Histogram of Signal to Noise Ratio'
-    if image_name.find('mni_normalized') > -1:
-        image_readable = 'MNI Edge Overlapped on Normalized Anatomical'
-    if image_name == 'mean_func_with_t1_edge':
-        image_readable = 'T1 Edge Overlapped on Mean Functional Image'
-    if image_name == 'mean_func_with_mni_edge':
-        image_readable = 'MNI Edge Overlapped on Mean Functional Image'
-    if image_name.find('movement_trans_plot') >-1:
-        image_readable = 'Head Displacement Plot'
-    if image_name.find('movement_rot_plot') >-1:
-        image_readable = 'Head Rotation Plot'
-    if image_name.find('fd_plot') > -1:
-        image_readable = 'Framewise Displacement Plot'
-    if image_name == 'sca_roi_smooth':
-        image_readable = 'Seed-based Correlation Analysis'
-    if image_name == 'sca_roi_smooth_hist':
-        image_readable = 'Histogram of Seed-based Correlation Analysis'
-    if image_name == 'centrality_smooth':
-        image_readable = 'Network Centrality'
-    if image_name == 'centrality_smooth_hist':
-        image_readable = 'Histogram of Network Centrality'
-    if image_name == 'temporal_dual_regression_smooth':
-        image_readable = 'Temporal Dual Regression'
-    if image_name == 'temporal_dual_regression_smooth_hist':
-        image_readable = 'Histogram of Temporal Dual Regression'
-    if image_name == 'vmhc_smooth':
-        image_readable = 'Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'vmhc_smooth_hist':
-        image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'reho_smooth':
-        image_readable = 'Regional Homogeneity'
-    if image_name == 'reho_smooth_hist':
-        image_readable = 'Histogram of Regional Homogeneity'
-    if image_name == 'alff_smooth':
-        image_readable = 'Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'alff_smooth_hist':
-        image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth':
-        image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
-    print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name,
-                                                             anchor,
-                                                             image_readable)
+    image_readable = derivative_descriptions[image_name]
+
+    html_content_relative_name = os.path.join('qc_html', os.path.basename(content_html_fd.name))
+    menu_html = """
+                    <li><a href="{page}#{anchor}">{description}</a></li>
+"""
+
+    menu_html_fd.write(menu_html.format(
+        page=html_content_relative_name,
+        anchor=anchor,
+        description=image_readable
+    ))
 
 
-def feed_line_body(image_name, anchor, image, f_html_1):
+def feed_line_body(image_name, anchor, image, content_html_fd):
     """Write to html file that has to contain images.
 
     Parameters
@@ -522,7 +586,7 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     image : string
         path to the image
 
-    f_html_1 : string
+    content_html_fd : string
         path to html file contaning pngs and plots
 
     Returns
@@ -530,76 +594,38 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     None
 
     """
+
+    folder = commonprefix([image, content_html_fd.name])
+
+    html_rel = '/'.join(['..'] * content_html_fd.name.replace(folder + '/', '').count('/'))
+    image_rel = image.replace(folder + '/', '')
+    image_rel = '/'.join([html_rel, image_rel])
+
+    description_html = """
+        <h3><a name="{anchor}">{description}</a> <a href="#reverse">TOP</a></h3>
+"""
+    image_html = """
+        <p><img src="{image}" alt="{description}"></p>
+"""
+
     image_readable = image_name
-    if image_name == 'skullstrip_vis':
-        image_readable = 'Visual Result of Skull Strip'
-    if image_name == 'csf_gm_wm':
-        image_readable = 'Grey Matter, White Matter & CSF'
-    if image_name == 'snr':
-        image_readable = 'Signal to Noise Ratio'
-    if image_name.find('snr_hist') > -1:
-        image_readable = 'Histogram of Signal to Noise Ratio'
-    if image_name.find('mni_normalized') > -1:
-        image_readable = 'MNI Edge Overlapped on Normalized Anatomical'
-    if image_name == 'mean_func_with_t1_edge':
-        image_readable = 'T1 Edge Overlapped on Mean Functional Image'
-    if image_name == 'mean_func_with_mni_edge':
-        image_readable = 'MNI Edge Overlapped on Mean Functional Image'
-    if image_name.find('movement_trans_plot') >-1:
-        image_readable = 'Head Displacement Plot'
-    if image_name.find('movement_rot_plot') >-1:
-        image_readable = 'Head Rotation Plot'
-    if image_name.find('fd_plot') > -1:
-        image_readable = 'Framewise Displacement Plot'
-    if image_name == 'sca_roi_smooth':
-        image_readable = 'Seed-based Correlation Analysis'
-    if image_name == 'sca_roi_smooth_hist':
-        image_readable = 'Histogram of Seed-based Correlation Analysis'
-    if image_name == 'centrality':
-        image_readable = 'Network Centrality'
-    if image_name == 'centrality_hist':
-        image_readable = 'Histogram of Network Centrality'
-    if image_name == 'centrality_smooth':
-        image_readable = 'Network Centrality (smoothed)'
-    if image_name == 'centrality_smooth_hist':
-        image_readable = 'Histogram of Network Centrality (smoothed)'
-    if image_name == 'centrality_zstd':
-        image_readable = 'Network Centrality (z-score standardized)'
-    if image_name == 'centrality_zstd_hist':
-        image_readable = 'Histogram of Network Centrality (z-score standardized)'
-    if image_name == 'centrality_smooth_zstd':
-        image_readable = 'Network Centrality (smoothed, z-score standardized)'
-    if image_name == 'centrality_smooth_zstd_hist':
-        image_readable = 'Histogram of Network Centrality (smoothed, z-score standardized)'
-    if image_name == 'centrality_zstd_smooth':
-        image_readable = 'Network Centrality (z-score standardized, smoothed)'
-    if image_name == 'centrality_zstd_smooth_hist':
-        image_readable = 'Histogram of Network Centrality (z-score standardized, smoothed)'
-    if image_name == 'temporal_dual_regression_smooth':
-        image_readable = 'Temporal Dual Regression'
-    if image_name == 'temporal_dual_regression_smooth_hist':
-        image_readable = 'Histogram of Temporal Dual Regression'
-    if image_name == 'vmhc_smooth':
-        image_readable = 'Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'vmhc_smooth_hist':
-        image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
-    if image_name == 'reho_smooth':
-        image_readable = 'Regional Homogeneity'
-    if image_name == 'reho_smooth_hist':
-        image_readable = 'Histogram of Regional Homogeneity'
-    if image_name == 'alff_smooth':
-        image_readable = 'Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'alff_smooth_hist':
-        image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth':
-        image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
-    if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
-    print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_readable)
+    if image_name:
+        image_readable = derivative_descriptions[image_name]
 
-    img_tag = "<br><img src='%s', alt='%s'>" %(image, image_readable)
-    print >>f_html_1, img_tag
+        content_html_fd.write(
+            description_html.format(
+                anchor=anchor,
+                description=image_readable
+            )
+        )
+        
+    content_html_fd.write(
+        image_html.format(
+            image=image_rel,
+            description=image_readable
+        )
+    )
 
 
 def get_map_id(str_, id_):
@@ -621,15 +647,6 @@ def get_map_id(str_, id_):
     """
 
     map_id = None
-
-    '''
-    id_:  centrality_
-    str_:  degree_centrality_binarize_99_1mm_centrality_outputs_a.png
-    str_ post-split:  degree_centrality_binarize_99_1mm_centrality_outputs
-    180515-20:46:14,382 workflow ERROR:
-    [!] Error: The QC interface page generator ran into a problem.
-    Details: too many values to unpack
-    '''
 
     # so whatever goes into "type_" and then "map_id" becomes the "Map: "
     # Mask: should be the ROI nifti, but right now it's the nuisance strat...
@@ -682,12 +699,9 @@ def get_map_and_measure(png_a):
         proper name for map
 
     measure_name : string
-        proper name for measure    
+        proper name for measure
 
     """
-
-    import os
-    from CPAC.qc.utils import get_map_id
 
     measure_name = None
     map_name = None
@@ -714,9 +728,9 @@ def get_map_and_measure(png_a):
     return map_name, measure_name
 
 
-def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
+def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
                     qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id,
-                    f_html_0, f_html_1):
+                    menu_html_fd, content_html_fd):
     """Write HTML Tags to various html files and embeds images.
 
     Parameters
@@ -764,28 +778,25 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
     None
 
     """
-    from CPAC.qc.utils import feed_line_nav
-    from CPAC.qc.utils import feed_line_body
-    from CPAC.qc.utils import get_map_and_measure
 
-    if id_ in dict_a:
+    if montage_id in montages_a:
 
-        dict_a[id_] = sorted(dict_a[id_])
-        dict_s[id_] = sorted(dict_s[id_])
+        montages_a[montage_id] = sorted(montages_a[montage_id])
+        montages_s[montage_id] = sorted(montages_s[montage_id])
 
-        if id_ in dict_hist:
-            dict_hist[id_] = sorted(dict_hist[id_])
+        if montage_id in histograms:
+            histograms[montage_id] = sorted(histograms[montage_id])
 
-        idxs = len(dict_a[id_])
+        idxs = len(montages_a[montage_id])
 
         for idx in range(0, idxs):
-            png_a = dict_a[id_][idx]
-            png_s = dict_s[id_][idx]
+            png_a = montages_a[montage_id][idx]
+            png_s = montages_s[montage_id][idx]
             png_h = None
 
-            if id_ in dict_hist:
+            if montage_id in histograms:
                 try:
-                    png_h = dict_hist[id_][idx]
+                    png_h = histograms[montage_id][idx]
                 except:
                     pass
 
@@ -795,24 +806,34 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
             if idxs > 1:
                 map_name, measure_name = get_map_and_measure(png_a)
 
-            id_a = str(id_)
-            id_s = str(id_) + '_s'
-            id_h = str(id_) + '_' + str(id_)
+            id_a = str(montage_id)
+            id_s = str(montage_id) + '_s'
+            id_h = str(montage_id) + '_' + str(montage_id)
 
             image_name_a = None
             image_name_h = None
 
-            image_name_a_nav = qc_montage_id_a[id_].replace('_a', '')
-            if id_ in qc_hist_id:
-                image_name_h_nav = qc_hist_id[id_]
+            image_name_a_nav = re.sub('_a$', '', qc_montage_id_a[montage_id])
+            if montage_id in qc_hist_id:
+                image_name_h_nav = qc_hist_id[montage_id]
+                
             if map_name is not None:
-                image_name_a = 'Measure: ' + qc_montage_id_a[id_].replace('_a', '') + '    Mask: ' + measure_name + '   Map: ' + map_name
-                if id_ in qc_hist_id:
-                    image_name_h = 'Measure: ' + qc_hist_id[id_] + '    Mask:'+ measure_name + '    Map: ' + map_name
+                image_name_a = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                    measure=image_name_a_nav,
+                    mask=measure_name,
+                    map=map_name
+                )
+
+                if montage_id in qc_hist_id:
+                    image_name_h = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                        measure=qc_hist_id[montage_id],
+                        mask=measure_name,
+                        map=map_name
+                    )
             else:
-                image_name_a = qc_montage_id_a[id_].replace('_a', '')
-                if id_ in qc_hist_id:
-                    image_name_h = qc_hist_id[id_]
+                image_name_a = image_name_a_nav
+                if montage_id in qc_hist_id:
+                    image_name_h = qc_hist_id[montage_id]
 
             if idx != 0:
                 id_a = '_'.join([id_a, str(idx), 'a'])
@@ -820,75 +841,29 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
                 id_h = '_'.join([id_h, str(idx), 'h' ])
 
             if idx == 0:
-                if image_name_a_nav == 'skullstrip_vis':
-                    image_readable = 'Visual Result of Skull Strip'
-                if image_name_a_nav == 'csf_gm_wm':
-                    image_readable = 'Grey Matter, White Matter & CSF'
-                if image_name_a_nav == 'snr':
-                    image_readable = 'Signal to Noise Ratio'
-                if image_name_a_nav == 'snr_hist':
-                    image_readable = 'Histogram of Signal to Noise Ratio'
-                if image_name_a_nav == 'mean_func_with_t1_edge':
-                    image_readable = 'T1 Edge Overlapped on Mean Functional Image'
-                if image_name_a_nav == 'mean_func_with_mni_edge':
-                    image_readable = 'MNI Edge Overlapped on Mean Functional Image'
-                if image_name_a_nav == 'movement_trans_plot':
-                    image_readable = 'Head Displacement Plot'
-                if image_name_a_nav == 'movement_rot_plot':
-                    image_readable = 'Head Rotation Plot'
-                if image_name_a_nav == 'fd_plot':
-                    image_readable = 'Framewise Displacement Plot'
-                if image_name_a_nav == 'sca_roi_smooth':
-                    image_readable = 'Seed-based Correlation Analysis'
-                if image_name_a_nav == 'sca_roi_smooth_hist':
-                    image_readable = 'Histogram of Seed-based Correlation Analysis'
-                if image_name_a_nav == 'centrality_smooth':
-                    image_readable = 'Network Centrality'
-                if image_name_a_nav == 'centrality_smooth_hist':
-                    image_readable = 'Histogram of Network Centrality'
-                if image_name_a_nav == 'temporal_dual_regression_smooth':
-                    image_readable = 'Temporal Dual Regression'
-                if image_name_a_nav == 'temporal_dual_regression_smooth_hist':
-                    image_readable = 'Histogram of Temporal Dual Regression'
-                if image_name_a_nav == 'vmhc_smooth':
-                    image_readable = 'Voxel-Mirrored Homotopic Connectivity'
-                if image_name_a_nav == 'vmhc_smooth_hist':
-                    image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
-                if image_name_a_nav == 'reho_smooth':
-                    image_readable = 'Regional Homogeneity'
-                if image_name_a_nav == 'reho_smooth_hist':
-                    image_readable = 'Histogram of Regional Homogeneity'
-                if image_name_a_nav == 'alff_smooth':
-                    image_readable = 'Amplitude of Low-Frequency Fluctuation'
-                if image_name_a_nav == 'alff_smooth_hist':
-                    image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
-                if image_name_a_nav == 'falff_smooth':
-                    image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
-                if image_name_a_nav == 'falff_smooth_hist':
-                    image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
-                feed_line_nav(id_, image_name_a_nav, id_a, f_html_0, f_html_1)
+                feed_line_nav(image_name_a_nav, id_a, menu_html_fd, content_html_fd)
 
-            feed_line_body(image_name_a, id_a, png_a, f_html_1)
-            feed_line_body('', id_s, png_s, f_html_1)
+            feed_line_body(image_name_a, id_a, png_a, content_html_fd)
+            feed_line_body(None, id_s, png_s, content_html_fd)
 
-            if id_ in dict_hist.keys():
+            if montage_id in histograms.keys():
                 if idx == 0:
-                    feed_line_nav(id_, image_name_h_nav, id_h, f_html_0,
-                                  f_html_1)
+                    feed_line_nav(image_name_h_nav, id_h, menu_html_fd, content_html_fd)
+                if png_h is not None:
+                    feed_line_body(image_name_h, id_h, png_h, content_html_fd)
 
-                feed_line_body(image_name_h, id_h, png_h, f_html_1)
-
-    if id_ in dict_plot:
-        id_a = str(id_)
-        image_name = qc_plot_id[id_]
-        png_a = dict_plot[id_][0]
-        feed_line_nav(id_, image_name, id_a, f_html_0, f_html_1)
-        feed_line_body(image_name, id_a, png_a, f_html_1)
+    if montage_id in dict_plot:
+        id_a = str(montage_id)
+        image_name = qc_plot_id[montage_id]
+        png_a = dict_plot[montage_id][0]
+        feed_line_nav(image_name, id_a, menu_html_fd, content_html_fd)
+        feed_line_body(image_name, id_a, png_a, content_html_fd)
 
 
-def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
+def make_page(qc_file, sub_output_dir,
+              qc_montage_id_a, qc_montage_id_s,
               qc_plot_id, qc_hist_id):
-    """Convert a 'qc_files_here' text file in the CPAC output directory into
+    """Convert a 'qc_html' text file in the CPAC output directory into
     a QC HTML page.
 
     Parameters
@@ -921,62 +896,57 @@ def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
 
     """
 
-    import os
-    from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
-        feed_lines_html
+    with open(qc_file, 'r') as f:
+        qc_images = [line.rstrip('\r\n') for line in f.readlines()]
 
-    with open(file_, 'r') as f:
-        pngs_ = [line.rstrip('\r\n') for line in f.readlines()]
+    frameset_html = qc_file.replace('.txt', '')
+    frameset_html = frameset_html.replace("'", "")
 
-    html_f_name = file_.replace('.txt', '')
-    html_f_name = html_f_name.replace("'", "")
+    menu_html = frameset_html + '_navbar.html'
+    content_html = frameset_html + '_page.html'
 
-    html_f_name_0 = html_f_name + '_navbar.html'
-    html_f_name_1 = html_f_name + '_page.html'
+    frameset_html = "{0}.html".format(frameset_html.replace("qc_scan",
+                                                            "QC-interface_scan"))
+    log_dir = frameset_html.split('/qc_html')[0]
+    frameset_html = frameset_html.replace("/qc_html", "")
+    frameset_html = frameset_html.replace(log_dir, sub_output_dir)
 
-    # TODO: this is a temporary patch until the completed QC interface is
-    # TODO: implemented
-    # pop the combined (navbar + content) page back into the output directory
-    # and give it a more obvious name
-    html_f_name = "{0}.html".format(html_f_name.replace("qc_scan",
-                                                        "QC-interface_scan"))
-    log_dir = html_f_name.split('/qc_files_here')[0]
-    html_f_name = html_f_name.replace("/qc_files_here", "")
-    html_f_name = html_f_name.replace(log_dir, sub_output_dir)
-
-    f_html_ = open(html_f_name, 'wb')
-    f_html_0 = open(html_f_name_0, 'wb')
-    f_html_1 = open(html_f_name_1, 'wb')
+    frameset_html_fd = open(frameset_html, 'wb')
+    menu_html_fd = open(menu_html, 'wb')
+    content_html_fd = open(content_html, 'wb')
 
     dict_a, dict_s, dict_hist, dict_plot, all_ids = \
-        grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                       qc_hist_id)
+        grp_pngs_by_id(qc_images,
+                       qc_montage_id_a, qc_montage_id_s,
+                       qc_plot_id, qc_hist_id)
 
-    qc_path_file_id = os.path.basename(html_f_name).replace(".html", "")
+    qc_path_file_id = os.path.basename(frameset_html).replace(".html", "")
 
-    add_head(f_html_, f_html_0, f_html_1, qc_path_file_id)
 
-    for id_ in sorted(all_ids):
-        feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
+    add_head(frameset_html_fd, menu_html_fd, content_html_fd, qc_path_file_id)
+
+    for montage_id in sorted(all_ids):
+        feed_lines_html(montage_id, dict_a, dict_s, dict_hist, dict_plot,
                         qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                        qc_hist_id, f_html_0, f_html_1)
+                        qc_hist_id, menu_html_fd, content_html_fd)
 
-    add_tail(f_html_, f_html_0, f_html_1)
+    add_tail(frameset_html_fd, menu_html_fd, content_html_fd)
 
-    f_html_.close()
-    f_html_0.close()
-    f_html_1.close()
+
+    frameset_html_fd.close()
+    menu_html_fd.close()
+    content_html_fd.close()
 
     
 def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
                   qc_plot_id, qc_hist_id):
-    """Generates a QC HTML file for each text file in the 'qc_files_here'
+    """Generates a QC HTML file for each text file in the 'qc_html'
     folder in the CPAC output directory.
 
     Parameters
     ----------
     qc_path : string
-        path to qc_files_here directory
+        path to qc_html directory
 
     sub_output_dir : string
         path to subject's output directory
@@ -1003,26 +973,24 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     None
 
     """
-    import os
-    from CPAC.qc.utils import make_page
-
     qc_files = os.listdir(qc_path)
 
-    for file_ in qc_files:
-        if not (file_.endswith('.txt')):
+    for qc_file in qc_files:
+        if not qc_file.endswith('.txt'):
             continue
         try:
-            make_page(os.path.join(qc_path, file_), sub_output_dir,
+            make_page(os.path.join(qc_path, qc_file), sub_output_dir,
                       qc_montage_id_a, qc_montage_id_s, qc_plot_id,
                       qc_hist_id)
         except IndexError as e:
             print('\n[!] Did not generate QC sub-page: {0}\n\nDetails:\n'
-                  '{1}\n'.format(os.path.join(qc_path, file_), e))
+                  '{1}\n'.format(os.path.join(qc_path, qc_file), e))
             pass
 
 
-def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
-                    qc_plot_id, qc_hist_id):
+def generate_qc_pages(qc_path, sub_output_dir,
+                      qc_montage_id_a, qc_montage_id_s,
+                      qc_plot_id, qc_hist_id):
     """Generates the QC HTML files populated with the QC images that were
     created during the CPAC pipeline run.
 
@@ -1031,7 +999,7 @@ def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     Parameters
     ----------
     qc_path : string
-        path to qc_files_here directory
+        path to qc_html directory
 
     sub_output_dir : string
         path to subject's output directory
@@ -1057,10 +1025,6 @@ def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
     None
 
     """
-
-    from CPAC.qc.utils import first_pass_organizing_files, \
-        second_pass_organizing_files
-    from CPAC.qc.utils import make_qc_pages
 
     # according to preprocessing strategy combines the files
     first_pass_organizing_files(qc_path)
@@ -1071,131 +1035,6 @@ def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
 
     make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
                   qc_plot_id, qc_hist_id)
-
-
-def afni_edge(in_file):
-    """Run AFNI 3dedge3 on the input file - temporary function until the
-    interface issue in Nipype is sorted out."""
-
-    in_file = os.path.abspath(in_file)
-
-    out_file = os.path.join(os.getcwd(),
-                            "{0}".format(os.path.basename(in_file).replace(".nii", "_edge.nii")))
-
-    cmd_string = ["3dedge3", "-input", in_file, "-prefix", out_file]
-
-    try:
-        retcode = subprocess.check_output(cmd_string)
-    except Exception as e:
-        err = "\n\n[!] Something went wrong with AFNI 3dedge3 while " \
-              "creating the an overlay for the QA pages.\n\nError details: " \
-              "{0}\n\nAttempted command: {1}" \
-              "\n\n".format(e, " ".join(cmd_string))
-        raise Exception(err)
-
-    return out_file
-
-
-def make_edge(wf_name='create_edge'):
-    """Make edge file from a scan image
-        
-        Parameters
-        ----------
-        
-        file_ :    string
-        path to the scan
-        
-        Returns
-        -------
-        
-        new_fname : string
-        path to edge file
-        
-    """
-    
-    wf_name = pe.Workflow(name=wf_name)
-    
-    inputNode = pe.Node(util.IdentityInterface(fields=['file_']),
-                        name='inputspec')
-    outputNode = pe.Node(util.IdentityInterface(fields=['new_fname']),
-                         name='outputspec')
-
-    run_afni_edge_imports = ["import os", "import subprocess"]
-
-    run_afni_edge = pe.Node(util.Function(input_names=['in_file'],
-                                          output_names=['out_file'],
-                                          function=afni_edge,
-                                          imports=run_afni_edge_imports),
-                            name='afni_3dedge3')
-
-    wf_name.connect(inputNode, 'file_', run_afni_edge, 'in_file')
-    wf_name.connect(run_afni_edge, 'out_file', outputNode, 'new_fname')
-    
-    return wf_name
-
-
-def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
-    """Transform functional file (std dev) into anatomical space.
-
-    Parameters
-    ----------
-    func_ : string
-        functional scan
-
-    ref_ : string
-        path to reference file
-
-    xfm_ : string
-        path to transformation mat file
-
-    interp_ : string
-        interpolation measure string
-
-    Returns
-    -------
-    new_fname : string
-        path to the transformed scan
-
-    """
-
-    new_fname = os.path.join(os.getcwd(), 'std_dev_anat.nii.gz')
-
-    cmd = ['applywarp', '--ref={0}'.format(ref_), '--in={0}'.format(func_),
-           '--out={0}'.format(new_fname), '--premat={0}'.format(xfm_),
-           '--interp={0}'.format(interp_)]
-
-    retcode = subprocess.check_output(cmd)
-
-    return new_fname
-
-
-def gen_snr(std_dev, mean_func_anat):
-    """Generate SNR file.
-
-    Parameters
-    ----------
-    std_dev : string
-        path to std dev file in anat space
-
-    mean_func_anat : string
-        path to mean functional scan in anatomical space
-
-    Returns
-    -------
-    new_fname : string
-        path to the snr file
-
-    """
-
-    new_fname = os.path.join(os.getcwd(), 'snr.nii.gz')
-
-    cmd = ['3dcalc', '-a', '{0}'.format(std_dev), '-b',
-           '{0}'.format(mean_func_anat), '-expr', 'b/a', '-prefix',
-           '{0}'.format(new_fname)]
-
-    retcode = subprocess.check_output(cmd)
-
-    return new_fname
 
 
 def cal_snr_val(measure_file):
@@ -1219,39 +1058,11 @@ def cal_snr_val(measure_file):
     snr_val = ma.mean(data_no0)
 
     avg_snr_file = os.path.join(os.getcwd(), 'average_snr_file.txt')
-    f = open(avg_snr_file, 'w')
-    with open(avg_snr_file, 'wt') as f:
+    with open(avg_snr_file, 'w') as f:
         f.write(str(snr_val) + '\n')
 
     return avg_snr_file
 
-
-def gen_std_dev(mask_, func_):
-    """Generate std dev file.
-
-    Parameters
-    ----------
-    mask_ : string
-        path to whole brain mask file
-
-    func_ : string
-        path to functional scan
-
-    Returns
-    -------
-    new_fname : string
-        path to standard deviation file
-
-    """
-
-    new_fname = os.path.join(os.getcwd(), 'std_dev.nii.gz')
-
-    cmd = ["3dTstat", "-stdev", "-mask", "{0}".format(mask_), "-prefix",
-           "{0}".format(new_fname), "{0}".format(func_)]
-
-    retcode = subprocess.check_output(cmd)
-
-    return new_fname
 
 
 def drange(min_, max_):
@@ -1320,23 +1131,23 @@ def gen_plot_png(arr, measure, ex_vol=None):
 
     ex_vol = np.array(del_el)
 
-    fig = pyplot.figure(figsize=(10, 6))
-    pyplot.plot([i for i in xrange(len(arr))], arr, '-')
+    fig = plt.figure(figsize=(10, 6))
+    plt.plot([i for i in xrange(len(arr))], arr, '-')
     fig.suptitle('%s plot with Mean %s = %0.4f' % (measure, measure,
                                                    arr.mean()))
     if measure == 'FD' and len(ex_vol) > 0:
 
-        pyplot.scatter(ex_vol, arr[ex_vol], c="red", zorder=2)
+        plt.scatter(ex_vol, arr[ex_vol], c="red", zorder=2)
 
         for x in ex_vol:
-            pyplot.annotate('( %d , %0.3f)' % (x, arr[x]), xy=(x, arr[x]),
+            plt.annotate('( %d , %0.3f)' % (x, arr[x]), xy=(x, arr[x]),
                             arrowprops=dict(facecolor='black', shrink=0.0))
 
-    pyplot.xlabel('Volumes')
-    pyplot.ylabel('%s' % measure)
+    plt.xlabel('Volumes')
+    plt.ylabel('%s' % measure)
     png_name = os.path.join(os.getcwd(), '%s_plot.png' % measure)
     fig.savefig(os.path.join(os.getcwd(), png_name))
-    pyplot.close()
+    plt.close()
     matplotlib.rcdefaults()
     return png_name
 
@@ -1492,7 +1303,8 @@ def make_histogram(measure_file, measure):
 
     """
 
-    from matplotlib import pyplot
+    import matplotlib 
+    from matplotlib import pyplot as plt 
     import numpy as np
     import nibabel as nb
     import os
@@ -1502,16 +1314,16 @@ def make_histogram(measure_file, measure):
     y, binEdges = np.histogram(data_flat[data_flat != 0], bins=100)
     bincenters = 0.5*(binEdges[1:]+binEdges[:-1])
 
-    fig = pyplot.figure()
+    fig = plt.figure()
     fig.suptitle('%s intensity plot' % measure)
-    pyplot.plot(bincenters, y, '-')
-    pyplot.xlabel('intensity')
-    pyplot.ylabel('# of voxels')
+    plt.plot(bincenters, y, '-')
+    plt.xlabel('intensity')
+    plt.ylabel('# of voxels')
 
     png_name = os.path.join(os.getcwd(), '%s_hist_plot.png' % measure)
     fig.savefig(os.path.join(os.getcwd(), png_name))
 
-    pyplot.close()
+    plt.close()
     hist_path = os.path.join(os.getcwd(), png_name)
 
     """
@@ -1527,9 +1339,9 @@ def make_histogram(measure_file, measure):
     return hist_path
 
 
-def drop_percent_(measure_file, percent_):
+def drop_percent(measure_file, percent):
     """
-    Zeros out voxels in measure files whose intensity doesnt fall in percent_
+    Zeros out voxels in measure files whose intensity doesnt fall in percent
     of voxel intensities
 
     Parameters
@@ -1538,59 +1350,39 @@ def drop_percent_(measure_file, percent_):
     measure_file : string
                 Input nifti file
 
-    percent_ : percentage of the voxels to keep
+    percent : percentage of the voxels to keep
 
     
     Returns
     -------
 
     modified_measure_file : string
-                    measure_file with 1 - percent_ voxels zeroed out
+                    measure_file with 1 - percent voxels zeroed out
     """
 
+    import os
     import nibabel as nb
     import numpy as np
-    import os
-    import commands
 
     img = nb.load(measure_file)
-
     data = img.get_data()
-
-    x, y, z = data.shape
-
-    max_val= float(commands.getoutput('fslstats %s -P %f' %(measure_file, percent_)))
-
-    for i in range(x):
-
-        for j in range(y):
-
-            for k in range(z):
-                if data[i][j][k] > 0.0:
-                    if data[i][j][k] >= max_val:
-                        data[i][j][k] = 0.0
+    
+    max_val = np.percentile(data[data != 0.0], percent)
+    data[data >= max_val] = 0.0
 
     save_img = nb.Nifti1Image(data, header=img.get_header(), affine=img.get_affine())
-
-    f_name = os.path.basename(os.path.splitext(os.path.splitext(measure_file)[0])[0])
-
-    saved_name = None
-    saved_name_correct_header = None
-    ext = None
-
+   
     if '.nii.gz' in measure_file:
         ext = '.nii.gz'
     else:
         ext = '.nii'
 
-    saved_name = '%s_%d_%s' % (f_name, percent_, ext)
-    saved_name_correct_header = '%s_%d%s' % (f_name, percent_, ext)
+    f_name = os.path.basename(os.path.splitext(os.path.splitext(measure_file)[0])[0])
+    saved_name = '%s_%d_%s' % (f_name, percent, ext)
     save_img.to_filename(saved_name)
 
-    commands.getoutput("3dcalc -a %s -expr 'a' -prefix %s" % (saved_name, saved_name_correct_header))
-
     modified_measure_file = os.path.join(os.getcwd(),
-                                         saved_name_correct_header)
+                                         saved_name)
 
     return modified_measure_file
 
@@ -1788,14 +1580,10 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     import matplotlib
     matplotlib.rcParams.update({'font.size': 5})
     import matplotlib.cm as cm
-    try:
-        from mpl_toolkits.axes_grid1 import ImageGrid   
-    except:
-        from mpl_toolkits.axes_grid import ImageGrid
+    from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.pyplot as plt
     import nibabel as nb
     import numpy as np
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
@@ -1835,8 +1623,9 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             im = grid[i].imshow(np.rot90(Y[:, :, zz]), cmap=cm.Greys_r)
         except IndexError as e:
             # TODO: send this to the logger instead
-            print("\n[!] QC Interface: Had a problem with creating the "
-                  "axial montage for {0}\n\nDetails:{1}"
+            print("\n[!] QC Interface: Had a problem with creating the "      
+                  "axial montage for {0}\n\nDetails:{1}. This error might occur because of a registration error encountered while using ANTs.\
+                  Please refer to the png image located in your working directory for more insight."
                   "\n".format(png_name, e))
             pass
         zz += spacing
@@ -1867,7 +1656,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "axial montage for {0}\n\nDetails:{1}"
+                  "axial montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs.\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
@@ -1878,12 +1668,12 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     cbar = grid.cbar_axes[0].colorbar(im)
 
     if 'snr' in png_name:
-        cbar.ax.set_yticks(drange(0, max_))
+        cbar.ax.set_yticks(np.linspace(0, max_, 8))
 
     elif ('reho' in png_name) or ('vmhc' in png_name) or \
             ('sca_' in png_name) or ('alff' in png_name) or \
             ('centrality' in png_name) or ('dr_tempreg' in png_name):
-        cbar.ax.set_yticks(drange(-max_, max_))
+        cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
 
     plt.axis("off")
     png_name = os.path.join(os.getcwd(), png_name)
@@ -1965,7 +1755,9 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     import matplotlib
     import os
     import numpy as np
+
     matplotlib.rcParams.update({'font.size': 5})
+
     try:
         from mpl_toolkits.axes_grid1 import ImageGrid   
     except:
@@ -2014,7 +1806,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "sagittal montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
@@ -2047,20 +1840,29 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         except IndexError as e:
             # TODO: send this to the logger instead
             print("\n[!] QC Interface: Had a problem with creating the "
-                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "sagittal montage for {0}\n\nDetails:{1}.This error might occur because of a registration error encountered while using ANTs.\
+                   Please refer to the image located in your working directory for more insight"
                   "\n".format(png_name, e))
             pass
 
         xx += spacing
 
-    cbar = grid.cbar_axes[0].colorbar(im)
+    try:
+        cbar = grid.cbar_axes[0].colorbar(im)
 
-    if 'snr' in png_name:
-        cbar.ax.set_yticks(drange(0, max_))
-    elif ('reho' in png_name) or ('vmhc' in png_name) or \
-            ('sca_' in png_name) or ('alff' in png_name) or \
-            ('centrality' in png_name) or ('dr_tempreg' in png_name):
-        cbar.ax.set_yticks(drange(-max_, max_))
+        if 'snr' in png_name:
+            cbar.ax.set_yticks(np.linspace(0, max_, 8))
+        elif ('reho' in png_name) or ('vmhc' in png_name) or \
+                ('sca_' in png_name) or ('alff' in png_name) or \
+                ('centrality' in png_name) or ('dr_tempreg' in png_name):
+            cbar.ax.set_yticks(np.linspace(-max_, max_, 8))
+
+    except AttributeError as e:
+        # TODO: send this to the logger instead
+        print("\n[!] QC Interface: Had a problem with creating the "
+              "sagittal montage for {0}\n\nDetails:{1}"
+              "\n".format(png_name, e))
+        pass
 
     plt.axis("off")
     png_name = os.path.join(os.getcwd(), png_name)
@@ -2100,6 +1902,11 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     png_name : Path to generated PNG
 
     """
+    import numpy as np
+    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    import matplotlib.pyplot as plt
+    import nibabel as nb
+    import matplotlib.cm as cm
 
     Y = nb.load(underlay).get_data()
     z1, z2 = determine_start_and_end(Y, 'axial', 0.0001)
@@ -2118,12 +1925,10 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     X_wm[X_wm != 0.0] = max_wm
     max_gm = np.nanmax(np.abs(X_gm.flatten()))
     X_gm[X_gm != 0.0] = max_gm
-    x, y, z = Y.shape
     fig = plt.figure(1)
-    max_ = np.max(np.abs(Y))
 
     try:
-        grid = ImageGrid1(fig, 111, nrows_ncols=(3, 6), share_all=True,
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
                           aspect=True, cbar_mode="None", direction="row")
     except:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
@@ -2193,6 +1998,12 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
 
     """
 
+    import numpy as np
+    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import nibabel as nb
+
     Y = nb.load(underlay).get_data()
     x1, x2 = determine_start_and_end(Y, 'sagittal', 0.0001)
     spacing = get_spacing(6, 3, x2 - x1)
@@ -2215,7 +2026,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     max_ = np.max(np.abs(Y))
 
     try:
-        grid = ImageGrid1(fig, 111, nrows_ncols=(3, 6), share_all=True,
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
                           aspect=True, cbar_mode="None", direction="row")
     except:
         grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
@@ -2263,7 +2074,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     return png_name
 
 
-def register_pallete(file_, cbar_name):
+def register_pallete(colors_file, cbar_name):
 
     """
     Registers color pallete to matplotlib
@@ -2271,7 +2082,7 @@ def register_pallete(file_, cbar_name):
     Parameters
     ----------
 
-    file_ : string
+    colors_file : string
         file containing colors in hexadecimal formats in each line
 
     cbar_name : string
@@ -2287,18 +2098,11 @@ def register_pallete(file_, cbar_name):
 
     import matplotlib.colors as col
     import matplotlib.cm as cm
-    f = open(file_, 'r')
-
-    colors_ = f.readlines()
-
-    colors = []
-
-    for color in reversed(colors_):
-
-        colors.append(color.rstrip('\r\n'))
-
-    cmap3 = col.ListedColormap(colors, cbar_name)
-    cm.register_cmap(cmap=cmap3)
+    
+    with open(colors_file, 'r') as f:
+        colors = [c.rstrip('\r\n') for c in reversed(f.readlines())]
+        cmap3 = col.ListedColormap(colors, cbar_name)
+        cm.register_cmap(cmap=cmap3)
 
 
 def resample_1mm(file_):
@@ -2319,7 +2123,6 @@ def resample_1mm(file_):
         path to 1mm resampled nifti file
 
     """
-
     new_fname = None
 
     if isinstance(file_, list):
@@ -2354,7 +2157,6 @@ def make_resample_1mm(file_):
     import commands
 
     remainder, ext_ = os.path.splitext(file_)
-
     remainder, ext1_ = os.path.splitext(remainder)
 
     ext = ''.join([ext1_, ext_])

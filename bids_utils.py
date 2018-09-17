@@ -90,7 +90,6 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
       should be printed, defaults to "False"
     :return: returns a dictionary that contains the BIDS parameters
     """
-
     params = {}
 
     t_dict = bids_config_dict  # pointer to current dictionary
@@ -111,7 +110,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
             t_dict = t_dict[key]
         else:
             if dbg:
-                print "Could find %s, so going with %s" % (key,
+                print "Couldn't find %s, so going with %s" % (key,
                         "-".join([level, "none"]))
             key = "-".join([level, "none"])
             if key in t_dict:
@@ -198,7 +197,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
             bids_config.update(t_params)
 
         # add in the information from this config file
-        t_config = config_dict[cp][0]
+        t_config = config_dict[cp]
         if t_config is list:
             t_config = t_config[0]
         bids_config.update(t_config)
@@ -360,8 +359,8 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     raise IOError("Did not receive any parameters for %s," % (p) +
                                   " is this a problem?")
 
-                task_info = {"path": os.path.join(bids_dir,p),
-                             "params": t_params}
+                task_info = {"scan": os.path.join(bids_dir,p),
+                             "scan_parameters": t_params}
             else:
                 task_info = os.path.join(bids_dir,p)
 
@@ -405,16 +404,16 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                 if "acq" in f_dict:
                     task_key = "_".join([task_key,
                                          "-".join(["acq", f_dict["acq"]])])
-                if "rest" not in subdict[f_dict["sub"]][f_dict["ses"]]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["rest"] = {}
+                if "func" not in subdict[f_dict["sub"]][f_dict["ses"]]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["func"] = {}
 
                 if task_key not in \
-                        subdict[f_dict["sub"]][f_dict["ses"]]["rest"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["rest"][task_key] = \
+                        subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = \
                         task_info
                 else:
                     print( "Func file (%s)" %
-                        subdict[f_dict["sub"]][f_dict["ses"]]["rest"][task_key] +
+                        subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] +
                         " already found for ( % s: %s: % s) discarding % s" % (
                                f_dict["sub"],
                                f_dict["ses"],
@@ -424,10 +423,10 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     sublist = []
     for ksub, sub in subdict.iteritems():
         for kses, ses in sub.iteritems():
-            if "anat" in ses and "rest" in ses:
+            if "anat" in ses and "func" in ses:
                 sublist.append(ses)
             else:
-                print( "%s %s is missing either an anat or rest (or both)" %
+                print( "%s %s is missing either an anat or func (or both)" %
                        (ses["subject_id"],
                         ses["unique_id"]))
                 if dbg:

@@ -260,7 +260,6 @@ class Control(wx.Control):
                 self.selection = {}
                 for val in values:
                     self.set_selection(val, values.index(val), True)
-                    
             else:
                 self.selection = []
                 
@@ -328,7 +327,6 @@ class Control(wx.Control):
                 
         self.set_id()
 
-
     def get_listbox_options(self):
         if self.get_type() == control_types.LISTBOX_COMBO:
             return self.options
@@ -343,8 +341,7 @@ class Control(wx.Control):
     def set_design_matrix(self, design_matrix):
         if self.get_type() == control_types.LISTBOX_COMBO:
             self.ctrl.set_design_matrix(design_matrix)
-        
-        
+
     def set_id(self):
         if not self.id:
             self.id = self.ctrl.GetId()
@@ -373,7 +370,8 @@ class Control(wx.Control):
     def get_validation(self):
         return self.validation
     
-    def set_selection(self, value, index=0, remove=False, convert_to_string=True):
+    def set_selection(self, value, index=0, remove=False,
+                      convert_to_string=True):
         
         if isinstance(self.selection, list):
             if convert_to_string:
@@ -382,7 +380,6 @@ class Control(wx.Control):
             # here, 'value' is the single element selected in the control by
             # the user, and 'self.selection' is the list containing these
             # selections
-
             if remove:
                 self.selection.remove(value)
             else:
@@ -416,7 +413,6 @@ class Control(wx.Control):
         return self.wfk_switch
         
     def set_value(self, val):
-    
         import ast
 
         if val in [None, "", "None", "none"]:
@@ -431,7 +427,6 @@ class Control(wx.Control):
                         self.set_selection(v)
 
             elif self.get_type() == control_types.CHECKLIST_BOX:
-
                 # if the control is a checkbox, handle appropriately
                 # this is for the derivative list in the group analysis GUI
                 if "[" in val and "]" in val:
@@ -440,7 +435,10 @@ class Control(wx.Control):
                     val = val.replace("'", "")
                     val = val.split(", ")
 
+                try:
                     self.ctrl.SetCheckedStrings(val)
+                except AssertionError:
+                    pass
 
                 strings = self.ctrl.GetCheckedStrings()
                 sample_list = self.get_values()

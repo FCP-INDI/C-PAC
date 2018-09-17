@@ -76,14 +76,12 @@ def get_vectors(strat):
 def make_entries(paths, path_iterables):
 
     entries = []
-    idx = 1
     for path in sorted(paths):
 
         sub_entries = []
         values = path.split('#')
 
-        indx = 0
-        for value in values:
+        for indx, value in enumerate(values):
 
             if '[' or '(' in value:
 
@@ -95,7 +93,6 @@ def make_entries(paths, path_iterables):
                 value = re.sub(r',', '.', value)
                 value = re.sub(r' ', '', value)
             sub_entries.append(path_iterables[indx] + '_' + value)
-            indx += 1
 
         sub_entries = map(lambda x: x.replace("'", ""), sub_entries)
       
@@ -110,18 +107,18 @@ def build_strategies(configuration):
 
     ### make paths shorter
     path_iterables = ['_threshold', '_compcor', '_target_angle_deg']
-    non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
 
-    proper_names = {'_threshold':'Scrubbing Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
-                    '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = '}
-
-    config_iterables = {'_threshold': eval('configuration.spikeThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+    config_iterables = {
+        '_threshold': configuration.spikeThreshold,
+        '_compcor': configuration.Regressors,
+        '_target_angle_deg': configuration.targetAngleDeg,
+    }
 
     # This is really dirty code and ordering of corrections in
     # in output directory is dependant on the nuisance workflow
     # when the workflow is changed , change this section as well
-    corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion', 'quadratic', 'gm', 'compcor', 'csf']
+    corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion',
+                         'quadratic', 'gm', 'compcor', 'csf']
 
     corrections_dict_list = config_iterables['_compcor']
     main_all_options = []
@@ -131,12 +128,10 @@ def build_strategies(configuration):
         for corrections_dict in corrections_dict_list:
             string = ""
             for correction in corrections_order:
-
                 string += correction + str(corrections_dict[correction]) + '.'
-
             string = string[0:len(string) -1]
 
-            cmpcor_components = eval('configuration.nComponents')
+            cmpcor_components = configuration.nComponents
 
             all_options = []
             for comp in cmpcor_components:
@@ -156,10 +151,6 @@ def build_strategies(configuration):
         raise Exception
 
     strategy_entries = make_entries(paths, sorted(path_iterables))
-
-    print 'strategy_entries: ', strategy_entries, '\n\n'
-
-
     return strategy_entries
 
 
@@ -479,11 +470,6 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
     # Run on one computer
     else:
-        # Init variables
-        procss = [Process(target=prep_workflow,
-                          args=(sub, c, strategies, 1, pipeline_timing_info,
-                                p_name, plugin, plugin_args))
-                  for sub in sublist]
 
         if not os.path.exists(c.workingDirectory):
             try:
@@ -493,14 +479,28 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
                       "directory: %s\n\nMake sure you have permissions " \
                       "to write to this directory.\n\n" % c.workingDirectory
                 raise Exception(err)
+
+        # If it only allows one, run it linearly
+        if c.numParticipantsAtOnce == 1:
+            for sub in sublist:
+                prep_workflow(sub, c, strategies, 1, pipeline_timing_info,
+                              p_name, plugin, plugin_args)
+            return
                 
         pid = open(os.path.join(c.workingDirectory, 'pid.txt'), 'w')
+
         # Init job queue
-        jobQueue = []
+        job_queue = []
+
+        # Allocate processes
+        processes = [Process(target=prep_workflow,
+                          args=(sub, c, strategies, 1, pipeline_timing_info,
+                                p_name, plugin, plugin_args))
+                  for sub in sublist]
 
         # If we're allocating more processes than are subjects, run them all
         if len(sublist) <= c.numParticipantsAtOnce:
-            for p in procss:
+            for p in processes:
                 p.start()
                 print >>pid, p.pid
         # Otherwise manage resources to run processes incrementally
@@ -508,30 +508,30 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
             idx = 0
             while idx < len(sublist):
                 # If the job queue is empty and we haven't started indexing
-                if len(jobQueue) == 0 and idx == 0:
+                if len(job_queue) == 0 and idx == 0:
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in procss[idc: idc+c.numParticipantsAtOnce]:
+                    for p in processes[idc: idc+c.numParticipantsAtOnce]:
                         p.start()
                         print >>pid, p.pid
-                        jobQueue.append(p)
+                        job_queue.append(p)
                         idx += 1
                 # Otherwise, jobs are running - check them
                 else:
                     # Check every job in the queue's status
-                    for job in jobQueue:
+                    for job in job_queue:
                         # If the job is not alive
                         if not job.is_alive():
                             # Find job and delete it from queue
                             print 'found dead job ', job
-                            loc = jobQueue.index(job)
-                            del jobQueue[loc]
+                            loc = job_queue.index(job)
+                            del job_queue[loc]
                             # ...and start the next available process
                             # (subject)
-                            procss[idx].start()
+                            processes[idx].start()
                             # Append this to job queue and increment index
-                            jobQueue.append(procss[idx])
+                            job_queue.append(processes[idx])
                             idx += 1
                     # Add sleep so while loop isn't consuming 100% of CPU
                     time.sleep(2)

@@ -85,7 +85,8 @@ def read_pheno_csv_into_df(pheno_csv, id_label=None):
     return pheno_df
 
 
-def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
+def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
+                       derivatives=None, exts=['nii', 'nii.gz']):
 
     # the number of directory levels under each participant's output folder
     # can vary depending on what preprocessing strategies were chosen, and
@@ -98,32 +99,30 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
     import glob
     import pandas as pd
     import pkg_resources as p
-    from __builtin__ import any as b_any
-
-    ext = ".nii"
-    nifti_globs = []
-
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
-    try:
-        keys = pd.read_csv(keys_csv)
-    except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
-        raise Exception(err)
-
-    derivative_list = list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-            keys['Values'] == 'z-score']['Resource'])
-    derivative_list = derivative_list + list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-            keys['Values'] == 'z-stat']['Resource'])
-
-    if pull_func:
-        derivative_list = derivative_list + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
         raise Exception(err)
+
+    if derivatives is None:
+
+        keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+        try:
+            keys = pd.read_csv(keys_csv)
+        except Exception as e:
+            err = "\n[!] Could not access or read the cpac_outputs.csv " \
+                "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+            raise Exception(err)
+
+        derivatives = list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-score']['Resource'])
+        derivatives = derivatives + list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-stat']['Resource'])
+
+        if pull_func:
+            derivatives = derivatives + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
@@ -131,34 +130,40 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
     print "\n\nGathering the output file paths from %s..." \
           % pipeline_output_folder
 
-    # this is just to keep the fsl feat config file derivative_list entries
+    # this is just to keep the fsl feat config file derivatives entries
     # nice and lean
-    dirs_to_grab = []
-    for derivative_name in derivative_list:
-        for resource_name in resource_list:
-            if resource_name in derivative_name:
-                dirs_to_grab.append(derivative_name)
+    search_dirs = [
+        resource_name
+        for resource_name in resource_list
+        if any([resource_name in derivative_name
+                for derivative_name in derivatives])
+    ]
 
     # grab MeanFD_Jenkinson just in case
-    dirs_to_grab.append("power_params")
+    search_dirs += ["power_params"]
 
-    for resource_name in dirs_to_grab:
-        glob_string = os.path.join(pipeline_output_folder, "*",
-                                       resource_name, "*", "*")
+    nifti_globs = []
 
-        # get all glob strings that result in a list of paths where every path
-        # ends with a NIFTI file
+    for resource_name in search_dirs:
+
+        glob_pieces = [pipeline_output_folder, "*", resource_name, "*"]
+        glob_query = os.path.join(*glob_pieces)
+        found_files = glob.iglob(glob_query)
+
+        still_looking = True
+        while still_looking:
+
+            still_looking = False
+            for found_file in found_files:
+                still_looking = True
+
+                if any(found_file.endswith('.' + ext) for ext in exts):
+                    nifti_globs.append(glob_query)
+                    break
         
-        prog_string = ".."
-
-        while len(glob.glob(glob_string)) != 0:
-
-            if b_any(ext in x for x in glob.glob(glob_string)) == True:
-                nifti_globs.append(glob_string)
-        
-            glob_string = os.path.join(glob_string, "*")
-            prog_string = prog_string + "."
-            print prog_string
+            if still_looking:
+                glob_query = os.path.join(glob_query, "*")
+                found_files = glob.iglob(glob_query)
 
     if len(nifti_globs) == 0:
         err = "\n\n[!] No output filepaths found in the pipeline output " \
@@ -287,47 +292,48 @@ def extract_power_params(power_params_lines, power_params_filepath):
  
 
 def create_output_dict_list(nifti_globs, pipeline_output_folder,
-                            get_motion=False, get_raw_score=False):
+                            get_motion=False, get_raw_score=False,
+                            exts=['nii', 'nii.gz']):
 
-    import os
     import glob
+    import itertools
 
-    ext = ".nii"
+    exts = ['.' + ext.lstrip('.') for ext in exts]
 
     # parse each result of each "valid" glob string
     output_dict_list = {}
 
-    for nifti_glob_string in nifti_globs:
+    for ext, nifti_glob_string in itertools.product(exts, nifti_globs):
 
-        nifti_paths = glob.glob(nifti_glob_string + ext + "*")   
+        nifti_paths = glob.iglob(nifti_glob_string + ext)
 
         for filepath in nifti_paths:
-        
-            second_half_filepath = filepath.split(pipeline_output_folder)[1]
-            filename = filepath.split("/")[-1]
+
+            relative_filepath = filepath.split(pipeline_output_folder)[1]
+            filepath_pieces = filter(None, relative_filepath.split("/"))
             
-            resource_id = second_half_filepath.split("/")[2]
-            series_id_string = second_half_filepath.split("/")[3]
-            strat_info = second_half_filepath.split(series_id_string)[1]
-            strat_info = strat_info.replace('.nii', '').replace('.gz', '')
+            resource_id = filepath_pieces[1]
+            series_id_string = ''
+            if len(filepath_pieces) == 4:
+                series_id_string = filepath_pieces[-2]
+            strat_info = filepath_pieces[-1][:-len(ext)]
             
             unique_resource_id = (resource_id, strat_info)
                         
             if unique_resource_id not in output_dict_list.keys():
                 output_dict_list[unique_resource_id] = []
             
-            unique_id = second_half_filepath.split("/")[1]
+            unique_id = filepath_pieces[0]
 
-            series_id = series_id_string.replace("_scan_","")
-            series_id = series_id.replace("_rest","")
+            series_id = series_id_string.replace("_scan_", "")
+            series_id = series_id.replace("_rest", "")
             
             new_row_dict = {}
-            
             new_row_dict["participant_session_id"] = unique_id
-            new_row_dict["participant_id"] = unique_id.split('_')[0]
-            new_row_dict["session_id"] = unique_id.split('_')[1]
+            new_row_dict["participant_id"], new_row_dict["session_id"] = \
+                unique_id.split('_')
+
             new_row_dict["Series"] = series_id
-                                   
             new_row_dict["Filepath"] = filepath
                         
             if get_motion:
@@ -388,13 +394,27 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
 
 
 def gather_outputs(pipeline_folder, resource_list, inclusion_list,
-                   get_motion, get_raw_score, get_func=False):
+                   get_motion, get_raw_score, get_func=False, derivatives=None,
+                   exts=['nii', 'nii.gz']):
 
     # probably won't have a session list due to subject ID format!
 
-    nifti_globs = gather_nifti_globs(pipeline_folder, resource_list, get_func)
-    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder,
-                           get_motion, get_raw_score)
+    nifti_globs = gather_nifti_globs(
+        pipeline_folder,
+        resource_list,
+        get_func,
+        derivatives,
+        exts
+    )
+
+    output_dict_list = create_output_dict_list(
+        nifti_globs,
+        pipeline_folder,
+        get_motion,
+        get_raw_score,
+        exts
+    )
+
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
     return output_df_dict

@@ -320,6 +320,40 @@ slice_timing_correction :  [1]
 slice_timing_pattern :  ['Use NIFTI Header']
 
 
+# Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+runEPI_DistCorr :  [0]
+
+
+# Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
+fmap_distcorr_skullstrip :  ['BET']
+
+
+# Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+# The default value is 0.5.
+fmap_distcorr_frac : [0.5]
+
+
+# Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+# The default value is 0.5.
+fmap_distcorr_threshold :  0.6
+
+
+# Set the Delta-TE value, used for preparing field map, time delay between the first and second echo images. Default value is 2.46 ms.
+fmap_distcorr_deltaTE : [2.46]
+
+
+# Set the Dwell Time for the fugue input. This is the time between scans, default value is 0.0005s.
+fmap_distcorr_dwell_time : [0.0005]
+
+
+# Set the asymmetric ratio value for FSL Fugue input.
+fmap_distcorr_dwell_asym_ratio : [0.93902439]
+
+
+# Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
+fmap_distcorr_pedir :  x
+
+
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
@@ -466,14 +500,14 @@ runROITimeseries :  [1]
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
 tsa_roi_paths:
-  - /cpac_resources/cpac_templates/CC400.nii.gz: Avg
-    /cpac_resources/cpac_templates/ez_mask_pad.nii.gz: Avg
-    /cpac_resources/cpac_templates/aal_mask_pad.nii.gz: Avg
-    /cpac_resources/cpac_templates/CC200.nii.gz: Avg
-    /cpac_resources/cpac_templates/tt_mask_pad.nii.gz: Avg
-    /cpac_resources/cpac_templates/PNAS_Smith09_rsn10.nii.gz: SpatialReg
-    /cpac_resources/cpac_templates/ho_mask_pad.nii.gz: Avg
-    /cpac_resources/cpac_templates/rois_3mm.nii.gz: Avg
+  - /cpac_templates/CC400.nii.gz: Avg
+    /cpac_templates/ez_mask_pad.nii.gz: Avg
+    /cpac_templates/aal_mask_pad.nii.gz: Avg
+    /cpac_templates/CC200.nii.gz: Avg
+    /cpac_templates/tt_mask_pad.nii.gz: Avg
+    /cpac_templates/PNAS_Smith09_rsn10.nii.gz: SpatialReg
+    /cpac_templates/ho_mask_pad.nii.gz: Avg
+    /cpac_templates/rois_3mm.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
@@ -489,7 +523,7 @@ runSCA :  [1]
 # Available analyses: ['Avg', 'DualReg', 'MultReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
 sca_roi_paths:
-  - /cpac_resources/cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
+  - /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 
 
@@ -549,7 +583,7 @@ runNetworkCentrality :  [1]
 
 
 # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
-templateSpecificationFile :  /cpac_resources/cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
+templateSpecificationFile :  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
 
 
 # Enable/Disable degree centrality by selecting the connectivity weights

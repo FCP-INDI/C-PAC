@@ -86,49 +86,6 @@ RUN mkdir -p /opt/c3d && \
 ENV C3DPATH /opt/c3d/
 ENV PATH $C3DPATH/bin:$PATH
 
-# install miniconda
-RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
-    bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda-3.8.3-Linux-x86_64.sh
-
-# update path to include conda
-ENV PATH=/usr/local/miniconda/bin:$PATH
-
-# install conda dependencies
-RUN conda install -y \
-      cython \
-      ipython \
-      jinja2==2.7.2 \
-      matplotlib \
-      networkx==1.11 \
-      nose \
-      numpy==1.11 \
-      pandas \
-      pip \
-      pyyaml \
-      scipy \
-      traits \
-      wxpython
-
-# install python dependencies
-RUN pip install \
-      boto3 \
-      configparser \
-      fs==0.5.4 \
-      future==0.15.2 \
-      INDI-Tools \
-      lockfile \
-      memory_profiler \
-      nibabel \
-      nipype==0.13.1 \
-      patsy \
-      psutil \
-      prov \
-      pygraphviz \
-      simplejson \
-      nilearn \
-      sklearn
-
 # install AFNI
 COPY required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 RUN libs_path=/usr/lib/x86_64-linux-gnu && \
@@ -140,7 +97,7 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
     tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz $(cat /opt/required_afni_pkgs.txt) && \
     rm -rf linux_openmp_64.tgz
 
-# set up afni
+# set up AFNI
 ENV PATH=/opt/afni:$PATH
 
 # install FSL
@@ -150,7 +107,7 @@ RUN apt-get update  && \
                     fsl-atlases \
                     fsl-mni152-templates
 
-# setup fsl environment
+# setup FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
     FSLMULTIFILEQUIT=TRUE \
@@ -160,12 +117,7 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     FSLWISH=/usr/bin/wish \
     PATH=/usr/lib/fsl/5.0:$PATH
 
-# install ANTs
-RUN apt-get update && \
-    apt-get install -y \
-    ants
-
-# install cpac resources
+# install CPAC resources into FSL
 RUN cd /tmp && \
     wget -q http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
     tar xfz cpac_resources.tar.gz && \
@@ -177,23 +129,50 @@ RUN cd /tmp && \
     cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
     cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
 
+# install ANTs
+RUN apt-get update && \
+    apt-get install -y ants
+
+# install miniconda
+RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
+    bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda-3.8.3-Linux-x86_64.sh
+
+# update path to include conda
+ENV PATH=/usr/local/miniconda/bin:$PATH
+
+# install conda dependencies
+RUN conda install -y  \
+        cython==0.26 \
+        jinja2==2.7.2 \
+        matplotlib=2.0.2 \
+        networkx==1.11 \
+        nose==1.3.7 \
+        numpy==1.11.0 \
+        pandas==0.20.1 \
+        pyyaml==3.12 \
+        scipy==0.18.1 \
+        traits==4.6.0 \
+        wxpython==3.0.0.0 \
+        pip==9.0.1
+
+# install python dependencies
+COPY requirements.txt /opt/requirements.txt
+RUN pip install -r /opt/requirements.txt
+
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
 RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
     rm -f /cpac_resources/cpac_templates.tar.gz
-    
-# install cpac
-RUN pip install git+https://github.com/FCP-INDI/C-PAC.git@1.2.0_dev
 
 # clean up
 RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# copy container scripts
-COPY version /code/version
-COPY bids_utils.py /code/bids_utils.py
-COPY run.py /code/run.py
+# install cpac
+COPY . /code
+RUN pip install -e /code
 
 # make the run.py executable
 RUN chmod +x /code/run.py
