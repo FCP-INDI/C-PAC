@@ -229,3 +229,48 @@ def create_alff(wf_name='alff_workflow'):
     wf.connect(falff, 'out_file', output_node, 'falff_img')
 
     return wf
+
+
+def run_alff(input_fmri, func_brain_mask, hp=0.01, lp=0.1, out_dir=None,
+             run=True):
+    """Runner function for the create_alff workflow builder."""
+
+    import os
+    import glob
+
+    import nipype.interfaces.io as nio
+    import nipype.pipeline.engine as pe
+
+    output = 'alff'
+
+    workflow = pe.Workflow(name='{0}_workflow'.format(output))
+
+    if not out_dir:
+        out_dir = os.getcwd()
+
+    workflow_dir = os.path.join(out_dir, "workflow_output", output)
+    workflow.base_dir = workflow_dir
+
+    num_cores_per_subject = 1
+
+    alff = create_alff('alff_falff')
+
+    alff.inputs.inputspec.rest_res = os.path.abspath(input_fmri)
+    alff.inputs.inputspec.rest_mask = os.path.abspath(func_brain_mask)
+    alff.inputs.hp_input.hp = float(hp)
+    alff.inputs.lp_input.lp = float(lp)
+
+    ds = pe.Node(nio.DataSink(), name='datasink_{0}'.format(output))
+    ds.inputs.base_directory = workflow_dir
+
+    workflow.connect(alff, 'outputspec.alff_img', ds, 'alff')
+    workflow.connect(alff, 'outputspec.falff_img', ds, 'falff')
+
+    if run:
+        workflow.run(
+            plugin='MultiProc', plugin_args={'n_procs': num_cores_per_subject})
+        outpath = glob.glob(os.path.join(workflow_dir, output, '*'))
+        return outpath
+
+    else:
+        return workflow, workflow.base_dir

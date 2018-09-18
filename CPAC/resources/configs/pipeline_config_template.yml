@@ -52,19 +52,19 @@ pipelineName :  cpac_default
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  ./cpac_runs/working
+workingDirectory :  ./cpac_runs/default_pipeline/working
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  ./cpac_runs/crash
+crashLogDirectory :  ./cpac_runs/default_pipeline/crash
 
 
 # Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/log
+logDirectory :  ./cpac_runs/default_pipeline/log
 
 
 # Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/output
+outputDirectory :  ./cpac_runs/default_pipeline/output
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -502,13 +502,21 @@ nuisanceBandpassFreq : [[0.01, 0.1]]
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [0]
+runROITimeseries :  [1]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
-tsa_roi_paths: None
+tsa_roi_paths:
+  - s3://fcp-indi/resources/cpac/resources/CC400.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/ez_mask_pad.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/aal_mask_pad.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/CC200.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/tt_mask_pad.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: SpatialReg
+    s3://fcp-indi/resources/cpac/resources/ho_mask_pad.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/rois_3mm.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
@@ -517,13 +525,14 @@ roiTSOutputs :  [True, True]
 
 # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
 # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-runSCA :  [0]
+runSCA :  [1]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'DualReg', 'MultReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
-sca_roi_paths: None
+sca_roi_paths:
+  - s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 
 
@@ -579,15 +588,15 @@ clusterSize :  27
 
 
 # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-runNetworkCentrality :  [0]
+runNetworkCentrality :  [1]
 
 
 # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
-templateSpecificationFile :  None
+templateSpecificationFile :  s3://fcp-indi/resources/cpac/resources/mask-thr50-3mm.nii.gz
 
 
 # Enable/Disable degree centrality by selecting the connectivity weights
-degWeightOptions :  [False, False]
+degWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the degree centrality adjacency matrix.
@@ -602,7 +611,7 @@ degCorrelationThreshold :  0.001
 
 
 # Enable/Disable eigenvector centrality by selecting the connectivity weights
-eigWeightOptions :  [False, False]
+eigWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
@@ -617,7 +626,7 @@ eigCorrelationThreshold :  0.001
 
 
 # Enable/Disable lFCD by selecting the connectivity weights
-lfcdWeightOptions :  [False, False]
+lfcdWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the lFCD adjacency matrix.

@@ -3322,13 +3322,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     creds_path = str(c.awsOutputBucketCredentials)
                     creds_path = os.path.abspath(creds_path)
 
-                # Test for s3 write access
-                s3_write_access = \
-                    aws_utils.test_bucket_access(creds_path,
-                                                 c.outputDirectory)
+                if c.outputDirectory.lower().startswith('s3://'):
+                    # Test for s3 write access
+                    s3_write_access = \
+                        aws_utils.test_bucket_access(creds_path,
+                                                     c.outputDirectory)
 
-                if not s3_write_access:
-                    raise Exception('Not able to write to bucket!')
+                    if not s3_write_access:
+                        raise Exception('Not able to write to bucket!')
 
             except Exception as exc:
                 if c.outputDirectory.lower().startswith('s3://'):

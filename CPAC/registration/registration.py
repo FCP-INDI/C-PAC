@@ -1118,5 +1118,3 @@ def create_wf_collect_transforms(map_node=False,
 
     return collect_transforms_wf
 
-
-
