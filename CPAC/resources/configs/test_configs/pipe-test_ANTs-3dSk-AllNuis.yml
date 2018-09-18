@@ -238,7 +238,7 @@ bet_threshold :  Off
 
 
 # Vertical gradient in fractional intensity threshold (-1,1)
-bet_vertical_gradient : [0.0]
+bet_vertical_gradient : 0.0
 
 
 # The resolution to which anatomical images should be transformed during registration.

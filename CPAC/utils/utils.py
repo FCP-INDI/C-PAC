@@ -1696,9 +1696,16 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     Method to write into log file the status of the workflow run.
     """
 
-    iflogger = logging.getLogger('interface')
+    import os
+    import time
+    import datetime
+    
+    from CPAC import __version__
+    from nipype import logging
 
-    version = CPAC.__version__
+    iflogger = logging.getLogger('nipype.interface')
+
+    version = __version__
     subject_id = os.path.basename(log_dir)
 
     if scan_id is None:
@@ -1740,8 +1747,10 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
         os.makedirs(file_path)
     except Exception:
         iflogger.info(
-            "filepath already exist, filepath- {0}, "
-            "curr_dir - {1}".format(file_path, os.getcwd()))
+            "filepath already exist, "
+            "filepath: {0}, "
+            "curr_dir: {1}".format(file_path, os.getcwd())
+        )
 
     out_file = os.path.join(file_path, 'log_{0}.yaml'.format(strategy))
 
@@ -1753,20 +1762,34 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     if os.path.exists(inputs):
         status_msg = "wf_status: DONE"
         iflogger.info(
-            " version - {0}, timestamp - {1}, subject_id - {2}, scan_id - "
-            "{3}, strategy - {4}, workflow - {5}, "
-            "status - COMPLETED".format(str(version), str(stamp), subject_id,
-                                  scan_id, strategy, workflow))
+            "version: {0}, "
+            "timestamp: {1}, "
+            "subject_id: {2}, "
+            "scan_id: {3}, "
+            "strategy: {4}, "
+            "workflow: {5}, "
+            "status: COMPLETED".format(
+                str(version), str(stamp), subject_id,
+                scan_id, strategy, workflow
+            )
+        )
     else:
         status_msg = "wf_status: ERROR"
         iflogger.info(
-            " version - {0}, timestamp - {1}, subject_id - {2}, scan_id - "
-            "{3}, strategy - {4}, workflow - {5}, "
-            "status - ERROR".format(str(version), str(stamp), subject_id,
-                                  scan_id, strategy, workflow))
+            "version: {0}, "
+            "timestamp: {1}, "
+            "subject_id: {2}, "
+            "scan_id: {3}, "
+            "strategy: {4}, "
+            "workflow: {5}, "
+            "status: ERROR".format(
+                str(version), str(stamp), subject_id,
+                scan_id, strategy, workflow
+            )
+        )
 
     with open(out_file, 'w') as f:
-        f.write("version : {0}".format(str(version)))
+        f.write("version: {0}".format(str(version)))
         f.write("timestamp: {0}".format(str(stamp)))
         f.write("pipeline_index: {0}".format(index))
         f.write("subject_id: {0}".format(subject_id))
@@ -1785,44 +1808,46 @@ def create_log(wf_name="log", scan_id=None):
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
+    import CPAC.utils.function as function
 
     wf = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
+    input_node = pe.Node(util.IdentityInterface(fields=['workflow',
+                                                        'log_dir',
+                                                        'index',
+                                                        'inputs']),
+                         name='inputspec')
+
+    output_node = pe.Node(util.IdentityInterface(fields=['out_file']),
+                          name='outputspec')
+
+    write_log = pe.Node(function.Function(input_names=['workflow',
                                                        'log_dir',
                                                        'index',
-                                                       'inputs']),
-                        name='inputspec')
-
-    outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
-                         name='outputspec')
-
-    write_imports = ['import os', 'import CPAC', 'import time',
-                     'import datetime', 'from nipype import logging']
-
-    write_log = pe.Node(util.Function(input_names=['workflow',
-                                                   'log_dir',
-                                                   'index',
-                                                   'inputs',
-                                                   'scan_id'],
-                                      output_names=['out_file'],
-                                      function=write_to_log,
-                                      imports=write_imports),
+                                                       'inputs',
+                                                       'scan_id'],
+                                          output_names=['out_file'],
+                                          function=write_to_log,
+                                          as_module=True),
                         name='write_log')
-
-    wf.connect(inputNode, 'workflow',
-               write_log, 'workflow')
-    wf.connect(inputNode, 'log_dir',
-               write_log, 'log_dir')
-    wf.connect(inputNode, 'index',
-               write_log, 'index')
-    wf.connect(inputNode, 'inputs',
-               write_log, 'inputs')
 
     write_log.inputs.scan_id = scan_id
 
-    wf.connect(write_log, 'out_file',
-               outputNode, 'out_file')
+    wf.connect([
+        (
+            input_node, write_log, [
+                ('workflow', 'workflow'),
+                ('log_dir', 'log_dir'),
+                ('index', 'index'),
+                ('inputs', 'inputs')
+            ]
+        ),
+        (
+            write_log, output_node, [
+                ('out_file', 'out_file')
+            ]
+        )
+    ])
 
     return wf
 
@@ -1879,17 +1904,16 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     fname = p.resource_filename('CPAC',
                                 'resources/templates/'
                                 'logger_subject_index.html')
-    tfile = open(fname, 'r')
-    raw_text = tfile.read()
-    tfile.close()
+
+    with open(fname, 'r') as tfile:
+        raw_text = tfile.read()
 
     template = Template(raw_text)
     text = template.render(**tvars)
 
     htmlfile = op.join(reportdir, "index.html")
-    html = open(htmlfile, 'w')
-    html.write(text)
-    html.close()
+    with open(htmlfile, 'w') as html:
+        html.write(text)
 
     return
 
@@ -1957,8 +1981,8 @@ def extract_output_mean(in_file, output_name):
 
         split_fullpath = in_file.split("/")
 
-        if ("_mask_" in in_file) and (("sca_roi" in in_file) or
-                                          ("sca_tempreg" in in_file)):
+        if "_mask_" in in_file and \
+           ("sca_roi" in in_file or "sca_tempreg" in in_file):
 
             for dirname in split_fullpath:
                 if "_mask_" in dirname:
@@ -1972,7 +1996,7 @@ def extract_output_mean(in_file, output_name):
             resource_name = "{0}_{1}_{2}".format(output_name, maskname,
                                                  filename)
 
-        elif ("_spatial_map_" in in_file) and ("dr_tempreg" in in_file):
+        elif "_spatial_map_" in in_file and "dr_tempreg" in in_file:
 
             for dirname in split_fullpath:
                 if "_spatial_map_" in dirname:
@@ -1986,7 +2010,7 @@ def extract_output_mean(in_file, output_name):
             resource_name = "{0}_{1}_{2}".format(output_name, mapname,
                                                  filename)
 
-        elif ("_mask_" in in_file) and ("centrality" in in_file):
+        elif "_mask_" in in_file and "centrality" in in_file:
 
             for dirname in split_fullpath:
                 if "_mask_" in dirname:
@@ -2028,7 +2052,7 @@ def create_output_mean_csv(subject_dir):
     means_dir = os.path.join(subject_dir, 'output_means')
 
     # extract the mean values
-    for root, dirs, files in os.walk(means_dir):
+    for root, _, files in os.walk(means_dir):
 
         for filename in files:
 
@@ -2060,25 +2084,15 @@ def create_output_mean_csv(subject_dir):
 
     # now take the extracted mean values and write them into the .csv file!
     csv_file_path = os.path.join(subject_dir, 'output_means_%s.csv' % subID)
-    csv_file = open(csv_file_path, 'wt')
+    with open(csv_file_path, 'wt') as csv_file:
 
-    deriv_string = ''
-    val_string = ''
+        output_items = list(output_vals.items())
 
-    for deriv in output_vals.keys():
-        if deriv_string == '':
-            deriv_string = deriv
-            val_string = output_vals[deriv]
-        else:
-            deriv_string = deriv_string + ',' + deriv
-            val_string = val_string + ',' + output_vals[deriv]
+        deriv_string = ','.join(v for v, _ in output_items)
+        val_string = ','.join(v for _, v in output_items)
 
-    print >> csv_file, deriv_string
-    print >> csv_file, val_string
-
-    csv_file.close()
-
-    return
+        csv_file.write(deriv_string + '\n')
+        csv_file.write(val_string + '\n')
 
 
 def dbg_file_lineno():

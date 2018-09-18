@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 
-import CPAC.utils.afni as afni_utils
+from nipype.interfaces import afni 
 from CPAC.utils.function import Function
 from CPAC.qc.utils import (
     resample_1mm, montage_axial, montage_sagittal,
@@ -381,7 +381,7 @@ def create_qc_skullstrip(wf_name='qc_skullstrip'):
                                                          'sagittal_image']),
                           name='outputspec')
 
-    skull_edge = pe.Node(afni_utils.Edge3(), name='skull_edge')
+    skull_edge = pe.Node(afni.Edge3(), name='skull_edge')
     skull_edge.inputs.outputtype = 'NIFTI_GZ'
 
     montage_skull = create_montage('montage_skull', 'red', 'skull_vis')

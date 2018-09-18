@@ -217,7 +217,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
-def create_check_for_s3_node(name, file_path, img_type, creds_path, dl_dir):
+def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None):
 
     check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                            'creds_path',
@@ -239,7 +239,7 @@ def create_check_for_s3_node(name, file_path, img_type, creds_path, dl_dir):
 
 
 # Check if passed-in file is on S3
-def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
+def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
 
     # Import packages
     import os
@@ -271,6 +271,7 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
+        
         file_path = s3_str + file_path[len(s3_str):]
 
         # Get bucket name and bucket object
