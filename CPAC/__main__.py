@@ -229,7 +229,15 @@ def group_mdmr(pipeline_config):
     from CPAC.pipeline.cpac_group_runner import run_cwas
     
     run_cwas(pipeline_config)
-    
+
+
+@group.command(name="isc")
+@click.argument("pipeline_config", type=click.Path(exists=True))
+def group_isc(pipeline_config):
+    from CPAC.pipeline.cpac_group_runner import run_isc
+
+    run_isc(pipeline_config)
+
 
 # Utilities
 @main.group()
