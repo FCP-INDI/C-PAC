@@ -169,6 +169,26 @@ class DataConfig(wx.Frame):
                          "configuration file.",
                  values="None")
 
+        self.page.add(label="(Optional) [Custom only] Brain Mask File "
+                            "Path Template ",
+                      control=control.TEXT_BOX,
+                      name="brain_mask_template",
+                      type=dtype.STR,
+                      comment="File Path Template for brain mask files.\n"
+                              "For anatomical skull-stripping.\nCustom Data "
+                              "Format only.\n\n"
+                              "Place tags for the appropriate data "
+                              "directory levels with the tags {site}, "
+                              "{participant}, and {session}. Only "
+                              "{participant} is required.\n\nExamples:\n"
+                              "/data/{site}/{participant}/{session}/fmap/"
+                              "phase.nii.gz\n/data/{site}/{participant}/"
+                              "{session}/{participant}_{session}_"
+                              "brain-mask.nii.gz",
+                      values="None",
+                      style=wx.EXPAND | wx.ALL,
+                      size=(532,-1))
+
         self.page.add(label="(Optional) [Custom only] Field Map Phase File "
                             "Path Template ",
                       control=control.TEXT_BOX,

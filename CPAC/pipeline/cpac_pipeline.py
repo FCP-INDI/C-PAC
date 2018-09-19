@@ -385,15 +385,24 @@ Maximum potential number of cores that might be used during this run: {max_cores
     workflow_counter = 0
     num_strat = 0
 
-    flow = create_anat_datasource()
-    flow.inputs.inputnode.subject = subject_id
-    flow.inputs.inputnode.anat = sub_dict['anat']
-    flow.inputs.inputnode.creds_path = input_creds_path
-    flow.inputs.inputnode.dl_dir = c.workingDirectory
-
-    anat_flow = flow.clone('anat_gather_%d' % num_strat)
+    anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
+    anat_flow.inputs.inputnode.subject = subject_id
+    anat_flow.inputs.inputnode.anat = sub_dict['anat']
+    anat_flow.inputs.inputnode.creds_path = input_creds_path
+    anat_flow.inputs.inputnode.dl_dir = c.workingDirectory
 
     strat_initial.set_leaf_properties(anat_flow, 'outputspec.anat')
+
+    if 'brain_mask' in sub_dict.keys():
+        brain_flow = create_anat_datasource('brain_gather_%d' % num_strat)
+        brain_flow.inputs.inputnode.subject = subject_id
+        brain_flow.inputs.inputnode.anat = sub_dict['brain_mask']
+        brain_flow.inputs.inputnode.creds_path = input_creds_path
+        brain_flow.inputs.inputnode.dl_dir = c.workingDirectory
+
+        strat_initial.update_resource_pool({
+            'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
+        })
 
     num_strat += 1
 
@@ -409,9 +418,45 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     for num_strat, strat in enumerate(strat_list):
 
-        if "AFNI" in c.skullstrip_option:
+        if 'brain_mask' in sub_dict.keys():
 
-            anat_preproc = create_anat_preproc(use_afni=True,
+            anat_preproc = create_anat_preproc(method='mask',
+                                               already_skullstripped=already_skullstripped,
+                                               wf_name='anat_preproc_%d' % num_strat)
+
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file, anat_preproc,
+                             'inputspec.anat')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file,
+                             anat_preproc, 'inputspec.brain_mask')
+
+            # TODO: look into forking this alongside either 3dSkullStrip or
+            # TODO: FSL-BET
+
+            strat.append_name(anat_preproc.name)
+            strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+
+            strat.update_resource_pool({
+                'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+            })
+
+            create_log_node(workflow, anat_preproc,
+                            'outputspec.brain', num_strat)
+
+    strat_list += new_strat_list
+
+    new_strat_list = []
+
+    for num_strat, strat in enumerate(strat_list):
+
+        nodes = strat.get_nodes_names()
+
+        if "AFNI" in c.skullstrip_option and 'brain_mask' not in sub_dict.keys():
+
+            anat_preproc = create_anat_preproc(method='afni',
                                                already_skullstripped=already_skullstripped,
                                                wf_name='anat_preproc_%d' % num_strat)
 
@@ -462,9 +507,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
         nodes = strat.get_nodes_names()
 
-        if "BET" in c.skullstrip_option and 'anat_preproc' not in nodes:
+        if "BET" in c.skullstrip_option and 'anat_preproc' not in nodes and \
+                'brain_mask' not in sub_dict.keys():
 
-            anat_preproc = create_anat_preproc(use_afni=False,
+            anat_preproc = create_anat_preproc(method='fsl',
                                                already_skullstripped=already_skullstripped,
                                                wf_name='anat_preproc_%d' % num_strat)
 

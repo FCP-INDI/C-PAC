@@ -1016,7 +1016,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     #   ['/path/to/', '/sub-', '/ses-', '/func/sub-', '_ses-',
     #    '_task-{scan}_bold.nii.gz']
 
-    if data_type == "anat":
+    if data_type == "anat" or data_type == "brain_mask":
         parts = ses_parts
     else:
         # if functional, or field map files
@@ -1116,7 +1116,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     else:
         ses_id = 'ses-1'
 
-    if data_type != "anat":
+    if data_type != "anat" and data_type != "brain_mask":
         if '{scan}' in path_dct.keys():
             scan_id = path_dct['{scan}']
         else:
@@ -1169,7 +1169,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         temp_sub_dct = {'subject_id': sub_id,
                         'unique_id': ses_id,
                         'site': site_id,
-                        'anat': file_path }
+                        'anat': file_path}
 
         if aws_creds_path:
             temp_sub_dct.update({ 'creds_path': str(aws_creds_path) })
@@ -1189,6 +1189,29 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                    "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
                                  str(temp_sub_dct))
             print warn
+
+    elif data_type == "brain_mask":
+
+        temp_mask_dct = {'brain_mask': file_path}
+
+        if site_id not in data_dct.keys():
+            if verbose:
+                print "No anatomical entries found for brain mask for " \
+                      "site {0}:" \
+                      "\n{1}\n".format(site_id, file_path)
+            return data_dct
+        if sub_id not in data_dct[site_id].keys():
+            if verbose:
+                print "No anatomical found for brain mask for participant " \
+                      "{0}:\n{1}\n".format(sub_id, file_path)
+            return data_dct
+        if ses_id not in data_dct[site_id][sub_id].keys():
+            if verbose:
+                print "No anatomical found for brain mask for session {0}:" \
+                      "\n{1}\n".format(ses_id, file_path)
+            return data_dct
+
+        data_dct[site_id][sub_id][ses_id]['brain_mask'] = temp_mask_dct
 
     elif data_type == "func":
 
@@ -1317,9 +1340,10 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
 def get_nonBIDS_data(anat_template, func_template, file_list=None,
                      anat_scan=None, scan_params_dct=None,
-                     fmap_phase_template=None, fmap_mag_template=None,
-                     aws_creds_path=None, inclusion_dct=None,
-                     exclusion_dct=None, sites_dct=None, verbose=False):
+                     brain_mask_template=None, fmap_phase_template=None,
+                     fmap_mag_template=None, aws_creds_path=None,
+                     inclusion_dct=None, exclusion_dct=None, sites_dct=None,
+                     verbose=False):
     """Prepare a data dictionary for the data configuration file when given
     file path templates describing the input data directories."""
 
@@ -1462,6 +1486,34 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                    None, sites_dct, scan_params_dct,
                                    inclusion_dct, exclusion_dct,
                                    aws_creds_path)
+
+    if brain_mask_template:
+
+        # make globby templates, to use them to filter down the path_list into
+        # only paths that will work with the templates
+        brain_mask_glob = brain_mask_template
+
+        for keyword in keywords:
+            if keyword in brain_mask_glob:
+                brain_mask_glob = brain_mask_glob.replace(keyword, '*')
+
+        # presumably, the paths contained in each of these pools should be
+        # field map files only, if the templates were set up properly
+        if file_list:
+            # mainly for AWS S3-stored data sets
+            brain_mask_pool = []
+            for filepath in file_list:
+                if fnmatch.fnmatch(filepath, brain_mask_glob):
+                    brain_mask_pool.append(filepath)
+        else:
+            brain_mask_pool = glob.glob(brain_mask_glob)
+
+        for brain_mask in brain_mask_pool:
+            data_dct = update_data_dct(brain_mask, brain_mask_template,
+                                       data_dct, "brain_mask", None,
+                                       sites_dct, scan_params_dct,
+                                       inclusion_dct, exclusion_dct,
+                                       aws_creds_path)
 
     # do the same for the fieldmap files, if applicable
     if fmap_phase_template and fmap_mag_template:
@@ -1670,6 +1722,7 @@ def run(data_settings_yml):
                                     file_list=file_list,
                                     anat_scan=settings_dct['anatomical_scan'],
                                     scan_params_dct=params_dct,
+                                    brain_mask_template=settings_dct['brain_mask_template'],
                                     fmap_phase_template=settings_dct['fieldMapPhase'],
                                     fmap_mag_template=settings_dct['fieldMapMagnitude'],
                                     aws_creds_path=settings_dct['awsCredentialsFile'],

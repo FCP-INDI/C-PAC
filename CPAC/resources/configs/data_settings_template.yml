@@ -87,6 +87,17 @@ anatomical_scan: None
 scanParametersCSV: None
 
 
+# File Path Template for brain mask files.
+# For anatomical skull-stripping.
+# Custom Data Format only.
+#
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
+#
+# Examples:
+# /data/{site}/{participant}/{session}/{participant}_{session}_brain-mask.nii.gz
+brain_mask_template: None
+
+
 # File Path Template for Field Map Phase files
 # For field-map based distortion correction.
 # Custom Data Format only.
