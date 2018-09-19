@@ -19,6 +19,8 @@ import click
 #         cpac group basc <pipeline config>
 #     cpac group mdmr
 #         cpac group mdmr <pipeline config>
+#     cpac group isc
+#         cpac group isc <pipeline config>
 # cpac utils
 #     cpac utils data_config
 #         cpac utils data_config new_template

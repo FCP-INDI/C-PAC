@@ -313,9 +313,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             filepath_pieces = filter(None, relative_filepath.split("/"))
             
             resource_id = filepath_pieces[1]
-            series_id_string = ''
-            if len(filepath_pieces) == 4:
-                series_id_string = filepath_pieces[-2]
+            series_id_string = filepath_pieces[2]
             strat_info = filepath_pieces[-1][:-len(ext)]
             
             unique_resource_id = (resource_id, strat_info)
@@ -1480,7 +1478,8 @@ def run_basc_quickrun(pipeline_dir, roi_file, roi_file_two=None,
                    output_size, scan_inclusion=scan)
 
 
-def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir, permutations):
+def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
+                  isc, isfc, permutations):
 
     import os
     from CPAC.isfc.pipeline import create_isc, create_isfc
@@ -1520,27 +1519,37 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir, permutations):
         else:
             df_dct[list(set(strat_df["Series"]))[0]] = strat_df
 
-        for df_scan in df_dct.keys():
-            func_paths = {
-                p.split("_")[0]: f
-                for p, f in
-                zip(
-                    df_dct[df_scan].participant_id,
-                    df_dct[df_scan].Filepath
-                )
-            }
+        if isc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
 
-            # cwas_wf = create_cwas(name="MDMR_{0}".format(df_scan),
-            #                       working_dir=working_dir,
-            #                       crash_dir=crash_dir)
-            # cwas_wf.inputs.inputspec.subjects = func_paths
-            # cwas_wf.inputs.inputspec.roi = roi_file
-            # cwas_wf.inputs.inputspec.regressor = regressor_file
-            # cwas_wf.inputs.inputspec.participant_column = participant_column
-            # cwas_wf.inputs.inputspec.columns = columns
-            # cwas_wf.inputs.inputspec.permutations = permutations
-            # cwas_wf.inputs.inputspec.parallel_nodes = parallel_nodes
-            # cwas_wf.run()
+                isc_wf = create_isc(name="ISC_{0}".format(df_scan))
+                isc_wf.inputs.inputspec.subjects = func_paths
+                isc_wf.inputs.inputspec.permutations = permutations
+                isc_wf.run()
+
+        if isfc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
+
+                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan))
+                isfc_wf.inputs.inputspec.subjects = func_paths
+                isfc_wf.inputs.inputspec.permutations = permutations
+                isfc_wf.run()
 
 
 def run_isc(pipeline_config):
@@ -1557,6 +1566,9 @@ def run_isc(pipeline_config):
     working_dir = pipeconfig_dct["workingDirectory"]
     crash_dir = pipeconfig_dct["crashLogDirectory"]
 
+
+    isc = 1 in pipeconfig_dct['runISC']
+    isfc = 1 in pipeconfig_dct['runISFC']
     permutations = pipeconfig_dct["isc_permutations"]
 
     pipeline_dirs = []
@@ -1566,7 +1578,7 @@ def run_isc(pipeline_config):
 
     for pipeline in pipeline_dirs:
         run_isc_group(pipeline, output_dir, working_dir, crash_dir,
-                      permutations)
+                      isc=isc, isfc=isfc, permutations=permutations)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

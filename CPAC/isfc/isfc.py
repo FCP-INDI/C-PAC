@@ -1,3 +1,4 @@
+import six
 import numpy as np
 from sklearn.utils import check_random_state
 from scipy.fftpack import fft, ifft
@@ -82,7 +83,10 @@ def p_from_null(X,
 
 
 def isc(D, collapse_subj=True):
-    
+
+    if isinstance(D, six.string_types):
+        D = np.load(D)
+
     assert D.ndim == 3
 
     n_subj = D.shape[0]
@@ -120,6 +124,9 @@ def isc_significance(ISC, min_null, max_null, two_sided=False):
 
 def isc_permutation(permutation, D, collapse_subj=True, random_state=0):
 
+    if isinstance(D, six.string_types):
+        D = np.load(D)
+
     min_null = 1
     max_null = -1
 
@@ -153,6 +160,9 @@ def isc_permutation(permutation, D, collapse_subj=True, random_state=0):
 
 
 def isfc(D, collapse_subj=True):
+
+    if isinstance(D, six.string_types):
+        D = np.load(D)
 
     assert D.ndim == 3
 
@@ -190,6 +200,9 @@ def isfc_significance(ISFC, min_null, max_null, two_sided=False):
 
 
 def isfc_permutation(permutation, D, collapse_subj=True, random_state=0):
+
+    if isinstance(D, six.string_types):
+        D = np.load(D)
 
     min_null = 1
     max_null = -1

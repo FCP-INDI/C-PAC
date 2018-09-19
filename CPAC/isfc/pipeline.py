@@ -6,6 +6,10 @@ import nipype.interfaces.utility as util
 from nipype.interfaces.base import BaseInterface, \
     BaseInterfaceInputSpec, traits, File, TraitedSpec
 
+from nilearn import input_data, masking, image, datasets
+from nilearn.image import resample_to_img
+from nilearn.input_data import NiftiMasker, NiftiLabelsMasker
+
 from CPAC.utils.function import Function
 
 import os
@@ -25,6 +29,25 @@ from isfc import (
 
 def _permutations(perm):
     return range(perm)
+
+
+def load_data(subjects):
+    subject_ids = list(subjects.keys())
+    subject_files = list(subjects.values())
+
+    images = [nb.load(img) for img in subject_files]
+
+    voxel_masker = NiftiMasker()
+    voxel_masker.fit(images)
+
+    data = np.array([
+        voxel_masker.transform(img).T
+        for img in images
+    ])
+
+    data_file = os.path.abspath('./data.npy')
+    np.save(data_file, data)
+    return data_file
 
 
 def create_isc(name='isc'):
@@ -62,7 +85,7 @@ def create_isc(name='isc'):
 
     inputspec = pe.Node(
         util.IdentityInterface(fields=[
-            'D',
+            'subjects',
             'permutations',
             'collapse_subj',
             'two_sided',
@@ -77,6 +100,12 @@ def create_isc(name='isc'):
         ]),
         name='outputspec'
     )
+
+    data_node = pe.Node(Function(input_names=['subjects'],
+                                 output_names=['D'],
+                                 function=load_data,
+                                 as_module=True),
+                        name='data')
 
     isc_node = pe.Node(Function(input_names=['D',
                                              'collapse_subj'],
@@ -107,12 +136,13 @@ def create_isc(name='isc'):
 
     wf = pe.Workflow(name=name)
     wf.connect([
-        (inputspec, isc_node, [('D', 'D')]),
+        (inputspec, data_node, [('subjects', 'subjects')]),
+        (data_node, isc_node, [('D', 'D')]),
         (inputspec, isc_node, [('collapse_subj', 'collapse_subj')]),
 
         (isc_node, significance_node, [('ISC', 'ISC')]),
 
-        (inputspec, permutations_node, [('D', 'D')]),
+        (data_node, permutations_node, [('D', 'D')]),
         (inputspec, permutations_node, [('collapse_subj', 'collapse_subj')]),
         (inputspec, permutations_node, [(('permutations', _permutations), 'permutation')]),
         (inputspec, permutations_node, [('random_state', 'random_state')]),
