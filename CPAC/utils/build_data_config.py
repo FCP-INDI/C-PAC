@@ -1422,8 +1422,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
     # anat_pool and func_pool are now lists with (presumably) all of the file
     # paths that match the templates entered
-    anat_pool = anat_pool + anat_local_pool
-    func_pool = func_pool + func_local_pool
+    anat_pool = anat_pool + [x for x in anat_local_pool if x not in anat_pool]
+    func_pool = func_pool + [x for x in func_local_pool if x not in func_pool]
 
     if not anat_pool:
         err = "\n\n[!] No anatomical input file paths found given the data " \
@@ -1438,6 +1438,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # for the anatomicals
     data_dct = {}
     for anat_path in anat_pool:
+        print anat_path
         data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
                                    anat_scan, sites_dct, None, inclusion_dct,
                                    exclusion_dct, aws_creds_path)
@@ -1676,8 +1677,7 @@ def run(data_settings_yml):
     excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionScanList', None),
                                          'scans'))
 
-    if 'BIDS' in settings_dct['dataFormat'] or \
-            'bids' in settings_dct['dataFormat']:
+    if 'bids' in settings_dct['dataFormat'].lower():
 
         file_list = get_file_list(settings_dct["bidsBaseDir"],
                                   creds_path=settings_dct["awsCredentialsFile"])

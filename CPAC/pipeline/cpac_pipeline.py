@@ -394,15 +394,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
     strat_initial.set_leaf_properties(anat_flow, 'outputspec.anat')
 
     if 'brain_mask' in sub_dict.keys():
-        brain_flow = create_anat_datasource('brain_gather_%d' % num_strat)
-        brain_flow.inputs.inputnode.subject = subject_id
-        brain_flow.inputs.inputnode.anat = sub_dict['brain_mask']
-        brain_flow.inputs.inputnode.creds_path = input_creds_path
-        brain_flow.inputs.inputnode.dl_dir = c.workingDirectory
+        if sub_dict['brain_mask'].lower() != 'none':
+            brain_flow = create_anat_datasource('brain_gather_%d' % num_strat)
+            brain_flow.inputs.inputnode.subject = subject_id
+            brain_flow.inputs.inputnode.anat = sub_dict['brain_mask']
+            brain_flow.inputs.inputnode.creds_path = input_creds_path
+            brain_flow.inputs.inputnode.dl_dir = c.workingDirectory
 
-        strat_initial.update_resource_pool({
-            'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
-        })
+            strat_initial.update_resource_pool({
+                'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
+            })
 
     num_strat += 1
 
@@ -418,7 +419,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     for num_strat, strat in enumerate(strat_list):
 
-        if 'brain_mask' in sub_dict.keys():
+        rp = strat.get_resource_pool()
+
+        if 'brain_mask' in sub_dict.keys() and \
+                'anatomical_brain_mask' in rp.keys():
 
             anat_preproc = create_anat_preproc(method='mask',
                                                already_skullstripped=already_skullstripped,
@@ -454,7 +458,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
         nodes = strat.get_nodes_names()
 
-        if "AFNI" in c.skullstrip_option and 'brain_mask' not in sub_dict.keys():
+        if "AFNI" in c.skullstrip_option and 'anatomical_brain_mask' not in rp.keys():
 
             anat_preproc = create_anat_preproc(method='afni',
                                                already_skullstripped=already_skullstripped,
@@ -508,7 +512,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
         nodes = strat.get_nodes_names()
 
         if "BET" in c.skullstrip_option and 'anat_preproc' not in nodes and \
-                'brain_mask' not in sub_dict.keys():
+                'anatomical_brain_mask' not in rp.keys():
 
             anat_preproc = create_anat_preproc(method='fsl',
                                                already_skullstripped=already_skullstripped,
