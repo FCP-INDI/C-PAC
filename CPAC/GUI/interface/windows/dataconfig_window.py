@@ -464,7 +464,8 @@ class DataConfig(wx.Frame):
                      'functionalTemplate', 'outputSubjectListLocation',
                      'subjectListName', 'anatomical_scan',
                      'awsCredentialsFile', 'scanParametersCSV',
-                     'fieldMapPhase', 'fieldMapMagnitude', 'subjectList',
+                     'brain_mask_template', 'fieldMapPhase',
+                     'fieldMapMagnitude', 'subjectList',
                      'exclusionSubjectList', 'siteList', 'exclusionSiteList',
                      'sessionList', 'exclusionSessionList', 'scanList',
                      'exclusionScanList']

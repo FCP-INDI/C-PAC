@@ -1199,9 +1199,6 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             print warn
 
     elif data_type == "brain_mask":
-
-        temp_mask_dct = {'brain_mask': file_path}
-
         if site_id not in data_dct.keys():
             if verbose:
                 print "No anatomical entries found for brain mask for " \
@@ -1219,7 +1216,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                       "\n{1}\n".format(ses_id, file_path)
             return data_dct
 
-        data_dct[site_id][sub_id][ses_id]['brain_mask'] = temp_mask_dct
+        data_dct[site_id][sub_id][ses_id]['brain_mask'] = file_path
 
     elif data_type == "func":
 
@@ -1438,7 +1435,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # for the anatomicals
     data_dct = {}
     for anat_path in anat_pool:
-        print anat_path
         data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
                                    anat_scan, sites_dct, None, inclusion_dct,
                                    exclusion_dct, aws_creds_path)
@@ -1497,7 +1493,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                    aws_creds_path)
 
     if brain_mask_template:
-
         # make globby templates, to use them to filter down the path_list into
         # only paths that will work with the templates
         brain_mask_glob = brain_mask_template
@@ -1684,6 +1679,7 @@ def run(data_settings_yml):
 
         data_dct = get_BIDS_data_dct(settings_dct['bidsBaseDir'],
                                      file_list=file_list,
+                                     brain_mask_template=settings_dct['brain_mask_template'],
                                      anat_scan=settings_dct['anatomical_scan'],
                                      aws_creds_path=settings_dct['awsCredentialsFile'],
                                      inclusion_dct=incl_dct,
@@ -1791,6 +1787,11 @@ def run(data_settings_yml):
 
                     data_list.append(data_dct[site][sub][ses])
                     group_list.append("{0}_{1}".format(sub, ses))
+
+        if num_scan == 0:
+            err = '\n\n[!] No functional scans found in the data directory ' \
+                  'provided.\n'
+            raise Exception(err)
 
         # calculate numbers
         num_sites = len(set(included['site']))
