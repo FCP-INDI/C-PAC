@@ -500,14 +500,20 @@ def format_incl_excl_dct(incl_list, info_type='participants'):
 
 
 def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
-                      aws_creds_path=None, inclusion_dct=None,
-                      exclusion_dct=None, config_dir=None):
+                      aws_creds_path=None, brain_mask_template=None,
+                      inclusion_dct=None, exclusion_dct=None,
+                      config_dir=None):
     """Return a data dictionary mapping input file paths to participant,
     session, scan, and site IDs (where applicable) for a BIDS-formatted data
     directory.
 
     This function prepares a file path template, then uses the
     already-existing custom template function for producing a data dictionary.
+
+    NOTE: For now, accepts the brain_mask_template argument, as the BIDS
+          specification is still in flux regarding how to handle anatomical
+          derivatives. Thus, we allow users to modify what the expected BIDS
+          layout is for their anatomical brain masks.
     """
 
     import os
@@ -863,6 +869,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         data_dct = get_nonBIDS_data(anat_sess, func_sess, file_list=file_list,
                                     anat_scan=anat_scan,
                                     scan_params_dct=scan_params_dct,
+                                    brain_mask_template=brain_mask_template,
                                     fmap_phase_template=fmap_phase_sess,
                                     fmap_mag_template=fmap_mag_sess,
                                     aws_creds_path=aws_creds_path,
@@ -874,6 +881,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         data_dct = get_nonBIDS_data(anat, func, file_list=file_list,
                                     anat_scan=anat_scan,
                                     scan_params_dct=scan_params_dct,
+                                    brain_mask_template=brain_mask_template,
                                     fmap_phase_template=fmap_phase,
                                     fmap_mag_template=fmap_mag,
                                     aws_creds_path=aws_creds_path,

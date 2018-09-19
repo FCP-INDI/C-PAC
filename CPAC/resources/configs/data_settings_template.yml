@@ -89,7 +89,8 @@ scanParametersCSV: None
 
 # File Path Template for brain mask files.
 # For anatomical skull-stripping.
-# Custom Data Format only.
+# Both BIDS and Custom Data Formats.
+# (Note: The BIDS specification is still in flux regarding anatomical derivatives - if using a BIDS data directory, use this field to specify the format of your anatomical brain mask file paths.)
 #
 # Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
 #

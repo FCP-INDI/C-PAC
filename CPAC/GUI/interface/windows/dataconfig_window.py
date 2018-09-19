@@ -169,14 +169,15 @@ class DataConfig(wx.Frame):
                          "configuration file.",
                  values="None")
 
-        self.page.add(label="(Optional) [Custom only] Brain Mask File "
-                            "Path Template ",
+        self.page.add(label="(Optional) Brain Mask File Path Template ",
                       control=control.TEXT_BOX,
                       name="brain_mask_template",
                       type=dtype.STR,
                       comment="File Path Template for brain mask files.\n"
-                              "For anatomical skull-stripping.\nCustom Data "
-                              "Format only.\n\n"
+                              "For anatomical skull-stripping.\nNote: can "
+                              "use this for BIDS data directories as "
+                              "well, as the specification for anatomical "
+                              "brain masks is still subject to change.\n\n"
                               "Place tags for the appropriate data "
                               "directory levels with the tags {site}, "
                               "{participant}, and {session}. Only "
