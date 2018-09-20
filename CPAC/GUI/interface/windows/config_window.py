@@ -10,6 +10,7 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     Settings, ComputerSettings, DirectorySettings, \
     Nuisance, NuisanceRegression, MedianAngleCorrection,\
     CentralitySettings, Centrality,\
+    AROMA_ICA, AromaSettings,\
     ALFF, ALFFSettings,\
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
@@ -100,7 +101,8 @@ class Mybook(wx.Treebook):
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
         
-        
+        page23 = AromaSettings(self)
+        page24 = AROMA_ICA(self)
         
         page27 = SCA(self)
         page28 = SCASettings(self)
@@ -153,6 +155,8 @@ class Mybook(wx.Treebook):
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
         
+        self.AddPage(page23, "Aroma-ICA", wx.ID_ANY)
+        self.AddSubPage(page24, "Aroma settings", wx.ID_ANY)
         
         
         self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
