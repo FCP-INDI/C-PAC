@@ -1383,6 +1383,50 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
 
 
 def run_basc(pipeline_config):
+    """Run the PyBASC module.
+
+    PyBASC is a separate Python package built and maintained by Aki Nikolaidis
+    which implements the BASC analysis via Python.
+
+    PyBASC is based off of the following work:
+        - Garcia-Garcia, M., Nikolaidis, A., Bellec, P., Craddock, R. C., Cheung, B., Castellanos, F. X., & Milham, M. P. (2017).
+              Detecting stable individual differences in the functional organization of the human basal ganglia. NeuroImage.
+        - Bellec, P., Rosa-Neto, P., Lyttelton, O. C., Benali, H., & Evans, A. C. (2010).
+              Multi-level bootstrap analysis of stable clusters in resting-state fMRI. Neuroimage, 51(3), 1126-1139.
+        - Bellec, P., Marrelec, G., & Benali, H. (2008).
+              A bootstrap test to investigate changes in brain connectivity for functional MRI. Statistica Sinica, 1253-1268.
+
+    PyBASC GitHub repository:
+        https://github.com/AkiNikolaidis/PyBASC
+
+    PyBASC author:
+        https://www.researchgate.net/profile/Aki_Nikolaidis
+
+    Inputs
+        pipeline_config: path to C-PAC pipeline configuration YAML file
+
+    Steps (of the C-PAC interface for PyBASC, not PyBASC itself)
+        1. Read in the PyBASC-relevant pipeline config items and create a new
+           PyBASC config dictionary.
+        2. Ensure the functional template is in the selected resolution.
+        3. If ROI mask files are on AWS S3, download these into the group
+           level analysis working directory.
+        4. Resample the ROI mask files if they are not in the selected
+           output resolution.
+        5. Create sub-directories for each C-PAC pipeline the user has
+           selected to run PyBASC for (preprocessed and template-space
+           functional time series are pulled from each pipeline output
+           directory, for input into PyBASC).
+        6. Create further sub-directories for each nuisance regression
+           strategy and functional scan within each C-PAC pipeline.
+        7. Resample functional time series if they are not in the selected
+           output resolution.
+        8. Finish populating the PyBASC config dictionary, and write it out
+           into a config YAML file for each pipeline-strategy-scan we are
+           running.
+        9. Launch PyBASC for each configuration generated.
+
+    """
 
     import os
     import yaml
@@ -1467,7 +1511,6 @@ def run_basc(pipeline_config):
                                                out_dir=working_dir,
                                                roi_file=True)
 
-    # and the ROI file, too
     if roi_cmd_args:
         roi_file = resample_cpac_output_image(roi_cmd_args)
         basc_config_dct['roi_mask_file'] = roi_file
