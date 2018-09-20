@@ -1,5 +1,5 @@
 # CPAC Data Settings File
-# Version 1.0.4
+# Version 1.3.0
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -85,6 +85,18 @@ anatomical_scan: None
 #
 # If 'None' is specified, CPAC will look for scan parameters information provided in the pipeline configuration file.
 scanParametersCSV: None
+
+
+# File Path Template for brain mask files.
+# For anatomical skull-stripping.
+# Both BIDS and Custom Data Formats.
+# (Note: The BIDS specification is still in flux regarding anatomical derivatives - if using a BIDS data directory, use this field to specify the format of your anatomical brain mask file paths.)
+#
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
+#
+# Examples:
+# /data/{site}/{participant}/{session}/{participant}_{session}_brain-mask.nii.gz
+brain_mask_template: None
 
 
 # File Path Template for Field Map Phase files

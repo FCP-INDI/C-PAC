@@ -7,6 +7,7 @@ global_lock = threading.Lock()
 
 files_folders_wf = {
     'anatomical_brain': 'anat',
+    'anatomical_brain_mask': 'anat',
     'qc': 'qc',
     'anatomical_reorient': 'anat',
     'anatomical_to_mni_linear_xfm': 'anat',

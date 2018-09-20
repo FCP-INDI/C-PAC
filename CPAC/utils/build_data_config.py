@@ -500,14 +500,20 @@ def format_incl_excl_dct(incl_list, info_type='participants'):
 
 
 def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
-                      aws_creds_path=None, inclusion_dct=None,
-                      exclusion_dct=None, config_dir=None):
+                      aws_creds_path=None, brain_mask_template=None,
+                      inclusion_dct=None, exclusion_dct=None,
+                      config_dir=None):
     """Return a data dictionary mapping input file paths to participant,
     session, scan, and site IDs (where applicable) for a BIDS-formatted data
     directory.
 
     This function prepares a file path template, then uses the
     already-existing custom template function for producing a data dictionary.
+
+    NOTE: For now, accepts the brain_mask_template argument, as the BIDS
+          specification is still in flux regarding how to handle anatomical
+          derivatives. Thus, we allow users to modify what the expected BIDS
+          layout is for their anatomical brain masks.
     """
 
     import os
@@ -863,6 +869,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         data_dct = get_nonBIDS_data(anat_sess, func_sess, file_list=file_list,
                                     anat_scan=anat_scan,
                                     scan_params_dct=scan_params_dct,
+                                    brain_mask_template=brain_mask_template,
                                     fmap_phase_template=fmap_phase_sess,
                                     fmap_mag_template=fmap_mag_sess,
                                     aws_creds_path=aws_creds_path,
@@ -874,6 +881,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         data_dct = get_nonBIDS_data(anat, func, file_list=file_list,
                                     anat_scan=anat_scan,
                                     scan_params_dct=scan_params_dct,
+                                    brain_mask_template=brain_mask_template,
                                     fmap_phase_template=fmap_phase,
                                     fmap_mag_template=fmap_mag,
                                     aws_creds_path=aws_creds_path,
@@ -1016,7 +1024,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     #   ['/path/to/', '/sub-', '/ses-', '/func/sub-', '_ses-',
     #    '_task-{scan}_bold.nii.gz']
 
-    if data_type == "anat":
+    if data_type == "anat" or data_type == "brain_mask":
         parts = ses_parts
     else:
         # if functional, or field map files
@@ -1116,7 +1124,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
     else:
         ses_id = 'ses-1'
 
-    if data_type != "anat":
+    if data_type != "anat" and data_type != "brain_mask":
         if '{scan}' in path_dct.keys():
             scan_id = path_dct['{scan}']
         else:
@@ -1169,7 +1177,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         temp_sub_dct = {'subject_id': sub_id,
                         'unique_id': ses_id,
                         'site': site_id,
-                        'anat': file_path }
+                        'anat': file_path}
 
         if aws_creds_path:
             temp_sub_dct.update({ 'creds_path': str(aws_creds_path) })
@@ -1189,6 +1197,26 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                    "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
                                  str(temp_sub_dct))
             print warn
+
+    elif data_type == "brain_mask":
+        if site_id not in data_dct.keys():
+            if verbose:
+                print "No anatomical entries found for brain mask for " \
+                      "site {0}:" \
+                      "\n{1}\n".format(site_id, file_path)
+            return data_dct
+        if sub_id not in data_dct[site_id].keys():
+            if verbose:
+                print "No anatomical found for brain mask for participant " \
+                      "{0}:\n{1}\n".format(sub_id, file_path)
+            return data_dct
+        if ses_id not in data_dct[site_id][sub_id].keys():
+            if verbose:
+                print "No anatomical found for brain mask for session {0}:" \
+                      "\n{1}\n".format(ses_id, file_path)
+            return data_dct
+
+        data_dct[site_id][sub_id][ses_id]['brain_mask'] = file_path
 
     elif data_type == "func":
 
@@ -1317,9 +1345,10 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
 def get_nonBIDS_data(anat_template, func_template, file_list=None,
                      anat_scan=None, scan_params_dct=None,
-                     fmap_phase_template=None, fmap_mag_template=None,
-                     aws_creds_path=None, inclusion_dct=None,
-                     exclusion_dct=None, sites_dct=None, verbose=False):
+                     brain_mask_template=None, fmap_phase_template=None,
+                     fmap_mag_template=None, aws_creds_path=None,
+                     inclusion_dct=None, exclusion_dct=None, sites_dct=None,
+                     verbose=False):
     """Prepare a data dictionary for the data configuration file when given
     file path templates describing the input data directories."""
 
@@ -1390,8 +1419,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
     # anat_pool and func_pool are now lists with (presumably) all of the file
     # paths that match the templates entered
-    anat_pool = anat_pool + anat_local_pool
-    func_pool = func_pool + func_local_pool
+    anat_pool = anat_pool + [x for x in anat_local_pool if x not in anat_pool]
+    func_pool = func_pool + [x for x in func_local_pool if x not in func_pool]
 
     if not anat_pool:
         err = "\n\n[!] No anatomical input file paths found given the data " \
@@ -1462,6 +1491,33 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                    None, sites_dct, scan_params_dct,
                                    inclusion_dct, exclusion_dct,
                                    aws_creds_path)
+
+    if brain_mask_template:
+        # make globby templates, to use them to filter down the path_list into
+        # only paths that will work with the templates
+        brain_mask_glob = brain_mask_template
+
+        for keyword in keywords:
+            if keyword in brain_mask_glob:
+                brain_mask_glob = brain_mask_glob.replace(keyword, '*')
+
+        # presumably, the paths contained in each of these pools should be
+        # field map files only, if the templates were set up properly
+        if file_list:
+            # mainly for AWS S3-stored data sets
+            brain_mask_pool = []
+            for filepath in file_list:
+                if fnmatch.fnmatch(filepath, brain_mask_glob):
+                    brain_mask_pool.append(filepath)
+        else:
+            brain_mask_pool = glob.glob(brain_mask_glob)
+
+        for brain_mask in brain_mask_pool:
+            data_dct = update_data_dct(brain_mask, brain_mask_template,
+                                       data_dct, "brain_mask", None,
+                                       sites_dct, scan_params_dct,
+                                       inclusion_dct, exclusion_dct,
+                                       aws_creds_path)
 
     # do the same for the fieldmap files, if applicable
     if fmap_phase_template and fmap_mag_template:
@@ -1616,14 +1672,14 @@ def run(data_settings_yml):
     excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionScanList', None),
                                          'scans'))
 
-    if 'BIDS' in settings_dct['dataFormat'] or \
-            'bids' in settings_dct['dataFormat']:
+    if 'bids' in settings_dct['dataFormat'].lower():
 
         file_list = get_file_list(settings_dct["bidsBaseDir"],
                                   creds_path=settings_dct["awsCredentialsFile"])
 
         data_dct = get_BIDS_data_dct(settings_dct['bidsBaseDir'],
                                      file_list=file_list,
+                                     brain_mask_template=settings_dct['brain_mask_template'],
                                      anat_scan=settings_dct['anatomical_scan'],
                                      aws_creds_path=settings_dct['awsCredentialsFile'],
                                      inclusion_dct=incl_dct,
@@ -1670,6 +1726,7 @@ def run(data_settings_yml):
                                     file_list=file_list,
                                     anat_scan=settings_dct['anatomical_scan'],
                                     scan_params_dct=params_dct,
+                                    brain_mask_template=settings_dct['brain_mask_template'],
                                     fmap_phase_template=settings_dct['fieldMapPhase'],
                                     fmap_mag_template=settings_dct['fieldMapMagnitude'],
                                     aws_creds_path=settings_dct['awsCredentialsFile'],
@@ -1730,6 +1787,11 @@ def run(data_settings_yml):
 
                     data_list.append(data_dct[site][sub][ses])
                     group_list.append("{0}_{1}".format(sub, ses))
+
+        if num_scan == 0:
+            err = '\n\n[!] No functional scans found in the data directory ' \
+                  'provided.\n'
+            raise Exception(err)
 
         # calculate numbers
         num_sites = len(set(included['site']))

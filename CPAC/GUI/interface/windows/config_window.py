@@ -99,9 +99,7 @@ class Mybook(wx.Treebook):
 
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
-        
-        
-        
+
         page27 = SCA(self)
         page28 = SCASettings(self)
 
@@ -152,9 +150,7 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-        
-        
-        
+
         self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
 
@@ -597,12 +593,12 @@ class MainFrame(wx.Frame):
             subListPath = dlg.GetPath()
         
         # Load and test the subject list
-        print 'Checking subject list: %s...' % subListPath
+        print('Checking data configuration: {0}...'.format(subListPath))
         sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
         sub_flg = self.test_sublist(sublist)
         if not sub_flg:
             raise Exception
-        print 'Subject list looks good!'
+        print('Data configuration looks good!')
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
 
