@@ -77,3 +77,8 @@ class Configuration(object):
     def update(self, key, val):
         setattr(self, key, val)
         
+    def __copy__(self):
+        newone = type(self)({})
+        newone.__dict__.update(self.__dict__)
+        newone.__update_attr()
+        return newone 

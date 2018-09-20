@@ -7,6 +7,7 @@ import linecache
 import csv
 import shutil
 import pickle
+import copy
 
 import pandas as pd
 import pkg_resources as p
@@ -175,7 +176,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     # Import packages
     from CPAC.utils.utils import check_config_resources, check_system_deps
-
+    
+    # Assure that changes on config will not affect other parts
+    c = copy.copy(c)
 
     # Start timing here
     pipeline_start_time = time.time()
