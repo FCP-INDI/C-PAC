@@ -117,9 +117,9 @@ class BASCSettings(wx.ScrolledWindow):
                               "running BASC.",
                       values=4)
 
-        self.page.add(label="ROI File ",
+        self.page.add(label="ROI Mask File 1",
                       control=control.COMBO_BOX,
-                      name='basc_roi_file',
+                      name='basc_roi_mask_file',
                       type=dtype.STR,
                       values="None",
                       comment="Full path to a mask file to be used when "
@@ -131,16 +131,24 @@ class BASCSettings(wx.ScrolledWindow):
                               "your analysis to specific brain areas of "
                               "interest.")
 
-        self.page.add(label="Second ROI File ",
+        self.page.add(label="ROI Mask File 2 ",
                       control=control.COMBO_BOX,
-                      name='basc_roi_file_two',
+                      name='basc_roi2_mask_file',
                       type=dtype.STR,
                       values="None",
                       comment="")
 
+        self.page.add(label="Similarity Metric ",
+                     control=control.CHOICE_BOX,
+                     name='basc_similarity_metric_list',
+                     type = dtype.LSTR,
+                     comment="",
+                     values=['correlation', 'euclidean', 'cityblock',
+                             'cosine'])
+
         self.page.add(label="Number of Time Series Bootstraps ",
                       control=control.INT_CTRL,
-                      name='basc_timeseries_bootstraps',
+                      name='basc_timeseries_bootstrap_list',
                       type=dtype.NUM,
                       comment="Number of bootstraps to apply to individual "
                               "time series.",
@@ -148,42 +156,56 @@ class BASCSettings(wx.ScrolledWindow):
             
         self.page.add(label="Number of Dataset Bootstraps ",
                       control=control.INT_CTRL,
-                      name='basc_dataset_bootstraps',
+                      name='basc_dataset_bootstrap_list',
                       type=dtype.NUM,
                       comment="Number of bootstraps to apply to the original "
                               "dataset.",
-                      values=100)
-        
+                      values=30)
+
         self.page.add(label="Number of Clusters ",
                       control=control.INT_CTRL,
-                      name='basc_clusters',
+                      name='basc_n_clusters_list',
                       type=dtype.NUM,
                       comment="Number of clusters to create during "
                               "clustering at both the individual and group "
                               "levels.",
-                      values=10)
+                      values=2)
 
         self.page.add(label="Affinity Threshold ",
                       control=control.TEXT_BOX,
-                      name='basc_affinity_threshold',
+                      name='basc_affinity_thresh',
                       type=dtype.LNUM,
                       values="0.0",
                       validator=CharValidator("no-alpha"),
                       comment="",
                       size=(100, -1))
 
-        self.page.add(label="Output Size ",
+        self.page.add(label="Output Sizes ",
                       control=control.INT_CTRL,
-                      name='basc_output_size',
+                      name='basc_output_sizes',
                       type=dtype.NUM,
                       comment="",
                       values=800)
 
         self.page.add(label="Run Cross-Clustering ",
                       control=control.CHOICE_BOX,
-                      name='basc_cross_clustering',
+                      name='basc_cross_cluster',
                       type=dtype.BOOL,
                       values=["True", "False"],
+                      comment="")
+
+        self.page.add(label="Blocklength List ",
+                      control=control.INT_CTRL,
+                      name='basc_blocklength_list',
+                      type=dtype.NUM,
+                      comment="",
+                      values=1)
+
+        self.page.add(label="Group Dimension Reduce ",
+                      control=control.CHOICE_BOX,
+                      name='basc_group_dim_reduce',
+                      type=dtype.BOOL,
+                      values=["False", "True"],
                       comment="")
 
         self.page.add(label="Participant Inclusion (Optional) ",

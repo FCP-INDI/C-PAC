@@ -1386,6 +1386,8 @@ def run_basc(pipeline_config):
 
     import os
     import yaml
+    from CPAC.utils.datasource import check_for_s3
+    from multiprocessing import pool
 
     pipeline_config = os.path.abspath(pipeline_config)
 
@@ -1394,20 +1396,23 @@ def run_basc(pipeline_config):
 
     output_dir = pipeconfig_dct["outputDirectory"]
     func_template = pipeconfig_dct["template_brain_only_for_func"]
-    basc_roi = pipeconfig_dct["basc_roi_file"]
-    basc_roi_two = pipeconfig_dct["basc_roi_file_two"]
-    num_ts_bootstraps = pipeconfig_dct["basc_timeseries_bootstraps"]
-    num_ds_bootstraps = pipeconfig_dct["basc_dataset_bootstraps"]
-    num_clusters = pipeconfig_dct["basc_clusters"]
-    affinity_thresh = pipeconfig_dct["basc_affinity_threshold"]
-    output_size = pipeconfig_dct["basc_output_size"]
-    cross_cluster = pipeconfig_dct["basc_cross_clustering"]
-    basc_resolution = pipeconfig_dct["basc_resolution"]
-    basc_proc = pipeconfig_dct["basc_proc"]
-    basc_memory = pipeconfig_dct["basc_memory"]
+    creds_path = pipeconfig_dct['awsOutputBucketCredentials']
+
     basc_inclusion = pipeconfig_dct["basc_inclusion"]
     basc_pipeline = pipeconfig_dct["basc_pipeline"]
     basc_scan_inclusion = pipeconfig_dct["basc_scan_inclusion"]
+    basc_resolution = pipeconfig_dct["basc_resolution"]
+
+    basc_config_dct = {'run': True}
+
+    for key in pipeconfig_dct.keys():
+        if 'basc' in key:
+            basc_config_dct[key.replace('basc_', '')] = pipeconfig_dct[key]
+
+    basc_config_dct['proc_mem'] = [basc_config_dct['proc'],
+                                   basc_config_dct['memory']]
+    del basc_config_dct['proc']
+    del basc_config_dct['memory']
 
     if "None" in basc_inclusion or "none" in basc_inclusion:
         basc_inclusion = None
@@ -1442,42 +1447,137 @@ def run_basc(pipeline_config):
         for pipeline_name in basc_pipeline:
             pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
 
-    for pipeline in pipeline_dirs:
-        run_basc_group(pipeline, basc_roi, basc_roi_two, ref_file,
-                       num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                       affinity_thresh, cross_cluster, basc_proc, basc_memory,
-                       output_dir, output_size, inclusion=basc_inclusion,
-                       scan_inclusion=basc_scan_inclusion)
+    working_dir = os.path.join(output_dir, 'cpac_group_analysis', 'PyBASC',
+                               'working_dir')
 
+    # check for S3 of ROI files here!
+    for key in ['roi_mask_file', 'roi2_mask_file']:
+        if 's3://' in basc_config_dct[key]:
+            basc_config_dct[key] = check_for_s3(basc_config_dct[key],
+                                                creds_path=creds_path,
+                                                dl_dir=working_dir)
 
-def run_basc_quickrun(pipeline_dir, roi_file, roi_file_two=None,
-                      ref_file=None, output_size=800, output_dir=None,
-                      basc_proc=2, basc_memory=4, scan=None):
-    """Start a quick-run of PyBASC using default values for most
-    parameters."""
+    # resample ROI files if necessary
+    roi_cmd_args = check_cpac_output_image(basc_config_dct['roi_mask_file'],
+                                           ref_file,
+                                           out_dir=working_dir,
+                                           roi_file=True)
+    roi_two_cmd_args = check_cpac_output_image(basc_config_dct['roi2_mask_file'],
+                                               ref_file,
+                                               out_dir=working_dir,
+                                               roi_file=True)
 
-    num_ts_bootstraps = 100
-    num_ds_bootstraps = 100
-    num_clusters = 10
-    affinity_thresh = 0.0
+    # and the ROI file, too
+    if roi_cmd_args:
+        roi_file = resample_cpac_output_image(roi_cmd_args)
+        basc_config_dct['roi_mask_file'] = roi_file
+    if roi_two_cmd_args:
+        roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
+        basc_config_dct['roi2_mask_file'] = roi_file_two
 
-    if not ref_file:
-        import os
-        try:
-            fsldir = os.environ['FSLDIR']
-            ref_file = os.path.join(fsldir, 'data/standard',
-                                    'MNI152_T1_3mm_brain.nii.gz')
-        except KeyError:
-            pass
+    for pipeline_dir in pipeline_dirs:
 
-    if not output_dir:
-        import os
-        output_dir = os.getcwd()
+        pipeline_dir = os.path.abspath(pipeline_dir)
 
-    run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
-                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                   affinity_thresh, True, basc_proc, basc_memory, output_dir,
-                   output_size, scan_inclusion=scan)
+        out_dir = os.path.join(output_dir, 'cpac_group_analysis', 'PyBASC',
+                               os.path.basename(pipeline_dir))
+        working_dir = os.path.join(working_dir,
+                                   os.path.basename(pipeline_dir))
+
+        inclusion_list = None
+        if basc_inclusion:
+            inclusion_list = load_text_file(basc_inclusion, "BASC participant"
+                                                            " inclusion list")
+
+        if basc_scan_inclusion:
+            scan_inclusion = basc_scan_inclusion.split(',')
+
+        # create encompassing output dataframe dictionary
+        #     note, it is still limited to the lowest common denominator of all
+        #     group model choices- it does not pull in the entire output directory
+        # - there will be a dataframe for each combination of output measure
+        #   type and preprocessing strategy
+        # - each dataframe will contain output filepaths and their associated
+        #   information, and each dataframe will include ALL SERIES/SCANS
+        output_df_dct = gather_outputs(pipeline_dir,
+                                       ["functional_to_standard",
+                                        "functional_mni"],
+                                       inclusion_list, False, False,
+                                       get_func=True)
+
+        for preproc_strat in output_df_dct.keys():
+            # go over each preprocessing strategy
+
+            df_dct = {}
+            strat_df = output_df_dct[preproc_strat]
+
+            nuisance_string = \
+                preproc_strat[1].replace(os.path.basename(preproc_strat[1]),
+                                         '')
+
+            if len(set(strat_df["Series"])) > 1:
+                # more than one scan/series ID
+                for strat_scan in list(set(strat_df["Series"])):
+                    # make a list of sub-dataframes, each one with only file paths
+                    # from one scan ID each
+                    df_dct[strat_scan] = strat_df[
+                        strat_df["Series"] == strat_scan]
+            else:
+                df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+            for df_scan in df_dct.keys():
+
+                # do only the selected scans
+                if scan_inclusion:
+                    if df_scan not in scan_inclusion:
+                        continue
+
+                basc_config_dct['analysis_ID'] = '{0}_{1}'.format(os.path.basename(pipeline_dir),
+                                                                  df_scan)
+
+                # add scan label and nuisance regression strategy label to the
+                # output directory path
+                out_dir = os.path.join(out_dir, df_scan,
+                                       nuisance_string.lstrip('/'))
+                working_dir = os.path.join(working_dir, df_scan,
+                                           nuisance_string.lstrip('/'))
+
+                basc_config_dct['home'] = out_dir
+
+                func_paths = list(df_dct[df_scan]["Filepath"])
+
+                # affinity threshold is an iterable, and must match the number of
+                # functional file paths for the MapNodes
+                affinity_thresh = [affinity_thresh] * len(func_paths)
+
+                # resampling if necessary
+                #     each run should take the file, resample it and write it
+                #     into the BASC sub-dir of the working directory
+                #         should end up with a new "func_paths" list with all of
+                #         these file paths in it
+                ref_file_iterable = [ref_file] * len(func_paths)
+                working_dir_iterable = [working_dir] * len(func_paths)
+                func_cmd_args_list = map(check_cpac_output_image, func_paths,
+                                         ref_file_iterable,
+                                         working_dir_iterable)
+
+                # resample them now
+                if func_cmd_args_list[0]:
+                    p = pool.Pool(int(basc_config_dct['proc_mem'][0]))
+                    func_paths = p.map(resample_cpac_output_image,
+                                       func_cmd_args_list)
+
+                # TODO: add list into basc_config here
+                basc_config_dct['subject_file_list'] = func_paths
+
+                basc_config_outfile = os.path.join(working_dir,
+                                                   'PyBASC_config.yml')
+                with open(basc_config_outfile, 'wt') as f:
+                    noalias_dumper = yaml.dumper.SafeDumper
+                    noalias_dumper.ignore_aliases = lambda self, data: True
+                    f.write(yaml.dump(basc_config_dct,
+                                      default_flow_style=False,
+                                      Dumper=noalias_dumper))
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
