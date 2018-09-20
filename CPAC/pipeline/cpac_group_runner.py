@@ -314,7 +314,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             
             resource_id = filepath_pieces[1]
             series_id_string = filepath_pieces[2]
-            strat_info = filepath_pieces[-1][:-len(ext)]
+            strat_info = "_".join(filepath_pieces[3:])[:-len(ext)]
             
             unique_resource_id = (resource_id, strat_info)
                         
@@ -1497,10 +1497,10 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
     output_df_dct = gather_outputs(
         pipeline_dir,
-        ["functional_to_standard"],
+        ["functional_to_standard", "roi_timeseries"],
         inclusion_list=None,
         get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=None
+        derivatives=["functional_to_standard", "roi_timeseries"]
     )
 
     for preproc_strat in output_df_dct.keys():
