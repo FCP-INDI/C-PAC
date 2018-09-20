@@ -9,7 +9,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # full release.  '.dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
-_version_minor = 2
+_version_minor = 3
 _version_micro = 0
 _version_extra = ''
 

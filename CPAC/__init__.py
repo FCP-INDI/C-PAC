@@ -50,7 +50,7 @@ __all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'epi_distcorr',
            'group_analysis', 'easy_thresh', 'qc']
 
 try:
-    version = '1.2.0'
+    version = '1.3.0'
 except OSError:
     version = 'unknown_version'
 

@@ -300,8 +300,8 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
                           % (bucket_name, creds_path, file_path)
                 raise Exception(err_msg)
             elif error_code == 404:
-                err_msg = 'Bucket: "%s" does not exist; check spelling and try '\
-                          'again' % bucket_name
+                err_msg = 'File: {0} does not exist; check spelling and try '\
+                          'again'.format(os.path.join(bucket_name, s3_key))
                 raise Exception(err_msg)
             else:
                 err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
@@ -397,7 +397,7 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
             valid_extensions = ['.nii', '.nii.gz']
 
             base_name = [
-                base_file[-len(ext)]
+                base_file[:-len(ext)]
                 for ext in valid_extensions
                 if base_file.endswith(ext)
             ][0]

@@ -277,6 +277,46 @@ def new_template():
 
 
 @utils.group()
+def tools():
+    pass
+
+
+@tools.command()
+@click.argument('moving_image')
+@click.argument('reference')
+@click.option('--initial', default=None)
+@click.option('--rigid', default=None)
+@click.option('--affine', default=None)
+@click.option('--nonlinear', default=None)
+@click.option('--func_to_anat', default=None)
+@click.option('--dim', default=3)
+@click.option('--interp', default='Linear')
+@click.option('--inverse', default=False)
+def ants_apply_warp(moving_image, reference, initial=None, rigid=None,
+                    affine=None, nonlinear=None, func_to_anat=None, dim=3,
+                    interp='Linear', inverse=False):
+    from CPAC.registration.utils import run_ants_apply_warp
+    run_ants_apply_warp(moving_image, reference, initial, rigid, affine,
+                        nonlinear, func_to_anat, dim, interp, inverse)
+
+
+@utils.group()
+def workflows():
+    pass
+
+
+@workflows.command()
+@click.argument('func_ts')
+@click.argument('func_brain_mask')
+@click.option('--hp', default=0.01)
+@click.option('--lp', default=0.1)
+def alff(func_ts, func_brain_mask, hp=0.01, lp=0.1):
+    from CPAC.alff.alff import run_alff
+    paths = run_alff(func_ts, func_brain_mask, hp, lp)
+    print(paths)
+
+
+@utils.group()
 def test():
     pass
 

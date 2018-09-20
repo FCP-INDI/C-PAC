@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.2.0
+# Version 1.3.0
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -518,7 +518,7 @@ runSCA :  [1]
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
 sca_roi_paths:
   - s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/PNAS_Smith_rsn_ten.nii.gz: DualReg
+    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 
 # Normalize each time series before running Dual Regression SCA.

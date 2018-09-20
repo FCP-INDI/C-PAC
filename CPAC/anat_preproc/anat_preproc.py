@@ -8,7 +8,7 @@ import nipype.interfaces.utility as util
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 
 
-def create_anat_preproc(use_afni, already_skullstripped=False,
+def create_anat_preproc(method='afni', already_skullstripped=False,
                         wf_name='anat_preproc'):
     """ 
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
@@ -83,7 +83,7 @@ def create_anat_preproc(use_afni, already_skullstripped=False,
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['anat']), name='inputspec')
+        fields=['anat', 'brain_mask']), name='inputspec')
 
     inputnode_afni = pe.Node(util.IdentityInterface(fields=['shrink_factor',
                                                             'var_shrink_fac',
@@ -101,7 +101,8 @@ def create_anat_preproc(use_afni, already_skullstripped=False,
                                                             'use_skull',
                                                             'perc_int',
                                                             'max_inter_iter',
-                                                            'blur_fwhm', 'fac']),
+                                                            'blur_fwhm',
+                                                            'fac']),
                              name='AFNI_options')
 
     inputnode_bet = pe.Node(util.IdentityInterface(fields=['frac',
@@ -143,9 +144,8 @@ def create_anat_preproc(use_afni, already_skullstripped=False,
 
     if not already_skullstripped:
 
-        # Skull-stripping using AFNI 3dSkullStrip
-        if use_afni:
-
+        if method == 'afni':
+            # Skull-stripping using AFNI 3dSkullStrip
             skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
                                                                  'spat_norm_dxyz',
                                                                  'shrink_fac',
@@ -220,9 +220,8 @@ def create_anat_preproc(use_afni, already_skullstripped=False,
             preproc.connect(anat_skullstrip, 'out_file',
                             outputnode, 'skullstrip')
 
-        # Skull-stripping using FSL BET
-        else:
-
+        elif method == 'fsl':
+            # Skull-stripping using FSL BET
             anat_skullstrip = pe.Node(
                 interface=fsl.BET(), name='anat_skullstrip')
 
@@ -268,8 +267,13 @@ def create_anat_preproc(use_afni, already_skullstripped=False,
 
         preproc.connect(anat_reorient, 'out_file',
                         anat_skullstrip_orig_vol, 'in_file_a')
-        preproc.connect(anat_skullstrip, 'out_file',
-                        anat_skullstrip_orig_vol, 'in_file_b')
+
+        if method == 'mask':
+            preproc.connect(inputnode, 'brain_mask',
+                            anat_skullstrip_orig_vol, 'in_file_b')
+        else:
+            preproc.connect(anat_skullstrip, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_b')
 
         preproc.connect(anat_skullstrip_orig_vol, 'out_file',
                         outputnode, 'brain')

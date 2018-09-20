@@ -323,7 +323,7 @@ def process_segment_map(wf_name, use_ants):
     This is a sub workflow used inside segmentation workflow to process 
     probability maps obtained in segmentation. Steps include overlapping 
     of the prior tissue with probability maps, thresholding and binarizing 
-    it and creating a mask thst is used in further analysis.
+    it and creating a mask that is used in further analysis.
 
 
     Parameters
