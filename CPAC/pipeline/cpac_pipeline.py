@@ -2379,7 +2379,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                        strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.aggr_denoised_file')})
                        create_log_node(workflow, aroma_preproc,'outputspec.aggr_denoised_file',num_strat)
                     
-            strat.append_name(aroma_preproc.name)
+                strat.append_name(aroma_preproc.name)
 
     strat_list += new_strat_list
     
