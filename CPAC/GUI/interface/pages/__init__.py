@@ -7,6 +7,8 @@ from .sca import SCA, SCASettings
 from .settings import Settings, ComputerSettings, DirectorySettings
 from .nuisance import Nuisance, NuisanceRegression, MedianAngleCorrection, \
                           FilteringSettings, Scrubbing
+
+from .aroma import AromaSettings, AROMA_ICA 
 from .centrality import CentralitySettings, Centrality
 from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
@@ -23,6 +25,7 @@ __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_op
            'Settings', 'ComputerSettings', 'DirectorySettings', \
            'Nuisance', 'NuisanceRegression', 'MedianAngleCorrection',\
            'CentralitySettings', 'Centrality',\
+           'AromaSettings', 'AROMA_ICA',\
            'ALFF', 'ALFFSettings',\
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
