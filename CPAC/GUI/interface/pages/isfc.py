@@ -34,6 +34,20 @@ class ISCSettings(wx.ScrolledWindow):
                               "will be added to the pipeline or not.",
                       values=["Off", "On"])
 
+        self.page.add(label="Voxel-wise analysis",
+                      control=control.CHOICE_BOX,
+                      name="isc_voxelwise",
+                      type=dtype.LSTR,
+                      comment="",
+                      values=["Off", "On"])
+
+        self.page.add(label="ROI analysis",
+                      control=control.CHOICE_BOX,
+                      name="isc_roiwise",
+                      type=dtype.LSTR,
+                      comment="",
+                      values=["Off", "On"])
+
         self.page.add(label="Permutations",
                       control=control.INT_CTRL,
                       name="isc_permutations",

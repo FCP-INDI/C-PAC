@@ -157,7 +157,8 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
             for found_file in found_files:
                 still_looking = True
 
-                if any(found_file.endswith('.' + ext) for ext in exts):
+                if os.path.isfile(found_file) and \
+                   any(found_file.endswith('.' + ext) for ext in exts):
                     nifti_globs.append(glob_query)
                     break
         
@@ -1643,7 +1644,8 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
         ["functional_to_standard", "roi_timeseries"],
         inclusion_list=None,
         get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=["functional_to_standard", "roi_timeseries"]
+        derivatives=["functional_to_standard", "roi_timeseries"],
+        exts=['nii', 'nii.gz', 'csv']
     )
 
     for preproc_strat in output_df_dct.keys():
@@ -1651,7 +1653,6 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
         df_dct = {}
         strat_df = output_df_dct[preproc_strat]
-
 
         if len(set(strat_df["Series"])) > 1:
             # more than one scan/series ID

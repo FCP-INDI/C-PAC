@@ -35,19 +35,67 @@ def load_data(subjects):
     subject_ids = list(subjects.keys())
     subject_files = list(subjects.values())
 
-    images = [nb.load(img) for img in subject_files]
+    if subject_files[0].endswith('.csv'):
+        data = np.array([
+            np.genfromtxt(img).T
+            for img in subject_files
+        ])
+    else:
+        images = [nb.load(img) for img in subject_files]
+        voxel_masker = NiftiMasker()
+        voxel_masker.fit(images)
 
-    voxel_masker = NiftiMasker()
-    voxel_masker.fit(images)
+        data = np.array([
+            voxel_masker.transform(img).T
+            for img in images
+        ])
 
-    data = np.array([
-        voxel_masker.transform(img).T
-        for img in images
-    ])
+    # Reshape to voxel x time x subject
+    data = np.moveaxis(data, 0, -1).copy(order='C')
 
     data_file = os.path.abspath('./data.npy')
     np.save(data_file, data)
     return data_file
+
+
+def node_isc(D, collapse_subj=True):
+    D = np.load(D)
+    ISC = isc(D, collapse_subj=True)
+    f = os.path.abspath('./isc.npy')
+    np.save(f, ISC)
+    return f
+
+
+def node_isc_significance(ISC, min_null, max_null, two_sided=False):
+    ISC = np.load(ISC)
+    p = isc_significance(ISC, min_null, max_null, two_sided)
+    return p
+
+
+def node_isc_permutation(permutation, D, collapse_subj=True, random_state=0):
+    D = np.load(D)
+    permutation, min_null, max_null = isc_permutation(permutation, D, collapse_subj, random_state)
+    return permutation, min_null, max_null
+
+
+def node_isfc(D, collapse_subj=True):
+    D = np.load(D)
+    ISFC = isfc(D, collapse_subj)
+    f = os.path.abspath('./isfc.npy')
+    np.save(f, ISFC)
+    return f
+
+
+def node_isfc_significance(ISFC, min_null, max_null, two_sided=False):
+    ISFC = np.load(ISFC)
+    p = isfc_significance(ISFC, min_null, max_null, two_sided)
+    return p
+
+
+def node_isfc_permutation(permutation, D, collapse_subj=True, random_state=0):
+    D = np.load(D)
+    permutation, min_null, max_null = isfc_permutation(permutation, D, collapse_subj, random_state)
+    return permutation, min_null, max_null
 
 
 def create_isc(name='isc'):
@@ -110,7 +158,7 @@ def create_isc(name='isc'):
     isc_node = pe.Node(Function(input_names=['D',
                                              'collapse_subj'],
                                 output_names=['ISC'],
-                                function=isc,
+                                function=node_isc,
                                 as_module=True),
                        name='ISC')
 
@@ -121,7 +169,7 @@ def create_isc(name='isc'):
                                             output_names=['permutation',
                                                           'min_null',
                                                           'max_null'],
-                                            function=isc_permutation,
+                                            function=node_isc_permutation,
                                             as_module=True),
                                    name='ISC_permutation', iterfield='permutation')
 
@@ -130,11 +178,12 @@ def create_isc(name='isc'):
                                                       'max_null',
                                                       'two_sided'],
                                          output_names=['p'],
-                                         function=isc_significance,
+                                         function=node_isc_significance,
                                          as_module=True),
                                 name='ISC_p')
 
     wf = pe.Workflow(name=name)
+
     wf.connect([
         (inputspec, data_node, [('subjects', 'subjects')]),
         (data_node, isc_node, [('D', 'D')]),
@@ -193,7 +242,7 @@ def create_isfc(name='isfc'):
 
     inputspec = pe.Node(
         util.IdentityInterface(fields=[
-            'D',
+            'subjects',
             'permutations',
             'collapse_subj',
             'two_sided',
@@ -201,6 +250,12 @@ def create_isfc(name='isfc'):
         ]),
         name='inputspec'
     )
+
+    data_node = pe.Node(Function(input_names=['subjects'],
+                                 output_names=['D'],
+                                 function=load_data,
+                                 as_module=True),
+                        name='data')
 
     outputspec = pe.Node(
         util.IdentityInterface(fields=[
@@ -212,7 +267,7 @@ def create_isfc(name='isfc'):
     isfc_node = pe.Node(Function(input_names=['D',
                                              'collapse_subj'],
                                 output_names=['ISFC'],
-                                function=isfc,
+                                function=node_isfc,
                                 as_module=True),
                        name='ISFC')
 
@@ -223,7 +278,7 @@ def create_isfc(name='isfc'):
                                             output_names=['permutation',
                                                           'min_null',
                                                           'max_null'],
-                                            function=isfc_permutation,
+                                            function=node_isfc_permutation,
                                             as_module=True),
                                    name='ISFC_permutation', iterfield='permutation')
 
@@ -232,18 +287,20 @@ def create_isfc(name='isfc'):
                                                       'max_null',
                                                       'two_sided'],
                                          output_names=['p'],
-                                         function=isfc_significance,
+                                         function=node_isfc_significance,
                                          as_module=True),
                                 name='ISFC_p')
 
     wf = pe.Workflow(name=name)
+
     wf.connect([
-        (inputspec, isfc_node, [('D', 'D')]),
+        (inputspec, data_node, [('subjects', 'subjects')]),
+        (data_node, isfc_node, [('D', 'D')]),
         (inputspec, isfc_node, [('collapse_subj', 'collapse_subj')]),
 
         (isfc_node, significance_node, [('ISFC', 'ISFC')]),
 
-        (inputspec, permutations_node, [('D', 'D')]),
+        (data_node, permutations_node, [('D', 'D')]),
         (inputspec, permutations_node, [('collapse_subj', 'collapse_subj')]),
         (inputspec, permutations_node, [(('permutations', _permutations), 'permutation')]),
         (inputspec, permutations_node, [('random_state', 'random_state')]),

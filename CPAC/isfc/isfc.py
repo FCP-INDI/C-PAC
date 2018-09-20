@@ -53,20 +53,21 @@ def correlation(matrix1, matrix2,
 def phase_randomize(D, random_state=0):
     random_state = check_random_state(random_state)
 
-    F = fft(D, axis=2)
-    if D.shape[2] % 2 == 0:
-        pos_freq = np.arange(1, D.shape[2] // 2)
-        neg_freq = np.arange(D.shape[2] - 1, D.shape[2] // 2, -1)
+    F = fft(D, axis=1)
+    if D.shape[1] % 2 == 0:
+        pos_freq = np.arange(1, D.shape[1] // 2)
+        neg_freq = np.arange(D.shape[1] - 1, D.shape[1] // 2, -1)
     else:
-        pos_freq = np.arange(1, (D.shape[2] - 1) // 2 + 1)
-        neg_freq = np.arange(D.shape[2] - 1, (D.shape[2] - 1) // 2, -1)
+        pos_freq = np.arange(1, (D.shape[1] - 1) // 2 + 1)
+        neg_freq = np.arange(D.shape[1] - 1, (D.shape[1] - 1) // 2, -1)
 
-    shift = random_state.rand(D.shape[0], D.shape[1], len(pos_freq)) * 2 * np.pi
+    shift = random_state.rand(D.shape[0], len(pos_freq),
+                              D.shape[2]) * 2 * np.pi
 
-    F[:, :, pos_freq] *= np.exp(1j * shift)
-    F[:, :, neg_freq] *= np.exp(-1j * shift)
+    F[:, pos_freq, :] *= np.exp(1j * shift)
+    F[:, neg_freq, :] *= np.exp(-1j * shift)
 
-    return np.real(ifft(F, axis=2))
+    return np.real(ifft(F, axis=1))
 
 
 def p_from_null(X, 
@@ -89,15 +90,14 @@ def isc(D, collapse_subj=True):
 
     assert D.ndim == 3
 
-    n_subj = D.shape[0]
-    n_vox = D.shape[1]
+    n_vox, _, n_subj = D.shape
 
     if collapse_subj:
         ISC = np.zeros(n_vox)
         for loo_subj in range(n_subj):
             ISC += correlation(
-                D[loo_subj],
-                np.mean(D[np.arange(n_subj) != loo_subj], axis=0),
+                D[:, :, loo_subj],
+                np.mean(D[:, :, np.arange(n_subj) != loo_subj], axis=2),
                 match_rows=True
             )
         ISC /= n_subj
@@ -106,8 +106,8 @@ def isc(D, collapse_subj=True):
         ISC = np.zeros((n_subj, n_vox))
         for loo_subj in range(n_subj):
             ISC[loo_subj] = correlation(
-                D[loo_subj],
-                np.mean(D[np.arange(n_subj) != loo_subj], axis=0),
+                D[:, :, loo_subj],
+                np.mean(D[:, :, np.arange(n_subj) != loo_subj], axis=2),
                 match_rows=True
             )
 
@@ -130,7 +130,7 @@ def isc_permutation(permutation, D, collapse_subj=True, random_state=0):
     min_null = 1
     max_null = -1
 
-    n_subj, n_vox, _ = D.shape
+    n_vox, _, n_subj = D.shape
     D = phase_randomize(D, random_state)
 
     if collapse_subj:
@@ -140,8 +140,8 @@ def isc_permutation(permutation, D, collapse_subj=True, random_state=0):
 
         ISC_subj = \
             correlation(
-                D[loo_subj],
-                np.mean(D[np.arange(n_subj) != loo_subj], axis=0),
+                D[:, :, loo_subj],
+                np.mean(D[:, :, np.arange(n_subj) != loo_subj], axis=2),
                 match_rows=True
             )
 
@@ -166,25 +166,24 @@ def isfc(D, collapse_subj=True):
 
     assert D.ndim == 3
 
-    n_subj = D.shape[0]
-    n_vox = D.shape[1]
+    n_vox, _, n_subj = D.shape
 
     if collapse_subj:
         ISFC = np.zeros((n_vox, n_vox))
         for loo_subj in range(n_subj):
             ISFC += correlation(
-                D[loo_subj],
-                np.mean(D[np.arange(n_subj) != loo_subj], axis=0),
+                D[:, :, loo_subj],
+                np.mean(D[:, :, np.arange(n_subj) != loo_subj], axis=2),
                 symmetric=True
             )
         ISFC /= n_subj
 
     else:
-        ISFC = np.zeros((n_subj, n_vox, n_vox))
+        ISFC = np.zeros((n_vox, n_vox, n_subj))
         for loo_subj in range(n_subj):
-            ISFC[loo_subj] = correlation(
-                D[loo_subj],
-                np.mean(D[np.arange(n_subj) != loo_subj], axis=0),
+            ISFC[:, :, loo_subj] = correlation(
+                D[:, :, loo_subj],
+                np.mean(D[:, :, np.arange(n_subj) != loo_subj], axis=2),
                 symmetric=True
             )
 
@@ -207,7 +206,7 @@ def isfc_permutation(permutation, D, collapse_subj=True, random_state=0):
     min_null = 1
     max_null = -1
 
-    n_subj, n_vox, _ = D.shape
+    n_vox, _, n_subj = D.shape
     D = phase_randomize(D, random_state)
 
     if collapse_subj:
@@ -216,8 +215,8 @@ def isfc_permutation(permutation, D, collapse_subj=True, random_state=0):
     for loo_subj in range(n_subj):
         ISFC_subj = \
             correlation(
-                D[loo_subj],
-                np.mean(D[np.arange(n_subj) != loo_subj], axis=0),
+                D[:, :, loo_subj],
+                np.mean(D[:, :, np.arange(n_subj) != loo_subj], axis=2),
                 symmetric=True
             )
 
