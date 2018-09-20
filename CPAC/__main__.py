@@ -253,9 +253,9 @@ def data_config():
 
 
 @data_config.command()
-def new_template():
+def new_settings_template():
     from CPAC.utils.build_data_config import util_copy_template
-    util_copy_template()
+    util_copy_template('data_settings')
 
 
 @data_config.command()
@@ -321,6 +321,7 @@ def run_suite():
                 no_params = True
             else:
                 data = data_test
+                
             # run
             cpac_runner.run(pipe, data)
 
