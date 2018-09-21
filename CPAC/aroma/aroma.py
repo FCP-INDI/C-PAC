@@ -2,17 +2,51 @@ from nipype.interfaces import afni
 from nipype.interfaces import fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-#from .aroma import ICA_AROMA
 import os
 from nipype.interfaces.fsl.aroma import ICA_AROMA
-#from CPAC.aroma import (ICA_AROMA, ICA_AROMA_functions) 
+ 
 
 
 
 def create_aroma(wf_name='create_aroma'):
+
+    """
+    ICA-AROMA takes in a functional file, along with the movement parameters, warp file and a mat file to denoise the artifacts using ICA based methods
+    and produces an output directory which contains the denoised file, classification features, and a melodic.ica directory.
+
+    Order of commands and inputs:
+
+    -- FSL-McFlirt: in_file : denoise_file
+                    out_file : par_file
+                    Parameters :
+                    - save plots
+                     
+                     
+    -- FSL-BET:     Brain extraction of the denoised file to provide as the mask file for the ICA-AROMA interface
+                    in_file: denoise_file
+                    out_file: mask_file
+                    Parameters: 
+                     -f : 0.3
+
+    --ICA-AROMA  :  Takes in the denoise_file, par_file (FSL-McFlirt), mask_file (FSL-BET), fnirt_file, mat_file
+                    in_file : denoise_file
+                              mat_file
+                              fnirt_warp_file
+                              out_dir
+                    out_file: out_dir
+                    Parameters :
+                     - denoise_type : 'aggr', 'nonaggr'
+                     - TR : s
+                     - dim: 
+                     - warp_file_boolean: 'On', 'Off'
+                         
+     """
+
+
+
     preproc = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['denoise_file','mat_file','out_dir','fnirt_warp_file']),name='inputspec')
+    inputNode = pe.Node(util.IdentityInterface(fields=['denoise_file','mat_file','fnirt_warp_file','out_dir']),name='inputspec')
 
     inputNode_params = pe.Node(util.IdentityInterface(fields=['denoise_type','TR','dim', 'warp_file_boolean']),name='params')
 
@@ -45,8 +79,8 @@ def create_aroma(wf_name='create_aroma'):
     preproc.connect(inputNode_params,'denoise_type',aroma_wf,'denoise_type')
     preproc.connect(inputNode_params,'TR',aroma_wf,'TR')
     preproc.connect(inputNode_params,'dim',aroma_wf,'dim')
-   # preproc.connect(aroma_wf,'out_dir',outputNode,'aroma_dir')
-    preproc.connect(aroma_wf,'aggr_denoised_file',outputNode,'aggr_denoised_file')
+    preproc.connect(aroma_wf,'out_dir',outputNode,'out_dir')
     preproc.connect(aroma_wf,'nonaggr_denoised_file',outputNode,'nonaggr_denoised_file')
+    preproc.connect(aroma_wf,'aggr_denoised_file',outputNode,'aggr_denoised_file')
 	
     return preproc
