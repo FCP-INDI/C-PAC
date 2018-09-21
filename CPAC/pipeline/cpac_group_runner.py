@@ -1623,7 +1623,7 @@ def run_basc(pipeline_config):
 
 
 def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
-                  isc, isfc, permutations):
+                  isc, isfc, levels=[], permutations=1000):
 
     import os
     from CPAC.isfc.pipeline import create_isc, create_isfc
@@ -1650,6 +1650,14 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
     for preproc_strat in output_df_dct.keys():
         # go over each preprocessing strategy
+
+        derivative, _ = preproc_strat
+
+        if "voxel" not in levels and derivative == "functional_to_standard":
+            continue
+
+        if "roi" not in levels and derivative == "roi_timeseries":
+            continue
 
         df_dct = {}
         strat_df = output_df_dct[preproc_strat]
@@ -1711,9 +1719,22 @@ def run_isc(pipeline_config):
     crash_dir = pipeconfig_dct["crashLogDirectory"]
 
 
-    isc = 1 in pipeconfig_dct['runISC']
-    isfc = 1 in pipeconfig_dct['runISFC']
-    permutations = pipeconfig_dct["isc_permutations"]
+    isc = 1 in pipeconfig_dct.get("runISC", [])
+    isfc = 1 in pipeconfig_dct.get("runISFC", [])
+    permutations = pipeconfig_dct.get("isc_permutations", 1000)
+
+    levels = []
+    if 1 in pipeconfig_dct.get("isc_level_voxel", []):
+        levels += ["voxel"]
+
+    if 1 in pipeconfig_dct.get("isc_level_roi", []):
+        levels += ["roi"]
+
+    if len(levels) == 0:
+        return
+
+    if not isc and not isfc:
+        return
 
     pipeline_dirs = []
     for dirname in os.listdir(output_dir):
@@ -1722,7 +1743,8 @@ def run_isc(pipeline_config):
 
     for pipeline in pipeline_dirs:
         run_isc_group(pipeline, output_dir, working_dir, crash_dir,
-                      isc=isc, isfc=isfc, permutations=permutations)
+                      isc=isc, isfc=isfc, levels=levels,
+                      permutations=permutations)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

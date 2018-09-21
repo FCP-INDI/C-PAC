@@ -36,16 +36,18 @@ class ISCSettings(wx.ScrolledWindow):
 
         self.page.add(label="Voxel-wise analysis",
                       control=control.CHOICE_BOX,
-                      name="isc_voxelwise",
+                      name="isc_level_voxel",
                       type=dtype.LSTR,
-                      comment="",
+                      comment="Used to determine if the ISC and ISFC will run in the voxel level. "
+                              "Depending on the image resolution, it may take several hours "
+                              "and consume a great amount of available memory.",
                       values=["Off", "On"])
 
         self.page.add(label="ROI analysis",
                       control=control.CHOICE_BOX,
-                      name="isc_roiwise",
+                      name="isc_level_roi",
                       type=dtype.LSTR,
-                      comment="",
+                      comment="Used to determine if the ISC and ISFC will run in the ROI level.",
                       values=["Off", "On"])
 
         self.page.add(label="Permutations",
