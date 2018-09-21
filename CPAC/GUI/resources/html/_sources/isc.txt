@@ -5,6 +5,8 @@ Introduction & Background
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Group level analysis to compute inter-subject correlation (ISC) and inter-subject functional correlation (ISFC).
 
+.. figure:: /_images/isc_schema.png
+
 Computation and Analysis Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
