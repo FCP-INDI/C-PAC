@@ -58,7 +58,7 @@ from CPAC.registration import (
     create_wf_collect_transforms
 )
 from CPAC.nuisance import create_nuisance, bandpass_voxels
-from CPAC.aroma.aroma import create_aroma
+from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.generate_motion_statistics import fristons_twenty_four
@@ -2348,7 +2348,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                        strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.aggr_denoised_file')})
                        create_log_node(workflow, aroma_preproc,'outputspec.aggr_denoised_file',num_strat)
 
-            elif 'FSL' in c.regOption and 'anat_symmetric_mni_ants_register' not in nodes:
+            elif 'FSL' in c.regOption and 'anat_symmetric_mni_ants_register' not in nodes and 'anat_mni_ants_register' not in node:
 
                 aroma_preproc = create_aroma(wf_name='create_aroma_%d' % num_strat)
 
