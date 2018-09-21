@@ -17,7 +17,7 @@ import copy
 import numpy as np
 import nibabel as nb
 
-from isfc import (
+from CPAC.isc.isc import (
     isc,
     isc_significance,
     isc_permutation,

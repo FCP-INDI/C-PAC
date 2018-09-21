@@ -1626,7 +1626,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                   isc, isfc, levels=[], permutations=1000):
 
     import os
-    from CPAC.isfc.pipeline import create_isc, create_isfc
+    from CPAC.isc.pipeline import create_isc, create_isfc
 
     pipeline_dir = os.path.abspath(pipeline_dir)
 

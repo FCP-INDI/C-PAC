@@ -13,7 +13,7 @@ from .smoothing import AfterWarping, AfterWarpingOptions
 from .timeseries import TimeSeries, ROITimeseries
 from .group_analysis import GroupAnalysis, GPASettings, BASCSettings
 from .mdmr import MDMRSettings
-from .isfc import ISCSettings
+from .isc import ISCSettings
 
 __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
            'AnatomicalPreprocessing', 'Segmentation', \

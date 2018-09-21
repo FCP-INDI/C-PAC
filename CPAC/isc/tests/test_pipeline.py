@@ -1,5 +1,5 @@
 import numpy as np
-from CPAC.isfc.pipeline import create_isc, create_isfc
+from CPAC.isc.pipeline import create_isc, create_isfc
 
 
 def test_pipeline_isc():
