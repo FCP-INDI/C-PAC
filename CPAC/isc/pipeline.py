@@ -61,19 +61,31 @@ def load_data(subjects):
 
 def save_data_isc(ISC, p, voxel_masker=None):
 
+    ISC = np.load(ISC)
+    p = np.load(p)
+
     if voxel_masker:
-        ISC = voxel_masker.inverse_transform(ISC.T)
-        p = voxel_masker.inverse_transform(p.T)
-        final = concat_imgs([ISC, p])
+        ISC_image = voxel_masker.inverse_transform(ISC.T)
+        p_image = voxel_masker.inverse_transform(p.T)
+        final = concat_imgs([ISC_image, p_image])
         final_file = os.path.abspath('./data.nii.gz')
         nb.save(final, final_file)
     else:
-        final = np.array(
+        final = np.array([
             ISC, p
-        )
+        ])
         final_file = os.path.abspath('./data.csv')
-        np.savetxt(final_file, final, delimiter=',')
+        np.savetxt(final_file, final, delimiter=',', fmt='%1.10f')
 
+    return final_file
+
+
+def save_data_isfc(ISFC, p):
+    final = np.array([
+        np.load(ISFC), np.load(p)
+    ])
+    final_file = os.path.abspath('./result.npy')
+    np.save(final_file, final)
     return final_file
 
 
@@ -88,7 +100,9 @@ def node_isc(D, collapse_subj=True):
 def node_isc_significance(ISC, min_null, max_null, two_sided=False):
     ISC = np.load(ISC)
     p = isc_significance(ISC, min_null, max_null, two_sided)
-    return p
+    f = os.path.abspath('./isc-p.npy')
+    np.save(f, p)
+    return f
 
 
 def node_isc_permutation(permutation, D, collapse_subj=True, random_state=0):
@@ -108,7 +122,9 @@ def node_isfc(D, collapse_subj=True):
 def node_isfc_significance(ISFC, min_null, max_null, two_sided=False):
     ISFC = np.load(ISFC)
     p = isfc_significance(ISFC, min_null, max_null, two_sided)
-    return p
+    f = os.path.abspath('./isfc-p.npy')
+    np.save(f, p)
+    return f
 
 
 def node_isfc_permutation(permutation, D, collapse_subj=True, random_state=0):
@@ -280,15 +296,19 @@ def create_isfc(name='isfc'):
     )
 
     data_node = pe.Node(Function(input_names=['subjects'],
-                                 output_names=['D'],
+                                 output_names=['D', 'voxel_masker'],
                                  function=load_data,
                                  as_module=True),
                         name='data')
 
+    save_node = pe.Node(Function(input_names=['ISFC', 'p'],
+                                 output_names=['result'],
+                                 function=save_data_isfc,
+                                 as_module=True),
+                        name='save')
+
     outputspec = pe.Node(
-        util.IdentityInterface(fields=[
-            'ISFC', 'significance'
-        ]),
+        util.IdentityInterface(fields=['result']),
         name='outputspec'
     )
 
@@ -337,8 +357,10 @@ def create_isfc(name='isfc'):
         (permutations_node, significance_node, [('max_null', 'max_null')]),
         (inputspec, significance_node, [('two_sided', 'two_sided')]),
 
-        (isfc_node, outputspec, [('ISFC', 'ISFC')]),
-        (significance_node, outputspec, [('p', 'significance')]),
+        (isfc_node, save_node, [('ISFC', 'ISFC')]),
+        (significance_node, save_node, [('p', 'p')]),
+
+        (save_node, outputspec, [('result', 'result')]),
     ])
 
     return wf
