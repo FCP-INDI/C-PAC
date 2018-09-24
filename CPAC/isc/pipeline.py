@@ -7,7 +7,7 @@ from nipype.interfaces.base import BaseInterface, \
     BaseInterfaceInputSpec, traits, File, TraitedSpec
 
 from nilearn import input_data, masking, image, datasets
-from nilearn.image import resample_to_img
+from nilearn.image import resample_to_img, concat_imgs
 from nilearn.input_data import NiftiMasker, NiftiLabelsMasker
 
 from CPAC.utils.function import Function
@@ -40,6 +40,7 @@ def load_data(subjects):
             np.genfromtxt(img).T
             for img in subject_files
         ])
+        voxel_masker = None
     else:
         images = [nb.load(img) for img in subject_files]
         voxel_masker = NiftiMasker()
@@ -55,7 +56,25 @@ def load_data(subjects):
 
     data_file = os.path.abspath('./data.npy')
     np.save(data_file, data)
-    return data_file
+    return data_file, voxel_masker
+
+
+def save_data_isc(ISC, p, voxel_masker=None):
+
+    if voxel_masker:
+        ISC = voxel_masker.inverse_transform(ISC.T)
+        p = voxel_masker.inverse_transform(p.T)
+        final = concat_imgs([ISC, p])
+        final_file = os.path.abspath('./data.nii.gz')
+        nb.save(final, final_file)
+    else:
+        final = np.array(
+            ISC, p
+        )
+        final_file = os.path.abspath('./data.csv')
+        np.savetxt(final_file, final, delimiter=',')
+
+    return final_file
 
 
 def node_isc(D, collapse_subj=True):
@@ -144,16 +163,22 @@ def create_isc(name='isc'):
 
     outputspec = pe.Node(
         util.IdentityInterface(fields=[
-            'ISC', 'significance'
+            'result'
         ]),
         name='outputspec'
     )
 
     data_node = pe.Node(Function(input_names=['subjects'],
-                                 output_names=['D'],
+                                 output_names=['D', 'voxel_masker'],
                                  function=load_data,
                                  as_module=True),
                         name='data')
+
+    save_node = pe.Node(Function(input_names=['ISC', 'p', 'voxel_masker'],
+                                 output_names=['result'],
+                                 function=save_data_isc,
+                                 as_module=True),
+                        name='save')
 
     isc_node = pe.Node(Function(input_names=['D',
                                              'collapse_subj'],
@@ -200,8 +225,11 @@ def create_isc(name='isc'):
         (permutations_node, significance_node, [('max_null', 'max_null')]),
         (inputspec, significance_node, [('two_sided', 'two_sided')]),
 
-        (isc_node, outputspec, [('ISC', 'ISC')]),
-        (significance_node, outputspec, [('p', 'significance')]),
+        (isc_node, save_node, [('ISC', 'ISC')]),
+        (significance_node, save_node, [('p', 'p')]),
+        (data_node, save_node, [('voxel_masker', 'voxel_masker')]),
+
+        (save_node, outputspec, [('result', 'result')]),
     ])
 
     return wf
