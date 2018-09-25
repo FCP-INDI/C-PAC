@@ -1,6 +1,7 @@
 import wx
 from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
+
 from CPAC.GUI.interface.pages import (
     AnatomicalPreprocessing,
     Segmentation, Registration, FunctionalPreProcessing,
@@ -16,7 +17,8 @@ from CPAC.GUI.interface.pages import (
     FilteringSettings,
     TimeSeries, EPI_DistCorr, ROITimeseries,
     GroupAnalysis, GPASettings, MDMRSettings, ISCSettings,
-    TimeSeriesOptions, BASCSettings
+    TimeSeriesOptions, BASCSettings,
+    AROMA_ICA, AromaSettings
 )
 
 ID_SUBMIT = 6
@@ -102,6 +104,9 @@ class Mybook(wx.Treebook):
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
 
+        page23 = AromaSettings(self)
+        page24 = AROMA_ICA(self)
+        
         page27 = SCA(self)
         page28 = SCASettings(self)
 
@@ -153,7 +158,10 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-
+        
+        self.AddPage(page23, "Aroma-ICA", wx.ID_ANY)
+        self.AddSubPage(page24, "Aroma settings", wx.ID_ANY)
+        
         self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
 

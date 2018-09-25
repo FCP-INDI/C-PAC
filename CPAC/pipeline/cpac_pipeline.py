@@ -7,8 +7,8 @@ import linecache
 import csv
 import shutil
 import pickle
-import copy
 
+import copy
 import pandas as pd
 import pkg_resources as p
 import networkx as nx
@@ -59,7 +59,7 @@ from CPAC.registration import (
     create_wf_collect_transforms
 )
 from CPAC.nuisance import create_nuisance, bandpass_voxels
-
+from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.generate_motion_statistics import fristons_twenty_four
@@ -806,7 +806,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_symm_mni,
                                  'inputspec.input_skull')
-
                 
                 workflow.connect(c.template_symmetric_brain_only, 'local_path',
                                  fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
@@ -871,6 +870,80 @@ Maximum potential number of cores that might be used during this run: {max_cores
                             'in your pipeline configuration ' \
                             'editor.\n\n'
 
+                        logger.info(err_msg)
+                        raise Exception
+
+                    # get the skullstripped anatomical from resource pool
+                    node, out_file = strat['anatomical_brain']
+
+                    # pass the anatomical to the workflow
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.anatomical_brain')
+
+                    # pass the reference file
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
+
+                    # get the reorient skull-on anatomical from resource
+                    # pool
+                    node, out_file = strat['anatomical_reorient']
+
+                    # pass the anatomical to the workflow
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.anatomical_skull')
+
+                    # pass the reference file
+                    workflow.connect(c.template_symmetric_skull, 'local_path',
+                                     ants_reg_anat_symm_mni, 'inputspec.reference_skull')
+
+
+                else:
+                    # get the skullstripped anatomical from resource pool
+                    node, out_file = strat['anatomical_brain']
+
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.anatomical_brain')
+
+                    # pass the reference file
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
+
+                ants_reg_anat_symm_mni.inputs.inputspec.set(
+                    dimension=3,
+                    use_histogram_matching=True,
+                    winsorize_lower_quantile=0.01,
+                    winsorize_upper_quantile=0.99,
+                    metric=['MI', 'MI', 'CC'],
+                    metric_weight=[1, 1, 1],
+                    radius_or_number_of_bins=[32, 32, 4],
+                    sampling_strategy=['Regular', 'Regular', None],
+                    sampling_percentage=[0.25, 0.25, None],
+                    number_of_iterations=[[1000, 500, 250, 100],
+                                          [1000, 500, 250, 100],
+                                          [100, 100, 70, 20]],
+                    convergence_threshold=[1e-8, 1e-8, 1e-9],
+                    convergence_window_size=[10, 10, 15],
+                    transforms=['Rigid', 'Affine', 'SyN'],
+                    transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
+                    shrink_factors=[[8, 4, 2, 1],
+                                    [8, 4, 2, 1],
+                                    [6, 4, 2, 1]],
+                    smoothing_sigmas=[[3, 2, 1, 0],
+                                      [3, 2, 1, 0],
+                                      [3, 2, 1, 0]]
+                )
+
+                    if already_skullstripped == 1:
+                        err_msg = '\n\n[!] CPAC says: You selected ' \
+                            'to run anatomical registration with ' \
+                            'the skull, but you also selected to ' \
+                            'use already-skullstripped images as ' \
+                            'your inputs. This can be changed ' \
+                            'in your pipeline configuration ' \
+                            'editor.\n\n'
                         logger.info(err_msg)
                         raise Exception
 
@@ -2163,6 +2236,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
     #  apply the warp; also includes mean functional warp
 
     new_strat_list = []
+
     if 1 in c.runRegisterFuncToMNI:
 
         for num_strat, strat in enumerate(strat_list):
@@ -2327,6 +2401,112 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     strat_list += new_strat_list
 
+    new_strat_list = []
+    num_strat = 0
+    workflow_bit_id['aroma_preproc'] = workflow_counter
+
+    for num_strat, strat in enumerate(strat_list):
+
+        if 1 in c.runICA: 
+            nodes = strat.get_nodes_names()
+            
+            if 'anat_mni_fnirt_register' in nodes:
+                      
+                aroma_preproc = create_aroma(wf_name='create_aroma_%d' % num_strat)
+
+                aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
+                aroma_preproc.inputs.params.TR = c.aroma_TR
+                aroma_preproc.inputs.params.dim = c.aroma_dim
+                aroma_preproc.inputs.params.warp_file_boolean = c.warp_file_boolean
+                
+                if c.aroma_denoise_type == 'nonaggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(c.outputDirectory,'nonaggr_denoised_file_%s' % subject_id)
+                elif c.aroma_denoise_type == 'aggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(c.outputDirectory,'aggr_denoised_file_%s' % subject_id)
+                
+                node,out_file = strat.get_node_from_resource_pool('functional_to_standard')
+                workflow.connect(node, out_file, aroma_preproc,'inputspec.denoise_file')
+
+                node,out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm') 
+                workflow.connect(node,out_file,aroma_preproc,'inputspec.mat_file')
+
+                if 1 in c.warp_file_boolean:
+                    node,out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                    workflow.connect(node,out_file,aroma_preproc,'inputspec.fnirt_warp_file')
+                
+                if aroma_preproc.inputs.params.denoise_type == 'nonaggr':
+                       strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.nonaggr_denoised_file')})
+                       create_log_node(workflow, aroma_preproc,'outputspec.nonaggr_denoised_file',num_strat)
+                elif aroma_preproc.inputs.params.denoise_type == 'aggr':
+                       strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.aggr_denoised_file')})
+                       create_log_node(workflow, aroma_preproc,'outputspec.aggr_denoised_file',num_strat) 
+
+            elif 'anat_symmetric_mni_register' in nodes: #ANTS WKF#
+                 
+                aroma_preproc = create_aroma(wf_name='create_aroma_%d' % num_strat)
+
+                aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
+                aroma_preproc.inputs.params.TR = c.aroma_TR
+                aroma_preproc.inputs.params.dim = c.aroma_dim
+                aroma_preproc.inputs.params.warp_file_boolean = c.warp_file_boolean
+                
+                if c.aroma_denoise_type == 'nonaggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(c.outputDirectory,'nonaggr_denoised_file_%s' % subject_id)
+                elif c.aroma_denoise_type == 'aggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(c.outputDirectory,'aggr_denoised_file_%s' % subject_id)
+                
+                node,out_file = strat.get_node_from_resource_pool('functional_to_standard')
+                workflow.connect(node, out_file, aroma_preproc,'inputspec.denoise_file')
+
+                node,out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm') 
+                workflow.connect(node,out_file,aroma_preproc,'inputspec.mat_file')
+
+                if 1 in c.warp_file_boolean: ###TO INSERT: ANTS AFFINE##
+                    node,out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                    workflow.connect(node,out_file,aroma_preproc,'inputspec.fnirt_warp_file')
+                
+                if c.aroma_denoise_type == 'nonaggr':
+                       strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.nonaggr_denoised_file')})
+                       create_log_node(workflow, aroma_preproc,'outputspec.nonaggr_denoised_file',num_strat)
+                elif c.aroma_denoise_type == 'aggr':
+                       strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.aggr_denoised_file')})
+                       create_log_node(workflow, aroma_preproc,'outputspec.aggr_denoised_file',num_strat)
+
+            elif 'FSL' in c.regOption and 'anat_symmetric_mni_ants_register' not in nodes and 'anat_mni_ants_register' not in node:
+
+                aroma_preproc = create_aroma(wf_name='create_aroma_%d' % num_strat)
+
+                aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
+                aroma_preproc.inputs.params.TR = c.aroma_TR
+                aroma_preproc.inputs.params.dim = c.aroma_dim
+                aroma_preproc.inputs.params.warp_file_boolean = c.warp_file_boolean
+                
+                if c.aroma_denoise_type == 'nonaggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(c.outputDirectory,'nonaggr_denoised_file_%s' % subject_id)
+                elif c.aroma_denoise_type == 'aggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(c.outputDirectory,'aggr_denoised_file_%s' % subject_id)
+                
+                node,out_file = strat.get_node_from_resource_pool('functional_to_standard')
+                workflow.connect(node, out_file, aroma_preproc,'inputspec.denoise_file')
+
+                node,out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm') 
+                workflow.connect(node,out_file,aroma_preproc,'inputspec.mat_file')
+
+                if 1 in c.warp_file_boolean:
+                    node,out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                    workflow.connect(node,out_file,aroma_preproc,'inputspec.fnirt_warp_file')
+                
+                if c.aroma_denoise_type == 'nonaggr':
+                       strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.nonaggr_denoised_file')})
+                       create_log_node(workflow, aroma_preproc,'outputspec.nonaggr_denoised_file',num_strat)
+                elif c.aroma_denoise_type == 'aggr':
+                       strat.update_resource_pool({'functional_to_standard_dn':(aroma_preproc,'outputspec.aggr_denoised_file')})
+                       create_log_node(workflow, aroma_preproc,'outputspec.aggr_denoised_file',num_strat)
+                    
+                strat.append_name(aroma_preproc.name)
+
+    strat_list += new_strat_list
+    
     # Derivatives
 
     # Inserting VMHC Workflow
@@ -2647,7 +2827,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     strat_list += new_strat_list
 
     # ROI Based Time Series
-
     new_strat_list = []
 
     if "Avg" in ts_analysis_dict.keys() or \
@@ -2971,8 +3150,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             strat.append_name(sc_temp_reg.name)
 
     strat_list += new_strat_list
-
-
+    
     # Section: Network centrality
 
     # TODO ASH handle as boolean on schema validator / normalizer
