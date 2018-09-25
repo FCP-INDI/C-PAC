@@ -582,7 +582,6 @@ class ListBox(wx.Frame):
         paramInfo = params_file.read().split('\n')
 
         for param in paramInfo:
-
             if param != '':
                 paramList.append(param.split(','))
 
@@ -648,10 +647,12 @@ class ListBox(wx.Frame):
         docstring
         '''
 
+        current_dir = os.getcwd()
+
         # Gets called when you click 'Load' for pipeline config in the GUI
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Configuration file",
-            defaultDir=os.getcwd(), 
+            defaultDir=current_dir, 
             defaultFile="",
             wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
             style=wx.OPEN | wx.CHANGE_DIR)
@@ -660,6 +661,9 @@ class ListBox(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             # Load config file into memory and verify its not a subject list
             path = dlg.GetPath()
+            
+            os.chdir(current_dir)
+            
             # Check for path existence
             if os.path.exists(path):
                 path = os.path.realpath(path)

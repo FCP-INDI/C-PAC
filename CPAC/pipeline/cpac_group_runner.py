@@ -157,7 +157,8 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
             for found_file in found_files:
                 still_looking = True
 
-                if any(found_file.endswith('.' + ext) for ext in exts):
+                if os.path.isfile(found_file) and \
+                   any(found_file.endswith('.' + ext) for ext in exts):
                     nifti_globs.append(glob_query)
                     break
         
@@ -313,10 +314,8 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             filepath_pieces = filter(None, relative_filepath.split("/"))
             
             resource_id = filepath_pieces[1]
-            series_id_string = ''
-            if len(filepath_pieces) == 4:
-                series_id_string = filepath_pieces[-2]
-            strat_info = filepath_pieces[-1][:-len(ext)]
+            series_id_string = filepath_pieces[2]
+            strat_info = "_".join(filepath_pieces[3:])[:-len(ext)]
             
             unique_resource_id = (resource_id, strat_info)
                         
@@ -1506,6 +1505,131 @@ def run_basc(pipeline_config):
                                       Dumper=noalias_dumper))
 
 
+def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
+                  isc, isfc, levels=[], permutations=1000):
+
+    import os
+    from CPAC.isc.pipeline import create_isc, create_isfc
+
+    pipeline_dir = os.path.abspath(pipeline_dir)
+
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'MDMR',
+                           os.path.basename(pipeline_dir))
+
+    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'MDMR',
+                               os.path.basename(pipeline_dir))
+
+    crash_dir = os.path.join(crash_dir, 'cpac_group_analysis', 'MDMR',
+                             os.path.basename(pipeline_dir))
+
+    output_df_dct = gather_outputs(
+        pipeline_dir,
+        ["functional_to_standard", "roi_timeseries"],
+        inclusion_list=None,
+        get_motion=False, get_raw_score=False, get_func=True,
+        derivatives=["functional_to_standard", "roi_timeseries"],
+        exts=['nii', 'nii.gz', 'csv']
+    )
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        derivative, _ = preproc_strat
+
+        if "voxel" not in levels and derivative == "functional_to_standard":
+            continue
+
+        if "roi" not in levels and derivative == "roi_timeseries":
+            continue
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        if isc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
+
+                isc_wf = create_isc(name="ISC_{0}".format(df_scan))
+                isc_wf.inputs.inputspec.subjects = func_paths
+                isc_wf.inputs.inputspec.permutations = permutations
+                isc_wf.run()
+
+        if isfc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
+
+                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan))
+                isfc_wf.inputs.inputspec.subjects = func_paths
+                isfc_wf.inputs.inputspec.permutations = permutations
+                isfc_wf.run()
+
+
+def run_isc(pipeline_config):
+
+    import os
+    import yaml
+
+    pipeline_config = os.path.abspath(pipeline_config)
+
+    with open(pipeline_config, "r") as f:
+        pipeconfig_dct = yaml.load(f)
+
+    output_dir = pipeconfig_dct["outputDirectory"]
+    working_dir = pipeconfig_dct["workingDirectory"]
+    crash_dir = pipeconfig_dct["crashLogDirectory"]
+
+
+    isc = 1 in pipeconfig_dct.get("runISC", [])
+    isfc = 1 in pipeconfig_dct.get("runISFC", [])
+    permutations = pipeconfig_dct.get("isc_permutations", 1000)
+
+    levels = []
+    if 1 in pipeconfig_dct.get("isc_level_voxel", []):
+        levels += ["voxel"]
+
+    if 1 in pipeconfig_dct.get("isc_level_roi", []):
+        levels += ["roi"]
+
+    if len(levels) == 0:
+        return
+
+    if not isc and not isfc:
+        return
+
+    pipeline_dirs = []
+    for dirname in os.listdir(output_dir):
+        if "pipeline_" in dirname:
+            pipeline_dirs.append(os.path.join(output_dir, dirname))
+
+    for pipeline in pipeline_dirs:
+        run_isc_group(pipeline, output_dir, working_dir, crash_dir,
+                      isc=isc, isfc=isfc, levels=levels,
+                      permutations=permutations)
+
+
 def manage_processes(procss, output_dir, num_parallel=1):
 
     import os
@@ -1564,6 +1688,10 @@ def run(config_file, pipeline_output_folder):
     # Run MDMR, if selected
     if 1 in c.runMDMR:
         run_cwas(config_file)
+
+    # Run ISC, if selected
+    if 1 in c.runISC or 1 in c.runISFC:
+        run_isc(config_file)
 
     # Run PyBASC, if selected
     if 1 in c.run_basc:

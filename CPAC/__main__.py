@@ -19,6 +19,8 @@ import click
 #         cpac group basc <pipeline config>
 #     cpac group mdmr
 #         cpac group mdmr <pipeline config>
+#     cpac group isc
+#         cpac group isc <pipeline config>
 # cpac utils
 #     cpac utils data_config
 #         cpac utils data_config new_template
@@ -229,7 +231,15 @@ def group_mdmr(pipeline_config):
     from CPAC.pipeline.cpac_group_runner import run_cwas
     
     run_cwas(pipeline_config)
-    
+
+
+@group.command(name="isc")
+@click.argument("pipeline_config", type=click.Path(exists=True))
+def group_isc(pipeline_config):
+    from CPAC.pipeline.cpac_group_runner import run_isc
+
+    run_isc(pipeline_config)
+
 
 # Utilities
 @main.group()
@@ -243,9 +253,9 @@ def data_config():
 
 
 @data_config.command()
-def new_template():
+def new_settings_template():
     from CPAC.utils.build_data_config import util_copy_template
-    util_copy_template()
+    util_copy_template('data_settings')
 
 
 @data_config.command()
@@ -351,6 +361,7 @@ def run_suite():
                 no_params = True
             else:
                 data = data_test
+                
             # run
             cpac_runner.run(pipe, data)
 

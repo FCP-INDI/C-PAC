@@ -4,7 +4,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 
 from CPAC.utils import function
-from CPAC.utils.datasource import check_for_s3
 from CPAC.network_centrality.utils import merge_lists
 from CPAC.network_centrality import (
     create_resting_state_graphs,
