@@ -17,13 +17,6 @@ LICENSE = 'BSD License'
 DOWNLOAD_URL = 'https://github.com/FCP-INDI/C-PAC/tarball/master'
 
 import os, sys
-
-try:
-    from nisext.sexts import package_check, get_comrec_build
-except ImportError:
-    raise RuntimeError('Need nisext package from nibabel installation'
-                       ' - please install nibabel first')
-
 from build_helpers import INFO_VARS
 
 
@@ -99,8 +92,7 @@ def main(**extra_args):
           author_email=INFO_VARS['AUTHOR_EMAIL'],
           platforms=INFO_VARS['PLATFORMS'],
           version=INFO_VARS['VERSION'],
-          requires=INFO_VARS['REQUIRES'],
-          install_requires=INFO_VARS['INSTALL_REQUIRES'],
+          install_requires=INFO_VARS['REQUIREMENTS'],
           configuration=configuration,
           cmdclass=cmdclass,
           scripts=glob('scripts/*'),
@@ -110,7 +102,8 @@ def main(**extra_args):
               ]
           },
           package_data={'CPAC': ['test_data/*',
-                                 'test/templates/*']},
+                                 'test/templates/*',
+                                 'qc/colors/*.txt']},
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 

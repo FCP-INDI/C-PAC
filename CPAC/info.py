@@ -9,7 +9,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # full release.  '.dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
-_version_minor = 2
+_version_minor = 3
 _version_micro = 0
 _version_extra = ''
 
@@ -111,15 +111,10 @@ there will likely still be a few bugs that we did not catch. If you find a bug, 
 please create an issue on CPAC github issue page: https://github.com/FCP-INDI/C-PAC/issues?state=open
 """
 
-# versions
 CYTHON_MIN_VERSION      = '0.12.1'
-MATPLOTLIB_MIN_VERSION  = '1.2'
-JINJA_MIN_VERSION = '2.6'
-PYLOCKFILE_MIN_VERSION  = '0.9'
-PYYAML_MIN_VERSION      = '3.0'
 
 NAME                = 'CPAC'
-MAINTAINER          = "cpac developers"
+MAINTAINER          = "CPAC developers"
 MAINTAINER_EMAIL    = "XXX"
 DESCRIPTION         = description
 LONG_DESCRIPTION    = long_description
@@ -127,7 +122,7 @@ URL                 = "http://fcp-indi.github.io"
 DOWNLOAD_URL        = "https://github.com/FCP-INDI/C-PAC"
 LICENSE             = "BSD license" # TODO: figure out if this is right
 CLASSIFIERS         = CLASSIFIERS
-AUTHOR              = "cpac developers"
+AUTHOR              = "CPAC developers"
 AUTHOR_EMAIL        = "XXX"
 PLATFORMS           = "OS Independent"
 MAJOR               = _version_major
@@ -135,20 +130,32 @@ MINOR               = _version_minor
 MICRO               = _version_micro
 ISRELEASE           = _version_extra == ''
 VERSION             = __version__
-REQUIRES            = ["matplotlib (>=1.2)", "lockfile (>=0.9)",
-                       "pyyaml (>=3.0)", "pygraphviz (>=1.3)",
-                       "nibabel (>=2.0.1)", "nipype (==0.13.1)",
-                       "patsy (>=0.3)", "psutil (>=2.1)", "boto3 (>=1.2)",
-                       "future (==0.16.0)", "prov (>=1.4.0)",
-                       "simplejson (>=3.8.0)", "cython (>=0.12.1)",
-                       "Jinja2 (>=2.6)", "pandas (>=0.15)",
-                       "INDI_Tools (>=0.0.6)", "memory_profiler (>=0.41)",
-                       "ipython (>=5.1)", "nilearn"]
-INSTALL_REQUIRES    = ["matplotlib >=1.2", "lockfile >=0.9", "pyyaml >=3.0",
-                       "pygraphviz >=1.3", "nibabel >=2.0.1",
-                       "nipype ==0.13.1", "patsy >=0.3", "psutil >=2.1",
-                       "boto3 >=1.2", "future ==0.16.0", "prov >=1.4.0",
-                       "simplejson >=3.8.0", "cython >=0.12.1",
-                       "Jinja2 >=2.6", "pandas >=0.15", "INDI-Tools >=0.0.6",
-                       "memory_profiler >=0.41", "ipython >=5.1", "nilearn"]
 STATUS              = 'stable'
+
+REQUIREMENTS        = [
+    "boto3==1.7.37",
+    "cython==0.26",
+    "fs==0.5.4",
+    "future==0.16.0",
+    "INDI-Tools==0.0.6",
+    "jinja2==2.7.2",
+    "lockfile==0.12.2",
+    "matplotlib==2.0.2",
+    "networkx==1.11",
+    "nibabel==2.3.0",
+    "nilearn==0.4.1",
+    "nipype==1.1.2",
+    "nose==1.3.7",
+    "numpy==1.11.0",
+    "pandas==0.20.1",
+    "patsy==0.5.0",
+    "prov==1.5.0",
+    "psutil==5.4.6",
+    "pygraphviz==1.3.1",
+    "python-dateutil==2.5",
+    "pyyaml==3.12",
+    "scikit-learn==0.19.1",
+    "scipy==0.18.1",
+    "simplejson==3.15.0",
+    "traits==4.6.0",
+]

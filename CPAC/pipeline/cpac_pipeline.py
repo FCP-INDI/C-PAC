@@ -8,6 +8,7 @@ import csv
 import shutil
 import pickle
 
+import copy
 import pandas as pd
 import pkg_resources as p
 import networkx as nx
@@ -175,7 +176,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     # Import packages
     from CPAC.utils.utils import check_config_resources, check_system_deps
-
+    
+    # Assure that changes on config will not affect other parts
+    c = copy.copy(c)
 
     # Start timing here
     pipeline_start_time = time.time()
@@ -385,15 +388,25 @@ Maximum potential number of cores that might be used during this run: {max_cores
     workflow_counter = 0
     num_strat = 0
 
-    flow = create_anat_datasource()
-    flow.inputs.inputnode.subject = subject_id
-    flow.inputs.inputnode.anat = sub_dict['anat']
-    flow.inputs.inputnode.creds_path = input_creds_path
-    flow.inputs.inputnode.dl_dir = c.workingDirectory
-
-    anat_flow = flow.clone('anat_gather_%d' % num_strat)
+    anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
+    anat_flow.inputs.inputnode.subject = subject_id
+    anat_flow.inputs.inputnode.anat = sub_dict['anat']
+    anat_flow.inputs.inputnode.creds_path = input_creds_path
+    anat_flow.inputs.inputnode.dl_dir = c.workingDirectory
 
     strat_initial.set_leaf_properties(anat_flow, 'outputspec.anat')
+
+    if 'brain_mask' in sub_dict.keys():
+        if sub_dict['brain_mask'].lower() != 'none':
+            brain_flow = create_anat_datasource('brain_gather_%d' % num_strat)
+            brain_flow.inputs.inputnode.subject = subject_id
+            brain_flow.inputs.inputnode.anat = sub_dict['brain_mask']
+            brain_flow.inputs.inputnode.creds_path = input_creds_path
+            brain_flow.inputs.inputnode.dl_dir = c.workingDirectory
+
+            strat_initial.update_resource_pool({
+                'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
+            })
 
     num_strat += 1
 
@@ -409,9 +422,48 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     for num_strat, strat in enumerate(strat_list):
 
-        if "AFNI" in c.skullstrip_option:
+        rp = strat.get_resource_pool()
 
-            anat_preproc = create_anat_preproc(use_afni=True,
+        if 'brain_mask' in sub_dict.keys() and \
+                'anatomical_brain_mask' in rp.keys():
+
+            anat_preproc = create_anat_preproc(method='mask',
+                                               already_skullstripped=already_skullstripped,
+                                               wf_name='anat_preproc_%d' % num_strat)
+
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file, anat_preproc,
+                             'inputspec.anat')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file,
+                             anat_preproc, 'inputspec.brain_mask')
+
+            # TODO: look into forking this alongside either 3dSkullStrip or
+            # TODO: FSL-BET
+
+            strat.append_name(anat_preproc.name)
+            strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+
+            strat.update_resource_pool({
+                'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+            })
+
+            create_log_node(workflow, anat_preproc,
+                            'outputspec.brain', num_strat)
+
+    strat_list += new_strat_list
+
+    new_strat_list = []
+
+    for num_strat, strat in enumerate(strat_list):
+
+        nodes = strat.get_nodes_names()
+
+        if "AFNI" in c.skullstrip_option and 'anatomical_brain_mask' not in rp.keys():
+
+            anat_preproc = create_anat_preproc(method='afni',
                                                already_skullstripped=already_skullstripped,
                                                wf_name='anat_preproc_%d' % num_strat)
 
@@ -462,9 +514,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
         nodes = strat.get_nodes_names()
 
-        if "BET" in c.skullstrip_option and 'anat_preproc' not in nodes:
+        if "BET" in c.skullstrip_option and 'anat_preproc' not in nodes and \
+                'anatomical_brain_mask' not in rp.keys():
 
-            anat_preproc = create_anat_preproc(use_afni=False,
+            anat_preproc = create_anat_preproc(method='fsl',
                                                already_skullstripped=already_skullstripped,
                                                wf_name='anat_preproc_%d' % num_strat)
 
@@ -753,7 +806,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_symm_mni,
                                  'inputspec.input_skull')
-
                 
                 workflow.connect(c.template_symmetric_brain_only, 'local_path',
                                  fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
@@ -818,6 +870,80 @@ Maximum potential number of cores that might be used during this run: {max_cores
                             'in your pipeline configuration ' \
                             'editor.\n\n'
 
+                        logger.info(err_msg)
+                        raise Exception
+
+                    # get the skullstripped anatomical from resource pool
+                    node, out_file = strat['anatomical_brain']
+
+                    # pass the anatomical to the workflow
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.anatomical_brain')
+
+                    # pass the reference file
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
+
+                    # get the reorient skull-on anatomical from resource
+                    # pool
+                    node, out_file = strat['anatomical_reorient']
+
+                    # pass the anatomical to the workflow
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.anatomical_skull')
+
+                    # pass the reference file
+                    workflow.connect(c.template_symmetric_skull, 'local_path',
+                                     ants_reg_anat_symm_mni, 'inputspec.reference_skull')
+
+
+                else:
+                    # get the skullstripped anatomical from resource pool
+                    node, out_file = strat['anatomical_brain']
+
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.anatomical_brain')
+
+                    # pass the reference file
+                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
+
+                ants_reg_anat_symm_mni.inputs.inputspec.set(
+                    dimension=3,
+                    use_histogram_matching=True,
+                    winsorize_lower_quantile=0.01,
+                    winsorize_upper_quantile=0.99,
+                    metric=['MI', 'MI', 'CC'],
+                    metric_weight=[1, 1, 1],
+                    radius_or_number_of_bins=[32, 32, 4],
+                    sampling_strategy=['Regular', 'Regular', None],
+                    sampling_percentage=[0.25, 0.25, None],
+                    number_of_iterations=[[1000, 500, 250, 100],
+                                          [1000, 500, 250, 100],
+                                          [100, 100, 70, 20]],
+                    convergence_threshold=[1e-8, 1e-8, 1e-9],
+                    convergence_window_size=[10, 10, 15],
+                    transforms=['Rigid', 'Affine', 'SyN'],
+                    transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
+                    shrink_factors=[[8, 4, 2, 1],
+                                    [8, 4, 2, 1],
+                                    [6, 4, 2, 1]],
+                    smoothing_sigmas=[[3, 2, 1, 0],
+                                      [3, 2, 1, 0],
+                                      [3, 2, 1, 0]]
+                )
+
+                    if already_skullstripped == 1:
+                        err_msg = '\n\n[!] CPAC says: You selected ' \
+                            'to run anatomical registration with ' \
+                            'the skull, but you also selected to ' \
+                            'use already-skullstripped images as ' \
+                            'your inputs. This can be changed ' \
+                            'in your pipeline configuration ' \
+                            'editor.\n\n'
                         logger.info(err_msg)
                         raise Exception
 
@@ -1914,7 +2040,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 create_log_node(workflow, nuisance,
                                 'outputspec.subject', num_strat)
 
-
     # Inserting Median Angle Correction Workflow
 
     new_strat_list = []
@@ -2111,7 +2236,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
     #  apply the warp; also includes mean functional warp
 
     new_strat_list = []
-    
+
     if 1 in c.runRegisterFuncToMNI:
 
         for num_strat, strat in enumerate(strat_list):
@@ -2205,14 +2330,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
             if 'ANTS' in c.regOption and \
                'anat_mni_fnirt_register' not in nodes:
 
-              # ANTS warp application
+                # ANTS warp application
 
-              # 4D FUNCTIONAL apply warp
-              node, out_file = strat.get_leaf_properties()
-              node2, out_file2 = \
+                # 4D FUNCTIONAL apply warp
+                node, out_file = strat.get_leaf_properties()
+                node2, out_file2 = \
                     strat["mean_functional"]
 
-              warp_func_wf = ants_apply_warps_func_mni(
+                warp_func_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
                     node, out_file,
                     node2, out_file2,
@@ -2221,16 +2346,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     "Linear", 3
                 )
 
-              create_log_node(workflow, warp_func_wf,
+                create_log_node(workflow, warp_func_wf,
                                 'outputspec.output_image', num_strat)
 
-              # 4D FUNCTIONAL MOTION-CORRECTED apply warp
-              node, out_file = \
+                # 4D FUNCTIONAL MOTION-CORRECTED apply warp
+                node, out_file = \
                     strat['motion_correct']
-              node2, out_file2 = \
+                node2, out_file2 = \
                     strat["mean_functional"]
 
-              warp_motion_wf = ants_apply_warps_func_mni(
+                warp_motion_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
                     node, out_file,
                     node2, out_file2,
@@ -2239,14 +2364,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     "Linear", 3
                 )
 
-              create_log_node(workflow, warp_motion_wf,
+                create_log_node(workflow, warp_motion_wf,
                                 'outputspec.output_image', num_strat)
 
                 # FUNCTIONAL BRAIN MASK (binary, no timeseries) apply warp
-              node, out_file = \
+                node, out_file = \
                     strat["functional_brain_mask"]
 
-              warp_mask_wf = ants_apply_warps_func_mni(
+                warp_mask_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
                     node, out_file,
                     node, out_file,
@@ -2255,14 +2380,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     "NearestNeighbor", 0
                 )
 
-              create_log_node(workflow, warp_mask_wf,
+                create_log_node(workflow, warp_mask_wf,
                                 'outputspec.output_image', num_strat)
 
-              # FUNCTIONAL MEAN (no timeseries) apply warp
-              node, out_file = \
+                # FUNCTIONAL MEAN (no timeseries) apply warp
+                node, out_file = \
                     strat["mean_functional"]
 
-              warp_mean_wf = ants_apply_warps_func_mni(
+                warp_mean_wf = ants_apply_warps_func_mni(
                     workflow, strat, num_strat, num_ants_cores,
                     node, out_file,
                     node, out_file,
@@ -2271,11 +2396,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     "Linear", 0
                 )
 
-              create_log_node(workflow, warp_mean_wf,
+                create_log_node(workflow, warp_mean_wf,
                                 'outputspec.output_image', num_strat)
 
     strat_list += new_strat_list
-
 
     new_strat_list = []
     num_strat = 0
@@ -2703,7 +2827,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     strat_list += new_strat_list
 
     # ROI Based Time Series
-
     new_strat_list = []
 
     if "Avg" in ts_analysis_dict.keys() or \
@@ -3027,8 +3150,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             strat.append_name(sc_temp_reg.name)
 
     strat_list += new_strat_list
-
-
+    
     # Section: Network centrality
 
     # TODO ASH handle as boolean on schema validator / normalizer
@@ -3430,13 +3552,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     creds_path = str(c.awsOutputBucketCredentials)
                     creds_path = os.path.abspath(creds_path)
 
-                # Test for s3 write access
-                s3_write_access = \
-                    aws_utils.test_bucket_access(creds_path,
-                                                 c.outputDirectory)
+                if c.outputDirectory.lower().startswith('s3://'):
+                    # Test for s3 write access
+                    s3_write_access = \
+                        aws_utils.test_bucket_access(creds_path,
+                                                     c.outputDirectory)
 
-                if not s3_write_access:
-                    raise Exception('Not able to write to bucket!')
+                    if not s3_write_access:
+                        raise Exception('Not able to write to bucket!')
 
             except Exception as exc:
                 if c.outputDirectory.lower().startswith('s3://'):

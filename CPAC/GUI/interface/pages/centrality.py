@@ -54,8 +54,8 @@ class CentralitySettings(wx.ScrolledWindow):
                       name = "degWeightOptions",
                       type = dtype.LBOOL,
                       values = ['Binarized','Weighted'],
-                      comment = "Enable/Disable degree centrality by selecting the connectivity weights"
-                      )
+                      comment = "Enable/Disable degree centrality by selecting the connectivity weights")
+
         self.page.add(label="Degree Centrality Threshold Type", 
                      control=control.CHOICE_BOX, 
                      name='degCorrelationThresholdOption', 

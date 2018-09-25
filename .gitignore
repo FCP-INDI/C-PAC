@@ -15,6 +15,7 @@ var
 sdist
 develop-eggs
 .installed.cfg
+.env
 
 # Installer logs
 pip-log.txt
@@ -39,3 +40,5 @@ pip-log.txt
 # Transpiling and compiling
 *.c
 *.so
+
+cpac_runs

@@ -102,3 +102,70 @@ def change_itk_transform_type(input_affine_file):
             f.write(line)
 
     return updated_affine_file
+
+
+def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
+                        affine=None, nonlinear=None, func_to_anat=None,
+                        anatomical_brain=None, dim=3, interp='Linear',
+                        inverse=False):
+    """Apply a transform using ANTs transforms."""
+
+    import os
+    import subprocess
+
+    if inverse:
+        inverse = 1
+    else:
+        inverse = 0
+
+    if func_to_anat:
+        # this assumes the func->anat affine transform is FSL-based and needs
+        # to be converted to ITK format via c3d_affine_tool
+        cmd = ['c3d_affine_tool', '-ref', anatomical_brain, '-src',
+               moving_image, func_to_anat, '-fsl2ras', '-oitk', 'affine.txt']
+        retcode = subprocess.check_output(cmd)
+        func_to_anat = change_itk_transform_type(os.path.join(os.getcwd(),
+                                                              'affine.txt'))
+
+    cmd = ['antsApplyTransforms', '-d', dim, '-i', moving_image, '-r',
+           reference, '-o', 'ants_warped.nii.gz', '-n', interp]
+
+    if nonlinear:
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(nonlinear), inverse))
+
+    if affine:
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(affine), inverse))
+
+    if rigid:
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(rigid), inverse))
+
+    if initial:
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(initial), inverse))
+
+    if func_to_anat:
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(func_to_anat),
+                                       inverse))
+
+    retcode = subprocess.check_output(cmd)
+
+
+def cpac_ants_apply_nonlinear_inverse_warp(cpac_dir, moving_image, reference,
+                                           dim=3, interp='Linear'):
+    """Run antsApplyTransforms for inverse warping when given a C-PAC output
+    directory."""
+
+    import os
+
+    cpac_dir = os.path.abspath(cpac_dir)
+
+    for dir in os.listdir(cpac_dir):
+        if 'ants_initial_xfm' in dir:
+            pass
+
+    #run_ants_apply_warp()
+

@@ -26,17 +26,19 @@ def load_yaml_config(config_filename, aws_input_creds):
 
         from indi_aws import fetch_creds
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
-
-        bucket.download_file(prefix, '/tmp/'+os.path.basename(config_filename))
-
-        config_filename = '/tmp/'+os.path.basename(config_filename)
+        downloaded_config = '/tmp/' + os.path.basename(config_filename)
+        bucket.download_file(prefix, downloaded_config)
+        config_filename = downloaded_config
 
     config_filename = os.path.realpath(config_filename)
-    if os.path.isfile(config_filename):
-        with open(config_filename,'r') as infd:
-            config_data = yaml.load(infd)
 
-    return(config_data)
+    try:
+        with open(config_filename, 'r') as f:
+            config_data = yaml.load(f)
+            return config_data
+    except FileNotFoundError:
+        print("Error! Could not find config file {0}".format(config_filename))
+        raise
 
 
 def run(command, env={}):

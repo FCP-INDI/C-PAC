@@ -5,6 +5,7 @@ import warnings
 Class to set dictionary keys as map attributes
 """
 class Configuration(object):
+
     def __init__(self, config_map):
         for key in config_map:
             if config_map[key] == 'None':
@@ -22,8 +23,13 @@ class Configuration(object):
         # this returns a list of tuples
         # each tuple contains the name of the element in the yaml config file
         # and its value
-        attributes = [(attr, getattr(self, attr)) for attr in dir(self) \
-                     if not callable(attr) and not attr.startswith("__")] 
+
+        # TODO ASH use __dict__ to retrieve elements
+        attributes = [
+            (attr, getattr(self, attr))
+            for attr in dir(self)
+            if not callable(attr) and not attr.startswith("__")
+        ] 
         return attributes
         
     # method to find any pattern ($) in the configuration
@@ -31,6 +37,7 @@ class Configuration(object):
     def update_attr(self):
         from string import Template 
         
+        # TODO remove function from here
         def check_pattern(orig_key):
             temp = Template(orig_key)
             if type(temp.template) is str:
@@ -70,3 +77,8 @@ class Configuration(object):
     def update(self, key, val):
         setattr(self, key, val)
         
+    def __copy__(self):
+        newone = type(self)({})
+        newone.__dict__.update(self.__dict__)
+        newone.__update_attr()
+        return newone
