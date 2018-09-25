@@ -355,5 +355,17 @@ def run_suite():
             cpac_runner.run(pipe, data)
 
 
+@test.group()
+def functions():
+    pass
+
+
+@functions.command()
+@click.argument('pipe_config')
+def gather_outputs_func(pipe_config):
+    from CPAC.pipeline.
+    run_gather_outputs_func(pipe_config)
+
+
 if __name__ == "__main__":
     main()
