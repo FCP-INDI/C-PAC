@@ -429,11 +429,8 @@ def ants_apply_warps_func_mni(
 
 
 def ants_apply_inverse_warps_template_to_func(
-        workflow, strat, num_strat, num_ants_cores,
-        input_node, input_outfile,
-        ref_node, ref_outfile, reference,
-        func_name, interp,
-        input_image_type
+        workflow, strat, num_strat, num_ants_cores, input_node, input_outfile,
+        ref_node, ref_outfile, func_name, interp, input_image_type
 ):
     """Apply the functional-to-structural and structural-to-template warps
     inversely to functional time-series in template space to warp it back to
@@ -462,9 +459,6 @@ def ants_apply_inverse_warps_template_to_func(
         time-series, which is a single volume)
     ref_outfile: Nipype pointer
         pointer to the output of ref_node, i.e. the reference volume itself
-    reference: str
-        file path to the native space image used for reference for the
-        template-to-functional warp
     func_name: str
         what the name of the warped functional should be when written to the
         resource pool
@@ -484,6 +478,7 @@ def ants_apply_inverse_warps_template_to_func(
     # collects series of warps to be applied
     collect_transforms_mni_func = \
         create_wf_collect_transforms(
+            inverse=True,
             name='collect_transforms_%s_%d' % (func_name, num_strat)
         )
 
@@ -493,7 +488,6 @@ def ants_apply_inverse_warps_template_to_func(
             name='apply_ants_warp_%s_%d' % (func_name, num_strat),
             ants_threads=int(num_ants_cores))
 
-    apply_ants_warp_mni_func.inputs.inputspec.reference_image = reference
     apply_ants_warp_mni_func.inputs.inputspec.dimension = 3
     apply_ants_warp_mni_func.inputs.inputspec.interpolation = interp
 
@@ -517,6 +511,9 @@ def ants_apply_inverse_warps_template_to_func(
     workflow.connect(ref_node, ref_outfile,
                      fsl_to_itk_mni_func,
                      'inputspec.source_file')
+
+    workflow.connect(ref_node, ref_outfile,
+                     apply_ants_warp_mni_func, 'inputspec.reference_image')
 
     # Field file from anatomical nonlinear registration
     node, out_file = strat['mni_to_anatomical_nonlinear_xfm']

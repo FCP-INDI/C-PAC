@@ -1904,12 +1904,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 node2, out_file2 = strat["mean_functional"]
 
                 warp_template_wf = ants_apply_inverse_warps_template_to_func(
-                    workflow, strat, num_strat, num_ants_cores,
-                    node, out_file,
-                    node2, out_file2,
-                    c.template_brain_only_for_func,
-                    "ica_aroma_denoised_functional",
-                    "Linear", 3
+                    workflow, strat, num_strat, num_ants_cores, node,
+                    out_file, node2, out_file2,
+                    "ica_aroma_denoised_functional", "Linear", 3
                 )
 
                 node, out_file = strat["ica_aroma_denoised_functional"]
