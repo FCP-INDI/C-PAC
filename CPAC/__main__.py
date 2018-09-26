@@ -374,8 +374,9 @@ def functions():
 @functions.command()
 @click.argument('pipe_config')
 def gather_outputs_func(pipe_config):
-    from CPAC.pipeline.
-    run_gather_outputs_func(pipe_config)
+    #from CPAC.pipeline.
+    #run_gather_outputs_func(pipe_config)
+    pass
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ class AROMA_ICA(wx.html.HtmlWindow):
     def get_counter(self):
         return self.counter
 
+
 class AromaSettings(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
@@ -33,8 +34,8 @@ class AromaSettings(wx.ScrolledWindow):
                  control=control.CHOICE_BOX, 
                  name='runICA', 
                  type=dtype.LSTR, 
-                 comment="Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.", 
-                 values=["Off","On"],
+                 comment="Run ICA-AROMA de-noising.",
+                 values=["Off", "On"],
                  wkf_switch = True)
         
         self.page.add(label= "TR(s)",
@@ -45,31 +46,23 @@ class AromaSettings(wx.ScrolledWindow):
                  validator = CharValidator("no-alpha"),
                  comment="Repeatation time of the input file.")
 
-
         self.page.add(label= "Dimensions",
                  control=control.TEXT_BOX, 
                  name='aroma_dim', 
                  type=dtype.NUM, 
                  values= "1",
                  validator = CharValidator("no-alpha"),
-                 comment="Number of dimensions you would wish to perform analysis on.")
+                 comment="Number of dimensions you wish to perform "
+                         "analysis on.")
 
-        
         self.page.add(label= "Denoise type",
                  control=control.CHOICE_BOX, 
                  name='aroma_denoise_type', 
                  type=dtype.STR, 
-                 values= ["nonaggr","aggr"],
+                 values= ["nonaggr", "aggr"],
                  validator = CharValidator("no-alpha"),
-                 comment="Types of denoising strategy:i)nonaggr-patial component regression,ii)aggr-aggressive denoising,full component regression")
-
-
-        self.page.add(label="Use fnirt warp file",
-                 control=control.CHOICE_BOX,
-                 name='warp_file_boolean',
-                 type=dtype.LSTR,
-                 comment="Uses the warp file obtained from linear FNIRT transformation",
-                 values=["Off","On"])
+                 comment="Types of denoising strategy:i)nonaggr-patial "
+                         "component regression,ii)aggr-aggressive denoising")
                  
         #self.page.add(label=".mat file path",
         #			  control=control.COMBO_BOX,

@@ -295,6 +295,44 @@ def ants_apply_warps_func_mni(
         func_name, interp,
         input_image_type
     ):
+    """Apply the functional-to-structural and structural-to-template warps to
+    the 4D functional time-series to warp it to template space.
+
+    Parameters
+    ----------
+    workflow: Nipype workflow object
+        the workflow containing the resources involved
+    strat: C-PAC Strategy object
+        a strategy with one or more resource pools
+    num_strat: int
+        the number of strategy objects
+    num_ants_cores: int
+        the number of CPU cores dedicated to ANTS anatomical-to-standard
+        registration
+    input_node: Nipype pointer
+        pointer to the node containing the 4D functional time-series (often
+        the leaf node)
+    input_outfile: Nipype pointer
+        pointer to the output of the node, i.e. the 4D functional time-series
+        itself
+    ref_node: Nipype pointer
+        pointer to the node containing the reference volume for the C3D
+        FSL-to-ITK affine conversion (often the mean of the functional
+        time-series, which is a single volume)
+    ref_outfile: Nipype pointer
+        pointer to the output of ref_node, i.e. the reference volume itself
+    standard: str
+        file path to the template brain used for functional-to-template
+        registration
+    func_name: str
+        what the name of the warped functional should be when written to the
+        resource pool
+    interp: str
+        which interpolation to use when applying the warps
+    input_image_type: int
+        argument taken by the ANTs apply warp tool; in this case, should be
+        3 for 4D functional time-series
+    """
 
     # converts FSL-format .mat affine xfm into ANTS-format
     # .txt; .mat affine comes from Func->Anat registration
@@ -388,4 +426,145 @@ def ants_apply_warps_func_mni(
     strat.append_name(apply_ants_warp_func_mni.name)
 
     return apply_ants_warp_func_mni
-    
+
+
+def ants_apply_inverse_warps_template_to_func(
+        workflow, strat, num_strat, num_ants_cores,
+        input_node, input_outfile,
+        ref_node, ref_outfile, reference,
+        func_name, interp,
+        input_image_type
+):
+    """Apply the functional-to-structural and structural-to-template warps
+    inversely to functional time-series in template space to warp it back to
+    native functional space.
+
+    Parameters
+    ----------
+    workflow: Nipype workflow object
+        the workflow containing the resources involved
+    strat: C-PAC Strategy object
+        a strategy with one or more resource pools
+    num_strat: int
+        the number of strategy objects
+    num_ants_cores: int
+        the number of CPU cores dedicated to ANTS anatomical-to-standard
+        registration
+    input_node: Nipype pointer
+        pointer to the node containing the 4D functional time-series (often
+        the leaf node)
+    input_outfile: Nipype pointer
+        pointer to the output of the node, i.e. the 4D functional time-series
+        itself
+    ref_node: Nipype pointer
+        pointer to the node containing the reference volume for the C3D
+        FSL-to-ITK affine conversion (often the mean of the functional
+        time-series, which is a single volume)
+    ref_outfile: Nipype pointer
+        pointer to the output of ref_node, i.e. the reference volume itself
+    reference: str
+        file path to the native space image used for reference for the
+        template-to-functional warp
+    func_name: str
+        what the name of the warped functional should be when written to the
+        resource pool
+    interp: str
+        which interpolation to use when applying the warps
+    input_image_type: int
+        argument taken by the ANTs apply warp tool; in this case, should be
+        3 for 4D functional time-series
+    """
+
+    # converts FSL-format .mat affine xfm into ANTS-format
+    # .txt; .mat affine comes from Func->Anat registration
+    fsl_to_itk_mni_func = create_wf_c3d_fsl_to_itk(
+        name='fsl_to_itk_%s_%d' % (func_name, num_strat)
+    )
+
+    # collects series of warps to be applied
+    collect_transforms_mni_func = \
+        create_wf_collect_transforms(
+            name='collect_transforms_%s_%d' % (func_name, num_strat)
+        )
+
+    # apply ants warps
+    apply_ants_warp_mni_func = \
+        create_wf_apply_ants_warp(
+            name='apply_ants_warp_%s_%d' % (func_name, num_strat),
+            ants_threads=int(num_ants_cores))
+
+    apply_ants_warp_mni_func.inputs.inputspec.reference_image = reference
+    apply_ants_warp_mni_func.inputs.inputspec.dimension = 3
+    apply_ants_warp_mni_func.inputs.inputspec.interpolation = interp
+
+    # input_image_type:
+    # (0 or 1 or 2 or 3)
+    # Option specifying the input image type of scalar
+    # (default), vector, tensor, or time series.
+    apply_ants_warp_mni_func.inputs.inputspec. \
+        input_image_type = input_image_type
+
+    # convert the .mat from linear Func->Anat to
+    # ANTS format
+    node, out_file = strat['functional_to_anat_linear_xfm']
+    workflow.connect(node, out_file, fsl_to_itk_mni_func,
+                     'inputspec.affine_file')
+
+    node, out_file = strat["anatomical_brain"]
+    workflow.connect(node, out_file, fsl_to_itk_mni_func,
+                     'inputspec.reference_file')
+
+    workflow.connect(ref_node, ref_outfile,
+                     fsl_to_itk_mni_func,
+                     'inputspec.source_file')
+
+    # Field file from anatomical nonlinear registration
+    node, out_file = strat['mni_to_anatomical_nonlinear_xfm']
+    workflow.connect(node, out_file,
+                     collect_transforms_mni_func,
+                     'inputspec.warp_file')
+
+    # initial transformation from anatomical registration
+    node, out_file = strat['ants_initial_xfm']
+    workflow.connect(node, out_file,
+                     collect_transforms_mni_func,
+                     'inputspec.linear_initial')
+
+    # affine transformation from anatomical registration
+    node, out_file = strat['ants_affine_xfm']
+    workflow.connect(node, out_file,
+                     collect_transforms_mni_func,
+                     'inputspec.linear_affine')
+
+    # rigid transformation from anatomical registration
+    node, out_file = strat['ants_rigid_xfm']
+    workflow.connect(node, out_file,
+                     collect_transforms_mni_func,
+                     'inputspec.linear_rigid')
+
+    # Premat from Func->Anat linear reg and bbreg
+    # (if bbreg is enabled)
+    workflow.connect(fsl_to_itk_mni_func,
+                     'outputspec.itk_transform',
+                     collect_transforms_mni_func,
+                     'inputspec.fsl_to_itk_affine')
+
+    # this <node, out_file> pulls in directly because
+    # it pulls in the leaf in some instances
+    workflow.connect(input_node,
+                     input_outfile,
+                     apply_ants_warp_mni_func,
+                     'inputspec.input_image')
+
+    workflow.connect(collect_transforms_mni_func,
+                     'outputspec.transformation_series',
+                     apply_ants_warp_mni_func,
+                     'inputspec.transforms')
+
+    strat.update_resource_pool({
+        func_name: (apply_ants_warp_mni_func, 'outputspec.output_image')
+    })
+
+    strat.append_name(apply_ants_warp_mni_func.name)
+
+    return apply_ants_warp_mni_func
