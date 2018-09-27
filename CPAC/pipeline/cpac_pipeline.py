@@ -277,7 +277,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
         print '\nPlease double-check your pipeline configuration file.\n\n'
 
     # Check system dependencies
-    check_system_deps(check_ants='ANTS' in c.regOption)
+    check_system_deps(check_ants='ANTS' in c.regOption,
+                      check_ica_aroma='1' in str(c.runICA[0]))
 
     # absolute paths of the dirs
     c.workingDirectory = os.path.abspath(c.workingDirectory)
@@ -939,97 +940,23 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                       [3, 2, 1, 0]]
                 )
 
-                if already_skullstripped == 1:
-                    err_msg = '\n\n[!] CPAC says: You selected ' \
-                        'to run anatomical registration with ' \
-                        'the skull, but you also selected to ' \
-                        'use already-skullstripped images as ' \
-                        'your inputs. This can be changed ' \
-                        'in your pipeline configuration ' \
-                        'editor.\n\n'
-                    logger.info(err_msg)
-                    raise Exception
+                strat.append_name(ants_reg_anat_symm_mni.name)
+                strat.set_leaf_properties(ants_reg_anat_symm_mni,
+                                          'outputspec.normalized_output_brain')
 
-                # get the skullstripped anatomical from resource pool
-                node, out_file = strat['anatomical_brain']
+                strat.update_resource_pool({
+                    'ants_symmetric_initial_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_initial_xfm'),
+                    'ants_symmetric_rigid_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_rigid_xfm'),
+                    'ants_symmetric_affine_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_affine_xfm'),
+                    'anatomical_to_symmetric_mni_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.warp_field'),
+                    'symmetric_mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.inverse_warp_field'),
+                    'anat_to_symmetric_mni_ants_composite_xfm': (ants_reg_anat_symm_mni, 'outputspec.composite_transform'),
+                    'symmetric_anatomical_to_standard': (ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain')
+                })
 
-                # pass the anatomical to the workflow
-                workflow.connect(node, out_file,
-                                 ants_reg_anat_symm_mni,
-                                 'inputspec.anatomical_brain')
-
-                # pass the reference file
-                workflow.connect(c.template_symmetric_brain_only, 'local_path',
-                                ants_reg_anat_symm_mni, 'inputspec.reference_brain')
-
-                # get the reorient skull-on anatomical from resource
-                # pool
-                node, out_file = strat['anatomical_reorient']
-
-                # pass the anatomical to the workflow
-                workflow.connect(node, out_file,
-                                 ants_reg_anat_symm_mni,
-                                 'inputspec.anatomical_skull')
-
-                # pass the reference file
-                workflow.connect(c.template_symmetric_skull, 'local_path',
-                                 ants_reg_anat_symm_mni, 'inputspec.reference_skull')
-
-
-            else:
-                # get the skullstripped anatomical from resource pool
-                node, out_file = strat['anatomical_brain']
-
-                workflow.connect(node, out_file,
-                                 ants_reg_anat_symm_mni,
-                                 'inputspec.anatomical_brain')
-
-                # pass the reference file
-                workflow.connect(c.template_symmetric_brain_only, 'local_path',
-                                ants_reg_anat_symm_mni, 'inputspec.reference_brain')
-
-            ants_reg_anat_symm_mni.inputs.inputspec.set(
-                dimension=3,
-                use_histogram_matching=True,
-                winsorize_lower_quantile=0.01,
-                winsorize_upper_quantile=0.99,
-                metric=['MI', 'MI', 'CC'],
-                metric_weight=[1, 1, 1],
-                radius_or_number_of_bins=[32, 32, 4],
-                sampling_strategy=['Regular', 'Regular', None],
-                sampling_percentage=[0.25, 0.25, None],
-                number_of_iterations=[[1000, 500, 250, 100],
-                                      [1000, 500, 250, 100],
-                                      [100, 100, 70, 20]],
-                convergence_threshold=[1e-8, 1e-8, 1e-9],
-                convergence_window_size=[10, 10, 15],
-                transforms=['Rigid', 'Affine', 'SyN'],
-                transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
-                shrink_factors=[[8, 4, 2, 1],
-                                [8, 4, 2, 1],
-                                [6, 4, 2, 1]],
-                smoothing_sigmas=[[3, 2, 1, 0],
-                                  [3, 2, 1, 0],
-                                  [3, 2, 1, 0]]
-            )
-
-            strat.append_name(ants_reg_anat_symm_mni.name)
-            strat.set_leaf_properties(ants_reg_anat_symm_mni,
-                                      'outputspec.normalized_output_brain')
-
-            strat.update_resource_pool({
-                'ants_symmetric_initial_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_initial_xfm'),
-                'ants_symmetric_rigid_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_rigid_xfm'),
-                'ants_symmetric_affine_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_affine_xfm'),
-                'anatomical_to_symmetric_mni_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.warp_field'),
-                'symmetric_mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.inverse_warp_field'),
-                'anat_to_symmetric_mni_ants_composite_xfm': (ants_reg_anat_symm_mni, 'outputspec.composite_transform'),
-                'symmetric_anatomical_to_standard': (ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain')
-            })
-
-            create_log_node(workflow, ants_reg_anat_symm_mni,
-                            'outputspec.normalized_output_brain',
-                            num_strat)
+                create_log_node(workflow, ants_reg_anat_symm_mni,
+                                'outputspec.normalized_output_brain',
+                                num_strat)
 
         strat_list += new_strat_list
 

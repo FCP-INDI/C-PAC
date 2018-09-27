@@ -28,9 +28,9 @@ class AromaSettings(wx.ScrolledWindow):
                 
         self.counter = counter
         
-        self.page = GenericClass(self, "Aroma_ICA Options")
+        self.page = GenericClass(self, "ICA-AROMA De-Noising Options")
         
-        self.page.add(label="Run Aroma-ICA ", 
+        self.page.add(label="Run ICA-AROMA ",
                  control=control.CHOICE_BOX, 
                  name='runICA', 
                  type=dtype.LSTR, 
@@ -38,15 +38,15 @@ class AromaSettings(wx.ScrolledWindow):
                  values=["Off", "On"],
                  wkf_switch = True)
         
-        self.page.add(label= "TR(s)",
+        self.page.add(label="TR(s)",
                  control=control.TEXT_BOX, 
                  name='aroma_TR', 
                  type=dtype.NUM, 
                  values= "0.01",
                  validator = CharValidator("no-alpha"),
-                 comment="Repeatation time of the input file.")
+                 comment="Repetition time (TR) of the input data.")
 
-        self.page.add(label= "Dimensions",
+        self.page.add(label="Dimensions",
                  control=control.TEXT_BOX, 
                  name='aroma_dim', 
                  type=dtype.NUM, 
@@ -55,7 +55,7 @@ class AromaSettings(wx.ScrolledWindow):
                  comment="Number of dimensions you wish to perform "
                          "analysis on.")
 
-        self.page.add(label= "Denoise type",
+        self.page.add(label="De-noising Type",
                  control=control.CHOICE_BOX, 
                  name='aroma_denoise_type', 
                  type=dtype.STR, 
