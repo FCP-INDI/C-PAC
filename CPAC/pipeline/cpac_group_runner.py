@@ -1315,10 +1315,10 @@ def run_basc(pipeline_config):
     with open(pipeline_config, "r") as f:
         pipeconfig_dct = yaml.load(f)
 
-    output_dir = pipeconfig_dct["outputDirectory"]
-    working_dir = pipeconfig_dct['workingDirectory']
-    creds_path = pipeconfig_dct['awsOutputBucketCredentials']
-    func_template = pipeconfig_dct["template_brain_only_for_func"]
+    output_dir = os.path.abspath(pipeconfig_dct["outputDirectory"])
+    working_dir = os.path.abspath(pipeconfig_dct['workingDirectory'])
+    creds_path = os.path.abspath(pipeconfig_dct['awsOutputBucketCredentials'])
+    func_template = os.path.abspath(pipeconfig_dct["template_brain_only_for_func"])
     if '$FSLDIR' in func_template:
         if os.environ.get('FSLDIR'):
             func_template = func_template.replace('$FSLDIR',
