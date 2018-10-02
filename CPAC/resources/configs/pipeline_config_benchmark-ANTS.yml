@@ -661,7 +661,7 @@ fwhm : [4]
 
 
 # Choose whether to smooth outputs before or after z-scoring.
-smoothing_order :  ['After']
+smoothing_order :  ['Before']
 
 
 # z-score standardize the derivatives. This is required for group-level analysis.

@@ -100,6 +100,7 @@ files_folders_wf = {
     'falff_to_standard_smooth_zstd': 'alff',
     'alff_to_standard_zstd_smooth': 'alff',
     'falff_to_standard_zstd_smooth': 'alff',
+    'alff_input_functional': 'alff',
     'reho': 'reho',
     'reho_smooth': 'reho',
     'reho_to_standard': 'reho',
