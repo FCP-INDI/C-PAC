@@ -21,6 +21,9 @@ from CPAC.isc.isc import (
     isc,
     isc_significance,
     isc_permutation,
+)
+
+from CPAC.isc.isfc import (
     isfc,
     isfc_significance,
     isfc_permutation,
@@ -41,6 +44,7 @@ def load_data(subjects):
             for img in subject_files
         ])
         voxel_masker = None
+
     else:
         images = [nb.load(img) for img in subject_files]
         voxel_masker = NiftiMasker()
@@ -89,12 +93,18 @@ def save_data_isfc(ISFC, p):
     return final_file
 
 
-def node_isc(D, collapse_subj=True):
+def node_isc(D, std=None, collapse_subj=True):
     D = np.load(D)
-    ISC = isc(D, collapse_subj=True)
+
+    ISC, ISC_mask = isc(D, std, collapse_subj=True)
+    
     f = os.path.abspath('./isc.npy')
     np.save(f, ISC)
-    return f
+
+    f_mask = os.path.abspath('./isc_mask.npy')
+    np.save(f_mask, ISC_mask)
+    
+    return f, f_mask
 
 
 def node_isc_significance(ISC, min_null, max_null, two_sided=False):
@@ -105,18 +115,29 @@ def node_isc_significance(ISC, min_null, max_null, two_sided=False):
     return f
 
 
-def node_isc_permutation(permutation, D, collapse_subj=True, random_state=0):
+def node_isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
     D = np.load(D)
-    permutation, min_null, max_null = isc_permutation(permutation, D, collapse_subj, random_state)
+    masked = np.load(masked)
+    permutation, min_null, max_null = isc_permutation(permutation,
+                                                      D,
+                                                      masked,
+                                                      collapse_subj,
+                                                      random_state)
     return permutation, min_null, max_null
 
 
-def node_isfc(D, collapse_subj=True):
+def node_isfc(D, std=None, collapse_subj=True):
     D = np.load(D)
-    ISFC = isfc(D, collapse_subj)
+
+    ISFC, ISFC_mask = isfc(D, std, collapse_subj)
+
     f = os.path.abspath('./isfc.npy')
     np.save(f, ISFC)
-    return f
+
+    f_mask = os.path.abspath('./isfc_mask.npy')
+    np.save(f_mask, ISFC_mask)
+    
+    return f, f_mask
 
 
 def node_isfc_significance(ISFC, min_null, max_null, two_sided=False):
@@ -127,9 +148,14 @@ def node_isfc_significance(ISFC, min_null, max_null, two_sided=False):
     return f
 
 
-def node_isfc_permutation(permutation, D, collapse_subj=True, random_state=0):
+def node_isfc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
     D = np.load(D)
-    permutation, min_null, max_null = isfc_permutation(permutation, D, collapse_subj, random_state)
+    masked = np.load(masked)
+    permutation, min_null, max_null = isfc_permutation(permutation,
+                                                       D,
+                                                       masked,
+                                                       collapse_subj,
+                                                       random_state)
     return permutation, min_null, max_null
 
 
@@ -171,6 +197,7 @@ def create_isc(name='isc'):
             'subjects',
             'permutations',
             'collapse_subj',
+            'std',
             'two_sided',
             'random_state'
         ]),
@@ -197,14 +224,16 @@ def create_isc(name='isc'):
                         name='save')
 
     isc_node = pe.Node(Function(input_names=['D',
+                                             'std',
                                              'collapse_subj'],
-                                output_names=['ISC'],
+                                output_names=['ISC', 'masked'],
                                 function=node_isc,
                                 as_module=True),
                        name='ISC')
 
     permutations_node = pe.MapNode(Function(input_names=['permutation',
                                                          'D',
+                                                         'masked',
                                                          'collapse_subj',
                                                          'random_state'],
                                             output_names=['permutation',
@@ -227,12 +256,14 @@ def create_isc(name='isc'):
 
     wf.connect([
         (inputspec, data_node, [('subjects', 'subjects')]),
-        (data_node, isc_node, [('D', 'D')]),
         (inputspec, isc_node, [('collapse_subj', 'collapse_subj')]),
+        (inputspec, isc_node, [('std', 'std')]),
+        (data_node, isc_node, [('D', 'D')]),
 
         (isc_node, significance_node, [('ISC', 'ISC')]),
 
         (data_node, permutations_node, [('D', 'D')]),
+        (isc_node, permutations_node, [('masked', 'masked')]),
         (inputspec, permutations_node, [('collapse_subj', 'collapse_subj')]),
         (inputspec, permutations_node, [(('permutations', _permutations), 'permutation')]),
         (inputspec, permutations_node, [('random_state', 'random_state')]),
@@ -289,6 +320,7 @@ def create_isfc(name='isfc'):
             'subjects',
             'permutations',
             'collapse_subj',
+            'std',
             'two_sided',
             'random_state'
         ]),
@@ -313,14 +345,16 @@ def create_isfc(name='isfc'):
     )
 
     isfc_node = pe.Node(Function(input_names=['D',
+                                             'std',
                                              'collapse_subj'],
-                                output_names=['ISFC'],
+                                output_names=['ISFC', 'masked'],
                                 function=node_isfc,
                                 as_module=True),
                        name='ISFC')
 
     permutations_node = pe.MapNode(Function(input_names=['permutation',
                                                          'D',
+                                                         'masked',
                                                          'collapse_subj',
                                                          'random_state'],
                                             output_names=['permutation',
@@ -343,12 +377,14 @@ def create_isfc(name='isfc'):
 
     wf.connect([
         (inputspec, data_node, [('subjects', 'subjects')]),
-        (data_node, isfc_node, [('D', 'D')]),
         (inputspec, isfc_node, [('collapse_subj', 'collapse_subj')]),
+        (inputspec, isfc_node, [('std', 'std')]),
+        (data_node, isfc_node, [('D', 'D')]),
 
         (isfc_node, significance_node, [('ISFC', 'ISFC')]),
 
         (data_node, permutations_node, [('D', 'D')]),
+        (isfc_node, permutations_node, [('masked', 'masked')]),
         (inputspec, permutations_node, [('collapse_subj', 'collapse_subj')]),
         (inputspec, permutations_node, [(('permutations', _permutations), 'permutation')]),
         (inputspec, permutations_node, [('random_state', 'random_state')]),

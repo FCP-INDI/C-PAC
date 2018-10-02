@@ -1623,7 +1623,8 @@ def run_basc(pipeline_config):
 
 
 def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
-                  isc, isfc, levels=[], permutations=1000):
+                  isc, isfc, levels=[], permutations=1000, 
+                  std_filter=None):
 
     import os
     from CPAC.isc.pipeline import create_isc, create_isfc
@@ -1685,6 +1686,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isc_wf = create_isc(name="ISC_{0}".format(df_scan))
                 isc_wf.inputs.inputspec.subjects = func_paths
                 isc_wf.inputs.inputspec.permutations = permutations
+                isc_wf.inputs.inputspec.std = std_filter
                 isc_wf.run()
 
         if isfc:
@@ -1701,6 +1703,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan))
                 isfc_wf.inputs.inputspec.subjects = func_paths
                 isfc_wf.inputs.inputspec.permutations = permutations
+                isfc_wf.inputs.inputspec.std = std_filter
                 isfc_wf.run()
 
 
@@ -1722,6 +1725,10 @@ def run_isc(pipeline_config):
     isc = 1 in pipeconfig_dct.get("runISC", [])
     isfc = 1 in pipeconfig_dct.get("runISFC", [])
     permutations = pipeconfig_dct.get("isc_permutations", 1000)
+    std_filter = pipeconfig_dct.get("isc_level_voxel_std_filter", None)
+
+    if std_filter == 0.0:
+        std_filter = None
 
     levels = []
     if 1 in pipeconfig_dct.get("isc_level_voxel", []):
@@ -1744,7 +1751,8 @@ def run_isc(pipeline_config):
     for pipeline in pipeline_dirs:
         run_isc_group(pipeline, output_dir, working_dir, crash_dir,
                       isc=isc, isfc=isfc, levels=levels,
-                      permutations=permutations)
+                      permutations=permutations,
+                      std_filter=std_filter)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
