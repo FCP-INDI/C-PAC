@@ -1,6 +1,7 @@
 import wx
 from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
+
 from CPAC.GUI.interface.pages import (
     AnatomicalPreprocessing,
     Segmentation, Registration, FunctionalPreProcessing,
@@ -16,7 +17,8 @@ from CPAC.GUI.interface.pages import (
     FilteringSettings,
     TimeSeries, EPI_DistCorr, ROITimeseries,
     GroupAnalysis, GPASettings, MDMRSettings, ISCSettings,
-    TimeSeriesOptions, BASCSettings
+    TimeSeriesOptions, BASCSettings,
+    AROMA_ICA, AromaSettings
 )
 
 ID_SUBMIT = 6
@@ -94,6 +96,7 @@ class Mybook(wx.Treebook):
         page15 = FuncToMNIRegistration(self, 6)
 
         page16= Nuisance(self)
+        ica_aroma = AromaSettings(self)
         page17= NuisanceRegression(self, 7)
         page18= MedianAngleCorrection(self, 8)
 
@@ -101,7 +104,7 @@ class Mybook(wx.Treebook):
 
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
-
+        
         page27 = SCA(self)
         page28 = SCASettings(self)
 
@@ -146,6 +149,7 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page15,"Functional to MNI Registration", wx.ID_ANY)
 
         self.AddPage(page16,"Nuisance", wx.ID_ANY)
+        self.AddSubPage(ica_aroma, "ICA-AROMA De-noising", wx.ID_ANY)
         self.AddSubPage(page17,"Nuisance Regression", wx.ID_ANY)
         self.AddSubPage(page18,"Median Angle Correction", wx.ID_ANY)
 
@@ -153,7 +157,7 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-
+        
         self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
 

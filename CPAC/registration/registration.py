@@ -1067,12 +1067,26 @@ def create_wf_c3d_fsl_to_itk(input_image_type=0, map_node=False,
     return fsl_to_itk_conversion
 
 
-def create_wf_collect_transforms(map_node=False,
+def create_wf_collect_transforms(map_node=False, inverse=False,
                                  name='create_wf_collect_transforms'):
+    """Collect the list of warps/transforms to be applied using the ANTs apply
+    warp tool into a single string.
 
-    """
-    DOCSTRINGS
-    
+    Parameters
+    ----------
+    map_node: bool
+        If map_node is true, allow for multiple functional-to-structural
+        affine transforms for input.
+    inverse: bool
+        If inverse is true, reverse the order of the warps in the string, as
+        ANTs' apply transform tool reads it in as a stack.
+    name: str
+        Name for the sub-workflow.
+
+    Returns
+    -------
+    collect_transforms_wf: Nipype workflow object
+        The connected workflow object.
     """
 
     collect_transforms_wf = pe.Workflow(name=name)
@@ -1085,33 +1099,59 @@ def create_wf_collect_transforms(map_node=False,
     # .mat affine comes from Func->Anat registration
 
     if map_node:
-        collect_transforms = pe.MapNode(util.Merge(5),
-                name='collect_transforms_mapnode', iterfield=['in5'])
+        if inverse:
+            collect_transforms = pe.MapNode(util.Merge(5),
+                    name='collect_transforms_mapnode', iterfield=['in1'])
+        else:
+            collect_transforms = pe.MapNode(util.Merge(5),
+                    name='collect_transforms_mapnode', iterfield=['in5'])
     else:
         collect_transforms = pe.Node(util.Merge(5), name='collect_transforms')
 
     outputspec = pe.Node(util.IdentityInterface(
             fields=['transformation_series']), name='outputspec')
 
-    # Field file from anatomical nonlinear registration
-    collect_transforms_wf.connect(inputspec, 'warp_file', collect_transforms,
-            'in1')
+    if inverse:
+        # Field file from anatomical nonlinear registration
+        collect_transforms_wf.connect(inputspec, 'warp_file',
+                                      collect_transforms, 'in5')
 
-    # affine transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_affine',
-            collect_transforms, 'in2')
+        # affine transformation from anatomical registration
+        collect_transforms_wf.connect(inputspec, 'linear_affine',
+                                      collect_transforms, 'in4')
 
-    # rigid transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_rigid',
-            collect_transforms, 'in3')
+        # rigid transformation from anatomical registration
+        collect_transforms_wf.connect(inputspec, 'linear_rigid',
+                                      collect_transforms, 'in3')
 
-    # initial transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_initial',
-            collect_transforms, 'in4')
+        # initial transformation from anatomical registration
+        collect_transforms_wf.connect(inputspec, 'linear_initial',
+                                      collect_transforms, 'in2')
 
-    # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
-    collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
-            collect_transforms, 'in5')
+        # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
+        collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
+                                      collect_transforms, 'in1')
+
+    else:
+        # Field file from anatomical nonlinear registration
+        collect_transforms_wf.connect(inputspec, 'warp_file',
+                                      collect_transforms, 'in1')
+
+        # affine transformation from anatomical registration
+        collect_transforms_wf.connect(inputspec, 'linear_affine',
+                collect_transforms, 'in2')
+
+        # rigid transformation from anatomical registration
+        collect_transforms_wf.connect(inputspec, 'linear_rigid',
+                collect_transforms, 'in3')
+
+        # initial transformation from anatomical registration
+        collect_transforms_wf.connect(inputspec, 'linear_initial',
+                collect_transforms, 'in4')
+
+        # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
+        collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
+                collect_transforms, 'in5')
 
     collect_transforms_wf.connect(collect_transforms, 'out', outputspec,
             'transformation_series')

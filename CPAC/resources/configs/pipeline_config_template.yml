@@ -414,6 +414,22 @@ template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func
 identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 
 
+# Run ICA-AROMA de-noising.
+runICA :  [0]
+
+
+# Repetition time (TR) of the input data.
+aroma_TR :  0.01
+
+
+# Number of dimensions you wish to perform analysis on.
+aroma_dim :  1
+
+
+# Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
+aroma_denoise_type :  nonaggr
+
+
 # Run Nuisance Signal Regression
 runNuisance :  [1]
 

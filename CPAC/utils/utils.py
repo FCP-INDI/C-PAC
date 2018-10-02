@@ -2150,7 +2150,7 @@ def setup_logger(logger_name, file_path, level, to_screen=False):
     return logger
 
 
-def check_system_deps(check_ants=False):
+def check_system_deps(check_ants=False, check_ica_aroma=False):
     '''
     Function to check system for neuroimaging tools AFNI, C3D, FSL,
     and (optionally) ANTs
@@ -2174,6 +2174,10 @@ def check_system_deps(check_ants=False):
             missing_install.append("C3D")
         if os.system("antsRegistration >/dev/null") == 32512:
             missing_install.append("ANTS")
+    # Check ICA-AROMA
+    if check_ica_aroma:
+        if os.system("ICA_AROMA.py >/dev/null") == 32512:
+            missing_install.append("ICA-AROMA")
 
     # If we're missing deps, raise Exception
     if len(missing_install) > 0:

@@ -58,6 +58,34 @@ def run(data_config, pipe_config=None):
                                 os.path.join("resources",
                                              "configs",
                                              "pipeline_config_template.yml"))
+
+    if pipe_config == 'benchmark-ants':
+        import os
+        import pkg_resources as p
+        pipe_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_benchmark-ANTS.yml"))
+
+    if pipe_config == 'benchmark-fnirt':
+        import os
+        import pkg_resources as p
+        pipe_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_benchmark-FNIRT.yml"))
+
+    if data_config == 'benchmark-data':
+        import os
+        import pkg_resources as p
+        data_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "data_config_cpac_benchmark.yml"))
+
     if data_config == 'ADHD200':
         import os
         import pkg_resources as p
@@ -364,6 +392,19 @@ def run_suite():
                 
             # run
             cpac_runner.run(pipe, data)
+
+
+@test.group()
+def functions():
+    pass
+
+
+@functions.command()
+@click.argument('pipe_config')
+def gather_outputs_func(pipe_config):
+    #from CPAC.pipeline.
+    #run_gather_outputs_func(pipe_config)
+    pass
 
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ import linecache
 import csv
 import shutil
 import pickle
-import copy
 
+import copy
 import pandas as pd
 import pkg_resources as p
 import networkx as nx
@@ -59,7 +59,7 @@ from CPAC.registration import (
     create_wf_collect_transforms
 )
 from CPAC.nuisance import create_nuisance, bandpass_voxels
-
+from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.generate_motion_statistics import fristons_twenty_four
@@ -75,7 +75,10 @@ from CPAC.network_centrality import (
     create_resting_state_graphs,
     get_cent_zscore
 )
-from CPAC.warp.pipeline import ants_apply_warps_func_mni
+from CPAC.warp.pipeline import (
+    ants_apply_warps_func_mni,
+    ants_apply_inverse_warps_template_to_func
+)
 
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
@@ -274,7 +277,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
         print '\nPlease double-check your pipeline configuration file.\n\n'
 
     # Check system dependencies
-    check_system_deps(check_ants='ANTS' in c.regOption)
+    check_system_deps(check_ants='ANTS' in c.regOption,
+                      check_ica_aroma='1' in str(c.runICA[0]))
 
     # absolute paths of the dirs
     c.workingDirectory = os.path.abspath(c.workingDirectory)
@@ -806,7 +810,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_symm_mni,
                                  'inputspec.input_skull')
-
                 
                 workflow.connect(c.template_symmetric_brain_only, 'local_path',
                                  fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
@@ -955,7 +958,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 'outputspec.normalized_output_brain',
                                 num_strat)
 
-    strat_list += new_strat_list
+        strat_list += new_strat_list
 
     # Inserting Segmentation Preprocessing Workflow
 
@@ -1413,7 +1416,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
             )
 
             node, out_file = strat['movement_parameters']
-
             workflow.connect(node, out_file,
                              fristons_model, 'inputspec.movement_file')
 
@@ -1718,6 +1720,138 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         gen_motion_stats, 'outputspec.motion_params',
                         num_strat)
 
+    new_strat_list = []
+    workflow_bit_id['aroma_preproc'] = workflow_counter
+
+    for num_strat, strat in enumerate(strat_list):
+
+        if 1 in c.runICA:
+            nodes = strat.get_nodes_names()
+
+            # FNIRT ONLY! ANTS further below!
+            if 'FSL' in c.regOption and \
+                    'anat_symmetric_mni_ants_register' not in nodes and \
+                        'anat_mni_ants_register' not in nodes:
+
+                aroma_preproc = create_aroma(
+                    wf_name='create_aroma_%d' % num_strat)
+
+                aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
+                aroma_preproc.inputs.params.TR = c.aroma_TR
+                aroma_preproc.inputs.params.dim = c.aroma_dim
+
+                if c.aroma_denoise_type == 'nonaggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
+                        c.outputDirectory,
+                        'nonaggr_denoised_file_%s' % subject_id)
+                elif c.aroma_denoise_type == 'aggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
+                        c.outputDirectory,
+                        'aggr_denoised_file_%s' % subject_id)
+
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file, aroma_preproc,
+                                 'inputspec.denoise_file')
+
+                node, out_file = strat.get_node_from_resource_pool(
+                    'functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file, aroma_preproc,
+                                 'inputspec.mat_file')
+
+                node, out_file = strat.get_node_from_resource_pool(
+                    'anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file, aroma_preproc,
+                                 'inputspec.fnirt_warp_file')
+
+                if c.aroma_denoise_type == 'nonaggr':
+                    strat.set_leaf_properties(aroma_preproc,
+                                              'outputspec.nonaggr_denoised_file')
+                    strat.update_resource_pool({'ica_aroma_denoised_functional': (aroma_preproc, 'outputspec.nonaggr_denoised_file')})
+                    create_log_node(workflow, aroma_preproc,
+                                    'outputspec.nonaggr_denoised_file',
+                                    num_strat)
+
+                elif c.aroma_denoise_type == 'aggr':
+                    strat.set_leaf_properties(aroma_preproc,
+                                              'outputspec.aggr_denoised_file')
+                    strat.update_resource_pool({'ica_aroma_denoised_functional': (aroma_preproc, 'outputspec.aggr_denoised_file')})
+                    create_log_node(workflow, aroma_preproc,
+                                    'outputspec.aggr_denoised_file',
+                                    num_strat)
+
+                strat.append_name(aroma_preproc.name)
+
+            elif 'ANTS' in c.regOption and \
+                    'anat_symmetric_mni_fnirt_register' not in nodes and \
+                        'anat_mni_fnirt_register' not in node:
+
+                # we don't have the FNIRT warp file, so we need to calculate
+                # ICA-AROMA de-noising in template space
+
+                # 4D FUNCTIONAL apply warp
+                node, out_file = strat.get_leaf_properties()
+                node2, out_file2 = strat["mean_functional"]
+
+                warp_leaf_wf = ants_apply_warps_func_mni(
+                    workflow, strat, num_strat, num_ants_cores,
+                    node, out_file,
+                    node2, out_file2,
+                    c.template_brain_only_for_func,
+                    "leaf_node_to_standard",
+                    "Linear", 3
+                )
+
+                aroma_preproc = create_aroma(wf_name='create_aroma_%d'
+                                                     % num_strat)
+
+                aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
+                aroma_preproc.inputs.params.TR = c.aroma_TR
+                aroma_preproc.inputs.params.dim = c.aroma_dim
+
+                if c.aroma_denoise_type == 'nonaggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
+                        c.outputDirectory,
+                        'nonaggr_denoised_file_%s' % subject_id)
+                elif c.aroma_denoise_type == 'aggr':
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
+                        c.outputDirectory,
+                        'aggr_denoised_file_%s' % subject_id)
+
+                node, out_file = strat.get_node_from_resource_pool(
+                    'leaf_node_to_standard')
+                workflow.connect(node, out_file, aroma_preproc,
+                                 'inputspec.denoise_file')
+
+                # warp back
+                if c.aroma_denoise_type == 'nonaggr':
+                    node, out_file = (aroma_preproc, 'outputspec.nonaggr_denoised_file')
+                elif c.aroma_denoise_type == 'aggr':
+                    node, out_file = (aroma_preproc, 'outputspec.aggr_denoised_file')
+
+                node2, out_file2 = strat["mean_functional"]
+
+                warp_template_wf = ants_apply_inverse_warps_template_to_func(
+                    workflow, strat, num_strat, num_ants_cores, node,
+                    out_file, node2, out_file2,
+                    "ica_aroma_denoised_functional", "Linear", 3
+                )
+
+                node, out_file = strat["ica_aroma_denoised_functional"]
+                strat.set_leaf_properties(node, out_file)
+
+                if c.aroma_denoise_type == 'nonaggr':
+                    create_log_node(workflow, aroma_preproc,
+                                    'outputspec.nonaggr_denoised_file',
+                                    num_strat)
+                elif c.aroma_denoise_type == 'aggr':
+                    create_log_node(workflow, aroma_preproc,
+                                    'outputspec.aggr_denoised_file',
+                                    num_strat)
+
+                strat.append_name(aroma_preproc.name)
+
+    strat_list += new_strat_list
+
     # Inserting Nuisance Workflow
 
     new_strat_list = []
@@ -2008,40 +2142,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     strat_list += new_strat_list
 
-    # Inserting ALFF/fALFF workflow
-
-    new_strat_list = []
-
+    # Drop the leaf node into the resource pool at this point, so it can be
+    # threaded into ALFF/fALFF further down
     if 1 in c.runALFF:
         for num_strat, strat in enumerate(strat_list):
-
-            alff = create_alff('alff_falff_%d' % num_strat)
-
-            alff.inputs.hp_input.hp = c.highPassFreqALFF
-            alff.inputs.lp_input.lp = c.lowPassFreqALFF
-            alff.get_node('hp_input').iterables = ('hp',
-                                                   c.highPassFreqALFF)
-            alff.get_node('lp_input').iterables = ('lp',
-                                                   c.lowPassFreqALFF)
-
             node, out_file = strat.get_leaf_properties()
-            workflow.connect(node, out_file,
-                             alff, 'inputspec.rest_res')
-            node, out_file = strat['functional_brain_mask']
-            workflow.connect(node, out_file,
-                             alff, 'inputspec.rest_mask')
-
-            strat.append_name(alff.name)
-
             strat.update_resource_pool({
-                'alff': (alff, 'outputspec.alff_img'),
-                'falff': (alff, 'outputspec.falff_img')
+                'alff_input_functional': (node, out_file)
             })
-
-            create_log_node(workflow,
-                            alff, 'outputspec.falff_img', num_strat)
-
-    strat_list += new_strat_list
 
     # Inserting Frequency Filtering Node
 
@@ -2163,6 +2271,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
     #  apply the warp; also includes mean functional warp
 
     new_strat_list = []
+
     if 1 in c.runRegisterFuncToMNI:
 
         for num_strat, strat in enumerate(strat_list):
@@ -2326,8 +2435,44 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 'outputspec.output_image', num_strat)
 
     strat_list += new_strat_list
-
+    
     # Derivatives
+
+    # Inserting ALFF/fALFF workflow
+    #     NOTE: this is calculated using the functional time series from
+    #           before frequency filtering and beyond
+    new_strat_list = []
+
+    if 1 in c.runALFF:
+        for num_strat, strat in enumerate(strat_list):
+
+            alff = create_alff('alff_falff_%d' % num_strat)
+
+            alff.inputs.hp_input.hp = c.highPassFreqALFF
+            alff.inputs.lp_input.lp = c.lowPassFreqALFF
+            alff.get_node('hp_input').iterables = ('hp',
+                                                   c.highPassFreqALFF)
+            alff.get_node('lp_input').iterables = ('lp',
+                                                   c.lowPassFreqALFF)
+
+            node, out_file = strat['alff_input_functional']
+            workflow.connect(node, out_file,
+                             alff, 'inputspec.rest_res')
+            node, out_file = strat['functional_brain_mask']
+            workflow.connect(node, out_file,
+                             alff, 'inputspec.rest_mask')
+
+            strat.append_name(alff.name)
+
+            strat.update_resource_pool({
+                'alff': (alff, 'outputspec.alff_img'),
+                'falff': (alff, 'outputspec.falff_img')
+            })
+
+            create_log_node(workflow,
+                            alff, 'outputspec.falff_img', num_strat)
+
+    strat_list += new_strat_list
 
     # Inserting VMHC Workflow
 
@@ -2647,7 +2792,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     strat_list += new_strat_list
 
     # ROI Based Time Series
-
     new_strat_list = []
 
     if "Avg" in ts_analysis_dict.keys() or \
@@ -2971,8 +3115,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             strat.append_name(sc_temp_reg.name)
 
     strat_list += new_strat_list
-
-
+    
     # Section: Network centrality
 
     # TODO ASH handle as boolean on schema validator / normalizer
