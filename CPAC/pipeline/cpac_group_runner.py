@@ -1692,7 +1692,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isfc_wf.inputs.inputspec.subjects = func_paths
                 isfc_wf.inputs.inputspec.permutations = permutations
                 isfc_wf.inputs.inputspec.std = std_filter
-                isc_wf.inputs.inputspec.collapse_subj = False
+                isfc_wf.inputs.inputspec.collapse_subj = False
                 isfc_wf.run()
 
 
