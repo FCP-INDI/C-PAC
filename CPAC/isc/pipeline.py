@@ -63,25 +63,34 @@ def load_data(subjects):
     return data_file, voxel_masker
 
 
-def save_data_isc(ISC, p, voxel_masker=None):
+def save_data_isc(ISC, p, collapse_subj=True, voxel_masker=None):
 
     ISC = np.load(ISC)
     p = np.load(p)
 
     if voxel_masker:
+        
         ISC_image = voxel_masker.inverse_transform(ISC.T)
         p_image = voxel_masker.inverse_transform(p.T)
+
         final = concat_imgs([ISC_image, p_image])
         final_file = os.path.abspath('./data.nii.gz')
+        
         nb.save(final, final_file)
-    else:
-        final = np.array([
-            ISC, p
-        ])
-        final_file = os.path.abspath('./data.csv')
-        np.savetxt(final_file, final, delimiter=',', fmt='%1.10f')
 
-    return final_file
+    else:
+        corr_file, p_file = os.path.abspath('./correlations.csv'), os.path.abspath('./significance.csv')
+
+        if ISC.ndim == 1:
+            ISC = np.expand_dims(ISC, axis=0)
+
+        if p.ndim == 1:
+            p = np.expand_dims(p, axis=0)
+
+        np.savetxt(corr_file, ISC, delimiter=',', fmt='%1.10f')
+        np.savetxt(p_file, p, delimiter=',', fmt='%1.10f')
+
+    return corr_file, p_file
 
 
 def save_data_isfc(ISFC, p):
@@ -96,7 +105,7 @@ def save_data_isfc(ISFC, p):
 def node_isc(D, std=None, collapse_subj=True):
     D = np.load(D)
 
-    ISC, ISC_mask = isc(D, std, collapse_subj=True)
+    ISC, ISC_mask = isc(D, std, collapse_subj)
     
     f = os.path.abspath('./isc.npy')
     np.save(f, ISC)
@@ -159,7 +168,7 @@ def node_isfc_permutation(permutation, D, masked, collapse_subj=True, random_sta
     return permutation, min_null, max_null
 
 
-def create_isc(name='isc'):
+def create_isc(name='isc', working_dir=None, crash_dir=None):
     """
     Inter-Subject Correlation
     
@@ -192,6 +201,16 @@ def create_isc(name='isc'):
     
     """
 
+    if not working_dir:
+        working_dir = os.path.join(os.getcwd(), 'ISC_work_dir')
+    if not crash_dir:
+        crash_dir = os.path.join(os.getcwd(), 'ISC_crash_dir')
+
+    wf = pe.Workflow(name=name)
+    wf.base_dir = working_dir
+    wf.config['execution'] = {'hash_method': 'timestamp',
+                              'crashdump_dir': os.path.abspath(crash_dir)}
+
     inputspec = pe.Node(
         util.IdentityInterface(fields=[
             'subjects',
@@ -206,7 +225,8 @@ def create_isc(name='isc'):
 
     outputspec = pe.Node(
         util.IdentityInterface(fields=[
-            'result'
+            'correlations',
+            'significance'
         ]),
         name='outputspec'
     )
@@ -217,8 +237,8 @@ def create_isc(name='isc'):
                                  as_module=True),
                         name='data')
 
-    save_node = pe.Node(Function(input_names=['ISC', 'p', 'voxel_masker'],
-                                 output_names=['result'],
+    save_node = pe.Node(Function(input_names=['ISC', 'p', 'collapse_subj', 'voxel_masker'],
+                                 output_names=['correlations', 'significance'],
                                  function=save_data_isc,
                                  as_module=True),
                         name='save')
@@ -252,8 +272,6 @@ def create_isc(name='isc'):
                                          as_module=True),
                                 name='ISC_p')
 
-    wf = pe.Workflow(name=name)
-
     wf.connect([
         (inputspec, data_node, [('subjects', 'subjects')]),
         (inputspec, isc_node, [('collapse_subj', 'collapse_subj')]),
@@ -273,16 +291,18 @@ def create_isc(name='isc'):
         (inputspec, significance_node, [('two_sided', 'two_sided')]),
 
         (isc_node, save_node, [('ISC', 'ISC')]),
+        (inputspec, save_node, [('collapse_subj', 'collapse_subj')]),
         (significance_node, save_node, [('p', 'p')]),
         (data_node, save_node, [('voxel_masker', 'voxel_masker')]),
 
-        (save_node, outputspec, [('result', 'result')]),
+        (save_node, outputspec, [('correlations', 'correlations')]),
+        (save_node, outputspec, [('significance', 'significance')]),
     ])
 
     return wf
 
 
-def create_isfc(name='isfc'):
+def create_isfc(name='isfc', working_dir=None, crash_dir=None):
     """
     Inter-Subject Functional Correlation
     
@@ -314,6 +334,16 @@ def create_isfc(name='isfc'):
            https://doi.org/10.1038/ncomms12141
     
     """
+
+    if not working_dir:
+        working_dir = os.path.join(os.getcwd(), 'ISC_work_dir')
+    if not crash_dir:
+        crash_dir = os.path.join(os.getcwd(), 'ISC_crash_dir')
+
+    wf = pe.Workflow(name=name)
+    wf.base_dir = working_dir
+    wf.config['execution'] = {'hash_method': 'timestamp',
+                              'crashdump_dir': os.path.abspath(crash_dir)}
 
     inputspec = pe.Node(
         util.IdentityInterface(fields=[
@@ -372,8 +402,6 @@ def create_isfc(name='isfc'):
                                          function=node_isfc_significance,
                                          as_module=True),
                                 name='ISFC_p')
-
-    wf = pe.Workflow(name=name)
 
     wf.connect([
         (inputspec, data_node, [('subjects', 'subjects')]),
