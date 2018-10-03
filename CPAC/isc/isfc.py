@@ -14,9 +14,10 @@ def isfc(D, std=None, collapse_subj=True):
     if collapse_subj:
         ISFC = np.zeros((n_vox, n_vox))
         for loo_subj in range(n_subj):
+            loo_subj_ts = D[:, :, loo_subj]
             ISFC += correlation(
-                D[:, :, loo_subj],
-                (group_sum - D[:, :, loo_subj]) / n_subj_loo,
+                loo_subj_ts,
+                (group_sum - loo_subj_ts) / n_subj_loo,
                 symmetric=True
             )
         ISFC /= n_subj
@@ -31,9 +32,10 @@ def isfc(D, std=None, collapse_subj=True):
     else:
         ISFC = np.zeros((n_vox, n_vox, n_subj))
         for loo_subj in range(n_subj):
+            loo_subj_ts = D[:, :, loo_subj]
             ISFC[:, :, loo_subj] = correlation(
-                D[:, :, loo_subj],
-                (group_sum - D[:, :, loo_subj]) / n_subj_loo,
+                loo_subj_ts,
+                (group_sum - loo_subj_ts) / n_subj_loo,
                 symmetric=True
             )
         masked = np.array([True] * n_vox)
@@ -67,10 +69,11 @@ def isfc_permutation(permutation, D, masked, collapse_subj=True, random_state=0)
     group_sum = np.add.reduce(D, axis=2)
 
     for loo_subj in range(n_subj):
+        loo_subj_ts = D[:, :, loo_subj]
         ISFC_subj = \
             correlation(
-                D[:, :, loo_subj],
-                (group_sum - D[:, :, loo_subj]) / n_subj_loo,
+                loo_subj_ts,
+                (group_sum - loo_subj_ts) / n_subj_loo,
                 symmetric=True
             )
 

@@ -14,9 +14,10 @@ def isc(D, std=None, collapse_subj=True):
     if collapse_subj:
         ISC = np.zeros(n_vox)
         for loo_subj in range(n_subj):
+            loo_subj_ts = D[:, :, loo_subj]
             ISC += correlation(
-                D[:, :, loo_subj],
-                (group_sum - D[:, :, loo_subj]) / n_subj_loo,
+                loo_subj_ts,
+                (group_sum - loo_subj_ts) / n_subj_loo,
                 match_rows=True
             )
         ISC /= n_subj
@@ -31,9 +32,10 @@ def isc(D, std=None, collapse_subj=True):
     else:
         ISC = np.zeros((n_subj, n_vox))
         for loo_subj in range(n_subj):
+            loo_subj_ts = D[:, :, loo_subj]
             ISC[loo_subj] = correlation(
-                D[:, :, loo_subj],
-                (group_sum - D[:, :, loo_subj]) / n_subj_loo,
+                loo_subj_ts,
+                (group_sum - loo_subj_ts) / n_subj_loo,
                 match_rows=True
             )
         
@@ -67,11 +69,11 @@ def isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
     group_sum = np.add.reduce(D, axis=2)
 
     for loo_subj in range(n_subj):
-
+        loo_subj_ts = D[:, :, loo_subj]
         ISC_subj = \
             correlation(
-                D[:, :, loo_subj],
-                (group_sum - D[:, :, loo_subj]) / n_subj_loo,
+                loo_subj_ts,
+                (group_sum - loo_subj_ts) / n_subj_loo,
                 match_rows=True
             )
 
