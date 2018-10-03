@@ -701,31 +701,40 @@ basc_memory :  4
 # Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
 # If you do not wish to use a mask, set this field to None.
 # Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
-basc_roi_file :  None
+basc_roi_mask_file :  None
 
 
-basc_roi_file_two :  None
+basc_roi2_mask_file :  None
+
+
+basc_similarity_metric_list :  ['correlation']
 
 
 # Number of bootstraps to apply to individual time series.
-basc_timeseries_bootstraps :  100
+basc_timeseries_bootstrap_list :  100
 
 
 # Number of bootstraps to apply to the original dataset.
-basc_dataset_bootstraps :  100
+basc_dataset_bootstrap_list :  30
 
 
 # Number of clusters to create during clustering at both the individual and group levels.
-basc_clusters :  10
+basc_n_clusters_list :  2
 
 
-basc_affinity_threshold : [0.0]
+basc_affinity_thresh : [0.0]
 
 
-basc_output_size :  800
+basc_output_sizes :  800
 
 
-basc_cross_clustering :  True
+basc_cross_cluster :  True
+
+
+basc_blocklength_list :  1
+
+
+basc_group_dim_reduce :  False
 
 
 # Full path to a text file listing which participant IDs you want included in the analysis, with one ID on each line.

@@ -1783,7 +1783,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             elif 'ANTS' in c.regOption and \
                     'anat_symmetric_mni_fnirt_register' not in nodes and \
-                        'anat_mni_fnirt_register' not in node:
+                        'anat_mni_fnirt_register' not in nodes:
 
                 # we don't have the FNIRT warp file, so we need to calculate
                 # ICA-AROMA de-noising in template space
