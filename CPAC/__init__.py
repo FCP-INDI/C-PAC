@@ -17,10 +17,10 @@ class _NoseTester(nosetester.NoseTester):
         return super(_NoseTester, self).test(label=label, verbose=verbose, extra_argv=extra_argv, doctests=doctests, coverage=coverage)
 
 test = _NoseTester().test
-
 import anat_preproc, \
        aroma, \
        EPI_DistCorr, \
+       connectome, \
        func_preproc, \
        reho, \
        seg_preproc, \

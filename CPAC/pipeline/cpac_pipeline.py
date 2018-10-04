@@ -85,6 +85,8 @@ from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
 
+from CPAC.connectome.pipeline import create_connectome
+
 from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
@@ -2624,9 +2626,19 @@ Maximum potential number of cores that might be used during this run: {max_cores
         # flip the dictionary
         for roi_path in tsa_roi_dict.keys():
 
-            for analysis_type in tsa_roi_dict[roi_path].split(","):
-                analysis_type = analysis_type.replace(" ", "")
+            ts_analysis_to_run = map(
+                lambda x: x.strip(),
+                tsa_roi_dict[roi_path].split(",")
+            )
 
+            if any(
+                corr in ts_analysis_to_run for corr in [
+                    "PearsonCorr", "PartialCorr"
+                ]
+            ) and "Avg" not in ts_analysis_to_run:
+                ts_analysis_to_run += ["Avg"]
+
+            for analysis_type in ts_analysis_to_run:
                 if analysis_type not in ts_analysis_dict.keys():
                     ts_analysis_dict[analysis_type] = []
                 ts_analysis_dict[analysis_type].append(roi_path)
@@ -2959,6 +2971,43 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 'outputspec.roi_outputs', num_strat)
 
     strat_list += new_strat_list
+
+
+    # Connectome
+    if "PearsonCorr" in ts_analysis_dict.keys() or \
+        "PartialCorr" in ts_analysis_dict.keys():
+
+        for num_strat, strat in enumerate(strat_list):
+
+            if "PearsonCorr" in ts_analysis_dict.keys():
+                connectome_wf = create_connectome('connectome_PearsonCorr_%d' % num_strat)
+                connectome_wf.inputs.inputspec.method = "PearsonCorr"
+
+                node, out_file = strat['roi_timeseries']
+
+                workflow.connect(node,
+                                 out_file,
+                                 connectome_wf,
+                                 'inputspec.time_series')
+
+                strat.update_resource_pool({
+                    'connectome_PearsonCorr': (connectome_wf, 'outputspec.connectome')
+                })
+
+            if "PartialCorr" in ts_analysis_dict.keys():
+                connectome_wf = create_connectome('connectome_PartialCorr_%d' % num_strat)
+                connectome_wf.inputs.inputspec.method = "PartialCorr"
+
+                node, out_file = strat['roi_timeseries']
+
+                workflow.connect(node,
+                                 out_file,
+                                 connectome_wf,
+                                 'inputspec.time_series')
+
+                strat.update_resource_pool({
+                    'connectome_PartialCorr': (connectome_wf, 'outputspec.connectome')
+                })
 
     # Voxel Based Time Series
 
