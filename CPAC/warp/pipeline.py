@@ -485,6 +485,7 @@ def ants_apply_inverse_warps_template_to_func(
     # apply ants warps
     apply_ants_warp_mni_func = \
         create_wf_apply_ants_warp(
+            inverse=True,
             name='apply_ants_warp_%s_%d' % (func_name, num_strat),
             ants_threads=int(num_ants_cores))
 

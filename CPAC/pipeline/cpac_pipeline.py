@@ -1742,17 +1742,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                              wf_name='create_aroma_%d' % num_strat)
 
                 aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
-                aroma_preproc.inputs.params.TR = c.aroma_TR
-                aroma_preproc.inputs.params.dim = c.aroma_dim
+                #aroma_preproc.inputs.params.dim = c.aroma_dim
 
                 if c.aroma_denoise_type == 'nonaggr':
                     aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                        c.outputDirectory,
-                        'nonaggr_denoised_file_%s' % subject_id)
+                        c.workingDirectory, workflow_name,
+                        'create_aroma_%d' % num_strat)
                 elif c.aroma_denoise_type == 'aggr':
                     aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                        c.outputDirectory,
-                        'aggr_denoised_file_%s' % subject_id)
+                        c.workingDirectory, workflow_name,
+                        'create_aroma_%d' % num_strat)
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, aroma_preproc,
@@ -1811,16 +1810,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                      % num_strat)
 
                 aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
-                aroma_preproc.inputs.params.dim = c.aroma_dim
+                #aroma_preproc.inputs.params.dim = c.aroma_dim
 
                 if c.aroma_denoise_type == 'nonaggr':
                     aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                        c.outputDirectory,
-                        'nonaggr_denoised_file_%s' % subject_id)
+                        c.workingDirectory, workflow_name,
+                        'create_aroma_%d' % num_strat)
                 elif c.aroma_denoise_type == 'aggr':
                     aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                        c.outputDirectory,
-                        'aggr_denoised_file_%s' % subject_id)
+                        c.workingDirectory, workflow_name,
+                        'create_aroma_%d' % num_strat)
 
                 node, out_file = strat.get_node_from_resource_pool(
                     'leaf_node_to_standard')

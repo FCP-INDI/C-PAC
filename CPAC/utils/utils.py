@@ -83,6 +83,7 @@ files_folders_wf = {
     'symmetric_anatomical_to_standard': 'registration',
     'anatomical_to_symmetric_mni_linear_xfm': 'registration',
     'anatomical_to_standard': 'anat',
+    'leaf_node_to_standard': 'func',
     'vmhc_raw_score': 'vmhc',
     'vmhc_fisher_zstd': 'vmhc',
     'vmhc_fisher_zstd_zstat_map': 'vmhc',

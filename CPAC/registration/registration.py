@@ -835,7 +835,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     return calc_ants_warp_wf
 
 
-def create_wf_apply_ants_warp(map_node=False,
+def create_wf_apply_ants_warp(map_node=False, inverse=False,
                               name='create_wf_apply_ants_warp',
                               ants_threads=1):
 
@@ -913,6 +913,10 @@ def create_wf_apply_ants_warp(map_node=False,
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = ants_threads
     apply_ants_warp.interface.estimated_memory_gb = 1.5
+
+    if inverse:
+        apply_ants_warp.inputs.invert_transform_flags = [True, True, True, True,
+                                                         False]
 
     outputspec = pe.Node(util.IdentityInterface(fields=['output_image']),
                          name='outputspec')
