@@ -36,7 +36,7 @@ def _permutations(perm):
 
 def load_data(subjects):
     subject_ids = list(subjects.keys())
-    subject_files = list(subjects.values())
+    subject_files = list(subjects[i] for i in subject_ids)
 
     if subject_files[0].endswith('.csv'):
         data = np.array([
@@ -60,13 +60,16 @@ def load_data(subjects):
 
     data_file = os.path.abspath('./data.npy')
     np.save(data_file, data)
-    return data_file, voxel_masker
+    return subject_ids, data_file, voxel_masker
 
 
-def save_data_isc(ISC, p, collapse_subj=True, voxel_masker=None):
+def save_data_isc(subject_ids, ISC, p, collapse_subj=True, voxel_masker=None):
 
     ISC = np.load(ISC)
     p = np.load(p)
+
+    subject_ids_file = os.path.abspath('./subject_ids.txt')
+    np.savetxt(subject_ids_file, np.array(subject_ids), fmt="%s")
 
     if voxel_masker:
         corr_file, p_file = os.path.abspath('./correlations.nii.gz'), os.path.abspath('./significance.nii.gz')
@@ -89,10 +92,14 @@ def save_data_isc(ISC, p, collapse_subj=True, voxel_masker=None):
         np.savetxt(corr_file, ISC, delimiter=',', fmt='%1.10f')
         np.savetxt(p_file, p, delimiter=',', fmt='%1.10f')
 
-    return corr_file, p_file
+    return subject_ids_file, corr_file, p_file
 
 
-def save_data_isfc(ISFC, p, collapse_subj=True):
+def save_data_isfc(subject_ids, ISFC, p, collapse_subj=True):
+
+    subject_ids_file = os.path.abspath('./subject_ids.txt')
+    np.savetxt(subject_ids_file, np.array(subject_ids), fmt="%s")
+
     corr_file = os.path.abspath('./correlations.npy')
     corr = np.load(ISFC)
     np.save(corr_file, corr if collapse_subj else np.moveaxis(corr, -1, 0))
@@ -101,7 +108,7 @@ def save_data_isfc(ISFC, p, collapse_subj=True):
     p = np.load(p)
     np.save(p_file, p if collapse_subj else np.moveaxis(p, -1, 0))
 
-    return corr_file, p_file
+    return subject_ids_file, corr_file, p_file
 
 
 def node_isc(D, std=None, collapse_subj=True):
@@ -234,13 +241,13 @@ def create_isc(name='isc', working_dir=None, crash_dir=None):
     )
 
     data_node = pe.Node(Function(input_names=['subjects'],
-                                 output_names=['D', 'voxel_masker'],
+                                 output_names=['subject_ids', 'D', 'voxel_masker'],
                                  function=load_data,
                                  as_module=True),
                         name='data')
 
-    save_node = pe.Node(Function(input_names=['ISC', 'p', 'collapse_subj', 'voxel_masker'],
-                                 output_names=['correlations', 'significance'],
+    save_node = pe.Node(Function(input_names=['subject_ids', 'ISC', 'p', 'collapse_subj', 'voxel_masker'],
+                                 output_names=['subject_ids', 'correlations', 'significance'],
                                  function=save_data_isc,
                                  as_module=True),
                         name='save')
@@ -295,8 +302,10 @@ def create_isc(name='isc', working_dir=None, crash_dir=None):
         (isc_node, save_node, [('ISC', 'ISC')]),
         (inputspec, save_node, [('collapse_subj', 'collapse_subj')]),
         (significance_node, save_node, [('p', 'p')]),
+        (data_node, save_node, [('subject_ids', 'subject_ids')]),
         (data_node, save_node, [('voxel_masker', 'voxel_masker')]),
 
+        (save_node, outputspec, [('subject_ids', 'subject_ids')]),
         (save_node, outputspec, [('correlations', 'correlations')]),
         (save_node, outputspec, [('significance', 'significance')]),
     ])
@@ -360,13 +369,13 @@ def create_isfc(name='isfc', working_dir=None, crash_dir=None):
     )
 
     data_node = pe.Node(Function(input_names=['subjects'],
-                                 output_names=['D', 'voxel_masker'],
+                                 output_names=['subject_ids', 'D', 'voxel_masker'],
                                  function=load_data,
                                  as_module=True),
                         name='data')
 
-    save_node = pe.Node(Function(input_names=['ISFC', 'p', 'collapse_subj'],
-                                 output_names=['correlations', 'significance'],
+    save_node = pe.Node(Function(input_names=['subject_ids', 'ISFC', 'p', 'collapse_subj'],
+                                 output_names=['subject_ids', 'correlations', 'significance'],
                                  function=save_data_isfc,
                                  as_module=True),
                         name='save')
@@ -423,10 +432,12 @@ def create_isfc(name='isfc', working_dir=None, crash_dir=None):
         (permutations_node, significance_node, [('max_null', 'max_null')]),
         (inputspec, significance_node, [('two_sided', 'two_sided')]),
 
+        (data_node, save_node, [('subject_ids', 'subject_ids')]),
         (inputspec, save_node, [('collapse_subj', 'collapse_subj')]),
         (isfc_node, save_node, [('ISFC', 'ISFC')]),
         (significance_node, save_node, [('p', 'p')]),
 
+        (save_node, outputspec, [('subject_ids', 'subject_ids')]),
         (save_node, outputspec, [('correlations', 'correlations')]),
         (save_node, outputspec, [('significance', 'significance')]),
     ])
