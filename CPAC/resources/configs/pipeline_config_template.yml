@@ -418,14 +418,6 @@ identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 runICA :  [0]
 
 
-# Repetition time (TR) of the input data.
-aroma_TR :  0.01
-
-
-# Number of dimensions you wish to perform analysis on.
-aroma_dim :  1
-
-
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
 aroma_denoise_type :  nonaggr
 
