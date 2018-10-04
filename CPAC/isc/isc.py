@@ -54,6 +54,8 @@ def isc_significance(ISC, min_null, max_null, two_sided=False):
 
 def isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
 
+    print("Permutation", permutation)
+
     min_null = 1
     max_null = -1
 

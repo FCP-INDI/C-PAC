@@ -10,6 +10,7 @@ def isfc(D, std=None, collapse_subj=True):
     n_subj_loo = n_subj - 1
 
     group_sum = np.add.reduce(D, axis=2)
+    masked = None
 
     if collapse_subj:
         ISFC = np.zeros((n_vox, n_vox))
@@ -26,8 +27,6 @@ def isfc(D, std=None, collapse_subj=True):
             ISFC_avg = ISFC.mean()
             ISFC_std = ISFC.std()
             masked = (ISFC <= ISFC_avg + ISFC_std) | (ISFC >= ISFC_avg - ISFC_std)
-        else:
-            masked = np.array([True] * n_vox)
 
     else:
         ISFC = np.zeros((n_vox, n_vox, n_subj))
@@ -38,6 +37,10 @@ def isfc(D, std=None, collapse_subj=True):
                 (group_sum - loo_subj_ts) / n_subj_loo,
                 symmetric=True
             )
+
+    if masked is not None:
+        masked = np.all(masked, axis=1)
+    else:
         masked = np.array([True] * n_vox)
 
     return ISFC, masked
@@ -52,6 +55,8 @@ def isfc_significance(ISFC, min_null, max_null, two_sided=False):
 
 
 def isfc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
+
+    print("Permutation", permutation)
 
     min_null = 1
     max_null = -1
