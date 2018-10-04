@@ -1728,13 +1728,18 @@ Maximum potential number of cores that might be used during this run: {max_cores
         if 1 in c.runICA:
             nodes = strat.get_nodes_names()
 
+            if 'none' in str(c.TR).lower():
+                TR = None
+            else:
+                TR = float(c.TR)
+
             # FNIRT ONLY! ANTS further below!
             if 'FSL' in c.regOption and \
                     'anat_symmetric_mni_ants_register' not in nodes and \
                         'anat_mni_ants_register' not in nodes:
 
-                aroma_preproc = create_aroma(
-                    wf_name='create_aroma_%d' % num_strat)
+                aroma_preproc = create_aroma(tr=TR,
+                                             wf_name='create_aroma_%d' % num_strat)
 
                 aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
                 aroma_preproc.inputs.params.TR = c.aroma_TR
@@ -1801,11 +1806,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     "Linear", 3
                 )
 
-                aroma_preproc = create_aroma(wf_name='create_aroma_%d'
+                aroma_preproc = create_aroma(tr=TR,
+                                             wf_name='create_aroma_%d'
                                                      % num_strat)
 
                 aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
-                aroma_preproc.inputs.params.TR = c.aroma_TR
                 aroma_preproc.inputs.params.dim = c.aroma_dim
 
                 if c.aroma_denoise_type == 'nonaggr':
