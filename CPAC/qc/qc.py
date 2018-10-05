@@ -384,6 +384,7 @@ def create_qc_skullstrip(wf_name='qc_skullstrip'):
 
     skull_edge = pe.Node(afni.Edge3(), name='skull_edge')
     skull_edge.inputs.outputtype = 'NIFTI_GZ'
+    skull_edge.inputs.out_file = 'skull_edge.nii.gz'
 
     montage_skull = create_montage('montage_skull', 'red', 'skull_vis')
 

@@ -141,6 +141,10 @@ RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh &
 # update path to include conda
 ENV PATH=/usr/local/miniconda/bin:$PATH
 
+# install blas dependency first
+RUN conda install -y \
+        blas
+
 # install conda dependencies
 RUN conda install -y  \
         cython==0.26 \
