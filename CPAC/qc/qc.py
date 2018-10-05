@@ -370,6 +370,16 @@ def create_qc_fd(wf_name='qc_fd'):
     return wf
 
 
+def afni_Edge3(in_file):
+    import os
+    import commands
+
+    comm = "3dedge3 -input %s -prefix skull_edge.nii.gz" % in_file
+    commands.getoutput(comm)
+
+    return os.path.abspath('./skull_edge.nii.gz')
+
+
 def create_qc_skullstrip(wf_name='qc_skullstrip'):
 
     wf = pe.Workflow(name=wf_name)
@@ -382,9 +392,11 @@ def create_qc_skullstrip(wf_name='qc_skullstrip'):
                                                          'sagittal_image']),
                           name='outputspec')
 
-    skull_edge = pe.Node(afni.Edge3(), name='skull_edge')
-    skull_edge.inputs.outputtype = 'NIFTI_GZ'
-    skull_edge.inputs.out_file = 'skull_edge.nii.gz'
+    skull_edge = pe.Node(Function(input_names=['in_file'],
+                                  output_names=['out_file'],
+                                  function=afni_Edge3,
+                                  as_module=True),
+                         name='skull_edge')
 
     montage_skull = create_montage('montage_skull', 'red', 'skull_vis')
 
