@@ -43,6 +43,8 @@ def correlation(matrix1, matrix2,
     else:
         r = np.dot(matrix2, matrix1.T) / var
 
+    r = np.clip(r, -1.0, 1.0)
+
     if symmetric:
         return (r + r.T) / 2
     
