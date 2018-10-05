@@ -160,6 +160,11 @@ RUN conda install -y  \
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
 
+# install ICA-AROMA
+RUN mkdir -p /opt/ICA-AROMA curl -sSL “https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz”
+RUN tar -xzC /opt/ICA-AROMA –strip-components 1
+RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
 RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
