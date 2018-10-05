@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.2.0
+# Version 1.3.0
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -405,6 +405,14 @@ template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
+# Run ICA-AROMA de-noising.
+runICA :  [0]
+
+
+# Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
+aroma_denoise_type :  nonaggr
+
+
 # Run Nuisance Signal Regression
 runNuisance :  [1]
 
@@ -670,6 +678,60 @@ numGPAModelsAtOnce :  1
 
 # Use the + to add FSL model configuration to be run.
 modelConfigs :  []
+
+
+# Run Bootstrap Analysis of Stable Clusters
+run_basc :  [0]
+
+
+basc_resolution :  4mm
+
+
+# Maximum amount of processors to use while performing BASC.
+basc_proc :  2
+
+
+# Maximum amount of RAM (in GB) to be used when running BASC.
+basc_memory :  4
+
+
+# Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
+# If you do not wish to use a mask, set this field to None.
+# Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
+basc_roi_mask_file :  None
+
+
+basc_roi2_mask_file :  None
+
+
+basc_similarity_metric_list :  ['correlation']
+
+
+# Number of bootstraps to apply to individual time series.
+basc_timeseries_bootstrap_list :  100
+
+
+# Number of bootstraps to apply to the original dataset.
+basc_dataset_bootstrap_list :  30
+
+
+# Number of clusters to create during clustering at both the individual and group levels.
+basc_n_clusters_list :  2
+
+
+basc_affinity_thresh : [0.0]
+
+
+basc_output_sizes :  800
+
+
+basc_cross_cluster :  True
+
+
+basc_blocklength_list :  1
+
+
+basc_group_dim_reduce :  False
 
 
 # Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.

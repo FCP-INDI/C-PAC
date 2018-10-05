@@ -84,7 +84,7 @@ write_debugging_outputs :  [1]
 
 
 # Generate quality control pages containing preprocessing and derivative outputs.
-generateQualityControlImages :  [0]
+generateQualityControlImages :  [1]
 
 
 # Deletes the contents of the Working Directory after running.
@@ -527,7 +527,6 @@ runSCA :  [1]
 sca_roi_paths:
   - s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
     s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
-
 
 
 # Normalize each time series before running Dual Regression SCA.
