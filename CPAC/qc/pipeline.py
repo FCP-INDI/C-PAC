@@ -3,6 +3,8 @@ import pkg_resources as p
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
 
+from CPAC.utils.function import Function
+
 from CPAC.qc.qc import (
     create_montage,
     create_montage_gm_wm_csf,
@@ -11,6 +13,7 @@ from CPAC.qc.qc import (
     create_qc_motion,
     create_qc_fd,
     create_qc_skullstrip,
+    afni_Edge3
 )
 
 from CPAC.qc.utils import (
@@ -186,9 +189,11 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
         anat, out_file = strat['anatomical_brain']
         m_f_a, out_file_mfa = strat['mean_functional_in_anat']
 
-        anat_edge = pe.Node(afni.Edge3(),
+        anat_edge = pe.Node(Function(input_names=['in_file'],
+                                     output_names=['out_file'],
+                                     function=afni_Edge3,
+                                     as_module=True),
                             name='anat_edge_%d' % num_strat)
-        anat_edge.inputs.outputtype = 'NIFTI_GZ'
 
         montage_anat = create_montage(
             'montage_anat_%d' % num_strat, 'red', 't1_edge_on_mean_func_in_t1')
