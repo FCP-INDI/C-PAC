@@ -1,3 +1,4 @@
+import fnmatch
 
 
 def load_config_yml(config_file, individual=False):
@@ -350,12 +351,16 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
     # parse each result of each "valid" glob string
     output_dict_list = {}
 
-    for root, dirs, files in os.walk(pipeline_output_folder):
+    for root, _, files in os.walk(pipeline_output_folder):
         for filename in files:
-            if '.nii' not in filename:
-                continue
 
             filepath = os.path.join(root, filename)
+
+            if not any(fnmatch.fnmatch(filepath, pattern) for pattern in nifti_globs):
+                continue
+
+            if not any(filepath.endswith(ext) for ext in exts):
+                continue
 
             relative_filepath = filepath.split(pipeline_output_folder)[1]
             filepath_pieces = filter(None, relative_filepath.split("/"))
@@ -1603,20 +1608,21 @@ def run_basc(pipeline_config):
                 
 
 def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
-                  isc, isfc, levels=[], permutations=1000):
+                  isc, isfc, levels=[], permutations=1000, 
+                  std_filter=None):
 
     import os
     from CPAC.isc.pipeline import create_isc, create_isfc
 
     pipeline_dir = os.path.abspath(pipeline_dir)
 
-    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'MDMR',
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'ISC',
                            os.path.basename(pipeline_dir))
 
-    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'MDMR',
+    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'ISC',
                                os.path.basename(pipeline_dir))
 
-    crash_dir = os.path.join(crash_dir, 'cpac_group_analysis', 'MDMR',
+    crash_dir = os.path.join(crash_dir, 'cpac_group_analysis', 'ISC',
                              os.path.basename(pipeline_dir))
 
     output_df_dct = gather_outputs(
@@ -1651,6 +1657,8 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
         else:
             df_dct[list(set(strat_df["Series"]))[0]] = strat_df
 
+        print(working_dir)
+
         if isc:
             for df_scan in df_dct.keys():
                 func_paths = {
@@ -1662,9 +1670,11 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                isc_wf = create_isc(name="ISC_{0}".format(df_scan))
+                isc_wf = create_isc(name="ISC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
                 isc_wf.inputs.inputspec.subjects = func_paths
                 isc_wf.inputs.inputspec.permutations = permutations
+                isc_wf.inputs.inputspec.std = std_filter
+                isc_wf.inputs.inputspec.collapse_subj = False
                 isc_wf.run()
 
         if isfc:
@@ -1678,9 +1688,11 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan))
+                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
                 isfc_wf.inputs.inputspec.subjects = func_paths
                 isfc_wf.inputs.inputspec.permutations = permutations
+                isfc_wf.inputs.inputspec.std = std_filter
+                isfc_wf.inputs.inputspec.collapse_subj = False
                 isfc_wf.run()
 
 
@@ -1702,6 +1714,10 @@ def run_isc(pipeline_config):
     isc = 1 in pipeconfig_dct.get("runISC", [])
     isfc = 1 in pipeconfig_dct.get("runISFC", [])
     permutations = pipeconfig_dct.get("isc_permutations", 1000)
+    std_filter = pipeconfig_dct.get("isc_level_voxel_std_filter", None)
+
+    if std_filter == 0.0:
+        std_filter = None
 
     levels = []
     if 1 in pipeconfig_dct.get("isc_level_voxel", []):
@@ -1724,7 +1740,8 @@ def run_isc(pipeline_config):
     for pipeline in pipeline_dirs:
         run_isc_group(pipeline, output_dir, working_dir, crash_dir,
                       isc=isc, isfc=isfc, levels=levels,
-                      permutations=permutations)
+                      permutations=permutations,
+                      std_filter=std_filter)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

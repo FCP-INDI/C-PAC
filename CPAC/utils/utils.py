@@ -88,6 +88,7 @@ files_folders_wf = {
     'vmhc_fisher_zstd': 'vmhc',
     'vmhc_fisher_zstd_zstat_map': 'vmhc',
     'alff': 'alff',
+    'alff_input_functional': 'alff',
     'falff': 'alff',
     'alff_smooth': 'alff',
     'falff_smooth': 'alff',
@@ -109,6 +110,8 @@ files_folders_wf = {
     'reho_to_standard_zstd': 'reho',
     'reho_to_standard_smooth_zstd': 'reho',
     'reho_to_standard_zstd_smooth': 'reho',
+    'connectome_PearsonCorr': 'connectome',
+    'connectome_PartialCorr': 'connectome',
     'voxel_timeseries': 'timeseries',
     'roi_timeseries': 'timeseries',
     'roi_timeseries_for_SCA': 'timeseries',
@@ -556,11 +559,10 @@ def get_workflow(remainder_path):
     # more user-friendly labels. for example, a path to the output of
     # 'functional_preprocessed_mask' is matched with the label 'func'
 
-    global files_folders_wf
+    from CPAC.utils.utils import files_folders_wf
+
     lst = remainder_path.split('/')
-
     lst = [x for x in lst if not ('' == x)]
-
     return lst[0], files_folders_wf[lst[0]], remainder_path.split(lst[0])[1]
 
 

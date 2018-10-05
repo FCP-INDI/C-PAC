@@ -2,7 +2,7 @@ import numpy as np
 from .utils import correlation, p_from_null, phase_randomize
 
 
-def isc(D, std=None, collapse_subj=True):
+def isfc(D, std=None, collapse_subj=True):
 
     assert D.ndim == 3
 
@@ -10,49 +10,51 @@ def isc(D, std=None, collapse_subj=True):
     n_subj_loo = n_subj - 1
 
     group_sum = np.add.reduce(D, axis=2)
+    masked = None
 
     if collapse_subj:
-        ISC = np.zeros(n_vox)
+        ISFC = np.zeros((n_vox, n_vox))
         for loo_subj in range(n_subj):
             loo_subj_ts = D[:, :, loo_subj]
-            ISC += correlation(
+            ISFC += correlation(
                 loo_subj_ts,
                 (group_sum - loo_subj_ts) / n_subj_loo,
-                match_rows=True
+                symmetric=True
             )
-        ISC /= n_subj
+        ISFC /= n_subj
 
         if std:
-            ISC_avg = ISC.mean()
-            ISC_std = ISC.std()
-            masked = (ISC <= ISC_avg + ISC_std * std) & (ISC >= ISC_avg - ISC_std * std)
-        else:
-            masked = np.array([True] * n_vox)
+            ISFC_avg = ISFC.mean()
+            ISFC_std = ISFC.std()
+            masked = (ISFC <= ISFC_avg + ISFC_std) | (ISFC >= ISFC_avg - ISFC_std)
 
     else:
-        ISC = np.zeros((n_subj, n_vox))
+        ISFC = np.zeros((n_vox, n_vox, n_subj))
         for loo_subj in range(n_subj):
             loo_subj_ts = D[:, :, loo_subj]
-            ISC[loo_subj] = correlation(
+            ISFC[:, :, loo_subj] = correlation(
                 loo_subj_ts,
                 (group_sum - loo_subj_ts) / n_subj_loo,
-                match_rows=True
+                symmetric=True
             )
-        
+
+    if masked is not None:
+        masked = np.all(masked, axis=1)
+    else:
         masked = np.array([True] * n_vox)
 
-    return ISC, masked
+    return ISFC, masked
 
 
-def isc_significance(ISC, min_null, max_null, two_sided=False):
-    p = p_from_null(ISC,
+def isfc_significance(ISFC, min_null, max_null, two_sided=False):
+    p = p_from_null(ISFC,
                     max_null=max_null,
                     min_null=min_null,
                     two_sided=two_sided)
     return p
 
 
-def isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
+def isfc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
 
     print("Permutation", permutation)
 
@@ -63,31 +65,32 @@ def isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
 
     n_vox, _, n_subj = D.shape
     n_subj_loo = n_subj - 1
+
     D = phase_randomize(D, random_state)
 
     if collapse_subj:
-        ISC_null = np.zeros(n_vox)
+        ISFC_null = np.zeros((n_vox, n_vox))
 
     group_sum = np.add.reduce(D, axis=2)
 
     for loo_subj in range(n_subj):
         loo_subj_ts = D[:, :, loo_subj]
-        ISC_subj = \
+        ISFC_subj = \
             correlation(
                 loo_subj_ts,
                 (group_sum - loo_subj_ts) / n_subj_loo,
-                match_rows=True
+                symmetric=True
             )
 
         if collapse_subj:
-            ISC_null += ISC_subj
+            ISFC_null += ISFC_subj
         else:
-            max_null = max(np.max(ISC_subj), max_null)
-            min_null = min(np.min(ISC_subj), min_null)
-
+            max_null = max(np.max(ISFC_subj), max_null)
+            min_null = min(np.min(ISFC_subj), min_null)
+    
     if collapse_subj:
-        ISC_null /= n_subj
-        max_null = np.max(ISC_null)
-        min_null = np.min(ISC_null)
+        ISFC_null /= n_subj
+        max_null = np.max(ISFC_null)
+        min_null = np.min(ISFC_null)
 
     return permutation, min_null, max_null

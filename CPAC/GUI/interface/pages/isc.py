@@ -34,6 +34,13 @@ class ISCSettings(wx.ScrolledWindow):
                               "will be added to the pipeline or not.",
                       values=["Off", "On"])
 
+        self.page.add(label="ROI analysis",
+                      control=control.CHOICE_BOX,
+                      name="isc_level_roi",
+                      type=dtype.LSTR,
+                      comment="Used to determine if the ISC and ISFC will run in the ROI level.",
+                      values=["Off", "On"])
+
         self.page.add(label="Voxel-wise analysis",
                       control=control.CHOICE_BOX,
                       name="isc_level_voxel",
@@ -43,12 +50,13 @@ class ISCSettings(wx.ScrolledWindow):
                               "and consume a great amount of available memory.",
                       values=["Off", "On"])
 
-        self.page.add(label="ROI analysis",
-                      control=control.CHOICE_BOX,
-                      name="isc_level_roi",
-                      type=dtype.LSTR,
-                      comment="Used to determine if the ISC and ISFC will run in the ROI level.",
-                      values=["Off", "On"])
+        self.page.add(label="Voxel-wise analysis: Standard Deviation filter", 
+                      control=control.FLOAT_CTRL, 
+                      name='isc_level_voxel_std_filter', 
+                      type=dtype.NUM, 
+                      comment="Filter out voxels that, in the correlation distribution, is greater "
+                              "then the informed standard deviation. Zero value will disable the filter.", 
+                      values=0.0)
 
         self.page.add(label="Permutations",
                       control=control.INT_CTRL,

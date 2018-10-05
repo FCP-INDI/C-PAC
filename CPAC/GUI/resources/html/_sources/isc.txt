@@ -32,9 +32,11 @@ Using the GUI
 
 #. **Run ISFC - [Off, On]:** Used to determine if Inter-subject Functional Correlation (ISFC) will be added to the pipeline or not.
 
+#. **ROI analysis - [Off, On]:** Used to determine if the ISC and ISFC will run in the ROI level.
+
 #. **Voxel-wise analysis - [Off, On]:** Used to determine if the ISC and ISFC will run in the voxel level. Depending on the image resolution, it may take several hours and consume a great amount of available memory.
 
-#. **ROI analysis - [Off, On]:** Used to determine if the ISC and ISFC will run in the ROI level.
+#. **Voxel-wise analysis: Standard Deviation filter - [number]:** Filter out voxels that, in the correlation distribution, is greater then the informed standard deviation. Zero value will disable the filter.
 
 #. **Permutations - [integer]:** Number of permutation tests to run on the Pseudo-F statistics.
 

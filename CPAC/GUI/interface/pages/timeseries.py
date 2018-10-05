@@ -71,8 +71,6 @@ class ROITimeseries(wx.ScrolledWindow):
 
     def __init__(self, parent, counter=0):
 
-        import os
-
         wx.ScrolledWindow.__init__(self, parent)
 
         self.counter = counter
@@ -94,12 +92,12 @@ class ROITimeseries(wx.ScrolledWindow):
                       name = "tsa_roi_paths",
                       type = 9,
                       values = '',
-                      selections = ["Avg","Voxel","SpatialReg"],
+                      selections = ["Avg","Voxel","SpatialReg","PearsonCorr","PartialCorr"],
                       comment="Enter paths to region-of-interest (ROI) " \
                               "NIFTI files (.nii or .nii.gz) to be used for "\
                               "time-series extraction, and then select " \
                               "which types of analyses to run.",
-                      size = (450, -1))
+                      size = (600, -1))
         
         '''
         self.page.add(label="ROI Specification File (TSE only) ",

@@ -1,7 +1,6 @@
 cimport cython
 cimport numpy as np
 import numpy as np
-from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
