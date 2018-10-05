@@ -46,14 +46,15 @@ def create_montage(wf_name, cbar_name, png_name):
                                   function=resample_1mm,
                                   as_module=True),
                          name='resample_o')
+
     wf.connect(inputnode, 'overlay', resample_o, 'file_')
     wf.connect(resample_o, 'new_fname', outputnode,'resampled_overlay')
 
     # node for axial montages
     montage_a = pe.MapNode(Function(input_names=['overlay',
-                                              'underlay',
-                                              'png_name',
-                                              'cbar_name'],
+                                                 'underlay',
+                                                 'png_name',
+                                                 'cbar_name'],
                                     output_names=['png_name'],
                                     function=montage_axial,
                                     as_module=True),
