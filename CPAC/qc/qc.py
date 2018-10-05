@@ -58,7 +58,7 @@ def create_montage(wf_name, cbar_name, png_name):
                                     function=montage_axial,
                                     as_module=True),
                            name='montage_a',
-                           iterfield=['overlay', 'underlay'])
+                           iterfield=['overlay'])
     montage_a.inputs.cbar_name = cbar_name
     montage_a.inputs.png_name = png_name + '_a.png'
 
@@ -75,7 +75,7 @@ def create_montage(wf_name, cbar_name, png_name):
                                     function=montage_sagittal,
                                     as_module=True),
                            name='montage_s',
-                           iterfield=['overlay', 'underlay'])
+                           iterfield=['overlay'])
     montage_s.inputs.cbar_name = cbar_name
     montage_s.inputs.png_name = png_name + '_s.png'
 
