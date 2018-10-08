@@ -17,6 +17,7 @@ class _NoseTester(nosetester.NoseTester):
         return super(_NoseTester, self).test(label=label, verbose=verbose, extra_argv=extra_argv, doctests=doctests, coverage=coverage)
 
 test = _NoseTester().test
+
 import anat_preproc, \
        aroma, \
        EPI_DistCorr, \
@@ -26,7 +27,6 @@ import anat_preproc, \
        seg_preproc, \
        registration, \
        sca, \
-       basc, \
        nuisance, \
        generate_motion_statistics, \
        alff, \
