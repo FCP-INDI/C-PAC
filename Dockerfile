@@ -158,6 +158,7 @@ RUN conda install -y  \
         scipy==0.18.1 \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
+        PyBASC==0.4.5 \
         pip==9.0.1
 
 # install python dependencies

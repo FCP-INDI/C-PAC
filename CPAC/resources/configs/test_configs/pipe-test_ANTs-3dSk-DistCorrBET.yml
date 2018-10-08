@@ -696,7 +696,7 @@ basc_memory :  4
 basc_roi_file :  None
 
 
-basc_roi_file_two :  None
+basc_cross_cluster_mask_file :  None
 
 
 # Number of bootstraps to apply to individual time series.

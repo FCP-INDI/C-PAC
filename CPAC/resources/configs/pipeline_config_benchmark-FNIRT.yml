@@ -695,7 +695,7 @@ basc_memory :  4
 basc_roi_mask_file :  None
 
 
-basc_roi2_mask_file :  None
+basc_cross_cluster_mask_file :  None
 
 
 basc_similarity_metric_list :  ['correlation']

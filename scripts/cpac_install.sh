@@ -108,6 +108,7 @@ pip_packages=(
     "pygraphviz==1.3.1"
     "simplejson==3.15.0"
     "python-dateutil==2.5"
+    "PyBASC==0.4.5"
 )
 
 ##### Helper functions for installing system dependencies.

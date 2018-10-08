@@ -158,4 +158,5 @@ REQUIREMENTS        = [
     "scipy==0.18.1",
     "simplejson==3.15.0",
     "traits==4.6.0",
+    "PyBASC==0.4.5",
 ]
