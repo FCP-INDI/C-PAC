@@ -72,7 +72,7 @@ parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' GUI will open the CPAC gui (currently only works with singularity) and'
                                            ' test_config will run through the entire configuration process but will'
                                            ' not execute the pipeline.',
-                    choices=['participant', 'group', 'test_config', 'GUI'])
+                    choices=['participant', 'group', 'test_config', 'gui'], type=str.lower)
 parser.add_argument('--pipeline_file', help='Name for the pipeline '
                                             ' configuration file to use. '
                                             'Use the format'
