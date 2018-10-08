@@ -131,9 +131,9 @@ class BASCSettings(wx.ScrolledWindow):
                               "your analysis to specific brain areas of "
                               "interest.")
 
-        self.page.add(label="ROI Mask File 2 ",
+        self.page.add(label="ROI Mask File for Cross-Clustering",
                       control=control.COMBO_BOX,
-                      name='basc_roi2_mask_file',
+                      name='basc_cross_cluster_mask_file',
                       type=dtype.STR,
                       values="None",
                       comment="")

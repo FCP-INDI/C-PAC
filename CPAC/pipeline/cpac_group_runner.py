@@ -1468,7 +1468,7 @@ def run_basc(pipeline_config):
                                'working_dir')
 
     # check for S3 of ROI files here!
-    for key in ['roi_mask_file', 'roi2_mask_file']:
+    for key in ['roi_mask_file', 'cross_cluster_mask_file']:
         if 's3://' in basc_config_dct[key]:
             basc_config_dct[key] = check_for_s3(basc_config_dct[key],
                                                 creds_path=creds_path,
@@ -1479,7 +1479,7 @@ def run_basc(pipeline_config):
                                            ref_file,
                                            out_dir=working_dir,
                                            roi_file=True)
-    roi_two_cmd_args = check_cpac_output_image(basc_config_dct['roi2_mask_file'],
+    roi_two_cmd_args = check_cpac_output_image(basc_config_dct['cross_cluster_mask_file'],
                                                ref_file,
                                                out_dir=working_dir,
                                                roi_file=True)
@@ -1489,7 +1489,7 @@ def run_basc(pipeline_config):
         basc_config_dct['roi_mask_file'] = roi_file
     if roi_two_cmd_args:
         roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
-        basc_config_dct['roi2_mask_file'] = roi_file_two
+        basc_config_dct['cross_cluster_mask_file'] = roi_file_two
 
     for pipeline_dir in pipeline_dirs:
 
@@ -1565,6 +1565,7 @@ def run_basc(pipeline_config):
                                                 nuisance_string.lstrip('/'))
 
                 basc_config_dct['home'] = scan_out_dir
+                basc_config_dct['cluster_methods'] = ['ward']
 
                 func_paths = list(df_dct[df_scan]["Filepath"])
 
