@@ -133,6 +133,11 @@ RUN cd /tmp && \
 RUN apt-get update && \
     apt-get install -y ants
 
+# install ICA-AROMA
+RUN mkdir -p /opt/ICA-AROMA
+RUN curl -SL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
+RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+
 # install miniconda
 RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
     bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
@@ -158,17 +163,11 @@ RUN conda install -y  \
         scipy==0.18.1 \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
-        PyBASC==0.4.5 \
         pip==9.0.1
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
-
-# install ICA-AROMA
-RUN mkdir -p /opt/ICA-AROMA
-RUN curl -sSL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA –strip-components 1
-RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
