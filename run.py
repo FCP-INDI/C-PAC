@@ -146,7 +146,7 @@ args = parser.parse_args()
 print(args)
 
 # if we are running the GUI, then get to it
-if args.analysis_level == "GUI":
+if args.analysis_level == "gui":
     print "Starting CPAC GUI"
     import CPAC
 
