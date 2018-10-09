@@ -169,6 +169,27 @@ class DataConfig(wx.Frame):
                          "configuration file.",
                  values="None")
 
+        self.page.add(label="(Optional) Brain Mask File Path Template ",
+                      control=control.TEXT_BOX,
+                      name="brain_mask_template",
+                      type=dtype.STR,
+                      comment="File Path Template for brain mask files.\n"
+                              "For anatomical skull-stripping.\nNote: can "
+                              "use this for BIDS data directories as "
+                              "well, as the specification for anatomical "
+                              "brain masks is still subject to change.\n\n"
+                              "Place tags for the appropriate data "
+                              "directory levels with the tags {site}, "
+                              "{participant}, and {session}. Only "
+                              "{participant} is required.\n\nExamples:\n"
+                              "/data/{site}/{participant}/{session}/fmap/"
+                              "phase.nii.gz\n/data/{site}/{participant}/"
+                              "{session}/{participant}_{session}_"
+                              "brain-mask.nii.gz",
+                      values="None",
+                      style=wx.EXPAND | wx.ALL,
+                      size=(532,-1))
+
         self.page.add(label="(Optional) [Custom only] Field Map Phase File "
                             "Path Template ",
                       control=control.TEXT_BOX,
@@ -443,7 +464,8 @@ class DataConfig(wx.Frame):
                      'functionalTemplate', 'outputSubjectListLocation',
                      'subjectListName', 'anatomical_scan',
                      'awsCredentialsFile', 'scanParametersCSV',
-                     'fieldMapPhase', 'fieldMapMagnitude', 'subjectList',
+                     'brain_mask_template', 'fieldMapPhase',
+                     'fieldMapMagnitude', 'subjectList',
                      'exclusionSubjectList', 'siteList', 'exclusionSiteList',
                      'sessionList', 'exclusionSessionList', 'scanList',
                      'exclusionScanList']

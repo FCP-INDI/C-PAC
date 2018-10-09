@@ -1,3 +1,4 @@
+import fnmatch
 
 
 def load_config_yml(config_file, individual=False):
@@ -85,7 +86,8 @@ def read_pheno_csv_into_df(pheno_csv, id_label=None):
     return pheno_df
 
 
-def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
+def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
+                       derivatives=None, exts=['nii', 'nii.gz']):
 
     # the number of directory levels under each participant's output folder
     # can vary depending on what preprocessing strategies were chosen, and
@@ -98,32 +100,30 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
     import glob
     import pandas as pd
     import pkg_resources as p
-    from __builtin__ import any as b_any
-
-    ext = ".nii"
-    nifti_globs = []
-
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
-    try:
-        keys = pd.read_csv(keys_csv)
-    except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
-        raise Exception(err)
-
-    derivative_list = list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-            keys['Values'] == 'z-score']['Resource'])
-    derivative_list = derivative_list + list(
-        keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-            keys['Values'] == 'z-stat']['Resource'])
-
-    if pull_func:
-        derivative_list = derivative_list + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
         raise Exception(err)
+
+    if derivatives is None:
+
+        keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+        try:
+            keys = pd.read_csv(keys_csv)
+        except Exception as e:
+            err = "\n[!] Could not access or read the cpac_outputs.csv " \
+                "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+            raise Exception(err)
+
+        derivatives = list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-score']['Resource'])
+        derivatives = derivatives + list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-stat']['Resource'])
+
+        if pull_func:
+            derivatives = derivatives + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
@@ -131,34 +131,41 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
     print "\n\nGathering the output file paths from %s..." \
           % pipeline_output_folder
 
-    # this is just to keep the fsl feat config file derivative_list entries
+    # this is just to keep the fsl feat config file derivatives entries
     # nice and lean
-    dirs_to_grab = []
-    for derivative_name in derivative_list:
-        for resource_name in resource_list:
-            if resource_name in derivative_name:
-                dirs_to_grab.append(derivative_name)
+    search_dirs = [
+        resource_name
+        for resource_name in resource_list
+        if any([resource_name in derivative_name
+                for derivative_name in derivatives])
+    ]
 
     # grab MeanFD_Jenkinson just in case
-    dirs_to_grab.append("power_params")
+    search_dirs += ["power_params"]
 
-    for resource_name in dirs_to_grab:
-        glob_string = os.path.join(pipeline_output_folder, "*",
-                                       resource_name, "*", "*")
+    nifti_globs = []
 
-        # get all glob strings that result in a list of paths where every path
-        # ends with a NIFTI file
+    for resource_name in search_dirs:
+
+        glob_pieces = [pipeline_output_folder, "*", resource_name, "*"]
+        glob_query = os.path.join(*glob_pieces)
+        found_files = glob.iglob(glob_query)
+
+        still_looking = True
+        while still_looking:
+
+            still_looking = False
+            for found_file in found_files:
+                still_looking = True
+
+                if os.path.isfile(found_file) and \
+                   any(found_file.endswith('.' + ext) for ext in exts):
+                    nifti_globs.append(glob_query)
+                    break
         
-        prog_string = ".."
-
-        while len(glob.glob(glob_string)) != 0:
-
-            if b_any(ext in x for x in glob.glob(glob_string)) == True:
-                nifti_globs.append(glob_string)
-        
-            glob_string = os.path.join(glob_string, "*")
-            prog_string = prog_string + "."
-            print prog_string
+            if still_looking:
+                glob_query = os.path.join(glob_query, "*")
+                found_files = glob.iglob(glob_query)
 
     if len(nifti_globs) == 0:
         err = "\n\n[!] No output filepaths found in the pipeline output " \
@@ -287,49 +294,106 @@ def extract_power_params(power_params_lines, power_params_filepath):
  
 
 def create_output_dict_list(nifti_globs, pipeline_output_folder,
-                            get_motion=False, get_raw_score=False):
+                            resource_list, get_motion=False, 
+                            get_raw_score=False, pull_func=False, 
+                            derivatives=None, exts=['nii', 'nii.gz']):
 
     import os
     import glob
+    import itertools
+    import pandas as pd
+    import pkg_resources as p
 
-    ext = ".nii"
+    if len(resource_list) == 0:
+        err = "\n\n[!] No derivatives selected!\n\n"
+        raise Exception(err)
+
+    if derivatives is None:
+
+        keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+        try:
+            keys = pd.read_csv(keys_csv)
+        except Exception as e:
+            err = "\n[!] Could not access or read the cpac_outputs.csv " \
+                "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+            raise Exception(err)
+
+        derivatives = list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-score']['Resource'])
+        derivatives = derivatives + list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-stat']['Resource'])
+
+        if pull_func:
+            derivatives = derivatives + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
+
+    # remove any extra /'s
+    pipeline_output_folder = pipeline_output_folder.rstrip("/")
+
+    print "\n\nGathering the output file paths from %s..." \
+          % pipeline_output_folder
+
+    # this is just to keep the fsl feat config file derivatives entries
+    # nice and lean
+    search_dirs = [
+        resource_name
+        for resource_name in resource_list
+        if any([resource_name in derivative_name
+                for derivative_name in derivatives])
+    ]
+
+    # grab MeanFD_Jenkinson just in case
+    search_dirs += ["power_params"]
+
+    exts = ['.' + ext.lstrip('.') for ext in exts]
 
     # parse each result of each "valid" glob string
     output_dict_list = {}
 
-    for nifti_glob_string in nifti_globs:
+    for root, _, files in os.walk(pipeline_output_folder):
+        for filename in files:
 
-        nifti_paths = glob.glob(nifti_glob_string + ext + "*")   
+            filepath = os.path.join(root, filename)
 
-        for filepath in nifti_paths:
-        
-            second_half_filepath = filepath.split(pipeline_output_folder)[1]
-            filename = filepath.split("/")[-1]
+            if not any(fnmatch.fnmatch(filepath, pattern) for pattern in nifti_globs):
+                continue
+
+            if not any(filepath.endswith(ext) for ext in exts):
+                continue
+
+            relative_filepath = filepath.split(pipeline_output_folder)[1]
+            filepath_pieces = filter(None, relative_filepath.split("/"))
             
-            resource_id = second_half_filepath.split("/")[2]
-            series_id_string = second_half_filepath.split("/")[3]
-            strat_info = second_half_filepath.split(series_id_string)[1]
-            strat_info = strat_info.replace('.nii', '').replace('.gz', '')
+            resource_id = filepath_pieces[1]
+
+            if resource_id not in search_dirs:
+                continue
+
+            series_id_string = filepath_pieces[2]
+            strat_info = "_".join(filepath_pieces[3:])[:-len(ext)]
             
             unique_resource_id = (resource_id, strat_info)
                         
             if unique_resource_id not in output_dict_list.keys():
                 output_dict_list[unique_resource_id] = []
             
-            unique_id = second_half_filepath.split("/")[1]
+            unique_id = filepath_pieces[0]
 
-            series_id = series_id_string.replace("_scan_","")
-            series_id = series_id.replace("_rest","")
+            series_id = series_id_string.replace("_scan_", "")
+            series_id = series_id.replace("_rest", "")
             
             new_row_dict = {}
-            
             new_row_dict["participant_session_id"] = unique_id
-            new_row_dict["participant_id"] = unique_id.split('_')[0]
-            new_row_dict["session_id"] = unique_id.split('_')[1]
+            new_row_dict["participant_id"], new_row_dict["session_id"] = \
+                unique_id.split('_')
+
             new_row_dict["Series"] = series_id
-                                   
             new_row_dict["Filepath"] = filepath
-                        
+            
+            print('{0} - {1} - {2}'.format(unique_id, series_id, 
+                  resource_id))
+
             if get_motion:
                 # if we're including motion measures
                 power_params_file = find_power_params_file(filepath,
@@ -383,18 +447,35 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
         # unique_resource_id is tuple (resource_id,strat_info)
         if unique_resource_id not in output_df_dict.keys():
             output_df_dict[unique_resource_id] = new_df
-            
+
     return output_df_dict
 
 
 def gather_outputs(pipeline_folder, resource_list, inclusion_list,
-                   get_motion, get_raw_score, get_func=False):
+                   get_motion, get_raw_score, get_func=False, derivatives=None,
+                   exts=['nii', 'nii.gz']):
 
     # probably won't have a session list due to subject ID format!
 
-    nifti_globs = gather_nifti_globs(pipeline_folder, resource_list, get_func)
-    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder,
-                           get_motion, get_raw_score)
+    nifti_globs = gather_nifti_globs(
+        pipeline_folder,
+        resource_list,
+        get_func,
+        derivatives,
+        exts
+    )
+
+    output_dict_list = create_output_dict_list(
+        nifti_globs,
+        pipeline_folder,
+        resource_list,
+        get_motion,
+        get_raw_score,
+        get_func,
+        derivatives,
+        exts
+    )
+
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
     return output_df_dict
@@ -1162,7 +1243,7 @@ def find_other_res_template(template_path, new_resolution):
                                          "{0}mm".format(new_resolution))
 
     if ref_file:
-        print("\n{0}mm version of the template found:\n{1}"
+        print("\nAttempting to find {0}mm version of the template:\n{1}"
               "\n\n".format(new_resolution, ref_file))
 
     return ref_file
@@ -1193,13 +1274,6 @@ def check_cpac_output_image(image_path, reference_path, out_dir=None,
     if os.path.isfile(out_path):
         image_path = out_path
 
-    if not os.path.isdir(out_path.replace(os.path.basename(out_path), "")):
-        try:
-            os.makedirs(out_path.replace(os.path.basename(out_path), ""))
-        except:
-            # TODO: better message
-            raise Exception("couldn't make the dirs!")
-
     resample = False
 
     image_nb = nb.load(image_path)
@@ -1217,11 +1291,22 @@ def check_cpac_output_image(image_path, reference_path, out_dir=None,
         resample = True
 
     if resample:
+        if not os.path.isdir(
+                out_path.replace(os.path.basename(out_path), "")):
+            try:
+                os.makedirs(out_path.replace(os.path.basename(out_path), ""))
+            except:
+                # TODO: better message
+                raise Exception("couldn't make the dirs!")
+
         print("Resampling input image:\n{0}\n\n..to this reference:\n{1}"
               "\n\n..and writing this file here:\n{2}"
               "\n".format(image_path, reference_path, out_path))
         cmd = ['flirt', '-in', image_path, '-ref', reference_path, '-out',
                out_path]
+        if roi_file:
+            cmd.append('-interp')
+            cmd.append('nearestneighbour')
         return cmd
     else:
         return resample
@@ -1234,160 +1319,115 @@ def resample_cpac_output_image(cmd_args):
     print("Running:\n{0}\n\n".format(" ".join(cmd_args)))
     retcode = subprocess.check_output(cmd_args)
 
-    return cmd_args[-1]
+    for arg in cmd_args:
+        if 'resampled_input_images' in arg:
+            out_file = arg
+
+    return out_file
 
 
-def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
-                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                   affinity_thresh, cross_cluster, proc, memory, out_dir,
-                   output_size=800, inclusion=None, scan_inclusion=None):
+def launch_PyBASC(pybasc_config):
 
-    import os
-    import numpy as np
-    from multiprocessing import pool
-    from CPAC.basc.basc_workflow_runner import run_basc_workflow
+    import subprocess
 
-    pipeline_dir = os.path.abspath(pipeline_dir)
+    print('Running PyBASC with configuration file:\n'
+          '{0}'.format(pybasc_config))
+    cmd_args = ['PyBASC', pybasc_config]
+    retcode = subprocess.check_output(cmd_args)
 
-    # TODO: this must change once PyBASC is modified (if it is) to have a
-    # TODO: separate working and output directory
-    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'PyBASC',
-                           os.path.basename(pipeline_dir))
-    working_dir = out_dir
-
-    inclusion_list = None
-    if inclusion:
-        inclusion_list = load_text_file(inclusion, "BASC participant "
-                                                   "inclusion list")
-
-    if scan_inclusion:
-        scan_inclusion = scan_inclusion.split(',')
-
-    # create encompassing output dataframe dictionary
-    #     note, it is still limited to the lowest common denominator of all
-    #     group model choices- it does not pull in the entire output directory
-    # - there will be a dataframe for each combination of output measure
-    #   type and preprocessing strategy
-    # - each dataframe will contain output filepaths and their associated
-    #   information, and each dataframe will include ALL SERIES/SCANS
-    output_df_dct = gather_outputs(pipeline_dir,
-                                   ["functional_to_standard",
-                                    "functional_mni"],
-                                   inclusion_list, False, False,
-                                   get_func=True)
-
-    for preproc_strat in output_df_dct.keys():
-        # go over each preprocessing strategy
-
-        df_dct = {}
-        strat_df = output_df_dct[preproc_strat]
-
-        nuisance_string = \
-            preproc_strat[1].replace(os.path.basename(preproc_strat[1]), '')
-
-        if len(set(strat_df["Series"])) > 1:
-            # more than one scan/series ID
-            for strat_scan in list(set(strat_df["Series"])):
-                # make a list of sub-dataframes, each one with only file paths
-                # from one scan ID each
-                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
-        else:
-            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
-
-        for df_scan in df_dct.keys():
-
-            # do only the selected scans
-            if scan_inclusion:
-                if df_scan not in scan_inclusion:
-                    continue
-
-            func_paths = list(df_dct[df_scan]["Filepath"])
-
-            # affinity threshold is an iterable, and must match the number of
-            # functional file paths for the MapNodes
-            affinity_thresh = [affinity_thresh] * len(func_paths)
-
-            # resampling if necessary
-            #     each run should take the file, resample it and write it
-            #     into the BASC sub-dir of the working directory
-            #         should end up with a new "func_paths" list with all of
-            #         these file paths in it
-            ref_file_iterable = [ref_file] * len(func_paths)
-            working_dir_iterable = [working_dir] * len(func_paths)
-            func_cmd_args_list = map(check_cpac_output_image, func_paths,
-                                     ref_file_iterable, working_dir_iterable)
-            roi_cmd_args = check_cpac_output_image(roi_file, ref_file,
-                                                   out_dir=working_dir,
-                                                   roi_file=True)
-            roi_two_cmd_args = check_cpac_output_image(roi_file_two, ref_file,
-                                                       out_dir=working_dir,
-                                                       roi_file=True)
-
-            # resample them now
-            if func_cmd_args_list[0]:
-                p = pool.Pool(int(proc))
-                func_paths = p.map(resample_cpac_output_image,
-                                   func_cmd_args_list)
-
-            # and the ROI file, too
-            if roi_cmd_args:
-                roi_file = resample_cpac_output_image(roi_cmd_args)
-            if roi_two_cmd_args:
-                roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
-
-            # add scan label and nuisance regression strategy label to the
-            # output directory path
-            out_dir = os.path.join(out_dir, df_scan,
-                                   nuisance_string.lstrip('/'))
-            # TODO: change once PyBASC delineates output/working
-            working_dir = out_dir
-
-            print('Starting the PyBASC workflow...\n')
-
-            run_basc_workflow(func_paths,
-                              roi_file,
-                              num_ds_bootstraps,
-                              num_ts_bootstraps,
-                              num_clusters,
-                              output_size=output_size,
-                              bootstrap_list=list(np.ones(num_ds_bootstraps,
-                                                          dtype=int)*num_ds_bootstraps),
-                              proc_mem=[proc, memory],
-                              similarity_metric="correlation",
-                              cross_cluster=cross_cluster,
-                              roi2_mask_file=roi_file_two,
-                              blocklength=1,
-                              affinity_threshold=affinity_thresh,
-                              out_dir=out_dir,
-                              run=True)
+    return retcode
 
 
 def run_basc(pipeline_config):
+    """Run the PyBASC module.
+
+    PyBASC is a separate Python package built and maintained by Aki Nikolaidis
+    which implements the BASC analysis via Python.
+
+    PyBASC is based off of the following work:
+        - Garcia-Garcia, M., Nikolaidis, A., Bellec, P., Craddock, R. C., Cheung, B., Castellanos, F. X., & Milham, M. P. (2017).
+              Detecting stable individual differences in the functional organization of the human basal ganglia. NeuroImage.
+        - Bellec, P., Rosa-Neto, P., Lyttelton, O. C., Benali, H., & Evans, A. C. (2010).
+              Multi-level bootstrap analysis of stable clusters in resting-state fMRI. Neuroimage, 51(3), 1126-1139.
+        - Bellec, P., Marrelec, G., & Benali, H. (2008).
+              A bootstrap test to investigate changes in brain connectivity for functional MRI. Statistica Sinica, 1253-1268.
+
+    PyBASC GitHub repository:
+        https://github.com/AkiNikolaidis/PyBASC
+
+    PyBASC author:
+        https://www.researchgate.net/profile/Aki_Nikolaidis
+
+    Inputs
+        pipeline_config: path to C-PAC pipeline configuration YAML file
+
+    Steps (of the C-PAC interface for PyBASC, not PyBASC itself)
+        1. Read in the PyBASC-relevant pipeline config items and create a new
+           PyBASC config dictionary.
+        2. Ensure the functional template is in the selected resolution.
+        3. If ROI mask files are on AWS S3, download these into the group
+           level analysis working directory.
+        4. Resample the ROI mask files if they are not in the selected
+           output resolution.
+        5. Create sub-directories for each C-PAC pipeline the user has
+           selected to run PyBASC for (preprocessed and template-space
+           functional time series are pulled from each pipeline output
+           directory, for input into PyBASC).
+        6. Gather functional_to_standard outputs from each pipeline.
+        7. Create further sub-directories for each nuisance regression
+           strategy and functional scan within each C-PAC pipeline, and
+           separate the functional outputs by strategy and scan as well.
+        8. Resample functional time series if they are not in the selected
+           output resolution.
+        9. Finish populating the PyBASC config dictionary, and write it out
+           into a config YAML file for each pipeline-strategy-scan we are
+           running.
+        10. Launch PyBASC for each configuration generated.
+
+    """
 
     import os
     import yaml
+    from CPAC.utils.datasource import check_for_s3
+    from multiprocessing import pool
 
     pipeline_config = os.path.abspath(pipeline_config)
 
     with open(pipeline_config, "r") as f:
         pipeconfig_dct = yaml.load(f)
 
-    output_dir = pipeconfig_dct["outputDirectory"]
+    output_dir = os.path.abspath(pipeconfig_dct["outputDirectory"])
+    working_dir = os.path.abspath(pipeconfig_dct['workingDirectory'])
+    if pipeconfig_dct['awsOutputBucketCredentials']:
+        creds_path = os.path.abspath(pipeconfig_dct['awsOutputBucketCredentials'])
+
     func_template = pipeconfig_dct["template_brain_only_for_func"]
-    basc_roi = pipeconfig_dct["basc_roi_file"]
-    basc_roi_two = pipeconfig_dct["basc_roi_file_two"]
-    num_ts_bootstraps = pipeconfig_dct["basc_timeseries_bootstraps"]
-    num_ds_bootstraps = pipeconfig_dct["basc_dataset_bootstraps"]
-    num_clusters = pipeconfig_dct["basc_clusters"]
-    affinity_thresh = pipeconfig_dct["basc_affinity_threshold"]
-    output_size = pipeconfig_dct["basc_output_size"]
-    cross_cluster = pipeconfig_dct["basc_cross_clustering"]
-    basc_resolution = pipeconfig_dct["basc_resolution"]
-    basc_proc = pipeconfig_dct["basc_proc"]
-    basc_memory = pipeconfig_dct["basc_memory"]
+    if '$FSLDIR' in func_template:
+        if os.environ.get('FSLDIR'):
+            func_template = func_template.replace('$FSLDIR',
+                                                  os.environ['FSLDIR'])
+
     basc_inclusion = pipeconfig_dct["basc_inclusion"]
     basc_pipeline = pipeconfig_dct["basc_pipeline"]
     basc_scan_inclusion = pipeconfig_dct["basc_scan_inclusion"]
+    basc_resolution = pipeconfig_dct["basc_resolution"]
+
+    basc_config_dct = {'run': True,
+                       'reruns': 1}
+
+    for key in pipeconfig_dct.keys():
+        if 'basc' in key:
+            basc_config_dct[key.replace('basc_', '')] = pipeconfig_dct[key]
+
+    iterables = ['dataset_bootstrap_list', 'timeseries_bootstrap_list', 
+                 'blocklength_list', 'n_clusters_list', 'output_sizes']
+    for iterable in iterables:
+        basc_config_dct[iterable] = [int(x) for x in str(basc_config_dct[iterable]).split(',')]
+
+    basc_config_dct['proc_mem'] = [basc_config_dct['proc'],
+                                   basc_config_dct['memory']]
+    del basc_config_dct['proc']
+    del basc_config_dct['memory']
 
     if "None" in basc_inclusion or "none" in basc_inclusion:
         basc_inclusion = None
@@ -1411,7 +1451,8 @@ def run_basc(pipeline_config):
     # did that actually work?
     if not os.path.isfile(ref_file):
         # TODO: better message
-        raise Exception('not a thing')
+        raise Exception('\n[!] The reference file could not be found.\nPath: '
+                        '{0}\n'.format(ref_file))
 
     pipeline_dirs = []
     if not basc_pipeline:
@@ -1422,42 +1463,286 @@ def run_basc(pipeline_config):
         for pipeline_name in basc_pipeline:
             pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
 
+    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'PyBASC',
+                               '{0}mm_resolution'.format(basc_resolution), 
+                               'working_dir')
+
+    # check for S3 of ROI files here!
+    for key in ['roi_mask_file', 'cross_cluster_mask_file']:
+        if 's3://' in basc_config_dct[key]:
+            basc_config_dct[key] = check_for_s3(basc_config_dct[key],
+                                                creds_path=creds_path,
+                                                dl_dir=working_dir)
+
+    # resample ROI files if necessary
+    roi_cmd_args = check_cpac_output_image(basc_config_dct['roi_mask_file'],
+                                           ref_file,
+                                           out_dir=working_dir,
+                                           roi_file=True)
+    roi_two_cmd_args = check_cpac_output_image(basc_config_dct['cross_cluster_mask_file'],
+                                               ref_file,
+                                               out_dir=working_dir,
+                                               roi_file=True)
+
+    if roi_cmd_args:
+        roi_file = resample_cpac_output_image(roi_cmd_args)
+        basc_config_dct['roi_mask_file'] = roi_file
+    if roi_two_cmd_args:
+        roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
+        basc_config_dct['cross_cluster_mask_file'] = roi_file_two
+
+    for pipeline_dir in pipeline_dirs:
+
+        pipeline_dir = os.path.abspath(pipeline_dir)
+
+        out_dir = os.path.join(output_dir, 'cpac_group_analysis', 'PyBASC',
+                               '{0}mm_resolution'.format(basc_resolution),
+                               os.path.basename(pipeline_dir))
+        working_dir = os.path.join(working_dir,
+                                   os.path.basename(pipeline_dir))
+
+        inclusion_list = None
+        scan_inclusion = None
+
+        if basc_inclusion:
+            inclusion_list = load_text_file(basc_inclusion, "BASC participant"
+                                                            " inclusion list")
+
+        if 'none' in basc_scan_inclusion.lower():
+            basc_scan_inclusion = None
+        if basc_scan_inclusion:
+            scan_inclusion = basc_scan_inclusion.split(',')
+
+        # create encompassing output dataframe dictionary
+        #     note, it is still limited to the lowest common denominator of all
+        #     group model choices- it does not pull in the entire output directory
+        # - there will be a dataframe for each combination of output measure
+        #   type and preprocessing strategy
+        # - each dataframe will contain output filepaths and their associated
+        #   information, and each dataframe will include ALL SERIES/SCANS
+        output_df_dct = gather_outputs(pipeline_dir,
+                                       ["functional_to_standard",
+                                        "functional_mni"],
+                                       inclusion_list, False, False,
+                                       get_func=True)
+
+        for preproc_strat in output_df_dct.keys():
+            # go over each preprocessing strategy
+
+            df_dct = {}
+            strat_df = output_df_dct[preproc_strat]
+
+            nuisance_string = \
+                preproc_strat[1].replace(os.path.basename(preproc_strat[1]),
+                                         '')
+
+            if len(set(strat_df["Series"])) > 1:
+                # more than one scan/series ID
+                for strat_scan in list(set(strat_df["Series"])):
+                    # make a list of sub-dataframes, each one with only file paths
+                    # from one scan ID each
+                    df_dct[strat_scan] = strat_df[
+                        strat_df["Series"] == strat_scan]
+            else:
+                df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+            # TODO: need a catch for if none of the df_scans below are in scan_inclusion
+
+            for df_scan in df_dct.keys():
+                # do only the selected scans
+                if scan_inclusion:
+                    if df_scan not in scan_inclusion:
+                        continue
+
+                basc_config_dct['analysis_ID'] = '{0}_{1}'.format(os.path.basename(pipeline_dir),
+                                                                  df_scan)
+
+                # add scan label and nuisance regression strategy label to the
+                # output directory path
+                scan_out_dir = os.path.join(out_dir, df_scan,
+                                            nuisance_string.lstrip('/'))
+                scan_working_dir = os.path.join(working_dir, df_scan,
+                                                nuisance_string.lstrip('/'))
+
+                basc_config_dct['home'] = scan_out_dir
+                basc_config_dct['cluster_methods'] = ['ward']
+
+                func_paths = list(df_dct[df_scan]["Filepath"])
+
+                # affinity threshold is an iterable, and must match the number of
+                # functional file paths for the MapNodes
+                affinity_thresh = pipeconfig_dct['basc_affinity_thresh'] * len(func_paths)
+
+                # resampling if necessary
+                #     each run should take the file, resample it and write it
+                #     into the BASC sub-dir of the working directory
+                #         should end up with a new "func_paths" list with all of
+                #         these file paths in it
+                ref_file_iterable = [ref_file] * len(func_paths)
+                working_dir_iterable = [scan_working_dir] * len(func_paths)
+                func_cmd_args_list = map(check_cpac_output_image, func_paths,
+                                         ref_file_iterable,
+                                         working_dir_iterable)
+
+                # resample them now
+                if func_cmd_args_list[0]:
+                    p = pool.Pool(int(basc_config_dct['proc_mem'][0]))
+                    func_paths = p.map(resample_cpac_output_image,
+                                       func_cmd_args_list)
+
+                # TODO: add list into basc_config here
+                basc_config_dct['subject_file_list'] = func_paths
+
+                basc_config_outfile = os.path.join(scan_working_dir,
+                                                   'PyBASC_config.yml')
+                print('\nWriting PyBASC configuration file for {0} scan in\n'
+                      '{1}'.format(df_scan, basc_config_outfile))
+                with open(basc_config_outfile, 'wt') as f:
+                    noalias_dumper = yaml.dumper.SafeDumper
+                    noalias_dumper.ignore_aliases = lambda self, data: True
+                    f.write(yaml.dump(basc_config_dct,
+                                      default_flow_style=False,
+                                      Dumper=noalias_dumper))
+
+                # go!
+                launch_PyBASC(basc_config_outfile)            
+                
+
+def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
+                  isc, isfc, levels=[], permutations=1000, 
+                  std_filter=None):
+
+    import os
+    from CPAC.isc.pipeline import create_isc, create_isfc
+
+    pipeline_dir = os.path.abspath(pipeline_dir)
+
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'ISC',
+                           os.path.basename(pipeline_dir))
+
+    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'ISC',
+                               os.path.basename(pipeline_dir))
+
+    crash_dir = os.path.join(crash_dir, 'cpac_group_analysis', 'ISC',
+                             os.path.basename(pipeline_dir))
+
+    output_df_dct = gather_outputs(
+        pipeline_dir,
+        ["functional_to_standard", "roi_timeseries"],
+        inclusion_list=None,
+        get_motion=False, get_raw_score=False, get_func=True,
+        derivatives=["functional_to_standard", "roi_timeseries"],
+        exts=['nii', 'nii.gz', 'csv']
+    )
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        derivative, _ = preproc_strat
+
+        if "voxel" not in levels and derivative == "functional_to_standard":
+            continue
+
+        if "roi" not in levels and derivative == "roi_timeseries":
+            continue
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        print(working_dir)
+
+        if isc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
+
+                isc_wf = create_isc(name="ISC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                isc_wf.inputs.inputspec.subjects = func_paths
+                isc_wf.inputs.inputspec.permutations = permutations
+                isc_wf.inputs.inputspec.std = std_filter
+                isc_wf.inputs.inputspec.collapse_subj = False
+                isc_wf.run()
+
+        if isfc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
+
+                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                isfc_wf.inputs.inputspec.subjects = func_paths
+                isfc_wf.inputs.inputspec.permutations = permutations
+                isfc_wf.inputs.inputspec.std = std_filter
+                isfc_wf.inputs.inputspec.collapse_subj = False
+                isfc_wf.run()
+
+
+def run_isc(pipeline_config):
+
+    import os
+    import yaml
+
+    pipeline_config = os.path.abspath(pipeline_config)
+
+    with open(pipeline_config, "r") as f:
+        pipeconfig_dct = yaml.load(f)
+
+    output_dir = pipeconfig_dct["outputDirectory"]
+    working_dir = pipeconfig_dct["workingDirectory"]
+    crash_dir = pipeconfig_dct["crashLogDirectory"]
+
+
+    isc = 1 in pipeconfig_dct.get("runISC", [])
+    isfc = 1 in pipeconfig_dct.get("runISFC", [])
+    permutations = pipeconfig_dct.get("isc_permutations", 1000)
+    std_filter = pipeconfig_dct.get("isc_level_voxel_std_filter", None)
+
+    if std_filter == 0.0:
+        std_filter = None
+
+    levels = []
+    if 1 in pipeconfig_dct.get("isc_level_voxel", []):
+        levels += ["voxel"]
+
+    if 1 in pipeconfig_dct.get("isc_level_roi", []):
+        levels += ["roi"]
+
+    if len(levels) == 0:
+        return
+
+    if not isc and not isfc:
+        return
+
+    pipeline_dirs = []
+    for dirname in os.listdir(output_dir):
+        if "pipeline_" in dirname:
+            pipeline_dirs.append(os.path.join(output_dir, dirname))
+
     for pipeline in pipeline_dirs:
-        run_basc_group(pipeline, basc_roi, basc_roi_two, ref_file,
-                       num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                       affinity_thresh, cross_cluster, basc_proc, basc_memory,
-                       output_dir, output_size, inclusion=basc_inclusion,
-                       scan_inclusion=basc_scan_inclusion)
-
-
-def run_basc_quickrun(pipeline_dir, roi_file, roi_file_two=None,
-                      ref_file=None, output_size=800, output_dir=None,
-                      basc_proc=2, basc_memory=4, scan=None):
-    """Start a quick-run of PyBASC using default values for most
-    parameters."""
-
-    num_ts_bootstraps = 100
-    num_ds_bootstraps = 100
-    num_clusters = 10
-    affinity_thresh = 0.0
-
-    if not ref_file:
-        import os
-        try:
-            fsldir = os.environ['FSLDIR']
-            ref_file = os.path.join(fsldir, 'data/standard',
-                                    'MNI152_T1_3mm_brain.nii.gz')
-        except KeyError:
-            pass
-
-    if not output_dir:
-        import os
-        output_dir = os.getcwd()
-
-    run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
-                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                   affinity_thresh, True, basc_proc, basc_memory, output_dir,
-                   output_size, scan_inclusion=scan)
+        run_isc_group(pipeline, output_dir, working_dir, crash_dir,
+                      isc=isc, isfc=isfc, levels=levels,
+                      permutations=permutations,
+                      std_filter=std_filter)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
@@ -1518,6 +1803,10 @@ def run(config_file, pipeline_output_folder):
     # Run MDMR, if selected
     if 1 in c.runMDMR:
         run_cwas(config_file)
+
+    # Run ISC, if selected
+    if 1 in c.runISC or 1 in c.runISFC:
+        run_isc(config_file)
 
     # Run PyBASC, if selected
     if 1 in c.run_basc:

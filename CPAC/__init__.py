@@ -19,13 +19,14 @@ class _NoseTester(nosetester.NoseTester):
 test = _NoseTester().test
 
 import anat_preproc, \
+       aroma, \
        EPI_DistCorr, \
+       connectome, \
        func_preproc, \
        reho, \
        seg_preproc, \
        registration, \
        sca, \
-       basc, \
        nuisance, \
        generate_motion_statistics, \
        alff, \
@@ -47,10 +48,10 @@ __all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'epi_distcorr',
            'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance',
            'alff', 'vmhc', 'median_angle', 'generate_motion_statistics',
            'timeseries', 'network_centrality', 'scrubbing', 'utils',
-           'group_analysis', 'easy_thresh', 'qc']
+           'group_analysis', 'easy_thresh', 'aroma','qc']
 
 try:
-    version = '1.2.0'
+    version = '1.3.0'
 except OSError:
     version = 'unknown_version'
 

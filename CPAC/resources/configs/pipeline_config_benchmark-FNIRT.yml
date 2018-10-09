@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.2.0
+# Version 1.3.0
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -238,7 +238,7 @@ bet_threshold :  Off
 
 
 # Vertical gradient in fractional intensity threshold (-1,1)
-bet_vertical_gradient : [0.0]
+bet_vertical_gradient : 0.0
 
 
 # The resolution to which anatomical images should be transformed during registration.
@@ -414,6 +414,14 @@ template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
+# Run ICA-AROMA de-noising.
+runICA :  [0]
+
+
+# Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
+aroma_denoise_type :  nonaggr
+
+
 # Run Nuisance Signal Regression
 runNuisance :  [1]
 
@@ -500,7 +508,7 @@ runROITimeseries :  [1]
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
 tsa_roi_paths:
-  - /path_to_benchmark_package/resources/rois_2mm.nii.gz: Avg, Voxel, SpatialReg
+  - s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, Voxel, SpatialReg
 
 
 
@@ -517,8 +525,8 @@ runSCA :  [1]
 # Available analyses: ['Avg', 'DualReg', 'MultReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
 sca_roi_paths:
-  - /path_to_benchmark_package/resources/rois_2mm.nii.gz: Avg, MultReg
-    /path_to_benchmark_package/resources/PNAS_Smith_rsn_ten.nii.gz: DualReg
+  - s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 
 # Normalize each time series before running Dual Regression SCA.
@@ -577,7 +585,7 @@ runNetworkCentrality :  [1]
 
 
 # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
-templateSpecificationFile :  /path_to_benchmark_package/resources/mask-thr50-3mm.nii.gz
+templateSpecificationFile :  s3://fcp-indi/resources/cpac/resources/mask-thr50-3mm.nii.gz
 
 
 # Enable/Disable degree centrality by selecting the connectivity weights
@@ -644,7 +652,7 @@ fwhm : [4]
 
 
 # Choose whether to smooth outputs before or after z-scoring.
-smoothing_order :  ['After']
+smoothing_order :  ['Before']
 
 
 # z-score standardize the derivatives. This is required for group-level analysis.
@@ -684,31 +692,40 @@ basc_memory :  4
 # Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
 # If you do not wish to use a mask, set this field to None.
 # Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
-basc_roi_file :  None
+basc_roi_mask_file :  None
 
 
-basc_roi_file_two :  None
+basc_cross_cluster_mask_file :  None
+
+
+basc_similarity_metric_list :  ['correlation']
 
 
 # Number of bootstraps to apply to individual time series.
-basc_timeseries_bootstraps :  100
+basc_timeseries_bootstrap_list :  100
 
 
 # Number of bootstraps to apply to the original dataset.
-basc_dataset_bootstraps :  100
+basc_dataset_bootstrap_list :  30
 
 
 # Number of clusters to create during clustering at both the individual and group levels.
-basc_clusters :  10
+basc_n_clusters_list :  2
 
 
-basc_affinity_threshold : [0.0]
+basc_affinity_thresh : [0.0]
 
 
-basc_output_size :  800
+basc_output_sizes :  800
 
 
-basc_cross_clustering :  True
+basc_cross_cluster :  True
+
+
+basc_blocklength_list :  1
+
+
+basc_group_dim_reduce :  False
 
 
 # Full path to a text file listing which participant IDs you want included in the analysis, with one ID on each line.

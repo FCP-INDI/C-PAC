@@ -792,7 +792,7 @@ class CheckBoxGrid(wx.Panel):
         window_sizer = wx.BoxSizer(wx.HORIZONTAL)
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(500,205), \
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(600,205), \
                              style=wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
 
@@ -812,10 +812,11 @@ class CheckBoxGrid(wx.Panel):
 
         for selection in self.selections:
 
-            wx.StaticText(self, label=selection, pos=(x_pos,0))
+            text = wx.StaticText(self, label=selection, pos=(x_pos, 0))
 
-            spacing = 50 + (len(selection)*2) # adapt the spacing to
-                                              # label length
+            spacing = 50 + text.GetSize().width - 20
+            # spacing = 50 + (len(selection)*2) # adapt the spacing to
+            #                                   # label length
             x_pos += spacing
 
             self.x_pos_increments.append(spacing)
@@ -837,7 +838,7 @@ class CheckBoxGrid(wx.Panel):
                             wx.BITMAP_TYPE_ANY)
         self.button = wx.BitmapButton(self, -1, bmp, \
                                       size=(bmp.GetWidth(), bmp.GetHeight()),\
-                                      pos=(505,25))
+                                      pos=(605,25))
         self.button.Bind(wx.EVT_BUTTON, self.onButtonClick)
 
         self.cbValuesDict = {}
@@ -874,7 +875,8 @@ class CheckBoxGrid(wx.Panel):
 
         self.onCheck_UpdateValue()
 
-        del self.choiceDict[entry]
+        if entry in self.choiceDict:
+            del self.choiceDict[entry]
 
         for row in self.entry_controls:
             for control in self.entry_controls[row]:

@@ -18,23 +18,30 @@ class ModelConfig(wx.Frame):
             self, parent=parent, title="CPAC - Create New FSL FEAT Model",
             size=(900, 650))
 
+        default_gpa_settings = {}
+        default_gpa_settings['participant_list'] = 'None'
+        default_gpa_settings['pheno_file'] = ''
+        default_gpa_settings['participant_id_label'] = ''
+        default_gpa_settings['ev_selections'] = {'categorical': [''],
+                                                 'demean': ['']}
+        default_gpa_settings['design_formula'] = ''
+        default_gpa_settings['mean_mask'] = ''
+        default_gpa_settings['custom_roi_mask'] = 'None'
+        default_gpa_settings['coding_scheme'] = ''
+        default_gpa_settings['derivative_list'] = ''
+        default_gpa_settings['sessions_list'] = []
+        default_gpa_settings['series_list'] = []
+        default_gpa_settings['group_sep'] = ''
+        default_gpa_settings['grouping_var'] = 'None'
+        default_gpa_settings['z_threshold'] = ''
+        default_gpa_settings['p_threshold'] = ''
+
         if not gpa_settings:
-            self.gpa_settings = {}
-            self.gpa_settings['participant_list'] = 'None'
-            self.gpa_settings['pheno_file'] = ''
-            self.gpa_settings['participant_id_label'] = ''
-            self.gpa_settings['design_formula'] = ''
-            self.gpa_settings['mean_mask'] = ''
-            self.gpa_settings['custom_roi_mask'] = 'None'
-            self.gpa_settings['coding_scheme'] = ''
-            self.gpa_settings['derivative_list'] = ''
-            self.gpa_settings['sessions_list'] = []
-            self.gpa_settings['series_list'] = []
-            self.gpa_settings['group_sep'] = ''
-            self.gpa_settings['grouping_var'] = 'None'
-            self.gpa_settings['z_threshold'] = ''
-            self.gpa_settings['p_threshold'] = ''
+            self.gpa_settings = default_gpa_settings
         else:
+            for key in default_gpa_settings.keys():
+                if key not in gpa_settings.keys():
+                    gpa_settings[key] = default_gpa_settings[key]
             self.gpa_settings = gpa_settings
 
         self.parent = parent
@@ -275,9 +282,7 @@ class ModelConfig(wx.Frame):
 
             phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
 
-            phenoHeaderString = phenoFile.readline().rstrip('\r\n')
-            phenoHeaderItems = phenoHeaderString.split(',')
-            phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
+            self.get_pheno_header(phenoFile)
 
             # update the 'Model Setup' box and populate it with the EVs and
             # their associated checkboxes for categorical and demean
@@ -286,7 +291,7 @@ class ModelConfig(wx.Frame):
                 name = ctrl.get_name()
 
                 if name == 'model_setup':
-                    ctrl.set_value(phenoHeaderItems)
+                    ctrl.set_value(self.phenoHeaderItems)
                     ctrl.set_selection(self.gpa_settings['ev_selections'])
 
                 if name == 'coding_scheme':
@@ -296,7 +301,10 @@ class ModelConfig(wx.Frame):
                     ctrl.set_value(self.gpa_settings['mean_mask'])
 
                 if name == 'z_threshold':
-                    ctrl.set_value(self.gpa_settings['z_threshold'][0])
+                    try:
+                        ctrl.set_value(self.gpa_settings['z_threshold'][0])
+                    except IndexError:
+                        ctrl.set_value(self.gpa_settings['z_threshold'])
 
                 if name == 'p_threshold':
                     ctrl.set_value(self.gpa_settings['p_threshold'])
@@ -316,7 +324,6 @@ class ModelConfig(wx.Frame):
                         ctrl.set_value(new_grouping_var)
 
                 if ("list" in name) and (name != "participant_list"):
-
                     value = self.gpa_settings[name]
 
                     if isinstance(value, str):
@@ -331,12 +338,7 @@ class ModelConfig(wx.Frame):
                         # "Back" on the modelDesign_window
                         values = value
 
-                    new_derlist = []
-
-                    for val in values:
-                        new_derlist.append(val)       
-
-                    ctrl.set_value(new_derlist)
+                    ctrl.set_value(values)
 
     def cancel(self, event):
         self.Close()
@@ -386,27 +388,14 @@ class ModelConfig(wx.Frame):
             if 'pheno_file' in self.gpa_settings.keys():
 
                 phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
-
-                phenoHeaderString = phenoFile.readline().rstrip('\r\n')
-                phenoHeaderItems = phenoHeaderString.split(',')
-                try:
-                    phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
-                except ValueError:
-                    err = "\n[!] The participant ID label you provided in " \
-                          "the group analysis configuration file ({0}) was " \
-                          "not found as a column label in the phenotypic " \
-                          "file.\n\nPhenotypic file: {1}\n\n" \
-                          "".format(self.gpa_settings['participant_id_label'],
-                                    os.path.abspath(
-                                        self.gpa_settings['pheno_file']))
-                    raise Exception(err)
+                self.get_pheno_header(phenoFile)
 
                 # update the 'Model Setup' box and populate it with the EVs
                 # and their associated checkboxes for categorical and demean
                 for ctrl in self.page.get_ctrl_list():
 
                     if ctrl.get_name() == 'model_setup':
-                        ctrl.set_value(phenoHeaderItems)
+                        ctrl.set_value(self.phenoHeaderItems)
                         ctrl.set_selection(self.gpa_settings['ev_selections'])
 
             # populate the rest of the controls
@@ -467,54 +456,29 @@ class ModelConfig(wx.Frame):
 
             dlg.Destroy()
 
-    def read_phenotypic(self, pheno_file, ev_selections):
+    def get_pheno_header(self, pheno_file_obj):
+        phenoHeaderString = pheno_file_obj.readline().rstrip('\r\n')
 
-        import csv
+        if ',' in phenoHeaderString:
+            self.phenoHeaderItems = phenoHeaderString.split(',')
+        elif '\t' in phenoHeaderString:
+            self.phenoHeaderItems = phenoHeaderString.split('\t')
+        else:
+            self.phenoHeaderItems = [phenoHeaderString]
 
-        ph = pheno_file
-
-        # Read in the phenotypic CSV file into a dictionary named pheno_dict
-        # while preserving the header fields as they correspond to the data
-        p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'),
-                                  skipinitialspace=True)
-        
-        # dictionary to store the data in a format Patsy can use
-        # i.e. a dictionary where each header is a key, and the value is a
-        # list of all of that header's values
-        pheno_data_dict = {}
-
-        for line in p_reader:
-
-            for key in line.keys():
-
-                if key not in pheno_data_dict.keys():
-                    pheno_data_dict[key] = []
-
-                # create a list within one of the dictionary values for that
-                # EV if it is categorical; formats this list into a form
-                # Patsy can understand regarding categoricals:
-                #     example: { ADHD: ['adhd1', 'adhd1', 'adhd2', 'adhd1'] }
-                #                instead of just [1, 1, 2, 1], etc.
-                if 'categorical' in ev_selections.keys():
-                    if key in ev_selections['categorical']:
-                        pheno_data_dict[key].append(key + str(line[key]))
-
-                    else:
-                        pheno_data_dict[key].append(line[key])
-
-                else:
-                    pheno_data_dict[key].append(line[key])
-
-            #pheno_dict_list.append(line)
-        
-            # pheno_dict_list is a list of dictionaries of phenotype header items
-            # matched to their values, which also includes subject IDs
-            
-            # i.e. [{'header1': 'value', 'header2': 'value'}, {'header1': 'value', 'header2': 'value'}, ..]
-            
-            # these dictionaries are UNORDERED, i.e. header items ARE NOT ORDERED
-
-        return pheno_data_dict
+        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
+        else:
+            print('Header labels found:\n{0}'.format(self.phenoHeaderItems))
+            err = 'Please enter the name of the participant ID column as ' \
+                  'it is labeled in the phenotype file.'
+            print(err)
+            errSubID = wx.MessageDialog(self, err,
+                                        'Blank/Incorrect Subject Header Input',
+                                        wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+            raise Exception
 
     ''' button: LOAD PHENOTYPE FILE '''
     def populateEVs(self, event):
@@ -561,42 +525,7 @@ class ModelConfig(wx.Frame):
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
         phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
-
-        phenoHeaderString = phenoFile.readline().rstrip('\r\n')
-        self.phenoHeaderItems = phenoHeaderString.split(',')
-
-        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
-        else:
-            print('Header labels found:\n{0}'.format(self.phenoHeaderItems))
-            errSubID = wx.MessageDialog(
-                self, 'Please enter the name of the participant ID column'
-                ' as it is labeled in the phenotype file.',
-                'Blank/Incorrect Subject Header Input',
-                wx.OK | wx.ICON_ERROR)
-            errSubID.ShowModal()
-            errSubID.Destroy()
-            raise Exception
-            
-        # some more checks
-        pheno_rows = phenoFile.readlines()
-
-        '''
-        for row in pheno_rows:
-        
-            # check if the pheno file produces any rows such as ",,,,," due
-            # to odd file formatting issues. if so, ignore this row. if there
-            # are values present in the row, continue as normal
-            if ",," not in row:
-                    
-                # if it finds a sub from the subject list in the current row
-                # taken from the pheno, move on. if it goes through the entire
-                # subject list and never finds a match, kick off the "else"
-                # clause below containing the error message
-                for sub in self.subs:  
-                    if sub in row:
-                        break
-        '''
+        self.get_pheno_header(phenoFile)
 
         for ctrl in self.page.get_ctrl_list():
 
@@ -633,7 +562,6 @@ class ModelConfig(wx.Frame):
                 formula_string = formula_string + ' + MeanFD_Jenkinson'
 
                 ctrl.set_value(formula_string)
-
 
     ''' button: NEXT '''
     def load_next_stage(self, event):
@@ -672,20 +600,7 @@ class ModelConfig(wx.Frame):
 
         phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
 
-        phenoHeaderString = phenoFile.readline().rstrip('\r\n')
-        self.phenoHeaderItems = phenoHeaderString.split(',')
-
-        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
-        else:
-            errSubID = wx.MessageDialog(
-                self, 'Please enter the name of the subject ID column' \
-                ' as it is labeled in the phenotype file.',
-                'Blank/Incorrect Subject Header Input',
-                wx.OK | wx.ICON_ERROR)
-            errSubID.ShowModal()
-            errSubID.Destroy()
-            raise Exception
+        self.get_pheno_header(phenoFile)
 
         for ctrl in self.page.get_ctrl_list():
             
@@ -722,9 +637,6 @@ class ModelConfig(wx.Frame):
             else:
                 self.gpa_settings[name] = str(ctrl.get_selection())
 
-        self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], \
-                                                    self.gpa_settings['ev_selections'])
-
         try:
             phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
         except:
@@ -734,13 +646,6 @@ class ModelConfig(wx.Frame):
             print 'Phenotype file provided: '
             print self.gpa_settings['pheno_file'], '\n\n'
             raise IOError
-
-
-
-        # validate design formula and build Available Contrasts list
-        var_list_for_contrasts = []
-        EVs_to_test = []
-        EVs_to_include = []
 
         # take the user-provided design formula and break down the included
         # terms into a list, and use this to create the list of available
@@ -776,7 +681,7 @@ class ModelConfig(wx.Frame):
                     if side.isdigit():
                         int_check = 1
                     else:
-                        if (side not in self.pheno_data_dict.keys()) and \
+                        if (side not in self.phenoHeaderItems) and \
                             side != 'MeanFD' and side != 'MeanFD_Jenkinson' \
                             and side != 'Measure_Mean' and \
                             side != 'Custom_ROI_Mean':
@@ -829,7 +734,7 @@ class ModelConfig(wx.Frame):
 
                 for interaction_EV in both_EVs_in_interaction:
 
-                    if (interaction_EV not in self.pheno_data_dict.keys()) and \
+                    if (interaction_EV not in self.phenoHeaderItems) and \
                         interaction_EV != 'MeanFD_Power' and \
                         interaction_EV != 'MeanFD_Jenkinson' and \
                         interaction_EV != 'Measure_Mean' and \
@@ -852,8 +757,7 @@ class ModelConfig(wx.Frame):
                         raise Exception    
 
             else:
-
-                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD_Power' \
+                if (EV not in self.phenoHeaderItems) and EV != 'MeanFD_Power' \
                     and EV != 'MeanFD_Jenkinson' and EV != 'Measure_Mean' \
                     and EV != 'Custom_ROI_Mean' and EV != "Intercept" and \
                     EV != "intercept":
@@ -874,7 +778,6 @@ class ModelConfig(wx.Frame):
                     raise Exception
 
         # design formula/input parameters checks
-
         if "Custom_ROI_Mean" in formula and \
             (self.gpa_settings['custom_roi_mask'] == None or \
             self.gpa_settings['custom_roi_mask'] == ""):
@@ -912,7 +815,6 @@ class ModelConfig(wx.Frame):
 
             raise Exception
 
-            
         # if there is a custom ROI mean mask file provided, and the user
         # includes it as a regressor in their design matrix formula, calculate
         # the number of ROIs in the file and generate the column names so that
@@ -953,7 +855,7 @@ class ModelConfig(wx.Frame):
 
         # pull in phenotype file
         try:
-            pheno_df = pd.read_csv(self.gpa_settings["pheno_file"])
+            pheno_df = pd.read_table(self.gpa_settings["pheno_file"])
         except Exception as e:
             err = "\n\n[!] Something went wrong with reading in the " \
                   "phenotype CSV file.\n\nPhenotype file path: %s\n\nError " \

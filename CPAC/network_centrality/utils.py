@@ -401,7 +401,7 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
 
 
 # Function to actually do the list merging
-def merge_lists(deg_list=[],eig_list=[],lfcd_list=[]):
+def merge_lists(deg_list=[], eig_list=[], lfcd_list=[]):
     merged_list = []
     merged_list.extend(deg_list)
     merged_list.extend(eig_list)

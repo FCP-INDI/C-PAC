@@ -78,9 +78,38 @@ ubuntu1604_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 # configuration options that are specific to Ubuntu 16.10
 ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev" "libgsl-dev")
 
-conda_packages=("pandas" "cython" "numpy==1.11" "scipy" "matplotlib" "networkx==1.11" "traits" "pyyaml" "jinja2==2.7.2" "nose" "ipython" "pip" "wxpython==3.0.0.0")
+conda_packages=(
+    "cython==0.26"
+    "jinja2==2.7.2"
+    "matplotlib=2.0.2"
+    "networkx==1.11"
+    "nose==1.3.7"
+    "numpy==1.11.0"
+    "pandas==0.20.1"
+    "pyyaml==3.12"
+    "scipy==0.18.1"
+    "traits==4.6.0"
+    "wxpython==3.0.0.0"
+    "pip==18.0"
+)
 
-pip_packages=("future==0.16.0" "python-dateutil==2.5" "prov==1.5.0" "simplejson" "lockfile" "pygraphviz" "nibabel" "nipype==0.13.1" "patsy" "memory_profiler" "psutil" "configparser" "INDI-Tools" "fs==0.5.4" "boto3")
+pip_packages=(
+    "boto3==1.7.37"
+    "fs==0.5.4"
+    "future==0.16.0"
+    "INDI-Tools==0.0.6"
+    "lockfile==0.12.2"
+    "nibabel==2.3.0"
+    "nilearn==0.4.1"
+    "nipype==0.13.1"
+    "patsy==0.5.0"
+    "prov==1.5.0"
+    "psutil==5.4.6"
+    "pygraphviz==1.3.1"
+    "simplejson==3.15.0"
+    "python-dateutil==2.5"
+    "PyBASC==0.4.5"
+)
 
 ##### Helper functions for installing system dependencies.
 

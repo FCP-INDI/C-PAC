@@ -1,21 +1,25 @@
 import wx
 from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
-from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
-    Segmentation, Registration, FunctionalPreProcessing,\
-    SkullStripProcessing,SkullStripOptions,AFNI_options,BET_options,\
-    Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
-    VMHC, VMHCSettings, ReHo, ReHoSettings, \
-    SCA, SCASettings, \
-    Settings, ComputerSettings, DirectorySettings, \
-    Nuisance, NuisanceRegression, MedianAngleCorrection,\
-    CentralitySettings, Centrality,\
-    ALFF, ALFFSettings,\
-    AfterWarping, AfterWarpingOptions,\
-    FilteringSettings,\
-    TimeSeries, EPI_DistCorr, ROITimeseries, \
-    GroupAnalysis, GPASettings, MDMRSettings, TimeSeriesOptions, \
-    BASCSettings
+
+from CPAC.GUI.interface.pages import (
+    AnatomicalPreprocessing,
+    Segmentation, Registration, FunctionalPreProcessing,
+    SkullStripProcessing, SkullStripOptions, AFNI_options, BET_options,
+    Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,
+    VMHC, VMHCSettings, ReHo, ReHoSettings,
+    SCA, SCASettings,
+    Settings, ComputerSettings, DirectorySettings,
+    Nuisance, NuisanceRegression, MedianAngleCorrection,
+    CentralitySettings, Centrality,
+    ALFF, ALFFSettings,
+    AfterWarping, AfterWarpingOptions,
+    FilteringSettings,
+    TimeSeries, EPI_DistCorr, ROITimeseries,
+    GroupAnalysis, GPASettings, MDMRSettings, ISCSettings,
+    TimeSeriesOptions, BASCSettings,
+    AROMA_ICA, AromaSettings
+)
 
 ID_SUBMIT = 6
 
@@ -92,6 +96,7 @@ class Mybook(wx.Treebook):
         page15 = FuncToMNIRegistration(self, 6)
 
         page16= Nuisance(self)
+        ica_aroma = AromaSettings(self)
         page17= NuisanceRegression(self, 7)
         page18= MedianAngleCorrection(self, 8)
 
@@ -99,8 +104,6 @@ class Mybook(wx.Treebook):
 
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
-        
-        
         
         page27 = SCA(self)
         page28 = SCASettings(self)
@@ -124,6 +127,7 @@ class Mybook(wx.Treebook):
         page46 = GPASettings(self)
         page47 = BASCSettings(self)
         page48 = MDMRSettings(self)
+        page49 = ISCSettings(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
@@ -145,6 +149,7 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page15,"Functional to MNI Registration", wx.ID_ANY)
 
         self.AddPage(page16,"Nuisance", wx.ID_ANY)
+        self.AddSubPage(ica_aroma, "ICA-AROMA De-noising", wx.ID_ANY)
         self.AddSubPage(page17,"Nuisance Regression", wx.ID_ANY)
         self.AddSubPage(page18,"Median Angle Correction", wx.ID_ANY)
 
@@ -152,8 +157,6 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-        
-        
         
         self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
@@ -178,6 +181,7 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page47, "PyBASC Settings",
                         wx.ID_ANY)
         self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)
+        self.AddSubPage(page49, "ISC Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -597,12 +601,12 @@ class MainFrame(wx.Frame):
             subListPath = dlg.GetPath()
         
         # Load and test the subject list
-        print 'Checking subject list: %s...' % subListPath
+        print('Checking data configuration: {0}...'.format(subListPath))
         sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
         sub_flg = self.test_sublist(sublist)
         if not sub_flg:
             raise Exception
-        print 'Subject list looks good!'
+        print('Data configuration looks good!')
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
 
