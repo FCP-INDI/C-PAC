@@ -980,6 +980,9 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         # TODO: message
         raise Exception("pheno sub label provided, but no pheno file")
 
+    if not group_list_text_file or group_list_text_file == 'None':
+        raise Exception("subject list not defined")
+
     if isinstance(group_list_text_file, list):
         group_list = group_list_text_file
 
