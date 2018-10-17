@@ -59,7 +59,6 @@ template_skull_for_func,Standard Template with Skull (functional resolution),Fun
 identityMatrix,Standard Identity Matrix,Functional to MNI Registration
 resolution_for_func_derivative,Functional Derivatives Resolution,Functional to MNI Registration
 runICA,Run ICA-AROMA,ICA-AROMA De-Noising
-aroma_dim,Dimensions,ICA-AROMA De-Noising
 aroma_denoise_type,De-noising Type,ICA-AROMA De-Noising
 runNuisance,Run Nuisance Signal Regression,Nuisance Regression
 lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Regression
