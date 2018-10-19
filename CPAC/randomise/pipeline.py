@@ -2,6 +2,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.base import BaseInterface, \
     BaseInterfaceInputSpec, traits, File, TraitedSpec
+from nipype.interfaces import fsl
 
 from nilearn import input_data, masking, image, datasets
 from nilearn.image import resample_to_img, concat_imgs
@@ -54,11 +55,9 @@ def create_randomise(name='randomise', working_dir=None, crash_dir=None):
     inputspec = pe.Node(
         util.IdentityInterface(fields=[
             'subjects',
+            'design_matrix_file',
+            'constrast_file',
             'permutations',
-            'collapse_subj',
-            'std',
-            'two_sided',
-            'random_state'
         ]),
         name='inputspec'
     )
@@ -71,30 +70,31 @@ def create_randomise(name='randomise', working_dir=None, crash_dir=None):
         name='outputspec'
     )
 
-    # First merge input files into single 4D file
     merge = pe.Node(interface=fsl.Merge(), name='fsl_merge')
-    merge.inputs.in_files = file_list
     merge.inputs.dimension = 't'
-    merge_output = "randomise_pipe_merge.nii.gz"
-    merge.inputs.merged_file = merge_output
+    merge.inputs.merged_file = "randomise_merged.nii.gz"
 
-    # Create a mask from the merged file
+    wf.connect(inputspec, 'subjects', merge, 'in_files')
+
     mask = pe.Node(interface=fsl.maths.MathsCommand(), name='fsl_maths')
     mask.inputs.args = '-abs -Tmin -bin'
-    merge_mask_output = "randomise_pipe_mask.nii.gz"
-    mask.inputs.out_file = merge_mask_output
+    mask.inputs.out_file = "randomise_mask.nii.gz"
+
     wf.connect(merge, 'merged_file', mask, 'in_file')
 
-    randomise = pe.Node(interface=fsl.Randomise(), name='fsl_randomise_{0}'.format(current_contrast))
+    randomise = pe.Node(interface=fsl.Randomise(), name='randomise')
     wf.connect(mask, 'out_file', randomise, 'mask')
-    randomise.inputs.base_name = "randomise_pipe_contrast_{0}".format(current_contrast)
-    randomise.inputs.design_mat = mat_file
-    randomise.inputs.tcon = con_file
-    randomise.inputs.args = ' --skipTo={0}'.format(current_contrast)
-    randomise.inputs.num_perm = num_iterations
+    randomise.inputs.base_name = "randomise"
     randomise.inputs.demean = True
     randomise.inputs.tfce = True
-    wf.connect(merge, 'merged_file', randomise, 'in_file')
+    wf.connect([
+        (merge, randomise, [('merged_file', 'in_file')]),
+        (inputspec, randomise, [
+            ('design_matrix_file', 'design_mat'),
+            ('constrast_file', 'tcon'),
+            ('permutations', 'num_perm'),
+        ]),
+    ])
 
     select_t_corrected = pe.Node(niu.Function(input_names=["input_list"],
                                                 output_names=['out_file'],
