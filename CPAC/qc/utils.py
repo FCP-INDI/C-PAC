@@ -10,6 +10,7 @@ import nibabel as nb
 import numpy.ma as ma
 
 import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 
