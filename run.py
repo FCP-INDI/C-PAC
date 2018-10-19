@@ -381,7 +381,7 @@ if args.analysis_level == "participant":
 
     plugin_args = {'n_procs': int(c['maxCoresPerParticipant']),
                    'memory_gb': int(c['maximumMemoryPerParticipant']),
-                   'callback_log': log_nodes_cb}
+                   'status_callback': log_nodes_cb}
 
     print ("Starting participant level processing")
     CPAC.pipeline.cpac_runner.run(config_file, data_config_file,
