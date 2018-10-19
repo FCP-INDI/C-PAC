@@ -153,6 +153,12 @@ if args.analysis_level == "gui":
     CPAC.GUI.run()
     sys.exit(1)
 
+
+if args.analysis_level == "cli":
+    from CPAC.__main__ import main
+    main()
+    sys.exit(0)
+
 # check to make sure that the input directory exists
 if not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
     print("Error! Could not find {0}".format(args.bids_dir))
@@ -371,7 +377,7 @@ with open(data_config_file, 'w') as f:
 if args.analysis_level == "participant":
     # build pipeline easy way
     import CPAC
-    from nipype.pipeline.plugins.callback_log import log_nodes_cb
+    from CPAC.utils.monitoring import log_nodes_cb
 
     plugin_args = {'n_procs': int(c['maxCoresPerParticipant']),
                    'memory_gb': int(c['maximumMemoryPerParticipant']),
