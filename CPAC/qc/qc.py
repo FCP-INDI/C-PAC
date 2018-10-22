@@ -1,5 +1,4 @@
 import matplotlib
-matplotlib.use('Agg')
 
 from nipype.interfaces import afni 
 from CPAC.utils.function import Function
