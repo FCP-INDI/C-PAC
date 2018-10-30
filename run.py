@@ -36,7 +36,7 @@ def load_yaml_config(config_filename, aws_input_creds):
         with open(config_filename, 'r') as f:
             config_data = yaml.load(f)
             return config_data
-    except FileNotFoundError:
+    except IOError:
         print("Error! Could not find config file {0}".format(config_filename))
         raise
 
@@ -372,7 +372,7 @@ else:
     data_config_file = os.path.join("/scratch", data_config_file)
 
 with open(data_config_file, 'w') as f:
-    yaml.dump(sub_list, f)
+    yaml.safe_dump(sub_list, f)
 
 if args.analysis_level == "participant":
     # build pipeline easy way

@@ -360,7 +360,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                   " is this a problem?")
 
                 task_info = {"scan": os.path.join(bids_dir,p),
-                             "scan_parameters": t_params}
+                             "scan_parameters": t_params.copy()}
             else:
                 task_info = os.path.join(bids_dir,p)
 
