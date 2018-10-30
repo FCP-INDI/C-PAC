@@ -1418,9 +1418,7 @@ def check(params_dct, subject, scan, val, throw_exception):
     return ret_val
 
 
-def try_fetch_parameters(scan_parameters, subject, scan, keys):
-
-    value = None
+def try_fetch_parameter(scan_parameters, subject, scan, keys):
 
     for key in keys:
 
@@ -1433,11 +1431,11 @@ def try_fetch_parameters(scan_parameters, subject, scan, keys):
         if value == 'None':
             return None
 
-    if value is None:
-        raise Exception("Missing Value for {0} for subject "
-                        "{1}".format(' or '.join(keys), subject))
+        if value is not None:
+            return value
 
-    return value
+    raise Exception("Missing Value for {0} for subject "
+                    "{1}".format(' or '.join(keys), subject))
 
 
 def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
@@ -1542,7 +1540,7 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
 
             # get details from the configuration
             TR = float(
-                try_fetch_parameters(
+                try_fetch_parameter(
                     params_dct,
                     subject_id, 
                     scan, 
@@ -1551,7 +1549,7 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
             )
 
             pattern = str(
-                try_fetch_parameters(
+                try_fetch_parameter(
                     params_dct,
                     subject_id,
                     scan,
