@@ -1419,8 +1419,18 @@ def check(params_dct, subject, scan, val, throw_exception):
 
 
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
+    
+    scan_parameters = dict(
+        (k.lower(), v)
+        for k, v in scan_parameters.iteritems()
+    )
 
     for key in keys:
+
+        key = key.lower()
+        
+        if key not in scan_parameters:
+            continue
 
         if isinstance(scan_parameters[key], dict):
             value = scan_parameters[key][scan]
