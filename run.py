@@ -372,7 +372,11 @@ else:
     data_config_file = os.path.join("/scratch", data_config_file)
 
 with open(data_config_file, 'w') as f:
-    yaml.safe_dump(sub_list, f, default_flow_style=False)
+
+    # Avoid dict/list references
+    noalias_dumper = yaml.dumper.SafeDumper
+    noalias_dumper.ignore_aliases = lambda self, data: True
+    yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
 
 if args.analysis_level == "participant":
     # build pipeline easy way
