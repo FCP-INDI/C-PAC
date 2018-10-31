@@ -477,7 +477,7 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
             valid_extensions = ['.nii', '.nii.gz']
 
             base_name = [
-                base_file[-len(ext)]
+                base_file[:-len(ext)]
                 for ext in valid_extensions
                 if base_file.endswith(ext)
             ][0]

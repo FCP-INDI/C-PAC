@@ -137,6 +137,7 @@ RUN apt-get update && \
 RUN mkdir -p /opt/ICA-AROMA
 RUN curl -SL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
 RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install miniconda
 RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
