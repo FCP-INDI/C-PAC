@@ -1418,6 +1418,36 @@ def check(params_dct, subject, scan, val, throw_exception):
     return ret_val
 
 
+def try_fetch_parameter(scan_parameters, subject, scan, keys):
+    
+    scan_parameters = dict(
+        (k.lower(), v)
+        for k, v in scan_parameters.iteritems()
+    )
+
+    for key in keys:
+
+        key = key.lower()
+        
+        if key not in scan_parameters:
+            continue
+
+        if isinstance(scan_parameters[key], dict):
+            value = scan_parameters[key][scan]
+        else:
+            value = scan_parameters[key]
+
+        # Explicit none value
+        if value == 'None':
+            return None
+
+        if value is not None:
+            return value
+
+    raise Exception("Missing Value for {0} for subject "
+                    "{1}".format(' or '.join(keys), subject))
+
+
 def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                     pipeconfig_start_indx, pipeconfig_stop_indx,
                     data_config_scan_params=None):
@@ -1509,6 +1539,7 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
+
             try:
                 params_dct = data_config_scan_params
             except:
@@ -1518,9 +1549,24 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                 raise Exception(err)
 
             # get details from the configuration
-            TR = float(check(params_dct, subject_id, scan, 'TR', False))
-            pattern = str(check(params_dct, subject_id, scan, 'acquisition',
-                                False))
+            TR = float(
+                try_fetch_parameter(
+                    params_dct,
+                    subject_id, 
+                    scan, 
+                    ['TR', 'RepetitionTime']
+                )
+            )
+
+            pattern = str(
+                try_fetch_parameter(
+                    params_dct,
+                    subject_id,
+                    scan,
+                    ['acquisition', 'SliceTiming', 'SliceAcquisitionOrder']
+                )
+            )
+            
             ref_slice = int(check(params_dct, subject_id, scan, 'reference',
                                   False))
             first_tr = check2(check(params_dct, subject_id, scan, 'first_TR',
