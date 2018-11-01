@@ -1400,7 +1400,7 @@ def select_model_files(model, ftest, model_name):
 def check(params_dct, subject, scan, val, throw_exception):
 
     if val not in params_dct:
-        
+
         if throw_exception:
             raise Exception("Missing Value for {0} for subject "
                             "{1}".format(val, subject))
@@ -1556,6 +1556,8 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                       "participant: {0}\n\n".format(subject_id)
                 raise Exception(err)
 
+            # TODO: better handling of errant key values!!!
+            # TODO: use schema validator to deal with it
             # get details from the configuration
             TR = float(
                 try_fetch_parameter(
@@ -1575,12 +1577,17 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                 )
             )
             
-            ref_slice = int(check(params_dct, subject_id, scan, 'reference',
-                                  False))
-            first_tr = check2(check(params_dct, subject_id, scan, 'first_TR',
-                                    False))
-            last_tr = check2(check(params_dct, subject_id, scan, 'last_TR',
-                                   False))
+            ref_slice = check(params_dct, subject_id, scan, 'reference', False)
+            if ref_slice:
+                ref_slice = int(ref_slice)
+
+            first_tr = check(params_dct, subject_id, scan, 'first_TR', False)
+            if first_tr:
+                first_tr = check2(first_tr)
+
+            last_tr = check(params_dct, subject_id, scan, 'last_TR', False)
+            if last_tr:
+                last_tr = check2(last_tr)
 
         else:
             err = "\n\n[!] Could not read the format of the scan parameters "\
