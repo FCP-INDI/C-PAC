@@ -1399,6 +1399,14 @@ def select_model_files(model, ftest, model_name):
 
 def check(params_dct, subject, scan, val, throw_exception):
 
+    if val not in params_dct:
+        
+        if throw_exception:
+            raise Exception("Missing Value for {0} for subject "
+                            "{1}".format(val, subject))
+
+        return None
+
     if isinstance(params_dct[val], dict):
         ret_val = params_dct[val][scan]
     else:
