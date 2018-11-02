@@ -164,11 +164,12 @@ RUN conda install -y  \
         scipy==0.19.1 \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
-        pip==9.0.1
+        pip
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
+RUN pip install xvfbwrapper
 
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
