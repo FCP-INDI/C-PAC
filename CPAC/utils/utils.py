@@ -2228,20 +2228,20 @@ def check_system_deps(check_ants=False, check_ica_aroma=False):
     missing_install = []
 
     # Check AFNI
-    if os.system("3dcalc >/dev/null") == 32512:
+    if os.system("3dcalc >/dev/null 2>&1") == 32512:
         missing_install.append("AFNI")
     # Check FSL
-    if os.system("fslmaths >/dev/null") == 32512:
+    if os.system("fslmaths >/dev/null 2>&1") == 32512:
         missing_install.append("FSL")
     # Check ANTs/C3D
     if check_ants:
-        if os.system("c3d_affine_tool >/dev/null") == 32512:
+        if os.system("c3d_affine_tool >/dev/null 2>&1") == 32512:
             missing_install.append("C3D")
-        if os.system("antsRegistration >/dev/null") == 32512:
+        if os.system("antsRegistration >/dev/null 2>&1") == 32512:
             missing_install.append("ANTS")
     # Check ICA-AROMA
     if check_ica_aroma:
-        if os.system("ICA_AROMA.py >/dev/null") == 32512:
+        if os.system("ICA_AROMA.py >/dev/null 2>&1") == 32512:
             missing_install.append("ICA-AROMA")
 
     # If we're missing deps, raise Exception
