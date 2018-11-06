@@ -736,7 +736,7 @@ basc_scan_inclusion :  None
 
 
 # Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
-runMDMR :  [1]
+runMDMR :  [0]
 
 
 # Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
