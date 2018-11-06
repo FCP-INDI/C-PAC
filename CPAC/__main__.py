@@ -350,7 +350,9 @@ def test():
 
 
 @test.command()
-def run_suite():
+@click.option('--list', '-l', 'show_list', is_flag=True)
+@click.option('--filter', '-f', 'pipeline_filter', default='')
+def run_suite(show_list=False, pipeline_filter=''):
     import os
     import pkg_resources as p
     import CPAC.pipeline.cpac_runner as cpac_runner
@@ -378,10 +380,22 @@ def run_suite():
                                          "configs", "test_configs",
                                          "data-test_S3-NKI-RS_fmap.yml"))
 
+    if show_list:
+        print("")
+        print("Availables pipelines:")
+
     no_params = False
     for config_file in os.listdir(test_config_dir):
         if 'pipe-test' in config_file:
+            if pipeline_filter not in config_file:
+                continue
+
+            if show_list:
+                print("- " + config_file)
+                continue
+
             pipe = os.path.join(test_config_dir, config_file)
+
             if 'DistCorr' in pipe:
                 data = data_test_fmap
             elif not no_params:
@@ -392,6 +406,9 @@ def run_suite():
                 
             # run
             cpac_runner.run(pipe, data)
+
+    if show_list:
+        print("")
 
 
 @test.group()
