@@ -693,10 +693,10 @@ basc_memory :  4
 # Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
 # If you do not wish to use a mask, set this field to None.
 # Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
-basc_roi_file :  $PYBASC/masks/Full_BG_Sim_3mm.nii.gz
+basc_roi_file :  s3://fcp-indi/resources/cpac/resources/Full_BG_Sim_3mm.nii.gz
 
 
-basc_cross_cluster_mask_file :  $PYBASC/masks/Yeo7_3mmMasks/Yeo_1_3mm.nii.gz
+basc_cross_cluster_mask_file :  s3://fcp-indi/resources/cpac/resources/Yeo_1_3mm.nii.gz
 
 
 # Number of bootstraps to apply to individual time series.
