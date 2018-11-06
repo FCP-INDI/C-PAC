@@ -360,7 +360,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                   " is this a problem?")
 
                 task_info = {"scan": os.path.join(bids_dir,p),
-                             "scan_parameters": t_params}
+                             "scan_parameters": t_params.copy()}
             else:
                 task_info = os.path.join(bids_dir,p)
 
@@ -386,9 +386,10 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
             if "T1w" in f_dict["scantype"]:
+                # TODO deal with scan parameters anatomical
                 if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = \
-                        task_info
+                        task_info["scan"]
                 else:
                     print("Anatomical file (%s) already found" %
                           (subdict[f_dict["sub"]][f_dict["ses"]]["anat"]) +

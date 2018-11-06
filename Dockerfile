@@ -137,6 +137,7 @@ RUN apt-get update && \
 RUN mkdir -p /opt/ICA-AROMA
 RUN curl -SL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
 RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install miniconda
 RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
@@ -157,17 +158,18 @@ RUN conda install -y  \
         matplotlib=2.0.2 \
         networkx==1.11 \
         nose==1.3.7 \
-        numpy==1.11.0 \
-        pandas==0.20.1 \
+        numpy==1.13.0 \
+        pandas==0.23.4 \
         pyyaml==3.12 \
-        scipy==0.18.1 \
+        scipy==0.19.1 \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
-        pip==9.0.1
+        pip
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
+RUN pip install xvfbwrapper
 
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz

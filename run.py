@@ -36,7 +36,7 @@ def load_yaml_config(config_filename, aws_input_creds):
         with open(config_filename, 'r') as f:
             config_data = yaml.load(f)
             return config_data
-    except FileNotFoundError:
+    except IOError:
         print("Error! Could not find config file {0}".format(config_filename))
         raise
 
@@ -152,6 +152,12 @@ if args.analysis_level == "gui":
 
     CPAC.GUI.run()
     sys.exit(1)
+
+
+if args.analysis_level == "cli":
+    from CPAC.__main__ import main
+    main()
+    sys.exit(0)
 
 # check to make sure that the input directory exists
 if not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
@@ -366,16 +372,20 @@ else:
     data_config_file = os.path.join("/scratch", data_config_file)
 
 with open(data_config_file, 'w') as f:
-    yaml.dump(sub_list, f)
+
+    # Avoid dict/list references
+    noalias_dumper = yaml.dumper.SafeDumper
+    noalias_dumper.ignore_aliases = lambda self, data: True
+    yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
 
 if args.analysis_level == "participant":
     # build pipeline easy way
     import CPAC
-    from nipype.pipeline.plugins.callback_log import log_nodes_cb
+    from CPAC.utils.monitoring import log_nodes_cb
 
     plugin_args = {'n_procs': int(c['maxCoresPerParticipant']),
                    'memory_gb': int(c['maximumMemoryPerParticipant']),
-                   'callback_log': log_nodes_cb}
+                   'status_callback': log_nodes_cb}
 
     print ("Starting participant level processing")
     CPAC.pipeline.cpac_runner.run(config_file, data_config_file,
