@@ -386,12 +386,12 @@ def run_suite(show_list=False, pipeline_filter=''):
 
     no_params = False
     for config_file in os.listdir(test_config_dir):
-        if 'pipe-test' in config_file:
+        if config_file.startswith('pipe-test_'):
             if pipeline_filter not in config_file:
                 continue
 
             if show_list:
-                print("- " + config_file)
+                print("- " + config_file[len('pipe-test_'):])
                 continue
 
             pipe = os.path.join(test_config_dir, config_file)
