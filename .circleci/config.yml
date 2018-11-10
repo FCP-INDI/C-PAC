@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:2.7.15-stretch
+      - image: fcpindi/c-pac:latest
     steps:
       - checkout
       - run: pip install --user -r requirements.txt
