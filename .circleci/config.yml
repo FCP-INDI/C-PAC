@@ -1,8 +1,7 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: fcpindi/c-pac:latest
+    machine: true
     steps:
       - checkout
-      - run: pip install --user -r requirements.txt
+      - run: docker build -t cpac:$CIRCLE_BRANCH .
