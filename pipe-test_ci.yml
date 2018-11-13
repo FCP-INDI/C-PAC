@@ -257,7 +257,7 @@ template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
-regOption :  ['ANTS', 'FSL']
+regOption :  ['ANTS']
 
 
 # Configuration file to be used by FSL to set FNIRT parameters.
