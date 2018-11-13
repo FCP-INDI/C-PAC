@@ -5,4 +5,4 @@ jobs:
     steps:
       - checkout
       - run: docker build -t cpac:$CIRCLE_BRANCH .
-      #- run: docker run -i --rm -v $HOME:/outputs -v /tmp:/scratch cpac:$CIRCLE_BRANCH s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS /outputs participant --participant_label 1019436
+      - run: docker run -i --rm -v $HOME:/output -v /tmp:/scratch cpac:$CIRCLE_BRANCH s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_all.yml

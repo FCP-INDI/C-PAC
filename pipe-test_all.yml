@@ -114,7 +114,7 @@ skullstrip_option :  AFNI
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
-skullstrip_shrink_factor :  0.6
+skullstrip_shrink_factor :  0.62
 
 
 # Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
@@ -122,7 +122,7 @@ skullstrip_var_shrink_fac :  True
 
 
 # The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, for when edge detection is used (which is On by default), otherwise the default value is 0.65.
-skullstrip_shrink_factor_bot_lim :  0.4
+skullstrip_shrink_factor_bot_lim :  0.42
 
 
 # Avoids ventricles while skullstripping.
@@ -130,7 +130,7 @@ skullstrip_avoid_vent :  True
 
 
 # Set the number of iterations. Default is 250.The number of iterations should depend upon the density of your mesh.
-skullstrip_n_iterations :  250
+skullstrip_n_iterations :  252
 
 
 # While expanding, consider the voxels above and not only the voxels below
@@ -142,15 +142,15 @@ skullstrip_touchup :  True
 
 
 # Give the maximum number of pixels on either side of the hole that can be filled. The default is 10 only if 'Touchup' is On - otherwise, the default is 0.
-skullstrip_fill_hole :  10
+skullstrip_fill_hole :  11
 
 
 # Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
-skullstrip_NN_smooth :  72
+skullstrip_NN_smooth :  74
 
 
 # Perform final surface smoothing after all iterations. Default is 20.
-skullstrip_smooth_final :  20
+skullstrip_smooth_final :  21
 
 
 # Avoid eyes while skull stripping. Default is On.
@@ -162,7 +162,7 @@ skullstrip_use_edge :  True
 
 
 # Speed of expansion.
-skullstrip_exp_frac :  0.1
+skullstrip_exp_frac :  0.12
 
 
 # Perform aggressive push to edge. This might cause leakage. Default is Off.
@@ -174,7 +174,7 @@ skullstrip_use_skull :  Off
 
 
 # Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection).
-skullstrip_perc_int :  0
+skullstrip_perc_int :  0.01
 
 
 # Number of iterations to remove intersection problems. With each iteration, the program automatically increases the amount of smoothing to get rid of intersections. Default is 4.
