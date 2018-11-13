@@ -191,5 +191,6 @@ RUN chmod +x /code/run.py
 # copy useful pipeline scripts
 COPY default_pipeline.yaml /cpac_resources/default_pipeline.yaml
 COPY test_pipeline.yaml /cpac_resources/test_pipeline.yaml
+COPY pipe-test_all.yml /cpac_resources/pipe-test_all.yml
 
 ENTRYPOINT ["/code/run.py"]
