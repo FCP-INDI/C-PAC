@@ -464,7 +464,7 @@ runFristonModel :  [1]
 
 # Remove or regress out volumes exhibiting excessive motion.
 # Each of these options are mutually exclusive, and selecting more than one will create a new pipeline fork for each option. For example, de-spiking and scrubbing will not run within the same pipeline strategy.
-runMotionSpike :  ['De-Spiking', 'Scrubbing', 'None']
+runMotionSpike :  ['De-Spiking']
 
 
 # (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) calculation to apply the threshold to during de-spiking or scrubbing.
