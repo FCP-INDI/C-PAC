@@ -508,7 +508,7 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
 
 
 def prep_group_analysis_workflow(model_df, model_name,
-                                 group_config_path, resource_id,
+                                 group_config_file, resource_id,
                                  preproc_strat, series_or_repeated_label):
     
     #
@@ -525,7 +525,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     import nipype.interfaces.utility as util
     import nipype.interfaces.io as nio
 
-    from CPAC.pipeline.cpac_group_runner import load_config_yml
+    
     from CPAC.utils.create_flame_model_files import create_flame_model_files
     from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv
 
