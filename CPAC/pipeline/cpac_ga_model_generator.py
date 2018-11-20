@@ -484,7 +484,7 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
     return contrasts_vectors
 
 
-def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
+def prep_group_analysis_workflow(model_df, model_name,
                                  group_config_path, resource_id,
                                  preproc_strat, series_or_repeated_label):
     
@@ -506,10 +506,10 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     from CPAC.utils.create_flame_model_files import create_flame_model_files
     from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv
 
-    pipeline_config_obj = load_config_yml(pipeline_config_path)
+    #pipeline_config_obj = load_config_yml(pipeline_config_path)
     group_config_obj = load_config_yml(group_config_path)
 
-    pipeline_ID = pipeline_config_obj.pipelineName
+    pipeline_ID = group_config_obj.pipelineName
 
     # remove file names from preproc_strat
     filename = preproc_strat.split("/")[-1]
@@ -603,11 +603,11 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
         out_dir.split("group_analysis_results_%s" % pipeline_ID)[1]
 
     # generate working directory for this output's group analysis run
-    work_dir = os.path.join(pipeline_config_obj.workingDirectory,
+    work_dir = os.path.join(group_config_obj.workingDirectory,
                             'cpac_group_analysis', 'FSL_FEAT', 
                             second_half_out.lstrip("/"))
 
-    log_dir = os.path.join(pipeline_config_obj.logDirectory,
+    log_dir = os.path.join(group_config_obj.logDirectory,
                            'cpac_group_analysis', 'FSL_FEAT',
                            second_half_out.lstrip("/"))
 
@@ -901,17 +901,17 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
         raise Exception(err)
 
     # time for contrasts
-    contrasts_list = None
-    contrasts_vectors = None
+    #contrasts_list = None
+    #contrasts_vectors = None
 
-    if ((custom_confile == None) or (custom_confile == '') or
-            ("None" in custom_confile) or ("none" in custom_confile)):
+    #if ((custom_confile == None) or (custom_confile == '') or
+    #        ("None" in custom_confile) or ("none" in custom_confile)):
 
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
-        contrasts_list = group_config_obj.contrasts
-        contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
-                                                  resource_id)
+     #   contrasts_list = group_config_obj.contrasts
+     #   contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
+     #                                             resource_id)
 
     # check the merged file's order
     check_merged_file(model_df["Filepath"], merge_file)
@@ -946,10 +946,10 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     dmatrix_df = dmatrix_df[column_names]
 
     # send off the info so the FLAME input model files can be generated!
-    mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix_df,
-        column_names, contrasts_vectors, contrasts_list, custom_confile, ftest_list,
-        group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0],
-        model_name, resource_id, model_path)
+    #mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix_df,
+    #    column_names, contrasts_vectors, contrasts_list, custom_confile, ftest_list,
+    #    group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0],
+    #    model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"], column_names,
@@ -960,7 +960,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     wf = pe.Workflow(name=wf_name)
 
     wf.base_dir = work_dir
-    crash_dir = os.path.join(pipeline_config_obj.crashLogDirectory,
+    crash_dir = os.path.join(group_config_obj.crashLogDirectory,
                              "group_analysis", model_name)
 
     wf.config['execution'] = {'hash_method': 'timestamp',
@@ -975,7 +975,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     gpa_wf.inputs.inputspec.z_threshold = z_threshold
     gpa_wf.inputs.inputspec.p_threshold = p_threshold
-    gpa_wf.inputs.inputspec.parameters = (pipeline_config_obj.FSLDIR,
+    gpa_wf.inputs.inputspec.parameters = (group_config_obj.FSLDIR,
                                           'MNI152')
 
     gpa_wf.inputs.inputspec.mat_file = mat_file
