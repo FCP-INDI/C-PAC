@@ -1047,11 +1047,11 @@ def prep_feat_inputs(config_file, pipeline_output_folder):
                     # send it in
                     analysis_dict[(model_name, group_config_file, resource_id,
                                    strat_info, series)] = newer_pheno_df
-
+                    #HELLO 
     return analysis_dict
 
 
-def run_feat(config_file, pipeline_output_folder=None):
+def run_feat(group_config_file, pipeline_output_folder=None):
 
     from multiprocessing import Process
 
@@ -1067,7 +1067,7 @@ def run_feat(config_file, pipeline_output_folder=None):
                                               'pipeline_{0}'.format(c.pipelineName))
 
     # create the analysis DF dictionary
-    analysis_dict = prep_feat_inputs(config_file,
+    analysis_dict = prep_feat_inputs(group_config_file,
                                      pipeline_output_folder)
 
     for unique_resource_id in analysis_dict.keys():
@@ -1089,7 +1089,7 @@ def run_feat(config_file, pipeline_output_folder=None):
                 prep_group_analysis_workflow
 
             procss.append(Process(target=prep_group_analysis_workflow,
-                                  args=(model_df, config_file, model_name,
+                                  args=(model_df, model_name,
                                         group_config_file, resource_id,
                                         preproc_strat,
                                         series_or_repeated)))
@@ -1104,6 +1104,28 @@ def run_feat(config_file, pipeline_output_folder=None):
                   "announcements.\n\n"
 
     manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
+
+def prep_feat(config_file, pipeline_output_folder,model_df, model_name, group_config_path, resource_id,preproc_strat, series_or_repeated_label):
+    
+    if not c.runOnGrid:
+        prep_feat_inputs(config_file, pipeline_output_folder)
+        from CPAC.pipeline.cpac_ga_model_generator import \
+                prep_group_analysis_workflow
+
+            procss.append(Process(target=prep_group_analysis_workflow,
+                                  args=(model_df, model_name,
+                                        group_config_file, resource_id,
+                                        preproc_strat,
+                                        series_or_repeated)))
+        else:
+            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
+                  "been implemented to handle runs on a cluster or " \
+                  "grid.\n\nPlease turn off 'Run CPAC On A Cluster/" \
+                  "Grid' in order to continue with group-level " \
+                  "analysis. This will submit the job to only one " \
+                  "node, however.\n\nWe will update users on when this " \
+                  "feature will be available through release note " \
+                  "announcements.\n\n"
 
 
 def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
