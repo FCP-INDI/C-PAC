@@ -41,13 +41,18 @@ def create_dir(dir_path, description):
             raise Exception(err)
 
 
-def create_merged_copefile(list_of_output_files, merged_outfile):
+def create_merged_copefile(list_of_output_files, merged_outfile,model_path):
 
     import subprocess
+
+    merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
+    merge_outfile = os.path.join(model_path, merge_outfile)
 
     merge_string = ["fslmerge", "-t", merged_outfile]
 
     merge_string = merge_string + list_of_output_files
+
+    merge_file = model_df["Filepath"].tolist(),merge_outfile
 
     try:
         retcode = subprocess.check_output(merge_string)
@@ -58,6 +63,24 @@ def create_merged_copefile(list_of_output_files, merged_outfile):
               "merge: %d\n\nError details: %s\n\n" \
               % (merged_outfile, len(list_of_output_files), e)
         raise Exception(err)
+
+    # create merged group mask
+    merge_mask_outfile = model_name + "_" + resource_id + "_merged_mask.nii.gz"
+    merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
+    merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+
+    if "Group Mask" in group_config_obj.mean_mask:
+        mask_for_means = merge_mask
+    else:
+        individual_masks_dir = os.path.join(model_path, "individual_masks")
+        create_dir(individual_masks_dir, "individual masks")
+        for unique_id, series_id, raw_filepath in zip(model_df["participant_id"],
+                model_df["Series"], model_df["Raw_Filepath"]):
+            mask_for_means_path = os.path.join(individual_masks_dir,
+                "%s_%s_%s_mask.nii.gz" % (unique_id, series_id, resource_id))
+            mask_for_means = create_merge_mask(raw_filepath, 
+                                               mask_for_means_path)
+        readme_flags.append("individual_masks")
 
     return merged_outfile
 
@@ -651,30 +674,8 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     # create 4D merged copefile, in the correct order, identical to design
     # matrix
-    merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
-    merge_outfile = os.path.join(model_path, merge_outfile)
-
-    merge_file = create_merged_copefile(model_df["Filepath"].tolist(),
-                                        merge_outfile)
-
-    # create merged group mask
-    merge_mask_outfile = model_name + "_" + resource_id + "_merged_mask.nii.gz"
-    merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
-    merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
-
-    if "Group Mask" in group_config_obj.mean_mask:
-        mask_for_means = merge_mask
-    else:
-        individual_masks_dir = os.path.join(model_path, "individual_masks")
-        create_dir(individual_masks_dir, "individual masks")
-        for unique_id, series_id, raw_filepath in zip(model_df["participant_id"],
-                model_df["Series"], model_df["Raw_Filepath"]):
-            mask_for_means_path = os.path.join(individual_masks_dir,
-                "%s_%s_%s_mask.nii.gz" % (unique_id, series_id, resource_id))
-            mask_for_means = create_merge_mask(raw_filepath, 
-                                               mask_for_means_path)
-        readme_flags.append("individual_masks")
-
+    #-----------------------------------------------------
+    
     # calculate measure means, and demean
     if "Measure_Mean" in design_formula:
         model_df = calculate_measure_mean_in_df(model_df, mask_for_means)
@@ -955,90 +956,92 @@ def prep_group_analysis_workflow(model_df, model_name,
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"], column_names,
         dmat_csv_path)
 
+    return dmat_csv_path
+
     # workflow time
-    wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
-    wf = pe.Workflow(name=wf_name)
+    #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
+    #wf = pe.Workflow(name=wf_name)
 
-    wf.base_dir = work_dir
-    crash_dir = os.path.join(group_config_obj.crashLogDirectory,
-                             "group_analysis", model_name)
+    #wf.base_dir = work_dir
+    #crash_dir = os.path.join(group_config_obj.crashLogDirectory,
+    #                         "group_analysis", model_name)
 
-    wf.config['execution'] = {'hash_method': 'timestamp',
-                              'crashdump_dir': crash_dir} 
+    #wf.config['execution'] = {'hash_method': 'timestamp',
+    #                          'crashdump_dir': crash_dir} 
 
     # gpa_wf
     # Creates the actual group analysis workflow
-    gpa_wf = create_group_analysis(fTest, "gp_analysis_%s" % wf_name)
+    #gpa_wf = create_group_analysis(fTest, "gp_analysis_%s" % wf_name)
 
-    gpa_wf.inputs.inputspec.merged_file = merge_file
-    gpa_wf.inputs.inputspec.merge_mask = merge_mask
+    #gpa_wf.inputs.inputspec.merged_file = merge_file
+    #gpa_wf.inputs.inputspec.merge_mask = merge_mask
 
-    gpa_wf.inputs.inputspec.z_threshold = z_threshold
-    gpa_wf.inputs.inputspec.p_threshold = p_threshold
-    gpa_wf.inputs.inputspec.parameters = (group_config_obj.FSLDIR,
-                                          'MNI152')
+#    gpa_wf.inputs.inputspec.z_threshold = z_threshold
+#    gpa_wf.inputs.inputspec.p_threshold = p_threshold
+#    gpa_wf.inputs.inputspec.parameters = (group_config_obj.FSLDIR,
+#                                          'MNI152')
 
-    gpa_wf.inputs.inputspec.mat_file = mat_file
-    gpa_wf.inputs.inputspec.con_file = con_file
-    gpa_wf.inputs.inputspec.grp_file = grp_file
+#   gpa_wf.inputs.inputspec.mat_file = mat_file
+#   gpa_wf.inputs.inputspec.con_file = con_file
+#   gpa_wf.inputs.inputspec.grp_file = grp_file
 
-    if fTest:
-        gpa_wf.inputs.inputspec.fts_file = fts_file      
+#  if fTest:
+#        gpa_wf.inputs.inputspec.fts_file = fts_file      
 
     # ds
     # Creates the datasink node for group analysis
-    ds = pe.Node(nio.DataSink(), name='gpa_sink')
+#    ds = pe.Node(nio.DataSink(), name='gpa_sink')
      
-    #     if c.mixedScanAnalysis == True:
-    #         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
+#    #     if c.mixedScanAnalysis == True:
+#    #         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
               
-    ds.inputs.base_directory = str(out_dir)
-    ds.inputs.container = ''
+#    ds.inputs.base_directory = str(out_dir)
+#    ds.inputs.container = ''
         
-    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),
-                                      (r'(?<=model_files)(.)*[/]','/'),
-                                      (r'(?<=merged)(.)*[/]','/'),
-                                      (r'(?<=stats/clusterMap)(.)*[/]','/'),
-                                      (r'(?<=stats/unthreshold)(.)*[/]','/'),
-                                      (r'(?<=stats/threshold)(.)*[/]','/'),
-                                      (r'_cluster(.)*[/]',''),
-                                      (r'_slicer(.)*[/]',''),
-                                      (r'_overlay(.)*[/]','')]
+#    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),
+#                                      (r'(?<=model_files)(.)*[/]','/'),
+#                                      (r'(?<=merged)(.)*[/]','/'),
+#                                      (r'(?<=stats/clusterMap)(.)*[/]','/'),
+#                                      (r'(?<=stats/unthreshold)(.)*[/]','/'),
+#                                      (r'(?<=stats/threshold)(.)*[/]','/'),
+#                                      (r'_cluster(.)*[/]',''),
+#                                      (r'_slicer(.)*[/]',''),
+#                                      (r'_overlay(.)*[/]','')]
 
     # datasink connections
-    wf.connect(gpa_wf, 'outputspec.merged',
-               ds, 'merged')
-    wf.connect(gpa_wf, 'outputspec.zstats',
-               ds, 'stats.unthreshold')
-    wf.connect(gpa_wf, 'outputspec.zfstats',
-               ds,'stats.unthreshold.@01')
-    wf.connect(gpa_wf, 'outputspec.fstats',
-               ds,'stats.unthreshold.@02')
-    wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf',
-               ds, 'stats.threshold')
-    wf.connect(gpa_wf, 'outputspec.cluster_index_zf',
-               ds,'stats.clusterMap')
-    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf',
-               ds, 'stats.clusterMap.@01')
-    wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf',
-               ds, 'rendered')
-    wf.connect(gpa_wf, 'outputspec.rendered_image_zf',
-               ds, 'rendered.@01')
-    wf.connect(gpa_wf, 'outputspec.cluster_threshold',
-               ds,  'stats.threshold.@01')
-    wf.connect(gpa_wf, 'outputspec.cluster_index',
-               ds, 'stats.clusterMap.@02')
-    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
-               ds, 'stats.clusterMap.@03')
-    wf.connect(gpa_wf, 'outputspec.overlay_threshold',
-               ds, 'rendered.@02')
-    wf.connect(gpa_wf, 'outputspec.rendered_image',
-               ds, 'rendered.@03')
+#    wf.connect(gpa_wf, 'outputspec.merged',
+#               ds, 'merged')
+#    wf.connect(gpa_wf, 'outputspec.zstats',
+#               ds, 'stats.unthreshold')
+#    wf.connect(gpa_wf, 'outputspec.zfstats',
+#               ds,'stats.unthreshold.@01')
+#    wf.connect(gpa_wf, 'outputspec.fstats',
+#               ds,'stats.unthreshold.@02')
+#    wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf',
+#               ds, 'stats.threshold')
+#    wf.connect(gpa_wf, 'outputspec.cluster_index_zf',
+#               ds,'stats.clusterMap')
+#    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf',
+#               ds, 'stats.clusterMap.@01')
+#    wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf',
+#               ds, 'rendered')
+#    wf.connect(gpa_wf, 'outputspec.rendered_image_zf',
+#               ds, 'rendered.@01')
+#    wf.connect(gpa_wf, 'outputspec.cluster_threshold',
+#               ds,  'stats.threshold.@01')
+#    wf.connect(gpa_wf, 'outputspec.cluster_index',
+#               ds, 'stats.clusterMap.@02')
+#    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
+#               ds, 'stats.clusterMap.@03')
+#    wf.connect(gpa_wf, 'outputspec.overlay_threshold',
+#               ds, 'rendered.@02')
+#    wf.connect(gpa_wf, 'outputspec.rendered_image',
+#               ds, 'rendered.@03')
 
     # Run the actual group analysis workflow
-    wf.run()
+#    wf.run()
 
-    print "\n\nWorkflow finished for model %s\n\n" % wf_name
+#    print "\n\nWorkflow finished for model %s\n\n" % wf_name
 
 
 def run(config, subject_infos, resource):
