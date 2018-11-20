@@ -650,7 +650,7 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     return pheno_df, dropped_parts
 
 
-def prep_feat_inputs(config_file, pipeline_output_folder):
+def prep_feat_inputs(group_config_file, pipeline_output_folder):
     
     # Preps group analysis run
 
@@ -679,11 +679,11 @@ def prep_feat_inputs(config_file, pipeline_output_folder):
     # Load the group config file into 'c' as a CONFIGURATION OBJECT
     c = load_config_yml(group_config_file)
 
-    if not isfile(c):
-        print '[!] CPAC says: You do not have a valid group config model selected ' \
-              'to run for group-level analysis. Make sure the group config yaml is present ' \
-              'and if not create a new one.\n\n'
-        raise Exception
+    #if not isfile(c):
+    #    print '[!] CPAC says: You do not have a valid group config model selected ' \
+    #          'to run for group-level analysis. Make sure the group config yaml is present ' \
+    #          'and if not create a new one.\n\n'
+    #    raise Exception
 
     # load the group model configs
     group_models = []
@@ -700,44 +700,42 @@ def prep_feat_inputs(config_file, pipeline_output_folder):
     get_motion = False
     get_raw_score = False
 
-    for group_model_tuple in group_models:
 
-        group_model = group_model_tuple[1]
+    group_model = group_models[0]
 
-        if '.' in group_model.participant_list:
-            if not os.path.isfile(group_model.participant_list):
-                raise Exception('\n[!] C-PAC says: Your participant '
+    if '.' in group_model.participant_list:
+        if not os.path.isfile(group_model.participant_list):
+            raise Exception('\n[!] C-PAC says: Your participant '
                                 'inclusion list is not a valid file!\n\n'
                                 'File path: {0}'
                                 '\n'.format(group_model.participant_list))
 
-        if os.path.isfile(group_model.participant_list):
-            inclusion = load_text_file(group_model.participant_list,
+    if os.path.isfile(group_model.participant_list):
+        inclusion = load_text_file(group_model.participant_list,
                                        "group-level analysis participant "
                                        "list")
-        else:
-            inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+    else:
+        inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
 
-        full_inclusion_list = full_inclusion_list + inclusion
+    full_inclusion_list = full_inclusion_list + inclusion
 
-        full_output_measure_list = full_output_measure_list + \
+    full_output_measure_list = full_output_measure_list + \
                                        group_model.derivative_list
 
         # if any of the models will require motion parameters
-        if ("MeanFD" in group_model.design_formula) or \
-                ("MeanDVARS" in group_model.design_formula):
-            get_motion = True
+    if ("MeanFD" in group_model.design_formula) or ("MeanDVARS" in group_model.design_formula):
+        get_motion = True
 
         # make sure "None" gets processed properly here...
-        if (group_model.custom_roi_mask == "None") or \
+    if (group_model.custom_roi_mask == "None") or \
                 (group_model.custom_roi_mask == "none"):
-            custom_roi_mask = None
-        else:
-            custom_roi_mask = group_model.custom_roi_mask
+        custom_roi_mask = None
+    else:
+        custom_roi_mask = group_model.custom_roi_mask
 
-        if ("Measure_Mean" in group_model.design_formula) or \
+    if ("Measure_Mean" in group_model.design_formula) or \
                 (custom_roi_mask != None):
-            get_raw_score = True
+        get_raw_score = True
 
     full_inclusion_list = list(set(full_inclusion_list))
     full_output_measure_list = list(set(full_output_measure_list))
@@ -1086,7 +1084,7 @@ def run_feat(group_config_file, pipeline_output_folder=None):
 
         if not c.runOnGrid:
             from CPAC.pipeline.cpac_ga_model_generator import \
-                prep_group_analysis_workflow
+            prep_group_analysis_workflow
 
             procss.append(Process(target=prep_group_analysis_workflow,
                                   args=(model_df, model_name,
@@ -1105,27 +1103,7 @@ def run_feat(group_config_file, pipeline_output_folder=None):
 
     manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
 
-def prep_feat(config_file, pipeline_output_folder,model_df, model_name, group_config_path, resource_id,preproc_strat, series_or_repeated_label):
-    
-    if not c.runOnGrid:
-        prep_feat_inputs(config_file, pipeline_output_folder)
-        from CPAC.pipeline.cpac_ga_model_generator import \
-                prep_group_analysis_workflow
 
-            procss.append(Process(target=prep_group_analysis_workflow,
-                                  args=(model_df, model_name,
-                                        group_config_file, resource_id,
-                                        preproc_strat,
-                                        series_or_repeated)))
-        else:
-            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
-                  "been implemented to handle runs on a cluster or " \
-                  "grid.\n\nPlease turn off 'Run CPAC On A Cluster/" \
-                  "Grid' in order to continue with group-level " \
-                  "analysis. This will submit the job to only one " \
-                  "node, however.\n\nWe will update users on when this " \
-                  "feature will be available through release note " \
-                  "announcements.\n\n"
 
 
 def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
