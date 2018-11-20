@@ -676,21 +676,20 @@ def prep_feat_inputs(config_file, pipeline_output_folder):
     derivatives = list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
     derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
 
-    # Load the MAIN PIPELINE config file into 'c' as a CONFIGURATION OBJECT
-    c = load_config_yml(config_file)
+    # Load the group config file into 'c' as a CONFIGURATION OBJECT
+    c = load_config_yml(group_config_file)
 
-    if len(c.modelConfigs) == 0:
-        print '[!] CPAC says: You do not have any models selected ' \
-              'to run for group-level analysis. Return to your pipeline ' \
-              'configuration file and create or select at least one.\n\n'
+    if not isfile(c):
+        print '[!] CPAC says: You do not have a valid group config model selected ' \
+              'to run for group-level analysis. Make sure the group config yaml is present ' \
+              'and if not create a new one.\n\n'
         raise Exception
 
     # load the group model configs
     group_models = []
 
-    for group_config_file in c.modelConfigs:
-        group_models.append((group_config_file,
-                             load_config_yml(group_config_file)))
+    #for group_config_file in c.modelConfigs:
+    group_models.append(c)
 
     # get the lowest common denominator of group model config choices
     #   - create full participant list
@@ -1059,8 +1058,8 @@ def run_feat(config_file, pipeline_output_folder=None):
     # let's get the show on the road
     procss = []
 
-    # get MAIN pipeline config loaded
-    c = load_config_yml(config_file)
+    # get group pipeline config loaded
+    c = load_config_yml(group_config_file)
 
     if not pipeline_output_folder:
         import os
