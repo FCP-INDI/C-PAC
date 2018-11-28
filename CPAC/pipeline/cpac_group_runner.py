@@ -761,27 +761,25 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     analysis_dict = {}
 
     group_model_names = []
+    
+    group_config_file = group_model
+   # group_model = group_model_tuple 
 
-    for group_model_tuple in group_models:
+    model_name = group_model.model_name
 
-        group_config_file = group_model_tuple[0]
-        group_model = group_model_tuple[1]
-
-        model_name = group_model.model_name
-
-        if model_name in group_model_names:
-            err = "\n\n[!] You have two group analysis models with the same "\
+    if model_name in group_model_names:
+        err = "\n\n[!] You have two group analysis models with the same "\
                   "name!\n\nDuplicate name: %s\n\n" % model_name
-            raise Exception(err)
-        else:
-            group_model_names.append(model_name)
+        raise Exception(err)
+    else:
+        group_model_names.append(model_name)
 
-        if len(group_model.derivative_list) == 0:
-            err = "\n\n[!] There are no derivatives listed in the " \
+    if len(group_model.derivative_list) == 0:
+        err = "\n\n[!] There are no derivatives listed in the " \
                   "derivative_list field of your group analysis " \
                   "configuration file.\n\nConfiguration file: " \
                   "{0}\n".format(group_config_file)
-            raise Exception(err)
+        raise Exception(err)
 
         # removing this due to the recent change
         '''
@@ -795,19 +793,19 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                 raise Exception(err)
         '''
 
-        # load original phenotype CSV into a dataframe
-        pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
+    # load original phenotype CSV into a dataframe
+    pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
 
-        # enforce the sub ID label to "Participant"
-        pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
+    # enforce the sub ID label to "Participant"
+    pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
                         inplace=True)   
-        pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
+    pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
 
-        # unique_resource = (output_measure_type, preprocessing strategy)
-        # output_df_dict[unique_resource] = dataframe
-        for unique_resource in output_df_dict.keys():
+    # unique_resource = (output_measure_type, preprocessing strategy)
+    # output_df_dict[unique_resource] = dataframe
+    for unique_resource in output_df_dict.keys():
 
-            resource_id = unique_resource[0]
+        resource_id = unique_resource[0]
 
             # do this backwards, because the group_model.derivative_list is a
             # list of substrings that would be in a derivative name
@@ -818,54 +816,53 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
             #     value of 'resource_id'
             # also, 'derivatives' is a list of group-analysis eligible
             # derivatives (standard space, z-score standardized)
-            for derivative in group_model.derivative_list:
-                if derivative in resource_id and resource_id in derivatives:
+        for derivative in group_model.derivative_list:
+            if derivative in resource_id and resource_id in derivatives:
                     break
             else:
                 continue
 
-            strat_info = unique_resource[1]
+        strat_info = unique_resource[1]
         
-            # output_df has the information for ALL of the output files for
-            # this unique_resource_id- all series, and if applicable, motion
-            # params numbers, and paths to raw outputs (for measure mean or
-            # custom ROI means)
-            #   then cut it down and merge with the phenotype DF as needed
-            #   depending on the analysis
-            output_df = output_df_dict[unique_resource]
+        # output_df has the information for ALL of the output files for
+        # this unique_resource_id- all series, and if applicable, motion
+        # params numbers, and paths to raw outputs (for measure mean or
+        # custom ROI means)
+        #   then cut it down and merge with the phenotype DF as needed
+        #   depending on the analysis
+        output_df = output_df_dict[unique_resource]
 
-            # prune the output_df for this specific group model and output +
-            # preprocessing strategy
-            if os.path.isfile(group_model.participant_list):
-                inclusion_list = load_text_file(group_model.participant_list,
+        # prune the output_df for this specific group model and output +
+        # preprocessing strategy
+        if os.path.isfile(group_model.participant_list):
+            inclusion_list = load_text_file(group_model.participant_list,
                                                 "group-level analysis "
                                                 "participant list")
-            else:
-                inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+        else:
+            inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
 
-            output_df = \
-                output_df[output_df["participant_session_id"].isin(inclusion_list)]
+        output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
 
-            new_pheno_df = pheno_df.copy()
+        new_pheno_df = pheno_df.copy()
 
-            # check for inconsistency with leading zeroes
-            # (sometimes, the sub_ids from individual will be something like
-            #  '0002601' and the phenotype will have '2601')
-            sublist_subs = output_df['participant_id']
-            pheno_subs = list(new_pheno_df['participant_id'])
-            for sub in sublist_subs:
-                if sub in pheno_subs:
+        # check for inconsistency with leading zeroes
+        # (sometimes, the sub_ids from individual will be something like
+        #  '0002601' and the phenotype will have '2601')
+        sublist_subs = output_df['participant_id']
+        pheno_subs = list(new_pheno_df['participant_id'])
+        for sub in sublist_subs:
+            if sub in pheno_subs:
                     # okay, there's at least one match
                     break
-            else:
-                new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
-                for sub in new_sublist_subs:
-                    if sub in pheno_subs:
+        else:
+            new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
+            for sub in new_sublist_subs:
+                if sub in pheno_subs:
                         # that's better
-                        output_df['participant_id'] = new_sublist_subs
-                        break
-                else:
-                    raise Exception('the participant IDs in your group '
+                    output_df['participant_id'] = new_sublist_subs
+                    break
+            else:
+                raise Exception('the participant IDs in your group '
                                     'analysis participant list and the '
                                     'participant IDs in your phenotype file '
                                     'do not match')
@@ -1065,8 +1062,7 @@ def run_feat(group_config_file, pipeline_output_folder=None):
                                               'pipeline_{0}'.format(c.pipelineName))
 
     # create the analysis DF dictionary
-    analysis_dict = prep_feat_inputs(group_config_file,
-                                     pipeline_output_folder)
+    analysis_dict = prep_feat_inputs(group_config_file)
 
     for unique_resource_id in analysis_dict.keys():
         # unique_resource_id is a 5-long tuple:
