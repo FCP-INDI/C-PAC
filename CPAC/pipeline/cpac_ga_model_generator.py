@@ -10,7 +10,6 @@ from CPAC.group_analysis import create_group_analysis
 
 
 def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
-
     # write the new participant list
     new_sub_file = os.path.join(current_mod_path, \
                                     os.path.basename(subject_list))
@@ -524,15 +523,23 @@ def prep_group_analysis_workflow(model_df, model_name,
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.io as nio
-
+    from CPAC.pipeline.cpac_group_runner import load_config_yml
     
     from CPAC.utils.create_flame_model_files import create_flame_model_files
     from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv
 
     #pipeline_config_obj = load_config_yml(pipeline_config_path)
-    group_config_obj = load_config_yml(group_config_path)
+    group_config_obj = load_config_yml(group_config_file)
 
     pipeline_ID = group_config_obj.pipelineName
+    #sublist_txt = group_config_obj.participant_list
+
+    #if sublist_txt == None:
+    #    print ("Warning! You have not provided a subject list. CPAC will use all the subjects in pipeline directory") 
+    #    sublist_txt = group_config_obj.participant_list
+    #else:
+    #    sublist_txt = group_config_obj.particpant_list
+
 
     # remove file names from preproc_strat
     filename = preproc_strat.split("/")[-1]
@@ -623,7 +630,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     model_path = os.path.join(out_dir, 'model_files')
 
     second_half_out = \
-        out_dir.split("group_analysis_results_%s" % pipeline_ID)[1]
+        out_dir.split("group_analysis_results_%s" % pipeline_ID)[0]
 
     # generate working directory for this output's group analysis run
     work_dir = os.path.join(group_config_obj.workingDirectory,
@@ -915,7 +922,7 @@ def prep_group_analysis_workflow(model_df, model_name,
      #                                             resource_id)
 
     # check the merged file's order
-    check_merged_file(model_df["Filepath"], merge_file)
+    #check_merged_file(model_df["Filepath"], merge_file)
 
     # we must demean the categorical regressors if the Intercept/Grand Mean
     # is included in the model, otherwise FLAME produces blank outputs
@@ -956,7 +963,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"], column_names,
         dmat_csv_path)
 
-    return dmat_csv_path
+    return dmat_csv_path,new_sub_file
 
     # workflow time
     #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
