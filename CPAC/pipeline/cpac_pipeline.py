@@ -1,6 +1,7 @@
 import os
 import time
 import six
+import re
 from time import strftime
 import zlib
 import linecache
@@ -377,22 +378,17 @@ Maximum potential number of cores that might be used during this run: {max_cores
             else:
                 shutil.rmtree(f)
 
-
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
-    '''
-    Initialize Anatomical Input Data Flow
-    '''
-
     strat_initial = Strategy()
-
     strat_list = []
+
+    num_strat = 0
 
     workflow_bit_id = {}
     workflow_counter = 0
-    num_strat = 0
 
     anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
     anat_flow.inputs.inputnode.subject = subject_id
@@ -400,10 +396,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
     anat_flow.inputs.inputnode.creds_path = input_creds_path
     anat_flow.inputs.inputnode.dl_dir = c.workingDirectory
 
-    strat_initial.set_leaf_properties(anat_flow, 'outputspec.anat')
+    strat_initial.update_resource_pool({
+        'anatomical': (anat_flow, 'outputspec.anat')
+    })
 
     if 'brain_mask' in sub_dict.keys():
-        if sub_dict['brain_mask'].lower() != 'none':
+        if sub_dict['brain_mask'] and sub_dict['brain_mask'].lower() != 'none':
             brain_flow = create_anat_datasource('brain_gather_%d' % num_strat)
             brain_flow.inputs.inputnode.subject = subject_id
             brain_flow.inputs.inputnode.anat = sub_dict['brain_mask']
@@ -414,30 +412,21 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
             })
 
-    num_strat += 1
-
     strat_list.append(strat_initial)
-
-    '''
-    Inserting Anatomical Preprocessing workflow
-    '''
-    new_strat_list = []
-    num_strat = 0
 
     workflow_bit_id['anat_preproc'] = workflow_counter
 
+    new_strat_list = []
+
     for num_strat, strat in enumerate(strat_list):
 
-        rp = strat.get_resource_pool()
-
-        if 'brain_mask' in sub_dict.keys() and \
-                'anatomical_brain_mask' in rp.keys():
+        if 'anatomical_brain_mask' in strat:
 
             anat_preproc = create_anat_preproc(method='mask',
                                                already_skullstripped=already_skullstripped,
-                                               wf_name='anat_preproc_%d' % num_strat)
+                                               wf_name='anat_preproc_mask_%d' % num_strat)
 
-            node, out_file = strat.get_leaf_properties()
+            node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file, anat_preproc,
                              'inputspec.anat')
 
@@ -445,15 +434,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
             workflow.connect(node, out_file,
                              anat_preproc, 'inputspec.brain_mask')
 
-            # TODO: look into forking this alongside either 3dSkullStrip or
-            # TODO: FSL-BET
-
             strat.append_name(anat_preproc.name)
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
 
             strat.update_resource_pool({
                 'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+                'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
             })
 
             create_log_node(workflow, anat_preproc,
@@ -465,38 +451,40 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     for num_strat, strat in enumerate(strat_list):
 
-        nodes = strat.get_nodes_names()
+        if 'anatomical_brain_mask' in strat:
+            continue
 
-        if "AFNI" in c.skullstrip_option and 'anatomical_brain_mask' not in rp.keys():
+        if "AFNI" in c.skullstrip_option:
 
             anat_preproc = create_anat_preproc(method='afni',
                                                already_skullstripped=already_skullstripped,
-                                               wf_name='anat_preproc_%d' % num_strat)
+                                               wf_name='anat_preproc_afni_%d' % num_strat)
 
-            anat_preproc.inputs.AFNI_options.shrink_factor = c.skullstrip_shrink_factor
-            anat_preproc.inputs.AFNI_options.var_shrink_fac = c.skullstrip_var_shrink_fac
-            anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.skullstrip_shrink_factor_bot_lim
-            anat_preproc.inputs.AFNI_options.avoid_vent = c.skullstrip_avoid_vent
-            anat_preproc.inputs.AFNI_options.niter = c.skullstrip_n_iterations
-            anat_preproc.inputs.AFNI_options.pushout = c.skullstrip_pushout
-            anat_preproc.inputs.AFNI_options.touchup = c.skullstrip_touchup
-            anat_preproc.inputs.AFNI_options.fill_hole = c.skullstrip_fill_hole
-            anat_preproc.inputs.AFNI_options.avoid_eyes = c.skullstrip_avoid_eyes
-            anat_preproc.inputs.AFNI_options.use_edge = c.skullstrip_use_edge
-            anat_preproc.inputs.AFNI_options.exp_frac = c.skullstrip_exp_frac
-            anat_preproc.inputs.AFNI_options.smooth_final = c.skullstrip_smooth_final
-            anat_preproc.inputs.AFNI_options.push_to_edge = c.skullstrip_push_to_edge
-            anat_preproc.inputs.AFNI_options.use_skull = c.skullstrip_use_skull
-            anat_preproc.inputs.AFNI_options.perc_int = c.skullstrip_perc_int
-            anat_preproc.inputs.AFNI_options.max_inter_iter = c.skullstrip_max_inter_iter
-            anat_preproc.inputs.AFNI_options.blur_fwhm = c.skullstrip_blur_fwhm
-            anat_preproc.inputs.AFNI_options.fac = c.skullstrip_fac
+            anat_preproc.inputs.AFNI_options.set(
+                shrink_factor=c.skullstrip_shrink_factor,
+                var_shrink_fac=c.skullstrip_var_shrink_fac,
+                shrink_fac_bot_lim=c.skullstrip_shrink_factor_bot_lim,
+                avoid_vent=c.skullstrip_avoid_vent,
+                niter=c.skullstrip_n_iterations,
+                pushout=c.skullstrip_pushout,
+                touchup=c.skullstrip_touchup,
+                fill_hole=c.skullstrip_fill_hole,
+                avoid_eyes=c.skullstrip_avoid_eyes,
+                use_edge=c.skullstrip_use_edge,
+                exp_frac=c.skullstrip_exp_frac,
+                smooth_final=c.skullstrip_smooth_final,
+                push_to_edge=c.skullstrip_push_to_edge,
+                use_skull=c.skullstrip_use_skull,
+                perc_int=c.skullstrip_perc_int,
+                max_inter_iter=c.skullstrip_max_inter_iter,
+                blur_fwhm=c.skullstrip_blur_fwhm,
+                fac=c.skullstrip_fac,
+            )
 
-            node, out_file = strat.get_leaf_properties()
-            workflow.connect(node, out_file, anat_preproc,
-                             'inputspec.anat')
+            node, out_file = strat['anatomical']
+            workflow.connect(node, out_file,
+                             anat_preproc, 'inputspec.anat')
 
-            # TODO ASH review forking
             if "BET" in c.skullstrip_option:
                 strat = strat.fork()
                 new_strat_list.append(strat)
@@ -506,7 +494,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             strat.update_resource_pool({
                 'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+                'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
             })
 
             create_log_node(workflow, anat_preproc,
@@ -518,14 +506,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     for num_strat, strat in enumerate(strat_list):
 
-        nodes = strat.get_nodes_names()
+        if 'anatomical_brain_mask' in strat:
+            continue
 
-        if "BET" in c.skullstrip_option and 'anat_preproc' not in nodes and \
-                'anatomical_brain_mask' not in rp.keys():
+        if 'anatomical_brain' in strat:
+            continue
 
+        if "BET" in c.skullstrip_option:
             anat_preproc = create_anat_preproc(method='fsl',
                                                already_skullstripped=already_skullstripped,
-                                               wf_name='anat_preproc_%d' % num_strat)
+                                               wf_name='anat_preproc_bet_%d' % num_strat)
 
             anat_preproc.inputs.BET_options.set(
                 frac=c.bet_frac,
@@ -543,17 +533,15 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 vertical_gradient=c.bet_vertical_gradient,
             )
 
-            node, out_file = strat.get_leaf_properties()
+            node, out_file = strat['anatomical']
             workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
 
             strat.append_name(anat_preproc.name)
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
 
             strat.update_resource_pool({
-                'anatomical_brain': (anat_preproc, 'outputspec.brain')
-            })
-            strat.update_resource_pool({
-                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+                'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
             })
 
             create_log_node(workflow, anat_preproc,
@@ -1207,11 +1195,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
             epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
 
             epi_distcorr.get_node('deltaTE_input').iterables = (
-                'deltaTE', c.fmap_distcorr_deltaTE)
+                'deltaTE', c.fmap_distcorr_deltaTE
+            )
             epi_distcorr.get_node('dwellT_input').iterables = (
-                'dwellT', c.fmap_distcorr_dwell_time)
+                'dwellT', c.fmap_distcorr_dwell_time
+            )
             epi_distcorr.get_node('dwell_asym_ratio_input').iterables = (
-                'dwell_asym_ratio', c.fmap_distcorr_dwell_asym_ratio)
+                'dwell_asym_ratio', c.fmap_distcorr_dwell_asym_ratio
+            )
 
             node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file, epi_distcorr,
@@ -1772,7 +1763,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 if c.aroma_denoise_type == 'nonaggr':
                     strat.set_leaf_properties(aroma_preproc,
                                               'outputspec.nonaggr_denoised_file')
-                    strat.update_resource_pool({'ica_aroma_denoised_functional': (aroma_preproc, 'outputspec.nonaggr_denoised_file')})
+                    strat.update_resource_pool({'ica_aroma_denoised_functional': (
+                        aroma_preproc, 'outputspec.nonaggr_denoised_file')})
                     create_log_node(workflow, aroma_preproc,
                                     'outputspec.nonaggr_denoised_file',
                                     num_strat)
@@ -1780,7 +1772,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 elif c.aroma_denoise_type == 'aggr':
                     strat.set_leaf_properties(aroma_preproc,
                                               'outputspec.aggr_denoised_file')
-                    strat.update_resource_pool({'ica_aroma_denoised_functional': (aroma_preproc, 'outputspec.aggr_denoised_file')})
+                    strat.update_resource_pool({'ica_aroma_denoised_functional': (
+                        aroma_preproc, 'outputspec.aggr_denoised_file')})
                     create_log_node(workflow, aroma_preproc,
                                     'outputspec.aggr_denoised_file',
                                     num_strat)
@@ -1830,9 +1823,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 # warp back
                 if c.aroma_denoise_type == 'nonaggr':
-                    node, out_file = (aroma_preproc, 'outputspec.nonaggr_denoised_file')
+                    node, out_file = (
+                        aroma_preproc, 'outputspec.nonaggr_denoised_file')
                 elif c.aroma_denoise_type == 'aggr':
-                    node, out_file = (aroma_preproc, 'outputspec.aggr_denoised_file')
+                    node, out_file = (
+                        aroma_preproc, 'outputspec.aggr_denoised_file')
 
                 node2, out_file2 = strat["mean_functional"]
 
@@ -3434,13 +3429,13 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 forklabel = ''
 
                 if 'ants' in fork:
-                    forklabel = 'ANTS'
+                    forklabel = 'ants'
                 if 'fnirt' in fork:
-                    forklabel = 'FNIRT'
+                    forklabel = 'fnirt'
                 if 'automask' in fork:
-                    forklabel = '3dAutoMask(func)'
+                    forklabel = 'func-3dautomask'
                 if 'bet' in fork:
-                    forklabel = 'BET(func)'
+                    forklabel = 'func-bet'
                 if 'epi_distcorr' in fork:
                     forklabel = 'dist_corr'
                 if 'bbreg' in fork:
@@ -3463,10 +3458,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     forklabel = 'scrub'
                 if 'slice' in fork:
                     forklabel = 'slice'
-                if 'AFNI' in fork:
-                    forklabel = 'afni(anat)'
-                if 'BET' in fork:
-                    forklabel = 'BET(anat)'
+                if 'anat_preproc_afni' in fork:
+                    forklabel = 'anat-afni'
+                if 'anat_preproc_bet' in fork:
+                    forklabel = 'anat-bet'
 
                 if forklabel not in forkName:
                     forkName = forkName + '__' + forklabel
@@ -3528,18 +3523,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 strategy_tag_helper_symlinks['nuisance'] = 0
 
             strat_tag = ""
-            hash_val = 0
-
             for name in strat.get_name():
-                import re
-                extra_string = re.search(r'_\d+', name).group(0)
-
-                if extra_string:
-                    name = name.split(extra_string)[0]
-
+                strat_index = re.search(r'_\d+$', name)
+                if strat_index:
+                    name = name[:-len(strat_index.group(0))]
                 if workflow_bit_id.get(name) is not None:
                     strat_tag += name + '_'
-                    hash_val += 2 ** workflow_bit_id[name]
 
             if p_name is None or p_name == 'None':
                 if forkPointsDict[strat]:
