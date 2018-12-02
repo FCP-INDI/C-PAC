@@ -3522,14 +3522,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
             else:
                 strategy_tag_helper_symlinks['nuisance'] = 0
 
-            strat_tag = ""
-            for name in strat.get_name():
-                strat_index = re.search(r'_\d+$', name)
-                if strat_index:
-                    name = name[:-len(strat_index.group(0))]
-                if workflow_bit_id.get(name) is not None:
-                    strat_tag += name + '_'
-
             if p_name is None or p_name == 'None':
                 if forkPointsDict[strat]:
                     pipeline_id = c.pipelineName + forkPointsDict[strat]
