@@ -554,41 +554,41 @@ def prep_group_analysis_workflow(model_df, model_name,
     readme_flags = []
 
     # determine if f-tests are included or not
-    custom_confile = group_config_obj.custom_contrasts
+    #custom_confile = group_config_obj.custom_contrasts
 
-    if ((custom_confile is None) or (custom_confile == '') or
-            ("None" in custom_confile) or ("none" in custom_confile)):
-        custom_confile = None
+    #if ((custom_confile is None) or (custom_confile == '') or
+    #        ("None" in custom_confile) or ("none" in custom_confile)):
+    #    custom_confile = None
 
-        if (len(group_config_obj.f_tests) == 0) or \
-                (group_config_obj.f_tests is None):
-            fTest = False
-        else:
-            fTest = True
-            ftest_list = group_config_obj.f_tests
+    #    if (len(group_config_obj.f_tests) == 0) or \
+    #            (group_config_obj.f_tests is None):
+    #        fTest = False
+    #    else:
+    #        fTest = True
+    #        ftest_list = group_config_obj.f_tests
 
-    else:
-        if not os.path.exists(custom_confile):
-            errmsg = "\n[!] CPAC says: You've specified a custom contrasts " \
-                     ".CSV file for your group model, but this file cannot " \
-                     "be found. Please double-check the filepath you have " \
-                     "entered.\n\nFilepath: %s\n\n" % custom_confile
-            raise Exception(errmsg)
+    #else:
+    #    if not os.path.exists(custom_confile):
+    #        errmsg = "\n[!] CPAC says: You've specified a custom contrasts " \
+    #                 ".CSV file for your group model, but this file cannot " \
+    #                 "be found. Please double-check the filepath you have " \
+    #                 "entered.\n\nFilepath: %s\n\n" % custom_confile
+    #        raise Exception(errmsg)#
 
-        with open(custom_confile, "r") as f:
-            evs = f.readline()
+    #    with open(custom_confile, "r") as f:
+    #        evs = f.readline()
 
-        evs = evs.rstrip('\r\n').split(',')
-        count_ftests = 0
+    #    evs = evs.rstrip('\r\n').split(',')
+    #    count_ftests = 0
 
-        fTest = False
+    #    fTest = False
 
-        for ev in evs:
-            if "f_test" in ev:
-                count_ftests += 1
+    #    for ev in evs:
+    #        if "f_test" in ev:
+    #            count_ftests += 1
 
-        if count_ftests > 0:
-            fTest = True
+    #    if count_ftests > 0:
+    #        fTest = True
 
     # create path for output directory
     out_dir = os.path.join(group_config_obj.output_dir,
@@ -663,7 +663,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     group_config_obj.update('participant_list', new_sub_file)
 
     num_subjects = len(list(model_df["participant_id"]))
-
+    
     # start processing the dataframe further
     design_formula = group_config_obj.design_formula
 
@@ -949,8 +949,9 @@ def prep_group_analysis_workflow(model_df, model_name,
 
         readme_flags.append("cat_demeaned")
 
-    dmatrix_df = pd.DataFrame(dmatrix,
+    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],
                               columns=dmatrix.design_info.column_names)
+    
     dmatrix_df = dmatrix_df[column_names]
 
     # send off the info so the FLAME input model files can be generated!
@@ -960,10 +961,15 @@ def prep_group_analysis_workflow(model_df, model_name,
     #    model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    write_design_matrix_csv(dmatrix_df, model_df["participant_id"], column_names,
-        dmat_csv_path)
 
-    return dmat_csv_path,new_sub_file
+    write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), column_names,
+        dmat_csv_path)
+    
+    contrast_path = os.path.join(contrast_out_path,"contrast.csv")
+    with open(contrast_out_path, "w") as empty_csv:
+            pass 
+   
+    return dmat_csv_path,new_sub_file,empty_csv
 
     # workflow time
     #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
