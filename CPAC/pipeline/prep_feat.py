@@ -1,6 +1,5 @@
 import re
 import os
-
 import glob
 #from CPAC.utils import Configuration as c 
 from CPAC.utils.datasource import create_grp_analysis_dataflow
@@ -10,19 +9,18 @@ from CPAC.group_analysis import create_group_analysis
 from CPAC.pipeline.cpac_group_runner import prep_feat_inputs
 from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
 
-def main():
+#new_sub_file
+def prep():
 
-    from multiprocessing import Process
+    #from multiprocessing import Process
     import argparse
     import sys 
     parser = argparse.ArgumentParser()
     parser.add_argument("group_config_file", type=str, help='provide the path to the group config file')
-    #parser.add_argument("pipeline_output_folder", type=str,help='provide the path to the output folder of your group config files')
-
+    
     args = parser.parse_args()
 
     # let's get the show on the road
-    procss = []
     #group_config_file = args.group_config_file_path
     #pipeline_output_folder = args.pipeline_output_folder_path
 
@@ -33,9 +31,11 @@ def main():
     
     pipeline_output_folder = group_config_obj.pipeline_dir
 
-    group_config_path = args.group_config_file
+    model_path = group_config_obj.output_dir
     
-    analysis_dict = prep_feat_inputs(group_config_path,pipeline_output_folder)
+    analysis_dict = prep_feat_inputs(args.group_config_file,pipeline_output_folder)
+    dmat_csv_path = ""
+    new_sub_file = ""
     for unique_resource_id in analysis_dict.keys():
         # unique_resource_id is a 5-long tuple:
         #    ( model name, group model config file, output measure name,
@@ -47,15 +47,15 @@ def main():
         resource_id = unique_resource_id[2]
         preproc_strat = unique_resource_id[3]
         series_or_repeated = unique_resource_id[4]
-
         model_df = analysis_dict[unique_resource_id]
 
-    dmat_csv_path,new_sub_file = prep_group_analysis_workflow(model_df, model_name,group_config_path, resource_id,preproc_strat,series_or_repeated)
-    
-    return dmat_csv_path,new_sub_file
+        dmat_csv_path,new_sub_file,empty_csv= prep_group_analysis_workflow(model_df, model_name,args.group_config_file, resource_id,preproc_strat,series_or_repeated)
 
-    #manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
-    
+    return dmat_csv_path,new_sub_file,empty_csv
 
 if __name__ == "__main__":
-  main()
+    prep()
+
+
+    
+  
