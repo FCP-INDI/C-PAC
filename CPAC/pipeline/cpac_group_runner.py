@@ -677,7 +677,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
 
     # Load the group config file into 'c' as a CONFIGURATION OBJECT
-    c = load_config_yml(group_config_file)
+    #c = load_config_yml(group_config_file)
 
     #if not isfile(c):
     #    print '[!] CPAC says: You do not have a valid group config model selected ' \
@@ -689,7 +689,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     group_models = []
 
     #for group_config_file in c.modelConfigs:
-    group_models.append(c)
+    group_models.append(load_config_yml(group_config_file))
 
     # get the lowest common denominator of group model config choices
     #   - create full participant list
@@ -700,42 +700,42 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     get_motion = False
     get_raw_score = False
 
+    for group_model_tuple in group_models:
+        group_model = group_models[0]
 
-    group_model = group_models[0]
-
-    if '.' in group_model.participant_list:
-        if not os.path.isfile(group_model.participant_list):
-            raise Exception('\n[!] C-PAC says: Your participant '
+        if '.' in group_model.participant_list:
+            if not os.path.isfile(group_model.participant_list):
+                raise Exception('\n[!] C-PAC says: Your participant '
                                 'inclusion list is not a valid file!\n\n'
                                 'File path: {0}'
                                 '\n'.format(group_model.participant_list))
 
-    if os.path.isfile(group_model.participant_list):
-        inclusion = load_text_file(group_model.participant_list,
+        if os.path.isfile(group_model.participant_list):
+            inclusion = load_text_file(group_model.participant_list,
                                        "group-level analysis participant "
                                        "list")
-    else:
-        inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+        else:
+            inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
 
-    full_inclusion_list = full_inclusion_list + inclusion
+        full_inclusion_list = full_inclusion_list + inclusion
 
-    full_output_measure_list = full_output_measure_list + \
+        full_output_measure_list = full_output_measure_list + \
                                        group_model.derivative_list
 
         # if any of the models will require motion parameters
-    if ("MeanFD" in group_model.design_formula) or ("MeanDVARS" in group_model.design_formula):
-        get_motion = True
+        if ("MeanFD" in group_model.design_formula) or ("MeanDVARS" in group_model.design_formula):
+            get_motion = True
 
         # make sure "None" gets processed properly here...
-    if (group_model.custom_roi_mask == "None") or \
+        if (group_model.custom_roi_mask == "None") or \
                 (group_model.custom_roi_mask == "none"):
-        custom_roi_mask = None
-    else:
-        custom_roi_mask = group_model.custom_roi_mask
+            custom_roi_mask = None
+        else:
+            custom_roi_mask = group_model.custom_roi_mask
 
-    if ("Measure_Mean" in group_model.design_formula) or \
+        if ("Measure_Mean" in group_model.design_formula) or \
                 (custom_roi_mask != None):
-        get_raw_score = True
+            get_raw_score = True
 
     full_inclusion_list = list(set(full_inclusion_list))
     full_output_measure_list = list(set(full_output_measure_list))
@@ -759,27 +759,30 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     # alright, group model processing time
     #   going to merge the phenotype DFs with the output file DF
     analysis_dict = {}
-
-    group_model_names = []
     
-    group_config_file = group_model
-   # group_model = group_model_tuple 
+    group_model_names = []
 
-    model_name = group_model.model_name
+    for group_model in group_models:
+        group_config_file = group_models[0]
+        
+        model_name = group_config_file.model_name
 
-    if model_name in group_model_names:
-        err = "\n\n[!] You have two group analysis models with the same "\
+        if model_name in group_model_names:
+
+            err = "\n\n[!] You have two group analysis models with the same "\
                   "name!\n\nDuplicate name: %s\n\n" % model_name
-        raise Exception(err)
-    else:
-        group_model_names.append(model_name)
+            raise Exception(err)
+        else:
+            
+            group_model_names.append(model_name)
 
-    if len(group_model.derivative_list) == 0:
-        err = "\n\n[!] There are no derivatives listed in the " \
+
+        if len(group_model.derivative_list) == 0:
+            err = "\n\n[!] There are no derivatives listed in the " \
                   "derivative_list field of your group analysis " \
                   "configuration file.\n\nConfiguration file: " \
                   "{0}\n".format(group_config_file)
-        raise Exception(err)
+            raise Exception(err)
 
         # removing this due to the recent change
         '''
@@ -793,19 +796,19 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                 raise Exception(err)
         '''
 
-    # load original phenotype CSV into a dataframe
-    pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
+        # load original phenotype CSV into a dataframe
+        pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
 
-    # enforce the sub ID label to "Participant"
-    pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
-                        inplace=True)   
-    pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
+        # enforce the sub ID label to "Participant"
+        pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
+                        inplace=True) 
 
-    # unique_resource = (output_measure_type, preprocessing strategy)
-    # output_df_dict[unique_resource] = dataframe
-    for unique_resource in output_df_dict.keys():
-
-        resource_id = unique_resource[0]
+        pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
+        print (pheno_df)
+        # unique_resource = (output_measure_type, preprocessing strategy)
+        # output_df_dict[unique_resource] = dataframe
+        for unique_resource in output_df_dict.keys():
+            resource_id = unique_resource[0]
 
             # do this backwards, because the group_model.derivative_list is a
             # list of substrings that would be in a derivative name
@@ -816,53 +819,55 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
             #     value of 'resource_id'
             # also, 'derivatives' is a list of group-analysis eligible
             # derivatives (standard space, z-score standardized)
-        for derivative in group_model.derivative_list:
-            if derivative in resource_id and resource_id in derivatives:
+            for derivative in group_model.derivative_list:
+                if derivative in resource_id and resource_id in derivative:
                     break
             else:
                 continue
-
-        strat_info = unique_resource[1]
-        
-        # output_df has the information for ALL of the output files for
-        # this unique_resource_id- all series, and if applicable, motion
-        # params numbers, and paths to raw outputs (for measure mean or
-        # custom ROI means)
-        #   then cut it down and merge with the phenotype DF as needed
-        #   depending on the analysis
-        output_df = output_df_dict[unique_resource]
-
-        # prune the output_df for this specific group model and output +
-        # preprocessing strategy
-        if os.path.isfile(group_model.participant_list):
-            inclusion_list = load_text_file(group_model.participant_list,
+           
+            strat_info = unique_resource[1]
+            
+            # output_df has the information for ALL of the output files for
+            # this unique_resource_id- all series, and if applicable, motion
+            # params numbers, and paths to raw outputs (for measure mean or
+            # custom ROI means)
+            #   then cut it down and merge with the phenotype DF as needed
+            #   depending on the analysis
+            output_df = output_df_dict[unique_resource]
+            
+            # prune the output_df for this specific group model and output +
+            # preprocessing strategy
+            if os.path.isfile(group_model.participant_list):
+                inclusion_list = load_text_file(group_model.participant_list,
                                                 "group-level analysis "
-                                                "participant list")
-        else:
-            inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+                                                "participant list") 
+                
+                
+                
+            else:
+                inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+                
+            output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
 
-        output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
-
-        new_pheno_df = pheno_df.copy()
-
-        # check for inconsistency with leading zeroes
-        # (sometimes, the sub_ids from individual will be something like
-        #  '0002601' and the phenotype will have '2601')
-        sublist_subs = output_df['participant_id']
-        pheno_subs = list(new_pheno_df['participant_id'])
-        for sub in sublist_subs:
-            if sub in pheno_subs:
+            new_pheno_df = pheno_df.copy()
+            # check for inconsistency with leading zeroes
+            # (sometimes, the sub_ids from individual will be something like
+            #  '0002601' and the phenotype will have '2601')
+            sublist_subs = output_df['participant_id']
+            pheno_subs = list(new_pheno_df['participant_id'])
+            for sub in sublist_subs:
+                if sub in pheno_subs:
                     # okay, there's at least one match
                     break
-        else:
-            new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
-            for sub in new_sublist_subs:
-                if sub in pheno_subs:
-                        # that's better
-                    output_df['participant_id'] = new_sublist_subs
-                    break
             else:
-                raise Exception('the participant IDs in your group '
+                new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
+                for sub in new_sublist_subs:
+                    if sub in pheno_subs:
+                        # that's better
+                        output_df['participant_id'] = new_sublist_subs
+                        break
+                else:
+                    raise Exception('the participant IDs in your group '
                                     'analysis participant list and the '
                                     'participant IDs in your phenotype file '
                                     'do not match')
@@ -1038,11 +1043,11 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                     newer_pheno_df = pd.merge(newer_pheno_df, series_df,
                                               how="inner",
                                               on=["participant_id"])
-
                     # send it in
                     analysis_dict[(model_name, group_config_file, resource_id,
                                    strat_info, series)] = newer_pheno_df
-                    #HELLO 
+
+                   
     return analysis_dict
 
 
