@@ -1144,7 +1144,7 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
     write_dataframe_to_csv(design_df, group_config["pheno_file"])
 
     # write custom contrasts matrix CSV
-    write_dataframe_to_csv(contrasts_df, group_config["custom_contrasts"])
+    #write_dataframe_to_csv(contrasts_df, group_config["custom_contrasts"])
 
     # write group-level analysis config YAML
     out_config = os.path.join(output_dir, model_name,
