@@ -10,22 +10,22 @@ import modelconfig_window
 ID_RUN = 11
 
 
-def check_contrast_equation(frame, dmatrix_obj, contrast_equation):
+#def check_contrast_equation(frame, dmatrix_obj, contrast_equation):
+# MAYBE CAN BE USED AS A CHECK AFTER THE USER WRITES OUT THEIR CONTRAST FILE"
+#    import wx
+#    import patsy
 
-    import wx
-    import patsy
+#    try:
+#        dmatrix_obj.design_info.linear_constraint(str(contrast_equation))
+#    except Exception as e:
+#        errmsg = "This contrast equation is invalid.\n\nDetails:\n%s" % e
+#        errSubID = wx.MessageDialog(frame, errmsg,
+#            'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+#        errSubID.ShowModal()
+#        errSubID.Destroy()
+#        raise Exception
 
-    try:
-        dmatrix_obj.design_info.linear_constraint(str(contrast_equation))
-    except Exception as e:
-        errmsg = "This contrast equation is invalid.\n\nDetails:\n%s" % e
-        errSubID = wx.MessageDialog(frame, errmsg,
-            'Invalid Contrast', wx.OK | wx.ICON_ERROR)
-        errSubID.ShowModal()
-        errSubID.Destroy()
-        raise Exception
-
-    return 0
+#    return 0
 
 
 class ModelDesign(wx.Frame):
