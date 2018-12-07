@@ -865,7 +865,7 @@ class ModelConfig(wx.Frame):
         # enforce the sub ID label to "Participant"
         pheno_df.rename(columns={self.gpa_settings["participant_id_label"]:"participant_id"}, \
                         inplace=True)   
-        pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
+        #pheno_df["participant_id"] = pheno_df[self.gpa_settings["participant_id_label"]].astype(str)
 
         # let's create dummy columns for MeanFD, Measure_Mean, and
         # Custom_ROI_Mask (if included in the Design Matrix Formula) just so we
@@ -1133,8 +1133,9 @@ class ModelConfig(wx.Frame):
                     formula = formula.replace(old_ev, " + ".join(rename[old_ev]))
 
         # remove duplicates
-        self.gpa_settings["ev_selections"]["categorical"] = \
-            list(set(self.gpa_settings["ev_selections"]["categorical"]))
+        self.gpa_settings['ev_selections']['categorical'] = ['']
+        list(set(self.gpa_settings['ev_selections']['categorical']))
+            #
 
         # categorical-ize design formula
         if 'categorical' in self.gpa_settings['ev_selections']:
