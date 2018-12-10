@@ -458,14 +458,20 @@ class ModelConfig(wx.Frame):
 
     def get_pheno_header(self, pheno_file_obj):
         phenoHeaderString = pheno_file_obj.readline().rstrip('\r\n')
-
+        phenoHeaderString = phenoHeaderString.replace(" ", "_")
+        phenoHeaderString = phenoHeaderString.replace("/","_")
+        
         if ',' in phenoHeaderString:
             self.phenoHeaderItems = phenoHeaderString.split(',')
+            
+        
         elif '\t' in phenoHeaderString:
             self.phenoHeaderItems = phenoHeaderString.split('\t')
+            
+        
         else:
             self.phenoHeaderItems = [phenoHeaderString]
-
+        
         if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
             self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
         else:
