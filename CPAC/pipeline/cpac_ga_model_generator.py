@@ -965,7 +965,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), column_names,
         dmat_csv_path)
     
-    contrast_path = os.path.join(contrast_out_path,"contrast.csv")
+    contrast_path = os.path.join(out_dir,"contrast.csv")
     with open(contrast_out_path, "w") as empty_csv:
             pass 
    
