@@ -567,6 +567,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
             fixed image) at each level
         inputspec.smoothing_sigmas : list of lists of floats
             Specify the sigma of gaussian smoothing at each level
+        inputspec.fixed_image_mask: (an existing file name)
+            Mask used to limit metric sampling region of the fixed imagein all
+            stages
 
     Workflow Outputs::
     
@@ -601,9 +604,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     import nipype.interfaces.ants as ants
     from nipype.interfaces.utility import Function
-    from CPAC.registration.utils import seperate_warps_list, \
-                                        combine_inputs_into_list, \
-                                        hardcoded_reg
+    from CPAC.registration.utils import seperate_warps_list, combine_inputs_into_list, hardcoded_reg
 
     calc_ants_warp_wf = pe.Workflow(name=name)
 
@@ -615,7 +616,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
             'convergence_threshold', 'convergence_window_size', 'transforms',
             'transform_parameters', 'shrink_factors', 'smoothing_sigmas',
             'write_composite_transform', 'anatomical_skull',
-            'reference_skull']), name='inputspec')
+            'reference_skull', 'fixed_image_mask']), name='inputspec')
 
     # use ANTS to warp the masked anatomical image to a template image
     '''
@@ -794,6 +795,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     calc_ants_warp_wf.connect(inputspec, 'write_composite_transform',
             calculate_ants_warp, 'write_composite_transform')
+
+    calc_ants_warp_wf.connect(inputspec, 'fixed_image_mask',
+            calculate_ants_warp, 'fixed_image_mask')
 
     # inter-workflow connections
 
