@@ -1,5 +1,5 @@
 import fnmatch
-
+import pandas
 
 def load_config_yml(config_file, individual=False):
 
@@ -702,26 +702,31 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
 
     for group_model_tuple in group_models:
         group_model = group_models[0]
+        group_config = load_config_yml(group_config_file)
+        
+        if (group_config.participant_list == None) or (os.stat(os.path(group_config.participant_list)) == 0):
+            inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+            
+            
+        #if '.' in group_model.participant_list:
+        #    if not os.path.isfile(group_model.participant_list):
+        #        raise Exception('\n[!] C-PAC says: Your participant '
+        #                        'inclusion list is not a valid file!\n\n'
+        #                        'File path: {0}'
+        #                        '\n'.format(group_model.participant_list))
 
-        if '.' in group_model.participant_list:
-            if not os.path.isfile(group_model.participant_list):
-                raise Exception('\n[!] C-PAC says: Your participant '
-                                'inclusion list is not a valid file!\n\n'
-                                'File path: {0}'
-                                '\n'.format(group_model.participant_list))
-
-        if os.path.isfile(group_model.participant_list):
+        else:
+            #os.path.isfile(group_model.participant_list) :##
             inclusion = load_text_file(group_model.participant_list,
                                        "group-level analysis participant "
                                        "list")
-        else:
-            inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+        #else:
+        #    inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
 
         full_inclusion_list = full_inclusion_list + inclusion
 
         full_output_measure_list = full_output_measure_list + \
                                        group_model.derivative_list
-
         # if any of the models will require motion parameters
         if ("MeanFD" in group_model.design_formula) or ("MeanDVARS" in group_model.design_formula):
             get_motion = True
@@ -837,16 +842,27 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
             
             # prune the output_df for this specific group model and output +
             # preprocessing strategy
-            if os.path.isfile(group_model.participant_list):
-                inclusion_list = load_text_file(group_model.participant_list,
-                                                "group-level analysis "
-                                                "participant list") 
+            #if os.path.isfile(group_model.participant_list):
+            #    inclusion_list = load_text_file(group_model.participant_list,
+            #                                    "group-level analysis "
+            #                                    "participant list") 
+            # if someone gives you a none in your participant list then get it out of your pipeline dir
+            if (group_config.participant_list == None) or (os.stat(os.path(group_config.participant_list)) == 0):
+                inclusion_list = os.listdir(group_config.pipeline_dir)
                 
-                
-                
+                # if it is a cpac output directory that seperates by sub and session and your pheno doesn't
+                # then split at the first instance of _ and remove everything after it (take only the first part)
+                for x in inclusion_list:
+                        sep = '_'
+                        x = x.split(sep,1)[0]            
             else:
-                inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
-                
+                inclusion_list = load_text_file(group_model.participant_list,
+                                       "group-level analysis participant "
+                                       "list") 
+                for x in inclusion_list:
+                        sep = '_'
+                        x = x.split(sep,1)[0]
+
             output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
 
             new_pheno_df = pheno_df.copy()
@@ -854,13 +870,13 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
             # (sometimes, the sub_ids from individual will be something like
             #  '0002601' and the phenotype will have '2601')
             sublist_subs = output_df['participant_id']
-            pheno_subs = list(new_pheno_df['participant_id'])
+            pheno_subs = list(new_pheno_df['participant_id']) 
             for sub in sublist_subs:
-                if sub in pheno_subs:
-                    # okay, there's at least one match
+                if sub in pheno_subs:      
                     break
             else:
                 new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
+
                 for sub in new_sublist_subs:
                     if sub in pheno_subs:
                         # that's better

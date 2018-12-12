@@ -11,8 +11,7 @@ from CPAC.group_analysis import create_group_analysis
 
 def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
     # write the new participant list
-    new_sub_file = os.path.join(current_mod_path, \
-                                    os.path.basename(subject_list))
+    new_sub_file = os.path.join(current_mod_path,os.path.basename(subject_list))
 
     try:
         with open(new_sub_file, "w") as f:
@@ -655,10 +654,18 @@ def prep_group_analysis_workflow(model_df, model_name,
         #   repeated measures runs
         if part not in new_participant_list:
             new_participant_list.append(part)
+    
+    if group_config_obj.participant_list == None:
 
-    new_sub_file = write_new_sub_file(model_path,
+        #participant_list = os.listdir(group_config_obj.pipeline_dir)
+        new_sub_file = write_new_sub_file(model_path,
+                                      group_config_obj.pipeline_dir,
+                                      new_participant_list)
+    else: 
+        new_sub_file = write_new_sub_file(model_path,
                                       group_config_obj.participant_list,
                                       new_participant_list)
+
 
     group_config_obj.update('participant_list', new_sub_file)
 
@@ -965,7 +972,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), column_names,
         dmat_csv_path)
     
-    contrast_path = os.path.join(out_dir,"contrast.csv")
+    contrast_out_path = os.path.join(out_dir,"contrast.csv")
     with open(contrast_out_path, "w") as empty_csv:
             pass 
    
