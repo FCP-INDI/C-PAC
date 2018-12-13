@@ -589,8 +589,20 @@ def prep_group_analysis_workflow(model_df, model_name,
     #    if count_ftests > 0:
     #        fTest = True
 
-    # create path for output directory
-    out_dir = os.path.join(group_config_obj.output_dir,
+    # create path for output director
+    if len(group_config_obj.sessions_list) > 0:
+        for session in session_list:
+            out_dir = os.path.join(group_config_obj.output_dir,
+                           group_config_obj.model_name,
+                           session,
+                           'cpac_group_analysis',
+                           'FSL_FEAT',
+                           'pipeline_{0}'.format(pipeline_ID),
+                           'group_model_{0}'.format(model_name), resource_id,
+                           series_or_repeated_label, preproc_strat)
+    else:
+        out_dir = os.path.join(group_config_obj.output_dir,
+                           group_config_obj.model_name,
                            'cpac_group_analysis',
                            'FSL_FEAT',
                            'pipeline_{0}'.format(pipeline_ID),
@@ -711,6 +723,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0],
                                               custom_roi_mask, mask_for_means,
                                               model_path, resource_id)
+        
 
         # trim the custom ROI mask to be within mask constraints
         output_mask = os.path.join(model_path, "masked_%s" \
@@ -722,7 +735,9 @@ def prep_group_analysis_workflow(model_df, model_name,
         model_df = calculate_custom_roi_mean_in_df(model_df, roi_mask)
 
         # update the design formula
+        
         new_design_substring = ""
+        
         for col in model_df.columns:
             if "Custom_ROI_Mean_" in str(col):
                 if str(col) == "Custom_ROI_Mean_1":
@@ -889,14 +904,21 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     # prepare for final stages
     dmatrix_column_names = dmatrix.design_info.column_names
-
+    
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df
+
     column_names = []
     for col in model_df.columns:
-        if col in dmatrix_column_names:
+        if (col in dmatrix_column_names):
             column_names.append(col)
-
+    
+    dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
+    contrast_out_path = os.path.join(out_dir,"contrast.csv")
+    #add file paths to the design matrix
+    filepaths_dict = {'output_filepaths': [out_dir,dmat_csv_path,contrast_out_path]}
+    
+  
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \
@@ -956,10 +978,12 @@ def prep_group_analysis_workflow(model_df, model_name,
 
         readme_flags.append("cat_demeaned")
 
-    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],
-                              columns=dmatrix.design_info.column_names)
-    
+    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],columns=dmatrix.design_info.column_names,)
+    filepath_df = pd.DataFrame.from_dict(filepaths_dict)
     dmatrix_df = dmatrix_df[column_names]
+    dmatrix_df = dmatrix_df.append([filepath_df])
+    print(dmatrix_df)
+
 
     # send off the info so the FLAME input model files can be generated!
     #mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix_df,
