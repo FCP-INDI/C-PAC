@@ -525,7 +525,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     from CPAC.pipeline.cpac_group_runner import load_config_yml
     
     from CPAC.utils.create_flame_model_files import create_flame_model_files
-    from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv
+    from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv,write_blank_contrast_csv
 
     #pipeline_config_obj = load_config_yml(pipeline_config_path)
     group_config_obj = load_config_yml(group_config_file)
@@ -553,11 +553,11 @@ def prep_group_analysis_workflow(model_df, model_name,
     readme_flags = []
 
     # determine if f-tests are included or not
-    #custom_confile = group_config_obj.custom_contrasts
+    custom_confile = group_config_obj.custom_contrasts
 
-    #if ((custom_confile is None) or (custom_confile == '') or
-    #        ("None" in custom_confile) or ("none" in custom_confile)):
-    #    custom_confile = None
+    if ((custom_confile is None) or (custom_confile == '') or
+            ("None" in custom_confile) or ("none" in custom_confile)):
+        custom_confile = None
 
     #    if (len(group_config_obj.f_tests) == 0) or \
     #            (group_config_obj.f_tests is None):
@@ -938,18 +938,20 @@ def prep_group_analysis_workflow(model_df, model_name,
         raise Exception(err)
 
     # time for contrasts
-    #contrasts_list = None
-    #contrasts_vectors = None
+    contrasts_list = None
+    contrasts_vectors = None
 
     #if ((custom_confile == None) or (custom_confile == '') or
     #        ("None" in custom_confile) or ("none" in custom_confile)):
 
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
-     #   contrasts_list = group_config_obj.contrasts
-     #   contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
-     #                                             resource_id)
-
+    #    contrasts_list = group_config_obj.contrasts
+    #    contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
+    #                                              resource_id)
+    if group_config_obj.custom_contrasts == None:
+        contrasts_list = column_names
+    #print(contrasts_list)
     # check the merged file's order
     #check_merged_file(model_df["Filepath"], merge_file)
 
@@ -978,11 +980,10 @@ def prep_group_analysis_workflow(model_df, model_name,
 
         readme_flags.append("cat_demeaned")
 
-    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],columns=dmatrix.design_info.column_names,)
+    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],columns=dmatrix.design_info.column_names)
     filepath_df = pd.DataFrame.from_dict(filepaths_dict)
     dmatrix_df = dmatrix_df[column_names]
     dmatrix_df = dmatrix_df.append([filepath_df])
-    print(dmatrix_df)
 
 
     # send off the info so the FLAME input model files can be generated!
@@ -997,10 +998,12 @@ def prep_group_analysis_workflow(model_df, model_name,
         dmat_csv_path)
     
     contrast_out_path = os.path.join(out_dir,"contrast.csv")
-    with open(contrast_out_path, "w") as empty_csv:
-            pass 
+    write_blank_contrast_csv(contrasts_list,contrast_out_path)
+
+    #with open(contrast_out_path, "w") as empty_csv:
+    #        pass 
    
-    return dmat_csv_path,new_sub_file,empty_csv
+    return dmat_csv_path,new_sub_file,contrast_out_path
 
     # workflow time
     #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
