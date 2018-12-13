@@ -592,8 +592,8 @@ def prep_group_analysis_workflow(model_df, model_name,
     # create path for output director
     if len(group_config_obj.sessions_list) > 0:
         for session in session_list:
-            out_dir = os.path.join(group_config_obj.output_dir,
-                           group_config_obj.model_name,
+            out_dir = os.path.join(group_config_obj.model_name,
+                           group_config_obj.output_dir,
                            session,
                            'cpac_group_analysis',
                            'FSL_FEAT',
@@ -601,8 +601,8 @@ def prep_group_analysis_workflow(model_df, model_name,
                            'group_model_{0}'.format(model_name), resource_id,
                            series_or_repeated_label, preproc_strat)
     else:
-        out_dir = os.path.join(group_config_obj.output_dir,
-                           group_config_obj.model_name,
+        out_dir = os.path.join(group_config_obj.model_name,
+                           group_config_obj.output_dir,
                            'cpac_group_analysis',
                            'FSL_FEAT',
                            'pipeline_{0}'.format(pipeline_ID),
