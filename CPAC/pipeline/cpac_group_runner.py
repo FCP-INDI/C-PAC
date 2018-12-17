@@ -424,9 +424,10 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     import pandas as pd
 
     output_df_dict = {}
-
+    
     # unique_resource_id is tuple (resource_id,strat_info)
     for unique_resource_id in output_dict_list.keys():
+
 
         # NOTE: this dataframe reflects what was found in the C-PAC output
         #       directory for individual-level analysis outputs,
@@ -438,11 +439,11 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
             new_df = new_df[new_df.participant_session_id.isin(inclusion_list)]
 
         if new_df.empty:
-            print("No outputs found for {0} for the participant-sessions "
+                print("No outputs found for {0} for the participant-sessions "
                   "listed in the the group analysis participant list you "
                   "used. Skipping generating a model for this "
                   "output.".format(unique_resource_id))
-            continue
+        continue
                    
         # unique_resource_id is tuple (resource_id,strat_info)
         if unique_resource_id not in output_df_dict.keys():
@@ -476,8 +477,9 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
         exts
     )
 
-    output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
+    output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
+    
     return output_df_dict
 
 
@@ -699,12 +701,30 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     full_output_measure_list = []
     get_motion = False
     get_raw_score = False
+    group_config = load_config_yml(group_config_file)
+    
+    if not (group_config.participant_list == None):
+        if os.path.isdir(pipeline_output_folder):
+            sub_pipeline_dir = os.listdir(pipeline_output_folder)
+            
+            #os.path.isfile(group_model.participant_list) :##
+            sub_participant = load_text_file(group_config.participant_list,
+                                       "group-level analysis participant "
+                                       "list")
+            
+            if not sub_pipeline_dir in sub_participant:
+                
+                raise Exception("Your pipeline output directory and participant list do not match and those that are present " \
+                   "in the indivual level output directory are identical to continue " \
+                   "without any errors.")
+                
+
 
     for group_model_tuple in group_models:
         group_model = group_models[0]
         group_config = load_config_yml(group_config_file)
         
-        if (group_config.participant_list == None) or (os.stat(os.path(group_config.participant_list)) == 0):
+        if (group_config.participant_list == None) or (os.stat((group_config.participant_list)) == 0):
             inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
             
             
@@ -809,7 +829,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                         inplace=True) 
 
         pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
-        print (pheno_df)
+        
         # unique_resource = (output_measure_type, preprocessing strategy)
         # output_df_dict[unique_resource] = dataframe
         for unique_resource in output_df_dict.keys():
@@ -966,6 +986,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                     join_columns.append("Series")
                     new_pheno_df = pd.merge(new_pheno_df, output_df,
                                             how="inner", on=join_columns)
+                    print(here)
                     run_label = "repeated_measures_multiple_series"
 
                     analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
@@ -987,6 +1008,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                     # pull together the pheno DF and the output files DF!
                     new_pheno_df = pd.merge(new_pheno_df, output_df,
                                             how="inner", on=join_columns)
+                    print(here)
 
                     if repeated_sessions:
                         # this can be removed/modified once sessions are no
@@ -1020,6 +1042,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                         # trim down the pheno DF to match the output DF and
                         # merge
                         newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                        print(here)
                         newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id"])
 
                         # this can be removed/modified once sessions are no
@@ -1059,11 +1082,11 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                     newer_pheno_df = pd.merge(newer_pheno_df, series_df,
                                               how="inner",
                                               on=["participant_id"])
+                    
                     # send it in
-                    analysis_dict[(model_name, group_config_file, resource_id,
-                                   strat_info, series)] = newer_pheno_df
+                    analysis_dict[(model_name, group_config_file, resource_id,strat_info, series)] = newer_pheno_df
 
-                   
+                  
     return analysis_dict
 
 
