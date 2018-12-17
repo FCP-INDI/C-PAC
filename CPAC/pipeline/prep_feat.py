@@ -34,8 +34,10 @@ def prep():
     model_path = group_config_obj.output_dir
     
     analysis_dict = prep_feat_inputs(args.group_config_file,pipeline_output_folder)
+    
     dmat_csv_path = ""
     new_sub_file = ""
+    contrast_out_path = ""
     for unique_resource_id in analysis_dict.keys():
         # unique_resource_id is a 5-long tuple:
         #    ( model name, group model config file, output measure name,
