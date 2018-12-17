@@ -51,17 +51,25 @@ def bids_decode_fname(file_path, dbg=False):
     # convert the filename string into a dictionary to pull out the other
     # key value pairs
     for key_val_pair in fname.split("_"):
+        # if the chunk has the shape key-val store key: val in f_dict
         if "-" in key_val_pair:
             chunks = key_val_pair.split("-")
             f_dict[chunks[0]] = "-".join(chunks[1:])
         else:
-            f_dict["scantype"] = key_val_pair.split(".")[0]
+            # the derivatives contain a suffix in their filename which would be
+            # caught by the scan_type
+            key = key_val_pair.split(".")[0]
+            if "scan_type" in f_dict:
+                f_dict["derivative_type"] = key
+            # otherwise, it's a scan_type
+            else:
+                f_dict["scan_type"] = key_val_pair.split(".")[0]
 
-    if not f_dict["scantype"]:
+    if not f_dict["scan_type"]:
         raise ValueError("Filename (%s) does not appear to contain" % (fname) +
                          " scan type, does it conform to the BIDS format?")
 
-    if 'bold' in f_dict["scantype"] and not f_dict["task"]:
+    if 'bold' in f_dict["scan_type"] and not f_dict["task"]:
         raise ValueError("Filename (%s) is a BOLD file, but " % (fname) +
                          "doesn't contain a task, does it conform to the" +
                          " BIDS format?")
@@ -95,7 +103,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     t_dict = bids_config_dict  # pointer to current dictionary
     # try to populate the configuration using information
     # already in the list
-    for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
+    for level in ['scan_type', 'site', 'sub', 'ses', 'task', 'acq',
                   'rec', 'run']:
         if level in f_dict:
             key = "-".join([level, f_dict[level]])
@@ -154,7 +162,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
     # initialize 'default' entries, this essentially is a pointer traversal
     # of the dictionary
     t_dict = bids_config_dict
-    for level in ['scantype', 'site', 'sub', 'ses', 'task',
+    for level in ['scan_type', 'site', 'sub', 'ses', 'task',
                   'acq', 'rec', 'run']:
         key = '-'.join([level, 'none'])
         t_dict[key] = {}
@@ -209,7 +217,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
         # e.g. run-1, run-2, ... will all map to run-none if no jsons
         # explicitly define values for those runs
         t_dict = bids_config_dict  # pointer to current dictionary
-        for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
+        for level in ['scan_type', 'site', 'sub', 'ses', 'task', 'acq',
                       'rec', 'run']:
             if level in f_dict:
                 key = "-".join([level, f_dict[level]])
@@ -385,7 +393,16 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "subject_id": subjid,
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
-            if "T1w" in f_dict["scantype"]:
+            if "derivative_type" in f_dict:
+                if "mask" in f_dict["derivative_type"]:
+                    if 'desc' not in f_dict:
+                        raise IOError("desc not found in %s," % (p) +
+                                      " masks should have a desc-<label> pair" +
+                                      " (BEP003)")
+                    else:
+                        #subdict[f_dict["sub"]][f_dict["ses"]]["func"]["Lesion/ROI_mask"]???
+
+            if "T1w" in f_dict["scan_type"]:
                 # TODO deal with scan parameters anatomical
                 if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = \
@@ -397,7 +414,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                                           f_dict["ses"],
                                                           p))
 
-            if "bold" in f_dict["scantype"]:
+            if "bold" in f_dict["scan_type"]:
                 task_key = "-".join(["task", f_dict["task"]])
                 if "run" in f_dict:
                     task_key = "_".join([task_key,
