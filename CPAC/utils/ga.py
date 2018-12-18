@@ -3,6 +3,7 @@ import os.path as op
 import requests
 import uuid
 import configparser
+import traceback
 import threading
 
 from CPAC.info import __version__, ga_tracker
@@ -56,10 +57,10 @@ def get_uid():
 
 def do_it(data, timeout):
     try:
-        response = requests.post('http://www.google-analytics.com/collect',
-                                 data=data, timeout=timeout)
+        headers = { 'User-Agent': 'C-PAC 1.4.0' }
+        response = requests.post('https://www.google-analytics.com/collect', data=data, timeout=timeout, headers=headers)
         return response
-    except:
+    except Exception as e:
         return False
 
 
@@ -98,9 +99,24 @@ def track_event(category, action, uid=None, label=None, value=0,
     if os.environ.get('CPAC_TRACKING', '').lower() in ['0', 'false', 'off']:
         return
 
+    this = "/CPAC/utils/ga.py"
+    exec_stack = list(reversed(traceback.extract_stack()))
+    assert exec_stack[0][0].endswith(this)
+    package_path = exec_stack[0][0][:-len(this)]
+
+    # only CPAC paths are going to be recorded
+    file_path = ""
+    for s in exec_stack:
+        if s[0].endswith(this):
+            continue
+        if not s[0].startswith(package_path):
+            break
+        file_path = s[0][len(package_path):]
+
     data = {
         'v': '1',  # API version.
         'tid': ga_tracker,  # GA tracking ID
+        'dp': file_path,
         'cid': uid,  # User unique ID, stored in `tracking_path`
         't': 'event',  # Event hit type.
         'ec': category,  # Event category.
@@ -108,8 +124,9 @@ def track_event(category, action, uid=None, label=None, value=0,
         'el': label,  # Event label.
         'ev': value,  # Event value, must be an integer
         'aid': "CPAC",
+        'an': "CPAC",
         'av': __version__,
-        'aip': 1, # anonymize IP by removing last octet, slightly worse geolocation
+        # 'aip': 1, # anonymize IP by removing last octet, slightly worse geolocation
     }
     
     if thread:
@@ -121,4 +138,4 @@ def track_event(category, action, uid=None, label=None, value=0,
 
 def track_run(level='participant', participants=0):
     assert level in ['participant', 'group']
-    track_event('run', level, label='participants', value=participants)
+    track_event('run', level, label='participants', value=participants, thread=False)
