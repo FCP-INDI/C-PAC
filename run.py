@@ -142,7 +142,7 @@ parser.add_argument('--skip_bids_validator',
 
 parser.add_argument('--tracking_opt-out', action='store_true',
                     help='Disable usage tracking. Only the number of participants on the analysis is tracked.',
-                    default=True)
+                    default=False)
 
 # get the command line arguments
 args = parser.parse_args()
