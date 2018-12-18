@@ -107,6 +107,7 @@ def track_event(category, action, uid=None, label=None, value=0,
         'ea': action,  # Event action.
         'el': label,  # Event label.
         'ev': value,  # Event value, must be an integer
+        'aid': "CPAC",
         'av': __version__,
         'aip': 1, # anonymize IP by removing last octet, slightly worse geolocation
     }
