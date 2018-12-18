@@ -140,6 +140,10 @@ parser.add_argument('--skip_bids_validator',
                     help='skips bids validation',
                     action='store_true')
 
+parser.add_argument('--tracking_opt-out', action='store_true',
+                    help='Disable usage tracking. Only the number of participants on the analysis is tracked.',
+                    default=True)
+
 # get the command line arguments
 args = parser.parse_args()
 
@@ -389,7 +393,8 @@ if args.analysis_level == "participant":
 
     print ("Starting participant level processing")
     CPAC.pipeline.cpac_runner.run(config_file, data_config_file,
-                                  plugin='MultiProc', plugin_args=plugin_args)
+                                  plugin='MultiProc', plugin_args=plugin_args,
+                                  tracking=not args.tracking_opt_out)
 else:
     print ('This has been a test run, the pipeline and data configuration files should'
            ' have been written to {0} and {1} respectively.'
