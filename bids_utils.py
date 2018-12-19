@@ -12,11 +12,11 @@ def bids_decode_fname(file_path, dbg=False):
 
     # first lets make sure that we know how to handle the file
     if 'nii' not in fname.lower() and 'json' not in fname.lower():
-        raise IOError("File (%s) does not appear to be" % (fname) +
+        raise IOError("File (%s) does not appear to be" % fname +
                       "a nifti or json file")
 
     if dbg:
-        print "parsing %s" % (file_path)
+        print "parsing %s" % file_path
 
     # first figure out if there is a site directory level, this isn't
     # specified in BIDS currently, but hopefully will be in the future
@@ -27,8 +27,8 @@ def bids_decode_fname(file_path, dbg=False):
 
     if len(sub) > 1:
         print ("Odd that there is more than one subject directory" +
-              "in (%s), does the filename conform to" % (file_path) +
-            " BIDS format?")
+               "in (%s), does the filename conform to" % file_path +
+               " BIDS format?")
     if sub:
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
@@ -429,8 +429,8 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = \
                         task_info
                 else:
-                    print( "Func file (%s)" %
-                        subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] +
+                    print("Func file (%s)" % subdict[
+                        f_dict["sub"]][f_dict["ses"]]["func"][task_key] +
                         " already found for ( % s: %s: % s) discarding % s" % (
                                f_dict["sub"],
                                f_dict["ses"],
@@ -450,6 +450,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     print ses
 
     return sublist
+
 
 def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     """
