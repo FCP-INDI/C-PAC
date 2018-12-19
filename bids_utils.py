@@ -393,15 +393,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "subject_id": subjid,
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
-            if "derivative_type" in f_dict:
-                if "mask" in f_dict["derivative_type"]:
-                    if 'desc' not in f_dict:
-                        raise IOError("desc not found in %s," % (p) +
-                                      " masks should have a desc-<label> pair" +
-                                      " (BEP003)")
-                    else:
-                        #subdict[f_dict["sub"]][f_dict["ses"]]["func"]["Lesion/ROI_mask"]???
-
             if "T1w" in f_dict["scan_type"]:
                 # TODO deal with scan parameters anatomical
                 if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
@@ -413,6 +404,14 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                           " for (%s:%s) discarding %s" % (f_dict["sub"],
                                                           f_dict["ses"],
                                                           p))
+
+            if "mask" in f_dict.values():
+                # if 'desc' not in f_dict:
+                #     raise IOError("desc not found in %s," % (p) +
+                #                   " masks should have a desc-<label>" +
+                #                   " pair (BEP003)")
+                subdict[f_dict["sub"]]
+                [f_dict["ses"]]["mask"] = task_info["scan"]
 
             if "bold" in f_dict["scan_type"]:
                 task_key = "-".join(["task", f_dict["task"]])
