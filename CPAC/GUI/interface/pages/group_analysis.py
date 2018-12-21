@@ -249,6 +249,87 @@ class BASCSettings(wx.ScrolledWindow):
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
+
+class Randomise(wx.html.HtmlWindow):
+
+    def __init__(self, parent, counter  = 0):
+        from urllib2 import urlopen
+        wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
+        self.SetStandardFonts()
+        
+        self.counter = counter
+        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/randomise.html'))         
+            
+    def get_counter(self):
+        return self.counter
+
+class CreateRandomise(wx.ScrolledWindow):
+    
+    def __init__(self, parent, counter = 0):
+        wx.ScrolledWindow.__init__(self, parent)
+                
+        import os
+        
+        self.counter = counter
+
+        fsl = os.environ.get('FSLDIR')
+        if not fsl:
+            fsl = "$FSLDIR"
+        
+        self.page = GenericClass(self, "Randomise Options")
+        #We need design matrix - from path
+        #contrast file - from path
+        #merged file - from cpac
+        #merged mask - from cpac
+        #participant list - path
+        
+        self.page.add(label="Run Randomise", 
+                 control=control.CHOICE_BOX, 
+                 name='runRandomise', 
+                 type=dtype.LSTR, 
+                 comment="Run Randomise", 
+                 values=["Off", "On"],
+                 wkf_switch = True)
+        
+
+        self.page.add(label="Design matrix",
+                control=control.CHOICE_BOX,
+                name='randomise_design_matrix',
+                type=dtype.STR,
+                values='None',
+                cooment = "Full path to the design matrix obtained\n"
+                "by running the group model script.")
+        
+
+        self.page.add(label="Path to the Contrast File",
+                      control=control.COMBO_BOX,
+                      name='randomise_contrast_file',
+                      type=dtype.STR,
+                      values="None",
+                      comment="Full path to the mask file to be used when "
+                              "running randomise.")
+
+        self.page.add(label="Participant Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='randomise_inclusion',
+                      type=dtype.STR,
+                      values="None",
+                      comment="Full path to a text file listing which "
+                              "participant IDs you want included in the "
+                              "analysis, with one ID on each line.\n\nTip: "
+                              "A sample group-level participant inclusion "
+                              "text file is generated when you first create "
+                              "your data configuration.")
+        
+        self.page.add(label="Number of permutations",
+                      control=control.TEXT_BOX,
+                      name='permutations_randomise',
+                      type=dtype.NUM,
+                      values=500,
+                      comment="The number of permutations of the data required\n"
+                      "when building up the null distribution to test against.")
+        
+        self.page.add()       
         
     def get_counter(self):
             return self.counter
