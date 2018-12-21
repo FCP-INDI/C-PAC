@@ -38,19 +38,22 @@ def prep():
     dmat_csv_path = ""
     new_sub_file = ""
     contrast_out_path = ""
+
     for unique_resource_id in analysis_dict.keys():
+
         # unique_resource_id is a 5-long tuple:
         #    ( model name, group model config file, output measure name,
         #          preprocessing strategy string,
         #          series_id or "repeated_measures" )
 
         model_name = unique_resource_id[0]
+
         group_config_file = unique_resource_id[1]
         resource_id = unique_resource_id[2]
         preproc_strat = unique_resource_id[3]
         series_or_repeated = unique_resource_id[4]
         model_df = analysis_dict[unique_resource_id]
-
+        
         dmat_csv_path,new_sub_file,contrast_out_path= prep_group_analysis_workflow(model_df, model_name,args.group_config_file, resource_id,preproc_strat,series_or_repeated)
     
     return dmat_csv_path,new_sub_file,contrast_out_path

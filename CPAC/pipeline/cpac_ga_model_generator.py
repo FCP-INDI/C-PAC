@@ -344,67 +344,69 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
         
     new_ev_list = []
     new_cat_list = []
-
-    if group_ev not in cat_list:
-        err = "\n\n[!] The grouping variable must be one of the categorical "\
+    if group_ev == None:
+        group_ev = None
+    else:
+        if group_ev not in cat_list:
+            err = "\n\n[!] The grouping variable must be one of the categorical "\
               "covariates!\n\n"
-        raise Exception(err)
+            raise Exception(err)
 
-    # map for the .grp file for FLAME
-    idx = 1
-    keymap = {}
-    for val in pheno_df[group_ev]:
-        if val not in keymap.keys():
-            keymap[val] = idx
-            idx += 1
-    grp_vector = pheno_df[group_ev].map(keymap)
+        # map for the .grp file for FLAME
+        idx = 1
+        keymap = {}
+        for val in pheno_df[group_ev]:
+            if val not in keymap.keys():
+                 keymap[val] = idx
+                 idx += 1
+        grp_vector = pheno_df[group_ev].map(keymap)
             
-    # start the split
-    pheno_df["subject_key"] = pheno_df["Participant"]
-    join_column = ["subject_key"]
+        # start the split
+        pheno_df["subject_key"] = pheno_df["participant_id"]
+        join_column = ["subject_key"]
         
-    if "Session" in pheno_df:
-        pheno_df["session_key"] = pheno_df["Session"]
-        join_column.append("session_key")
+        if "Session" in pheno_df:
+             pheno_df["session_key"] = pheno_df["Session"]
+             join_column.append("session_key")
             
-    if "Series" in pheno_df:
-        pheno_df["series_key"] = pheno_df["Series"]
-        join_column.append("series_key")
+        if "Series" in pheno_df:
+            pheno_df["series_key"] = pheno_df["Series"]
+            join_column.append("series_key")
         
-    group_levels = list(set(pheno_df[group_ev]))
+        group_levels = list(set(pheno_df[group_ev]))
 
-    level_df_list = []
-    for level in group_levels:
+        level_df_list = []
+        for level in group_levels:
 
-        level_df = pheno_df[pheno_df[group_ev] == level]
-        rename = {}
+            level_df = pheno_df[pheno_df[group_ev] == level]
+            rename = {}
 
-        for col in level_df.columns:
-            if (col != group_ev) and (col not in join_column) and (col in ev_list):
-                rename[col] = col + "__FOR_%s_%s" % (group_ev, level)
-                if rename[col] not in new_ev_list:
-                    new_ev_list.append(rename[col])
-                if (col in cat_list) and (rename[col] not in new_cat_list):
-                    new_cat_list.append(rename[col])
+            for col in level_df.columns:
+                if (col != group_ev) and (col not in join_column) and (col in ev_list):
+                    rename[col] = col + "__FOR_%s_%s" % (group_ev, level)
+                    if rename[col] not in new_ev_list:
+                         new_ev_list.append(rename[col])
+                    if (col in cat_list) and (rename[col] not in new_cat_list):
+                         new_cat_list.append(rename[col])
 
-        for other_lev in group_levels:
-            if other_lev != level:
-                for col in level_df.columns:
-                    if (col != group_ev) and (col not in join_column) and (col in ev_list):
-                        newcol = col + "__FOR_%s_%s" % (group_ev, other_lev)
-                        level_df[newcol] = 0
-                        if newcol not in new_ev_list:
-                            new_ev_list.append(newcol)
-                        if col in cat_list:
-                            if newcol not in new_cat_list:
-                                new_cat_list.append(newcol)
-        level_df.rename(columns=rename, inplace=True)
-        level_df_list.append(level_df)
+            for other_lev in group_levels:
+                if other_lev != level:
+                    for col in level_df.columns:
+                         if (col != group_ev) and (col not in join_column) and (col in ev_list):
+                            newcol = col + "__FOR_%s_%s" % (group_ev, other_lev)
+                            level_df[newcol] = 0
+                            if newcol not in new_ev_list:
+                                 new_ev_list.append(newcol)
+                            if col in cat_list:
+                                 if newcol not in new_cat_list:
+                                    new_cat_list.append(newcol)
+            level_df.rename(columns=rename, inplace=True)
+            level_df_list.append(level_df)
 
-    # the grouping variable has to be in the categorical list too
-    #new_cat_list.append(group_ev)
+           # the grouping variable has to be in the categorical list too
+           #new_cat_list.append(group_ev)
 
-    # get it back into order!
+        # get it back into order!
     pheno_df = pheno_df[join_column].merge(pd.concat(level_df_list), on=join_column)
     pheno_df = pheno_df.drop(join_column,1)
 
@@ -502,6 +504,7 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
         con_vec = lincon.coefs[0]
         contrasts_vectors.append(con_vec)
 
+    
     return contrasts_vectors
 
 
@@ -591,14 +594,15 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     # create path for output director
     if len(group_config_obj.sessions_list) > 0:
-        for session in session_list:
+        for session in group_config_obj.sessions_list:
             out_dir = os.path.join(group_config_obj.model_name,
                            group_config_obj.output_dir,
                            session,
                            'cpac_group_analysis',
                            'FSL_FEAT',
                            'pipeline_{0}'.format(pipeline_ID),
-                           'group_model_{0}'.format(model_name), resource_id,
+                           #'group_model_{0}'.format(model_name),
+                            resource_id,
                            series_or_repeated_label, preproc_strat)
     else:
         out_dir = os.path.join(group_config_obj.model_name,
@@ -606,7 +610,8 @@ def prep_group_analysis_workflow(model_df, model_name,
                            'cpac_group_analysis',
                            'FSL_FEAT',
                            'pipeline_{0}'.format(pipeline_ID),
-                           'group_model_{0}'.format(model_name), resource_id,
+                           #'group_model_{0}'.format(model_name),
+                            resource_id,
                            series_or_repeated_label, preproc_strat)
 
     if 'sca_roi' in resource_id:
@@ -750,7 +755,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     cat_list = []
     if "categorical" in group_config_obj.ev_selections.keys():
         cat_list = group_config_obj.ev_selections["categorical"]
-
+    
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
         if "Session" in model_df.columns:
@@ -772,10 +777,11 @@ def prep_group_analysis_workflow(model_df, model_name,
                 design_formula = design_formula + " + %s" % col
                 cat_list.append(col)
 
+
     # parse out the EVs in the design formula at this point in time
     #   this is essentially a list of the EVs that are to be included
     ev_list = parse_out_covariates(design_formula)
-
+    
     # SPLIT GROUPS here.
     #   CURRENT PROBLEMS: was creating a few doubled-up new columns
     grp_vector = [1] * num_subjects
@@ -794,41 +800,45 @@ def prep_group_analysis_workflow(model_df, model_name,
         #     multiple groups, and we need to bypass all of the processing
         #     that usually occurs when the "modeling group variances
         #     separately" option is enabled in the group analysis config YAML
-        group_ev = group_config_obj.grouping_var
+        if group_config_obj.grouping_var == None:
+            pass
+        else:
+            group_ev = group_config_obj.grouping_var
 
-        if isinstance(group_ev, list) or "," in group_ev:
+            if isinstance(group_ev, list) or "," in group_ev:
 
-            grp_vector = []
+                grp_vector = []
 
-            if "," in group_ev:
-                group_ev = group_ev.split(",")
+                if "," in group_ev:
+                    group_ev = group_ev.split(",")
 
-            if len(group_ev) == 2:
-                for x, y in zip(model_df[group_ev[0]], model_df[group_ev[1]]):
-                    if x == 1:
-                        grp_vector.append(1)
-                    elif y == 1:
-                        grp_vector.append(2)
-                    else:
-                        err = "\n\n[!] The two categorical covariates you " \
+                if len(group_ev) == 2:
+                    for x, y in zip(model_df[group_ev[0]], model_df[group_ev[1]]):
+                        if x == 1:
+                            grp_vector.append(1)
+                        elif y == 1:
+                            grp_vector.append(2)
+
+                        else:
+                            err = "\n\n[!] The two categorical covariates you " \
                               "provided as the two separate groups (in order " \
                               "to model each group's variances separately) " \
                               "either have more than 2 levels (1/0), or are " \
                               "not encoded as 1's and 0's.\n\nCovariates:\n" \
                               "{0}\n{1}\n\n".format(group_ev[0], group_ev[1])
-                        raise Exception(err)
-
-            elif len(group_ev) == 3:
-                for x, y, z in zip(model_df[group_ev[0]], model_df[group_ev[1]],
+                            raise Exception(err)
+            
+                elif len(group_ev) == 3:
+                    for x, y, z in zip(model_df[group_ev[0]], model_df[group_ev[1]],
                                    model_df[group_ev[2]]):
-                    if x == 1:
-                        grp_vector.append(1)
-                    elif y == 1:
-                        grp_vector.append(2)
-                    elif z == 1:
-                        grp_vector.append(3)
-                    else:
-                        err = "\n\n[!] The three categorical covariates you " \
+                        if x == 1:
+                            grp_vector.append(1)
+                        elif y == 1:
+                            grp_vector.append(2)
+                        elif z == 1:
+                            grp_vector.append(3)
+                        else:
+                            err = "\n\n[!] The three categorical covariates you " \
                               "provided as the three separate groups (in order " \
                               "to model each group's variances separately) " \
                               "either have more than 2 levels (1/0), or are " \
@@ -836,12 +846,12 @@ def prep_group_analysis_workflow(model_df, model_name,
                               "{0}\n{1}\n{2}\n\n".format(group_ev[0],
                                                          group_ev[1],
                                                          group_ev[2])
-                        raise Exception(err)
+                            raise Exception(err)
 
-            else:
-                # we're only going to see this if someone plays around with
-                # their preset or config file manually
-                err = "\n\n[!] If you are seeing this message, it's because:\n" \
+                else:
+                       # we're only going to see this if someone plays around with
+                        #       their preset or config file manually
+                    err = "\n\n[!] If you are seeing this message, it's because:\n" \
                       "1. You are using the group-level analysis presets\n" \
                       "2. You are running a model with multiple groups having " \
                       "their variances modeled separately (i.e. multiple " \
@@ -851,23 +861,32 @@ def prep_group_analysis_workflow(model_df, model_name,
                       "only one group, or more than three, neither of which " \
                       "are supported.\n\nGroups provided:\n{0}" \
                       "\n\n".format(str(group_ev))
-                raise Exception(err)
-
-        else:
-            # model group variances separately
-            old_ev_list = ev_list
-
-            model_df, grp_vector, ev_list, cat_list = split_groups(model_df,
+                    raise Exception(err)
+        
+    else:
+        print("hello")
+        # model group variances separately
+        old_ev_list = ev_list
+        #if group_config_obj.grouping_var == None:
+        #    model_df, grp_vector, ev_list, cat_list = split_groups(model_df,
+        #                            group_config_obj.grouping_var,
+        #                            ev_list, cat_list)
+        #else:
+        model_df, grp_vector, ev_list, cat_list = split_groups(model_df,
                                     group_config_obj.grouping_var,
                                     ev_list, cat_list)
 
-            # make the grouping variable categorical for Patsy (if we try to
-            # do this automatically below, it will categorical-ize all of
-            # the substrings too)
+        # make the grouping variable categorical for Patsy (if we try to
+        # do this automatically below, it will categorical-ize all of
+        # the substrings too)
+        if not group_config_obj.group_var == None:
             design_formula = design_formula.replace(group_config_obj.grouping_var,
                                       "C(" + group_config_obj.grouping_var + ")")
+            
             if group_config_obj.coding_scheme == "Sum":
                 design_formula = design_formula.replace(")", ", Sum)")
+            if group_config_obj.coding_scheme == "Treatment":
+                design_formula = design_formula.replace(")",", Treatment)")
 
             # update design formula
             rename = {}
@@ -881,8 +900,11 @@ def prep_group_analysis_workflow(model_df, model_name,
             for old_ev in rename.keys():
                 design_formula = design_formula.replace(old_ev,
                                                         " + ".join(rename[old_ev]))
+                    
 
     # prep design formula for Patsy
+    
+    
     design_formula = patsify_design_formula(design_formula, cat_list,
                                             group_config_obj.coding_scheme[0])
 
@@ -912,6 +934,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     for col in model_df.columns:
         if (col in dmatrix_column_names):
             column_names.append(col)
+
     
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
     contrast_out_path = os.path.join(out_dir,"contrast.csv")
@@ -938,19 +961,22 @@ def prep_group_analysis_workflow(model_df, model_name,
         raise Exception(err)
 
     # time for contrasts
-    contrasts_list = None
-    contrasts_vectors = None
+    
 
-    #if ((custom_confile == None) or (custom_confile == '') or
-    #        ("None" in custom_confile) or ("none" in custom_confile)):
+    if (group_config_obj.custom_contrasts == None) or (group_config_obj.contrasts == None):
 
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
-    #    contrasts_list = group_config_obj.contrasts
-    #    contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
-    #                                              resource_id)
-    if group_config_obj.custom_contrasts == None:
-        contrasts_list = column_names
+        contrasts_columns = column_names
+        contrasts_columns = ["contrasts"] + contrasts_columns
+        if not group_config_obj.f_tests == None:
+            for i in group_config_obj.f_tests[1:len(group_config_obj.f_tests)-1]:
+                contrasts_columns.append('f_test_%d' % i) 
+    else:
+        pass
+
+        #print("contrasts_list:%s" % contrasts_list)
+        
     #print(contrasts_list)
     # check the merged file's order
     #check_merged_file(model_df["Filepath"], merge_file)
@@ -981,6 +1007,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         readme_flags.append("cat_demeaned")
 
     dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],columns=dmatrix.design_info.column_names)
+   
     filepath_df = pd.DataFrame.from_dict(filepaths_dict)
     dmatrix_df = dmatrix_df[column_names]
     dmatrix_df = dmatrix_df.append([filepath_df])
@@ -997,8 +1024,8 @@ def prep_group_analysis_workflow(model_df, model_name,
     write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), column_names,
         dmat_csv_path)
     
-    contrast_out_path = os.path.join(out_dir,"contrast.csv")
-    write_blank_contrast_csv(contrasts_list,contrast_out_path)
+    contrast_out_path = os.path.join(model_path,"contrast.csv")
+    write_blank_contrast_csv(contrasts_columns,contrast_out_path)
 
     #with open(contrast_out_path, "w") as empty_csv:
     #        pass 
