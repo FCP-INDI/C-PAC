@@ -972,7 +972,9 @@ def prep_group_analysis_workflow(model_df, model_name,
         f.write('Contrasts')
         for col in dmatrix.design_info.column_names:
             f.write(',{0}'.format(col))
-        f.write('contrast_1,')
+        f.write('\ncontrast_1')
+        for col in dmatrix.design_info.column_names:
+            f.write(',0')
    
     return dmat_csv_path, new_sub_file, contrast_out_path
 
