@@ -955,13 +955,6 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],
                               columns=dmatrix.design_info.column_names)
-    dmatrix_df = dmatrix_df[column_names]
-
-    # send off the info so the FLAME input model files can be generated!
-    #mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix_df,
-    #    column_names, contrasts_vectors, contrasts_list, custom_confile, ftest_list,
-    #    group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0],
-    #    model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"],
