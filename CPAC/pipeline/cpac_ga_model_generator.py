@@ -951,7 +951,6 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],
                               columns=dmatrix.design_info.column_names)
-    
     dmatrix_df = dmatrix_df[column_names]
 
     # send off the info so the FLAME input model files can be generated!
@@ -961,15 +960,17 @@ def prep_group_analysis_workflow(model_df, model_name,
     #    model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-
-    write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), column_names,
-        dmat_csv_path)
+    write_design_matrix_csv(dmatrix_df, model_df["participant_id"],
+                            column_names, dmat_csv_path)
     
-    contrast_path = os.path.join(out_dir,"contrast.csv")
-    with open(contrast_out_path, "w") as empty_csv:
-            pass 
+    contrast_out_path = os.path.join(out_dir, "contrasts.csv")
+    with open(contrast_out_path, "w") as f:
+        f.write('Contrasts')
+        for col in dmatrix.design_info.column_names:
+            f.write(',{0}'.format(col))
+            f.write('contrast_1,')
    
-    return dmat_csv_path,new_sub_file,empty_csv
+    return dmat_csv_path, new_sub_file, contrast_out_path
 
     # workflow time
     #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
