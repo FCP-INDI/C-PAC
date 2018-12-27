@@ -735,7 +735,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     #   going to merge the phenotype DFs with the output file DF
     analysis_dict = {}
 
-    model_name = group_config_file.model_name
+    model_name = group_model.model_name
 
     if len(group_model.derivative_list) == 0:
         err = "\n\n[!] There are no derivatives listed in the " \
