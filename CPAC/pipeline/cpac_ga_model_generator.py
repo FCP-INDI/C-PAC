@@ -591,12 +591,16 @@ def prep_group_analysis_workflow(model_df, model_name,
     #        fTest = True
 
     # create path for output directory
-    out_dir = os.path.join(group_config_obj.output_dir,
+    model_dir = os.path.join(group_config_obj.output_dir,
                            'cpac_group_analysis',
                            'FSL_FEAT',
                            'pipeline_{0}'.format(pipeline_ID),
-                           'group_model_{0}'.format(model_name), resource_id,
-                           series_or_repeated_label, preproc_strat)
+                           'group_model_{0}'.format(model_name))
+
+    out_dir = os.path.join(model_dir,
+                           resource_id,
+                           series_or_repeated_label,
+                           preproc_strat)
 
     if 'sca_roi' in resource_id:
         out_dir = os.path.join(out_dir,
@@ -963,12 +967,12 @@ def prep_group_analysis_workflow(model_df, model_name,
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"],
                             column_names, dmat_csv_path)
     
-    contrast_out_path = os.path.join(out_dir, "contrasts.csv")
+    contrast_out_path = os.path.join(model_dir, "contrasts.csv")
     with open(contrast_out_path, "w") as f:
         f.write('Contrasts')
         for col in dmatrix.design_info.column_names:
             f.write(',{0}'.format(col))
-            f.write('contrast_1,')
+        f.write('contrast_1,')
    
     return dmat_csv_path, new_sub_file, contrast_out_path
 
