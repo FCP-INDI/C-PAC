@@ -673,15 +673,15 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     from collections import Counter
 
     part_ID_count = Counter(pheno_df["participant_id"])
+
     if series_list:
         sessions_x_series = len(sessions_list) * len(series_list)
     else:
         sessions_x_series = len(sessions_list)
-        
+       
     dropped_parts = []
 
     for part_ID in part_ID_count.keys():
-
         if part_ID_count[part_ID] != sessions_x_series:
             pheno_df = pheno_df[pheno_df.participant_id != part_ID]
             del pheno_df["participant_%s" % part_ID]
@@ -1075,41 +1075,47 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                     #   split up the series here
                     #   iterate over the Series/Scans
                     
-                    for series_df_tuple in output_df.groupby("participant_session_id"):
+                    for series_df_tuple in output_df.groupby("Series"):
                         
                         series = series_df_tuple[0]
                         
                         # series_df is output_df but with only one of the
                         # Series
                         series_df = series_df_tuple[1]
-                        with open series_df as empty_csv:
-                            empty_csv = pd.series_df.to_csv(empty_csv)
-                            empty_csv = os.path.join("/home/nrajamani/","Desktop")
+                        
+                        
+                        #pheno df contains all the subjects, and the series_df contains all the participants which are included in this evaluation
                         # TODO: is this a mistake?
                         # trim down the pheno DF to match the output DF and
                         # merge
-                        newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(output_df["participant_id"])]
-                        print(newer_pheno_df)
+                        newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
                         newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id"])
-                        print(newer_pheno_df)
+                        
+                            #newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                        #so for some reason, the evaluation of pheno_df["particpant_id"].isin(series_df["participant_id"]) is only one subject, i.e., participant_25867
+                        #why? 
+                        
                         # this can be removed/modified once sessions are no
                         # longer integrated in the full unique participant IDs
                         if "Session" in newer_pheno_df.columns:
+
                             # TODO: re-visit why there is a "participant_ID"
                             # TODO: column? will this still work without
                             # TODO: presets?
-                            newer_pheno_df, dropped_parts = \
-                                balance_repeated_measures(newer_pheno_df,
-                                                          group_model.sessions_list,
-                                                          None)
+                            
+                            newer_pheno_df, dropped_parts = balance_repeated_measures(newer_pheno_df,group_model.sessions_list,None)
+                            
                         
                         # unique_resource =
                         #        (output_measure_type, preprocessing strategy)
+                    
+                        
                         analysis_dict[(model_name, group_config_file,
                                        resource_id, strat_info,
                                        "repeated_measures_%s" % series)] = newer_pheno_df
-
+                        
             else:
+
                 # no repeated measures
 
                 # split up the output files list DataFrame by series, then
@@ -1121,6 +1127,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                 # iterate over the Series/Scans
                 for series_df_tuple in output_df.groupby("Series"):
                     series = series_df_tuple[0]
+                    
                     # series_df = output_df but with only one of the Series
                     series_df = series_df_tuple[1]
                     # trim down the pheno DF to match the output DF and merge
@@ -1133,7 +1140,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                     # send it in
                     analysis_dict[(model_name, group_config_file, resource_id,strat_info, series)] = newer_pheno_df
 
-                  
+    
     return analysis_dict
 
 
