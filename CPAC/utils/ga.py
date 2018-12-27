@@ -26,13 +26,6 @@ def get_or_create_config():
     return parser
 
 
-def opt_out():
-    parser = get_or_create_config()
-    parser['user']['track'] = "False"
-    with open(tracking_path, 'w') as fhandle:
-        parser.write(fhandle)
-
-
 def reset_uid():
     parser = get_or_create_config()
     parser.read_dict(dict(user=dict(uid=uuid.uuid1().hex,
