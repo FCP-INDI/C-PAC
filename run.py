@@ -4,6 +4,7 @@ import os
 import subprocess
 import yaml
 import sys
+from base64 import b64decode
 
 import datetime
 import time
@@ -12,6 +13,16 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
 
 def load_yaml_config(config_filename, aws_input_creds):
+
+    if config_filename.lower().startswith('data:'):
+        try:
+            header, encoded = config_filename.split(",", 1)
+            config_content = b64decode(encoded)
+            config_data = yaml.load(config_content)
+            return config_data
+        except:
+            print("Error! Could not find load config from data URI")
+            raise
 
     if config_filename.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -142,8 +153,6 @@ parser.add_argument('--skip_bids_validator',
 
 # get the command line arguments
 args = parser.parse_args()
-
-print(args)
 
 # if we are running the GUI, then get to it
 if args.analysis_level == "gui":
@@ -344,8 +353,11 @@ else:
 
         if not sub_list:
             print ("Did not find data for {0} in {1}".format(", ".join(args.participant_label),
-                                                             args.data_config_file))
+                                                             args.data_config_file
+                                                             if not args.data_config_file.startswith("data:")
+                                                             else "data URI"))
             sys.exit(1)
+
 
 if args.participant_ndx:
 
