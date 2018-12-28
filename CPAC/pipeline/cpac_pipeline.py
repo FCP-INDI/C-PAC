@@ -3746,8 +3746,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
             from CPAC.utils.monitoring import log_nodes_cb
             plugin_args['status_callback'] = log_nodes_cb
 
+
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
+
 
         # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
@@ -3778,8 +3780,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                   qc_montage_id_s,
                                   qc_plot_id,
                                   qc_hist_id)
-
-        # pipeline timing code starts here
 
         # have this check in case the user runs cpac_runner from terminal and
         # the timing parameter list is not supplied as usual by the GUI
@@ -3850,29 +3850,26 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                  'Status']
                 timeHeader = dict((n, n) for n in gpaTimeFields)
 
-                timeCSV = open(os.path.join(
+                with open(os.path.join(
                     c.logDirectory,
                     'cpac_individual_timing_%s.csv' % c.pipelineName
-                ), 'a')
-                readTimeCSV = open(os.path.join(
+                ), 'a') as timeCSV, open(os.path.join(
                     c.logDirectory,
                     'cpac_individual_timing_%s.csv' % c.pipelineName
-                ), 'rb')
+                ), 'rb') as readTimeCSV:
 
-                timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-                timeReader = csv.DictReader(readTimeCSV)
+                    timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                    timeReader = csv.DictReader(readTimeCSV)
 
-                headerExists = False
-                for line in timeReader:
-                    if 'Start_Time' in line:
-                        headerExists = True
+                    headerExists = False
+                    for line in timeReader:
+                        if 'Start_Time' in line:
+                            headerExists = True
 
-                if headerExists == False:
-                    timeWriter.writerow(timeHeader)
+                    if headerExists == False:
+                        timeWriter.writerow(timeHeader)
 
-                timeWriter.writerow(pipelineTimeDict)
-                timeCSV.close()
-                readTimeCSV.close()
+                    timeWriter.writerow(pipelineTimeDict)
 
                 # remove the temp timing file now that it is no longer needed
                 os.remove(timing_temp_file_path)
@@ -3943,61 +3940,3 @@ CPAC run complete:
         ))
 
     return workflow
-
-
-# Run the prep_workflow function with specific arguments
-def run(config, subject_list_file, indx, strategies, p_name=None,
-        plugin=None, plugin_args=None):
-    '''
-    Function to build and execute the complete workflow
-
-    Parameters
-    ----------
-    config: string
-        filepath to a C-PAC config file
-    subject_list_file : string
-        filepath to a C-PAC subject list file
-    indx : integer
-        index of the subject in the subject list to run
-    strategies : string
-        filepath to a C-PAC strategies file
-    maskSpecificationFile : string
-        filepath to the mask-specification file
-    roiSpecificationFile : string
-        filepath to the roi-specification file
-    templateSpecificationFile : string
-        filepath to the template-specification file
-    p_name : string (optional)
-        name of the pipeline configuration
-    plugin : string (optional)
-        name of the plugin  used to schedule nodes
-    plugin_args : dict (optional)
-        arguments of plugin
-    '''
-
-    # Import packages
-    import commands
-    commands.getoutput('source ~/.bashrc')
-    import yaml
-
-    # Import configuration file
-    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
-
-    # Try and load in the subject list
-    try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
-    except:
-        raise Exception(
-            "Subject list is not in proper YAML format. Please check your file")
-
-    # Grab the subject of interest
-    sub_dict = sublist[int(indx) - 1]
-    sub_id = sub_dict['subject_id']
-
-    try:
-        # Build and run the pipeline
-        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1,
-                      p_name, plugin=plugin, plugin_args=plugin_args)
-    except Exception as e:
-        print 'Could not complete cpac run for subject: %s!' % sub_id
-        print 'Error: %s' % e

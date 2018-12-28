@@ -408,7 +408,8 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
     # Load in subject list
     try:
-        sublist = yaml.load(open(subject_list_file, 'r'))
+        with open(subject_list_file, 'r') as sf:
+            sublist = yaml.load(sf)
     except:
         print "Subject list is not in proper YAML format. Please check " \
               "your file"
