@@ -915,7 +915,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                 #inclusion_list = []
                 inclusion_list = load_text_file(group_model.participant_list,
                                                 "group-level analysis "
-                                                " participant list") 
+                                                "participant list") 
                 #for x in nat_inclusion_list:
                 #    sep = '_'
                 #    x = x.split(sep,1)[0]
@@ -972,6 +972,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                         pheno_sessions_to_repeated_measures(new_pheno_df,
                                                             group_model.sessions_list)
 
+                    
                 # create new rows for all of the series, if applicable
                 #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
                 if repeated_series:
@@ -988,10 +989,10 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                 #   we are dropping all instances of this participant, all
                 #   sessions and all series, because in repeated measures/
                 #   within-subject, if one goes, they all have to go    
-                new_pheno_df = \
-                    new_pheno_df[pheno_df["participant_id"].isin(output_df["participant_id"])]
-
-
+                    new_pheno_df = \
+                        new_pheno_df[pheno_df["participant_id"].isin(output_df["participant_id"])]
+                
+                
                 if len(new_pheno_df) == 0:
                     err = "\n\n[!] There is a mis-match between the "\
                           "participant IDs in the output directory/particip" \
@@ -1089,9 +1090,11 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                         # trim down the pheno DF to match the output DF and
                         # merge
                         newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+
                         newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id"])
                         
-                            #newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                        
+                           #newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
                         #so for some reason, the evaluation of pheno_df["particpant_id"].isin(series_df["participant_id"]) is only one subject, i.e., participant_25867
                         #why? 
                         

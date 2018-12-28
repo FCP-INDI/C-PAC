@@ -53,7 +53,7 @@ def prep():
         preproc_strat = unique_resource_id[3]
         series_or_repeated = unique_resource_id[4]
         model_df = analysis_dict[unique_resource_id]
-        
+        print(model_df)
         dmat_csv_path,new_sub_file,contrast_out_path= prep_group_analysis_workflow(model_df, model_name,args.group_config_file, resource_id,preproc_strat,series_or_repeated)
     
     return dmat_csv_path,new_sub_file,contrast_out_path

@@ -341,7 +341,7 @@ def parse_out_covariates(design_formula):
 def split_groups(pheno_df, group_ev, ev_list, cat_list):   
             
     import pandas as pd
-        
+    
     new_ev_list = []
     new_cat_list = []
     if group_ev not in cat_list:
@@ -363,6 +363,7 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
     join_column = ["subject_key"]
         
     if "Session" in pheno_df:
+
         pheno_df["session_key"] = pheno_df["Session"]
         join_column.append("session_key")
             
@@ -772,6 +773,7 @@ def prep_group_analysis_workflow(model_df, model_name,
             # columns, not the "participant_id" column!
             if "participant_" in col and "_id" not in col:
                 design_formula = design_formula + " + %s" % col
+                
                 cat_list.append(col)
 
     
@@ -889,8 +891,10 @@ def prep_group_analysis_workflow(model_df, model_name,
     design_formula = patsify_design_formula(design_formula, cat_list,
                                             group_config_obj.coding_scheme[0])
 
+
     # send to Patsy
     try:
+        print(model_df)
         dmatrix = patsy.dmatrix(design_formula, model_df)
     except Exception as e:
         err = "\n\n[!] Something went wrong with processing the group model "\
@@ -902,23 +906,24 @@ def prep_group_analysis_workflow(model_df, model_name,
         raise Exception(err)
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
+    #model_matrix = patsy.DesignInfo(model_df.columns)
+    
     check_multicollinearity(np.array(dmatrix))
  
     # prepare for final stages
+    dmatrix.design_info.column_names.append(model_df["Filepath"])
     dmatrix_column_names = dmatrix.design_info.column_names
+    
+    
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df
-
     column_names = []
     for col in model_df.columns:
-        print("%s in model df:" % col) 
-        column_names.append(col)
+        if col in dmatrix_column_names:
+            column_names.append(col)   
     
-        
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
     contrast_out_path = os.path.join(out_dir,"contrast.csv")
-    #add file paths to the design matrix
-    filepaths_dict = {'output_filepaths': [out_dir,dmat_csv_path,contrast_out_path]}
     
   
     # check to make sure there are more time points than EVs!
@@ -973,7 +978,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         # note: dmat_T is now no longer a DesignMatrix Patsy object, but only
         # an array
         dmat_T = dmatrix.transpose()
-
+        
         for index in cat_indices:
             new_row = []
             for val in dmat_T[index]:
@@ -985,24 +990,24 @@ def prep_group_analysis_workflow(model_df, model_name,
 
         readme_flags.append("cat_demeaned")
 
-    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],columns=dmatrix.design_info.column_names)
-   
-    filepath_df = pd.DataFrame.from_dict(filepaths_dict)
-    dmatrix_df = dmatrix_df[column_names]
-    dmatrix_df = dmatrix_df.append([filepath_df])
-
+    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],columns=[dmatrix_column_names])
+    
+    #filepath_df = model_df["Filepath"]
+    #pd.DataFrame.from_dict(filepaths_dict)
+    
+    dmatrix_df = dmatrix_df[dmatrix.design_info.column_names]
+    
 
     # send off the info so the FLAME input model files can be generated!
     #mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix_df,
     #    column_names, contrasts_vectors, contrasts_list, custom_confile, ftest_list,
     #    group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0],
     #    model_name, resource_id, model_path)
-
+    
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
 
-    write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), column_names,
+    write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), dmatrix_column_names,
         dmat_csv_path)
-    
     contrast_out_path = os.path.join(model_path,"contrast.csv")
     write_blank_contrast_csv(contrasts_columns,contrast_out_path)
 
