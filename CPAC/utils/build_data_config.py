@@ -1686,8 +1686,7 @@ def run(data_settings_yml):
                                      exclusion_dct=excl_dct,
                                      config_dir=settings_dct["outputSubjectListLocation"])
 
-    elif 'Custom' in settings_dct['dataFormat'] or \
-            'custom' in settings_dct['dataFormat']:
+    elif 'custom' in settings_dct['dataFormat'].lower():
 
         # keep as None if local data set (not on AWS S3 bucket)
         file_list = None
