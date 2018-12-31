@@ -27,12 +27,14 @@ def prep():
     new_sub_file = ""
 
     for unique_resource_id in analysis_dict.keys():
+
         # unique_resource_id is a 5-long tuple:
         #    ( model name, group model config file, output measure name,
         #          preprocessing strategy string,
         #          series_id or "repeated_measures" )
 
         model_name = unique_resource_id[0]
+
         group_config_file = unique_resource_id[1]
         resource_id = unique_resource_id[2]
         preproc_strat = unique_resource_id[3]
@@ -48,6 +50,6 @@ def prep():
 
     return dmat_csv_path, new_sub_file, empty_csv
 
-
+  
 if __name__ == "__main__":
     prep()

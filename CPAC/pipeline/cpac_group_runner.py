@@ -1,5 +1,5 @@
 import fnmatch
-
+import pandas
 
 def load_config_yml(config_file, individual=False):
 
@@ -424,9 +424,10 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     import pandas as pd
 
     output_df_dict = {}
-
+    
     # unique_resource_id is tuple (resource_id,strat_info)
     for unique_resource_id in output_dict_list.keys():
+        
 
         # NOTE: this dataframe reflects what was found in the C-PAC output
         #       directory for individual-level analysis outputs,
@@ -435,9 +436,10 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
         
         # drop whatever is not in the inclusion lists
         if inclusion_list:
+            
             new_df = new_df[new_df.participant_session_id.isin(inclusion_list)]
-
-        if new_df.empty:
+            
+        if new_df.empty:  
             print("No outputs found for {0} for the participant-sessions "
                   "listed in the the group analysis participant list you "
                   "used. Skipping generating a model for this "
@@ -446,8 +448,10 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
                    
         # unique_resource_id is tuple (resource_id,strat_info)
         if unique_resource_id not in output_df_dict.keys():
+            
             output_df_dict[unique_resource_id] = new_df
-
+    
+    
     return output_df_dict
 
 
@@ -477,11 +481,13 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
     )
 
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
-
+    
+    
     return output_df_dict
 
 
 def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
+    import pandas as pd
     """Take in the selected session names, and match them to the unique
     participant-session IDs appropriately for an FSL FEAT repeated measures
     analysis.
@@ -511,9 +517,12 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     # in the pheno CSV file
     #     NOTE: this is mainly for PRESET GROUP ANALYSIS MODELS!!!
     num_partic_cols = 0
+    
     for col_names in pheno_df.columns:
-        if "participant" in col_names:
+        
+        if "participant_id" in col_names:
             num_partic_cols += 1
+            
     if num_partic_cols > 1 and ("session" in pheno_df.columns or "session_column_one" in pheno_df.columns):
         for part_ses_id in pheno_df["participant_session_id"]:
             if "participant_{0}".format(part_ses_id.split("_")[0]) in pheno_df.columns:
@@ -523,6 +532,27 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
             # if it's already set up properly, then just send the pheno_df
             # back and bypass all the machinery below
             return pheno_df
+    else:
+        new_rows = []
+        another_new_row = []
+        for session in sessions_list:
+            sub_pheno_df = pheno_df.copy()
+            sub_pheno_df["session"] = session
+            sub_pheno_df["participant_session_id"] = pheno_df.participant_id+'_ses-%s' % session
+            new_rows.append(sub_pheno_df)
+            another_new_row.append(sub_pheno_df)
+            pheno_df = pd.concat(new_rows)
+            pheno_df = pd.concat(another_new_row)
+        #for session in sessions_list:    
+            #for col_names in pheno_df.columns:
+            
+        #        print("hello")
+        #        sub_pheno_df = pheno_df.copy()
+                
+                
+        #        pheno_df = pd.concat(another_new_row)
+        #    else:
+        #        pass
 
     # there are no new rows, since the phenotype file will have all of the
     # subject_site_session combo unique IDs on each row!!!
@@ -532,17 +562,24 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     # participant IDs new columns
     participant_id_cols = {}
     i = 0
+    
     for participant_unique_id in pheno_df["participant_session_id"]:
         part_col = [0] * len(pheno_df["participant_session_id"])
+
         for session in sessions_list:
+            
             if session in participant_unique_id.split("_")[1]:
-                # generate/update sessions categorical column
+                #print(participant_unique_id)# generate/update sessions categorical column
                 part_id = participant_unique_id.split("_")[0]
+                
                 part_ids_col.append(part_id)
                 sessions_col.append(session)
+
                 header_title = "participant_%s" % part_id
+                
                 # generate/update participant ID column (1's or 0's)
                 if header_title not in participant_id_cols.keys():
+
                     part_col[i] = 1
                     participant_id_cols[header_title] = part_col
                 else:
@@ -550,17 +587,20 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
         i += 1
 
     pheno_df["Session"] = sessions_col
+
     pheno_df["participant"] = part_ids_col
 
     # add new participant ID columns
     for new_col in participant_id_cols.keys():
         pheno_df[new_col] = participant_id_cols[new_col]
 
+    
     return pheno_df
 
 
 def pheno_series_to_repeated_measures(pheno_df, series_list,
                                       repeated_sessions=False):
+    import pandas as pd
 
     # take in the selected series/scans, and create all of the permutations
     # of unique participant IDs (participant_site_session) and series/scans
@@ -569,13 +609,13 @@ def pheno_series_to_repeated_measures(pheno_df, series_list,
     #   version of the phenotype CSV for repeated measures; they can just
     #   enter the regular one
 
-    import pandas as pd
+    
 
     # first, check to see if this design matrix setup has already been done
     # in the pheno CSV file
     num_partic_cols = 0
     for col_names in pheno_df.columns:
-        if "participant" in col_names:
+        if "participant_id" in col_names:
             num_partic_cols += 1
     if num_partic_cols > 1 and "scan" in pheno_df.columns:
         for part_ses_id in pheno_df["participant_session_id"]:
@@ -632,18 +672,18 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     from collections import Counter
 
-    part_ID_count = Counter(pheno_df["participant_ID"])
+    part_ID_count = Counter(pheno_df["participant_id"])
 
     if series_list:
         sessions_x_series = len(sessions_list) * len(series_list)
     else:
         sessions_x_series = len(sessions_list)
-
+       
     dropped_parts = []
 
     for part_ID in part_ID_count.keys():
         if part_ID_count[part_ID] != sessions_x_series:
-            pheno_df = pheno_df[pheno_df.participant != part_ID]
+            pheno_df = pheno_df[pheno_df.participant_id != part_ID]
             del pheno_df["participant_%s" % part_ID]
             dropped_parts.append(part_ID)
 
@@ -660,7 +700,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     #                   analysis output directory
     #                   example:
     #                     /home/cpac_run_1/output/pipeline_040_ANTS
-
+    
     import os
     import pandas as pd
     import pkg_resources as p
@@ -681,6 +721,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     #   - create participant list
     #   - get output measure list
     #   - see if any of the models will require the raw scores
+    
     get_motion = False
     get_raw_score = False
 
@@ -730,7 +771,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                                     inclusion_list,
                                     get_motion,
                                     get_raw_score)
-
+    
     # alright, group model processing time
     #   going to merge the phenotype DFs with the output file DF
     analysis_dict = {}

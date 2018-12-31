@@ -11,8 +11,7 @@ from CPAC.group_analysis import create_group_analysis
 
 def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
     # write the new participant list
-    new_sub_file = os.path.join(current_mod_path, \
-                                    os.path.basename(subject_list))
+    new_sub_file = os.path.join(current_mod_path,os.path.basename(subject_list))
 
     try:
         with open(new_sub_file, "w") as f:
@@ -342,10 +341,9 @@ def parse_out_covariates(design_formula):
 def split_groups(pheno_df, group_ev, ev_list, cat_list):   
             
     import pandas as pd
-        
+    
     new_ev_list = []
     new_cat_list = []
-
     if group_ev not in cat_list:
         err = "\n\n[!] The grouping variable must be one of the categorical "\
               "covariates!\n\n"
@@ -361,10 +359,11 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
     grp_vector = pheno_df[group_ev].map(keymap)
             
     # start the split
-    pheno_df["subject_key"] = pheno_df["Participant"]
+    pheno_df["subject_key"] = pheno_df["participant_id"]
     join_column = ["subject_key"]
         
     if "Session" in pheno_df:
+
         pheno_df["session_key"] = pheno_df["Session"]
         join_column.append("session_key")
             
@@ -402,10 +401,10 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
         level_df.rename(columns=rename, inplace=True)
         level_df_list.append(level_df)
 
-    # the grouping variable has to be in the categorical list too
-    #new_cat_list.append(group_ev)
+        # the grouping variable has to be in the categorical list too
+        #new_cat_list.append(group_ev)
 
-    # get it back into order!
+        # get it back into order!
     pheno_df = pheno_df[join_column].merge(pd.concat(level_df_list), on=join_column)
     pheno_df = pheno_df.drop(join_column,1)
 
@@ -503,6 +502,7 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
         con_vec = lincon.coefs[0]
         contrasts_vectors.append(con_vec)
 
+    
     return contrasts_vectors
 
 
@@ -526,7 +526,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     from CPAC.pipeline.cpac_group_runner import load_config_yml
     
     from CPAC.utils.create_flame_model_files import create_flame_model_files
-    from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv
+    from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv,write_blank_contrast_csv
 
     #pipeline_config_obj = load_config_yml(pipeline_config_path)
     group_config_obj = load_config_yml(group_config_file)
@@ -554,11 +554,11 @@ def prep_group_analysis_workflow(model_df, model_name,
     readme_flags = []
 
     # determine if f-tests are included or not
-    #custom_confile = group_config_obj.custom_contrasts
+    custom_confile = group_config_obj.custom_contrasts
 
-    #if ((custom_confile is None) or (custom_confile == '') or
-    #        ("None" in custom_confile) or ("none" in custom_confile)):
-    #    custom_confile = None
+    if ((custom_confile is None) or (custom_confile == '') or
+            ("None" in custom_confile) or ("none" in custom_confile)):
+        custom_confile = None
 
     #    if (len(group_config_obj.f_tests) == 0) or \
     #            (group_config_obj.f_tests is None):
@@ -586,9 +586,6 @@ def prep_group_analysis_workflow(model_df, model_name,
     #    for ev in evs:
     #        if "f_test" in ev:
     #            count_ftests += 1
-
-    #    if count_ftests > 0:
-    #        fTest = True
 
     # create path for output directory
     model_dir = os.path.join(group_config_obj.output_dir,
@@ -659,10 +656,18 @@ def prep_group_analysis_workflow(model_df, model_name,
         #   repeated measures runs
         if part not in new_participant_list:
             new_participant_list.append(part)
+    
+    if group_config_obj.participant_list == None:
 
-    new_sub_file = write_new_sub_file(model_path,
+        #participant_list = os.listdir(group_config_obj.pipeline_dir)
+        new_sub_file = write_new_sub_file(model_path,
+                                      group_config_obj.pipeline_dir,
+                                      new_participant_list)
+    else: 
+        new_sub_file = write_new_sub_file(model_path,
                                       group_config_obj.participant_list,
                                       new_participant_list)
+
 
     group_config_obj.update('participant_list', new_sub_file)
 
@@ -708,6 +713,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0],
                                               custom_roi_mask, mask_for_means,
                                               model_path, resource_id)
+        
 
         # trim the custom ROI mask to be within mask constraints
         output_mask = os.path.join(model_path, "masked_%s" \
@@ -719,7 +725,9 @@ def prep_group_analysis_workflow(model_df, model_name,
         model_df = calculate_custom_roi_mean_in_df(model_df, roi_mask)
 
         # update the design formula
+        
         new_design_substring = ""
+        
         for col in model_df.columns:
             if "Custom_ROI_Mean_" in str(col):
                 if str(col) == "Custom_ROI_Mean_1":
@@ -732,7 +740,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     cat_list = []
     if "categorical" in group_config_obj.ev_selections.keys():
         cat_list = group_config_obj.ev_selections["categorical"]
-
+    
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
         if "Session" in model_df.columns:
@@ -752,16 +760,18 @@ def prep_group_analysis_workflow(model_df, model_name,
             # columns, not the "participant_id" column!
             if "participant_" in col and "_id" not in col:
                 design_formula = design_formula + " + %s" % col
+                
                 cat_list.append(col)
 
+    
     # parse out the EVs in the design formula at this point in time
     #   this is essentially a list of the EVs that are to be included
     ev_list = parse_out_covariates(design_formula)
-
+    
     # SPLIT GROUPS here.
     #   CURRENT PROBLEMS: was creating a few doubled-up new columns
     grp_vector = [1] * num_subjects
-
+    
     if group_config_obj.group_sep:
 
         # check if the group_ev parameter is a list instead of a string:
@@ -777,7 +787,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         #     that usually occurs when the "modeling group variances
         #     separately" option is enabled in the group analysis config YAML
         group_ev = group_config_obj.grouping_var
-
+        
         if isinstance(group_ev, list) or "," in group_ev:
 
             grp_vector = []
@@ -838,7 +848,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         else:
             # model group variances separately
             old_ev_list = ev_list
-
+            
             model_df, grp_vector, ev_list, cat_list = split_groups(model_df,
                                     group_config_obj.grouping_var,
                                     ev_list, cat_list)
@@ -868,8 +878,10 @@ def prep_group_analysis_workflow(model_df, model_name,
     design_formula = patsify_design_formula(design_formula, cat_list,
                                             group_config_obj.coding_scheme[0])
 
+
     # send to Patsy
     try:
+        print(model_df)
         dmatrix = patsy.dmatrix(design_formula, model_df)
     except Exception as e:
         err = "\n\n[!] Something went wrong with processing the group model "\
@@ -879,21 +891,28 @@ def prep_group_analysis_workflow(model_df, model_name,
               "%s\n\nPatsy-formatted design formula: %s\n\nError details: " \
               "%s\n\n" % (model_df.columns, design_formula, e)
         raise Exception(err)
-
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
+    #model_matrix = patsy.DesignInfo(model_df.columns)
+    
     check_multicollinearity(np.array(dmatrix))
-
+ 
     # prepare for final stages
+    dmatrix.design_info.column_names.append(model_df["Filepath"])
     dmatrix_column_names = dmatrix.design_info.column_names
-
+    
+    
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df
     column_names = []
     for col in model_df.columns:
         if col in dmatrix_column_names:
-            column_names.append(col)
-
+            column_names.append(col)   
+    
+    dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
+    contrast_out_path = os.path.join(out_dir,"contrast.csv")
+    
+  
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \
@@ -913,18 +932,23 @@ def prep_group_analysis_workflow(model_df, model_name,
         raise Exception(err)
 
     # time for contrasts
-    #contrasts_list = None
-    #contrasts_vectors = None
+    
 
-    #if ((custom_confile == None) or (custom_confile == '') or
-    #        ("None" in custom_confile) or ("none" in custom_confile)):
+    if (group_config_obj.custom_contrasts == None) or (group_config_obj.contrasts == None):
 
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
-     #   contrasts_list = group_config_obj.contrasts
-     #   contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
-     #                                             resource_id)
+        contrasts_columns = column_names
+        contrasts_columns = ["contrasts"] + contrasts_columns
+        if not group_config_obj.f_tests == None:
+            for i in group_config_obj.f_tests[1:len(group_config_obj.f_tests)-1]:
+                contrasts_columns.append('f_test_%d' % i) 
+    else:
+        pass
 
+        #print("contrasts_list:%s" % contrasts_list)
+        
+    #print(contrasts_list)
     # check the merged file's order
     #check_merged_file(model_df["Filepath"], merge_file)
 
@@ -941,7 +965,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         # note: dmat_T is now no longer a DesignMatrix Patsy object, but only
         # an array
         dmat_T = dmatrix.transpose()
-
+        
         for index in cat_indices:
             new_row = []
             for val in dmat_T[index]:
@@ -970,6 +994,7 @@ def prep_group_analysis_workflow(model_df, model_name,
             f.write(',0')
    
     return dmat_csv_path, new_sub_file, contrast_out_path
+
 
     # workflow time
     #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
