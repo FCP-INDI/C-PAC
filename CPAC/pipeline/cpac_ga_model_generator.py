@@ -587,30 +587,17 @@ def prep_group_analysis_workflow(model_df, model_name,
     #        if "f_test" in ev:
     #            count_ftests += 1
 
-    #    if count_ftests > 0:
-    #        fTest = True
+    # create path for output directory
+    model_dir = os.path.join(group_config_obj.output_dir,
+                           'cpac_group_analysis',
+                           'FSL_FEAT',
+                           'pipeline_{0}'.format(pipeline_ID),
+                           'group_model_{0}'.format(model_name))
 
-    # create path for output director
-    if len(group_config_obj.sessions_list) > 0:
-        for session in group_config_obj.sessions_list:
-            out_dir = os.path.join(group_config_obj.model_name,
-                           group_config_obj.output_dir,
-                           session,
-                           'cpac_group_analysis',
-                           'FSL_FEAT',
-                           'pipeline_{0}'.format(pipeline_ID),
-                           #'group_model_{0}'.format(model_name),
-                            resource_id,
-                           series_or_repeated_label, preproc_strat)
-    else:
-        out_dir = os.path.join(group_config_obj.model_name,
-                           group_config_obj.output_dir,
-                           'cpac_group_analysis',
-                           'FSL_FEAT',
-                           'pipeline_{0}'.format(pipeline_ID),
-                           #'group_model_{0}'.format(model_name),
-                            resource_id,
-                           series_or_repeated_label, preproc_strat)
+    out_dir = os.path.join(model_dir,
+                           resource_id,
+                           series_or_repeated_label,
+                           preproc_strat)
 
     if 'sca_roi' in resource_id:
         out_dir = os.path.join(out_dir,
@@ -990,31 +977,24 @@ def prep_group_analysis_workflow(model_df, model_name,
 
         readme_flags.append("cat_demeaned")
 
-    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],columns=[dmatrix_column_names])
-    
-    #filepath_df = model_df["Filepath"]
-    #pd.DataFrame.from_dict(filepaths_dict)
-    
-    dmatrix_df = dmatrix_df[dmatrix.design_info.column_names]
-    
+    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],
+                              columns=dmatrix.design_info.column_names)
 
-    # send off the info so the FLAME input model files can be generated!
-    #mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix_df,
-    #    column_names, contrasts_vectors, contrasts_list, custom_confile, ftest_list,
-    #    group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0],
-    #    model_name, resource_id, model_path)
-    
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-
-    write_design_matrix_csv(dmatrix_df,(model_df["participant_id"]), dmatrix_column_names,
-        dmat_csv_path)
-    contrast_out_path = os.path.join(model_path,"contrast.csv")
-    write_blank_contrast_csv(contrasts_columns,contrast_out_path)
-
-    #with open(contrast_out_path, "w") as empty_csv:
-    #        pass 
+    write_design_matrix_csv(dmatrix_df, model_df["participant_id"],
+                            column_names, dmat_csv_path)
+    
+    contrast_out_path = os.path.join(model_dir, "contrasts.csv")
+    with open(contrast_out_path, "w") as f:
+        f.write('Contrasts')
+        for col in dmatrix.design_info.column_names:
+            f.write(',{0}'.format(col))
+        f.write('\ncontrast_1')
+        for col in dmatrix.design_info.column_names:
+            f.write(',0')
    
-    return dmat_csv_path,new_sub_file,contrast_out_path
+    return dmat_csv_path, new_sub_file, contrast_out_path
+
 
     # workflow time
     #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)

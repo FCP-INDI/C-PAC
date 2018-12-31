@@ -716,90 +716,45 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     derivatives = list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-score']['Resource'])
     derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
 
-    # Load the group config file into 'c' as a CONFIGURATION OBJECT
-    #c = load_config_yml(group_config_file)
+    group_model = load_config_yml(group_config_file)
 
-    #if not isfile(c):
-    #    print '[!] CPAC says: You do not have a valid group config model selected ' \
-    #          'to run for group-level analysis. Make sure the group config yaml is present ' \
-    #          'and if not create a new one.\n\n'
-    #    raise Exception
-
-    # load the group model configs
-    group_models = []
-    
-    #for group_config_file in c.modelConfigs:
-    group_models.append(load_config_yml(group_config_file))
-
-    # get the lowest common denominator of group model config choices
-    #   - create full participant list
-    #   - create full output measure list
+    #   - create participant list
+    #   - get output measure list
     #   - see if any of the models will require the raw scores
-    full_inclusion_list = []
-    full_output_measure_list = []
+    
     get_motion = False
     get_raw_score = False
-    #if not (group_config.participant_list == None):
-    #    if os.path.isdir(pipeline_output_folder):
-    #        sub_pipeline_dir = os.listdir(pipeline_output_folder)
-            
-            #os.path.isfile(group_model.participant_list) :##
-    #        sub_participant = load_text_file(group_config.participant_list,
-    #                                   "group-level analysis participant "
-    #                                   "list")
-            
-    #        if not sub_pipeline_dir in sub_participant:
-                
-    #            raise Exception("Your pipeline output directory and participant list do not match and those that are present " \
-    #               "in the indivual level output directory are identical to continue " \
-    #               "without any errors.")
-                
 
+    if '.' in group_model.participant_list:
+        if not os.path.isfile(group_model.participant_list):
+            raise Exception('\n[!] C-PAC says: Your participant '
+                            'inclusion list is not a valid file!\n\n'
+                            'File path: {0}'
+                            '\n'.format(group_model.participant_list))
 
-    for group_model_tuple in group_models:
-        group_model = group_models[0]
-        group_config = load_config_yml(group_config_file)
-        
-        if (group_config.participant_list == None):
-            inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
-            
-            
-        #if '.' in group_model.participant_list:
-        #    if not os.path.isfile(group_model.participant_list):
-        #        raise Exception('\n[!] C-PAC says: Your participant '
-        #                        'inclusion list is not a valid file!\n\n'
-        #                        'File path: {0}'
-        #                        '\n'.format(group_model.participant_list))
+    if os.path.isfile(group_model.participant_list):
+        inclusion_list = load_text_file(group_model.participant_list,
+                                        "group-level analysis participant "
+                                        "list")
+    else:
+        inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
 
-        else:
-            #os.path.isfile(group_model.participant_list) :##
-            inclusion = load_text_file(group_model.participant_list,
-                                       "group-level analysis participant "
-                                       "list")
-        #else:
-        #    inclusion = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+    output_measure_list = group_model.derivative_list
 
-        full_inclusion_list = full_inclusion_list + inclusion
+    # if any of the models will require motion parameters
+    if ("MeanFD" in group_model.design_formula) or ("MeanDVARS" in group_model.design_formula):
+        get_motion = True
 
-        full_output_measure_list = full_output_measure_list + \
-                                       group_model.derivative_list
-        # if any of the models will require motion parameters
-        if ("MeanFD" in group_model.design_formula) or ("MeanDVARS" in group_model.design_formula):
-            get_motion = True
+    # make sure "None" gets processed properly here...
+    if (group_model.custom_roi_mask == "None") or \
+            (group_model.custom_roi_mask == "none"):
+        custom_roi_mask = None
+    else:
+        custom_roi_mask = group_model.custom_roi_mask
 
-        # make sure "None" gets processed properly here...
-        if (group_model.custom_roi_mask == "None") or \
-                (group_model.custom_roi_mask == "none"):
-            custom_roi_mask = None
-        else:
-            custom_roi_mask = group_model.custom_roi_mask
-
-        if ("Measure_Mean" in group_model.design_formula) or \
-                (custom_roi_mask != None):
-            get_raw_score = True
-
-    full_inclusion_list = list(set(full_inclusion_list))
-    full_output_measure_list = list(set(full_output_measure_list))
+    if ("Measure_Mean" in group_model.design_formula) or \
+            (custom_roi_mask != None):
+        get_raw_score = True
 
     # sammin sammin mmmm samin in gray v
 
@@ -812,338 +767,273 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     #   information, and each dataframe will include ALL SERIES/SCANS
     # - the dataframes will be pruned for each model LATER
     output_df_dict = gather_outputs(pipeline_output_folder,
-                                    full_output_measure_list,
-                                    full_inclusion_list,
+                                    output_measure_list,
+                                    inclusion_list,
                                     get_motion,
                                     get_raw_score)
     
     # alright, group model processing time
     #   going to merge the phenotype DFs with the output file DF
     analysis_dict = {}
-    
-    group_model_names = []
 
-    for group_model in group_models:
+    model_name = group_model.model_name
 
-        group_config_file = group_models[0]
-        
-        model_name = group_config_file.model_name
+    if len(group_model.derivative_list) == 0:
+        err = "\n\n[!] There are no derivatives listed in the " \
+              "derivative_list field of your group analysis " \
+              "configuration file.\n\nConfiguration file: " \
+              "{0}\n".format(group_config_file)
+        raise Exception(err)
 
-        if model_name in group_model_names:
+    # load original phenotype CSV into a dataframe
+    pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
 
-            err = "\n\n[!] You have two group analysis models with the same "\
-                  "name!\n\nDuplicate name: %s\n\n" % model_name
-            raise Exception(err)
+    # enforce the sub ID label to "Participant"
+    pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
+                    inplace=True)
+
+    pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
+
+    # unique_resource = (output_measure_type, preprocessing strategy)
+    # output_df_dict[unique_resource] = dataframe
+    for unique_resource in output_df_dict.keys():
+        resource_id = unique_resource[0]
+
+        # do this backwards, because the group_model.derivative_list is a
+        # list of substrings that would be in a derivative name
+        # for example:
+        #     group_model.derivative_list = ['centrality']
+        #     this would include both 'centrality_zstd' and
+        #     'centrality_smooth_zstd', both of which could be the current
+        #     value of 'resource_id'
+        # also, 'derivatives' is a list of group-analysis eligible
+        # derivatives (standard space, z-score standardized)
+        for derivative in group_model.derivative_list:
+            if derivative in resource_id and resource_id in derivative:
+                break
         else:
-            
-            group_model_names.append(model_name)
-    
+            continue
 
-        if len(group_model.derivative_list) == 0:
-            err = "\n\n[!] There are no derivatives listed in the " \
-                  "derivative_list field of your group analysis " \
-                  "configuration file.\n\nConfiguration file: " \
-                  "{0}\n".format(group_config_file)
-            raise Exception(err)
+        strat_info = unique_resource[1]
 
-        # removing this due to the recent change
-        '''
-        for deriv_name in group_model.derivative_list:
-            if deriv_name not in derivatives:
-                err = "\n\n[!] One of the derivative names you provided " \
-                      "({0}) in the derivative_list field in your group " \
-                      "analysis configuration file is not a valid CPAC " \
-                      "output name.\n\nConfiguration file: {1}" \
-                      "\n".format(deriv_name, group_config_file)
-                raise Exception(err)
-        '''
+        # output_df has the information for ALL of the output files for
+        # this unique_resource_id- all series, and if applicable, motion
+        # params numbers, and paths to raw outputs (for measure mean or
+        # custom ROI means)
+        #   then cut it down and merge with the phenotype DF as needed
+        #   depending on the analysis
+        output_df = output_df_dict[unique_resource]
 
-        # load original phenotype CSV into a dataframe
-        pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
-        
-        # enforce the sub ID label to "Participant"
-        pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
-                        inplace=True) 
+        # prune the output_df for this specific group model and output +
+        # preprocessing strategy
+        if os.path.isfile(group_model.participant_list):
+            inclusion_list = load_text_file(group_model.participant_list,
+                                            "group-level analysis "
+                                            "participant list")
+        else:
+            inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
 
-        pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
-        
-        # unique_resource = (output_measure_type, preprocessing strategy)
-        # output_df_dict[unique_resource] = dataframe
-        
-        for unique_resource in output_df_dict.keys():
-            
-            resource_id = unique_resource[0]
-            
-            # do this backwards, because the group_model.derivative_list is a
-            # list of substrings that would be in a derivative name
-            # for example:
-            #     group_model.derivative_list = ['centrality']
-            #     this would include both 'centrality_zstd' and
-            #     'centrality_smooth_zstd', both of which could be the current
-            #     value of 'resource_id'
-            # also, 'derivatives' is a list of group-analysis eligible
-            # derivatives (standard space, z-score standardized)
-            for derivative in group_model.derivative_list:
-                if derivative in resource_id and resource_id in derivative:
-                    break
-            else:
-                continue
-           
-            strat_info = unique_resource[1]
+        output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
 
-            
-            # output_df has the information for ALL of the output files for
-            # this unique_resource_id- all series, and if applicable, motion
-            # params numbers, and paths to raw outputs (for measure mean or
-            # custom ROI means)
-            #   then cut it down and merge with the phenotype DF as needed
-            #   depending on the analysis
-            output_df = output_df_dict[unique_resource]
-            
-            
-            if (group_config.participant_list == None):
-                #inclusion_list=[]
-                inclusion_list = os.listdir(group_config.pipeline_dir)
-                #for x in mm_inclusion_list:
-                #    sep = '_'
-                #    x = x.split(sep,1)[0]
-                #    x = x.lstrip('0')
-                #    inclusion_list.append(x)
+        new_pheno_df = pheno_df.copy()
 
-            else:
-                
-                #inclusion_list = []
-                inclusion_list = load_text_file(group_model.participant_list,
-                                                "group-level analysis "
-                                                "participant list") 
-                #for x in nat_inclusion_list:
-                #    sep = '_'
-                #    x = x.split(sep,1)[0]
-                #    x = x.lstrip('0')
-                #    inclusion_list.append(x)
-            
-
-            
-            output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
-            
-            new_pheno_df = pheno_df.copy()
-            # check for inconsistency with leading zeroes
-            # (sometimes, the sub_ids from individual will be something like
-            #  '0002601' and the phenotype will have '2601')
-            sublist_subs = output_df['participant_id']
-            pheno_subs = list(new_pheno_df['participant_id']) 
-            
-            for sub in sublist_subs:
+        # check for inconsistency with leading zeroes
+        # (sometimes, the sub_ids from individual will be something like
+        #  '0002601' and the phenotype will have '2601')
+        sublist_subs = output_df['participant_id']
+        pheno_subs = list(new_pheno_df['participant_id'])
+        for sub in sublist_subs:
+            if sub in pheno_subs:
+                # okay, there's at least one match
+                break
+        else:
+            new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
+            for sub in new_sublist_subs:
                 if sub in pheno_subs:
+                    # that's better
+                    output_df['participant_id'] = new_sublist_subs
                     break
             else:
-                new_sublist_subs = [str(x).lstrip('0') for x in sublist_subs]
+                raise Exception('the participant IDs in your group '
+                                'analysis participant list and the '
+                                'participant IDs in your phenotype file '
+                                'do not match')
 
-                for sub in new_sublist_subs:
-                    
-                    if sub in pheno_subs:
-                        # that's better
-                        output_df['participant_id'] = new_sublist_subs
-                        break
-                else:
-                    raise Exception('the participant IDs in your group '
-                                    'analysis participant list and the '
-                                    'participant IDs in your phenotype file '
-                                    'do not match')
+        repeated_measures = False
+        repeated_sessions = False
+        repeated_series = False
 
-            repeated_measures = False
-            repeated_sessions = False
-            repeated_series = False
+        if len(group_model.sessions_list) > 0:
+            repeated_sessions = True
 
-            if len(group_model.sessions_list) > 0:
-                repeated_sessions = True
+        if len(group_model.series_list) > 0:
+            repeated_series = True
 
-            if len(group_model.series_list) > 0:
-                repeated_series = True
+        if repeated_sessions or repeated_series:
+            repeated_measures = True
 
-            if repeated_sessions or repeated_series:
-                repeated_measures = True
+        if repeated_measures:
+            if repeated_sessions:
+                # IF USING FSL PRESETS: new_pheno_df will get passed
+                #                       through unchanged
+                new_pheno_df = \
+                    pheno_sessions_to_repeated_measures(new_pheno_df,
+                                                        group_model.sessions_list)
 
-            if repeated_measures:
+            # create new rows for all of the series, if applicable
+            #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
+            if repeated_series:
+                # IF USING FSL PRESETS: new_pheno_df will get passed
+                #                       through unchanged
+                new_pheno_df = \
+                    pheno_series_to_repeated_measures(new_pheno_df,
+                                                      group_model.series_list,
+                                                      repeated_sessions)
+
+            # drop the pheno rows - if there are participants missing in
+            # the output files (ex. if ReHo did not complete for 2 of the
+            # participants, etc.), then drop these rows from the phenotype
+            #   we are dropping all instances of this participant, all
+            #   sessions and all series, because in repeated measures/
+            #   within-subject, if one goes, they all have to go
+            new_pheno_df = \
+                new_pheno_df[pheno_df["participant_id"].isin(output_df["participant_id"])]
+
+            if len(new_pheno_df) == 0:
+                err = "\n\n[!] There is a mis-match between the "\
+                      "participant IDs in the output directory/particip" \
+                      "ant list and the phenotype file.\n\n"
+                raise Exception(err)
+
+            join_columns = ["participant_id"]
+
+            if "scan" in new_pheno_df:
+                # TODO: maybe come up with something more unique than
+                # TODO: "session" or "scan" for covariate names to signal
+                # TODO: when presets are being used?
+                # if we're using one of the FSL presets!
+                # IMPT: we need to match the rows with the actual scans
+
+                # ALSO IMPT: we're going to rely on the series_list from
+                #            the group model config to match, so always
+                #            make sure the order remains the same
+                #            example: the 1,1,1,-1,-1,-1 condition vector
+                #                     in the preset should be the first
+                #                     scan in the list for 1,1,1 and the
+                #                     second for -1,-1,-1
+                scan_label_col = []
+                for val in new_pheno_df["scan"]:
+                    if len(group_model.series_list) == 2:
+                        if val == 1:
+                            scan_label_col.append(
+                                group_model.series_list[0])
+                        elif val == -1:
+                            scan_label_col.append(
+                                group_model.series_list[1])
+                new_pheno_df["Series"] = scan_label_col
+
+                # now make sure the 1,1,1,-1,-1,-1,...etc. matches
+                # properly with the actual scans by merging
+                join_columns.append("Series")
+                new_pheno_df = pd.merge(new_pheno_df, output_df,
+                                        how="inner", on=join_columns)
+                run_label = "repeated_measures_multiple_series"
+
+                analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
+                    new_pheno_df
+
+            elif "Series" in new_pheno_df:
+                # if Series is one of the categorically-encoded covariates
+                # make sure we only are including the series the user has
+                # selected to include in the repeated measures analysis
+
+                # check in case the pheno has series IDs that doesn't
+                # exist in the output directory, first
+                new_pheno_df = \
+                    new_pheno_df[new_pheno_df["Series"].isin(output_df["Series"])]
+                # okay, now check against the user-specified series list
+                new_pheno_df = \
+                    new_pheno_df[new_pheno_df["Series"].isin(group_model.series_list)]
+                join_columns.append("Series")
+                # pull together the pheno DF and the output files DF!
+                new_pheno_df = pd.merge(new_pheno_df, output_df,
+                                        how="inner", on=join_columns)
+
                 if repeated_sessions:
-                    # IF USING FSL PRESETS: new_pheno_df will get passed
-                    #                       through unchanged
-                    new_pheno_df = \
-                        pheno_sessions_to_repeated_measures(new_pheno_df,
-                                                            group_model.sessions_list)
+                    # this can be removed/modified once sessions are no
+                    # longer integrated in the full unique participant IDs
+                    new_pheno_df, dropped_parts = \
+                        balance_repeated_measures(new_pheno_df,
+                                                  group_model.sessions_list,
+                                                  group_model.series_list)
 
-                    
-                # create new rows for all of the series, if applicable
-                #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
-                if repeated_series:
-                    # IF USING FSL PRESETS: new_pheno_df will get passed
-                    #                       through unchanged
-                    new_pheno_df = \
-                        pheno_series_to_repeated_measures(new_pheno_df,
-                                                          group_model.series_list,
-                                                          repeated_sessions)
-
-                # drop the pheno rows - if there are participants missing in
-                # the output files (ex. if ReHo did not complete for 2 of the
-                # participants, etc.), then drop these rows from the phenotype
-                #   we are dropping all instances of this participant, all
-                #   sessions and all series, because in repeated measures/
-                #   within-subject, if one goes, they all have to go    
-                    new_pheno_df = \
-                        new_pheno_df[pheno_df["participant_id"].isin(output_df["participant_id"])]
-                
-                
-                if len(new_pheno_df) == 0:
-                    err = "\n\n[!] There is a mis-match between the "\
-                          "participant IDs in the output directory/particip" \
-                          "ant list and the phenotype file.\n\n"
-                    raise Exception(err)
-
-                join_columns = ["participant_id"]
-
-                if "scan" in new_pheno_df:
-                    # TODO: maybe come up with something more unique than
-                    # TODO: "session" or "scan" for covariate names to signal
-                    # TODO: when presets are being used?
-                    # if we're using one of the FSL presets!
-                    # IMPT: we need to match the rows with the actual scans
-
-                    # ALSO IMPT: we're going to rely on the series_list from
-                    #            the group model config to match, so always
-                    #            make sure the order remains the same
-                    #            example: the 1,1,1,-1,-1,-1 condition vector
-                    #                     in the preset should be the first
-                    #                     scan in the list for 1,1,1 and the
-                    #                     second for -1,-1,-1
-                    scan_label_col = []
-                    for val in new_pheno_df["scan"]:
-                        if len(group_model.series_list) == 2:
-                            if val == 1:
-                                scan_label_col.append(
-                                    group_model.series_list[0])
-                            elif val == -1:
-                                scan_label_col.append(
-                                    group_model.series_list[1])
-                    new_pheno_df["Series"] = scan_label_col
-
-                    # now make sure the 1,1,1,-1,-1,-1,...etc. matches
-                    # properly with the actual scans by merging
-                    join_columns.append("Series")
-                    new_pheno_df = pd.merge(new_pheno_df, output_df,
-                                            how="inner", on=join_columns)
-                    
+                    run_label = "repeated_measures_multiple_sessions_and_series"
+                else:
                     run_label = "repeated_measures_multiple_series"
 
-                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
-                        new_pheno_df
+                analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
+                    new_pheno_df
 
-                elif "Series" in new_pheno_df:
-                    # if Series is one of the categorically-encoded covariates
-                    # make sure we only are including the series the user has
-                    # selected to include in the repeated measures analysis
-
-                    # check in case the pheno has series IDs that doesn't
-                    # exist in the output directory, first
-                    new_pheno_df = \
-                        new_pheno_df[new_pheno_df["Series"].isin(output_df["Series"])]
-                    # okay, now check against the user-specified series list
-                    new_pheno_df = \
-                        new_pheno_df[new_pheno_df["Series"].isin(group_model.series_list)]
-                    join_columns.append("Series")
-                    # pull together the pheno DF and the output files DF!
-                    new_pheno_df = pd.merge(new_pheno_df, output_df,
-                                            how="inner", on=join_columns)
-                    
-
-                    if repeated_sessions:
-                        # this can be removed/modified once sessions are no
-                        # longer integrated in the full unique participant IDs
-                        new_pheno_df, dropped_parts = \
-                            balance_repeated_measures(new_pheno_df,
-                                                      group_model.sessions_list,
-                                                      group_model.series_list)
-
-                        run_label = "repeated_measures_multiple_sessions_and_series"
-                    else:
-                        run_label = "repeated_measures_multiple_series"
-
-                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
-                        new_pheno_df
-
-                else:
-                    # this runs if there are repeated sessions but not
-                    # repeated series
-                    #   split up the series here
-                    #   iterate over the Series/Scans
-                    
-                    for series_df_tuple in output_df.groupby("Series"):
-                        
-                        series = series_df_tuple[0]
-                        
-                        # series_df is output_df but with only one of the
-                        # Series
-                        series_df = series_df_tuple[1]
-                        
-                        
-                        #pheno df contains all the subjects, and the series_df contains all the participants which are included in this evaluation
-                        # TODO: is this a mistake?
-                        # trim down the pheno DF to match the output DF and
-                        # merge
-                        newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
-
-                        newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id"])
-                        
-                        
-                           #newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
-                        #so for some reason, the evaluation of pheno_df["particpant_id"].isin(series_df["participant_id"]) is only one subject, i.e., participant_25867
-                        #why? 
-                        
-                        # this can be removed/modified once sessions are no
-                        # longer integrated in the full unique participant IDs
-                        if "Session" in newer_pheno_df.columns:
-
-                            # TODO: re-visit why there is a "participant_ID"
-                            # TODO: column? will this still work without
-                            # TODO: presets?
-                            
-                            newer_pheno_df, dropped_parts = balance_repeated_measures(newer_pheno_df,group_model.sessions_list,None)
-                            
-                        
-                        # unique_resource =
-                        #        (output_measure_type, preprocessing strategy)
-                    
-                        
-                        analysis_dict[(model_name, group_config_file,
-                                       resource_id, strat_info,
-                                       "repeated_measures_%s" % series)] = newer_pheno_df
-                        
             else:
-
-                # no repeated measures
-
-                # split up the output files list DataFrame by series, then
-                # merge with the pheno DataFrame and send it off for analysis
-            
-                # essentially, make sure each series combination goes into its
-                # own model (and dataframe) for this unique_resource_id
-
-                # iterate over the Series/Scans
+                # this runs if there are repeated sessions but not
+                # repeated series
+                #   split up the series here
+                #   iterate over the Series/Scans
                 for series_df_tuple in output_df.groupby("Series"):
-                    series = series_df_tuple[0]
-                    
-                    # series_df = output_df but with only one of the Series
-                    series_df = series_df_tuple[1]
-                    # trim down the pheno DF to match the output DF and merge
-                    newer_pheno_df = \
-                        new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
-                    newer_pheno_df = pd.merge(newer_pheno_df, series_df,
-                                              how="inner",
-                                              on=["participant_id"])
-                    
-                    # send it in
-                    analysis_dict[(model_name, group_config_file, resource_id,strat_info, series)] = newer_pheno_df
 
-    
+                    series = series_df_tuple[0]
+
+                    # series_df is output_df but with only one of the
+                    # Series
+                    series_df = series_df_tuple[1]
+
+                    # TODO: is this a mistake?
+                    # trim down the pheno DF to match the output DF and
+                    # merge
+                    newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                    newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id"])
+
+                    # this can be removed/modified once sessions are no
+                    # longer integrated in the full unique participant IDs
+                    if "Session" in newer_pheno_df.columns:
+                        # TODO: re-visit why there is a "participant_ID"
+                        # TODO: column? will this still work without
+                        # TODO: presets?
+                        newer_pheno_df, dropped_parts = \
+                            balance_repeated_measures(newer_pheno_df,
+                                                      group_model.sessions_list,
+                                                      None)
+
+                    # unique_resource =
+                    #        (output_measure_type, preprocessing strategy)
+                    analysis_dict[(model_name, group_config_file,
+                                   resource_id, strat_info,
+                                   "repeated_measures_%s" % series)] = newer_pheno_df
+
+        else:
+            # no repeated measures
+
+            # split up the output files list DataFrame by series, then
+            # merge with the pheno DataFrame and send it off for analysis
+
+            # essentially, make sure each series combination goes into its
+            # own model (and dataframe) for this unique_resource_id
+
+            # iterate over the Series/Scans
+            for series_df_tuple in output_df.groupby("Series"):
+                series = series_df_tuple[0]
+                # series_df = output_df but with only one of the Series
+                series_df = series_df_tuple[1]
+                # trim down the pheno DF to match the output DF and merge
+                newer_pheno_df = \
+                    new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                newer_pheno_df = pd.merge(newer_pheno_df, series_df,
+                                          how="inner",
+                                          on=["participant_id"])
+                # send it in
+                analysis_dict[(model_name, group_config_file, resource_id,
+                               strat_info, series)] = newer_pheno_df
+
     return analysis_dict
 
 
