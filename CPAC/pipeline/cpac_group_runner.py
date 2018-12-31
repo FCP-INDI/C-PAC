@@ -786,12 +786,12 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
         raise Exception(err)
 
     # load original phenotype CSV into a dataframe
-    pheno_df = read_pheno_csv_into_df(group_model.pheno_file)
+    pheno_df = read_pheno_csv_into_df(group_model.pheno_file, 
+                                      group_model.participant_id_label)
 
     # enforce the sub ID label to "Participant"
     pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
                     inplace=True)
-
     pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
 
     # unique_resource = (output_measure_type, preprocessing strategy)
@@ -842,6 +842,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
         #  '0002601' and the phenotype will have '2601')
         sublist_subs = output_df['participant_id']
         pheno_subs = list(new_pheno_df['participant_id'])
+
         for sub in sublist_subs:
             if sub in pheno_subs:
                 # okay, there's at least one match
