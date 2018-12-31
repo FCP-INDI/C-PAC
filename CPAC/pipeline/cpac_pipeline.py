@@ -1129,7 +1129,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
         strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
         strat.update_resource_pool({
-            'raw_functional': (func_wf, 'outputspec.rest')
+            'raw_functional': (func_wf, 'outputspec.rest'),
+            'scan_id': (func_wf, 'outputspec.scan')
         })
 
         if 1 in c.runEPI_DistCorr:
@@ -3342,7 +3343,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 strat = calc_avg(workflow, key, strat,
                                  num_strat, map_node=True)
 
-
     # Quality Control
     qc_montage_id_a = {}
     qc_montage_id_s = {}
@@ -3352,7 +3352,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     if 1 in c.generateQualityControlImages:
         qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
             create_qc_workflow(workflow, c, strat_list, Outputs.qc)
-
 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
@@ -3479,7 +3478,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
             forkPointsDict[strat_list[x]] = forkNames[x]
 
         # DataSink
-
         sink_idx = 0
         pip_ids = []
 
@@ -3643,50 +3641,135 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 key in Outputs.template_nonsmooth_mult:
                             continue
 
-                ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-                ds.inputs.base_directory = c.outputDirectory
-                ds.inputs.creds_path = creds_path
-                ds.inputs.encrypt_bucket_keys = encrypt_data
-                ds.inputs.container = os.path.join(
-                    'pipeline_%s' % pipeline_id, subject_id)
-                ds.inputs.regexp_substitutions = [
-                    (r"/_sca_roi(.)*[/]", '/'),
-                    (r"/_smooth_centrality_(\d)+[/]", '/'),
-                    (r"/_z_score(\d)+[/]", "/"),
-                    (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                    (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                    (r"/qc___", '/qc/')
-                ]
+                try:
+                    # let's encapsulate this inside a Try..Except block so if
+                    # someone doesn't have ndmg_outputs in their pipe config,
+                    # it will default to the regular datasink
+                    #     TODO: update this when we change to the optionals
+                    #     TODO: only pipe config
+                    if 1 in c.ndmg_outputs:
+                        ds = pe.Node(nio.DataSink(),
+                                     name='sinker_{0}'.format(sink_idx))
+                        ds.inputs.base_directory = c.outputDirectory
+                        ds.inputs.creds_path = creds_path
+                        ds.inputs.encrypt_bucket_keys = encrypt_data
 
-                node, out_file = rp[key]
-                workflow.connect(node, out_file, ds, key)
+                        container = 'pipeline_{0}'.format(pipeline_id)
 
-                link_node = pe.Node(
-                    interface=function.Function(
-                        input_names=['in_file', 'strategies',
-                                     'subject_id', 'pipeline_id', 'helper',
-                                     'create_sym_links'],
-                        output_names=[],
-                        function=process_outputs,
-                        as_module=True),
-                    name='process_outputs_%d' % sink_idx
-                )
+                        sub_ses_id = subject_id.split('_')
 
-                link_node.inputs.strategies = strategies
-                link_node.inputs.subject_id = subject_id
-                link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
-                link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+                        sub_tag = 'sub-{0}'.format(sub_ses_id[0])
+                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                        id_tag = '_'.join([sub_tag, ses_tag])
 
-                # TODO ASH enforce boolean with schema validation
-                if 1 in c.runSymbolicLinks:
-                    link_node.inputs.create_sym_links = True
-                else:
-                    link_node.inputs.create_sym_links = False
+                        template_tag = 'MNI152'
+                        anat_res_tag = c.resolution_for_anat
+                        anat_res_tag = anat_res_tag.replace('mm', '')
+                        func_res_tag = c.resolution_for_func_preproc
+                        func_res_tag = func_res_tag.replace('mm', '')
 
-                workflow.connect(ds, 'out_file', link_node, 'in_file')
+                        scan_tag = 'task-{0}'.format(rp['scan_id'])
 
-                sink_idx += 1
-                logger.debug('sink index: %s' % sink_idx)
+                        roi_tag = 'roi-name'
+
+                        ndmg_key_dct = {'anatomical_brain':
+                                            ('anat', 'preproc',
+                                             '{0}_T1w_preproc_brain'.format(id_tag)),
+                                        'anatomical_to_standard':
+                                            ('anat', 'registered',
+                                             '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, template_tag, anat_res_tag)),
+                                        'functional_preprocessed':
+                                            ('func', 'preproc',
+                                             '{0}_bold_preproc'.format(id_tag)),
+                                        'functional_nuisance_residuals':
+                                            ('func', 'clean',
+                                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, template_tag, func_res_tag)),
+                                        'functional_to_standard':
+                                            ('func', 'registered',
+                                             '{0}_bold_{1}_space-{2}_res-{3}x{3}x{3}_registered'.format(
+                                                 id_tag, scan_tag,
+                                                 template_tag, func_res_tag)),
+                                        'functional_mask_to_standard':
+                                            ('func', 'registered',
+                                             '{0}_bold_{1}_space-{2}_res-{3}x{3}x{3}_registered_mask'.format(
+                                                 id_tag, scan_tag,
+                                                 template_tag, func_res_tag)),
+                                        'roi_timeseries':
+                                            ('func', 'timeseries.{0}'.format(roi_tag),
+                                             '{1}_bold_{0}_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
+                                                 roi_tag, id_tag, func_res_tag))
+                                        }
+
+                        if key not in ndmg_key_dct.keys():
+                            continue
+
+                        ds.inputs.container = '{0}/{1}'.format(container,
+                                                               ndmg_key_dct[key][0])
+
+                        node, out_file = rp[key]
+
+                        # rename the file
+                        rename_file = pe.Node(interface=util.Rename(),
+                                              name='rename_{0}'.format(sink_idx))
+                        rename_file.inputs.keep_ext = True
+                        rename_file.inputs.format_string = ndmg_key_dct[key][2]
+
+                        workflow.connect(node, out_file,
+                                         rename_file, 'in_file')
+                        workflow.connect(rename_file, 'out_file',
+                                         ds, ndmg_key_dct[key][1])
+
+                        sink_idx += 1
+
+                    else:
+                        # skip to regular datasink
+                        raise Exception('skipped')
+
+                except Exception as e:
+                    ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
+                    ds.inputs.base_directory = c.outputDirectory
+                    ds.inputs.creds_path = creds_path
+                    ds.inputs.encrypt_bucket_keys = encrypt_data
+                    ds.inputs.container = os.path.join(
+                        'pipeline_%s' % pipeline_id, subject_id)
+                    ds.inputs.regexp_substitutions = [
+                        (r"/_sca_roi(.)*[/]", '/'),
+                        (r"/_smooth_centrality_(\d)+[/]", '/'),
+                        (r"/_z_score(\d)+[/]", "/"),
+                        (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                        (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                        (r"/qc___", '/qc/')
+                    ]
+
+                    node, out_file = rp[key]
+                    workflow.connect(node, out_file, ds, key)
+
+                    link_node = pe.Node(
+                        interface=function.Function(
+                            input_names=['in_file', 'strategies',
+                                         'subject_id', 'pipeline_id', 'helper',
+                                         'create_sym_links'],
+                            output_names=[],
+                            function=process_outputs,
+                            as_module=True),
+                        name='process_outputs_%d' % sink_idx
+                    )
+
+                    link_node.inputs.strategies = strategies
+                    link_node.inputs.subject_id = subject_id
+                    link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
+                    link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+
+                    # TODO ASH enforce boolean with schema validation
+                    if 1 in c.runSymbolicLinks:
+                        link_node.inputs.create_sym_links = True
+                    else:
+                        link_node.inputs.create_sym_links = False
+
+                    workflow.connect(ds, 'out_file', link_node, 'in_file')
+
+                    sink_idx += 1
+                    logger.debug('sink index: %s' % sink_idx)
 
             pipeline_dir = os.path.join(c.logDirectory,
                                         'pipeline_%s' % pipeline_id,
