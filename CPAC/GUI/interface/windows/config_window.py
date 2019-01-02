@@ -16,7 +16,7 @@ from CPAC.GUI.interface.pages import (
     AfterWarping, AfterWarpingOptions,
     FilteringSettings,
     TimeSeries, EPI_DistCorr, ROITimeseries,
-    GroupAnalysis, GPASettings, MDMRSettings, ISCSettings,
+    GroupAnalysis, GPASettings, MDMRSettings, ISCSettings,RandomiseSettings,
     TimeSeriesOptions, BASCSettings,
     AROMA_ICA, AromaSettings
 )
@@ -128,6 +128,7 @@ class Mybook(wx.Treebook):
         page47 = BASCSettings(self)
         page48 = MDMRSettings(self)
         page49 = ISCSettings(self)
+        page50 = RandomiseSettings(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
@@ -182,6 +183,7 @@ class Mybook(wx.Treebook):
                         wx.ID_ANY)
         self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)
         self.AddSubPage(page49, "ISC Settings", wx.ID_ANY)
+        self.AddSubPage(page50, "Randomise Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
