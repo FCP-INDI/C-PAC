@@ -366,7 +366,7 @@ class ListBox(wx.Frame):
         return path
 
     def NewItem(self, event):
-        MainFrame(self, "save")
+        MainFrame(self, "load", path=p.resource_filename('CPAC', 'resources/configs/pipeline_config_template.yml'))
 
     def OnRename(self, event):
         sel = self.listbox.GetSelection()
