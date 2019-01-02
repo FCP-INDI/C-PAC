@@ -241,9 +241,20 @@ Maximum potential number of cores that might be used during this run: {max_cores
     if sub_dict['unique_id']:
         subject_id += "_" + sub_dict['unique_id']
 
-    log_dir = os.path.join(c.logDirectory, subject_id)
+    log_dir = os.path.join(c.logDirectory, 'subjects', subject_id)
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
+
+    # TODO ASH Enforce c.run_logging to be boolean
+    # TODO ASH Schema validation
+    config.update_config({
+        'logging': {
+            'log_directory': log_dir,
+            'log_to_file': bool(getattr(c, 'run_logging', True))
+        }
+    })
+
+    logging.update_logging(config)
 
     # TODO ASH temporary code, remove
     # TODO ASH maybe scheme validation/normalization
@@ -342,29 +353,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
         c.configFileTwomm, 'other',
         input_creds_path, c.workingDirectory
     )
-
-    try:
-        # TODO ASH Enforce c.run_logging to be boolean
-        # TODO ASH Schema validation
-        config.update_config({
-            'logging': {
-                'log_directory': log_dir,
-                'log_to_file': c.run_logging
-            }
-        })
-
-    # TODO ASH review if is valid to check for attr error
-    # If it is because of run_logging, a schema validator
-    # might help
-    except AttributeError:
-        config.update_config({
-            'logging': {
-                'log_directory': log_dir,
-                'log_to_file': True
-            }
-        })
-
-    logging.update_logging(config)
 
     if c.reGenerateOutputs is True:
         working_dir = os.path.join(c.workingDirectory, workflow_name)
