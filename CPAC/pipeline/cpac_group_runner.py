@@ -1347,7 +1347,7 @@ def run_randomise(group_config_file):
     workflow.connect(c.randomise_contrast,'local_path',rand_wf,'inputspec.contrast_file')
     rand_wf.inputs.permutations = c.permutations
     rand_wf.inputs.demean = c.demean
-    rand_wf.inputs.c_thresh = c.c_thresh
+    rand_wf.inputs.c_thresh = c.randomise_thresh
     rand_wf.inputs.tfce = c.tfce
         
     rand_wf.run(group_config_file)
