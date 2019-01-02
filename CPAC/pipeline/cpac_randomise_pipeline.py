@@ -6,6 +6,31 @@ import os
 import sys
 import glob
 from CPAC.utils import Configuration
+from CPAC.pipeline.cpac_group_runner import load_config_yml
+
+
+def load_subject_file(group_config_path):
+    group_config_obj = load_config_yml(group_config_path)
+    pipeline_output_folder = group_config_obj.pipeline_dir
+    
+    if not group_config_obj.participant_list == None:
+        s_paths = group_config_obj.participant_list
+    else:
+        s_paths = x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x) 
+
+def randomise_merged_file(s_paths):
+    
+    merge = pe.Node(interface=fsl.Merge(), name='fsl_merge')
+    merge.inputs.dimension = 't'
+    merge.inputs.merged_file = "randomise_merged.nii.gz"
+    merge.inputs.in_files = s_paths   
+
+def randomise_merged_mask(s_paths):
+
+    mask = pe.Node(interface=fsl.maths.MathsCommand(), name='fsl_maths')
+    mask.inputs.args = '-abs -Tmin -bin'
+    mask.inputs.out_file = "randomise_mask.nii.gz"
+    mask.inputs.in_file = s_paths
 
 def prep_randomise_workflow(c, subject_infos):
     print 'Preparing Randomise workflow'
