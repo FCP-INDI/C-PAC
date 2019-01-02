@@ -10,14 +10,7 @@ from CPAC.pipeline.cpac_group_runner import load_config_yml
 
 
 def load_subject_file(group_config_path):
-    group_config_obj = load_config_yml(group_config_path)
-    pipeline_output_folder = group_config_obj.pipeline_dir
     
-    if not group_config_obj.participant_list == None:
-        s_paths = group_config_obj.participant_list
-    else:
-        s_paths = x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x) 
-    return s_paths
 
 def randomise_merged_file(s_paths):
     
@@ -37,7 +30,7 @@ def randomise_merged_mask(s_paths):
 
     return out_file
 
-def prep_randomise_workflow(c, subject_infos):
+def prep_randomise_workflow(c, mask_file, merged_file,working_dir=None,output_dir=None,crash_dir=None):
     print 'Preparing Randomise workflow'
     #p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
     #print 'Subjects', s_ids
@@ -50,17 +43,20 @@ def prep_randomise_workflow(c, subject_infos):
     
     rw = create_randomise()
 
-    inputspec = pe.Node(util.IdentityInterface(fields=['permutations','demean','c_thresh','contrast_file','design_matrix_file']),name='inputspec')
+    inputspec = pe.Node(util.IdentityInterface(fields=['contrast_file','design_matrix_file']),name='inputspec')
     
     outputspec = pe.Node(util.IdentityInterface(fields=['tstat_files' ,'t_corrected_p_files','index_file','threshold_file','localmax_txt_file','localmax_vol_file','max_file','mean_file','pval_file','size_file']), name='outputspec')
 
     randomise = pe.Node(interface=fsl.Randomise(), name='randomise')
     randomise.inputs.base_name = "randomise"
     randomise.inputs.subjects = merged_file 
-    randomise.inputs.mask = out_file
-    randomise.inputs.demean = True
-    randomise.inputs.tfce = True
-    
+    randomise.inputs.mask = mask_file
+
+    randomise.inputs.permutations = c.permutations
+    randomise.inputs.demean = c.demean
+    randomise.inputs.c_thresh = c.c_thresh
+    randomise.inputs.tfce = c.tfce
+
     wf.connect(inputspec,'design_matrix_file',randomsie,'design_mat')
     wf.connect(inputspec,'constrast_file',randomise,'tcon')
     wf.connect(inputspec,'permutations',randomise,'num_perm')
@@ -119,3 +115,27 @@ def prep_randomise_workflow(c, subject_infos):
   
 
     return wf
+
+def run(group_config_path):
+    import re
+    import commands
+    commands.getoutput('source ~/.bashrc')
+    import os
+    import sys
+    import pickle
+    import yaml
+
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+    group_config_obj = load_config_yml(group_config_path)
+    pipeline_output_folder = group_config_obj.pipeline_dir
+    
+    if not group_config_obj.participant_list == None:
+        s_paths = group_config_obj.participant_list
+    else:
+        s_paths = x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x) 
+    
+    merged_file = randomise_merged_file(s_paths)
+
+    out_file = randomise_merged_mask(s_paths)
+
+    prep_randomise_workflow(c,merged_file=merged_file,mask_file=out_file,working_dir=None,output_dir=None,crash_dir=None)
