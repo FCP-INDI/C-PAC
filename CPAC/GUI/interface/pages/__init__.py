@@ -32,4 +32,5 @@ __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_op
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
+           'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', \
+           'BASCSettings','RandomiseSettings','Randomise']
