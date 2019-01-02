@@ -38,6 +38,7 @@ import anat_preproc, \
        network_centrality, \
        scrubbing, \
        group_analysis, \
+       randomise, \
        easy_thresh,\
        utils, \
        pipeline, \
@@ -48,7 +49,7 @@ __all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'epi_distcorr',
            'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance',
            'alff', 'vmhc', 'median_angle', 'generate_motion_statistics',
            'timeseries', 'network_centrality', 'scrubbing', 'utils',
-           'group_analysis', 'easy_thresh', 'aroma','qc']
+           'group_analysis','randomise', 'easy_thresh', 'aroma','qc']
 
 try:
     version = '1.3.0'
