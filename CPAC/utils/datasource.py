@@ -496,9 +496,6 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
             raise Exception('Error in spatial_map_dataflow: '
                             'File extension not in .nii and .nii.gz')
 
-        except Exception as e:
-            raise e
-
     inputnode = pe.Node(util.IdentityInterface(fields=['spatial_map',
                                                        'spatial_map_file',
                                                        'creds_path',

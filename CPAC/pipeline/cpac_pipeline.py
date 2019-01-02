@@ -108,7 +108,6 @@ from CPAC.utils.utils import (
     get_tr,
     extract_txt,
     create_log,
-    create_log_template,
     extract_output_mean,
     create_output_mean_csv,
     get_zscore,
@@ -1223,6 +1222,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     strat_list += new_strat_list
 
+
     # Slice Timing Correction Workflow
 
     new_strat_list = []
@@ -1256,14 +1256,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     workflow.connect(scan_params, 'tr',
                                      func_slice_timing_correction, 'tr')
 
-            # we might prefer to use the slice timing information stored in
-            # the NIFTI header if not, use the value in the scan_params node
-            logger.info("Selected Slice Timing pattern %s" %
-                        c.slice_timing_pattern)
-
             if not "Use NIFTI Header" in c.slice_timing_pattern:
-                logger.info("connecting slice timing pattern %s" %
-                            c.slice_timing_pattern)
 
                 # add the @ prefix to the tpattern file going into
                 # AFNI 3dTshift - needed this so the tpattern file
@@ -1294,7 +1287,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     # add new strats (if forked)
     strat_list += new_strat_list
 
-    logger.info(" finished connecting slice timing pattern")
 
     # Functional Image Preprocessing Workflow
 
@@ -3683,9 +3675,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             pipes.append(pipeline_id)
 
-        # creates the HTML files used to represent the logging-based status
-        create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
-
         forks = "\n\nStrategy forks:\n" + \
                 "\n".join(["- " + pipe for pipe in pipes]) + \
                 "\n\n"
@@ -3709,7 +3698,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
         # Create callback logger
         import logging as cb_logging
         cb_log_filename = os.path.join(log_dir,
-                                       'callback_%s.log' %
+                                       'sub-%s_callback.log' %
                                        sub_dict['subject_id'])
 
         try:
@@ -3743,7 +3732,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
         subject_info['status'] = 'Completed'
 
         subject_info_file = os.path.join(
-            log_dir, 'subject_info_%s.p' % subject_id
+            log_dir, 'subject_info_%s.pkl' % subject_id
         )
         with open(subject_info_file, 'wb') as info:
             pickle.dump(subject_info, info)
