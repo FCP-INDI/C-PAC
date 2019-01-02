@@ -1326,6 +1326,35 @@ def resample_cpac_output_image(cmd_args):
     return out_file
 
 
+def run_randomise(group_config_file,run_randomise):
+
+    import os
+    import yaml
+
+    group_config = os.path.abspath(group_config)
+
+    with open(pipeline_config, "r") as f:
+        groupconfig_dct = yaml.load(f)
+
+    output_dir = groupconfig_dct["rand_outputDirectory"]
+    working_dir = pipeconfig_dct["rand_workingDirectory"]
+    crash_dir = pipeconfig_dct["rand_crashLogDirectory"]
+    
+
+    if run_randomise:
+        rand_wf = create_randomise(c,output_dir=output_dir, working_dir=working_dir, crash_dir=crash_dir)
+        workflow.connect(c.randomise_dmat,'local_path',rand_wf,'inputspec.design_matrix_file')
+        workflow.connect(c.randomise_contrast,'local_path',rand_wf,'inputspec.contrast_file')
+        rand_wf.inputs.permutations = c.permutations
+        rand_wf.inputs.demean = c.demean
+        rand_wf.inputs.c_thresh = c.c_thresh
+        rand_wf.inputs.tfce = c.tfce
+        
+        rand_wf.run()
+
+    
+
+
 def launch_PyBASC(pybasc_config):
 
     import subprocess
