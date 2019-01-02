@@ -80,16 +80,20 @@ def prep_randomise_workflow(c, subject_infos):
 
 
 
-def run(config, subject_infos):
-    import re
-    import commands
-    commands.getoutput('source ~/.bashrc')
-    import os
-    import sys
-    import pickle
-    import yaml
-
-    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+    retrun wf
 
 
-    prep_randomise_workflow(c, pickle.load(open(subject_infos, 'r') ))
+
+#def run(config, subject_infos):
+#    import re
+#    import commands
+#    commands.getoutput('source ~/.bashrc')
+#    import os
+#    import sys
+#    import pickle
+#    import yaml
+
+#    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+
+
+#    prep_randomise_workflow(c, pickle.load(open(subject_infos, 'r') ))
