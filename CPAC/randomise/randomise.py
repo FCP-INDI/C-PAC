@@ -1,97 +1,72 @@
-import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, traits, File, TraitedSpec
-from nipype.interfaces import fsl
-
-from nilearn import input_data, masking, image, datasets
-from nilearn.image import resample_to_img, concat_imgs
-from nilearn.input_data import NiftiMasker, NiftiLabelsMasker
-
-from CPAC.utils.function import Function
-
+import nipype.interfaces.io as nio
+import nipype.pipeline.engine as pe
+import re
 import os
-import copy
-import numpy as np
-import nibabel as nb
+import sys
+import glob
+from CPAC.utils import Configuration
+from CPAC.pipeline.cpac_group_runner import load_config_yml
 
 
-
-def select(input_list):
-    import nibabel as nb
-    for i in input_list:
-        img = nb.load(i)
-        hdr = img.header
-        if hdr['cal_min'] == 0 and hdr['cal_max'] == 0:
-            print ("Warning! {} is an empty image because of no positive values in the unpermuted statistic image, and it could not be processed with tfce.".format('i'))
-        if not hdr['cal_max'] == 0 and hdr['cal_min'] == 0:
-            selected_file = i
-
-    return i
-
-def create_randomise(name='randomise',working_dir=None,crash_dir=None):
-
-    """
-    Parameters
-    ----------
-        
-    Returns
-    -------
-    workflow : nipype.pipeline.engine.Workflow
-        Randomise workflow.
-        
-    Notes
-    -----
+def load_subject_file(group_config_path):
+    group_config_obj = load_config_yml(group_config_path)
+    pipeline_output_folder = group_config_obj.pipeline_dir
     
-    Workflow Inputs::
+    if not group_config_obj.participant_list == None:
+        s_paths = group_config_obj.participant_list
+    else:
+        s_paths = x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x) 
+    return s_paths
+
+def randomise_merged_file(s_paths):
     
-        
-    Workflow Outputs::
+    merge = pe.Node(interface=fsl.Merge(), name='fsl_merge')
+    merge.inputs.dimension = 't'
+    merge.inputs.merged_file = "randomise_merged.nii.gz"
+    merge.inputs.in_files = s_paths   
 
+    return merged_file
+
+def randomise_merged_mask(s_paths):
+
+    mask = pe.Node(interface=fsl.maths.MathsCommand(), name='fsl_maths')
+    mask.inputs.args = '-abs -Tmin -bin'
+    mask.inputs.out_file = "randomise_mask.nii.gz"
+    mask.inputs.in_file = s_paths
+
+    return out_file
+
+def prep_randomise_workflow(c, subject_infos):
+    print 'Preparing Randomise workflow'
+    #p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
+    #print 'Subjects', s_ids
+
+    wf = pe.Workflow(name='randomise_workflow')
+    wf.base_dir = c.workingDirectory
+
+    from CPAC.randomise import create_randomise
+    import numpy as np
     
-    References
-    ----------
+    rw = create_randomise()
+
+    inputspec = pe.Node(util.IdentityInterface(fields=['permutations','demean','c_thresh','contrast_file','design_matrix_file']),name='inputspec')
     
-    """
-
-    if not working_dir:
-        working_dir = os.path.join(os.getcwd(), 'Randomise_work_dir')
-    if not crash_dir:
-        crash_dir = os.path.join(os.getcwd(), 'Randomise_crash_dir')
-
-    wf = pe.Workflow(name=name)
-    wf.base_dir = working_dir
-    wf.config['execution'] = {'hash_method': 'timestamp',
-                              'crashdump_dir': os.path.abspath(crash_dir)}
-
-    inputspec = pe.Node(util.IdentityInterface(fields=['subjects','design_matrix_file','constrast_file','permutations']),name='inputspec')
-
     outputspec = pe.Node(util.IdentityInterface(fields=['tstat_files' ,'t_corrected_p_files','index_file','threshold_file','localmax_txt_file','localmax_vol_file','max_file','mean_file','pval_file','size_file']), name='outputspec')
-
-    #merge = pe.Node(interface=fsl.Merge(), name='fsl_merge')
-    #merge.inputs.dimension = 't'
-    #merge.inputs.merged_file = "randomise_merged.nii.gz"
-
-    #wf.connect(inputspec, 'subjects', merge, 'in_files')
-
-    #mask = pe.Node(interface=fsl.maths.MathsCommand(), name='fsl_maths')
-    #mask.inputs.args = '-abs -Tmin -bin'
-    #mask.inputs.out_file = "randomise_mask.nii.gz"
-    #wf.connect(inputspec, 'subjects', mask, 'in_file')
 
     randomise = pe.Node(interface=fsl.Randomise(), name='randomise')
     randomise.inputs.base_name = "randomise"
+    randomise.inputs.subjects = merged_file 
+    randomise.inputs.mask = out_file
     randomise.inputs.demean = True
     randomise.inputs.tfce = True
-    wf.connect([(inputspec, randomise, [('subjects', 'in_file'),
-            ('design_matrix_file', 'design_mat'),
-            ('constrast_file', 'tcon'),
-            ('permutations', 'num_perm'),
-            ])])
+    
+    wf.connect(inputspec,'design_matrix_file',randomsie,'design_mat')
+    wf.connect(inputspec,'constrast_file',randomise,'tcon')
+    wf.connect(inputspec,'permutations',randomise,'num_perm')
     wf.connect(randomise,'tstat_files',outputspec,'tstat_files')
     wf.connect(randomise,'t_corrected_p_files',outputspec,'t_corrected_p_files')
-#------------- issue here arises while using tfce. By not using tfce, you don't get t_corrected_p files. R V in a conundrum? --------------------#
 
-    
     select_tcorrp_files = pe.Node(Function(input_names=['input_list'],output_names=['out_file'],function=select),name='select_t_corrp')
 
     wf.connect(randomise, 't_corrected_p_files',select_tcorrp_files, 'input_list')
