@@ -44,7 +44,7 @@ class RandomiseSettings(wx.ScrolledWindow):
 
         self.page.add(label="Threshold ",
                       control=control.INT_CTRL,
-                      name='basc_proc',
+                      name='randomise_thresh',
                       type=dtype.NUM,
                       comment="Cluster-based thresholding corrected for multiple comparisons by using the null distribution of the max (across the image) cluster mask.",
                       values=5)
@@ -65,13 +65,6 @@ class RandomiseSettings(wx.ScrolledWindow):
                               "running Randomise",
                       values="None")
 
-        self.path.add(label="path to group config file",
-                      control=control.COMBO_BOX,
-                      name='randomise_group_config',
-                      type=dtype.STR,
-                      comment="Full path to the group config file to be used when "
-                              "running Randomise",
-                      values="None")
         self.page.set_sizer()
         parent.get_page_list().append(self)
         
