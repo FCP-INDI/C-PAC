@@ -54,7 +54,7 @@ def prep_randomise_workflow(c, mask_file, merged_file,working_dir=None,output_di
 
     randomise.inputs.permutations = c.permutations
     randomise.inputs.demean = c.demean
-    randomise.inputs.c_thresh = c.c_thresh
+    randomise.inputs.c_thresh = c.randomise_thresh
     randomise.inputs.tfce = c.tfce
 
     wf.connect(inputspec,'design_matrix_file',randomsie,'design_mat')
