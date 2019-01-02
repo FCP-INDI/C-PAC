@@ -1326,12 +1326,13 @@ def resample_cpac_output_image(cmd_args):
     return out_file
 
 
-def run_randomise(group_config_file,run_randomise):
+def run_randomise(group_config_file):
 
     import os
     import yaml
+    from CPAC.randomise import prep_randomise_workflow,run
 
-    group_config = os.path.abspath(group_config)
+    group_config = os.path.abspath(group_config_file)
 
     with open(pipeline_config, "r") as f:
         groupconfig_dct = yaml.load(f)
@@ -1339,18 +1340,17 @@ def run_randomise(group_config_file,run_randomise):
     output_dir = groupconfig_dct["rand_outputDirectory"]
     working_dir = pipeconfig_dct["rand_workingDirectory"]
     crash_dir = pipeconfig_dct["rand_crashLogDirectory"]
-    
 
-    if run_randomise:
-        rand_wf = create_randomise(c,output_dir=output_dir, working_dir=working_dir, crash_dir=crash_dir)
-        workflow.connect(c.randomise_dmat,'local_path',rand_wf,'inputspec.design_matrix_file')
-        workflow.connect(c.randomise_contrast,'local_path',rand_wf,'inputspec.contrast_file')
-        rand_wf.inputs.permutations = c.permutations
-        rand_wf.inputs.demean = c.demean
-        rand_wf.inputs.c_thresh = c.c_thresh
-        rand_wf.inputs.tfce = c.tfce
+  
+    rand_wf = prep_randomise_workflow(c,merged_file=merged_file,mask_file=out_file,working_dir=working_dir,output_dir=output_dir,crash_dir=crash_dir)
+    workflow.connect(c.randomise_dmat,'local_path',rand_wf,'inputspec.design_matrix_file')
+    workflow.connect(c.randomise_contrast,'local_path',rand_wf,'inputspec.contrast_file')
+    rand_wf.inputs.permutations = c.permutations
+    rand_wf.inputs.demean = c.demean
+    rand_wf.inputs.c_thresh = c.c_thresh
+    rand_wf.inputs.tfce = c.tfce
         
-        rand_wf.run()
+    rand_wf.run(group_config_file)
 
     
 
@@ -1843,4 +1843,8 @@ def run(config_file, pipeline_output_folder):
 
     # Run FSL FEAT group analysis, if selected
     if 1 in c.run_fsl_feat:
-        run_feat(config_file, pipeline_output_folder)
+        run_feat(config_file)
+
+    #RUn randomise, if selected
+    if 1 in c.run_randomise:
+        run_randomise(group_config_file)
