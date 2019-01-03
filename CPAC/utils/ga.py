@@ -50,7 +50,7 @@ def get_uid():
 
 def do_it(data, timeout):
     try:
-        headers = { 'User-Agent': 'C-PAC 1.4.0' }
+        headers = { 'User-Agent': 'C-PAC/1.4.0 (https://fcp-indi.github.io)' }
         response = requests.post('https://www.google-analytics.com/collect', data=data, timeout=timeout, headers=headers)
         return response
     except Exception as e:
