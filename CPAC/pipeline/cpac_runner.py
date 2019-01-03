@@ -228,7 +228,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     job_scheduler = pipeline_config.resourceManager.lower()
 
     # For SLURM time limit constraints only, hh:mm:ss
-    hrs_limit = 8*len(sublist)
+    hrs_limit = 8 * len(sublist)
     time_limit = '%d:00:00' % hrs_limit
 
     # Batch file variables
@@ -457,7 +457,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
             os.makedirs(cluster_files_dir)
 
         # Create strategies file
-        strategies_file = os.path.join(cluster_files_dir, 'strategies.obj')
+        strategies_file = os.path.join(cluster_files_dir, 'strategies.pkl')
         with open(strategies_file, 'w') as f:
             pickle.dump(strategies, f)
 
@@ -505,6 +505,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
             for p in processes:
                 p.start()
                 print >>pid, p.pid
+
         # Otherwise manage resources to run processes incrementally
         else:
             idx = 0
