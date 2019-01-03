@@ -3576,6 +3576,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             for key in sorted(rp.keys()):
 
+                if key not in Outputs.any:
+                    continue
+
                 if key not in Outputs.override_optional:
 
                     if 1 not in c.write_func_outputs:
