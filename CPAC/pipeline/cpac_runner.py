@@ -428,20 +428,21 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
             else:
                 s = sub['subject_id']
             scan_ids = ['scan_anat']
-            try:
+
+            if 'func' in sub:
                 for id in sub['func']:
                     scan_ids.append('scan_'+ str(id))
-            except KeyError:
+
+            if 'rest' in sub:
                 for id in sub['rest']:
                     scan_ids.append('scan_'+ str(id))
+
             sub_scan_map[s] = scan_ids
     except:
         print "\n\n" + "ERROR: Subject list file not in proper format - " \
               "check if you loaded the correct file?" + "\n" + \
               "Error name: cpac_runner_0001" + "\n\n"
         raise Exception
-
-    create_group_log_template(sub_scan_map, c.logDirectory)
 
     pipeline_timing_info = []
     pipeline_timing_info.append(unique_pipeline_id)
