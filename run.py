@@ -198,7 +198,9 @@ if args.bids_validator_config:
         config=args.bids_validator_config,
         bids_dir=args.bids_dir))
 elif args.skip_bids_validator:
-    print('skipping bids-validator...')
+    print('\nSkipping bids-validator...')
+elif args.bids_dir.lower().startswith("s3://"):
+    print('\nSkipping bids-validator for S3 datasets...')
 else:
     print("\nRunning BIDS validator")
     run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
@@ -214,7 +216,7 @@ if args.pipeline_override:
 if args.aws_input_creds:
     if args.aws_input_creds is "env":
         import urllib2
-        aws_creds_address = "169.254.170.2"+os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
+        aws_creds_address = "169.254.170.2" + os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         aws_creds = urllib2.urlopen(aws_creds_address).read()
 
         args.aws_input_creds = "/tmp/aws_input_creds.csv"
@@ -252,17 +254,16 @@ c['numParticipantsAtOnce'] = 1
 c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
 if args.aws_output_creds:
-
     if args.aws_output_creds is "env":
         import urllib2
-        aws_creds_address = "169.254.170.2"+os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
+        aws_creds_address = "169.254.170.2" + os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         aws_creds = urllib2.urlopen(aws_creds_address).read()
 
         args.aws_output_creds = "/tmp/aws_output_creds.csv"
 
         with open(args.aws_output_creds) as ofd:
             for key, vname in [("AccessKeyId","AWSAcessKeyId"), ("SecretAccessKey","AWSSecretKey")]:
-                ofd.write("{0}={1}".format(vname,aws_creds[key])) 
+                ofd.write("{0}={1}".format(vname, aws_creds[key])) 
 
     if os.path.isfile(args.aws_output_creds):
         c['awsOutputBucketCredentials'] = args.aws_output_creds
