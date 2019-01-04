@@ -26,26 +26,15 @@ def get_or_create_config():
     return parser
 
 
-def reset_uid():
-    parser = get_or_create_config()
-    parser.read_dict(dict(user=dict(uid=uuid.uuid1().hex,
-                                    track=True)))
-    with open(tracking_path, 'w') as fhandle:
-        parser.write(fhandle)
-
-
-def opt_in():
-    if not get_uid():
-        reset_uid()
-
-
 def get_uid():
+    if os.environ.get('CPAC_TRACKING', '').lower() not in ['', '0', 'false', 'off']:
+        return  os.environ.get('CPAC_TRACKING')
+
     parser = get_or_create_config()
     if parser['user'].getboolean('track'):
-        uid = parser['user']['uid']
-    else:
-        uid = False
-    return uid
+        return parser['user']['uid']
+
+    return None
 
 
 def do_it(data, timeout):
@@ -53,7 +42,7 @@ def do_it(data, timeout):
         headers = { 'User-Agent': 'C-PAC/1.4.0 (https://fcp-indi.github.io)' }
         response = requests.post('https://www.google-analytics.com/collect', data=data, timeout=timeout, headers=headers)
         return response
-    except Exception as e:
+    except:
         return False
 
 
@@ -83,13 +72,13 @@ def track_event(category, action, uid=None, label=None, value=0,
         event. After this duration has elapsed with no response (e.g., on a
         slow network connection), the tracking is dropped.
     """
+    if os.environ.get('CPAC_TRACKING', '').lower() in ['0', 'false', 'off']:
+        return
+
     if uid is None:
         uid = get_uid()
 
     if not uid:
-        return
-
-    if os.environ.get('CPAC_TRACKING', '').lower() in ['0', 'false', 'off']:
         return
 
     this = "/CPAC/utils/ga.py"
