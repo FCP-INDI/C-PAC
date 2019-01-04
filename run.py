@@ -63,6 +63,15 @@ def run(command, env={}):
             break
 
 
+def parse_yaml(value):
+    try:
+        config = yaml.load(value)
+        if type(config) != dict:
+            raise
+    except:
+         raise argparse.ArgumentTypeError("Invalid configuration: '%s'" % value)
+
+
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
@@ -91,6 +100,10 @@ parser.add_argument('--pipeline_file', help='Name for the pipeline '
                                             ' This may require AWS S3 credentials specificied via the'
                                             ' --aws_input_creds option.',
                     default="/cpac_resources/default_pipeline.yaml")
+
+parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
+                    help='Override specific options from the pipeline configuration.')
+
 parser.add_argument('--data_config_file', help='Yaml file containing the location'
                                                ' of the data that is to be processed. Can be generated from the CPAC'
                                                ' gui. This file is not necessary if the data in bids_dir is organized'
@@ -193,6 +206,9 @@ else:
 # otherwise, if we are running group, participant, or dry run we
 # begin by conforming the configuration
 c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+if args.pipeline_override:
+    overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
+    c.update(overrides)
 
 # get the aws_input_credentials, if any are specified
 if args.aws_input_creds:
