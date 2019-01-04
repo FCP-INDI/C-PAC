@@ -102,7 +102,7 @@ parser.add_argument('--pipeline_file', help='Name for the pipeline '
                     default="/cpac_resources/default_pipeline.yaml")
 
 parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
-                    help='Override specific options from the pipeline configuration.')
+                    help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
 
 parser.add_argument('--data_config_file', help='Yaml file containing the location'
                                                ' of the data that is to be processed. Can be generated from the CPAC'
