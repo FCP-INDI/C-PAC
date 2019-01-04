@@ -299,6 +299,9 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
 
+# Run functional preproceessing
+runFunctional: [1]
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [0]
 
