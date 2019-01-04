@@ -322,36 +322,42 @@ Maximum potential number of cores that might be used during this run: {max_cores
     except KeyError:
         input_creds_path = None
 
+    perform_registration = already_skullstripped == 0 and ('FSL' in c.regOption or 'ANTS' in c.regOption)
+    perform_registration_w_skull = already_skullstripped == 0 and ('FSL' in c.regOption or ('ANTS' in c.regOption and 1 in c.regWithSkull))
+    perform_registration_w_fsl = already_skullstripped == 0 and 'FSL' in c.regOption
+    perform_vmhc = 1 in c.runVMHC
+    perform_centrality = 1 in c.runNetworkCentrality
+    perform_nuisance = 1 in c.runNuisance
+    perform_segmenation = 1 in c.runSegmentationPreprocessing
+
     # TODO ASH normalize file paths with schema validator
     template_anat_keys = [
-        "template_brain_only_for_anat",
-        "template_skull_for_anat",
-        "ref_mask",
-        "template_symmetric_brain_only",
-        "template_symmetric_skull",
-        "dilated_symmetric_brain_mask",
-        "templateSpecificationFile",
-        "lateral_ventricles_mask",
-        "PRIORS_CSF",
-        "PRIORS_GRAY",
-        "PRIORS_WHITE",
+        ("anat", "template_brain_only_for_anat", perform_registration),
+        ("anat", "template_skull_for_anat", perform_registration_w_skull),
+        ("anat", "ref_mask", perform_registration_w_fsl),
+        ("anat", "template_symmetric_brain_only", perform_vmhc),
+        ("anat", "template_symmetric_skull", perform_vmhc),
+        ("anat", "dilated_symmetric_brain_mask", perform_vmhc),
+        ("anat", "templateSpecificationFile", perform_centrality),
+        ("anat", "lateral_ventricles_mask", perform_nuisance),
+        ("anat", "PRIORS_CSF", perform_segmenation),
+        ("anat", "PRIORS_GRAY", perform_segmenation),
+        ("anat", "PRIORS_WHITE", perform_segmenation),
+        ("other", "configFileTwomm", perform_vmhc),
     ]
 
-    for key in template_anat_keys:
+    for key_type, key, is_required in template_anat_keys:
+
+        if not is_required:
+            continue
 
         node = create_check_for_s3_node(
             key,
-            getattr(c, key), 'anat',
+            getattr(c, key), key_type,
             input_creds_path, c.workingDirectory
         )
 
         setattr(c, key, node)
-
-    c.configFileTwomm = create_check_for_s3_node(
-        'configFileTwomm',
-        c.configFileTwomm, 'other',
-        input_creds_path, c.workingDirectory
-    )
 
     if c.reGenerateOutputs is True:
         working_dir = os.path.join(c.workingDirectory, workflow_name)
