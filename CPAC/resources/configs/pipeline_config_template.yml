@@ -611,7 +611,7 @@ degWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the degree centrality adjacency matrix.
-degCorrelationThresholdOption :  ['Significance threshold']
+degCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -626,7 +626,7 @@ eigWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
-eigCorrelationThresholdOption :  ['Significance threshold']
+eigCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
