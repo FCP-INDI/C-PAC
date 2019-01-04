@@ -404,14 +404,14 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                           " for (%s:%s) discarding %s" % (f_dict["sub"],
                                                           f_dict["ses"],
                                                           p))
-
-            if "mask" in f_dict.values():
+            # The above will be printed is the mask contains "T1w"
+            if "lesion" in f_dict.values() and 'mask' in f_dict['lesions']:
                 # if 'desc' not in f_dict:
                 #     raise IOError("desc not found in %s," % (p) +
                 #                   " masks should have a desc-<label>" +
                 #                   " pair (BEP003)")
-                subdict[f_dict["sub"]]
-                [f_dict["ses"]]["mask"] = task_info["scan"]
+                subdict[f_dict["sub"]][f_dict["ses"]]["mask"] = \
+                    task_info["scan"]
 
             if "bold" in f_dict["scan_type"]:
                 task_key = "-".join(["task", f_dict["task"]])
@@ -436,7 +436,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                f_dict["ses"],
                                task_key,
                                p))
-
+    # Here I have to do something to add the mask
     sublist = []
     for ksub, sub in subdict.iteritems():
         for kses, ses in sub.iteritems():
