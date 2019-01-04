@@ -1023,7 +1023,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
     strat_list += new_strat_list
 
     # Inserting Functional Data workflow
-    if 'func' in sub_dict or 'rest' in sub_dict:
+    if ('func' in sub_dict or 'rest' in sub_dict) and \
+        0 not in getattr(c, 'runFunctional', [1]):
+        #  pipeline needs to have explicit [0] to disable functional workflow
 
         for num_strat, strat in enumerate(strat_list):
 
