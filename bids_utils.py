@@ -56,14 +56,7 @@ def bids_decode_fname(file_path, dbg=False):
             chunks = key_val_pair.split("-")
             f_dict[chunks[0]] = "-".join(chunks[1:])
         else:
-            # the derivatives contain a suffix in their filename which would be
-            # caught by the scan_type
-            key = key_val_pair.split(".")[0]
-            if "scan_type" in f_dict:
-                f_dict["derivative_type"] = key
-            # otherwise, it's a scan_type
-            else:
-                f_dict["scan_type"] = key_val_pair.split(".")[0]
+            f_dict["scan_type"] = key_val_pair.split(".")[0]
 
     if not f_dict["scan_type"]:
         raise ValueError("Filename (%s) does not appear to contain" % (fname) +
@@ -73,7 +66,7 @@ def bids_decode_fname(file_path, dbg=False):
         raise ValueError("Filename (%s) is a BOLD file, but " % (fname) +
                          "doesn't contain a task, does it conform to the" +
                          " BIDS format?")
-
+    print str(f_dict)
     return f_dict
 
 
@@ -394,8 +387,19 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
             if "T1w" in f_dict["scan_type"]:
+                if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
+                    if "lesion_mask" not in \
+                            subdict[f_dict["sub"]][f_dict["ses"]]:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"] = \
+                            task_info["scan"]
+                    else:
+                        print("Lesion mask file (%s) already found" %
+                              (subdict[f_dict["sub"]]
+                               [f_dict["ses"]]
+                               ["lesion_mask"]) + " for (%s:%s) discarding %s" %
+                              (f_dict["sub"], f_dict["ses"], p))
                 # TODO deal with scan parameters anatomical
-                if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
+                elif "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = \
                         task_info["scan"]
                 else:
@@ -404,14 +408,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                           " for (%s:%s) discarding %s" % (f_dict["sub"],
                                                           f_dict["ses"],
                                                           p))
-            # The above will be printed is the mask contains "T1w"
-            if "lesion" in f_dict.values() and 'mask' in f_dict['lesions']:
-                # if 'desc' not in f_dict:
-                #     raise IOError("desc not found in %s," % (p) +
-                #                   " masks should have a desc-<label>" +
-                #                   " pair (BEP003)")
-                subdict[f_dict["sub"]][f_dict["ses"]]["mask"] = \
-                    task_info["scan"]
 
             if "bold" in f_dict["scan_type"]:
                 task_key = "-".join(["task", f_dict["task"]])
