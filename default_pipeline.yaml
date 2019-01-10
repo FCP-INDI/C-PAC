@@ -88,6 +88,10 @@ write_debugging_outputs :  [0]
 generateQualityControlImages :  [1]
 
 
+# Generate connectome graphs and write out preprocessing results in the same output format as the ndmg pipeline.
+ndmg_mode :  [0]
+
+
 # Create a user-friendly, well organized version of the output directory.
 # We recommend all users enable this option.
 runSymbolicLinks :  [0]

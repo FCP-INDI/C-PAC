@@ -2841,6 +2841,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 roi_timeseries = get_roi_timeseries(
                     'roi_timeseries_%d' % num_strat
                 )
+                roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
                 node, out_file = strat['functional_to_standard']
 
@@ -2858,7 +2859,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 strat.append_name(roi_timeseries.name)
                 strat.update_resource_pool({
-                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs')
+                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
+                    'functional_to_roi': (resample_functional_to_roi, 'out_file')
                 })
                 create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
                                 num_strat)
@@ -2913,7 +2915,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 strat.append_name(roi_timeseries_for_sca.name)
                 strat.update_resource_pool({
-                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs')
+                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs'),
+                    'functional_to_roi_for_SCA': (resample_functional_to_roi, 'out_file')
+
                 })
                 create_log_node(workflow, roi_timeseries_for_sca,
                                 'outputspec.roi_outputs', num_strat)
@@ -3609,9 +3613,82 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 if "scrubbing_frames_excluded" in rp.keys():
                     del rp["scrubbing_frames_excluded"]
 
+            ndmg_out = False
+            try:
+                # let's encapsulate this inside a Try..Except block so if
+                # someone doesn't have ndmg_outputs in their pipe config,
+                # it will default to the regular datasink
+                #     TODO: update this when we change to the optionals
+                #     TODO: only pipe config
+                if 1 in c.ndmg_mode:
+                    ndmg_out = True
+            except:
+                pass
+
+            if ndmg_out:
+                # create the graphs
+
+                from CPAC.utils.ndmg_utils import ndmg_roi_timeseries, \
+                    ndmg_create_graphs
+
+                # --- grab atlases, put them in a list for mapnode
+                # --- pull func (to standard?) into ndmg_roi_timeseries function node
+                # --- results of that into cor_graphs
+                # --- into datasink
+
+                atlases = []
+                if 'Avg' in ts_analysis_dict.keys():
+                    atlases = ts_analysis_dict['Avg']
+
+                if 'Avg' in sca_analysis_dict.keys():
+                    atlases += sca_analysis_dict['Avg']
+
+                roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
+                    'roi_dataflow_for_ndmg_%d' % num_strat
+                )
+
+                ndmg_ts_imports = ['import os',
+                                   'import nibabel as nb',
+                                   'import numpy as np']
+                ndmg_ts = pe.Node(util.Function(input_names=['func_file',
+                                                                'label_file'],
+                                                   output_names=['roi_ts',
+                                                                 'rois'],
+                                                   function=ndmg_roi_timeseries,
+                                                   imports=ndmg_ts_imports),
+                                     name='ndmg_ts')
+
+                node, out_file = strat['functional_to_roi']
+                workflow.connect(node, out_file, ndmg_ts, 'func_file')
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                 ndmg_ts, 'label_file')
+
+                ndmg_graph_imports = ['import os',
+                                      'from CPAC.utils.ndmg_utils import graph']
+                ndmg_graph = pe.MapNode(util.Function(input_names=['ts',
+                                                                   'labels'],
+                                                      output_names=[
+                                                          'out_file'],
+                                                      function=ndmg_create_graphs,
+                                                      imports=ndmg_graph_imports),
+                                        name='ndmg_graphs',
+                                        iterfield=['labels'])
+
+                workflow.connect(ndmg_ts, 'rois', ndmg_graph, 'ts')
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                 ndmg_graph, 'labels')
+
+                strat.update_resource_pool({
+                    'ndmg_ts': (ndmg_ts, 'roi_ts'),
+                    'ndmg_graph': (ndmg_graph, 'out_file')
+                })
+
+                rp = strat.get_resource_pool()
+
+
             for key in sorted(rp.keys()):
 
-                if key not in Outputs.override_optional:
+                if key not in Outputs.override_optional and not ndmg_out:
 
                     if 1 not in c.write_func_outputs:
                         if key in Outputs.extra_functional:
@@ -3641,91 +3718,108 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 key in Outputs.template_nonsmooth_mult:
                             continue
 
-                try:
-                    # let's encapsulate this inside a Try..Except block so if
-                    # someone doesn't have ndmg_outputs in their pipe config,
-                    # it will default to the regular datasink
-                    #     TODO: update this when we change to the optionals
-                    #     TODO: only pipe config
-                    if 1 in c.ndmg_outputs:
-                        ds = pe.Node(nio.DataSink(),
-                                     name='sinker_{0}'.format(sink_idx))
-                        ds.inputs.base_directory = c.outputDirectory
-                        ds.inputs.creds_path = creds_path
-                        ds.inputs.encrypt_bucket_keys = encrypt_data
+                if ndmg_out:
+                    ds = pe.Node(nio.DataSink(),
+                                 name='sinker_{0}'.format(sink_idx))
+                    ds.inputs.base_directory = c.outputDirectory
+                    ds.inputs.creds_path = creds_path
+                    ds.inputs.encrypt_bucket_keys = encrypt_data
+                    ds.inputs.parameterization = True
+                    ds.inputs.regexp_substitutions = [('_rename_(.)*/', ''),
+                                                      ('_scan_', 'scan-'),
+                                                      ('/_mask_', '/roi-'),
+                                                      ('file_s3(.)*/', ''),
+                                                      ('mask_sub-', 'sub-'),
+                                                      ('/_compcor_ncomponents_', '_nuis-'),
+                                                      ('_selector_pc', ''),
+                                                      ('.linear', ''),
+                                                      ('.wm', ''),
+                                                      ('.global', ''),
+                                                      ('.motion', ''),
+                                                      ('.quadratic', ''),
+                                                      ('.gm', ''),
+                                                      ('.compcor', ''),
+                                                      ('.csf', '')]
 
-                        container = 'pipeline_{0}'.format(pipeline_id)
+                    container = 'pipeline_{0}'.format(pipeline_id)
 
-                        sub_ses_id = subject_id.split('_')
+                    sub_ses_id = subject_id.split('_')
 
-                        sub_tag = 'sub-{0}'.format(sub_ses_id[0])
-                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
-                        id_tag = '_'.join([sub_tag, ses_tag])
+                    sub_tag = 'sub-{0}'.format(sub_ses_id[0])
+                    ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                    id_tag = '_'.join([sub_tag, ses_tag])
 
-                        template_tag = 'MNI152'
-                        anat_res_tag = c.resolution_for_anat
-                        anat_res_tag = anat_res_tag.replace('mm', '')
-                        func_res_tag = c.resolution_for_func_preproc
-                        func_res_tag = func_res_tag.replace('mm', '')
+                    anat_template_tag = 'standard'
+                    #if 'MNI152' in c.template_brain_only_for_anat:
+                    #    anat_template_tag = 'MNI152'
+                    func_template_tag = 'standard'
+                    #if 'MNI152' in c.template_brain_only_for_func:
+                    #    func_template_tag = 'MNI152'
 
-                        scan_tag = 'task-{0}'.format(rp['scan_id'])
+                    anat_res_tag = c.resolution_for_anat
+                    anat_res_tag = anat_res_tag.replace('mm', '')
+                    func_res_tag = c.resolution_for_func_preproc
+                    func_res_tag = func_res_tag.replace('mm', '')
 
-                        roi_tag = 'roi-name'
+                    ndmg_key_dct = {'anatomical_brain':
+                                        ('anat', 'preproc',
+                                         '{0}_T1w_preproc_brain'.format(id_tag)),
+                                    'anatomical_to_standard':
+                                        ('anat', 'registered',
+                                         '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, anat_template_tag, anat_res_tag)),
+                                    'functional_preprocessed':
+                                        ('func', 'preproc',
+                                         '{0}_bold_preproc'.format(id_tag)),
+                                    'functional_nuisance_residuals':
+                                        ('func', 'clean',
+                                         '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, func_template_tag, func_res_tag)),
+                                    'functional_to_standard':
+                                        ('func', 'registered',
+                                         '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'.format(
+                                             id_tag, func_template_tag,
+                                             func_res_tag)),
+                                    'functional_mask_to_standard':
+                                        ('func', 'registered',
+                                         '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'.format(
+                                             id_tag, func_template_tag,
+                                             func_res_tag)),
+                                    'ndmg_ts':
+                                        ('func', 'roi-timeseries',
+                                         '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
+                                             id_tag, func_res_tag)),
+                                    'ndmg_graph':
+                                        ('func', 'roi-connectomes',
+                                         '{0}_bold_res-{1}x{1}x{1}_measure-correlation'.format(
+                                             id_tag, func_res_tag))
+                                    }
 
-                        ndmg_key_dct = {'anatomical_brain':
-                                            ('anat', 'preproc',
-                                             '{0}_T1w_preproc_brain'.format(id_tag)),
-                                        'anatomical_to_standard':
-                                            ('anat', 'registered',
-                                             '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, template_tag, anat_res_tag)),
-                                        'functional_preprocessed':
-                                            ('func', 'preproc',
-                                             '{0}_bold_preproc'.format(id_tag)),
-                                        'functional_nuisance_residuals':
-                                            ('func', 'clean',
-                                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, template_tag, func_res_tag)),
-                                        'functional_to_standard':
-                                            ('func', 'registered',
-                                             '{0}_bold_{1}_space-{2}_res-{3}x{3}x{3}_registered'.format(
-                                                 id_tag, scan_tag,
-                                                 template_tag, func_res_tag)),
-                                        'functional_mask_to_standard':
-                                            ('func', 'registered',
-                                             '{0}_bold_{1}_space-{2}_res-{3}x{3}x{3}_registered_mask'.format(
-                                                 id_tag, scan_tag,
-                                                 template_tag, func_res_tag)),
-                                        'roi_timeseries':
-                                            ('func', 'timeseries.{0}'.format(roi_tag),
-                                             '{1}_bold_{0}_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
-                                                 roi_tag, id_tag, func_res_tag))
-                                        }
+                    if key not in ndmg_key_dct.keys():
+                        continue
 
-                        if key not in ndmg_key_dct.keys():
-                            continue
+                    ds.inputs.container = '{0}/{1}'.format(container,
+                                                           ndmg_key_dct[key][0])
+                    node, out_file = rp[key]
 
-                        ds.inputs.container = '{0}/{1}'.format(container,
-                                                               ndmg_key_dct[key][0])
-
-                        node, out_file = rp[key]
-
-                        # rename the file
+                    # rename the file
+                    if 'roi_' in key:
+                        rename_file = pe.MapNode(interface=util.Rename(),
+                                                 name='rename_{0}'.format(sink_idx),
+                                                 iterfield=['in_file'])
+                    else:
                         rename_file = pe.Node(interface=util.Rename(),
                                               name='rename_{0}'.format(sink_idx))
-                        rename_file.inputs.keep_ext = True
-                        rename_file.inputs.format_string = ndmg_key_dct[key][2]
+                    rename_file.inputs.keep_ext = True
+                    rename_file.inputs.format_string = ndmg_key_dct[key][2]
 
-                        workflow.connect(node, out_file,
-                                         rename_file, 'in_file')
-                        workflow.connect(rename_file, 'out_file',
-                                         ds, ndmg_key_dct[key][1])
+                    workflow.connect(node, out_file,
+                                     rename_file, 'in_file')
+                    workflow.connect(rename_file, 'out_file',
+                                     ds, ndmg_key_dct[key][1])
 
-                        sink_idx += 1
+                    sink_idx += 1
 
-                    else:
-                        # skip to regular datasink
-                        raise Exception('skipped')
-
-                except Exception as e:
+                else:
+                    # regular datasink
                     ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                     ds.inputs.base_directory = c.outputDirectory
                     ds.inputs.creds_path = creds_path
@@ -3747,8 +3841,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     link_node = pe.Node(
                         interface=function.Function(
                             input_names=['in_file', 'strategies',
-                                         'subject_id', 'pipeline_id', 'helper',
-                                         'create_sym_links'],
+                                         'subject_id', 'pipeline_id',
+                                         'helper', 'create_sym_links'],
                             output_names=[],
                             function=process_outputs,
                             as_module=True),
@@ -3864,7 +3958,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             for scan in scan_ids:
                 create_log_node(workflow, None, None, i, scan).run()
 
-        if 1 in c.generateQualityControlImages:
+        if 1 in c.generateQualityControlImages and not ndmg_out:
             for pip_id in pip_ids:
                 pipeline_base = os.path.join(c.outputDirectory,
                                              'pipeline_%s' % pip_id)
