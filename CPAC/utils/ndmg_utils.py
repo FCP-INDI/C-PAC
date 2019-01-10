@@ -51,10 +51,10 @@ def ndmg_roi_timeseries(func_file, label_file):
             - the path to where the roi timeseries will be saved. If
             None, don't save and just return the roi_timeseries.
     """
-    labeldata = nb.load(label_file)
+    labeldata = nb.load(label_file).get_data()
     # rois are all the nonzero unique values the parcellation can take
     rois = np.sort(np.unique(labeldata[labeldata > 0]))
-    funcdata = nb.load(func_file)
+    funcdata = nb.load(func_file).get_data()
 
     # initialize time series to [numrois]x[numtimepoints]
     roi_ts = np.zeros((len(rois), funcdata.shape[3]))
@@ -62,7 +62,13 @@ def ndmg_roi_timeseries(func_file, label_file):
     # could have nonstandard values, so assign indices w enumerate
     for idx, roi in enumerate(rois):
         roibool = labeldata == roi  # get a bool where our voxels in roi
-        roi_vts = funcdata[roibool, :]
+        try:
+            roi_vts = funcdata[roibool, :]
+        except IndexError as e:
+            err = '\n[!] Error: functional data and ROI mask may not be in ' \
+                  'the same space or be the same size.\nDetails: ' \
+                  '{0}'.format(e)
+            raise IndexError(err)
         # take the mean for the voxel timeseries, and ignore voxels with
         # no variance
         ts = roi_vts[roi_vts.std(axis=1) != 0, :].mean(axis=0)

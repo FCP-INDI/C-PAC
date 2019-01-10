@@ -3627,14 +3627,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             if ndmg_out:
                 # create the graphs
-
                 from CPAC.utils.ndmg_utils import ndmg_roi_timeseries, \
                     ndmg_create_graphs
-
-                # --- grab atlases, put them in a list for mapnode
-                # --- pull func (to standard?) into ndmg_roi_timeseries function node
-                # --- results of that into cor_graphs
-                # --- into datasink
 
                 atlases = []
                 if 'Avg' in ts_analysis_dict.keys():
@@ -3684,7 +3678,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 })
 
                 rp = strat.get_resource_pool()
-
 
             for key in sorted(rp.keys()):
 
