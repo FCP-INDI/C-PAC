@@ -68,6 +68,7 @@ def parse_yaml(value):
         config = yaml.load(value)
         if type(config) != dict:
             raise
+        return config
     except:
          raise argparse.ArgumentTypeError("Invalid configuration: '%s'" % value)
 
