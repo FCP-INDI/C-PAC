@@ -268,27 +268,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     subject_info['start_time'] = pipeline_start_time
     subject_info['strategies'] = strategies
 
-    # This section checks all of the file paths provided in the pipeline
-    # config yaml file and ensures the files exist and are accessible
-
-    # TODO ASH change for global schema validation
-    wrong_filepath_list = []
-    for (label, val) in c.return_config_elements():
-        if isinstance(val, six.string_types) and '/' in val:
-            if ('.txt' in val) or ('.nii' in val) or ('.nii.gz' in val) \
-                    or ('.mat' in val) or ('.cnf' in val) or ('.sch' in val):
-                if 's3://' in val:
-                    continue
-                if not os.path.isfile(val):
-                    wrong_filepath_list.append((label, val))
-
-    if len(wrong_filepath_list) > 0:
-        print '\n\n'
-        print 'Whoops! - Filepaths provided do not exist:\n'
-        for file_tuple in wrong_filepath_list:
-            print file_tuple[0], ' - ', file_tuple[1]
-        print '\nPlease double-check your pipeline configuration file.\n\n'
-
     # Check system dependencies
     check_system_deps(check_ants='ANTS' in c.regOption,
                       check_ica_aroma='1' in str(c.runICA[0]))
@@ -322,34 +301,23 @@ Maximum potential number of cores that might be used during this run: {max_cores
     except KeyError:
         input_creds_path = None
 
-    perform_registration = already_skullstripped == 0 and ('FSL' in c.regOption or 'ANTS' in c.regOption)
-    perform_registration_w_skull = already_skullstripped == 0 and ('FSL' in c.regOption or ('ANTS' in c.regOption and 1 in c.regWithSkull))
-    perform_registration_w_fsl = already_skullstripped == 0 and 'FSL' in c.regOption
-    perform_vmhc = 1 in c.runVMHC
-    perform_centrality = 1 in c.runNetworkCentrality
-    perform_nuisance = 1 in c.runNuisance
-    perform_segmenation = 1 in c.runSegmentationPreprocessing
-
     # TODO ASH normalize file paths with schema validator
     template_anat_keys = [
-        ("anat", "template_brain_only_for_anat", perform_registration),
-        ("anat", "template_skull_for_anat", perform_registration_w_skull),
-        ("anat", "ref_mask", perform_registration_w_fsl),
-        ("anat", "template_symmetric_brain_only", perform_vmhc),
-        ("anat", "template_symmetric_skull", perform_vmhc),
-        ("anat", "dilated_symmetric_brain_mask", perform_vmhc),
-        ("anat", "templateSpecificationFile", perform_centrality),
-        ("anat", "lateral_ventricles_mask", perform_nuisance),
-        ("anat", "PRIORS_CSF", perform_segmenation),
-        ("anat", "PRIORS_GRAY", perform_segmenation),
-        ("anat", "PRIORS_WHITE", perform_segmenation),
-        ("other", "configFileTwomm", perform_vmhc),
+        ("anat", "template_brain_only_for_anat"),
+        ("anat", "template_skull_for_anat"),
+        ("anat", "ref_mask"),
+        ("anat", "template_symmetric_brain_only"),
+        ("anat", "template_symmetric_skull"),
+        ("anat", "dilated_symmetric_brain_mask"),
+        ("anat", "templateSpecificationFile"),
+        ("anat", "lateral_ventricles_mask"),
+        ("anat", "PRIORS_CSF"),
+        ("anat", "PRIORS_GRAY"),
+        ("anat", "PRIORS_WHITE"),
+        ("other", "configFileTwomm"),
     ]
 
-    for key_type, key, is_required in template_anat_keys:
-
-        if not is_required:
-            continue
+    for key_type, key in template_anat_keys:
 
         node = create_check_for_s3_node(
             key,
