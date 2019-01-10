@@ -3641,19 +3641,33 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     'roi_dataflow_for_ndmg_%d' % num_strat
                 )
 
+                resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
+                                                     name='resample_functional_to_roi_ndmg_%d' % num_strat)
+                resample_functional_to_roi.inputs.set(
+                    interp='trilinear',
+                    apply_xfm=True,
+                    in_matrix_file=c.identityMatrix
+                )
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                 resample_functional_to_roi, 'reference')
+
                 ndmg_ts_imports = ['import os',
                                    'import nibabel as nb',
                                    'import numpy as np']
                 ndmg_ts = pe.Node(util.Function(input_names=['func_file',
                                                                 'label_file'],
                                                    output_names=['roi_ts',
-                                                                 'rois'],
+                                                                 'rois',
+                                                                 'roits_file'],
                                                    function=ndmg_roi_timeseries,
                                                    imports=ndmg_ts_imports),
                                      name='ndmg_ts')
 
-                node, out_file = strat['functional_to_roi']
-                workflow.connect(node, out_file, ndmg_ts, 'func_file')
+                node, out_file = strat['functional_to_standard']
+                workflow.connect(node, out_file, resample_functional_to_roi,
+                                 'in_file')
+                workflow.connect(resample_functional_to_roi, 'out_file',
+                                 ndmg_ts, 'func_file')
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
                                  ndmg_ts, 'label_file')
 
@@ -3668,12 +3682,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                         name='ndmg_graphs',
                                         iterfield=['labels'])
 
-                workflow.connect(ndmg_ts, 'rois', ndmg_graph, 'ts')
+                workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
                                  ndmg_graph, 'labels')
 
                 strat.update_resource_pool({
-                    'ndmg_ts': (ndmg_ts, 'roi_ts'),
+                    'ndmg_ts': (ndmg_ts, 'roits_file'),
                     'ndmg_graph': (ndmg_graph, 'out_file')
                 })
 
@@ -3794,7 +3808,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     node, out_file = rp[key]
 
                     # rename the file
-                    if 'roi_' in key:
+                    if 'roi_' in key or 'ndmg_graph' in key:
                         rename_file = pe.MapNode(interface=util.Rename(),
                                                  name='rename_{0}'.format(sink_idx),
                                                  iterfield=['in_file'])
