@@ -2,17 +2,17 @@ import os
 import time
 import six
 import re
-from time import strftime
-import zlib
-import linecache
 import csv
 import shutil
 import pickle
-
 import copy
+import json
+
 import pandas as pd
 import pkg_resources as p
 import networkx as nx
+import logging as cb_logging
+from time import strftime
 
 import nipype
 import nipype.pipeline.engine as pe
@@ -185,6 +185,25 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
 
+    subject_id = sub_dict['subject_id']
+    if sub_dict['unique_id']:
+        subject_id += "_" + sub_dict['unique_id']
+
+    log_dir = os.path.join(c.logDirectory, 'pipeline_%s' % c.pipelineName, subject_id)
+    if not os.path.exists(log_dir):
+        os.makedirs(os.path.join(log_dir))
+
+    # TODO ASH Enforce c.run_logging to be boolean
+    # TODO ASH Schema validation
+    config.update_config({
+        'logging': {
+            'log_directory': log_dir,
+            'log_to_file': bool(getattr(c, 'run_logging', True))
+        }
+    })
+
+    logging.update_logging(config)
+
     # Start timing here
     pipeline_start_time = time.time()
     # at end of workflow, take timestamp again, take time elapsed and check
@@ -235,25 +254,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
         ants_threads=c.num_ants_threads,
         max_cores=max_core_usage
     ))
-
-    subject_id = sub_dict['subject_id']
-    if sub_dict['unique_id']:
-        subject_id += "_" + sub_dict['unique_id']
-
-    log_dir = os.path.join(c.logDirectory, 'subjects', subject_id)
-    if not os.path.exists(log_dir):
-        os.makedirs(os.path.join(log_dir))
-
-    # TODO ASH Enforce c.run_logging to be boolean
-    # TODO ASH Schema validation
-    config.update_config({
-        'logging': {
-            'log_directory': log_dir,
-            'log_to_file': bool(getattr(c, 'run_logging', True))
-        }
-    })
-
-    logging.update_logging(config)
 
     # TODO ASH temporary code, remove
     # TODO ASH maybe scheme validation/normalization
@@ -3630,13 +3630,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 sink_idx += 1
                 logger.debug('sink index: %s' % sink_idx)
 
-            pipeline_dir = os.path.join(c.logDirectory,
-                                        'pipeline_%s' % pipeline_id,
-                                        subject_id)
-
-            if not os.path.exists(pipeline_dir):
-                os.makedirs(pipeline_dir)
-
             try:
                 G = nx.DiGraph()
                 strat_name = strat.get_name()
@@ -3645,14 +3638,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     for s in range(len(strat_name) - 1)
                 ])
 
-                dotfilename = os.path.join(pipeline_dir, 'strategy.dot')
+                dotfilename = os.path.join(log_dir, 'strategy.dot')
                 nx.drawing.nx_pydot.write_dot(G, dotfilename)
                 format_dot(dotfilename, 'png')
             except:
                 logger.warn('Cannot Create the strategy and pipeline '
                             'graph, dot or/and pygraphviz is not installed')
-
-            logger.info('%s*' % pipeline_dir)
 
             pipes.append(pipeline_id)
 
@@ -3677,10 +3668,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
         # MultiProcPlugin
 
         # Create callback logger
-        import logging as cb_logging
         cb_log_filename = os.path.join(log_dir,
-                                       'sub-%s_callback.log' %
-                                       sub_dict['subject_id'])
+                                       'callback.log')
 
         try:
             if not os.path.exists(os.path.dirname(cb_log_filename)):
@@ -3693,6 +3682,14 @@ Maximum potential number of cores that might be used during this run: {max_cores
         cb_logger.setLevel(cb_logging.DEBUG)
         handler = cb_logging.FileHandler(cb_log_filename)
         cb_logger.addHandler(handler)
+
+        # Log initial information from all the nodes
+        for node_name in workflow.list_node_names():
+            node = workflow.get_node(node_name)
+            cb_logger.debug(json.dumps({
+                "id": str(node),
+                "hash": node.inputs.get_hashval()[1],
+            }))
 
         # Add status callback function that writes in callback log
         if nipype.__version__ not in ('1.1.2'):
