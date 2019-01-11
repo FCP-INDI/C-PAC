@@ -1176,48 +1176,30 @@ def gen_motion_plt(motion_parameters):
 
     """
 
-    png_name1 = 'motion_trans_plot.png'
-    png_name2 = 'motion_rot_plot.png'
-    data = np.loadtxt(motion_parameters)
+    rotation_plot = os.path.join(os.getcwd(), 'motion_trans_plot.png')
+    translation_plot = os.path.join(os.getcwd(), 'motion_rot_plot.png')
 
-    data_t = data.T
-
-    translation_plot = None
-    rotation_plot = None
-
-    titles1 = ['x', 'y', 'z']
-    titles2 = ['roll', 'pitch', 'yaw']
+    data = np.loadtxt(motion_parameters).T
 
     plt.gca().set_color_cycle(['red', 'green', 'blue'])
-    plt.plot(data_t[0])
-    plt.plot(data_t[1])
-    plt.plot(data_t[2])
-    plt.legend(['x', 'y', 'z'], loc='upper right')
-    plt.ylabel('Translation (mm)')
-    plt.xlabel('Volume')
-
-    plt.savefig(os.path.join(os.getcwd(), png_name1))
-
-    plt.close()
-
-    for i in range(3, 6):
-        for j in range(len(data_t[i])):
-            data_t[i][j] = math.degrees(data_t[i][j])
-
-    plt.gca().set_color_cycle(['red', 'green', 'blue'])
-    plt.plot(data_t[3])
-    plt.plot(data_t[4])
-    plt.plot(data_t[5])
+    plt.plot(data[0])
+    plt.plot(data[1])
+    plt.plot(data[2])
     plt.legend(['roll', 'pitch', 'yaw'], loc='upper right')
     plt.ylabel('Rotation (degrees)')
     plt.xlabel('Volume')
-
-    plt.savefig(os.path.join(os.getcwd(), png_name2))
-
+    plt.savefig(rotation_plot)
     plt.close()
 
-    translation_plot = os.path.join(os.getcwd(), png_name1)
-    rotation_plot = os.path.join(os.getcwd(), png_name2)
+    plt.gca().set_color_cycle(['red', 'green', 'blue'])
+    plt.plot(data[3])
+    plt.plot(data[4])
+    plt.plot(data[5])
+    plt.legend(['x', 'y', 'z'], loc='upper right')
+    plt.ylabel('Translation (mm)')
+    plt.xlabel('Volume')
+    plt.savefig(translation_plot)
+    plt.close()
 
     return translation_plot, rotation_plot
 
