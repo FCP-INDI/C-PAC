@@ -427,6 +427,10 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
     formula = formula.replace("*", " * ")
     formula = formula.replace("/", " / ")
 
+    # pad end with single space so the formula.replace below won't miss the last
+    # covariate when relevant
+    formula = '{0} '.format(formula)
+
     for ev in categorical_list:
         if ev in formula:
             new_ev = "C(" + ev + closer
@@ -634,18 +638,18 @@ def prep_group_analysis_workflow(model_df, model_name,
         out_dir.split("group_analysis_results_%s" % pipeline_ID)[0]
 
     # generate working directory for this output's group analysis run
-    work_dir = os.path.join(group_config_obj.workingDirectory,
-                            'cpac_group_analysis', 'FSL_FEAT', 
-                            second_half_out.lstrip("/"))
+    #work_dir = os.path.join(group_config_obj.workingDirectory,
+    #                        'cpac_group_analysis', 'FSL_FEAT', 
+    #                        second_half_out.lstrip("/"))
 
-    log_dir = os.path.join(group_config_obj.logDirectory,
-                           'cpac_group_analysis', 'FSL_FEAT',
-                           second_half_out.lstrip("/"))
+    #log_dir = os.path.join(group_config_obj.logDirectory,
+    #                       'cpac_group_analysis', 'FSL_FEAT',
+    #                       second_half_out.lstrip("/"))
 
     # create the actual directories
     create_dir(model_path, "group analysis output")
-    create_dir(work_dir, "group analysis working")
-    create_dir(log_dir, "group analysis logfile")
+    #create_dir(work_dir, "group analysis working")
+    #create_dir(log_dir, "group analysis logfile")
 
     # create new subject list based on which subjects are left after checking
     # for missing outputs
@@ -658,16 +662,14 @@ def prep_group_analysis_workflow(model_df, model_name,
             new_participant_list.append(part)
     
     if group_config_obj.participant_list == None:
-
         #participant_list = os.listdir(group_config_obj.pipeline_dir)
         new_sub_file = write_new_sub_file(model_path,
-                                      group_config_obj.pipeline_dir,
-                                      new_participant_list)
+                                          group_config_obj.pipeline_dir,
+                                          new_participant_list)
     else: 
         new_sub_file = write_new_sub_file(model_path,
                                       group_config_obj.participant_list,
                                       new_participant_list)
-
 
     group_config_obj.update('participant_list', new_sub_file)
 
@@ -690,7 +692,6 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     # create 4D merged copefile, in the correct order, identical to design
     # matrix
-    #-----------------------------------------------------
     
     # calculate measure means, and demean
     if "Measure_Mean" in design_formula:
@@ -725,7 +726,6 @@ def prep_group_analysis_workflow(model_df, model_name,
         model_df = calculate_custom_roi_mean_in_df(model_df, roi_mask)
 
         # update the design formula
-        
         new_design_substring = ""
         
         for col in model_df.columns:
@@ -743,26 +743,24 @@ def prep_group_analysis_workflow(model_df, model_name,
     
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
-        if "Session" in model_df.columns:
+        if "session" in model_df.columns:
             # if these columns were added by the model builder automatically
-            design_formula = design_formula + " + Session"
-            if "Session" not in cat_list:
-                cat_list.append("Session")
+            design_formula = design_formula + " + session"
+            if "session" not in cat_list:
+                cat_list.append("session")
     if len(group_config_obj.series_list) > 0:
         design_formula = design_formula + " + Series"
         if "Series" not in cat_list:
             cat_list.append("Series")
 
-    if "Session" in model_df.columns:
+    if "session" in model_df.columns:
         # if these columns were added by the model builder automatically
         for col in model_df.columns:
             # should only grab the repeated measures-designed participant_{ID}
             # columns, not the "participant_id" column!
             if "participant_" in col and "_id" not in col:
                 design_formula = design_formula + " + %s" % col
-                
                 cat_list.append(col)
-
     
     # parse out the EVs in the design formula at this point in time
     #   this is essentially a list of the EVs that are to be included
@@ -878,10 +876,8 @@ def prep_group_analysis_workflow(model_df, model_name,
     design_formula = patsify_design_formula(design_formula, cat_list,
                                             group_config_obj.coding_scheme[0])
 
-
     # send to Patsy
     try:
-        print(model_df)
         dmatrix = patsy.dmatrix(design_formula, model_df)
     except Exception as e:
         err = "\n\n[!] Something went wrong with processing the group model "\
@@ -891,28 +887,33 @@ def prep_group_analysis_workflow(model_df, model_name,
               "%s\n\nPatsy-formatted design formula: %s\n\nError details: " \
               "%s\n\n" % (model_df.columns, design_formula, e)
         raise Exception(err)
+
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
-    #model_matrix = patsy.DesignInfo(model_df.columns)
-    
     check_multicollinearity(np.array(dmatrix))
  
     # prepare for final stages
     dmatrix.design_info.column_names.append(model_df["Filepath"])
     dmatrix_column_names = dmatrix.design_info.column_names
-    
-    
+
     # make sure "column_names" is in the same order as the original EV column
-    # header ordering in model_df
+    # header ordering in model_df - mainly for repeated measures, to make sure
+    # participants_<ID> cols are at end for clarity for users
     column_names = []
-    for col in model_df.columns:
-        if col in dmatrix_column_names:
-            column_names.append(col)   
+    dmat_cols = []
+    dmat_id_cols = []
+    for dmat_col in dmatrix_column_names:
+        if 'participant_' in dmat_col:
+            dmat_id_cols.append(dmat_col)
+        else:
+            dmat_cols.append(dmat_col)
+    column_names = dmat_cols
+    dmat_id_cols = sorted(dmat_id_cols)
+    column_names += dmat_id_cols
     
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    contrast_out_path = os.path.join(out_dir,"contrast.csv")
+    contrast_out_path = os.path.join(out_dir, "contrast.csv")
     
-  
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \
@@ -932,10 +933,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         raise Exception(err)
 
     # time for contrasts
-    
-
     if (group_config_obj.custom_contrasts == None) or (group_config_obj.contrasts == None):
-
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
         contrasts_columns = column_names
@@ -945,10 +943,7 @@ def prep_group_analysis_workflow(model_df, model_name,
                 contrasts_columns.append('f_test_%d' % i) 
     else:
         pass
-
-        #print("contrasts_list:%s" % contrasts_list)
         
-    #print(contrasts_list)
     # check the merged file's order
     #check_merged_file(model_df["Filepath"], merge_file)
 
@@ -977,6 +972,7 @@ def prep_group_analysis_workflow(model_df, model_name,
 
         readme_flags.append("cat_demeaned")
 
+    # TODO: re-arrange dmatrix columns with column_names, but properly
     dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],
                               columns=dmatrix.design_info.column_names)
 
