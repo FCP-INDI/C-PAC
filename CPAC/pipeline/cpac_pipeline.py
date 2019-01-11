@@ -484,8 +484,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
 
             strat.update_resource_pool({
-                'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+                'lesion_mask': (anat_preproc, 'outputspec.brain'),
+                'lesion_mask_reorient': (anat_preproc, 'outputspec.reorient')
             })
 
             create_log_node(workflow, anat_preproc,
