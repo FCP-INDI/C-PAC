@@ -387,7 +387,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
     '''
 
     strat_initial = Strategy()
-
+    # The list of strategies that will be shared all along the pipeline creation
     strat_list = []
 
     workflow_bit_id = {}
@@ -439,6 +439,38 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file, anat_preproc,
+                             'inputspec.anat')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file,
+                             anat_preproc, 'inputspec.brain_mask')
+
+            # TODO: look into forking this alongside either 3dSkullStrip or
+            # TODO: FSL-BET
+
+            strat.append_name(anat_preproc.name)
+            strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+
+            strat.update_resource_pool({
+                'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                'anatomical_reorient': (anat_preproc, 'outputspec.reorient')
+            })
+
+            create_log_node(workflow, anat_preproc,
+                            'outputspec.brain', num_strat)
+
+    for num_strat, strat in enumerate(strat_list):
+
+        rp = strat.get_resource_pool()
+
+        if 'lesion_mask' in sub_dict and c.use_lesion_mask:
+
+            lesion_preproc = create_anat_preproc(method='afni',
+                                               already_skullstripped=True,
+                                               wf_name='lesion_preproc_%d' % num_strat)
+
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file, lesion_preproc,
                              'inputspec.anat')
 
             node, out_file = strat['anatomical_brain_mask']
@@ -747,6 +779,16 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 ]
             )
 
+            if 'lesion_mask' in sub_dict and c.use_lesion_mask:
+                # use the fixed_image_mask option of ANTs with the lesion mask
+                ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = \
+                    sub_dict['lesion_mask']
+                node, out_file = strat['anatomical_brain']
+                # pass the anatomical to the workflow
+                workflow.connect(node, out_file,
+                                 ants_reg_anat_mni,
+                                 'inputspec.anatomical_brain')
+
             strat.append_name(ants_reg_anat_mni.name)
 
             strat.set_leaf_properties(ants_reg_anat_mni,
@@ -1048,7 +1090,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     strat_list += new_strat_list
 
     # Inserting Functional Data workflow
-
     for num_strat, strat in enumerate(strat_list):
 
         if 'func' in sub_dict:
@@ -1974,7 +2015,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 if 1 in c.runNuisance and \
                    "De-Spiking" in c.runMotionSpike and \
                    "None" in c.runMotionSpike:
-                   
+
                     # create a new fork that will run nuisance like above but
                     # without the de-spiking
                     strat = strat.fork()
@@ -2441,7 +2482,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 'outputspec.output_image', num_strat)
 
     strat_list += new_strat_list
-    
+
     # Derivatives
 
     # Inserting ALFF/fALFF workflow
