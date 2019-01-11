@@ -3634,9 +3634,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 if 'Avg' in ts_analysis_dict.keys():
                     atlases = ts_analysis_dict['Avg']
 
-                if 'Avg' in sca_analysis_dict.keys():
-                    atlases += sca_analysis_dict['Avg']
-
                 roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
                     'roi_dataflow_for_ndmg_%d' % num_strat
                 )
