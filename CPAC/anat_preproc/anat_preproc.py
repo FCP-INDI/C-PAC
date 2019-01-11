@@ -105,21 +105,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                             'fac']),
                              name='AFNI_options')
 
-    inputnode_bet = pe.Node(util.IdentityInterface(fields=['frac',
-                                                           'mask_boolean',
-                                                           'mesh_boolean',
-                                                           'outline',
-                                                           'padding',
-                                                           'radius',
-                                                           'reduce_bias',
-                                                           'remove_eyes',
-                                                           'robust',
-                                                           'skull',
-                                                           'surfaces',
-                                                           'threshold',
-                                                           'vertical_gradient']),
-                            name='BET_options')
-
     outputnode = pe.Node(util.IdentityInterface(fields=['refit',
                                                         'reorient',
                                                         'skullstrip',
@@ -221,6 +206,21 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                             outputnode, 'skullstrip')
 
         elif method == 'fsl':
+            inputnode_bet = pe.Node(
+                util.IdentityInterface(fields=['frac',
+                                               'mask_boolean',
+                                               'mesh_boolean',
+                                               'outline',
+                                               'padding',
+                                               'radius',
+                                               'reduce_bias',
+                                               'remove_eyes',
+                                               'robust',
+                                               'skull',
+                                               'surfaces',
+                                               'threshold',
+                                               'vertical_gradient']),
+                name='BET_options')
             # Skull-stripping using FSL BET
             anat_skullstrip = pe.Node(
                 interface=fsl.BET(), name='anat_skullstrip')
