@@ -503,28 +503,28 @@ runROITimeseries :  [1]
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
 tsa_roi_paths:
-  - /ndmg_atlases/CPAC200_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DK_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00071_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00096_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00108_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00140_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00195_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00278_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00350_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00446_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00583_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS00833_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/DS01216_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/HarvardOxfordcort-maxprob-thr25_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/HarvardOxfordsub-maxprob-thr25_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/JHU_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/aal_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/brodmann_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/desikan_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/hemispheric_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/pp264_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/tissue_res-2x2x2.nii.gz: Avg
+  - /ndmg_atlases/func_atlases/label/aal_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/brodmann_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/CPAC200_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/desikan_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DK_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00071_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00096_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00108_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00140_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00195_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00278_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00350_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00446_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00583_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS00833_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/DS01216_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/HarvardOxfordcort-maxprob-thr25_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/HarvardOxfordsub-maxprob-thr25_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/hemispheric_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/JHU_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/pp264_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/func_atlases/label/tissue_res-2x2x2.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
@@ -583,7 +583,7 @@ lowPassFreqALFF : [0.1]
 
 
 # Calculate Regional Homogeneity (ReHo) for all voxels.
-runReHo :  [1]
+runReHo :  [0]
 
 
 # Number of neighboring voxels used when calculating ReHo

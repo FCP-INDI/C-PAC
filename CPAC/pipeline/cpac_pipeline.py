@@ -3749,8 +3749,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                     sub_ses_id = subject_id.split('_')
 
-                    sub_tag = 'sub-{0}'.format(sub_ses_id[0])
-                    ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                    sub_tag = sub_ses_id[0]
+                    ses_tag = sub_ses_id[1]
                     id_tag = '_'.join([sub_tag, ses_tag])
 
                     anat_template_tag = 'standard'
