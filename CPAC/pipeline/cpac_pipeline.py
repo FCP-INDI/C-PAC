@@ -2804,7 +2804,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
     # ROI Based Time Series
     new_strat_list = []
 
-    if 1 in c.RunROITimeseries and ("Avg" in ts_analysis_dict.keys() or \
+    if 1 in c.runROITimeseries and ("Avg" in ts_analysis_dict.keys() or \
         "Avg" in sca_analysis_dict.keys() or \
         "MultReg" in sca_analysis_dict.keys()):
 

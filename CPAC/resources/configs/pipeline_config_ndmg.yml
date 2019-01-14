@@ -439,10 +439,10 @@ Regressors :
   -  compcor :  1
      wm :  0
      csf :  1
-     global :  1
+     global :  0
      pc1 :  0
-     motion :  1
-     linear :  1
+     motion :  0
+     linear :  0
      quadratic :  1
      gm :  0
 
