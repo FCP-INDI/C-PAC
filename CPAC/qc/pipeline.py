@@ -13,6 +13,7 @@ from CPAC.qc.qc import (
     create_qc_motion,
     create_qc_fd,
     create_qc_skullstrip,
+    create_qc_carpet,
     afni_Edge3
 )
 
@@ -163,7 +164,7 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
         # make QC montages for CSF WM GM
         if 'seg_preproc' in nodes:
 
-            anat_underlay, out_file = strat['anatomical_brain']
+            anat_underlay, out_file_anat = strat['anatomical_brain']
             csf_overlay, out_file_csf = strat['anatomical_csf_mask']
             wm_overlay, out_file_wm = strat['anatomical_wm_mask']
             gm_overlay, out_file_gm = strat['anatomical_gm_mask']
@@ -171,7 +172,7 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
             montage_csf_gm_wm = create_montage_gm_wm_csf('montage_csf_gm_wm_%d' % num_strat,
                                                             'montage_csf_gm_wm')
 
-            workflow.connect(anat_underlay, out_file,
+            workflow.connect(anat_underlay, out_file_anat,
                                 montage_csf_gm_wm, 'inputspec.underlay')
             workflow.connect(csf_overlay, out_file_csf,
                                 montage_csf_gm_wm, 'inputspec.overlay_csf')
@@ -189,6 +190,43 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                 qc_montage_id_a[2] = 'csf_gm_wm_a'
                 qc_montage_id_s[2] = 'csf_gm_wm_s'
 
+            if 'functional_preprocessed' in strat:
+                preproc, out_file_preproc = strat['functional_to_standard']
+                mean_preproc, out_file_mean_preproc = strat['mean_functional_to_standard']
+
+                # make QC Carpet plot
+                carpet_seg = create_qc_carpet('carpet_seg_%d' % num_strat,
+                                              'carpet_seg')
+
+                workflow.connect(
+                    preproc, out_file_preproc,
+                    carpet_seg, 'inputspec.functional_to_standard'
+                )
+                workflow.connect(
+                    mean_preproc, out_file_mean_preproc,
+                    carpet_seg, 'inputspec.mean_functional_to_standard'
+                )
+
+
+                workflow.connect(
+                    c.PRIORS_GRAY, 'local_path',
+                    carpet_seg, 'inputspec.anatomical_gm_mask'
+                )
+                workflow.connect(
+                    c.PRIORS_WHITE, 'local_path',
+                    carpet_seg, 'inputspec.anatomical_wm_mask'
+                )
+                workflow.connect(
+                    c.PRIORS_CSF, 'local_path',
+                    carpet_seg, 'inputspec.anatomical_csf_mask'
+                )
+
+                strat.update_resource_pool({
+                    'qc___carpet': (carpet_seg, 'outputspec.carpet_plot'),
+                })
+
+                if not 9 in qc_plot_id:
+                    qc_plot_id[9] = 'carpet'
 
         if 'functional_preprocessed' in strat:
                 

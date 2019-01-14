@@ -13,6 +13,9 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
+import matplotlib.cm as cm
+from matplotlib import gridspec as mgs
+from matplotlib.colors import ListedColormap
 
 from nipype.interfaces import afni
 import nipype.pipeline.engine as pe
@@ -20,6 +23,8 @@ import nipype.interfaces.utility as util
 
 
 derivative_descriptions = {
+    'carpet': 'Carpet',
+
     'alff_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
     'alff_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
     'alff_to_standard': 'Amplitude of Low-Frequency Fluctuation',
@@ -819,14 +824,14 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
                 image_name_h_nav = qc_hist_id[montage_id]
                 
             if map_name is not None:
-                image_name_a = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                image_name_a = "Measure: {measure}; Mask: {mask}; Map: {map}".format(
                     measure=image_name_a_nav,
                     mask=measure_name,
                     map=map_name
                 )
 
                 if montage_id in qc_hist_id:
-                    image_name_h = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                    image_name_h = "Measure: {measure}; Mask: {mask}; Map: {map}".format(
                         measure=qc_hist_id[montage_id],
                         mask=measure_name,
                         map=map_name
@@ -1151,6 +1156,72 @@ def gen_plot_png(arr, measure, ex_vol=None):
     plt.close()
     matplotlib.rcdefaults()
     return png_name
+
+
+def gen_carpet_plt(gm_voxels, wm_voxels, csf_voxels, output):
+    
+    size = (950, 800)
+    
+    carpet_plot_path = os.path.join(os.getcwd(), output + '.png')
+
+    gm_voxels = nb.load(gm_voxels).get_data()
+    gm_voxels = gm_voxels[gm_voxels.std(axis=3) > 0.0]
+    wm_voxels = nb.load(wm_voxels).get_data()
+    wm_voxels = wm_voxels[wm_voxels.std(axis=3) > 0.0]
+    csf_voxels = nb.load(csf_voxels).get_data()
+    csf_voxels = csf_voxels[csf_voxels.std(axis=3) > 0.0]
+
+    data = np.concatenate((gm_voxels, wm_voxels, csf_voxels))
+    seg = np.concatenate((
+        np.ones(gm_voxels.shape[0]) * 1,
+        np.ones(wm_voxels.shape[0]) * 2,
+        np.ones(csf_voxels.shape[0]) * 3
+    ))
+
+    tr = data.shape[-1]
+
+    p_dec = 1 + data.shape[0] // size[0]
+    if p_dec:
+        data = data[::p_dec, :]
+        seg = seg[::p_dec]
+
+    t_dec = 1 + data.shape[1] // size[1]
+    if t_dec:
+        data = data[:, ::t_dec]
+        
+    interval = max((int(data.shape[-1] + 1) // 10, int(data.shape[-1] + 1) // 5, 1))
+    xticks = list(range(0, data.shape[-1])[::interval])
+
+    mycolors = ListedColormap(cm.get_cmap('tab10').colors[:4][::-1])
+
+    gs = mgs.GridSpecFromSubplotSpec(1, 2, subplot_spec=mgs.GridSpec(1, 1)[0],
+                                    width_ratios=[1, 100],
+                                    wspace=0.0)
+    ax0 = plt.subplot(gs[0])
+    ax0.set_yticks([])
+    ax0.set_xticks([])
+    ax0.imshow(seg[:, np.newaxis], interpolation='none', aspect='auto',
+            cmap=mycolors, vmin=1, vmax=4)
+    ax0.grid(False)
+    ax0.spines["left"].set_visible(False)
+    ax0.spines["top"].set_visible(False)
+
+    ax1 = plt.subplot(gs[1])
+    ax1.imshow(data, interpolation='nearest', aspect='auto', cmap='gray')
+    ax1.grid(False)
+    ax1.set_yticks([])
+    ax1.set_yticklabels([])
+    ax1.set_xticks(xticks)
+    ax1.set_xlabel('time (frames)')
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax1.yaxis.set_ticks_position('left')
+    ax1.xaxis.set_ticks_position('bottom')
+
+    plt.savefig(carpet_plot_path, dpi=200, bbox_inches='tight')
+    plt.close()
+
+    return carpet_plot_path
 
 
 def gen_motion_plt(motion_parameters):
