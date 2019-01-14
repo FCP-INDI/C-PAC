@@ -1855,13 +1855,13 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
         )
 
     with open(out_file, 'w') as f:
-        f.write("version: {0}".format(str(version)))
-        f.write("timestamp: {0}".format(str(stamp)))
-        f.write("pipeline_index: {0}".format(index))
-        f.write("subject_id: {0}".format(subject_id))
-        f.write("scan_id: {0}".format(scan_id))
-        f.write("strategy: {0}".format(strategy))
-        f.write("workflow_name: {0}".format(workflow))
+        f.write("version: {0}\n".format(str(version)))
+        f.write("timestamp: {0}\n".format(str(stamp)))
+        f.write("pipeline_index: {0}\n".format(index))
+        f.write("subject_id: {0}\n".format(subject_id))
+        f.write("scan_id: {0}\n".format(scan_id))
+        f.write("strategy: {0}\n".format(strategy))
+        f.write("workflow_name: {0}\n".format(workflow))
         f.write(status_msg)
 
     return out_file
