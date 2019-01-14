@@ -496,7 +496,7 @@ numRemoveSubsequentFrames :  2
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [1]
+runROITimeseries :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
@@ -524,7 +524,6 @@ tsa_roi_paths:
     /ndmg_atlases/func_atlases/label/hemispheric_res-2x2x2.nii.gz: Avg
     /ndmg_atlases/func_atlases/label/JHU_res-2x2x2.nii.gz: Avg
     /ndmg_atlases/func_atlases/label/pp264_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/tissue_res-2x2x2.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.

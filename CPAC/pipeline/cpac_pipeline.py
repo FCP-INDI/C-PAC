@@ -2617,16 +2617,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
     # ]
 
     # TODO ASH normalize w schema val
-    if 1 in c.runROITimeseries:
+    if c.tsa_roi_paths:
 
-        # TODO ASH normalize w schema val
-        if c.tsa_roi_paths:
-            tsa_roi_dict = c.tsa_roi_paths[0]
-        else:
-            err = "\n\n[!] CPAC says: Time Series Extraction is " \
-                  "set to run, but no ROI NIFTI file paths were provided!" \
-                  "\n\n"
-            raise Exception(err)
+        tsa_roi_dict = c.tsa_roi_paths[0]
 
         # flip the dictionary
         for roi_path in tsa_roi_dict.keys():
@@ -2811,9 +2804,9 @@ Maximum potential number of cores that might be used during this run: {max_cores
     # ROI Based Time Series
     new_strat_list = []
 
-    if "Avg" in ts_analysis_dict.keys() or \
+    if 1 in c.RunROITimeseries and ("Avg" in ts_analysis_dict.keys() or \
         "Avg" in sca_analysis_dict.keys() or \
-        "MultReg" in sca_analysis_dict.keys():
+        "MultReg" in sca_analysis_dict.keys()):
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -3733,6 +3726,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                       ('_scan_', 'scan-'),
                                                       ('/_mask_', '/roi-'),
                                                       ('file_s3(.)*/', ''),
+                                                      ('ndmg_atlases', ''),
+                                                      ('func_atlases', ''),
+                                                      ('label', ''),
+                                                      ('res-.+\/', ''),
+                                                      ('_mask_.+\/', '_'),
                                                       ('mask_sub-', 'sub-'),
                                                       ('/_compcor_ncomponents_', '_nuis-'),
                                                       ('_selector_pc', ''),
@@ -3743,22 +3741,35 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                       ('.quadratic', ''),
                                                       ('.gm', ''),
                                                       ('.compcor', ''),
-                                                      ('.csf', '')]
+                                                      ('.csf', ''),
+                                                      ('(\.\.)', '')]
 
                     container = 'pipeline_{0}'.format(pipeline_id)
 
                     sub_ses_id = subject_id.split('_')
 
-                    sub_tag = sub_ses_id[0]
-                    ses_tag = sub_ses_id[1]
+                    if 'sub-' not in sub_ses_id[0]:
+                        sub_tag = 'sub-{0}'.format(sub_ses_id[0])
+                    else:
+                        sub_tag = sub_ses_id[0]
+
+                    if 'ses-' not in sub_ses_id[1]:
+                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                    else:                    
+                        ses_tag = sub_ses_id[1]
+
                     id_tag = '_'.join([sub_tag, ses_tag])
 
                     anat_template_tag = 'standard'
-                    #if 'MNI152' in c.template_brain_only_for_anat:
-                    #    anat_template_tag = 'MNI152'
                     func_template_tag = 'standard'
-                    #if 'MNI152' in c.template_brain_only_for_func:
-                    #    func_template_tag = 'MNI152'
+
+                    try:
+                        if 'FSL' in c.regOption and 'ANTS' not in c.regOption:
+                            if 'MNI152' in c.fnirtConfig:
+                                anat_template_tag = 'MNI152'
+                                func_template_tag = 'MNI152'
+                    except:
+                        pass
 
                     anat_res_tag = c.resolution_for_anat
                     anat_res_tag = anat_res_tag.replace('mm', '')
