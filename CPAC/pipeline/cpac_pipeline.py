@@ -459,38 +459,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
             create_log_node(workflow, anat_preproc,
                             'outputspec.brain', num_strat)
 
-    for num_strat, strat in enumerate(strat_list):
-
-        rp = strat.get_resource_pool()
-
-        if 'lesion_mask' in sub_dict and c.use_lesion_mask:
-
-            lesion_preproc = create_anat_preproc(method='afni',
-                                               already_skullstripped=True,
-                                               wf_name='lesion_preproc_%d' % num_strat)
-
-            node, out_file = strat.get_leaf_properties()
-            workflow.connect(node, out_file, lesion_preproc,
-                             'inputspec.anat')
-
-            node, out_file = strat['anatomical_brain_mask']
-            workflow.connect(node, out_file,
-                             anat_preproc, 'inputspec.brain_mask')
-
-            # TODO: look into forking this alongside either 3dSkullStrip or
-            # TODO: FSL-BET
-
-            strat.append_name(anat_preproc.name)
-            strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-
-            strat.update_resource_pool({
-                'lesion_mask': (anat_preproc, 'outputspec.brain'),
-                'lesion_mask_reorient': (anat_preproc, 'outputspec.reorient')
-            })
-
-            create_log_node(workflow, anat_preproc,
-                            'outputspec.brain', num_strat)
-
     strat_list += new_strat_list
 
     new_strat_list = []
@@ -592,6 +560,55 @@ Maximum potential number of cores that might be used during this run: {max_cores
                             'outputspec.brain', num_strat)
 
     strat_list += new_strat_list
+
+    for num_strat, strat in enumerate(strat_list):
+
+        rp = strat.get_resource_pool()
+
+        if 'lesion_mask' in sub_dict and c.use_lesion_mask:
+
+            lesion_preproc = pe.Workflow(name='lesion_preproc_%d' % num_strat)
+
+            inputnode = pe.Node(util.IdentityInterface(
+                fields=['lesion']), name='inputspec')
+
+            outputnode = pe.Node(util.IdentityInterface(fields=['refit',
+                                                                'reorient']),
+                                                        name='outputspec')
+
+            lesion_deoblique = pe.Node(interface=afni.Refit(),
+                                     name='lesion_deoblique')
+
+            lesion_deoblique.inputs.deoblique = True
+            lesion_preproc.connect(inputnode, 'lesion', lesion_deoblique, 'in_file')
+            lesion_preproc.connect(lesion_deoblique, 'out_file', outputnode, 'refit')
+
+            # Anatomical reorientation
+            lesion_reorient = pe.Node(interface=afni.Resample(),
+                                    name='lesion_reorient')
+
+            lesion_reorient.inputs.orientation = 'RPI'
+            lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
+            lesion_preproc.connect(lesion_deoblique, 'out_file', lesion_reorient,
+                            'in_file')
+            lesion_preproc.connect(lesion_reorient, 'out_file', outputnode, 'reorient')
+
+            strat.append_name(lesion_preproc.name)
+            strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
+
+            strat.update_resource_pool({
+                'lesion_mask': (lesion_preproc, 'intputspec.lesion')
+            })
+            strat.update_resource_pool({
+                'lesion_reorient': (lesion_preproc, 'outputspec.reorient')
+            })
+
+            create_log_node(workflow, lesion_preproc,
+                            'inputspec.brain', num_strat)
+
+    strat_list += new_strat_list
+
+    new_strat_list = []
 
     # Set Up FWHM iterable
     # T1 -> Template, Non-linear registration (FNIRT or ANTS)
