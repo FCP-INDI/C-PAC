@@ -28,9 +28,9 @@ def prep():
 
     for unique_resource_id in analysis_dict.keys():
 
-        # unique_resource_id is a 5-long tuple:
+        # unique_resource_id is a 6-long tuple:
         #    ( model name, group model config file, output measure name,
-        #          preprocessing strategy string,
+        #          preprocessing strategy string, session_id,
         #          series_id or "repeated_measures" )
 
         model_name = unique_resource_id[0]
@@ -38,7 +38,8 @@ def prep():
         group_config_file = unique_resource_id[1]
         resource_id = unique_resource_id[2]
         preproc_strat = unique_resource_id[3]
-        series_or_repeated = unique_resource_id[4]
+        session = unique_resource_id[4]
+        series_or_repeated = unique_resource_id[5]
         model_df = analysis_dict[unique_resource_id]
 
         dmat_csv_path, new_sub_file, empty_csv = prep_group_analysis_workflow(model_df,
@@ -46,6 +47,7 @@ def prep():
                                                                               args.group_config_file,
                                                                               resource_id,
                                                                               preproc_strat,
+                                                                              session,
                                                                               series_or_repeated)
 
     return dmat_csv_path, new_sub_file, empty_csv

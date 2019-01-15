@@ -530,7 +530,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
 
         # grab the ordered sublist before we double the rows
         sublist = pheno_df['participant_id']
-        
+
         for session in sessions_list:
             sub_pheno_df = pheno_df.copy()
             sub_pheno_df["session"] = session
@@ -947,12 +947,29 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                                                   group_model.sessions_list,
                                                   group_model.series_list)
 
-                    run_label = "repeated_measures_multiple_sessions_and_series"
+                    session = 'repeated_measures_multiple_sessions'
+                    series = 'repeated_measures_multiple_series'
                 else:
-                    run_label = "repeated_measures_multiple_series"
-
-                analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
-                    new_pheno_df
+                    series = "repeated_measures_multiple_series"
+                    if 'session' in output_df:
+                        for ses_df_tuple in output_df.groupby('session'):
+                            session = 'ses-{0}'.format(ses_df_tuple[0])
+                            ses_df = ses_df_tuple[1]
+                            newer_ses_pheno_df = \
+                                pd.merge(new_pheno_df, ses_df, how="inner",
+                                         on=["participant_id"])
+                            # send it in
+                            analysis_dict[(model_name, group_config_file, resource_id,
+                                           strat_info, session, series)] = newer_ses_pheno_df
+                    else:
+                        # default a session
+                        session = 'ses-1'
+                        newer_ses_pheno_df = pd.merge(new_pheno_df, series_df,
+                                                      how="inner",
+                                                      on=["participant_id"])
+                        # send it in
+                        analysis_dict[(model_name, group_config_file, resource_id,
+                                       strat_info, session, series)] = newer_ses_pheno_df
 
             else:
                 # this runs if there are repeated sessions but not
@@ -961,6 +978,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                 #   iterate over the Series/Scans
                 for series_df_tuple in output_df.groupby("Series"):
 
+                    session = 'repeated_measures_multiple_sessions'
                     series = series_df_tuple[0]
 
                     # series_df is output_df but with only one of the
@@ -991,8 +1009,8 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                     # unique_resource =
                     #        (output_measure_type, preprocessing strategy)
                     analysis_dict[(model_name, group_config_file,
-                                   resource_id, strat_info,
-                                   "repeated_measures_%s" % series)] = newer_pheno_df
+                                   resource_id, strat_info, session, 
+                                   series)] = newer_pheno_df
 
         else:
             # no repeated measures
@@ -1006,17 +1024,41 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
             # iterate over the Series/Scans
             for series_df_tuple in output_df.groupby("Series"):
                 series = series_df_tuple[0]
-                # series_df = output_df but with only one of the Series
+
+                # series_df - this is output_df but with only one of the Series
                 series_df = series_df_tuple[1]
+
                 # trim down the pheno DF to match the output DF and merge
                 newer_pheno_df = \
                     new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
-                newer_pheno_df = pd.merge(newer_pheno_df, series_df,
-                                          how="inner",
-                                          on=["participant_id"])
-                # send it in
-                analysis_dict[(model_name, group_config_file, resource_id,
-                               strat_info, series)] = newer_pheno_df
+
+                # multiple sessions?
+                if 'session' in series_df:
+                    for ses_df_tuple in series_df.groupby('session'):
+                        session = 'ses-{0}'.format(ses_df_tuple[0])
+                        ses_df = ses_df_tuple[1]
+                        newer_ses_pheno_df = \
+                            pd.merge(newer_pheno_df, ses_df, how="inner",
+                                     on=["participant_id"])
+                        # send it in
+                        analysis_dict[(model_name, group_config_file, resource_id,
+                                       strat_info, session, series)] = newer_ses_pheno_df
+                else:
+                    # default a session
+                    session = 'ses-1'
+                    newer_pheno_df = pd.merge(newer_pheno_df, series_df,
+                                              how="inner",
+                                              on=["participant_id"])
+                    # send it in
+                    analysis_dict[(model_name, group_config_file, resource_id,
+                                   strat_info, session, series)] = newer_pheno_df
+
+    if len(analysis_dict) == 0:
+        err = '\n\n[!] C-PAC says: Could not find a match between the ' \
+              'participants in your pipeline output directory that were ' \
+              'included in your analysis, and the participants in the ' \
+              'phenotype file provided.\n\n'
+        raise Exception(err) 
 
     return analysis_dict
 

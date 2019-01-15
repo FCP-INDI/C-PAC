@@ -363,7 +363,6 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
     join_column = ["subject_key"]
         
     if "Session" in pheno_df:
-
         pheno_df["session_key"] = pheno_df["Session"]
         join_column.append("session_key")
             
@@ -456,7 +455,7 @@ def check_multicollinearity(matrix):
 
     import numpy as np
 
-    print "\nChecking for multicollinearity in the model.."
+    print("\nChecking for multicollinearity in the model..")
 
     U, s, V = np.linalg.svd(matrix)
 
@@ -468,20 +467,18 @@ def check_multicollinearity(matrix):
     print "Rank: ", np.linalg.matrix_rank(matrix), "\n"
 
     if min_singular == 0:
-
         print '[!] CPAC warns: Detected multicollinearity in the ' \
                   'computed group-level analysis model. Please double-' \
                   'check your model design.\n\n'
-
     else:
-
         condition_number = float(max_singular)/float(min_singular)
-        print "Condition number: %f\n\n" % condition_number
+        print "Condition number: %f" % condition_number
         if condition_number > 30:
-
             print '[!] CPAC warns: Detected multicollinearity in the ' \
                       'computed group-level analysis model. Please double-' \
                       'check your model design.\n\n'
+        else:
+            print('Looks good..\n')
 
 
 def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
@@ -512,7 +509,8 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
 
 def prep_group_analysis_workflow(model_df, model_name,
                                  group_config_file, resource_id,
-                                 preproc_strat, series_or_repeated_label):
+                                 preproc_strat, session_id,
+                                 series_or_repeated_label):
     
     #
     # this function runs once per derivative type and preproc strat combo
@@ -600,6 +598,7 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     out_dir = os.path.join(model_dir,
                            resource_id,
+                           session_id,
                            series_or_repeated_label,
                            preproc_strat)
 
@@ -916,21 +915,27 @@ def prep_group_analysis_workflow(model_df, model_name,
     
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
-        err = "\n\n[!] CPAC says: There are more EVs than there are " \
-              "participants currently included in the model for %s. There " \
-              "must be more participants than EVs in the design.\n\nNumber " \
-              "of participants: %d\nNumber of EVs: %d\n\nEV/covariate list: "\
-              "%s\n\nNote: If you specified to model group " \
+        err = "\n\n################## MODEL NOT GENERATED ##################" \
+              "\n\n[!] CPAC says: There are more EVs than there are " \
+              "participants currently included in the model for:\n\n" \
+              "Derivative: {0}\nSession: {1}\nScan: {2}\nPreproc strategy:" \
+              "\n    {3}\n\n" \
+              "There must be more participants than EVs in the design.\n\n" \
+              "Number of participants: {4}\nNumber of EVs: {5}\n\nEV/" \
+              "covariate list: {6}\n\nNote: If you specified to model group " \
               "variances separately, the amount of EVs can nearly double " \
-              "once they are split along the grouping variable.\n\n" \
-              "If the number of subjects is lower than the number of " \
-              "subjects in your group analysis subject list, this may be " \
-              "because not every subject in the subject list has an output " \
-              "for %s in the individual-level analysis output directory.\n\n"\
-              "Design formula going in: %s\n\n"\
-              % (resource_id, num_subjects, len(column_names), column_names,
-                 resource_id, design_formula)
-        raise Exception(err)
+              "once they are split along the grouping variable.\n\nIf the " \
+              "number of participants is lower than the number of " \
+              "participants in your group analysis inclusion list, this " \
+              "may be because not every participant originally included has " \
+              "an output for {7} for this scan and preprocessing strategy in " \
+              "the individual-level analysis output directory.\n\nDesign " \
+              "formula going in: {8}" \
+              "\n\n#########################################################" \
+              "\n\n".format(resource_id, session_id, series_or_repeated_label, 
+                            preproc_strat, num_subjects, len(column_names), 
+                            column_names, resource_id, design_formula)
+        print(err)
 
     # time for contrasts
     if (group_config_obj.custom_contrasts == None) or (group_config_obj.contrasts == None):
@@ -981,6 +986,7 @@ def prep_group_analysis_workflow(model_df, model_name,
                             column_names, dmat_csv_path)
     
     contrast_out_path = os.path.join(model_dir, "contrasts.csv")
+
     with open(contrast_out_path, "w") as f:
         f.write('Contrasts')
         for col in dmatrix.design_info.column_names:
@@ -988,7 +994,16 @@ def prep_group_analysis_workflow(model_df, model_name,
         f.write('\ncontrast_1')
         for col in dmatrix.design_info.column_names:
             f.write(',0')
-   
+
+    msg = 'Model successfully generated for..\nDerivative: {0}\nSession: {1}' \
+          '\nScan: {2}\nPreprocessing strategy:\n    {3}\n\nModel directory:' \
+          '\n{4}\n\nContrasts template CSV:\n{5}' \
+           '\n'.format(resource_id, session_id, series_or_repeated_label,
+                       preproc_strat, model_path, contrast_out_path)
+    print('-------------------------------------------------------------------')
+    print(msg)
+    print('-------------------------------------------------------------------')
+
     return dmat_csv_path, new_sub_file, contrast_out_path
 
 
