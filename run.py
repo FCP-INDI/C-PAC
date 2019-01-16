@@ -94,7 +94,7 @@ parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' test_config will run through the entire configuration process but will'
                                            ' not execute the pipeline.',
                     choices=['participant', 'group', 'test_config', 'gui'], type=str.lower)
-parser.add_argument('--pipeline_file', help='Name for the pipeline '
+parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' configuration file to use. '
                                             'Use the format'
                                             ' s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket.'
@@ -283,7 +283,7 @@ if args.save_working_dir is True:
     else:
         print ('Cannot write working directory to S3 bucket.'
                ' Either change the output directory to something'
-               ' local or turn off the --removeWorkingDir flag')
+               ' local or turn off the --save_working_dir flag')
 else:
     c['removeWorkingDir'] = True
     c['workingDirectory'] = os.path.join('/scratch', "working")
