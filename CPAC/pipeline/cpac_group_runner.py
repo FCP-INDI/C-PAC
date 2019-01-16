@@ -952,24 +952,19 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                 else:
                     series = "repeated_measures_multiple_series"
                     if 'session' in output_df:
-                        for ses_df_tuple in output_df.groupby('session'):
+                        for ses_df_tuple in new_pheno_df.groupby('session'):
                             session = 'ses-{0}'.format(ses_df_tuple[0])
                             ses_df = ses_df_tuple[1]
-                            newer_ses_pheno_df = \
-                                pd.merge(new_pheno_df, ses_df, how="inner",
-                                         on=["participant_id"])
+
                             # send it in
                             analysis_dict[(model_name, group_config_file, resource_id,
-                                           strat_info, session, series)] = newer_ses_pheno_df
+                                           strat_info, session, series)] = new_pheno_df
                     else:
                         # default a session
                         session = 'ses-1'
-                        newer_ses_pheno_df = pd.merge(new_pheno_df, series_df,
-                                                      how="inner",
-                                                      on=["participant_id"])
                         # send it in
                         analysis_dict[(model_name, group_config_file, resource_id,
-                                       strat_info, session, series)] = newer_ses_pheno_df
+                                       strat_info, session, series)] = new_pheno_df
 
             else:
                 # this runs if there are repeated sessions but not
