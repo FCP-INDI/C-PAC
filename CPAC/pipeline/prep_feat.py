@@ -5,7 +5,6 @@ import glob
 from CPAC.utils.datasource import create_grp_analysis_dataflow
 from CPAC.utils.utils import prepare_gp_links
 from CPAC.pipeline.cpac_group_runner import load_config_yml
-from CPAC.group_analysis import create_group_analysis
 from CPAC.pipeline.cpac_group_runner import prep_feat_inputs
 from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
 
