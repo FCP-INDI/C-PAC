@@ -78,8 +78,25 @@ derivative_descriptions = {
     'reho_to_standard_zstd': 'Regional Homogeneity (z-score standardized)',
     'reho_to_standard_zstd_hist': 'Histogram of Regional Homogeneity (z-score standardized)',
 
-    'sca_roi_smooth_hist': 'Histogram of Seed-based Correlation Analysis (smoothed)',
     'sca_roi_smooth': 'Seed-based Correlation Analysis (smoothed)',
+    'sca_roi_smooth_hist': 'Histogram of Seed-based Correlation Analysis (smoothed)',
+    'sca_roi_files_to_standard': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_fisher_zstd': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_fisher_zstd_hist': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_hist': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth_fisher_zstd': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth_fisher_zstd_hist': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files_smooth': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files_smooth_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files_smooth': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files_smooth_hist': 'Seed-based Correlation Analysis',
+
     
     'skullstrip_vis': 'Visual Result of Skull Strip',
     'snr_hist': 'Histogram of Signal to Noise Ratio',
@@ -96,6 +113,19 @@ derivative_descriptions = {
     'vmhc_fisher_zstd_zstat_map_hist': 'Histogram of Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
     'vmhc_raw_score': 'Voxel-Mirrored Homotopic Connectivity',
     'vmhc_raw_score_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity',
+
+    'dr_tempreg_maps_files_to_standard': 'Spatial Regression',
+    'dr_tempreg_maps_files_to_standard_hist': 'Histogram of Spatial Regression',
+    'dr_tempreg_maps_files_to_standard_smooth': 'Spatial Regression (smoothed)',
+    'dr_tempreg_maps_files_to_standard_smooth_hist': 'Histogram of Spatial Regression (smoothed)',
+    'dr_tempreg_maps_files_to_standard_smooth_zstd': 'Spatial Regression (smoothed, z-score standardized)',
+    'dr_tempreg_maps_files_to_standard_smooth_zstd_hist': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
+    'dr_tempreg_maps_files_to_standard_zstd': 'Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_files_to_standard_zstd_hist': 'Histogram of Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard': 'Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard_hist': 'Histogram of Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard_smooth': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard_smooth_hist': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
 }
 
 
@@ -565,7 +595,7 @@ def feed_line_nav(image_name, anchor, menu_html_fd, content_html_fd):
     """
 
     image_readable = derivative_descriptions[image_name]
-
+        
     html_content_relative_name = os.path.join('qc_html', os.path.basename(content_html_fd.name))
     menu_html = """
                     <li><a href="{page}#{anchor}">{description}</a></li>
@@ -720,13 +750,13 @@ def get_map_and_measure(png_a):
     str_ = os.path.basename(png_a)
 
     if 'sca_tempreg' in png_a:
-        map_name = get_map_id(str_, 'maps_roi_')
+        map_name = get_map_id(str_, 'maps_')
 
     if 'sca_roi' in png_a:
-        map_name = get_map_id(str_, 'ROI_')
+        map_name = get_map_id(str_, 'roi_')
 
     if 'dr_tempreg' in png_a:
-        map_name = get_map_id(str_, 'temp_reg_map_')
+        map_name = get_map_id(str_, 'tempreg_maps_')
 
     if 'centrality' in png_a:
         map_name = get_map_id(str_, 'centrality_')
@@ -849,14 +879,14 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
             if idx == 0:
                 feed_line_nav(image_name_a_nav, id_a, menu_html_fd, content_html_fd)
 
-            feed_line_body(image_name_a, id_a, png_a, content_html_fd)
+            feed_line_body(image_name_a_nav, id_a, png_a, content_html_fd)
             feed_line_body(None, id_s, png_s, content_html_fd)
 
             if montage_id in histograms.keys():
                 if idx == 0:
                     feed_line_nav(image_name_h_nav, id_h, menu_html_fd, content_html_fd)
                 if png_h is not None:
-                    feed_line_body(image_name_h, id_h, png_h, content_html_fd)
+                    feed_line_body(image_name_h_nav, id_h, png_h, content_html_fd)
 
     if montage_id in dict_plot:
         id_a = str(montage_id)
@@ -986,12 +1016,11 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
             continue
         try:
             make_page(os.path.join(qc_path, qc_file), sub_output_dir,
-                      qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                      qc_hist_id)
+                        qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                        qc_hist_id)
         except IndexError as e:
             print('\n[!] Did not generate QC sub-page: {0}\n\nDetails:\n'
                   '{1}\n'.format(os.path.join(qc_path, qc_file), e))
-            pass
 
 
 def generate_qc_pages(qc_path, sub_output_dir,
@@ -1303,17 +1332,17 @@ def gen_histogram(measure_file, measure):
             measure = m_
             if 'sca_roi' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('ROI_')[1]
-                fname = 'sca_ROI_' + fname.split('_')[0]
+                fname = fname.split('roi_')[1]
+                fname = 'sca_roi_' + fname.split('_')[0]
                 measure = fname
             if 'sca_tempreg' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
                 fname = fname.split('z_maps_roi_')[1]
-                fname = 'sca_mult_regression_maps_ROI_' + fname.split('_')[0]
+                fname = 'sca_mult_regression_maps_roi_' + fname.split('_')[0]
                 measure = fname
             if 'dr_tempreg' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('temp_reg_map_')[1]
+                fname = fname.split('tempreg_maps_')[1]
                 fname = 'dual_regression_map_'+ fname.split('_')[0]
                 measure = fname
             if 'centrality' in measure.lower():
