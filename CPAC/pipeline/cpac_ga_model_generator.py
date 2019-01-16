@@ -39,18 +39,12 @@ def create_dir(dir_path, description):
             raise Exception(err)
 
 
-def create_merged_copefile(list_of_output_files, merged_outfile,model_path):
+def create_merged_copefile(list_of_output_files, merged_outfile, model_path):
 
     import subprocess
 
-    merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
-    merge_outfile = os.path.join(model_path, merge_outfile)
-
     merge_string = ["fslmerge", "-t", merged_outfile]
-
     merge_string = merge_string + list_of_output_files
-
-    merge_file = model_df["Filepath"].tolist(),merge_outfile
 
     try:
         retcode = subprocess.check_output(merge_string)
@@ -62,24 +56,6 @@ def create_merged_copefile(list_of_output_files, merged_outfile,model_path):
               % (merged_outfile, len(list_of_output_files), e)
         raise Exception(err)
 
-    # create merged group mask
-    merge_mask_outfile = model_name + "_" + resource_id + "_merged_mask.nii.gz"
-    merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
-    merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
-
-    if "Group Mask" in group_config_obj.mean_mask:
-        mask_for_means = merge_mask
-    else:
-        individual_masks_dir = os.path.join(model_path, "individual_masks")
-        create_dir(individual_masks_dir, "individual masks")
-        for unique_id, series_id, raw_filepath in zip(model_df["participant_id"],
-                model_df["Series"], model_df["Raw_Filepath"]):
-            mask_for_means_path = os.path.join(individual_masks_dir,
-                "%s_%s_%s_mask.nii.gz" % (unique_id, series_id, resource_id))
-            mask_for_means = create_merge_mask(raw_filepath, 
-                                               mask_for_means_path)
-        readme_flags.append("individual_masks")
-
     return merged_outfile
 
 
@@ -87,7 +63,7 @@ def create_merge_mask(merged_file, mask_outfile):
 
     import subprocess
 
-    mask_string = ["fslmaths", merged_file, "-abs", "-Tmin", "-bin", \
+    mask_string = ["fslmaths", merged_file, "-abs", "-Tmin", "-bin",
                    mask_outfile]
 
     try:
