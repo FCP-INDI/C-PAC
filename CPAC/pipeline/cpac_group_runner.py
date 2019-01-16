@@ -133,12 +133,20 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
 
     # this is just to keep the fsl feat config file derivatives entries
     # nice and lean
+    search_dirs = []
+    for derivative_name in derivatives:
+        for resource_name in resource_list:
+            if resource_name in derivative_name:
+                search_dirs.append(derivative_name)
+
+    '''
     search_dirs = [
         resource_name
         for resource_name in resource_list
         if any([resource_name in derivative_name
                 for derivative_name in derivatives])
     ]
+    '''
 
     # grab MeanFD_Jenkinson just in case
     search_dirs += ["power_params"]
@@ -336,12 +344,20 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
     # this is just to keep the fsl feat config file derivatives entries
     # nice and lean
+    search_dirs = []
+    for derivative_name in derivatives:
+        for resource_name in resource_list:
+            if resource_name in derivative_name:
+                search_dirs.append(derivative_name)
+
+    '''
     search_dirs = [
         resource_name
         for resource_name in resource_list
         if any([resource_name in derivative_name
                 for derivative_name in derivatives])
     ]
+    '''
 
     # grab MeanFD_Jenkinson just in case
     search_dirs += ["power_params"]
@@ -788,7 +804,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
         # also, 'derivatives' is a list of group-analysis eligible
         # derivatives (standard space, z-score standardized)
         for derivative in group_model.derivative_list:
-            if derivative in resource_id and resource_id in derivative:
+            if derivative in resource_id and resource_id in derivatives:
                 break
         else:
             continue

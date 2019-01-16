@@ -38,7 +38,7 @@ def create_dir(dir_path, description):
             raise Exception(err)
 
 
-def create_merged_copefile(list_of_output_files, merged_outfile, model_path):
+def create_merged_copefile(list_of_output_files, merged_outfile):
 
     import subprocess
 
@@ -921,7 +921,7 @@ def prep_group_analysis_workflow(model_df, model_name,
         print(err)
         
     # check the merged file's order
-    #check_merged_file(model_df["Filepath"], merge_file)
+    check_merged_file(model_df["Filepath"], merge_file)
 
     # we must demean the categorical regressors if the Intercept/Grand Mean
     # is included in the model, otherwise FLAME produces blank outputs
@@ -946,12 +946,10 @@ def prep_group_analysis_workflow(model_df, model_name,
         dmatrix = dmat_T.transpose()
         readme_flags.append("cat_demeaned")
 
-    # TODO: re-arrange dmatrix columns with column_names, but properly
     dmatrix_df = pd.DataFrame(dmatrix, index=model_df["participant_id"],
                               columns=dmatrix.design_info.column_names)
 
     cols = dmatrix_df.columns.tolist()
-    print 'cols: ', cols
 
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df - mainly for repeated measures, to make sure
