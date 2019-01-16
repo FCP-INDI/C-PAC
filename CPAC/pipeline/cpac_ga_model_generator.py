@@ -528,9 +528,9 @@ def prep_group_analysis_workflow(model_df, model_name,
     from CPAC.pipeline.cpac_group_runner import load_config_yml
     
     from CPAC.utils.create_flame_model_files import create_flame_model_files
-    from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv,write_blank_contrast_csv
+    from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv, \
+        write_blank_contrast_csv
 
-    #pipeline_config_obj = load_config_yml(pipeline_config_path)
     group_config_obj = load_config_yml(group_config_file)
 
     pipeline_ID = group_config_obj.pipelineName
@@ -542,15 +542,10 @@ def prep_group_analysis_workflow(model_df, model_name,
     #else:
     #    sublist_txt = group_config_obj.particpant_list
 
-
     # remove file names from preproc_strat
     filename = preproc_strat.split("/")[-1]
     preproc_strat = preproc_strat.replace('.nii', '').replace('.gz', '')
     preproc_strat = preproc_strat.lstrip("/").rstrip("/")
-
-    # get thresholds
-    z_threshold = float(group_config_obj.z_threshold[0])
-    p_threshold = float(group_config_obj.p_threshold[0])
 
     ftest_list = []
     readme_flags = []
@@ -591,10 +586,10 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     # create path for output directory
     model_dir = os.path.join(group_config_obj.output_dir,
-                           'cpac_group_analysis',
-                           'FSL_FEAT',
-                           'pipeline_{0}'.format(pipeline_ID),
-                           'group_model_{0}'.format(model_name))
+                             'cpac_group_analysis',
+                             'FSL_FEAT',
+                             'pipeline_{0}'.format(pipeline_ID),
+                             'group_model_{0}'.format(model_name))
 
     out_dir = os.path.join(model_dir,
                            resource_id,
@@ -633,22 +628,8 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     model_path = os.path.join(out_dir, 'model_files')
 
-    second_half_out = \
-        out_dir.split("group_analysis_results_%s" % pipeline_ID)[0]
-
-    # generate working directory for this output's group analysis run
-    #work_dir = os.path.join(group_config_obj.workingDirectory,
-    #                        'cpac_group_analysis', 'FSL_FEAT', 
-    #                        second_half_out.lstrip("/"))
-
-    #log_dir = os.path.join(group_config_obj.logDirectory,
-    #                       'cpac_group_analysis', 'FSL_FEAT',
-    #                       second_half_out.lstrip("/"))
-
     # create the actual directories
     create_dir(model_path, "group analysis output")
-    #create_dir(work_dir, "group analysis working")
-    #create_dir(log_dir, "group analysis logfile")
 
     # create new subject list based on which subjects are left after checking
     # for missing outputs
@@ -691,7 +672,35 @@ def prep_group_analysis_workflow(model_df, model_name,
 
     # create 4D merged copefile, in the correct order, identical to design
     # matrix
-    
+    merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
+    merge_outfile = os.path.join(model_path, merge_outfile)
+
+    merge_file = create_merged_copefile(model_df["Filepath"].tolist(),
+                                        merge_outfile)
+
+    # create merged group mask
+    merge_mask_outfile = '_'.join([model_name, resource_id,
+                                   "merged_mask.nii.gz"])
+    merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
+    merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+
+    if "Group Mask" in group_config_obj.mean_mask:
+        mask_for_means = merge_mask
+    else:
+        individual_masks_dir = os.path.join(model_path,
+                                            "individual_masks")
+        create_dir(individual_masks_dir, "individual masks")
+        for unique_id, series_id, raw_filepath in zip(
+                model_df["participant_id"],
+                model_df["Series"], model_df["Raw_Filepath"]):
+            mask_for_means_path = os.path.join(individual_masks_dir,
+                                               "%s_%s_%s_mask.nii.gz" % (
+                                               unique_id, series_id,
+                                               resource_id))
+            mask_for_means = create_merge_mask(raw_filepath,
+                                               mask_for_means_path)
+        readme_flags.append("individual_masks")
+
     # calculate measure means, and demean
     if "Measure_Mean" in design_formula:
         model_df = calculate_measure_mean_in_df(model_df, mask_for_means)
@@ -787,7 +796,6 @@ def prep_group_analysis_workflow(model_df, model_name,
         group_ev = group_config_obj.grouping_var
         
         if isinstance(group_ev, list) or "," in group_ev:
-
             grp_vector = []
 
             if "," in group_ev:
@@ -902,7 +910,6 @@ def prep_group_analysis_workflow(model_df, model_name,
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df - mainly for repeated measures, to make sure
     # participants_<ID> cols are at end for clarity for users
-    column_names = []
     dmat_cols = []
     dmat_id_cols = []
     for dmat_col in dmatrix_column_names:
@@ -974,7 +981,6 @@ def prep_group_analysis_workflow(model_df, model_name,
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df - mainly for repeated measures, to make sure
     # participants_<ID> cols are at end for clarity for users
-    column_names = []
     dmat_cols = []
     dmat_id_cols = []
     for dmat_col in cols:
@@ -1023,92 +1029,6 @@ def prep_group_analysis_workflow(model_df, model_name,
     print('-------------------------------------------------------------------')
 
     return dmat_csv_path, new_sub_file, contrast_out_path
-
-
-    # workflow time
-    #wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
-    #wf = pe.Workflow(name=wf_name)
-
-    #wf.base_dir = work_dir
-    #crash_dir = os.path.join(group_config_obj.crashLogDirectory,
-    #                         "group_analysis", model_name)
-
-    #wf.config['execution'] = {'hash_method': 'timestamp',
-    #                          'crashdump_dir': crash_dir} 
-
-    # gpa_wf
-    # Creates the actual group analysis workflow
-    #gpa_wf = create_group_analysis(fTest, "gp_analysis_%s" % wf_name)
-
-    #gpa_wf.inputs.inputspec.merged_file = merge_file
-    #gpa_wf.inputs.inputspec.merge_mask = merge_mask
-
-#    gpa_wf.inputs.inputspec.z_threshold = z_threshold
-#    gpa_wf.inputs.inputspec.p_threshold = p_threshold
-#    gpa_wf.inputs.inputspec.parameters = (group_config_obj.FSLDIR,
-#                                          'MNI152')
-
-#   gpa_wf.inputs.inputspec.mat_file = mat_file
-#   gpa_wf.inputs.inputspec.con_file = con_file
-#   gpa_wf.inputs.inputspec.grp_file = grp_file
-
-#  if fTest:
-#        gpa_wf.inputs.inputspec.fts_file = fts_file      
-
-    # ds
-    # Creates the datasink node for group analysis
-#    ds = pe.Node(nio.DataSink(), name='gpa_sink')
-     
-#    #     if c.mixedScanAnalysis == True:
-#    #         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
-              
-#    ds.inputs.base_directory = str(out_dir)
-#    ds.inputs.container = ''
-        
-#    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),
-#                                      (r'(?<=model_files)(.)*[/]','/'),
-#                                      (r'(?<=merged)(.)*[/]','/'),
-#                                      (r'(?<=stats/clusterMap)(.)*[/]','/'),
-#                                      (r'(?<=stats/unthreshold)(.)*[/]','/'),
-#                                      (r'(?<=stats/threshold)(.)*[/]','/'),
-#                                      (r'_cluster(.)*[/]',''),
-#                                      (r'_slicer(.)*[/]',''),
-#                                      (r'_overlay(.)*[/]','')]
-
-    # datasink connections
-#    wf.connect(gpa_wf, 'outputspec.merged',
-#               ds, 'merged')
-#    wf.connect(gpa_wf, 'outputspec.zstats',
-#               ds, 'stats.unthreshold')
-#    wf.connect(gpa_wf, 'outputspec.zfstats',
-#               ds,'stats.unthreshold.@01')
-#    wf.connect(gpa_wf, 'outputspec.fstats',
-#               ds,'stats.unthreshold.@02')
-#    wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf',
-#               ds, 'stats.threshold')
-#    wf.connect(gpa_wf, 'outputspec.cluster_index_zf',
-#               ds,'stats.clusterMap')
-#    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf',
-#               ds, 'stats.clusterMap.@01')
-#    wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf',
-#               ds, 'rendered')
-#    wf.connect(gpa_wf, 'outputspec.rendered_image_zf',
-#               ds, 'rendered.@01')
-#    wf.connect(gpa_wf, 'outputspec.cluster_threshold',
-#               ds,  'stats.threshold.@01')
-#    wf.connect(gpa_wf, 'outputspec.cluster_index',
-#               ds, 'stats.clusterMap.@02')
-#    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
-#               ds, 'stats.clusterMap.@03')
-#    wf.connect(gpa_wf, 'outputspec.overlay_threshold',
-#               ds, 'rendered.@02')
-#    wf.connect(gpa_wf, 'outputspec.rendered_image',
-#               ds, 'rendered.@03')
-
-    # Run the actual group analysis workflow
-#    wf.run()
-
-#    print "\n\nWorkflow finished for model %s\n\n" % wf_name
 
 
 def run(config, subject_infos, resource):

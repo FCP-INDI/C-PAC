@@ -5,8 +5,64 @@ import nipype.interfaces.utility as util
 from CPAC.easy_thresh import easy_thresh
 
 
+def get_operation(in_file):
+    """
+    Method to create operation string
+    for fslmaths
 
-def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
+    Parameters
+    ----------
+    in_file : file
+       input volume
+
+    Returns
+    -------
+    op_string : string
+        operation string for fslmaths
+
+    Raises
+    ------
+    IOError
+      If unable to load the input volume
+
+    """
+    try:
+        from nibabel import load
+        img = load(in_file)
+        hdr = img.get_header()
+        n_vol = int(hdr.get_data_shape()[3])
+        op_string = '-abs -bin -Tmean -mul %d' % (n_vol)
+        return op_string
+    except:
+        raise IOError("Unable to load the input nifti image")
+
+
+def label_zstat_files(zstat_list, con_file):
+    """Take in the z-stat file outputs of FSL FLAME and rename them after the
+    contrast labels of the contrasts provided."""
+
+    cons = []
+    new_zstat_list = []
+
+    with open(con_file, "r") as f:
+        con_file_lines = f.readlines()
+
+    for line in con_file_lines:
+        if "ContrastName" in line:
+            con_label = line.split(" ", 1)[1].replace(" ", "")
+            con_label = con_label.replace("\t", "").replace("\n", "")
+            cons.append(con_label)
+
+    for zstat_file, con_name in zip(zstat_list, cons):
+        # filename = os.path.basename(zstat_file)
+        new_name = "zstat_{0}".format(con_name)
+        # new_zstat_list.append(zstat_file.replace(filename, new_name))
+        new_zstat_list.append(new_name)
+
+    return new_zstat_list
+
+
+def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
     """
     FSL `FEAT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT>`_
     BASED Group Analysis
@@ -220,7 +276,6 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     merge_to_4d = pe.Node(interface=fsl.Merge(),
                           name='merge_to_4d')
     merge_to_4d.inputs.dimension = 't'
-    
 
     ### create analysis specific mask
     #-Tmin: min across time
@@ -295,7 +350,6 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                          rename_zstats, 'format_string')
 
     if ftest:
-        # calling easythresh for zfstats file
         grp_analysis.connect(inputnode, 'fts_file', fsl_flameo, 'f_con_file')
 
         easy_thresh_zf = easy_thresh('easy_thresh_zf')
@@ -364,58 +418,118 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     return grp_analysis
 
 
-def get_operation(in_file):
-    """
-    Method to create operation string 
-    for fslmaths
-    
-    Parameters
-    ----------
-    in_file : file
-       input volume
-    
-    Returns
-    -------
-    op_string : string
-        operation string for fslmaths
-    
-    Raises
-    ------
-    IOError
-      If unable to load the input volume
-    
-    """
-    try:
-        from nibabel import load
-        img = load(in_file)
-        hdr = img.get_header()
-        n_vol = int(hdr.get_data_shape()[3])
-        op_string = '-abs -bin -Tmean -mul %d' % (n_vol)
-        return op_string
-    except:
-        raise IOError("Unable to load the input nifti image")
+def run_feat_pipeline(group_config, resource_id, session_id, series_id):
 
+    import os
+    from CPAC.pipeline.cpac_ga_model_generator import create_dir
 
-def label_zstat_files(zstat_list, con_file):
-    """Take in the z-stat file outputs of FSL FLAME and rename them after the
-    contrast labels of the contrasts provided."""
+    # get thresholds
+    z_threshold = float(group_config.z_threshold[0])
+    p_threshold = float(group_config.p_threshold[0])
 
-    cons = []
-    new_zstat_list = []
+    # create path for output directory
+    model_dir = os.path.join(group_config.output_dir,
+                             'cpac_group_analysis',
+                             'FSL_FEAT',
+                             'pipeline_{0}'.format(group_config.pipeline_ID),
+                             'group_model_{0}'.format(group_config.model_name))
 
-    with open(con_file, "r") as f:
-        con_file_lines = f.readlines()
+    out_dir = os.path.join(model_dir,
+                           resource_id,
+                           session_id,
+                           series_id,
+                           preproc_strat)
 
-    for line in con_file_lines:
-        if "ContrastName" in line:
-            con_label = line.split(" ", 1)[1].replace(" ", "")
-            con_label = con_label.replace("\t", "").replace("\n", "")
-            cons.append(con_label)
+    # TODO: search the above dir, gather everything! base it off the group
+    # TODO: config only
 
-    for zstat_file, con_name in zip(zstat_list, cons):
-        #filename = os.path.basename(zstat_file)
-        new_name = "zstat_{0}".format(con_name)
-        #new_zstat_list.append(zstat_file.replace(filename, new_name))
-        new_zstat_list.append(new_name)
+    second_half_out = \
+        out_dir.split("group_analysis_results_%s" % pipeline_ID)[0]
 
-    return new_zstat_list
+    # generate working directory for this output's group analysis run
+    work_dir = os.path.join(group_config.workingDirectory,
+                            'cpac_group_analysis', 'FSL_FEAT',
+                            second_half_out.lstrip("/"))
+
+    log_dir = os.path.join(group_config.logDirectory,
+                           'cpac_group_analysis', 'FSL_FEAT',
+                           second_half_out.lstrip("/"))
+
+    create_dir(work_dir, "group analysis working")
+    create_dir(log_dir, "group analysis logfile")
+
+    # workflow time
+    wf_name = "{0}_{1}_{2}".format(resource_id, session_id, series_id)
+    wf = pe.Workflow(name=wf_name)
+
+    wf.base_dir = group_config.work_dir
+    crash_dir = os.path.join(group_config.crashLogDirectory,
+                             "group_analysis", group_config.model_name)
+
+    wf.config['execution'] = {'hash_method': 'timestamp',
+                              'crashdump_dir': crash_dir}
+
+    gpa_wf = create_fsl_flame_wf(fTest, "gp_analysis_{0}".format(wf_name))
+
+    gpa_wf.inputs.inputspec.merged_file = merge_file
+    gpa_wf.inputs.inputspec.merge_mask = merge_mask
+
+    gpa_wf.inputs.inputspec.z_threshold = z_threshold
+    gpa_wf.inputs.inputspec.p_threshold = p_threshold
+    gpa_wf.inputs.inputspec.parameters = (group_config.FSLDIR, 'MNI152')
+
+    gpa_wf.inputs.inputspec.mat_file = mat_file
+    gpa_wf.inputs.inputspec.con_file = con_file
+    gpa_wf.inputs.inputspec.grp_file = grp_file
+
+    if fTest:
+        gpa_wf.inputs.inputspec.fts_file = fts_file
+
+    ds = pe.Node(nio.DataSink(), name='gpa_sink')
+
+    ds.inputs.base_directory = str(out_dir)
+    ds.inputs.container = ''
+
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]', '/'),
+                                      (r'(?<=model_files)(.)*[/]', '/'),
+                                      (r'(?<=merged)(.)*[/]', '/'),
+                                      (r'(?<=stats/clusterMap)(.)*[/]', '/'),
+                                      (r'(?<=stats/unthreshold)(.)*[/]', '/'),
+                                      (r'(?<=stats/threshold)(.)*[/]', '/'),
+                                      (r'_cluster(.)*[/]', ''),
+                                      (r'_slicer(.)*[/]', ''),
+                                      (r'_overlay(.)*[/]', '')]
+
+    wf.connect(gpa_wf, 'outputspec.merged',
+               ds, 'merged')
+    wf.connect(gpa_wf, 'outputspec.zstats',
+               ds, 'stats.unthreshold')
+    wf.connect(gpa_wf, 'outputspec.zfstats',
+               ds, 'stats.unthreshold.@01')
+    wf.connect(gpa_wf, 'outputspec.fstats',
+               ds, 'stats.unthreshold.@02')
+    wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf',
+               ds, 'stats.threshold')
+    wf.connect(gpa_wf, 'outputspec.cluster_index_zf',
+               ds, 'stats.clusterMap')
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf',
+               ds, 'stats.clusterMap.@01')
+    wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf',
+               ds, 'rendered')
+    wf.connect(gpa_wf, 'outputspec.rendered_image_zf',
+               ds, 'rendered.@01')
+    wf.connect(gpa_wf, 'outputspec.cluster_threshold',
+               ds, 'stats.threshold.@01')
+    wf.connect(gpa_wf, 'outputspec.cluster_index',
+               ds, 'stats.clusterMap.@02')
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
+               ds, 'stats.clusterMap.@03')
+    wf.connect(gpa_wf, 'outputspec.overlay_threshold',
+               ds, 'rendered.@02')
+    wf.connect(gpa_wf, 'outputspec.rendered_image',
+               ds, 'rendered.@03')
+
+    # Run the actual group analysis workflow
+    wf.run()
+
+    print "\n\nWorkflow finished for model %s\n\n" % wf_name
