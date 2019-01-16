@@ -747,6 +747,7 @@ def prep_group_analysis_workflow(model_df, model_name,
             design_formula = design_formula + " + session"
             if "session" not in cat_list:
                 cat_list.append("session")
+
     if len(group_config_obj.series_list) > 0:
         design_formula = design_formula + " + Series"
         if "Series" not in cat_list:
@@ -894,7 +895,10 @@ def prep_group_analysis_workflow(model_df, model_name,
     # prepare for final stages
     dmatrix.design_info.column_names.append(model_df["Filepath"])
     dmatrix_column_names = dmatrix.design_info.column_names
-
+    
+    dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
+    contrast_out_path = os.path.join(out_dir, "contrast.csv")
+    
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df - mainly for repeated measures, to make sure
     # participants_<ID> cols are at end for clarity for users
@@ -909,10 +913,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     column_names = dmat_cols
     dmat_id_cols = sorted(dmat_id_cols)
     column_names += dmat_id_cols
-    
-    dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    contrast_out_path = os.path.join(out_dir, "contrast.csv")
-    
+
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n################## MODEL NOT GENERATED ##################" \
@@ -936,18 +937,6 @@ def prep_group_analysis_workflow(model_df, model_name,
                             preproc_strat, num_subjects, len(column_names), 
                             column_names, resource_id, design_formula)
         print(err)
-
-    # time for contrasts
-    if (group_config_obj.custom_contrasts == None) or (group_config_obj.contrasts == None):
-        # if no custom contrasts matrix CSV provided (i.e. the user
-        # specified contrasts in the GUI)
-        contrasts_columns = column_names
-        contrasts_columns = ["contrasts"] + contrasts_columns
-        if not group_config_obj.f_tests == None:
-            for i in group_config_obj.f_tests[1:len(group_config_obj.f_tests)-1]:
-                contrasts_columns.append('f_test_%d' % i) 
-    else:
-        pass
         
     # check the merged file's order
     #check_merged_file(model_df["Filepath"], merge_file)
@@ -955,7 +944,6 @@ def prep_group_analysis_workflow(model_df, model_name,
     # we must demean the categorical regressors if the Intercept/Grand Mean
     # is included in the model, otherwise FLAME produces blank outputs
     if "Intercept" in column_names:
-
         cat_indices = []
         col_name_indices = dmatrix.design_info.column_name_indexes
         for col_name in col_name_indices.keys():
@@ -974,25 +962,55 @@ def prep_group_analysis_workflow(model_df, model_name,
 
         # we can go back, but we won't be the same
         dmatrix = dmat_T.transpose()
-
         readme_flags.append("cat_demeaned")
 
     # TODO: re-arrange dmatrix columns with column_names, but properly
-    dmatrix_df = pd.DataFrame(dmatrix,index=model_df["participant_id"],
+    dmatrix_df = pd.DataFrame(dmatrix, index=model_df["participant_id"],
                               columns=dmatrix.design_info.column_names)
+
+    cols = dmatrix_df.columns.tolist()
+    print 'cols: ', cols
+
+    # make sure "column_names" is in the same order as the original EV column
+    # header ordering in model_df - mainly for repeated measures, to make sure
+    # participants_<ID> cols are at end for clarity for users
+    column_names = []
+    dmat_cols = []
+    dmat_id_cols = []
+    for dmat_col in cols:
+        if 'participant_' in dmat_col:
+            dmat_id_cols.append(dmat_col)
+        else:
+            dmat_cols.append(dmat_col)
+    column_names = dmat_cols
+    dmat_id_cols = sorted(dmat_id_cols)
+    column_names += dmat_id_cols
+
+    dmatrix_df = dmatrix_df[column_names]
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"],
                             column_names, dmat_csv_path)
     
+    # time for contrasts
+    if (group_config_obj.custom_contrasts == None) or (group_config_obj.contrasts == None):
+        # if no custom contrasts matrix CSV provided (i.e. the user
+        # specified contrasts in the GUI)
+        contrasts_columns = column_names
+        if group_config_obj.f_tests:
+            for i in group_config_obj.f_tests[1:len(group_config_obj.f_tests)-1]:
+                contrasts_columns.append('f_test_{0}'.format(i)) 
+    else:
+        pass
+
     contrast_out_path = os.path.join(model_dir, "contrasts.csv")
 
     with open(contrast_out_path, "w") as f:
         f.write('Contrasts')
-        for col in dmatrix.design_info.column_names:
+        for col in contrasts_columns:
             f.write(',{0}'.format(col))
         f.write('\ncontrast_1')
-        for col in dmatrix.design_info.column_names:
+        for col in contrasts_columns:
             f.write(',0')
 
     msg = 'Model successfully generated for..\nDerivative: {0}\nSession: {1}' \
