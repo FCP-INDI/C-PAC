@@ -685,16 +685,11 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     return pheno_df, dropped_parts
 
 
-def prep_feat_inputs(group_config_file, pipeline_output_folder):
+def prep_feat_inputs(group_config_file):
     
     # Preps group analysis run
 
-    # config_file: filepath to the main CPAC pipeline configuration YAML
-    #              (not the group analysis config YAML)
-    # pipeline_output_folder: filepath to the CPAC pipeline individual-level
-    #                   analysis output directory
-    #                   example:
-    #                     /home/cpac_run_1/output/pipeline_040_ANTS
+    # config_file: filepath to the C-PAC group-level config file
     
     import os
     import pandas as pd
@@ -712,6 +707,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     derivatives = derivatives + list(keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][keys['Values'] == 'z-stat']['Resource'])
 
     group_model = load_config_yml(group_config_file)
+    pipeline_dir = group_model.pipeline_dir
 
     #   - create participant list
     #   - get output measure list
@@ -732,7 +728,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                                         "group-level analysis participant "
                                         "list")
     else:
-        inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+        inclusion_list = [x for x in os.listdir(pipeline_dir) if os.path.isdir(x)]
 
     output_measure_list = group_model.derivative_list
 
@@ -761,7 +757,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     # - each dataframe will contain output filepaths and their associated
     #   information, and each dataframe will include ALL SERIES/SCANS
     # - the dataframes will be pruned for each model LATER
-    output_df_dict = gather_outputs(pipeline_output_folder,
+    output_df_dict = gather_outputs(pipeline_dir,
                                     output_measure_list,
                                     inclusion_list,
                                     get_motion,
@@ -827,7 +823,7 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
                                             "participant list")
             output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
         else:
-            inclusion_list = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
+            inclusion_list = [x for x in os.listdir(pipeline_dir) if os.path.isdir(x)]
             output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
 
         new_pheno_df = pheno_df.copy()
@@ -1074,9 +1070,43 @@ def prep_feat_inputs(group_config_file, pipeline_output_folder):
     return analysis_dict
 
 
-def run_feat(group_config_file, pipeline_output_folder=None):
+def build_feat_models(group_config_file):
 
+    from CPAC.pipeline.cpac_ga_model_generator import build_feat_model
+
+    analysis_dict = prep_feat_inputs(group_config_file)
+
+    for unique_resource_id in analysis_dict.keys():
+        # unique_resource_id is a 6-long tuple:
+        #    ( model name, group model config file, output measure name,
+        #          preprocessing strategy string, session_id,
+        #          series_id or "repeated_measures" )
+
+        model_name = unique_resource_id[0]
+        group_config_file = unique_resource_id[1]
+        resource_id = unique_resource_id[2]
+        preproc_strat = unique_resource_id[3]
+        session = unique_resource_id[4]
+        series = unique_resource_id[5]
+        model_df = analysis_dict[unique_resource_id]
+
+        dmat_csv_path, new_sub_file, empty_csv = build_feat_model(model_df,
+                                                                  model_name,
+                                                                  group_config_file,
+                                                                  resource_id,
+                                                                  preproc_strat,
+                                                                  session,
+                                                                  series)
+
+    return dmat_csv_path, new_sub_file, empty_csv
+
+
+def run_feat(group_config_file):
+
+    import os
+    import pandas as pd
     from multiprocessing import Process
+    from CPAC.utils.create_flame_model_files import create_flame_model_files
 
     # let's get the show on the road
     procss = []
@@ -1084,14 +1114,91 @@ def run_feat(group_config_file, pipeline_output_folder=None):
     # get group pipeline config loaded
     c = load_config_yml(group_config_file)
 
-    if not pipeline_output_folder:
-        import os
-        pipeline_output_folder = os.path.join(c.outputDirectory,
-                                              'pipeline_{0}'.format(c.pipelineName))
+    pipeline_dir = c.pipeline_dir
+    model_name = c.model_name
+    out_dir = c.output_dir
 
-    # create the analysis DF dictionary
-    analysis_dict = prep_feat_inputs(group_config_file)
+    pipeline_name = pipeline_dir.rstrip('/').split('/')[-1]
 
+    # TODO: parse output directory (not pipeline output directory) and gather the models
+    # TODO: then, iterative over them and kick off the actual workflow!
+    # TODO: remember to check for a contrast file path, and a filled contrast file!
+
+    model_dir = os.path.join(out_dir,
+                             'cpac_group_analysis',
+                             'FSL_FEAT',
+                             '{0}'.format(pipeline_name),
+                             'group_model_{0}'.format(model_name))
+
+    # TODO: more checking of this file
+    custom_contrasts_csv = os.path.join(model_dir, 'contrasts.csv')
+
+    models = {}
+    for root, dirs, files in os.walk(model_dir):
+        for filename in files:
+            filepath = os.path.join(root, filename)
+            second_half = filepath.split(model_dir)[1].split('/')
+            second_half.remove('')
+
+            try:
+                id_tuple = (second_half[0], second_half[1], second_half[2], 
+                            second_half[3])
+                print id_tuple
+            except IndexError:
+                # not a file we are interested in
+                continue
+
+            if id_tuple not in models.keys():
+                models[id_tuple] = {}
+
+            if 'group_sublist' in filepath:
+                models[id_tuple]['group_sublist'] = filepath
+            elif 'design_matrix' in filepath:
+                models[id_tuple]['design_matrix'] = filepath
+                models[id_tuple]['dir_path'] = filepath.replace('design_matrix.csv', '')
+            elif 'groups' in filepath:
+                models[id_tuple]['group_vector'] = filepath
+            elif 'merged_mask' in filepath:
+                models[id_tuple]['merged_mask'] = filepath
+            elif 'merged' in filepath:
+                models[id_tuple]['merged'] = filepath
+
+    for id_tuple in models.keys():
+        design_matrix = pd.read_csv(models[id_tuple]['design_matrix'])
+        design_matrix = design_matrix.drop(labels='participant_id', axis=1)
+
+        grp_vector = load_text_file(models[id_tuple]['group_vector'],
+                                    'group vector file')
+  
+        input_files_dir = os.path.join(models[id_tuple]['dir_path'], 
+                                       'flame_input_files')
+
+        mat, grp, con, fts = create_flame_model_files(design_matrix, 
+                                                      design_matrix.columns, 
+                                                      None, None,  
+                                                      custom_contrasts_csv, 
+                                                      None, c.group_sep, 
+                                                      grp_vector, 
+                                                      c.coding_scheme, 
+                                                      model_name,
+                                                      id_tuple[0], 
+                                                      input_files_dir)
+
+        if not con:
+            msg = '\n\n################## MODEL NOT BEING INCLUDED ##################' \
+                  '\n\n[!] C-PAC says: There is a mismatch between the design '\
+                  'matrix and contrasts matrix for this model:\n\n' \
+                  'Derivative: {0}\nSession: {1}\nScan: {2}\nPreprocessing ' \
+                  'strategy:\n    {3}\n\nThe model is not proceeding into the '\
+                  'FSL-FEAT FLAME run.\n\n'\
+                  '#########################################################' \
+                  '\n'.format(id_tuple[0], id_tuple[1], id_tuple[2], id_tuple[3])
+            print msg
+            continue
+            
+
+    ''' all below has changed '''
+    '''
     for unique_resource_id in analysis_dict.keys():
         # unique_resource_id is a 5-long tuple:
         #    ( model name, group model config file, output measure name,
@@ -1102,7 +1209,7 @@ def run_feat(group_config_file, pipeline_output_folder=None):
         group_config_file = unique_resource_id[1]
         resource_id = unique_resource_id[2]
         preproc_strat = unique_resource_id[3]
-        series_or_repeated = unique_resource_id[4]
+        series = unique_resource_id[4]
 
         model_df = analysis_dict[unique_resource_id]
 
@@ -1114,7 +1221,7 @@ def run_feat(group_config_file, pipeline_output_folder=None):
                                   args=(model_df, model_name,
                                         group_config_file, resource_id,
                                         preproc_strat,
-                                        series_or_repeated)))
+                                        series)))
         else:
             print "\n\n[!] CPAC says: Group-level analysis has not yet " \
                   "been implemented to handle runs on a cluster or " \
@@ -1126,8 +1233,7 @@ def run_feat(group_config_file, pipeline_output_folder=None):
                   "announcements.\n\n"
 
     manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
-
-
+    '''
 
 
 def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,

@@ -136,11 +136,17 @@ def feat():
 
 
 @feat.command()
-@click.argument('pipe_config')
-@click.option('--pipe_output_dir', default=None)
-def run(pipe_config, pipe_output_dir=None):
-    import CPAC.pipeline.cpac_group_runner as cpac_group_runner
-    cpac_group_runner.run_feat(pipe_config, pipe_output_dir)
+@click.argument('group_config')
+def build_models(group_config):
+    import CPAC.pipeline.cpac_group_runner as cgr
+    cgr.build_feat_models(group_config)
+
+
+@feat.command()
+@click.argument('group_config')
+def run(group_config):
+    import CPAC.pipeline.cpac_group_runner as cgr
+    cgr.run_feat(group_config)
 
 
 @feat.group()

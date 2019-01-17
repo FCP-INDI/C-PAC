@@ -420,6 +420,16 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
 
 def run_feat_pipeline(group_config, resource_id, session_id, series_id):
 
+    '''
+    needed:
+      - z thresh, p thresh
+      - out dir
+      - work, crash, log etc.
+      - 
+
+
+    '''
+
     import os
     from CPAC.pipeline.cpac_ga_model_generator import create_dir
 

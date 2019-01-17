@@ -482,10 +482,8 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
     return contrasts_vectors
 
 
-def prep_group_analysis_workflow(model_df, model_name,
-                                 group_config_file, resource_id,
-                                 preproc_strat, session_id,
-                                 series_or_repeated_label):
+def build_feat_model(model_df, model_name, group_config_file, resource_id,
+                     preproc_strat, session_id, series_or_repeated_label):
     
     #
     # this function runs once per derivative type and preproc strat combo
@@ -502,13 +500,12 @@ def prep_group_analysis_workflow(model_df, model_name,
     import nipype.interfaces.io as nio
     from CPAC.pipeline.cpac_group_runner import load_config_yml
     
-    from CPAC.utils.create_flame_model_files import create_flame_model_files
     from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv, \
         write_blank_contrast_csv
 
     group_config_obj = load_config_yml(group_config_file)
 
-    pipeline_ID = group_config_obj.pipelineName
+    pipeline_ID = group_config_obj.pipeline_name
     #sublist_txt = group_config_obj.participant_list
 
     #if sublist_txt == None:
@@ -968,6 +965,7 @@ def prep_group_analysis_workflow(model_df, model_name,
     dmatrix_df = dmatrix_df[column_names]
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
+
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"],
                             column_names, dmat_csv_path)
     
@@ -992,6 +990,11 @@ def prep_group_analysis_workflow(model_df, model_name,
         for col in contrasts_columns:
             f.write(',0')
 
+    groups_out_path = os.path.join(model_path, 'groups.txt')
+    with open(groups_out_path, 'w') as f:
+        for val in grp_vector:
+            f.write('{0}\n'.format(val))
+
     msg = 'Model successfully generated for..\nDerivative: {0}\nSession: {1}' \
           '\nScan: {2}\nPreprocessing strategy:\n    {3}\n\nModel directory:' \
           '\n{4}\n\nContrasts template CSV:\n{5}' \
@@ -1002,19 +1005,5 @@ def prep_group_analysis_workflow(model_df, model_name,
     print('-------------------------------------------------------------------')
 
     return dmat_csv_path, new_sub_file, contrast_out_path
-
-
-def run(config, subject_infos, resource):
-    import commands
-    commands.getoutput('source ~/.bashrc')
-    import os
-    import pickle
-    import yaml
-    
-    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
-    
-    prep_group_analysis_workflow(c, pickle.load(open(resource, 'r')),
-                                 pickle.load(open(subject_infos, 'r')))
-
 
 
