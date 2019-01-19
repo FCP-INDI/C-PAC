@@ -418,8 +418,9 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
     return grp_analysis
 
 
-def run_feat_pipeline(group_config, resource_id, session_id, series_id):
-
+def run_feat_pipeline(group_config, merge_file, merge_mask, f_test, 
+                      mat_file, con_file, grp_file, out_dir, work_dir, log_dir, 
+                      model_name, fts_file=None):
     '''
     needed:
       - z thresh, p thresh
@@ -430,56 +431,22 @@ def run_feat_pipeline(group_config, resource_id, session_id, series_id):
 
     '''
 
-    import os
-    from CPAC.pipeline.cpac_ga_model_generator import create_dir
+    import nipype.interfaces.io as nio
 
     # get thresholds
     z_threshold = float(group_config.z_threshold[0])
     p_threshold = float(group_config.p_threshold[0])
 
-    # create path for output directory
-    model_dir = os.path.join(group_config.output_dir,
-                             'cpac_group_analysis',
-                             'FSL_FEAT',
-                             'pipeline_{0}'.format(group_config.pipeline_ID),
-                             'group_model_{0}'.format(group_config.model_name))
-
-    out_dir = os.path.join(model_dir,
-                           resource_id,
-                           session_id,
-                           series_id,
-                           preproc_strat)
-
-    # TODO: search the above dir, gather everything! base it off the group
-    # TODO: config only
-
-    second_half_out = \
-        out_dir.split("group_analysis_results_%s" % pipeline_ID)[0]
-
-    # generate working directory for this output's group analysis run
-    work_dir = os.path.join(group_config.workingDirectory,
-                            'cpac_group_analysis', 'FSL_FEAT',
-                            second_half_out.lstrip("/"))
-
-    log_dir = os.path.join(group_config.logDirectory,
-                           'cpac_group_analysis', 'FSL_FEAT',
-                           second_half_out.lstrip("/"))
-
-    create_dir(work_dir, "group analysis working")
-    create_dir(log_dir, "group analysis logfile")
-
     # workflow time
-    wf_name = "{0}_{1}_{2}".format(resource_id, session_id, series_id)
+    wf_name = "fsl-feat_".format(model_name)
     wf = pe.Workflow(name=wf_name)
 
-    wf.base_dir = group_config.work_dir
-    crash_dir = os.path.join(group_config.crashLogDirectory,
-                             "group_analysis", group_config.model_name)
+    wf.base_dir = work_dir
 
     wf.config['execution'] = {'hash_method': 'timestamp',
-                              'crashdump_dir': crash_dir}
+                              'crashdump_dir': log_dir}
 
-    gpa_wf = create_fsl_flame_wf(fTest, "gp_analysis_{0}".format(wf_name))
+    gpa_wf = create_fsl_flame_wf(f_test, "fsl-flame")
 
     gpa_wf.inputs.inputspec.merged_file = merge_file
     gpa_wf.inputs.inputspec.merge_mask = merge_mask
@@ -492,7 +459,7 @@ def run_feat_pipeline(group_config, resource_id, session_id, series_id):
     gpa_wf.inputs.inputspec.con_file = con_file
     gpa_wf.inputs.inputspec.grp_file = grp_file
 
-    if fTest:
+    if f_test:
         gpa_wf.inputs.inputspec.fts_file = fts_file
 
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
@@ -510,36 +477,24 @@ def run_feat_pipeline(group_config, resource_id, session_id, series_id):
                                       (r'_slicer(.)*[/]', ''),
                                       (r'_overlay(.)*[/]', '')]
 
-    wf.connect(gpa_wf, 'outputspec.merged',
-               ds, 'merged')
-    wf.connect(gpa_wf, 'outputspec.zstats',
-               ds, 'stats.unthreshold')
-    wf.connect(gpa_wf, 'outputspec.zfstats',
-               ds, 'stats.unthreshold.@01')
-    wf.connect(gpa_wf, 'outputspec.fstats',
-               ds, 'stats.unthreshold.@02')
-    wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf',
-               ds, 'stats.threshold')
-    wf.connect(gpa_wf, 'outputspec.cluster_index_zf',
-               ds, 'stats.clusterMap')
-    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf',
+    wf.connect(gpa_wf, 'outputspec.merged', ds, 'merged')
+    wf.connect(gpa_wf, 'outputspec.zstats', ds, 'stats.unthreshold')
+    wf.connect(gpa_wf, 'outputspec.zfstats', ds, 'stats.unthreshold.@01')
+    wf.connect(gpa_wf, 'outputspec.fstats', ds, 'stats.unthreshold.@02')
+    wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf', ds, 'stats.threshold')
+    wf.connect(gpa_wf, 'outputspec.cluster_index_zf', ds, 'stats.clusterMap')
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf', 
                ds, 'stats.clusterMap.@01')
-    wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf',
-               ds, 'rendered')
-    wf.connect(gpa_wf, 'outputspec.rendered_image_zf',
-               ds, 'rendered.@01')
-    wf.connect(gpa_wf, 'outputspec.cluster_threshold',
+    wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf', ds, 'rendered')
+    wf.connect(gpa_wf, 'outputspec.rendered_image_zf', ds, 'rendered.@01')
+    wf.connect(gpa_wf, 'outputspec.cluster_threshold', 
                ds, 'stats.threshold.@01')
-    wf.connect(gpa_wf, 'outputspec.cluster_index',
-               ds, 'stats.clusterMap.@02')
-    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
+    wf.connect(gpa_wf, 'outputspec.cluster_index', ds, 'stats.clusterMap.@02')
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt', 
                ds, 'stats.clusterMap.@03')
-    wf.connect(gpa_wf, 'outputspec.overlay_threshold',
-               ds, 'rendered.@02')
-    wf.connect(gpa_wf, 'outputspec.rendered_image',
-               ds, 'rendered.@03')
+    wf.connect(gpa_wf, 'outputspec.overlay_threshold', ds, 'rendered.@02')
+    wf.connect(gpa_wf, 'outputspec.rendered_image', ds, 'rendered.@03')
 
     # Run the actual group analysis workflow
     wf.run()
 
-    print "\n\nWorkflow finished for model %s\n\n" % wf_name

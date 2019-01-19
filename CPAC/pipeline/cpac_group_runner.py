@@ -1106,6 +1106,7 @@ def run_feat(group_config_file):
     import os
     import pandas as pd
     from multiprocessing import Process
+    from CPAC.pipeline.cpac_ga_model_generator import create_dir
     from CPAC.utils.create_flame_model_files import create_flame_model_files
 
     # let's get the show on the road
@@ -1119,10 +1120,6 @@ def run_feat(group_config_file):
     out_dir = c.output_dir
 
     pipeline_name = pipeline_dir.rstrip('/').split('/')[-1]
-
-    # TODO: parse output directory (not pipeline output directory) and gather the models
-    # TODO: then, iterative over them and kick off the actual workflow!
-    # TODO: remember to check for a contrast file path, and a filled contrast file!
 
     model_dir = os.path.join(out_dir,
                              'cpac_group_analysis',
@@ -1164,14 +1161,26 @@ def run_feat(group_config_file):
                 models[id_tuple]['merged'] = filepath
 
     for id_tuple in models.keys():
+
+        # generate working/log directory for this sub-model's group analysis run
+        work_dir = os.path.join(c.work_dir, 'work_dir', 
+                                models[id_tuple]['dir_path'].replace(out_dir, '').lstrip('/'))
+        log_dir = os.path.join(c.log_dir, 'log_dir', 
+                               models[id_tuple]['dir_path'].replace(out_dir, '').lstrip('/'))
+
+        model_out_dir = os.path.join(models[id_tuple]['dir_path'], 
+                                     'fsl-feat_results')
+        input_files_dir = os.path.join(models[id_tuple]['dir_path'], 
+                                       'flame_input_files')
+
+        create_dir(work_dir, "group analysis working")
+        create_dir(log_dir, "group analysis logfile")
+
         design_matrix = pd.read_csv(models[id_tuple]['design_matrix'])
         design_matrix = design_matrix.drop(labels='participant_id', axis=1)
 
         grp_vector = load_text_file(models[id_tuple]['group_vector'],
                                     'group vector file')
-  
-        input_files_dir = os.path.join(models[id_tuple]['dir_path'], 
-                                       'flame_input_files')
 
         mat, grp, con, fts = create_flame_model_files(design_matrix, 
                                                       design_matrix.columns, 
@@ -1183,9 +1192,14 @@ def run_feat(group_config_file):
                                                       model_name,
                                                       id_tuple[0], 
                                                       input_files_dir)
+        if fts:
+            f_test = True
+        else:
+            f_test = False
 
         if not con:
-            msg = '\n\n################## MODEL NOT BEING INCLUDED ##################' \
+            msg = '\n\n################## MODEL NOT BEING INCLUDED ###########'\
+                  '#######' \
                   '\n\n[!] C-PAC says: There is a mismatch between the design '\
                   'matrix and contrasts matrix for this model:\n\n' \
                   'Derivative: {0}\nSession: {1}\nScan: {2}\nPreprocessing ' \
@@ -1196,44 +1210,17 @@ def run_feat(group_config_file):
             print msg
             continue
             
+        # TODO: start kicking off the pipeline
 
-    ''' all below has changed '''
-    '''
-    for unique_resource_id in analysis_dict.keys():
-        # unique_resource_id is a 5-long tuple:
-        #    ( model name, group model config file, output measure name,
-        #          preprocessing strategy string,
-        #          series_id or "repeated_measures" )
+        from CPAC.group_analysis.group_analysis import run_feat_pipeline
 
-        model_name = unique_resource_id[0]
-        group_config_file = unique_resource_id[1]
-        resource_id = unique_resource_id[2]
-        preproc_strat = unique_resource_id[3]
-        series = unique_resource_id[4]
+        procss.append(Process(target=run_feat_pipeline,
+                              args=(c, models[id_tuple]['merged'],
+                                    models[id_tuple]['merged_mask'], f_test, 
+                                    mat, con, grp, out_dir, work_dir, log_dir, 
+                                    model_name, fts)))
 
-        model_df = analysis_dict[unique_resource_id]
-
-        if not c.runOnGrid:
-            from CPAC.pipeline.cpac_ga_model_generator import \
-            prep_group_analysis_workflow
-
-            procss.append(Process(target=prep_group_analysis_workflow,
-                                  args=(model_df, model_name,
-                                        group_config_file, resource_id,
-                                        preproc_strat,
-                                        series)))
-        else:
-            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
-                  "been implemented to handle runs on a cluster or " \
-                  "grid.\n\nPlease turn off 'Run CPAC On A Cluster/" \
-                  "Grid' in order to continue with group-level " \
-                  "analysis. This will submit the job to only one " \
-                  "node, however.\n\nWe will update users on when this " \
-                  "feature will be available through release note " \
-                  "announcements.\n\n"
-
-    manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
-    '''
+    manage_processes(procss, out_dir, c.num_models_at_once)
 
 
 def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,

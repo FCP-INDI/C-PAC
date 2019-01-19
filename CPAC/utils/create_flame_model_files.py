@@ -392,12 +392,6 @@ def create_flame_model_files(design_matrix, col_names, contrasts_vectors,
                              group_sep, grouping_vector, coding_scheme,
                              model_name, output_measure, output_dir):
 
-    mat_file = write_mat_file(design_matrix, output_dir, model_name,
-        col_names, output_measure)
-
-    grp_file = create_grp_file(design_matrix, grouping_vector, output_dir,
-        model_name)
-
     if contrasts_vectors:
         con_file = create_con_file(contrasts_vectors, contrast_names,
                                    col_names, model_name, output_measure,
@@ -413,6 +407,16 @@ def create_flame_model_files(design_matrix, col_names, contrasts_vectors,
         con_file, fts_file = create_con_ftst_file(custom_contrasts_csv,
             model_name, output_measure, output_dir, col_names, coding_scheme,
             group_sep)
+
+    if not con_file:
+        # don't write out the rest of the files if this didn't work out
+        return None, None, None, None
+
+    mat_file = write_mat_file(design_matrix, output_dir, model_name,
+        col_names, output_measure)
+
+    grp_file = create_grp_file(design_matrix, grouping_vector, output_dir,
+        model_name)
 
     return mat_file, grp_file, con_file, fts_file
 
