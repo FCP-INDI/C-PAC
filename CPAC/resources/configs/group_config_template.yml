@@ -13,14 +13,10 @@
 pipeline_dir: /path/to/output_dir
 
 
-# (Optional) Full path to a list of subjects to be included in the model.
-# This should be a text file with one subject per line.
+# (Optional) Full path to a list of participants to be included in the model.
+# This should be a text file with one participant ID per line.
 # If not provided, C-PAC will pull the participants present in your pipeline
 # output directory.
-#
-# Tip 1: A list in this format containing all subjects run through CPAC was generated along with the main CPAC subject list (see participant_list_group_analysis.txt).
-#
-# Tip 2: An easy way to manually create this file is to copy the subjects column from your Regressor/EV spreadsheet.
 participant_list: /path/to/subject/list.txt
 
 
@@ -28,15 +24,28 @@ participant_list: /path/to/subject/list.txt
 output_dir: /path/to/output/dir
 
 
+work_dir: /path/to/work/dir
+
+
+log_dir: /path/to/log/dir
+
+
+FSLDIR: FSLDIR
+
+
 # FSL-FEAT
 ##############################################################################
 
 # Run FSL FEAT group-level analysis.
-run_fsl_feat :  [0]
+run_fsl_feat :  [1]
 
 
 # How many statistical models to run in parallel. This number depends on computing resources.
-numGPAModelsAtOnce :  1
+num_models_at_once :  1
+
+
+# Specify a name for the new model.
+model_name: model_name_here
 
 
 # Phenotype file
@@ -132,10 +141,6 @@ f_tests: []
 # If you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead, and will use the f-tests described in this custom file only (ignoring those you have input in the f-tests field above).
 # If you wish to include f-tests, create a new column in your CSV file for each f-test named 'f_test_1', 'f_test_2', .. etc. Then, mark the contrasts you would like to include in each f-test with a 1, and mark the rest 0. Note that you must select at least two contrasts per f-test.
 custom_contrasts: None
-
-
-# Specify a name for the new model.
-model_name: model_name_here
 
 
 # FSL-Randomise
