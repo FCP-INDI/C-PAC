@@ -1152,7 +1152,7 @@ def run_feat(group_config_file):
                 models[id_tuple]['group_sublist'] = filepath
             elif 'design_matrix' in filepath:
                 models[id_tuple]['design_matrix'] = filepath
-                models[id_tuple]['dir_path'] = filepath.replace('design_matrix.csv', '')
+                models[id_tuple]['dir_path'] = filepath.replace('model_files/design_matrix.csv', '')
             elif 'groups' in filepath:
                 models[id_tuple]['group_vector'] = filepath
             elif 'merged_mask' in filepath:
@@ -1163,18 +1163,25 @@ def run_feat(group_config_file):
     for id_tuple in models.keys():
 
         # generate working/log directory for this sub-model's group analysis run
-        work_dir = os.path.join(c.work_dir, 'work_dir', 
+        work_dir = os.path.join(c.work_dir,
                                 models[id_tuple]['dir_path'].replace(out_dir, '').lstrip('/'))
-        log_dir = os.path.join(c.log_dir, 'log_dir', 
+        work_dir = work_dir.replace('cpac_group_analysis', 'cpac_group_analysis_workdir')
+        work_dir = work_dir.replace('model_files/', '')
+        log_dir = os.path.join(c.log_dir,
                                models[id_tuple]['dir_path'].replace(out_dir, '').lstrip('/'))
+        log_dir = log_dir.replace('cpac_group_analysis', 'cpac_group_analysis_logdir')
+        log_dir = log_dir.replace('model_files/', '')
 
         model_out_dir = os.path.join(models[id_tuple]['dir_path'], 
                                      'fsl-feat_results')
+        model_out_dir = model_out_dir.replace('model_files/', '')
         input_files_dir = os.path.join(models[id_tuple]['dir_path'], 
                                        'flame_input_files')
 
         create_dir(work_dir, "group analysis working")
         create_dir(log_dir, "group analysis logfile")
+        create_dir(input_files_dir, "FSL-FEAT FLAME tool input files")
+        create_dir(model_out_dir, "FSL-FEAT output files")
 
         design_matrix = pd.read_csv(models[id_tuple]['design_matrix'])
         design_matrix = design_matrix.drop(labels='participant_id', axis=1)
@@ -1217,8 +1224,8 @@ def run_feat(group_config_file):
         procss.append(Process(target=run_feat_pipeline,
                               args=(c, models[id_tuple]['merged'],
                                     models[id_tuple]['merged_mask'], f_test, 
-                                    mat, con, grp, out_dir, work_dir, log_dir, 
-                                    model_name, fts)))
+                                    mat, con, grp, model_out_dir, work_dir, 
+                                    log_dir, model_name, fts)))
 
     manage_processes(procss, out_dir, c.num_models_at_once)
 
