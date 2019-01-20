@@ -19,7 +19,13 @@ class ModelConfig(wx.Frame):
             size=(900, 650))
 
         default_gpa_settings = {}
+        default_gpa_settings['pipeline_dir'] = ''
         default_gpa_settings['participant_list'] = 'None'
+        default_gpa_settings['output_dir'] = ''
+        default_gpa_settings['work_dir'] = ''
+        default_gpa_settings['log_dir'] = ''
+        default_gpa_settings['FSLDIR'] = 'FSLDIR'
+        default_gpa_settings['num_models_at_once'] = 1
         default_gpa_settings['pheno_file'] = ''
         default_gpa_settings['participant_id_label'] = ''
         default_gpa_settings['ev_selections'] = {'categorical': [''],
@@ -58,6 +64,14 @@ class ModelConfig(wx.Frame):
                                                " FSL FEAT Group-Level "
                                                "Analysis - Model Builder")
 
+        self.page.add(label="Pipeline Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name="pipeline_dir",
+                      type=dtype.STR,
+                      comment="Individual-level analysis pipeline output "
+                              "directory.",
+                      values=self.gpa_settings['pipeline_dir'])
+
         self.page.add(label="Participant List ",
                       control=control.COMBO_BOX,
                       name="participant_list",
@@ -67,6 +81,44 @@ class ModelConfig(wx.Frame):
                               "text file with each participant ID on its "
                               "own line.",
                       values=self.gpa_settings['participant_list'])
+
+        self.page.add(label="Output Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name="output_dir",
+                      type=dtype.STR,
+                      comment="Output directory for the results of FSL FEAT.",
+                      values=self.gpa_settings['output_dir'])
+
+        self.page.add(label="Working Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name="work_dir",
+                      type=dtype.STR,
+                      comment="Working directory for the intermediates of the "
+                              "FSL FEAT pipeline. Can be deleted afterwards.",
+                      values=self.gpa_settings['work_dir'])
+
+        self.page.add(label="Log Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name="pipeline_dir",
+                      type=dtype.STR,
+                      comment="Directory to write log information.",
+                      values=self.gpa_settings['log_dir'])
+
+        self.page.add(label="FSL Directory ",
+                      control=control.COMBO_BOX,
+                      name="FSLDIR",
+                      type=dtype.STR,
+                      comment="Directory of your FSL install. Can be kept as "
+                              "'FSLDIR' unless you want to use a custom FSL "
+                              "directory.",
+                      values=self.gpa_settings['FSLDIR'])
+
+        self.page.add(label="Number of Models to Run Simultaneously ",
+                      control=control.INT_CTRL,
+                      name='num_models_at_once',
+                      type=dtype.NUM,
+                      comment="This number depends on computing resources.",
+                      values=self.gpa_settings['num_models_at_once'])
 
         self.page.add(label="Phenotype/EV File ",
                       control=control.COMBO_BOX,
@@ -254,13 +306,13 @@ class ModelConfig(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, flag=wx.LEFT | wx.BOTTOM, border=5)
         
-        load = wx.Button(btnPanel, wx.ID_ADD, "Load Settings", (
+        load = wx.Button(btnPanel, wx.ID_ADD, "Load Config", (
             200, -1), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.load, id=wx.ID_ADD)
         hbox.Add(load, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
         
-        next = wx.Button(btnPanel, 3, "Next >", (200, -1), wx.DefaultSize, 0)
-        self.Bind(wx.EVT_BUTTON, self.load_next_stage, id=3)
+        next = wx.Button(btnPanel, 3, "Build Models", (200, -1), wx.DefaultSize, 0)
+        self.Bind(wx.EVT_BUTTON, self.build_models, id=3)
         hbox.Add(next, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
 
         # reminder: functions bound to buttons require arguments
@@ -569,16 +621,50 @@ class ModelConfig(wx.Frame):
 
                 ctrl.set_value(formula_string)
 
+    def build_models(self, event):
+        from CPAC.pipeline.cpac_group_runner import build_feat_models
+        from CPAC.utils.create_fsl_flame_preset import write_config_dct_to_yaml
+
+        for ctrl in self.page.get_ctrl_list():
+            name = ctrl.get_name()
+            val = str(ctrl.get_selection())
+            if val in substitution_map.keys():
+                val = substitution_map[val]
+            if isinstance(val, list):
+                new_val = []
+                for v in val:
+                    if v in substitution_map.keys():
+                        v = substitution_map[v]
+                    new_val.append(v)
+                val = new_val
+            elif isinstance(val, str):
+                if 'derivative' in name:
+                    val = val.replace('[', '').replace(']', '').replace(' ', '').replace("'", "")
+                    val = val.split(',')
+                    new_val = []
+                    for v in val:
+                        if v in substitution_map.keys():
+                            v = substitution_map[v]
+                        new_val.append(v)
+                    val = new_val
+                    
+            self.gpa_settings[name] = val
+
+        group_config_path = os.path.join(self.gpa_settings['output_dir'],
+                                         'group_config_{0}.yml'.format(self.gpa_settings['model_name']))
+        write_config_dct_to_yaml(self.gpa_settings, group_config_path)
+        build_feat_models(group_config_path)
+        self.Close()
+
     ''' button: NEXT '''
+    '''
     def load_next_stage(self, event):
 
         import patsy
         import pandas as pd
 
         for ctrl in self.page.get_ctrl_list():
-            
             name = ctrl.get_name()
-
             self.gpa_settings[name] = str(ctrl.get_selection())
 
         ### CHECK PHENOFILE if can open etc.
@@ -1191,7 +1277,6 @@ class ModelConfig(wx.Frame):
 
         column_names = dmatrix.design_info.column_names
 
-        '''
         subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
 
         sub_IDs = subFile.readlines()
@@ -1218,10 +1303,10 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
                 
             raise Exception
-        '''
 
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings,
                                        dmatrix, column_names)
 
         self.Close()
+        '''

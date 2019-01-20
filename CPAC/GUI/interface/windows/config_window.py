@@ -326,7 +326,7 @@ class MainFrame(wx.Frame):
                             value = [s_map.get(item)
                                          for item in val if s_map.get(item) != None]
                             if not value:
-                                value = [ str(item) for item in val]
+                                value = [str(item) for item in val]
 
                         elif ctrl.get_datatype() == 5 and \
                             ctrl.get_type() == 6:

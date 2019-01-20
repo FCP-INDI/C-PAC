@@ -412,7 +412,6 @@ class ListBox(wx.Frame):
         sel = self.listbox.GetSelection()
         
         if sel != -1:
-            
             # 'text' - name of pipeline config displayed in listbox
             text = str(self.listbox.GetString(sel))
             
@@ -421,7 +420,7 @@ class ListBox(wx.Frame):
             
             if os.path.exists(path):
                 # open the pipeline_config editor window
-                MainFrame(self, option ="edit", path=path, pipeline_id = text)
+                MainFrame(self, option="edit", path=path, pipeline_id=text)
             else:
                 print "Couldn't find the config file %s "%path
      
@@ -568,6 +567,10 @@ class ListBox(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
 
+        # if this is a group config file
+        if 'pipeline_dir' in c.keys():
+            return ret_val
+
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
         missingParams = []
@@ -599,9 +602,9 @@ class ListBox(wx.Frame):
                         missingParams.append(param)
                         if notify_centrality_misconfig:
                             notify_centrality_misconfig = False
-                            msg = 'At least one of your centrality treshold '\
+                            msg = 'At least one of your centrality threshold '\
                                   'options is mis-formatted as an integer. '\
-                                  'Fix this in the pipeline config edit window'
+                                  'Fix this in the pipeline config edit window.'
                             dlg = wx.MessageDialog(self, msg, 'Error!', wx.OK | wx.ICON_ERROR)
                             ret_val = -1
                             dlg.ShowModal()
@@ -675,7 +678,7 @@ class ListBox(wx.Frame):
                     print 'Error:\n%s\n\n' % e
                     raise Exception
                 if type(f_cfg) == dict:
-                    if not f_cfg.has_key('pipelineName'):
+                    if not f_cfg.has_key('pipelineName') and not f_cfg.has_key('pipeline_dir'):
                         err_msg = 'File is not a pipeline configuration '\
                                   'file. It might be a data configuration file.'
                         raise Exception(err_msg)
@@ -710,16 +713,30 @@ class ListBox(wx.Frame):
                                   'chosen the wrong file.\n'
                             print 'Error name: main_window_0001\n'
                             print 'Exception: %s\n\n' % e
+
+
                     # Valid pipeline name
-                    if c.pipelineName != None:
-                            if self.pipeline_map.get(c.pipelineName) == None:
+                    pipeline_name = None
+                    try:
+                        pipeline_name = c.pipelineName
+                    except AttributeError:
+                        pass
+                    try:
+                        pipeline_name = c.pipeline_dir
+                        pipeline_name = pipeline_name.split('/')[-1].replace('pipeline_', '')
+                        pipeline_name = 'group_config_{0}'.format(pipeline_name)
+                    except AttributeError:
+                        pass
+
+                    if pipeline_name != None:
+                            if self.pipeline_map.get(pipeline_name) == None:
                                 # this runs if you click 'Load' on the main
                                 # CPAC window, enter a path, and the pipeline
                                 # name attribute of the pipeline config file
                                 # you are loading does NOT already exist in
                                 # the listbox, i.e., the proper condition
-                                self.pipeline_map[str(c.pipelineName)] = path
-                                self.listbox.Append(str(c.pipelineName))
+                                self.pipeline_map[str(pipeline_name)] = path
+                                self.listbox.Append(str(pipeline_name))
                                 dlg.Destroy()
                                 break
                             else:
@@ -742,7 +759,7 @@ class ListBox(wx.Frame):
                                         ' new configuration file.\n\n' \
                                         'Pipeline configuration with' \
                                         ' conflicting name:\n%s' \
-                                         % c.pipelineName,
+                                         % pipeline_name,
                                                'Conflicting Pipeline Names',
                                            wx.OK | wx.ICON_ERROR)
                                 dlg3.ShowModal()
