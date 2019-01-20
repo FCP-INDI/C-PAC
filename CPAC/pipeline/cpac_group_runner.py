@@ -66,6 +66,16 @@ def load_text_file(filepath, label="file"):
     return lines_list
 
 
+def grab_pipeline_dir_subs(pipeline_dir):
+    import os
+    inclusion_list = []
+    pipeline_list = [x.split('_')[0] for x in os.listdir(pipeline_dir) if os.path.isdir(os.path.join(pipeline_dir, x))]
+    for sub_id in pipeline_list:
+        if sub_id not in inclusion_list:
+            inclusion_list.append(sub_id)
+    return inclusion_list
+
+
 def read_pheno_csv_into_df(pheno_csv, id_label=None):
     """Read the phenotypic file CSV or TSV into a Pandas DataFrame."""
 
@@ -716,19 +726,20 @@ def prep_feat_inputs(group_config_file):
     get_motion = False
     get_raw_score = False
 
-    if '.' in group_model.participant_list:
+    if not group_model.participant_list:
+        inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
+    elif '.' in group_model.participant_list:
         if not os.path.isfile(group_model.participant_list):
             raise Exception('\n[!] C-PAC says: Your participant '
                             'inclusion list is not a valid file!\n\n'
                             'File path: {0}'
                             '\n'.format(group_model.participant_list))
-
-    if os.path.isfile(group_model.participant_list):
-        inclusion_list = load_text_file(group_model.participant_list,
-                                        "group-level analysis participant "
-                                        "list")
+        else:
+            inclusion_list = load_text_file(group_model.participant_list,
+                                            "group-level analysis participant "
+                                            "list")
     else:
-        inclusion_list = [x for x in os.listdir(pipeline_dir) if os.path.isdir(x)]
+        inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
 
     output_measure_list = group_model.derivative_list
 
@@ -817,14 +828,17 @@ def prep_feat_inputs(group_config_file):
 
         # prune the output_df for this specific group model and output +
         # preprocessing strategy
-        if os.path.isfile(group_model.participant_list):
+        if not group_model.participant_list:
+            inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
+            output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
+        elif os.path.isfile(group_model.participant_list):
             inclusion_list = load_text_file(group_model.participant_list,
                                             "group-level analysis "
                                             "participant list")
             output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
         else:
-            inclusion_list = [x for x in os.listdir(pipeline_dir) if os.path.isdir(x)]
-            output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
+            raise Exception('\nCannot read group-level analysis participant ' \
+                            'list.\n')
 
         new_pheno_df = pheno_df.copy()
 
@@ -1159,6 +1173,12 @@ def run_feat(group_config_file):
                 models[id_tuple]['merged_mask'] = filepath
             elif 'merged' in filepath:
                 models[id_tuple]['merged'] = filepath
+
+    if len(models) == 0:
+        err = '\n\n[!] C-PAC says: Cannot find the FSL-FEAT model files.\n\n' \
+              'I am looking here:\n{0}\n\nIf that doesn\'t sound right, double'\
+              '-check your group configuration file.\n\n'.format(model_dir)
+        raise Exception(err)
 
     for id_tuple in models.keys():
 
@@ -1936,3 +1956,4 @@ def run(config_file, pipeline_output_folder):
     # Run FSL FEAT group analysis, if selected
     if 1 in c.run_fsl_feat:
         run_feat(config_file, pipeline_output_folder)
+

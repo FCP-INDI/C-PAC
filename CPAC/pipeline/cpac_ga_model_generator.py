@@ -505,7 +505,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
 
     group_config_obj = load_config_yml(group_config_file)
 
-    pipeline_ID = group_config_obj.pipeline_name
+    pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
     #sublist_txt = group_config_obj.participant_list
 
     #if sublist_txt == None:
@@ -560,7 +560,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     model_dir = os.path.join(group_config_obj.output_dir,
                              'cpac_group_analysis',
                              'FSL_FEAT',
-                             'pipeline_{0}'.format(pipeline_ID),
+                             '{0}'.format(pipeline_ID),
                              'group_model_{0}'.format(model_name))
 
     out_dir = os.path.join(model_dir,
@@ -980,15 +980,26 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     else:
         pass
 
+    try:
+        preset_contrast = group_config_obj.preset
+        preset = True
+    except AttributeError:
+        preset = False
+
     contrast_out_path = os.path.join(model_dir, "contrasts.csv")
 
-    with open(contrast_out_path, "w") as f:
-        f.write('Contrasts')
-        for col in contrasts_columns:
-            f.write(',{0}'.format(col))
-        f.write('\ncontrast_1')
-        for col in contrasts_columns:
-            f.write(',0')
+    if preset:
+        cons = pd.read_csv(group_config_obj.custom_contrasts)
+        with open(contrast_out_path, "w") as f:
+            cons.to_csv(f, index=False)
+    else:
+        with open(contrast_out_path, "w") as f:
+            f.write('Contrasts')
+            for col in contrasts_columns:
+                f.write(',{0}'.format(col))
+            f.write('\ncontrast_1')
+            for col in contrasts_columns:
+                f.write(',0')
 
     groups_out_path = os.path.join(model_path, 'groups.txt')
     with open(groups_out_path, 'w') as f:

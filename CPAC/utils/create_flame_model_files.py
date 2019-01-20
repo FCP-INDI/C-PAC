@@ -205,9 +205,8 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
     # of the design matrix and f-tests (if any)
     with open(con_file, "r") as f:
         evs = f.readline()
-
     evs = evs.rstrip('\r\n').split(',')
-
+    
     if evs[0].strip().lower() != "contrasts":
         print "Error: first cell in contrasts file should contain " \
               "'Contrasts' "
