@@ -1086,6 +1086,7 @@ def prep_feat_inputs(group_config_file):
 
 def build_feat_models(group_config_file):
 
+    import os
     from CPAC.pipeline.cpac_ga_model_generator import build_feat_model
 
     analysis_dict = prep_feat_inputs(group_config_file)
@@ -1112,7 +1113,10 @@ def build_feat_models(group_config_file):
                                                                   session,
                                                                   series)
 
-    return dmat_csv_path, new_sub_file, empty_csv
+    if os.path.isfile(empty_csv):
+        return 0
+    else:
+        return -1
 
 
 def run_feat(group_config_file):

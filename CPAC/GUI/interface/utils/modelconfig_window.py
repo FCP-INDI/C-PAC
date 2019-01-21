@@ -625,6 +625,14 @@ class ModelConfig(wx.Frame):
         from CPAC.pipeline.cpac_group_runner import build_feat_models
         from CPAC.utils.create_fsl_flame_preset import write_config_dct_to_yaml
 
+        dialog_msg = 'Building your FSL-FEAT models. Check the terminal ' \
+                     'window for details and progress.'
+        dialog_title = 'Building models..'
+        bld_dialog = wx.MessageDialog(self, dialog_msg, dialog_title,
+                                      wx.OK | wx.ICON_INFORMATION)
+        bld_dialog.ShowModal()
+        bld_dialog.Destroy()
+
         for ctrl in self.page.get_ctrl_list():
             name = ctrl.get_name()
             val = str(ctrl.get_selection())
@@ -653,8 +661,10 @@ class ModelConfig(wx.Frame):
         group_config_path = os.path.join(self.gpa_settings['output_dir'],
                                          'group_config_{0}.yml'.format(self.gpa_settings['model_name']))
         write_config_dct_to_yaml(self.gpa_settings, group_config_path)
-        build_feat_models(group_config_path)
-        self.Close()
+        retval = build_feat_models(group_config_path)
+
+        if retval == 0:
+            self.Close()
 
     ''' button: NEXT '''
     '''

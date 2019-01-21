@@ -13,7 +13,7 @@ from .centrality import CentralitySettings, Centrality
 from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
 from .timeseries import TimeSeries, ROITimeseries
-from .group_analysis import GroupAnalysis, GPASettings, BASCSettings
+from .group_analysis import GroupAnalysis, GeneralGA, GPASettings, BASCSettings
 from .mdmr import MDMRSettings
 from .isc import ISCSettings
 
@@ -31,4 +31,4 @@ __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_op
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
+           'GroupAnalysis', 'GeneralGA', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
