@@ -100,6 +100,11 @@ class GeneralGA(wx.ScrolledWindow):
                     gpa_settings[key] = default_gpa_settings[key]
             self.gpa_settings = gpa_settings
 
+        self.page.set_sizer()
+        parent.get_page_list().append(self)
+
+    def get_counter(self):
+            return self.counter
 
 class GPASettings(wx.ScrolledWindow):
     
@@ -314,8 +319,6 @@ class GPASettings(wx.ScrolledWindow):
                       size = (200,100),
                       combo_type = 8)
 
-        self.page.set_sizer()
-
         if 'group_sep' in self.gpa_settings.keys():
             for ctrl in self.page.get_ctrl_list():
                 name = ctrl.get_name()
@@ -360,8 +363,10 @@ class GPASettings(wx.ScrolledWindow):
 
     ''' button: LOAD PHENOTYPE FILE '''
     def populateEVs(self, event):
-
         # this runs when the user clicks 'Load Phenotype File'
+
+        import os
+
         if self.gpa_settings is None:
             self.gpa_settings = {}
 

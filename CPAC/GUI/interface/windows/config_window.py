@@ -178,10 +178,9 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
-        self.AddPage(page46, "General Settings", wx.ID_ANY)
+        self.AddSubPage(page46, "General Settings", wx.ID_ANY)
         self.AddSubPage(page47, "FSL FEAT Settings", wx.ID_ANY)
-        self.AddSubPage(page48, "PyBASC Settings",
-                        wx.ID_ANY)
+        self.AddSubPage(page48, "PyBASC Settings", wx.ID_ANY)
         self.AddSubPage(page49, "MDMR Settings", wx.ID_ANY)
         self.AddSubPage(page50, "ISC Settings", wx.ID_ANY)
 
@@ -266,30 +265,109 @@ class MainFrame(wx.Frame):
         if option == 'edit' or option == 'load':
             self.load()
 
-    def load(self):
+    def get_pheno_header(self, pheno_file_obj):
+        phenoHeaderString = pheno_file_obj.readline().rstrip('\r\n')
+        phenoHeaderString = phenoHeaderString.replace(" ", "_")
+        phenoHeaderString = phenoHeaderString.replace("/","_")
+        
+        if ',' in phenoHeaderString:
+            self.phenoHeaderItems = phenoHeaderString.split(',')
+            
+        
+        elif '\t' in phenoHeaderString:
+            self.phenoHeaderItems = phenoHeaderString.split('\t')
+            
+        
+        else:
+            self.phenoHeaderItems = [phenoHeaderString]
+        
+        if self.config_map['participant_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.config_map['participant_id_label'])
+        else:
+            print('Header labels found:\n{0}'.format(self.phenoHeaderItems))
+            err = 'Please enter the name of the participant ID column as ' \
+                  'it is labeled in the phenotype file.'
+            print(err)
+            errSubID = wx.MessageDialog(self, err,
+                                        'Blank/Incorrect Subject Header Input',
+                                        wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+            raise Exception
 
+    def load(self):
+        import os
         import yaml
+
         try:
             config_file_map = yaml.load(open(self.path, 'r'))
         except:
             raise Exception("Error importing file - %s , Make"
-                      " sure it is in correct yaml format")
+                            " sure it is in correct yaml format")
+        self.config_map = config_file_map
+
+        # repopulate the model setup checkbox grid, since this has to be
+        # done specially
+        if 'pheno_file' in config_file_map.keys():
+            phenoFile = open(os.path.abspath(config_file_map['pheno_file']))
+            self.get_pheno_header(phenoFile)
 
         for page in self.nb.get_page_list():
-
             ctrl_list = page.page.get_ctrl_list()
 
             for ctrl in ctrl_list:
-
                 name = ctrl.get_name()
-
                 val = config_file_map.get(str(name))
-
                 sample_list = ctrl.get_values()
-
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
+
+                if name == 'model_setup':
+                    # update the 'Model Setup' box and populate it with the 
+                    # EVs and their associated checkboxes for categorical 
+                    # and demean
+                    ctrl.set_value(self.phenoHeaderItems)
+                    ctrl.set_selection(config_file_map['ev_selections'])
+
                 if val:
+                    if ("list" in name) and (name != "participant_list"):
+                        mapped_vals = [s_map.get(item) for item in val if s_map.get(item) != None]
+                        if not mapped_vals:
+                            val = [str(item) for item in val]
+                        else:
+                            val = mapped_vals
+
+                        new_derlist = []
+                        for val in val:
+                            new_derlist.append(val)
+
+                        if len(new_derlist) > 0:
+                            ctrl.set_value(new_derlist)
+                        else:
+                            ctrl.set_value(None)
+                    elif name == 'z_threshold' or name == 'p_threshold':
+                        try:
+                            val = val[0]
+                            ctrl.set_value(val)
+                        except TypeError:
+                            # if the user has put it in as a float and not a list
+                            ctrl.set_value(str(val))  
+                    elif name == 'group_sep':
+                        val = s_map.get(val)
+                        ctrl.set_value(val)
+                    elif name == 'grouping_var':
+                        if isinstance(val, list) or "[" in val:
+                            grouping_var = ""
+                            for cov in val:
+                                grouping_var += "{0},".format(cov)
+                            grouping_var = grouping_var.rstrip(",")
+                        else:
+                            grouping_var = val
+
+                        ctrl.set_value(grouping_var)
+                    elif name != 'model_setup' and name != 'derivative_list':
+                        ctrl.set_value(val)
+
                     if isinstance(val, list):
                         if ctrl.get_datatype() == 8:
                             value = []
@@ -313,7 +391,6 @@ class MainFrame(wx.Frame):
                                      for i, x in enumerate(val) if x == True]
 
                         elif ctrl.get_datatype() == 4:
-
                             if 1 in val and 0 in val:
                                 val = [10]
                                 
@@ -335,7 +412,6 @@ class MainFrame(wx.Frame):
                                 value = [sample_list[v] for v in val]
 
                         elif ctrl.get_datatype() == 9:
-
                             value = val[0] # pass the dictionary straight up
                                 
                         else:
