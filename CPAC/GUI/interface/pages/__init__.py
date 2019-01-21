@@ -16,6 +16,7 @@ from .timeseries import TimeSeries, ROITimeseries
 from .group_analysis import GroupAnalysis, GeneralGA, GPASettings, BASCSettings
 from .mdmr import MDMRSettings
 from .isc import ISCSettings
+from .randomise import RandomiseSettings
 
 __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
            'AnatomicalPreprocessing', 'Segmentation', \
@@ -31,4 +32,7 @@ __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_op
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'GroupAnalysis', 'GeneralGA', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
+           'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', \
+           'BASCSettings','RandomiseSettings','Randomise']
+           'GroupAnalysis', 'GeneralGA', 'GPASettings', 'CWASSettings', \
+           'EPI_DistCorr', 'BASCSettings', 'RandomiseSettings', 'Randomise']

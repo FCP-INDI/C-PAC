@@ -16,7 +16,7 @@ from CPAC.GUI.interface.pages import (
     AfterWarping, AfterWarpingOptions,
     FilteringSettings,
     TimeSeries, EPI_DistCorr, ROITimeseries,
-    GroupAnalysis, GeneralGA, GPASettings, MDMRSettings, ISCSettings,
+    GroupAnalysis, GeneralGA, GPASettings, MDMRSettings, ISCSettings, RandomiseSettings,
     TimeSeriesOptions, BASCSettings,
     AROMA_ICA, AromaSettings
 )
@@ -126,10 +126,11 @@ class Mybook(wx.Treebook):
         page45 = GroupAnalysis(self)
         page46 = GeneralGA(self)
         page47 = GPASettings(self)
-        page48 = BASCSettings(self)
-        page49 = MDMRSettings(self)
-        page50 = ISCSettings(self)
-
+        page48 = RandomiseSettings(self)
+        page49 = BASCSettings(self)
+        page50 = MDMRSettings(self)
+        page51 = ISCSettings(self)
+        
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
@@ -180,9 +181,10 @@ class Mybook(wx.Treebook):
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
         self.AddSubPage(page46, "General Settings", wx.ID_ANY)
         self.AddSubPage(page47, "FSL FEAT Settings", wx.ID_ANY)
-        self.AddSubPage(page48, "PyBASC Settings", wx.ID_ANY)
-        self.AddSubPage(page49, "MDMR Settings", wx.ID_ANY)
-        self.AddSubPage(page50, "ISC Settings", wx.ID_ANY)
+        self.AddSubPage(page48, "FSL Randomise Settings", wx.ID_ANY)
+        self.AddSubPage(page49, "PyBASC Settings", wx.ID_ANY)
+        self.AddSubPage(page50, "MDMR Settings", wx.ID_ANY)
+        self.AddSubPage(page51, "ISC Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)

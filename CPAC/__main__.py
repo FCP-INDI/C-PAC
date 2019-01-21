@@ -277,7 +277,6 @@ def group_isc(pipeline_config):
 
     run_isc(pipeline_config)
 
-
 # Utilities
 @main.group()
 def utils():
