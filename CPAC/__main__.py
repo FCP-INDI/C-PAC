@@ -149,6 +149,13 @@ def run(group_config):
     cgr.run_feat(group_config)
 
 
+@feat.command()
+@click.argument('group_config')
+def randomise(group_config):
+    import CPAC.pipeline.cpac_group_runner as cgr
+    cgr.run_feat(group_config, feat=False)
+
+
 @feat.group()
 def load_preset():
     pass
