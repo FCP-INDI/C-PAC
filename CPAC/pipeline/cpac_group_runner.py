@@ -1119,7 +1119,7 @@ def build_feat_models(group_config_file):
         return -1
 
 
-def run_feat(group_config_file):
+def run_feat(group_config_file, feat=True):
 
     import os
     import pandas as pd
@@ -1243,15 +1243,23 @@ def run_feat(group_config_file):
             
         # TODO: start kicking off the pipeline
 
-        from CPAC.group_analysis.group_analysis import run_feat_pipeline
+        if feat:
+            from CPAC.group_analysis.group_analysis import run_feat_pipeline
+            procss.append(Process(target=run_feat_pipeline,
+                                  args=(c, models[id_tuple]['merged'],
+                                        models[id_tuple]['merged_mask'],
+                                        f_test, mat, con, grp, model_out_dir,
+                                        work_dir, log_dir, model_name, fts)))
+            manage_processes(procss, out_dir, c.num_models_at_once)
 
-        procss.append(Process(target=run_feat_pipeline,
-                              args=(c, models[id_tuple]['merged'],
-                                    models[id_tuple]['merged_mask'], f_test, 
-                                    mat, con, grp, model_out_dir, work_dir, 
-                                    log_dir, model_name, fts)))
-
-    manage_processes(procss, out_dir, c.num_models_at_once)
+        else:
+            from CPAC.randomise.randomise import prep_randomise_workflow
+            procss.append(Process(target=prep_randomise_workflow,
+                                  args=(c, models[id_tuple]['merged'],
+                                        models[id_tuple]['merged_mask'],
+                                        f_test, mat, con, grp, model_out_dir,
+                                        work_dir, log_dir, model_name, fts)))
+            manage_processes(procss, out_dir, c.num_models_at_once)
 
 
 def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,
@@ -1477,29 +1485,32 @@ def run_randomise(group_config_file):
 
     import os
     import yaml
-    from CPAC.randomise import prep_randomise_workflow,run
+    from CPAC.randomise.randomise import prep_randomise_workflow, run
 
-    group_config = os.path.abspath(group_config_file)
+    group_config_file = os.path.abspath(group_config_file)
 
-    with open(pipeline_config, "r") as f:
+    with open(group_config_file, "r") as f:
         groupconfig_dct = yaml.load(f)
 
     output_dir = groupconfig_dct["rand_outputDirectory"]
-    working_dir = pipeconfig_dct["rand_workingDirectory"]
-    crash_dir = pipeconfig_dct["rand_crashLogDirectory"]
+    working_dir = groupconfig_dct["rand_workingDirectory"]
+    crash_dir = groupconfig_dct["rand_crashLogDirectory"]
 
   
-    rand_wf = prep_randomise_workflow(c,merged_file=merged_file,mask_file=out_file,working_dir=working_dir,output_dir=output_dir,crash_dir=crash_dir)
-    workflow.connect(c.randomise_dmat,'local_path',rand_wf,'inputspec.design_matrix_file')
-    workflow.connect(c.randomise_contrast,'local_path',rand_wf,'inputspec.contrast_file')
+    rand_wf = prep_randomise_workflow(c,
+                                      merged_file=merged_file,
+                                      mask_file=out_file,
+                                      working_dir=working_dir,
+                                      output_dir=output_dir,
+                                      crash_dir=crash_dir)
+    rand_wf.connect(c.randomise_dmat, 'local_path', rand_wf, 'inputspec.design_matrix_file')
+    rand_wf.connect(c.randomise_contrast, 'local_path', rand_wf, 'inputspec.contrast_file')
     rand_wf.inputs.permutations = c.permutations
     rand_wf.inputs.demean = c.demean
     rand_wf.inputs.c_thresh = c.randomise_thresh
     rand_wf.inputs.tfce = c.tfce
         
     rand_wf.run(group_config_file)
-
-    
 
 
 def launch_PyBASC(pybasc_config):
