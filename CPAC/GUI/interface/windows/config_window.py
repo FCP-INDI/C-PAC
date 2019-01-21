@@ -16,7 +16,7 @@ from CPAC.GUI.interface.pages import (
     AfterWarping, AfterWarpingOptions,
     FilteringSettings,
     TimeSeries, EPI_DistCorr, ROITimeseries,
-    GroupAnalysis, GPASettings, MDMRSettings, ISCSettings,
+    GroupAnalysis, GeneralGA, GPASettings, MDMRSettings, ISCSettings,
     TimeSeriesOptions, BASCSettings,
     AROMA_ICA, AromaSettings
 )
@@ -124,10 +124,11 @@ class Mybook(wx.Treebook):
         page40 = AfterWarpingOptions(self)
 
         page45 = GroupAnalysis(self)
-        page46 = GPASettings(self)
-        page47 = BASCSettings(self)
-        page48 = MDMRSettings(self)
-        page49 = ISCSettings(self)
+        page46 = GeneralGA(self)
+        page47 = GPASettings(self)
+        page48 = BASCSettings(self)
+        page49 = MDMRSettings(self)
+        page50 = ISCSettings(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
@@ -177,11 +178,12 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
-        self.AddSubPage(page46, "FSL FEAT Settings", wx.ID_ANY)
-        self.AddSubPage(page47, "PyBASC Settings",
+        self.AddPage(page46, "General Settings", wx.ID_ANY)
+        self.AddSubPage(page47, "FSL FEAT Settings", wx.ID_ANY)
+        self.AddSubPage(page48, "PyBASC Settings",
                         wx.ID_ANY)
-        self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)
-        self.AddSubPage(page49, "ISC Settings", wx.ID_ANY)
+        self.AddSubPage(page49, "MDMR Settings", wx.ID_ANY)
+        self.AddSubPage(page50, "ISC Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -326,7 +328,7 @@ class MainFrame(wx.Frame):
                             value = [s_map.get(item)
                                          for item in val if s_map.get(item) != None]
                             if not value:
-                                value = [ str(item) for item in val]
+                                value = [str(item) for item in val]
 
                         elif ctrl.get_datatype() == 5 and \
                             ctrl.get_type() == 6:
