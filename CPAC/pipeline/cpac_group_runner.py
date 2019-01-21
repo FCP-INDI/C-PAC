@@ -1179,9 +1179,10 @@ def run_feat(group_config_file, feat=True):
                 models[id_tuple]['merged'] = filepath
 
     if len(models) == 0:
-        err = '\n\n[!] C-PAC says: Cannot find the FSL-FEAT model files.\n\n' \
-              'I am looking here:\n{0}\n\nIf that doesn\'t sound right, double'\
-              '-check your group configuration file.\n\n'.format(model_dir)
+        err = '\n\n[!] C-PAC says: Cannot find the FSL-FEAT/Randomise model ' \
+              'files.\n\nI am looking here:\n{0}\n\nIf that doesn\'t sound ' \
+              'right, double-check your group configuration file.\n\nDid you ' \
+              'build the model beforehand?\n\n'.format(model_dir)
         raise Exception(err)
 
     for id_tuple in models.keys():
@@ -1240,8 +1241,6 @@ def run_feat(group_config_file, feat=True):
                   '\n'.format(id_tuple[0], id_tuple[1], id_tuple[2], id_tuple[3])
             print msg
             continue
-            
-        # TODO: start kicking off the pipeline
 
         if feat:
             from CPAC.group_analysis.group_analysis import run_feat_pipeline
@@ -1250,16 +1249,17 @@ def run_feat(group_config_file, feat=True):
                                         models[id_tuple]['merged_mask'],
                                         f_test, mat, con, grp, model_out_dir,
                                         work_dir, log_dir, model_name, fts)))
-            manage_processes(procss, out_dir, c.num_models_at_once)
-
         else:
             from CPAC.randomise.randomise import prep_randomise_workflow
+            model_out_dir = model_out_dir.replace('feat_results', 
+                                                  'randomise_results')
             procss.append(Process(target=prep_randomise_workflow,
                                   args=(c, models[id_tuple]['merged'],
                                         models[id_tuple]['merged_mask'],
                                         f_test, mat, con, grp, model_out_dir,
                                         work_dir, log_dir, model_name, fts)))
-            manage_processes(procss, out_dir, c.num_models_at_once)
+
+    manage_processes(procss, out_dir, c.num_models_at_once)
 
 
 def run_cwas_group(pipeline_dir, out_dir, working_dir, crash_dir, roi_file,

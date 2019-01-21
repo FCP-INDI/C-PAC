@@ -24,31 +24,20 @@ def prep_randomise_workflow(c, merged_file, mask_file, f_test, mat_file,
 
     import nipype.interfaces.utility as util
     import nipype.interfaces.fsl as fsl
+    import nipype.interfaces.io as nio
 
     wf = pe.Workflow(name='randomise_workflow')
-    wf.base_dir = c.working_dir
-
-    outputspec = pe.Node(util.IdentityInterface(fields=['tstat_files',
-                                                        't_corrected_p_files',
-                                                        'index_file',
-                                                        'threshold_file',
-                                                        'localmax_txt_file',
-                                                        'localmax_vol_file',
-                                                        'max_file',
-                                                        'mean_file',
-                                                        'pval_file',
-                                                        'size_file']),
-                         name='outputspec')
+    wf.base_dir = c.work_dir
 
     randomise = pe.Node(interface=fsl.Randomise(),
                         name='fsl-randomise_{0}'.format(model_name))
     randomise.inputs.base_name = model_name
     randomise.inputs.in_file = merged_file
     randomise.inputs.mask = mask_file
-    randomise.inputs.num_perm = c.permutations
-    randomise.inputs.demean = c.demean
+    randomise.inputs.num_perm = c.randomise_permutation
+    randomise.inputs.demean = c.randomise_demean
     randomise.inputs.c_thresh = c.randomise_thresh
-    randomise.inputs.tfce = c.tfce
+    randomise.inputs.tfce = c.randomise_tfce
 
     randomise.inputs.design_mat = mat_file
     randomise.inputs.tcon = con_file
@@ -56,37 +45,31 @@ def prep_randomise_workflow(c, merged_file, mask_file, f_test, mat_file,
     if fts_file:
         randomise.inputs.fcon = fts_file
 
-    wf.connect(randomise,'tstat_files',outputspec,'tstat_files')
-    wf.connect(randomise,'t_corrected_p_files',outputspec,'t_corrected_p_files')
-
     select_tcorrp_files = pe.Node(util.Function(input_names=['input_list'],
                                                 output_names=['out_file'],
                                                 function=select),
                                   name='select_t_corrp')
 
     wf.connect(randomise, 't_corrected_p_files', select_tcorrp_files, 'input_list')
-    wf.connect(select_tcorrp_files,'out_file', outputspec,'out_tcorr_corrected')
+
 
     select_tstat_files = pe.Node(util.Function(input_names=['input_list'],
                                                output_names=['out_file'],
                                                function=select),
                                  name='select_t_stat')
 
-    wf.connect(randomise, 'tstat_files',select_tstat_files, 'input_list')
-    wf.connect(select_tstat_files,'out_file',outputspec,'out_tstat_corrected')
+    wf.connect(randomise, 'tstat_files', select_tstat_files, 'input_list')
 
     thresh = pe.Node(interface=fsl.Threshold(),
                      name='fsl_threshold_contrast')
     thresh.inputs.thresh = 0.95
     thresh.inputs.out_file = 'randomise_pipe_thresh_tstat.nii.gz'
     wf.connect(select_tstat_files, 'out_file', thresh, 'in_file')
-    wf.connect(thresh,'out_file',outputspec,'randomise_pipe_thresh_tstat.nii.gz')
 
     thresh_bin = pe.Node(interface=fsl.UnaryMaths(),
                          name='fsl_threshold_bin_contrast')
     thresh_bin.inputs.operation = 'bin'
     wf.connect(thresh, 'out_file', thresh_bin, 'in_file')
-    wf.connect(thresh_bin,'out_file',outputspec,'thresh_bin_out')
 
     apply_mask = pe.Node(interface=fsl.ApplyMask(),
                          name='fsl_applymask_contrast')
@@ -106,17 +89,29 @@ def prep_randomise_workflow(c, merged_file, mask_file, f_test, mat_file,
     cluster.inputs.out_size_file = True
 
     wf.connect(apply_mask, 'out_file', cluster, 'in_file')
-    
-    wf.connect(cluster,'index_file',outputspec,'index_file')
-    wf.connect(cluster,'threshold_file',outputspec,'threshold_file')
-    wf.connect(cluster,'localmax_txt_file',outputspec,'localmax_txt_file')
-    wf.connect(cluster,'localmax_vol_file',outputspec,'localmax_vol_file')
-    wf.connect(cluster,'max_file',outputspec,'max_file')
-    wf.connect(cluster,'mean_file',outputspec,'meal_file')
-    wf.connect(cluster,'pval_file',outputspec,'pval_file')
-    wf.connect(cluster,'size_file',outputspec,'size_file')
 
-    return wf
+    ds = pe.Node(nio.DataSink(), name='fsl-randomise_sink')
+
+    ds.inputs.base_directory = str(output_dir)
+    ds.inputs.container = ''
+
+    wf.connect(randomise,'tstat_files', ds,'tstat_files')
+    wf.connect(randomise,'t_corrected_p_files', ds,'t_corrected_p_files')
+    wf.connect(select_tcorrp_files,'out_file', ds,'out_tcorr_corrected')
+    wf.connect(select_tstat_files,'out_file', ds,'out_tstat_corrected')
+    wf.connect(thresh,'out_file', ds,'randomise_pipe_thresh_tstat.nii.gz')
+    wf.connect(thresh_bin,'out_file', ds,'thresh_bin_out')
+    wf.connect(cluster,'index_file', ds,'index_file')
+    wf.connect(cluster,'threshold_file', ds,'threshold_file')
+    wf.connect(cluster,'localmax_txt_file', ds,'localmax_txt_file')
+    wf.connect(cluster,'localmax_vol_file', ds,'localmax_vol_file')
+    wf.connect(cluster,'max_file', ds,'max_file')
+    wf.connect(cluster,'mean_file', ds,'meal_file')
+    wf.connect(cluster,'pval_file', ds,'pval_file')
+    wf.connect(cluster,'size_file', ds,'size_file')
+
+    wf.run()
+
 
 
 def run(group_config_path):

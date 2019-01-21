@@ -18,7 +18,7 @@ from .mdmr import MDMRSettings
 from .isc import ISCSettings
 from .randomise import RandomiseSettings
 
-__all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
+__all__ = ['SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
            'AnatomicalPreprocessing', 'Segmentation', \
            'Registration', 'FunctionalPreProcessing',\
            'MotionOptions', 'Scrubbing','AnatToFuncRegistration',\
@@ -33,6 +33,5 @@ __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_op
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
            'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', \
-           'BASCSettings','RandomiseSettings','Randomise']
            'GroupAnalysis', 'GeneralGA', 'GPASettings', 'CWASSettings', \
            'EPI_DistCorr', 'BASCSettings', 'RandomiseSettings', 'Randomise']

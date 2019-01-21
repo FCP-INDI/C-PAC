@@ -46,24 +46,30 @@ class RandomiseSettings(wx.ScrolledWindow):
                       control=control.INT_CTRL,
                       name='randomise_thresh',
                       type=dtype.NUM,
-                      comment="Cluster-based thresholding corrected for multiple comparisons by using the null distribution of the max (across the image) cluster mask.",
+                      comment="Cluster-based thresholding corrected for "
+                              "multiple comparisons by using the null "
+                              "distribution of the max (across the image) "
+                              "cluster mask.",
                       values=5)
 
-        self.page.add(label="path to design matrix file",
-                      control=control.COMBO_BOX,
-                      name='randomise_dmat',
-                      type=dtype.STR,
-                      comment="Full path to a design matrix file to be used when "
-                              "running Randomise",
-                      values="None")
+        self.page.add(label="Demean ", 
+                     control=control.CHOICE_BOX, 
+                     name='randomise_demean', 
+                     type=dtype.BOOL, 
+                     values = ["True", "False"],
+                     comment="Demean data temporally before model fitting.")
 
-        self.page.add(label="path to contrast file",
-                      control=control.COMBO_BOX,
-                      name='randomise_contrast',
-                      type=dtype.STR,
-                      comment="Full path to the contrast file to be used when "
-                              "running Randomise",
-                      values="None")
+        self.page.add(label="Threshold-Free Cluster Enhancement ", 
+                     control=control.CHOICE_BOX, 
+                     name='randomise_tfce', 
+                     type=dtype.BOOL, 
+                     values = ["True", "False"],
+                     comment="From the FMRIB FSL-Randomise user guide: TFCE "
+                             "(Threshold-Free Cluster Enhancement) is a new "
+                             "method for finding 'clusters' in your data with"
+                             "out having to define clusters in a binary way. "
+                             "Cluster-like structures are enhanced but the "
+                             "image remains fundamentally voxelwise.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

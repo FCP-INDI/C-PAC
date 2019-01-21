@@ -16,7 +16,7 @@ def load_subject_file(group_config_path):
     if not group_config_obj.participant_list == None:
         s_paths = group_config_obj.participant_list
     else:
-        s_paths = x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x) 
+        s_paths = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
 
 def randomise_merged_file(s_paths):
     
