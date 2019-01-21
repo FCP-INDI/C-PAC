@@ -482,9 +482,21 @@ class FlamePresetsTwoPheno(wx.Frame):
 
         yaml_path = os.path.join(self.gpa_settings["output_dir"],
                                  self.gpa_settings["model_name"],
-                                 "gpa_fsl_config_{0}.yml"
+                                 "group_config_{0}.yml"
                                  "".format(self.gpa_settings["model_name"]))
-        self.Parent.box2.GetTextCtrl().SetValue(yaml_path)
+
+        dialog_msg = 'Generated your FSL-FEAT preset. Check the terminal ' \
+                     'window for details.\n\nGroup config file created:\n' \
+                     '{0}\n\nYou can load this group configuration file into ' \
+                     'the Pipelines box and either run group-level analysis ' \
+                     'or edit the model (under General Settings and FSL-FEAT ' \
+                     'Settings).'.format(yaml_path)
+        dialog_title = 'FSL-FEAT Preset Generated'
+        bld_dialog = wx.MessageDialog(self, dialog_msg, dialog_title,
+                                      wx.OK | wx.ICON_INFORMATION)
+        bld_dialog.ShowModal()
+        bld_dialog.Destroy()
+
         self.Close()
 
 

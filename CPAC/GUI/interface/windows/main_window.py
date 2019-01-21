@@ -2,7 +2,7 @@
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
-from ..utils.custom_control import FileSelectorCombo
+from ..utils.custom_control import FileSelectorCombo, fsl_flame_presets_window
 from ..utils.constants import multiple_value_wfs
 import wx.lib.agw.aquabutton as AB
 import os
@@ -188,21 +188,21 @@ class ListBox(wx.Frame):
                                   'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
 
-        self.stopCPAC1 = wx.Button(outerPanel3, -1,
-                                   'Stop Individual Level Analysis')
-        self.stopCPAC1.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
-
         self.runCPAC2 = wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
 
-        self.stopCPAC2 = wx.Button(outerPanel3, -1,
-                                   'Stop Group Level Analysis')
-        self.stopCPAC2.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
+        self.openPresets = wx.Button(outerPanel3, -1,
+                                   'Generate FSL-FEAT Presets')
+        self.openPresets.Bind(wx.EVT_BUTTON, self.openFSLPresets)
+
+        self.buildModels = wx.Button(outerPanel3, -1,
+                                    'Build FSL-FEAT Models')
+        self.buildModels.Bind(wx.EVT_BUTTON, self.buildFSLModels)
 
         outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 12)
         outerSizer2.Add(self.runCPAC2, 1, wx.LEFT, 12)
-        outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 12)
-        outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 12)
+        outerSizer3.Add(self.openPresets, 1, wx.RIGHT, 12)
+        outerSizer3.Add(self.buildModels, 1, wx.LEFT, 12)
 
         #outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 20)
         #outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 20)
@@ -308,6 +308,54 @@ class ListBox(wx.Frame):
             errSubID.Destroy()
 
             print e
+
+    def openFSLPresets(self, event):
+        fsl_flame_presets_window.FlamePresetsOne(self)
+
+    def buildFSLModels(self, event):
+        from CPAC.pipeline.cpac_group_runner import build_feat_models
+        from CPAC.utils.create_fsl_flame_preset import write_config_dct_to_yaml
+
+        dialog_msg = 'Building your FSL-FEAT models. Check the terminal ' \
+                     'window for details and progress.'
+        dialog_title = 'Building models..'
+        bld_dialog = wx.MessageDialog(self, dialog_msg, dialog_title,
+                                      wx.OK | wx.ICON_INFORMATION)
+        bld_dialog.ShowModal()
+        bld_dialog.Destroy()
+
+        for ctrl in self.page.get_ctrl_list():
+            name = ctrl.get_name()
+            val = str(ctrl.get_selection())
+            if val in substitution_map.keys():
+                val = substitution_map[val]
+            if isinstance(val, list):
+                new_val = []
+                for v in val:
+                    if v in substitution_map.keys():
+                        v = substitution_map[v]
+                    new_val.append(v)
+                val = new_val
+            elif isinstance(val, str):
+                if 'derivative' in name:
+                    val = val.replace('[', '').replace(']', '').replace(' ', '').replace("'", "")
+                    val = val.split(',')
+                    new_val = []
+                    for v in val:
+                        if v in substitution_map.keys():
+                            v = substitution_map[v]
+                        new_val.append(v)
+                    val = new_val
+                    
+            self.gpa_settings[name] = val
+
+        group_config_path = os.path.join(self.gpa_settings['output_dir'],
+                                         'group_config_{0}.yml'.format(self.gpa_settings['model_name']))
+        write_config_dct_to_yaml(self.gpa_settings, group_config_path)
+        retval = build_feat_models(group_config_path)
+
+        if retval == 0:
+            self.Close()
 
     def stopIndividualAnalysis(self, event):
         import os
