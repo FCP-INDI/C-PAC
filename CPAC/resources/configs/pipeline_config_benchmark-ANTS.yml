@@ -40,7 +40,7 @@ maxCoresPerParticipant :  2
 
 
 # The number of participant workflows to run at the same time. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
-numParticipantsAtOnce :  10
+numParticipantsAtOnce :  1
 
 
 # The number of cores to allocate to ANTS-based anatomical registration per participant. Multiple cores can greatly speed up this preprocessing step. This number cannot be greater than the number of cores per participant.
@@ -298,6 +298,9 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 # It is not necessary to change this path unless you intend to use non-standard priors.
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
+
+# Run functional preproceessing
+runFunctional: [1]
 
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
@@ -593,7 +596,7 @@ degWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the degree centrality adjacency matrix.
-degCorrelationThresholdOption :  ['Significance threshold']
+degCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -608,7 +611,7 @@ eigWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
-eigCorrelationThresholdOption :  ['Significance threshold']
+eigCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.

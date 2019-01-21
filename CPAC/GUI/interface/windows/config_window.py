@@ -508,10 +508,13 @@ class MainFrame(wx.Frame):
         # Iterate and test each subject's files
         for sub in sublist:
             anat_file = sub['anat']
-            try:
+
+            func_files = None
+            if 'func' in sub:
                 func_files = sub['func']
-            except KeyError:
+            elif 'rest' in sub:
                 func_files = sub['rest']
+
             checked_anat_s3 = False
 
             if not anat_file:
@@ -520,13 +523,7 @@ class MainFrame(wx.Frame):
                       "of your participant list YAML file.\n\n"
                 raise Exception(err)
 
-            if not func_files:
-                err = "\n\n[!] Could not read in at least one of your functi"\
-                      "onal input files. Please double-check the formatting "\
-                      "of your participant list YAML file.\n\n"
-                raise Exception(err)
-
-            if not isinstance(func_files, dict):
+            if func_files and not isinstance(func_files, dict):
                 err = "\n\n[!] The functional files in the participant " \
                       "list YAML should be listed with a scan name key and " \
                       "a file path value.\n\nFor example:\nfunc_1: " \
@@ -571,51 +568,54 @@ class MainFrame(wx.Frame):
                     os.remove(anat_file)
                 except:
                     pass
-            # For each functional file
-            for func_file in func_files.values():
-                checked_s3 = False
-                if '.nii' not in func_file:
-                    # probably a JSON file
-                    continue
-                if func_file.lower().startswith(s3_str):
-                    dl_dir = tempfile.mkdtemp()
-                    try:
-                        creds_path = sub['creds_path']
-                    except KeyError:
-                        # if no creds path is provided, it could be that the 
-                        # user is downloading public data - leave it to down-
-                        # stream to handle creds issues
-                        creds_path = None
-                    func_file = check_for_s3(func_file, creds_path,
-                                             dl_dir=dl_dir, img_type='func')
-                    checked_s3 = True
-                # Check if functional file exists
-                if os.path.exists(func_file):
-                    try:
-                        img = nb.load(func_file)
-                    except Exception as e:
-                        print(e)
+
+            if func_files:
+                for func_file in func_files.values():
+                    checked_s3 = False
+                    if '.nii' not in func_file:
+                        # probably a JSON file
                         continue
-                    hdr = img.get_header()
-                    dims = hdr.get_data_shape()
-                    # Check to make sure it has the proper dimensions
-                    if len(dims) != 4:
-                        bad_dim_flg = True
-                        err_str_suffix = 'Func file not 4-dimensional: %s\n' \
-                                         % func_file
+
+                    if func_file.lower().startswith(s3_str):
+                        dl_dir = tempfile.mkdtemp()
+                        try:
+                            creds_path = sub['creds_path']
+                        except KeyError:
+                            # if no creds path is provided, it could be that the 
+                            # user is downloading public data - leave it to down-
+                            # stream to handle creds issues
+                            creds_path = None
+                        func_file = check_for_s3(func_file, creds_path,
+                                                dl_dir=dl_dir, img_type='func')
+                        checked_s3 = True
+
+                    if os.path.exists(func_file):
+                        try:
+                            img = nb.load(func_file)
+                        except Exception as e:
+                            print(e)
+                            continue
+                        hdr = img.get_header()
+                        dims = hdr.get_data_shape()
+                        # Check to make sure it has the proper dimensions
+                        if len(dims) != 4:
+                            bad_dim_flg = True
+                            err_str_suffix = 'Func file not 4-dimensional: %s\n' \
+                                            % func_file
+                            err_str = err_str + err_str_suffix
+                    # Functional file doesnt exist
+                    else:
+                        not_found_flg = True
+                        err_str_suffix = 'File not found: %s\n' % func_file
                         err_str = err_str + err_str_suffix
-                # Functional file doesnt exist
-                else:
-                    not_found_flg = True
-                    err_str_suffix = 'File not found: %s\n' % func_file
-                    err_str = err_str + err_str_suffix
-                # If we're just checking s3 files, remove the temporarily 
-                # downloaded
-                if checked_s3:
-                    try:
-                        os.remove(func_file)
-                    except:
-                        pass
+                    # If we're just checking s3 files, remove the temporarily 
+                    # downloaded
+                    if checked_s3:
+                        try:
+                            os.remove(func_file)
+                        except:
+                            pass
+
             # Check flags for error message
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'

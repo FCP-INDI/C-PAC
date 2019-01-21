@@ -48,7 +48,7 @@ num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  pipe-test_ANTs-BET-AllNuis
+pipelineName :  pipe-test_all
 
 
 # Directory where CPAC should store temporary and intermediate files.
@@ -110,11 +110,11 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  BET
+skullstrip_option :  AFNI
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
-skullstrip_shrink_factor :  0.6
+skullstrip_shrink_factor :  0.62
 
 
 # Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
@@ -122,7 +122,7 @@ skullstrip_var_shrink_fac :  True
 
 
 # The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, for when edge detection is used (which is On by default), otherwise the default value is 0.65.
-skullstrip_shrink_factor_bot_lim :  0.4
+skullstrip_shrink_factor_bot_lim :  0.42
 
 
 # Avoids ventricles while skullstripping.
@@ -130,7 +130,7 @@ skullstrip_avoid_vent :  True
 
 
 # Set the number of iterations. Default is 250.The number of iterations should depend upon the density of your mesh.
-skullstrip_n_iterations :  250
+skullstrip_n_iterations :  252
 
 
 # While expanding, consider the voxels above and not only the voxels below
@@ -142,15 +142,15 @@ skullstrip_touchup :  True
 
 
 # Give the maximum number of pixels on either side of the hole that can be filled. The default is 10 only if 'Touchup' is On - otherwise, the default is 0.
-skullstrip_fill_hole :  10
+skullstrip_fill_hole :  11
 
 
 # Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
-skullstrip_NN_smooth :  72
+skullstrip_NN_smooth :  74
 
 
 # Perform final surface smoothing after all iterations. Default is 20.
-skullstrip_smooth_final :  20
+skullstrip_smooth_final :  21
 
 
 # Avoid eyes while skull stripping. Default is On.
@@ -162,7 +162,7 @@ skullstrip_use_edge :  True
 
 
 # Speed of expansion.
-skullstrip_exp_frac :  0.1
+skullstrip_exp_frac :  0.12
 
 
 # Perform aggressive push to edge. This might cause leakage. Default is Off.
@@ -174,7 +174,7 @@ skullstrip_use_skull :  Off
 
 
 # Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection).
-skullstrip_perc_int :  0
+skullstrip_perc_int :  0.01
 
 
 # Number of iterations to remove intersection problems. With each iteration, the program automatically increases the amount of smoothing to get rid of intersections. Default is 4.
@@ -333,7 +333,7 @@ stopIdx :  None
 
 
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
-runEPI_DistCorr :  [0]
+runEPI_DistCorr :  [1]
 
 
 # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
@@ -418,7 +418,7 @@ identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [0]
+runICA :  [1]
 
 
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
@@ -467,7 +467,7 @@ runFristonModel :  [1]
 
 # Remove or regress out volumes exhibiting excessive motion.
 # Each of these options are mutually exclusive, and selecting more than one will create a new pipeline fork for each option. For example, de-spiking and scrubbing will not run within the same pipeline strategy.
-runMotionSpike :  ['De-Spiking', 'Scrubbing', 'None']
+runMotionSpike :  ['De-Spiking']
 
 
 # (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) calculation to apply the threshold to during de-spiking or scrubbing.

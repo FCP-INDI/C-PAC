@@ -48,7 +48,7 @@ num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  pipe-test_ANTs-BET-AllNuis
+pipelineName :  pipe-test_all
 
 
 # Directory where CPAC should store temporary and intermediate files.
@@ -110,7 +110,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  BET
+skullstrip_option :  AFNI
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -257,7 +257,7 @@ template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
-regOption :  ['ANTS']
+regOption :  ['ANTS', 'FSL']
 
 
 # Configuration file to be used by FSL to set FNIRT parameters.
@@ -333,7 +333,7 @@ stopIdx :  None
 
 
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
-runEPI_DistCorr :  [0]
+runEPI_DistCorr :  [1]
 
 
 # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
@@ -418,7 +418,7 @@ identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [0]
+runICA :  [1]
 
 
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising

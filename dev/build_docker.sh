@@ -8,7 +8,7 @@ VERSION=$1
 #     exit
 # fi
 
-docker build -t childmind/c-pac:latest .
-docker tag childmind/c-pac:latest childmind/c-pac:v$VERSION
-docker push childmind/c-pac:latest
-docker push childmind/c-pac:v$VERSION
+docker build -t fcpindi/c-pac:latest .
+docker tag fcpindi/c-pac:latest fcpindi/c-pac:v$VERSION
+# docker push fcpindi/c-pac:latest
+# docker push fcpindi/c-pac:v$VERSION

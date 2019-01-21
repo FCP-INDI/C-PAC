@@ -48,7 +48,7 @@ num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  pipe-test_ANTs-BET-AllNuis
+pipelineName :  pipe-test_FNIRT-BET-AllNuis
 
 
 # Directory where CPAC should store temporary and intermediate files.
@@ -257,7 +257,7 @@ template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
-regOption :  ['ANTS']
+regOption :  ['FSL']
 
 
 # Configuration file to be used by FSL to set FNIRT parameters.
@@ -532,7 +532,6 @@ sca_roi_paths:
     s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
 
 
-
 # Normalize each time series before running Dual Regression SCA.
 mrsNorm :  True
 
@@ -667,7 +666,7 @@ runZScoring :  [1, 0]
 
 
 # Run FSL FEAT group-level analysis.
-run_fsl_feat :  [1]
+run_fsl_feat :  [0]
 
 
 # This number depends on computing resources.
@@ -740,23 +739,23 @@ basc_scan_inclusion :  None
 
 
 # Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
-runMDMR :  [0]
+runMDMR :  [1]
 
 
 # Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
-mdmr_roi_file :  
+mdmr_roi_file :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain_mask.nii.gz
 
 
 # Path to a CSV file containing the phenotypic regressor.
-mdmr_regressor_file :  
+mdmr_regressor_file :  /cpac_team/cpac/resources/ADHD200_participants_age-only.tsv
 
 
 # Name of the participants column in your regressor file.
-mdmr_regressor_participant_column :  
+mdmr_regressor_participant_column :  participant_id
 
 
 # Columns from the CSV file indicating factor variables. Other columns will be handled as covariates. Separated by commas.
-mdmr_regressor_columns :  
+mdmr_regressor_columns :  age
 
 
 # Number of permutation tests to run on the Pseudo-F statistics.
