@@ -1,16 +1,16 @@
+#using neurodebian runtime as parent image
 FROM neurodebian:xenial-non-free
-MAINTAINER The C-PAC Team <CNL@childmind.org>
+MAINTAINER The C-PAC Team <cnl@childmind.org>
 
-# create scratch directories for singularity
-RUN mkdir /scratch && mkdir /local-scratch && mkdir -p /code && mkdir -p /cpac_resources
+RUN mkdir -p /code 
 
-# install wget
-RUN apt-get update && apt-get install -y wget
+#Run the only command 
+RUN echo Please use the fcp-indi container instead. Use docker pull fcpindi/c-pac!
 
 # Install the validator
 RUN apt-get update && \
      apt-get install -y curl && \
-     curl -sL https://deb.nodesource.com/setup_4.x | bash - && \
+     curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
      apt-get install -y nodejs && \
      rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN npm install -g bids-validator
@@ -137,6 +137,7 @@ RUN apt-get update && \
 RUN mkdir -p /opt/ICA-AROMA
 RUN curl -SL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
 RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
+ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install miniconda
 RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
@@ -157,22 +158,30 @@ RUN conda install -y  \
         matplotlib=2.0.2 \
         networkx==1.11 \
         nose==1.3.7 \
-        numpy==1.11.0 \
-        pandas==0.20.1 \
+        numpy==1.13.0 \
+        pandas==0.23.4 \
         pyyaml==3.12 \
-        scipy==0.18.1 \
+        scipy==0.19.1 \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
-        pip==9.0.1
+        pip
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
+RUN pip install xvfbwrapper
+RUN pip install awscli
 
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
 RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
     rm -f /cpac_resources/cpac_templates.tar.gz
+
+# Get atlases
+RUN mkdir /ndmg_atlases && \
+    aws s3 cp s3://mrneurodata/data/resources/ndmg_atlases.zip /ndmg_atlases/ --no-sign-request && \
+    cd /ndmg_atlases && unzip /ndmg_atlases/ndmg_atlases.zip && \
+    rm /ndmg_atlases/ndmg_atlases.zip
 
 # clean up
 RUN apt-get clean && \
@@ -189,5 +198,6 @@ RUN chmod +x /code/run.py
 # copy useful pipeline scripts
 COPY default_pipeline.yaml /cpac_resources/default_pipeline.yaml
 COPY test_pipeline.yaml /cpac_resources/test_pipeline.yaml
+COPY pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
 ENTRYPOINT ["/code/run.py"]

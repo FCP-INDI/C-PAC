@@ -1399,6 +1399,14 @@ def select_model_files(model, ftest, model_name):
 
 def check(params_dct, subject, scan, val, throw_exception):
 
+    if val not in params_dct:
+
+        if throw_exception:
+            raise Exception("Missing Value for {0} for subject "
+                            "{1}".format(val, subject))
+
+        return None
+
     if isinstance(params_dct[val], dict):
         ret_val = params_dct[val][scan]
     else:
@@ -1416,6 +1424,36 @@ def check(params_dct, subject, scan, val, throw_exception):
                         "{1}".format(val, subject))
 
     return ret_val
+
+
+def try_fetch_parameter(scan_parameters, subject, scan, keys):
+    
+    scan_parameters = dict(
+        (k.lower(), v)
+        for k, v in scan_parameters.iteritems()
+    )
+
+    for key in keys:
+
+        key = key.lower()
+        
+        if key not in scan_parameters:
+            continue
+
+        if isinstance(scan_parameters[key], dict):
+            value = scan_parameters[key][scan]
+        else:
+            value = scan_parameters[key]
+
+        # Explicit none value
+        if value == 'None':
+            return None
+
+        if value is not None:
+            return value
+
+    raise Exception("Missing Value for {0} for subject "
+                    "{1}".format(' or '.join(keys), subject))
 
 
 def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
@@ -1509,6 +1547,7 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
+
             try:
                 params_dct = data_config_scan_params
             except:
@@ -1517,16 +1556,38 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                       "participant: {0}\n\n".format(subject_id)
                 raise Exception(err)
 
+            # TODO: better handling of errant key values!!!
+            # TODO: use schema validator to deal with it
             # get details from the configuration
-            TR = float(check(params_dct, subject_id, scan, 'TR', False))
-            pattern = str(check(params_dct, subject_id, scan, 'acquisition',
-                                False))
-            ref_slice = int(check(params_dct, subject_id, scan, 'reference',
-                                  False))
-            first_tr = check2(check(params_dct, subject_id, scan, 'first_TR',
-                                    False))
-            last_tr = check2(check(params_dct, subject_id, scan, 'last_TR',
-                                   False))
+            TR = float(
+                try_fetch_parameter(
+                    params_dct,
+                    subject_id, 
+                    scan, 
+                    ['TR', 'RepetitionTime']
+                )
+            )
+
+            pattern = str(
+                try_fetch_parameter(
+                    params_dct,
+                    subject_id,
+                    scan,
+                    ['acquisition', 'SliceTiming', 'SliceAcquisitionOrder']
+                )
+            )
+            
+            ref_slice = check(params_dct, subject_id, scan, 'reference', False)
+            if ref_slice:
+                ref_slice = int(ref_slice)
+
+            first_tr = check(params_dct, subject_id, scan, 'first_TR', False)
+            if first_tr:
+                first_tr = check2(first_tr)
+
+            last_tr = check(params_dct, subject_id, scan, 'last_TR', False)
+            if last_tr:
+                last_tr = check2(last_tr)
 
         else:
             err = "\n\n[!] Could not read the format of the scan parameters "\
@@ -1794,13 +1855,13 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
         )
 
     with open(out_file, 'w') as f:
-        f.write("version: {0}".format(str(version)))
-        f.write("timestamp: {0}".format(str(stamp)))
-        f.write("pipeline_index: {0}".format(index))
-        f.write("subject_id: {0}".format(subject_id))
-        f.write("scan_id: {0}".format(scan_id))
-        f.write("strategy: {0}".format(strategy))
-        f.write("workflow_name: {0}".format(workflow))
+        f.write("version: {0}\n".format(str(version)))
+        f.write("timestamp: {0}\n".format(str(stamp)))
+        f.write("pipeline_index: {0}\n".format(index))
+        f.write("subject_id: {0}\n".format(subject_id))
+        f.write("scan_id: {0}\n".format(scan_id))
+        f.write("strategy: {0}\n".format(strategy))
+        f.write("workflow_name: {0}\n".format(workflow))
         f.write(status_msg)
 
     return out_file
@@ -1855,104 +1916,6 @@ def create_log(wf_name="log", scan_id=None):
     ])
 
     return wf
-
-
-def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
-    import datetime, os
-    from os import path as op
-    from jinja2 import Template
-    import pkg_resources as p
-    import CPAC
-    import itertools
-
-    now = datetime.datetime.now()
-
-    chain = itertools.chain(*wf_list)
-    wf_keys = list(chain)
-    wf_keys = list(set(wf_keys))
-
-    tvars = {}
-    tvars['subject_id'] = subject_id
-    tvars['scans'] = scan_ids
-    tvars['pipelines'] = pip_ids
-    tvars['wf_list'] = "%s" % wf_list
-    tvars['wf_keys'] = "%s" % wf_keys
-    tvars['pipeline_indices'] = range(len(tvars['pipelines']))
-    tvars['resources'] = p.resource_filename('CPAC', 'resources')
-    tvars['gui_resources'] = p.resource_filename('CPAC', 'GUI/resources')
-
-    reportdir = op.join(log_dir, "reports")
-    if not op.exists(reportdir):
-        os.mkdir(reportdir)
-
-    for scan in scan_ids:
-        jsfile = op.join(reportdir, "%s.js" % scan)
-        open(jsfile, 'w').close()
-
-        tvars['cur_scan'] = scan
-        tvars['logfile'] = jsfile
-        tvars['timestamp'] = now.strftime("%Y-%m-%d %H:%M:%S")
-
-        fname = p.resource_filename('CPAC', 'resources/templates/'
-                                            'cpac_runner.html')
-        with open(fname, 'r') as tfile:
-            raw_text = tfile.read()
-
-        template = Template(raw_text)
-        text = template.render(**tvars)
-
-        htmlfile = op.join(reportdir, "%s.html" % scan)
-        with open(htmlfile, 'w') as html:
-            html.write(text)
-
-    # Index File
-    fname = p.resource_filename('CPAC',
-                                'resources/templates/'
-                                'logger_subject_index.html')
-
-    with open(fname, 'r') as tfile:
-        raw_text = tfile.read()
-
-    template = Template(raw_text)
-    text = template.render(**tvars)
-
-    htmlfile = op.join(reportdir, "index.html")
-    with open(htmlfile, 'w') as html:
-        html.write(text)
-
-    return
-
-
-def create_group_log_template(subject_scan_map, log_dir):
-    import os
-    from os import path as op
-    from jinja2 import Template
-    import pkg_resources as p
-    import CPAC
-
-    tvars = {}
-    tvars['subject_ids'] = subject_scan_map.keys()
-    tvars['scan_ids'] = subject_scan_map
-    tvars['resources'] = op.join(CPAC.__path__[0], 'resources')
-    tvars['log_dir'] = log_dir
-
-    reportdir = op.join(log_dir, "reports")
-    if not op.exists(reportdir):
-        os.makedirs(reportdir)
-
-    fname = p.resource_filename('CPAC',
-                                'resources/templates/logger_group_index.html')
-    with open(fname, "r") as f:
-        raw_text = f.read()
-
-    template = Template(raw_text)
-    text = template.render(**tvars)
-
-    htmlfile = op.join(reportdir, "index.html")
-    with open(htmlfile, "wt") as f:
-        f.write(text)
-
-    return
 
 
 def find_files(directory, pattern):
@@ -2167,20 +2130,20 @@ def check_system_deps(check_ants=False, check_ica_aroma=False):
     missing_install = []
 
     # Check AFNI
-    if os.system("3dcalc >/dev/null") == 32512:
+    if os.system("3dcalc >/dev/null 2>&1") == 32512:
         missing_install.append("AFNI")
     # Check FSL
-    if os.system("fslmaths >/dev/null") == 32512:
+    if os.system("fslmaths >/dev/null 2>&1") == 32512:
         missing_install.append("FSL")
     # Check ANTs/C3D
     if check_ants:
-        if os.system("c3d_affine_tool >/dev/null") == 32512:
+        if os.system("c3d_affine_tool >/dev/null 2>&1") == 32512:
             missing_install.append("C3D")
-        if os.system("antsRegistration >/dev/null") == 32512:
+        if os.system("antsRegistration >/dev/null 2>&1") == 32512:
             missing_install.append("ANTS")
     # Check ICA-AROMA
     if check_ica_aroma:
-        if os.system("ICA_AROMA.py >/dev/null") == 32512:
+        if os.system("ICA_AROMA.py >/dev/null 2>&1") == 32512:
             missing_install.append("ICA-AROMA")
 
     # If we're missing deps, raise Exception

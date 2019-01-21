@@ -8,7 +8,7 @@ This module contains functions used to run a C-PAC pipeline
 # Import packages
 from multiprocessing import Process
 import os
-from CPAC.utils.utils import create_seeds_, create_group_log_template
+from CPAC.utils.utils import create_seeds_
 from CPAC.utils import Configuration
 import yaml
 import time
@@ -228,7 +228,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     job_scheduler = pipeline_config.resourceManager.lower()
 
     # For SLURM time limit constraints only, hh:mm:ss
-    hrs_limit = 8*len(sublist)
+    hrs_limit = 8 * len(sublist)
     time_limit = '%d:00:00' % hrs_limit
 
     # Batch file variables
@@ -408,7 +408,8 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
     # Load in subject list
     try:
-        sublist = yaml.load(open(subject_list_file, 'r'))
+        with open(subject_list_file, 'r') as sf:
+            sublist = yaml.load(sf)
     except:
         print "Subject list is not in proper YAML format. Please check " \
               "your file"
@@ -427,20 +428,21 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
             else:
                 s = sub['subject_id']
             scan_ids = ['scan_anat']
-            try:
+
+            if 'func' in sub:
                 for id in sub['func']:
                     scan_ids.append('scan_'+ str(id))
-            except KeyError:
+
+            if 'rest' in sub:
                 for id in sub['rest']:
                     scan_ids.append('scan_'+ str(id))
+
             sub_scan_map[s] = scan_ids
     except:
         print "\n\n" + "ERROR: Subject list file not in proper format - " \
               "check if you loaded the correct file?" + "\n" + \
               "Error name: cpac_runner_0001" + "\n\n"
         raise Exception
-
-    create_group_log_template(sub_scan_map, c.logDirectory)
 
     pipeline_timing_info = []
     pipeline_timing_info.append(unique_pipeline_id)
@@ -455,7 +457,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
             os.makedirs(cluster_files_dir)
 
         # Create strategies file
-        strategies_file = os.path.join(cluster_files_dir, 'strategies.obj')
+        strategies_file = os.path.join(cluster_files_dir, 'strategies.pkl')
         with open(strategies_file, 'w') as f:
             pickle.dump(strategies, f)
 
@@ -503,6 +505,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
             for p in processes:
                 p.start()
                 print >>pid, p.pid
+
         # Otherwise manage resources to run processes incrementally
         else:
             idx = 0

@@ -136,11 +136,17 @@ def feat():
 
 
 @feat.command()
-@click.argument('pipe_config')
-@click.option('--pipe_output_dir', default=None)
-def run(pipe_config, pipe_output_dir=None):
-    import CPAC.pipeline.cpac_group_runner as cpac_group_runner
-    cpac_group_runner.run_feat(pipe_config, pipe_output_dir)
+@click.argument('group_config')
+def build_models(group_config):
+    import CPAC.pipeline.cpac_group_runner as cgr
+    cgr.build_feat_models(group_config)
+
+
+@feat.command()
+@click.argument('group_config')
+def run(group_config):
+    import CPAC.pipeline.cpac_group_runner as cgr
+    cgr.run_feat(group_config)
 
 
 @feat.group()
@@ -185,7 +191,7 @@ def single_grp_cov(group_participants, z_thresh, p_thresh, pheno_file,
                                 model_name=model_name)
 
 @load_preset.command()
-@click.argument('group_participants')
+@click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('pheno_file')
@@ -193,14 +199,17 @@ def single_grp_cov(group_participants, z_thresh, p_thresh, pheno_file,
 @click.argument('covariate')
 @click.argument('model_name')
 @click.option('--output_dir', default=None)
-def unpaired_two(group_participants, z_thresh, p_thresh, pheno_file,
-                 pheno_sub, covariate, model_name, output_dir=None):
+@click.option('--group_participants', default=None)
+def unpaired_two(pipeline_dir, z_thresh, p_thresh, pheno_file,
+                 pheno_sub, covariate, model_name, output_dir=None,
+                 group_participants=None):
     from CPAC.utils import create_fsl_flame_preset
     if not output_dir:
         import os
         output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
-    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
-                                'unpaired_two', pheno_file=pheno_file,
+    create_fsl_flame_preset.run(pipeline_dir, 'all', z_thresh, p_thresh,
+                                'unpaired_two', group_participants,
+                                pheno_file=pheno_file,
                                 pheno_sub_label=pheno_sub,
                                 covariate=covariate, output_dir=output_dir,
                                 model_name=model_name)
@@ -349,7 +358,9 @@ def test():
 
 
 @test.command()
-def run_suite():
+@click.option('--list', '-l', 'show_list', is_flag=True)
+@click.option('--filter', '-f', 'pipeline_filter', default='')
+def run_suite(show_list=False, pipeline_filter=''):
     import os
     import pkg_resources as p
     import CPAC.pipeline.cpac_runner as cpac_runner
@@ -377,10 +388,22 @@ def run_suite():
                                          "configs", "test_configs",
                                          "data-test_S3-NKI-RS_fmap.yml"))
 
+    if show_list:
+        print("")
+        print("Availables pipelines:")
+
     no_params = False
     for config_file in os.listdir(test_config_dir):
-        if 'pipe-test' in config_file:
+        if config_file.startswith('pipe-test_'):
+            if pipeline_filter not in config_file:
+                continue
+
+            if show_list:
+                print("- " + config_file[len('pipe-test_'):])
+                continue
+
             pipe = os.path.join(test_config_dir, config_file)
+
             if 'DistCorr' in pipe:
                 data = data_test_fmap
             elif not no_params:
@@ -391,6 +414,9 @@ def run_suite():
                 
             # run
             cpac_runner.run(pipe, data)
+
+    if show_list:
+        print("")
 
 
 @test.group()

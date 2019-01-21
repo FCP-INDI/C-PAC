@@ -84,10 +84,10 @@ conda_packages=(
     "matplotlib=2.0.2"
     "networkx==1.11"
     "nose==1.3.7"
-    "numpy==1.11.0"
-    "pandas==0.20.1"
+    "numpy==1.13.0"
+    "pandas==0.23.4"
     "pyyaml==3.12"
-    "scipy==0.18.1"
+    "scipy==0.19.1"
     "traits==4.6.0"
     "wxpython==3.0.0.0"
     "pip==18.0"
@@ -107,7 +107,7 @@ pip_packages=(
     "psutil==5.4.6"
     "pygraphviz==1.3.1"
     "simplejson==3.15.0"
-    "python-dateutil==2.5"
+    "python-dateutil==2.7.3"
     "PyBASC==0.4.5"
 )
 

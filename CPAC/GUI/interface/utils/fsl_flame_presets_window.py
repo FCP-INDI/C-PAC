@@ -33,6 +33,7 @@ class FlamePresetsOne(wx.Frame):
             # if this window is being opened for the first time
             self.gpa_settings = {}
             self.gpa_settings["flame_preset"] = ""
+            self.gpa_settings["pipeline_dir"] = ""
             self.gpa_settings["participant_list"] = "None"
             self.gpa_settings['derivative_list'] = ""
             self.gpa_settings['z_threshold'] = 2.3
@@ -60,19 +61,26 @@ class FlamePresetsOne(wx.Frame):
                               "Paired Two-Group Difference (Two-Sample Paired T-Test)",
                               "Tripled Two-Group Difference ('Tripled' T-Test)"])
 
-        self.page.add(label="Participant Inclusion List ",
+        self.page.add(label="Pipeline Output Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name="pipeline_dir",
+                      type=dtype.STR,
+                      comment="Full path to the individual-level pipeline "
+                              "output directory you wish to run FSL-FEAT for. "
+                              "\n\nThis will be the path to a directory titled "
+                              "'pipeline_{name}'.",
+                      values=self.gpa_settings['pipeline_dir'])
+
+        self.page.add(label="[Optional] Participant Inclusion List ",
                       control=control.COMBO_BOX,
                       name="participant_list",
                       type=dtype.STR,
-                      comment="Full path to the group-level analysis "
-                              "participant list text file. This should be a "
-                              "file with each participant_session ID you "
-                              "want included in the model, on each line.\n\n"
-                              "A sample group analysis participant list file "
-                              "is generated when you run the data config"
-                              "uration builder for individual-level "
-                              "analysis. This can be used as is, or "
-                              "modified, or used as a template.",
+                      comment="[Optional] Full path to the group-level "
+                              "analysis participant list text file. Use this "
+                              "to quickly prune participants from your "
+                              "analysis. This should be a text "
+                              "file with each participant ID you "
+                              "want included in the model, on each line.",
                       values=self.gpa_settings['participant_list'])
 
         self.page.add(label="Select Derivatives ",
@@ -238,11 +246,12 @@ class FlamePresetsOne(wx.Frame):
             # no additional info is needed, and we can run the preset
             # generation straight away
             print "Generating FSL FEAT/FLAME model configuration...\n"
-            create_fsl_flame_preset.run(self.gpa_settings["participant_list"],
+            create_fsl_flame_preset.run(self.gpa_settings["pipeline_dir"], 
                                         self.gpa_settings["derivative_list"],
                                         self.gpa_settings["z_threshold"],
                                         self.gpa_settings["p_threshold"],
                                         "single_grp",
+                                        self.gpa_settings["participant_list"],
                                         output_dir=self.gpa_settings["output_dir"],
                                         model_name=self.gpa_settings["model_name"])
 
@@ -457,11 +466,12 @@ class FlamePresetsTwoPheno(wx.Frame):
 
         # generate the preset files
         print "Generating FSL FEAT/FLAME model configuration...\n"
-        create_fsl_flame_preset.run(self.gpa_settings["participant_list"],
+        create_fsl_flame_preset.run(self.gpa_settings["pipeline_dir"],
                                     self.gpa_settings["derivative_list"],
                                     self.gpa_settings["z_threshold"],
                                     self.gpa_settings["p_threshold"],
                                     preset,
+                                    self.gpa_settings["participant_list"],
                                     self.gpa_settings["pheno_file"],
                                     self.gpa_settings["participant_id_label"],
                                     output_dir=self.gpa_settings[
@@ -472,9 +482,21 @@ class FlamePresetsTwoPheno(wx.Frame):
 
         yaml_path = os.path.join(self.gpa_settings["output_dir"],
                                  self.gpa_settings["model_name"],
-                                 "gpa_fsl_config_{0}.yml"
+                                 "group_config_{0}.yml"
                                  "".format(self.gpa_settings["model_name"]))
-        self.Parent.box2.GetTextCtrl().SetValue(yaml_path)
+
+        dialog_msg = 'Generated your FSL-FEAT preset. Check the terminal ' \
+                     'window for details.\n\nGroup config file created:\n' \
+                     '{0}\n\nYou can load this group configuration file into ' \
+                     'the Pipelines box and either run group-level analysis ' \
+                     'or edit the model (under General Settings and FSL-FEAT ' \
+                     'Settings).'.format(yaml_path)
+        dialog_title = 'FSL-FEAT Preset Generated'
+        bld_dialog = wx.MessageDialog(self, dialog_msg, dialog_title,
+                                      wx.OK | wx.ICON_INFORMATION)
+        bld_dialog.ShowModal()
+        bld_dialog.Destroy()
+
         self.Close()
 
 
@@ -644,11 +666,12 @@ class FlamePresetsTwoConditions(wx.Frame):
 
         # generate the preset files
         print "Generating FSL FEAT/FLAME model configuration...\n"
-        create_fsl_flame_preset.run(self.gpa_settings["participant_list"],
+        create_fsl_flame_preset.run(self.gpa_settings["pipeline_dir"],
                                     self.gpa_settings["derivative_list"],
                                     self.gpa_settings["z_threshold"],
                                     self.gpa_settings["p_threshold"],
                                     preset,
+                                    self.gpa_settings["participant_list"],
                                     output_dir=self.gpa_settings[
                                         "output_dir"],
                                     model_name=self.gpa_settings[

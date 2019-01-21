@@ -299,6 +299,9 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
 
+# Run functional preproceessing
+runFunctional: [1]
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [0]
 
@@ -413,6 +416,13 @@ template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
 identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 
+
+# Run ICA-AROMA de-noising.
+runICA :  [0]
+
+
+# Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
+aroma_denoise_type :  nonaggr
 
 # Run Nuisance Signal Regression
 runNuisance :  [1]

@@ -356,13 +356,13 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                                 f_dict)
                 if not t_params:
                     print f_dict
-                    raise IOError("Did not receive any parameters for %s," % (p) +
-                                  " is this a problem?")
+                    print("Did not receive any parameters for %s," % (p) +
+                          " is this a problem?")
 
                 task_info = {"scan": os.path.join(bids_dir,p),
-                             "scan_parameters": t_params}
+                             "scan_parameters": t_params.copy()}
             else:
-                task_info = os.path.join(bids_dir,p)
+                task_info = os.path.join(bids_dir ,p)
 
             if "ses" not in f_dict:
                 f_dict["ses"] = "1"
@@ -375,8 +375,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                 subdict[f_dict["sub"]] = {}
 
             subjid = "-".join(["sub", f_dict["sub"]])
-            if 'none' not in f_dict["site"]:
-                subjid="-".join(["sub", "+".join([f_dict["site"], f_dict["sub"]])])
 
             if f_dict["ses"] not in subdict[f_dict["sub"]]:
                 subdict[f_dict["sub"]][f_dict["ses"]] = \
@@ -386,9 +384,10 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
             if "T1w" in f_dict["scantype"]:
+                # TODO deal with scan parameters anatomical
                 if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = \
-                        task_info
+                        task_info["scan"] if config_dict else task_info
                 else:
                     print("Anatomical file (%s) already found" %
                           (subdict[f_dict["sub"]][f_dict["ses"]]["anat"]) +
@@ -397,7 +396,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                                           p))
 
             if "bold" in f_dict["scantype"]:
-                task_key = "-".join(["task", f_dict["task"]])
+                task_key = f_dict["task"]
                 if "run" in f_dict:
                     task_key = "_".join([task_key,
                                          "-".join(["run", f_dict["run"]])])
@@ -408,11 +407,13 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"] = {}
 
                 if task_key not in \
-                        subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
+                    subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
+
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = \
-                        task_info
+                        { "scan": task_info }
+
                 else:
-                    print( "Func file (%s)" %
+                    print("Func file (%s)" %
                         subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] +
                         " already found for ( % s: %s: % s) discarding % s" % (
                                f_dict["sub"],
@@ -426,11 +427,18 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
             if "anat" in ses and "func" in ses:
                 sublist.append(ses)
             else:
-                print( "%s %s is missing either an anat or func (or both)" %
-                       (ses["subject_id"],
-                        ses["unique_id"]))
-                if dbg:
-                    print ses
+                if "anat" not in ses:
+                    print("%s %s %s is missing an anat" % (
+                        ses["site_id"] if 'none' not in ses["site_id"] else '',
+                        ses["subject_id"],
+                        ses["unique_id"]
+                    ))
+                if "func" not in ses:
+                    print("%s %s %s is missing an func" % (
+                        ses["site_id"] if 'none' not in ses["site_id"] else '',
+                        ses["subject_id"],
+                        ses["unique_id"]
+                    ))
 
     return sublist
 

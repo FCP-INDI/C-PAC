@@ -2,7 +2,7 @@
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
-from ..utils.custom_control import FileSelectorCombo
+from ..utils.custom_control import FileSelectorCombo, fsl_flame_presets_window
 from ..utils.constants import multiple_value_wfs
 import wx.lib.agw.aquabutton as AB
 import os
@@ -188,21 +188,21 @@ class ListBox(wx.Frame):
                                   'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
 
-        self.stopCPAC1 = wx.Button(outerPanel3, -1,
-                                   'Stop Individual Level Analysis')
-        self.stopCPAC1.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
-
         self.runCPAC2 = wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
 
-        self.stopCPAC2 = wx.Button(outerPanel3, -1,
-                                   'Stop Group Level Analysis')
-        self.stopCPAC2.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
+        self.openPresets = wx.Button(outerPanel3, -1,
+                                   'Generate FSL-FEAT Presets')
+        self.openPresets.Bind(wx.EVT_BUTTON, self.openFSLPresets)
+
+        self.buildModels = wx.Button(outerPanel3, -1,
+                                    'Build FSL-FEAT Models')
+        self.buildModels.Bind(wx.EVT_BUTTON, self.buildFSLModels)
 
         outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 12)
         outerSizer2.Add(self.runCPAC2, 1, wx.LEFT, 12)
-        outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 12)
-        outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 12)
+        outerSizer3.Add(self.openPresets, 1, wx.RIGHT, 12)
+        outerSizer3.Add(self.buildModels, 1, wx.LEFT, 12)
 
         #outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 20)
         #outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 20)
@@ -309,6 +309,54 @@ class ListBox(wx.Frame):
 
             print e
 
+    def openFSLPresets(self, event):
+        fsl_flame_presets_window.FlamePresetsOne(self)
+
+    def buildFSLModels(self, event):
+        from CPAC.pipeline.cpac_group_runner import build_feat_models
+        from CPAC.utils.create_fsl_flame_preset import write_config_dct_to_yaml
+
+        dialog_msg = 'Building your FSL-FEAT models. Check the terminal ' \
+                     'window for details and progress.'
+        dialog_title = 'Building models..'
+        bld_dialog = wx.MessageDialog(self, dialog_msg, dialog_title,
+                                      wx.OK | wx.ICON_INFORMATION)
+        bld_dialog.ShowModal()
+        bld_dialog.Destroy()
+
+        for ctrl in self.page.get_ctrl_list():
+            name = ctrl.get_name()
+            val = str(ctrl.get_selection())
+            if val in substitution_map.keys():
+                val = substitution_map[val]
+            if isinstance(val, list):
+                new_val = []
+                for v in val:
+                    if v in substitution_map.keys():
+                        v = substitution_map[v]
+                    new_val.append(v)
+                val = new_val
+            elif isinstance(val, str):
+                if 'derivative' in name:
+                    val = val.replace('[', '').replace(']', '').replace(' ', '').replace("'", "")
+                    val = val.split(',')
+                    new_val = []
+                    for v in val:
+                        if v in substitution_map.keys():
+                            v = substitution_map[v]
+                        new_val.append(v)
+                    val = new_val
+                    
+            self.gpa_settings[name] = val
+
+        group_config_path = os.path.join(self.gpa_settings['output_dir'],
+                                         'group_config_{0}.yml'.format(self.gpa_settings['model_name']))
+        write_config_dct_to_yaml(self.gpa_settings, group_config_path)
+        retval = build_feat_models(group_config_path)
+
+        if retval == 0:
+            self.Close()
+
     def stopIndividualAnalysis(self, event):
         import os
         # not the best way to implement this...
@@ -366,7 +414,7 @@ class ListBox(wx.Frame):
         return path
 
     def NewItem(self, event):
-        MainFrame(self, "save")
+        MainFrame(self, "load", path=p.resource_filename('CPAC', 'resources/configs/pipeline_config_template.yml'))
 
     def OnRename(self, event):
         sel = self.listbox.GetSelection()
@@ -412,7 +460,6 @@ class ListBox(wx.Frame):
         sel = self.listbox.GetSelection()
         
         if sel != -1:
-            
             # 'text' - name of pipeline config displayed in listbox
             text = str(self.listbox.GetString(sel))
             
@@ -421,7 +468,7 @@ class ListBox(wx.Frame):
             
             if os.path.exists(path):
                 # open the pipeline_config editor window
-                MainFrame(self, option ="edit", path=path, pipeline_id = text)
+                MainFrame(self, option="edit", path=path, pipeline_id=text)
             else:
                 print "Couldn't find the config file %s "%path
      
@@ -568,6 +615,10 @@ class ListBox(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
 
+        # if this is a group config file
+        if 'pipeline_dir' in c.keys():
+            return ret_val
+
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
         missingParams = []
@@ -599,9 +650,9 @@ class ListBox(wx.Frame):
                         missingParams.append(param)
                         if notify_centrality_misconfig:
                             notify_centrality_misconfig = False
-                            msg = 'At least one of your centrality treshold '\
+                            msg = 'At least one of your centrality threshold '\
                                   'options is mis-formatted as an integer. '\
-                                  'Fix this in the pipeline config edit window'
+                                  'Fix this in the pipeline config edit window.'
                             dlg = wx.MessageDialog(self, msg, 'Error!', wx.OK | wx.ICON_ERROR)
                             ret_val = -1
                             dlg.ShowModal()
@@ -675,7 +726,7 @@ class ListBox(wx.Frame):
                     print 'Error:\n%s\n\n' % e
                     raise Exception
                 if type(f_cfg) == dict:
-                    if not f_cfg.has_key('pipelineName'):
+                    if not f_cfg.has_key('pipelineName') and not f_cfg.has_key('pipeline_dir'):
                         err_msg = 'File is not a pipeline configuration '\
                                   'file. It might be a data configuration file.'
                         raise Exception(err_msg)
@@ -710,16 +761,30 @@ class ListBox(wx.Frame):
                                   'chosen the wrong file.\n'
                             print 'Error name: main_window_0001\n'
                             print 'Exception: %s\n\n' % e
+
+
                     # Valid pipeline name
-                    if c.pipelineName != None:
-                            if self.pipeline_map.get(c.pipelineName) == None:
+                    pipeline_name = None
+                    try:
+                        pipeline_name = c.pipelineName
+                    except AttributeError:
+                        pass
+                    try:
+                        pipeline_name = c.pipeline_dir
+                        pipeline_name = pipeline_name.split('/')[-1].replace('pipeline_', '')
+                        pipeline_name = 'group_config_{0}'.format(pipeline_name)
+                    except AttributeError:
+                        pass
+
+                    if pipeline_name != None:
+                            if self.pipeline_map.get(pipeline_name) == None:
                                 # this runs if you click 'Load' on the main
                                 # CPAC window, enter a path, and the pipeline
                                 # name attribute of the pipeline config file
                                 # you are loading does NOT already exist in
                                 # the listbox, i.e., the proper condition
-                                self.pipeline_map[str(c.pipelineName)] = path
-                                self.listbox.Append(str(c.pipelineName))
+                                self.pipeline_map[str(pipeline_name)] = path
+                                self.listbox.Append(str(pipeline_name))
                                 dlg.Destroy()
                                 break
                             else:
@@ -742,7 +807,7 @@ class ListBox(wx.Frame):
                                         ' new configuration file.\n\n' \
                                         'Pipeline configuration with' \
                                         ' conflicting name:\n%s' \
-                                         % c.pipelineName,
+                                         % pipeline_name,
                                                'Conflicting Pipeline Names',
                                            wx.OK | wx.ICON_ERROR)
                                 dlg3.ShowModal()

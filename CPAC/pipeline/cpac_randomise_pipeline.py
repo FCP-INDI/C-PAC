@@ -49,7 +49,7 @@ def prep_randomise_workflow(c, subject_infos):
     rw.inputs.inputspec.subjects    = s_paths
     #rw.inputs.inputspec.pipeline_ouput_folder = c.os.path.join(c.outputDirectory,
      #                                         'pipeline_{0}'.format(c.pipelineName))
-    rw.inputs.inputspec.mask_boolean     = c.mask_boolean #TODO pipe from output dir, not the user input
+    rw.inputs.inputspec.mask_boolean   = c.mask_boolean #TODO pipe from output dir, not the user input
     rw.inputs.inputspec.tfce           = c.tfce # will stay None?
     rw.inputs.inputspec.demean         = c.demean
     rw.inputs.inputspec.c_thresh       = c.c_thresh
@@ -74,16 +74,12 @@ def prep_randomise_workflow(c, subject_infos):
     wf.connect(rw,'outputspec.pval_file',ds,'pval_file')
     wf.connect(rw,'outputspec.size_file',ds,'size_file')
 
-
     wf.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
+    return wf
 
-
-    retrun wf
-
-
-
+  
 #def run(config, subject_infos):
 #    import re
 #    import commands
@@ -97,3 +93,4 @@ def prep_randomise_workflow(c, subject_infos):
 
 
 #    prep_randomise_workflow(c, pickle.load(open(subject_infos, 'r') ))
+
