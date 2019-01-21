@@ -299,6 +299,9 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
 
+# Run functional preproceessing
+runFunctional: [1]
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [0]
 
@@ -608,7 +611,7 @@ degWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the degree centrality adjacency matrix.
-degCorrelationThresholdOption :  ['Significance threshold']
+degCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -623,7 +626,7 @@ eigWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
-eigCorrelationThresholdOption :  ['Significance threshold']
+eigCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -675,118 +678,4 @@ smoothing_order :  ['Before']
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.
 runZScoring :  [1]
-
-
-# Run FSL FEAT group-level analysis.
-run_fsl_feat :  [0]
-
-
-# This number depends on computing resources.
-numGPAModelsAtOnce :  1
-
-
-# Use the + to add FSL model configuration to be run.
-modelConfigs :  []
-
-
-# Run Bootstrap Analysis of Stable Clusters
-run_basc :  [0]
-
-
-basc_resolution :  4mm
-
-
-# Maximum amount of processors to use while performing BASC.
-basc_proc :  2
-
-
-# Maximum amount of RAM (in GB) to be used when running BASC.
-basc_memory :  4
-
-
-# Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
-# If you do not wish to use a mask, set this field to None.
-# Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
-basc_roi_mask_file :  None
-
-
-basc_cross_cluster_mask_file :  None
-
-
-basc_similarity_metric_list :  ['correlation']
-
-
-# Number of bootstraps to apply to individual time series.
-basc_timeseries_bootstrap_list :  100
-
-
-# Number of bootstraps to apply to the original dataset.
-basc_dataset_bootstrap_list :  30
-
-
-# Number of clusters to create during clustering at both the individual and group levels.
-basc_n_clusters_list :  2
-
-
-basc_affinity_thresh : [0.0]
-
-
-basc_output_sizes :  800
-
-
-basc_cross_cluster :  True
-
-
-basc_blocklength_list :  1
-
-
-basc_group_dim_reduce :  False
-
-
-# Full path to a text file listing which participant IDs you want included in the analysis, with one ID on each line.
-# Tip: A sample group-level participant inclusion text file is generated when you first create your data configuration.
-basc_inclusion :  None
-
-
-# If there are multiple pipeline output directories, and you only want to run BASC on one or some of them, you can list them here - pipeline names separated by commas (check the output directory of your individual-level analysis run to see which pipeline directories are available).
-# If nothing is listed, all available pipelines will be run.
-basc_pipeline :  None
-
-
-# If there are multiple series or scans in any of the pipeline outputs for which PyBASC is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').
-# If nothing is listed, all available pipelines will be run.
-basc_scan_inclusion :  None
-
-
-# Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
-runMDMR :  [0]
-
-
-# Inclusion list text file listing the participant IDs you wish to include in the MDMR analysis. If left as None, will include all subjects.
-mdmr_inclusion : None
-
-
-# Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
-mdmr_roi_file :  
-
-
-# Path to a CSV file containing the phenotypic regressor.
-mdmr_regressor_file :  
-
-
-# Name of the participants column in your regressor file.
-mdmr_regressor_participant_column :  
-
-
-# Columns from the CSV file indicating factor variables. Other columns will be handled as covariates. Separated by commas.
-mdmr_regressor_columns :  
-
-
-# Number of permutation tests to run on the Pseudo-F statistics.
-mdmr_permutations :  500
-
-
-# Number of Nipype nodes created while computing MDMR. Dependent upon computing resources.
-mdmr_parallel_nodes :  1
-
 

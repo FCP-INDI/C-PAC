@@ -15,8 +15,7 @@ from CPAC.utils import Configuration, function, find_files
 from CPAC.utils.utils import extract_one_d, set_gauss, \
     process_outputs, get_scan_params, \
     get_tr, extract_txt, create_log, \
-    create_log_template, extract_output_mean, \
-    create_output_mean_csv, get_zscore, \
+    extract_output_mean, create_output_mean_csv, get_zscore, \
     get_fisher_zscore, dbg_file_lineno, add_afni_prefix
 
 # Apply warps, Z-scoring, Smoothing, Averages

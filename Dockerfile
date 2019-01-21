@@ -1,16 +1,16 @@
+#using neurodebian runtime as parent image
 FROM neurodebian:xenial-non-free
-MAINTAINER The C-PAC Team <CNL@childmind.org>
+MAINTAINER The C-PAC Team <cnl@childmind.org>
 
-# create scratch directories for singularity
-RUN mkdir /scratch && mkdir /local-scratch && mkdir -p /code && mkdir -p /cpac_resources
+RUN mkdir -p /code 
 
-# install wget
-RUN apt-get update && apt-get install -y wget
+#Run the only command 
+RUN echo Please use the fcp-indi container instead. Use docker pull fcpindi/c-pac!
 
 # Install the validator
 RUN apt-get update && \
      apt-get install -y curl && \
-     curl -sL https://deb.nodesource.com/setup_4.x | bash - && \
+     curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
      apt-get install -y nodejs && \
      rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN npm install -g bids-validator
@@ -198,5 +198,6 @@ RUN chmod +x /code/run.py
 # copy useful pipeline scripts
 COPY default_pipeline.yaml /cpac_resources/default_pipeline.yaml
 COPY test_pipeline.yaml /cpac_resources/test_pipeline.yaml
+COPY pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
 ENTRYPOINT ["/code/run.py"]
