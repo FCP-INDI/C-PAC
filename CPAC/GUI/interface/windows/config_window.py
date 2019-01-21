@@ -330,8 +330,12 @@ class MainFrame(wx.Frame):
                     ctrl.set_selection(config_file_map['ev_selections'])
 
                 if val:
-                    if ("list" in name) and (name != "participant_list"):
-                        mapped_vals = [s_map.get(item) for item in val if s_map.get(item) != None]
+                    if ("list" in name) and (name != "participant_list") and ('basc' not in name):
+                        try:
+                            mapped_vals = [s_map.get(item) for item in val if s_map.get(item) != None]
+                        except TypeError:
+                            mapped_vals = None
+
                         if not mapped_vals:
                             val = [str(item) for item in val]
                         else:
@@ -352,9 +356,11 @@ class MainFrame(wx.Frame):
                         except TypeError:
                             # if the user has put it in as a float and not a list
                             ctrl.set_value(str(val))  
+
                     elif name == 'group_sep':
                         val = s_map.get(val)
                         ctrl.set_value(val)
+
                     elif name == 'grouping_var':
                         if isinstance(val, list) or "[" in val:
                             grouping_var = ""
@@ -365,8 +371,12 @@ class MainFrame(wx.Frame):
                             grouping_var = val
 
                         ctrl.set_value(grouping_var)
+
                     elif name != 'model_setup' and name != 'derivative_list':
-                        ctrl.set_value(val)
+                        try:
+                            ctrl.set_value(str(val))
+                        except ValueError:
+                            ctrl.set_value(int(val[0]))
 
                     if isinstance(val, list):
                         if ctrl.get_datatype() == 8:
@@ -722,7 +732,7 @@ class MainFrame(wx.Frame):
                     
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
-                        if not value:
+                        if not value and 'session' not in option_name and 'series' not in option_name:
                             display(
                                 win, "\"%s\" field is empty or the items are " \
                                      "not checked!" % ctrl.get_pretty_name(), False)
@@ -960,7 +970,7 @@ class MainFrame(wx.Frame):
 
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and option_name not in ['derivativeList', 'modelConfigs']:
+                    and option_name not in ['derivativeList', 'modelConfigs', 'sessions_list', 'series_list']:
                 
                     win = ctrl.get_ctrl()
                     
@@ -1298,8 +1308,33 @@ class MainFrame(wx.Frame):
                     print >>f, string
                     print >>f, "\n"
 
-                else:
+                elif label == 'derivative_list':
+                    # this takes the user selection in the derivative
+                    # list and matches it with the output directory
+                    # folder name for each chosen derivative via the
+                    # substitution map in constants.py
 
+                    # go over each string in the list
+                    value = []
+                    for val in ast.literal_eval(str(item[1])):
+                        if substitution_map.get(val) != None:
+                            if substitution_map.get(val) not in value:
+                                value.append(substitution_map.get(val))
+                        elif val != 'None':
+                            if ast.literal_eval(val) not in value:
+                                value.append(ast.literal_eval(val))
+                    print>>f, label, ":", value
+                    print>>f, "\n"
+
+                elif label == 'model_setup':
+                    # basically, ctrl is checkbox_grid in this case, and
+                    # get_selection goes to generic_class.py first, which links
+                    # it to the custom GetGridSelection() function in the
+                    # checkbox_grid class in custom_control.py
+                    print>>f, 'ev_selections:', value
+                    print>>f, "\n"
+
+                else:
                     value = ast.literal_eval(str(value))
 
                     print>>f, label, ":", value

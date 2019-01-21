@@ -78,7 +78,7 @@ class GeneralGA(wx.ScrolledWindow):
 
         self.page.add(label="Log Directory ",
                       control=control.DIR_COMBO_BOX,
-                      name="pipeline_dir",
+                      name="log_dir",
                       type=dtype.STR,
                       comment="Directory to write log information.",
                       values=self.gpa_settings['log_dir'])
@@ -116,8 +116,9 @@ class GPASettings(wx.ScrolledWindow):
         self.page = GenericClass(self, " FSL-FEAT Group Analysis Options")
 
         default_gpa_settings = {}
-        default_gpa_settings['model_name'] = ''
+        default_gpa_settings['run_fsl_feat'] = 1
         default_gpa_settings['num_models_at_once'] = 1
+        default_gpa_settings['model_name'] = ''
         default_gpa_settings['pheno_file'] = ''
         default_gpa_settings['participant_id_label'] = ''
         default_gpa_settings['ev_selections'] = {'categorical': [''],
@@ -142,13 +143,12 @@ class GPASettings(wx.ScrolledWindow):
                     gpa_settings[key] = default_gpa_settings[key]
             self.gpa_settings = gpa_settings
 
-        self.page.add(label="Model Name ",
-                      control=control.TEXT_BOX,
-                      name="model_name",
-                      type=dtype.STR,
-                      comment="Specify a name for the new model. Output and working directories for group analysis, as well as the FLAME model files (.mat, .con, .grp, etc.) will be labeled with this name.",
-                      values=self.gpa_settings['model_name'],
-                      size=(200, -1))
+        self.page.add(label="Run FSL-FEAT ",
+                      control=control.INT_CTRL,
+                      name='run_fsl_feat',
+                      type=dtype.NUM,
+                      comment="Run the FSL-FEAT pipeline.",
+                      values=self.gpa_settings['run_fsl_feat'])
 
         self.page.add(label="Number of Models to Run Simultaneously ",
                       control=control.INT_CTRL,
@@ -156,6 +156,14 @@ class GPASettings(wx.ScrolledWindow):
                       type=dtype.NUM,
                       comment="This number depends on computing resources.",
                       values=self.gpa_settings['num_models_at_once'])
+
+        self.page.add(label="Model Name ",
+                      control=control.TEXT_BOX,
+                      name="model_name",
+                      type=dtype.STR,
+                      comment="Specify a name for the new model. Output and working directories for group analysis, as well as the FLAME model files (.mat, .con, .grp, etc.) will be labeled with this name.",
+                      values=self.gpa_settings['model_name'],
+                      size=(200, -1))
 
         self.page.add(label="Phenotype/EV File ",
                       control=control.COMBO_BOX,
