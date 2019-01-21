@@ -254,14 +254,14 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
         if "None" in creds_path or "none" in creds_path or \
                 "null" in creds_path:
             creds_path = None
+
     if dl_dir is None:
         dl_dir = os.getcwd()
 
     if file_path is None:
         # in case it's something like scan parameters or field map files, but
         # we don't have any
-        local_path = file_path
-        return local_path
+        return None
 
     # TODO: remove this once scan parameter input as dictionary is phased out
     if isinstance(file_path, dict):
@@ -294,18 +294,21 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
             bucket.download_file(Key=s3_key, Filename=local_path)
         except botocore.exceptions.ClientError as exc:
             error_code = int(exc.response['Error']['Code'])
+
+            err_msg = str(exc)
             if error_code == 403:
                 err_msg = 'Access to bucket: "%s" is denied; using credentials '\
                           'in subject list: "%s"; cannot access the file "%s"'\
                           % (bucket_name, creds_path, file_path)
-                raise Exception(err_msg)
             elif error_code == 404:
                 err_msg = 'File: {0} does not exist; check spelling and try '\
                           'again'.format(os.path.join(bucket_name, s3_key))
-                raise Exception(err_msg)
             else:
                 err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
                           % (bucket_name, exc)
+            
+            raise Exception(err_msg)
+
         except Exception as exc:
             err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
                       % (bucket_name, exc)
@@ -315,15 +318,13 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
     else:
         local_path = file_path
 
+    # Check if it exists or it is sucessfuly downloaded
+    if not os.path.exists(local_path):
+        raise IOError('File %s does not exists!' % (local_path))
+
     # Check image dimensionality
     if local_path.endswith('.nii') or local_path.endswith('.nii.gz'):
-        try:
-            img_nii = nib.load(local_path)
-        except Exception as e:
-            # TODO: come up with a better option for handling rogue S3 files
-            # TODO: that Nibabel chokes on
-            print(str(e))
-            return local_path
+        img_nii = nib.load(local_path)
 
         if img_type == 'anat':
             if len(img_nii.shape) != 3:
@@ -336,7 +337,6 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
 
-    # Return the local path
     return local_path
 
 
@@ -495,9 +495,6 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
         except IndexError as e:
             raise Exception('Error in spatial_map_dataflow: '
                             'File extension not in .nii and .nii.gz')
-
-        except Exception as e:
-            raise e
 
     inputnode = pe.Node(util.IdentityInterface(fields=['spatial_map',
                                                        'spatial_map_file',

@@ -35,7 +35,7 @@ def log_nodes_cb(node, status):
 
     status_dict = {
         'name': node.name,
-        'id': node._id,
+        'id': str(node),
         'start': getattr(runtime, 'startTime'),
         'finish': getattr(runtime, 'endTime'),
         'duration': getattr(runtime, 'duration'),

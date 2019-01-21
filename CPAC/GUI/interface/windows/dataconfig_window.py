@@ -557,17 +557,6 @@ class DataConfig(wx.Frame):
                     err.ShowModal()
                     err.Destroy()
                     return
-
-                if len(config_dict["functionalTemplate"][0]) == 0:
-                    err = wx.MessageDialog(self, "Custom data format "
-                                                 "selected, but no custom "
-                                                 "functional filepath "
-                                                 "template provided.",
-                                                 'Error!',
-                                                 wx.OK | wx.ICON_ERROR)
-                    err.ShowModal()
-                    err.Destroy()
-                    return
                 
         except Exception, e:
             errdlg = wx.MessageDialog(self, "Could not save your "
