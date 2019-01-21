@@ -1075,9 +1075,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                 as_module=True),
                                 name='convert_tr_%d' % num_strat)
 
-            workflow.connect(scan_params, 'tr',
-                            convert_tr, 'tr')
-
+        strat.update_resource_pool({
+            'raw_functional': (func_wf, 'outputspec.rest'),
+            'scan_id': (func_wf, 'outputspec.scan')
+        })
+  
             strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
             strat.update_resource_pool({
@@ -2540,11 +2542,10 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 workflow.connect(node, out_file,
                                 reho, 'inputspec.rest_mask')
 
-                strat.update_resource_pool({
-                    'reho': (reho, 'outputspec.raw_reho_map')
-                })
+    # TODO ASH normalize w schema val
+    if c.tsa_roi_paths:
 
-                strat.append_name(reho.name)
+        tsa_roi_dict = c.tsa_roi_paths[0]
 
                 create_log_node(
                     workflow, reho, 'outputspec.raw_reho_map', num_strat)
@@ -2740,21 +2741,18 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         'inputspec.spatial_map'
                     )
 
-                    workflow.connect(node2, out_file2,
-                                    spatial_map_timeseries_for_dr,
-                                    'inputspec.subject_mask')
+    if 1 in c.runROITimeseries and ("Avg" in ts_analysis_dict.keys() or \
+        "Avg" in sca_analysis_dict.keys() or \
+        "MultReg" in sca_analysis_dict.keys()):
 
-                    workflow.connect(node, out_file,
-                                    spatial_map_timeseries_for_dr,
-                                    'inputspec.subject_rest')
+        workflow.connect(node, out_file, spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
+        strat.append_name(spatial_map_timeseries_for_dr.name)
 
-                    strat.append_name(spatial_map_timeseries_for_dr.name)
-
-                    strat.update_resource_pool({
+        strat.update_resource_pool({
                         'spatial_map_timeseries_for_DR': (spatial_map_timeseries_for_dr, 'outputspec.subject_timeseries')
                     })
 
-                    create_log_node(workflow, spatial_map_timeseries_for_dr,
+        create_log_node(workflow, spatial_map_timeseries_for_dr,
                                     'outputspec.subject_timeseries', num_strat)
 
         strat_list += new_strat_list
@@ -2762,9 +2760,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
         # ROI Based Time Series
         new_strat_list = []
 
-        if "Avg" in ts_analysis_dict.keys() or \
-            "Avg" in sca_analysis_dict.keys() or \
-            "MultReg" in sca_analysis_dict.keys():
+        roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
+        roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2773,11 +2770,13 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                         name='resample_functional_to_roi_%d' % num_strat)
 
-                    resample_functional_to_roi.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                strat.append_name(roi_timeseries.name)
+                strat.update_resource_pool({
+                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
+                    'functional_to_roi': (resample_functional_to_roi, 'out_file')
+                })
+                create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
+                                num_strat)
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -2823,11 +2822,31 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         name='resample_functional_to_roi_for_sca_%d' % num_strat
                     )
 
-                    resample_functional_to_roi_for_sca.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                # resample the input functional file to roi
+                workflow.connect(node, out_file,
+                                 resample_functional_to_roi_for_sca,
+                                 'in_file')
+                workflow.connect(roi_dataflow_for_sca,
+                                 'outputspec.out_file',
+                                 resample_functional_to_roi_for_sca,
+                                 'reference')
+
+                # connect it to the roi_timeseries
+                workflow.connect(roi_dataflow_for_sca,
+                                 'outputspec.out_file',
+                                 roi_timeseries_for_sca, 'input_roi.roi')
+                workflow.connect(resample_functional_to_roi_for_sca,
+                                 'out_file',
+                                 roi_timeseries_for_sca, 'inputspec.rest')
+
+                strat.append_name(roi_timeseries_for_sca.name)
+                strat.update_resource_pool({
+                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs'),
+                    'functional_to_roi_for_SCA': (resample_functional_to_roi, 'out_file')
+
+                })
+                create_log_node(workflow, roi_timeseries_for_sca,
+                                'outputspec.roi_outputs', num_strat)
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
@@ -3294,7 +3313,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     strat = calc_avg(workflow, key, strat,
                                     num_strat, map_node=True)
 
-
     # Quality Control
     qc_montage_id_a = {}
     qc_montage_id_s = {}
@@ -3304,7 +3322,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
     if 1 in c.generateQualityControlImages:
         qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
             create_qc_workflow(workflow, c, strat_list, Outputs.qc)
-
 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
@@ -3431,7 +3448,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
             forkPointsDict[strat_list[x]] = forkNames[x]
 
         # DataSink
-
         sink_idx = 0
         pip_ids = []
 
@@ -3550,12 +3566,89 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 if "scrubbing_frames_excluded" in rp.keys():
                     del rp["scrubbing_frames_excluded"]
 
-            for key in sorted(rp.keys()):
+            ndmg_out = False
+            try:
+                # let's encapsulate this inside a Try..Except block so if
+                # someone doesn't have ndmg_outputs in their pipe config,
+                # it will default to the regular datasink
+                #     TODO: update this when we change to the optionals
+                #     TODO: only pipe config
+                if 1 in c.ndmg_mode:
+                    ndmg_out = True
+            except:
+                pass
 
+            if ndmg_out:
+                # create the graphs
+                from CPAC.utils.ndmg_utils import ndmg_roi_timeseries, \
+                    ndmg_create_graphs
+
+                atlases = []
+                if 'Avg' in ts_analysis_dict.keys():
+                    atlases = ts_analysis_dict['Avg']
+
+                roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
+                    'roi_dataflow_for_ndmg_%d' % num_strat
+                )
+
+                resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
+                                                     name='resample_functional_to_roi_ndmg_%d' % num_strat)
+                resample_functional_to_roi.inputs.set(
+                    interp='trilinear',
+                    apply_xfm=True,
+                    in_matrix_file=c.identityMatrix
+                )
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                 resample_functional_to_roi, 'reference')
+
+                ndmg_ts_imports = ['import os',
+                                   'import nibabel as nb',
+                                   'import numpy as np']
+                ndmg_ts = pe.Node(util.Function(input_names=['func_file',
+                                                                'label_file'],
+                                                   output_names=['roi_ts',
+                                                                 'rois',
+                                                                 'roits_file'],
+                                                   function=ndmg_roi_timeseries,
+                                                   imports=ndmg_ts_imports),
+                                     name='ndmg_ts')
+
+                node, out_file = strat['functional_to_standard']
+                workflow.connect(node, out_file, resample_functional_to_roi,
+                                 'in_file')
+                workflow.connect(resample_functional_to_roi, 'out_file',
+                                 ndmg_ts, 'func_file')
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                 ndmg_ts, 'label_file')
+
+                ndmg_graph_imports = ['import os',
+                                      'from CPAC.utils.ndmg_utils import graph']
+                ndmg_graph = pe.MapNode(util.Function(input_names=['ts',
+                                                                   'labels'],
+                                                      output_names=[
+                                                          'out_file'],
+                                                      function=ndmg_create_graphs,
+                                                      imports=ndmg_graph_imports),
+                                        name='ndmg_graphs',
+                                        iterfield=['labels'])
+
+                workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                 ndmg_graph, 'labels')
+
+                strat.update_resource_pool({
+                    'ndmg_ts': (ndmg_ts, 'roits_file'),
+                    'ndmg_graph': (ndmg_graph, 'out_file')
+                })
+
+                rp = strat.get_resource_pool()
+
+            for key in sorted(rp.keys()):
+              
                 if not key.startswith('qc___') and key not in Outputs.any:
                     continue
 
-                if key not in Outputs.override_optional:
+                if key not in Outputs.override_optional and not ndmg_out:
 
                     if 1 not in c.write_func_outputs:
                         if key in Outputs.extra_functional:
@@ -3585,50 +3678,170 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 key in Outputs.template_nonsmooth_mult:
                             continue
 
-                ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-                ds.inputs.base_directory = c.outputDirectory
-                ds.inputs.creds_path = creds_path
-                ds.inputs.encrypt_bucket_keys = encrypt_data
-                ds.inputs.container = os.path.join(
-                    'pipeline_%s' % pipeline_id, subject_id)
-                ds.inputs.regexp_substitutions = [
-                    (r"/_sca_roi(.)*[/]", '/'),
-                    (r"/_smooth_centrality_(\d)+[/]", '/'),
-                    (r"/_z_score(\d)+[/]", "/"),
-                    (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                    (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                    (r"/qc___", '/qc/')
-                ]
+                if ndmg_out:
+                    ds = pe.Node(nio.DataSink(),
+                                 name='sinker_{0}'.format(sink_idx))
+                    ds.inputs.base_directory = c.outputDirectory
+                    ds.inputs.creds_path = creds_path
+                    ds.inputs.encrypt_bucket_keys = encrypt_data
+                    ds.inputs.parameterization = True
+                    ds.inputs.regexp_substitutions = [('_rename_(.)*/', ''),
+                                                      ('_scan_', 'scan-'),
+                                                      ('/_mask_', '/roi-'),
+                                                      ('file_s3(.)*/', ''),
+                                                      ('ndmg_atlases', ''),
+                                                      ('func_atlases', ''),
+                                                      ('label', ''),
+                                                      ('res-.+\/', ''),
+                                                      ('_mask_.+\/', '_'),
+                                                      ('mask_sub-', 'sub-'),
+                                                      ('/_compcor_ncomponents_', '_nuis-'),
+                                                      ('_selector_pc', ''),
+                                                      ('.linear', ''),
+                                                      ('.wm', ''),
+                                                      ('.global', ''),
+                                                      ('.motion', ''),
+                                                      ('.quadratic', ''),
+                                                      ('.gm', ''),
+                                                      ('.compcor', ''),
+                                                      ('.csf', ''),
+                                                      ('(\.\.)', '')]
 
-                node, out_file = rp[key]
-                workflow.connect(node, out_file, ds, key)
+                    container = 'pipeline_{0}'.format(pipeline_id)
 
-                link_node = pe.Node(
-                    interface=function.Function(
-                        input_names=['in_file', 'strategies',
-                                     'subject_id', 'pipeline_id', 'helper',
-                                     'create_sym_links'],
-                        output_names=[],
-                        function=process_outputs,
-                        as_module=True),
-                    name='process_outputs_%d' % sink_idx
-                )
+                    sub_ses_id = subject_id.split('_')
 
-                link_node.inputs.strategies = strategies
-                link_node.inputs.subject_id = subject_id
-                link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
-                link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+                    if 'sub-' not in sub_ses_id[0]:
+                        sub_tag = 'sub-{0}'.format(sub_ses_id[0])
+                    else:
+                        sub_tag = sub_ses_id[0]
 
-                # TODO ASH enforce boolean with schema validation
-                if 1 in c.runSymbolicLinks:
-                    link_node.inputs.create_sym_links = True
+                    if 'ses-' not in sub_ses_id[1]:
+                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                    else:                    
+                        ses_tag = sub_ses_id[1]
+
+                    id_tag = '_'.join([sub_tag, ses_tag])
+
+                    anat_template_tag = 'standard'
+                    func_template_tag = 'standard'
+
+                    try:
+                        if 'FSL' in c.regOption and 'ANTS' not in c.regOption:
+                            if 'MNI152' in c.fnirtConfig:
+                                anat_template_tag = 'MNI152'
+                                func_template_tag = 'MNI152'
+                    except:
+                        pass
+
+                    anat_res_tag = c.resolution_for_anat
+                    anat_res_tag = anat_res_tag.replace('mm', '')
+                    func_res_tag = c.resolution_for_func_preproc
+                    func_res_tag = func_res_tag.replace('mm', '')
+
+                    ndmg_key_dct = {'anatomical_brain':
+                                        ('anat', 'preproc',
+                                         '{0}_T1w_preproc_brain'.format(id_tag)),
+                                    'anatomical_to_standard':
+                                        ('anat', 'registered',
+                                         '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, anat_template_tag, anat_res_tag)),
+                                    'functional_preprocessed':
+                                        ('func', 'preproc',
+                                         '{0}_bold_preproc'.format(id_tag)),
+                                    'functional_nuisance_residuals':
+                                        ('func', 'clean',
+                                         '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, func_template_tag, func_res_tag)),
+                                    'functional_to_standard':
+                                        ('func', 'registered',
+                                         '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'.format(
+                                             id_tag, func_template_tag,
+                                             func_res_tag)),
+                                    'functional_mask_to_standard':
+                                        ('func', 'registered',
+                                         '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'.format(
+                                             id_tag, func_template_tag,
+                                             func_res_tag)),
+                                    'ndmg_ts':
+                                        ('func', 'roi-timeseries',
+                                         '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
+                                             id_tag, func_res_tag)),
+                                    'ndmg_graph':
+                                        ('func', 'roi-connectomes',
+                                         '{0}_bold_res-{1}x{1}x{1}_measure-correlation'.format(
+                                             id_tag, func_res_tag))
+                                    }
+
+                    if key not in ndmg_key_dct.keys():
+                        continue
+
+                    ds.inputs.container = '{0}/{1}'.format(container,
+                                                           ndmg_key_dct[key][0])
+                    node, out_file = rp[key]
+
+                    # rename the file
+                    if 'roi_' in key or 'ndmg_graph' in key:
+                        rename_file = pe.MapNode(interface=util.Rename(),
+                                                 name='rename_{0}'.format(sink_idx),
+                                                 iterfield=['in_file'])
+                    else:
+                        rename_file = pe.Node(interface=util.Rename(),
+                                              name='rename_{0}'.format(sink_idx))
+                    rename_file.inputs.keep_ext = True
+                    rename_file.inputs.format_string = ndmg_key_dct[key][2]
+
+                    workflow.connect(node, out_file,
+                                     rename_file, 'in_file')
+                    workflow.connect(rename_file, 'out_file',
+                                     ds, ndmg_key_dct[key][1])
+
+                    sink_idx += 1
+
                 else:
-                    link_node.inputs.create_sym_links = False
+                    # regular datasink
+                    ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
+                    ds.inputs.base_directory = c.outputDirectory
+                    ds.inputs.creds_path = creds_path
+                    ds.inputs.encrypt_bucket_keys = encrypt_data
+                    ds.inputs.container = os.path.join(
+                        'pipeline_%s' % pipeline_id, subject_id)
+                    ds.inputs.regexp_substitutions = [
+                        (r"/_sca_roi(.)*[/]", '/'),
+                        (r"/_smooth_centrality_(\d)+[/]", '/'),
+                        (r"/_z_score(\d)+[/]", "/"),
+                        (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                        (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                        (r"/qc___", '/qc/')
+                    ]
 
-                workflow.connect(ds, 'out_file', link_node, 'in_file')
+                    node, out_file = rp[key]
+                    workflow.connect(node, out_file, ds, key)
 
-                sink_idx += 1
-                logger.debug('sink index: %s' % sink_idx)
+                    link_node = pe.Node(
+                        interface=function.Function(
+                            input_names=['in_file', 'strategies',
+                                         'subject_id', 'pipeline_id',
+                                         'helper', 'create_sym_links'],
+                            output_names=[],
+                            function=process_outputs,
+                            as_module=True),
+                        name='process_outputs_%d' % sink_idx
+                    )
+
+                    link_node.inputs.strategies = strategies
+                    link_node.inputs.subject_id = subject_id
+                    link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
+                    link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+
+                    # TODO ASH enforce boolean with schema validation
+                    if 1 in c.runSymbolicLinks:
+                        link_node.inputs.create_sym_links = True
+                    else:
+                        link_node.inputs.create_sym_links = False
+
+                    workflow.connect(ds, 'out_file', link_node, 'in_file')
+
+                    sink_idx += 1
+                    logger.debug('sink index: %s' % sink_idx)
 
             try:
                 G = nx.DiGraph()
@@ -3719,7 +3932,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
             for scan in scan_ids:
                 create_log_node(workflow, None, None, i, scan).run()
 
-        if 1 in c.generateQualityControlImages:
+        if 1 in c.generateQualityControlImages and not ndmg_out:
             for pip_id in pip_ids:
                 pipeline_base = os.path.join(c.outputDirectory,
                                              'pipeline_%s' % pip_id)

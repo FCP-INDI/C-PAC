@@ -164,6 +164,9 @@ parser.add_argument('--bids_validator_config', help='JSON file specifying config
 parser.add_argument('--skip_bids_validator',
                     help='skips bids validation',
                     action='store_true')
+parser.add_argument('--ndmg_mode', help='produce ndmg connectome graphs and '
+                    'write out in the ndmg output format',
+                    action='store_true')
 
 # get the command line arguments
 args = parser.parse_args()
@@ -205,6 +208,16 @@ elif args.bids_dir.lower().startswith("s3://"):
 else:
     print("\nRunning BIDS validator")
     run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
+
+if args.ndmg_mode:
+    print('\nRunning ndmg mode')
+    import os
+    import pkg_resources as p
+    args.pipeline_file = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs",
+                                         "pipeline_config_ndmg.yml"))
 
 # otherwise, if we are running group, participant, or dry run we
 # begin by conforming the configuration

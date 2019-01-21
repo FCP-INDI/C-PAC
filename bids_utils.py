@@ -356,8 +356,8 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                                 f_dict)
                 if not t_params:
                     print f_dict
-                    raise IOError("Did not receive any parameters for %s," % (p) +
-                                  " is this a problem?")
+                    print("Did not receive any parameters for %s," % (p) +
+                          " is this a problem?")
 
                 task_info = {"scan": os.path.join(bids_dir,p),
                              "scan_parameters": t_params.copy()}
