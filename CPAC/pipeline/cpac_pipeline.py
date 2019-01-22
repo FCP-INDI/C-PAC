@@ -2767,6 +2767,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                         name='resample_functional_to_roi_%d' % num_strat)
 
+                    resample_functional_to_roi.inputs.set(
+                        interp='trilinear',
+                        apply_xfm=True,
+                        in_matrix_file=c.identityMatrix
+                    )
+
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
                         'roi_dataflow_%d' % num_strat
@@ -2811,6 +2817,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     resample_functional_to_roi_for_sca = pe.Node(
                         interface=fsl.FLIRT(),
                         name='resample_functional_to_roi_for_sca_%d' % num_strat
+                    )
+
+                    resample_functional_to_roi_for_sca.inputs.set(
+                        interp='trilinear',
+                        apply_xfm=True,
+                        in_matrix_file=c.identityMatrix
                     )
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
