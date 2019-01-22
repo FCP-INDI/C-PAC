@@ -49,7 +49,8 @@ def gui():
 @main.command()
 @click.argument('data_config')
 @click.option('--pipe_config')
-def run(data_config, pipe_config=None):
+@click.option('--num_cores')
+def run(data_config, pipe_config=None, num_cores=None):
     if not pipe_config:
         import os
         import pkg_resources as p
@@ -120,7 +121,7 @@ def run(data_config, pipe_config=None):
                                              "data_config_S3-BIDS-NKI-RocklandSample.yml"))
 
     import CPAC.pipeline.cpac_runner as cpac_runner
-    cpac_runner.run(pipe_config, data_config)
+    cpac_runner.run(pipe_config, data_config, num_cores)
 
 
 # Group analysis
