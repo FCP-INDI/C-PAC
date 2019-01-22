@@ -2737,21 +2737,26 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         'inputspec.spatial_map'
                     )
 
+                    workflow.connect(node, out_file,
+                                     spatial_map_timeseries_for_dr,
+                                     'inputspec.subject_rest')
+                    strat.append_name(spatial_map_timeseries_for_dr.name)
+
+                    strat.update_resource_pool({
+                        'spatial_map_timeseries_for_DR': (
+                        spatial_map_timeseries_for_dr,
+                        'outputspec.subject_timeseries')
+                    })
+
+                    create_log_node(workflow, spatial_map_timeseries_for_dr,
+                                    'outputspec.subject_timeseries',
+                                    num_strat)
+
+        strat_list += new_strat_list
+
         if 1 in c.runROITimeseries and ("Avg" in ts_analysis_dict.keys() or \
             "Avg" in sca_analysis_dict.keys() or \
             "MultReg" in sca_analysis_dict.keys()):
-
-            workflow.connect(node, out_file, spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
-            strat.append_name(spatial_map_timeseries_for_dr.name)
-
-            strat.update_resource_pool({
-                            'spatial_map_timeseries_for_DR': (spatial_map_timeseries_for_dr, 'outputspec.subject_timeseries')
-                        })
-
-            create_log_node(workflow, spatial_map_timeseries_for_dr,
-                                        'outputspec.subject_timeseries', num_strat)
-
-            strat_list += new_strat_list
 
             # ROI Based Time Series
             new_strat_list = []
