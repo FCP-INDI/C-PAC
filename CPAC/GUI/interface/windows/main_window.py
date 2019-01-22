@@ -13,6 +13,7 @@ import yaml
 
 # Init constants
 ID_NEW = 1
+ID_GROUP = 12
 ID_RENAME = 2
 ID_CLEAR = 3
 ID_DELETE = 4
@@ -35,7 +36,8 @@ class ListBox(wx.Frame):
         import CPAC
         
         self.CreateStatusBar()
-        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.__version__)
+        self.SetStatusText("The Configurable Pipeline for the Analysis of "
+                           "Connectomes (C-PAC) v" + CPAC.__version__)
     
         self.pipeline_map = {}
         self.sublist_map= {}
@@ -82,6 +84,8 @@ class ListBox(wx.Frame):
         lboxPanel1.SetBackgroundColour('#E9E3DB')
         
         new = wx.Button(btnPanel1, ID_NEW, 'New', size=(90, 30))
+        group = wx.Button(btnPanel1, ID_GROUP, 'New Group',
+                          size=(90, 30))
         ren = wx.Button(btnPanel1, ID_RENAME, 'Rename', size=(90, 30))
         dlt = wx.Button(btnPanel1, ID_DELETE, 'Delete', size=(90, 30))
         load = wx.Button(btnPanel1, ID_LOAD, 'Load', size=(90,30))
@@ -90,6 +94,7 @@ class ListBox(wx.Frame):
         clr = wx.Button(btnPanel1, ID_CLEAR, 'Clear', size=(90, 30))
     
         self.Bind(wx.EVT_BUTTON, self.NewItem, id=ID_NEW)
+        self.Bind(wx.EVT_BUTTON, self.NewGroup, id=ID_GROUP)
         self.Bind(wx.EVT_BUTTON, self.OnRename, id=ID_RENAME)
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=ID_DELETE)
         self.Bind(wx.EVT_BUTTON, self.AddConfig, id=ID_LOAD)
@@ -105,6 +110,7 @@ class ListBox(wx.Frame):
             btnSizer1.Add((-1, 27))
         
         btnSizer1.Add(new, 0, wx.TOP)
+        btnSizer1.Add(group, 0, wx.TOP)
         btnSizer1.Add(load, 0, wx.TOP)
         btnSizer1.Add(edit, 0, wx.TOP)
         btnSizer1.Add(shw, 0, wx.TOP)
@@ -192,11 +198,11 @@ class ListBox(wx.Frame):
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
 
         self.openPresets = wx.Button(outerPanel3, -1,
-                                   'Generate FSL-FEAT Presets')
+                                     'Generate FSL-FEAT Presets')
         self.openPresets.Bind(wx.EVT_BUTTON, self.openFSLPresets)
 
         self.buildModels = wx.Button(outerPanel3, -1,
-                                    'Build FSL-FEAT Models')
+                                     'Build FSL-FEAT Models')
         self.buildModels.Bind(wx.EVT_BUTTON, self.buildFSLModels)
 
         outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 12)
@@ -413,6 +419,10 @@ class ListBox(wx.Frame):
     def NewItem(self, event):
         MainFrame(self, "load", path=p.resource_filename('CPAC', 'resources/configs/pipeline_config_template.yml'))
 
+    def NewGroup(self, event):
+        MainFrame(self, "load", path=p.resource_filename('CPAC', 'resources/configs/group_config_template.yml'),
+                  ind=False)
+
     def OnRename(self, event):
         sel = self.listbox.GetSelection()
         if sel!= -1:
@@ -464,8 +474,21 @@ class ListBox(wx.Frame):
             path = self.get_pipeline_path(text)
             
             if os.path.exists(path):
+                import yaml
+                with open(path, 'r') as f:
+                    config = yaml.load(f)
+
+                if 'pipelineName' in config.keys():
+                    ind = True
+                elif 'pipeline_dir' in config.keys():
+                    ind = False
+                else:
+                    raise Exception('[!] This is not a C-PAC configuration '
+                                    'file.')
+
                 # open the pipeline_config editor window
-                MainFrame(self, option="edit", path=path, pipeline_id=text)
+                MainFrame(self, option="edit", path=path, pipeline_id=text,
+                          ind=ind)
             else:
                 print "Couldn't find the config file %s "%path
      

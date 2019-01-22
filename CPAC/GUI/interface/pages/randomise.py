@@ -25,7 +25,7 @@ class RandomiseSettings(wx.ScrolledWindow):
                 
         self.counter = counter
         
-        self.page = GenericClass(self, "Randomise")
+        self.page = GenericClass(self, " FSL-Randomise Settings")
         
         self.page.add(label="Run Randomise ", 
                       control=control.CHOICE_BOX, 
@@ -40,7 +40,9 @@ class RandomiseSettings(wx.ScrolledWindow):
                       name='randomise_permutation',
                       type=dtype.NUM,
                       values=500,
-                      comment="Number of permutations you would like randomise to run the data.")
+                      comment="Number of permutations you would like to use "
+                              "when building up the null distribution to "
+                              "test against.")
 
         self.page.add(label="Threshold ",
                       control=control.INT_CTRL,

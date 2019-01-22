@@ -70,121 +70,129 @@ def gen_checkboxgrid_config_string(label, value):
 
 class Mybook(wx.Treebook):
 
-    def __init__(self, parent):
+    def __init__(self, parent, ind=True):
         wx.Treebook.__init__(self, parent, wx.ID_ANY, style=
                              wx.BK_DEFAULT)
         self.page_list = []
 
         # create the page windows as children of the notebook
-        page1 = Settings(self)
-        page2 = ComputerSettings(self)
-        page3 = DirectorySettings(self)
 
-        page4 = SkullStripProcessing(self)
-        page5 = SkullStripOptions(self)
-        page6 = AFNI_options(self)
-        page7 = BET_options(self)
+        if ind:
+            page1 = Settings(self)
+            page2 = ComputerSettings(self)
+            page3 = DirectorySettings(self)
 
-        page8 = AnatomicalPreprocessing(self)
-        page9 = Registration(self, 1)
-        page10 = Segmentation(self, 2)
+            page4 = SkullStripProcessing(self)
+            page5 = SkullStripOptions(self)
+            page6 = AFNI_options(self)
+            page7 = BET_options(self)
 
-        page11 = FunctionalPreProcessing(self)
-        page12 = TimeSeriesOptions(self)
-        page13 = EPI_DistCorr(self)
-        page14 = AnatToFuncRegistration(self, 5)
-        page15 = FuncToMNIRegistration(self, 6)
+            page8 = AnatomicalPreprocessing(self)
+            page9 = Registration(self, 1)
+            page10 = Segmentation(self, 2)
 
-        page16= Nuisance(self)
-        ica_aroma = AromaSettings(self)
-        page17= NuisanceRegression(self, 7)
-        page18= MedianAngleCorrection(self, 8)
+            page11 = FunctionalPreProcessing(self)
+            page12 = TimeSeriesOptions(self)
+            page13 = EPI_DistCorr(self)
+            page14 = AnatToFuncRegistration(self, 5)
+            page15 = FuncToMNIRegistration(self, 6)
 
-        page19 = FilteringSettings(self, 9)
+            page16= Nuisance(self)
+            ica_aroma = AromaSettings(self)
+            page17= NuisanceRegression(self, 7)
+            page18= MedianAngleCorrection(self, 8)
 
-        page20 = TimeSeries(self)
-        page22 = ROITimeseries(self)
-        
-        page27 = SCA(self)
-        page28 = SCASettings(self)
+            page19 = FilteringSettings(self, 9)
 
-        page31 = VMHC(self)
-        page32 = VMHCSettings(self)
+            page20 = TimeSeries(self)
+            page22 = ROITimeseries(self)
 
-        page33 = ALFF(self)
-        page34 = ALFFSettings(self)
+            page27 = SCA(self)
+            page28 = SCASettings(self)
 
-        page35 = ReHo(self)
-        page36 = ReHoSettings(self)
+            page31 = VMHC(self)
+            page32 = VMHCSettings(self)
 
-        page37 = Centrality(self)
-        page38 = CentralitySettings(self)
-        
-        page39 = AfterWarping(self)
-        page40 = AfterWarpingOptions(self)
+            page33 = ALFF(self)
+            page34 = ALFFSettings(self)
 
-        page45 = GroupAnalysis(self)
-        page46 = GeneralGA(self)
-        page47 = GPASettings(self)
-        page48 = RandomiseSettings(self)
-        page49 = BASCSettings(self)
-        page50 = MDMRSettings(self)
-        page51 = ISCSettings(self)
-        
-        # add the pages to the notebook with the label to show on the tab
-        self.AddPage(page1, "Environment Setup", wx.ID_ANY)
-        self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
-        self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
+            page35 = ReHo(self)
+            page36 = ReHoSettings(self)
 
-        self.AddPage(page4,"Skull-Strip", wx.ID_ANY)
-        self.AddSubPage(page5,"Skull-Stripping ", wx.ID_ANY)
-        self.AddSubPage(page6, "3dSkullStrip options", wx.ID_ANY)
-        self.AddSubPage(page7,"FSL BET options", wx.ID_ANY)
+            page37 = Centrality(self)
+            page38 = CentralitySettings(self)
 
-        self.AddPage(page8, "Anatomical Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page9, "Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page10, "Tissue Segmentation", wx.ID_ANY)
-        self.AddPage(page11, "Functional Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page12, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(page13, "Distortion Correction", wx.ID_ANY)
-        self.AddSubPage(page14,"Functional to Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page15,"Functional to MNI Registration", wx.ID_ANY)
+            page39 = AfterWarping(self)
+            page40 = AfterWarpingOptions(self)
 
-        self.AddPage(page16,"Nuisance", wx.ID_ANY)
-        self.AddSubPage(ica_aroma, "ICA-AROMA De-noising", wx.ID_ANY)
-        self.AddSubPage(page17,"Nuisance Regression", wx.ID_ANY)
-        self.AddSubPage(page18,"Median Angle Correction", wx.ID_ANY)
+            # add the pages to the notebook with the label to show on the tab
+            self.AddPage(page1, "Environment Setup", wx.ID_ANY)
+            self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
+            self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
 
-        self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
+            self.AddPage(page4, "Skull-Strip", wx.ID_ANY)
+            self.AddSubPage(page5, "Skull-Stripping ", wx.ID_ANY)
+            self.AddSubPage(page6, "3dSkullStrip options", wx.ID_ANY)
+            self.AddSubPage(page7, "FSL BET options", wx.ID_ANY)
 
-        self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
-        self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-        
-        self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
-        self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
+            self.AddPage(page8, "Anatomical Preprocessing", wx.ID_ANY)
+            self.AddSubPage(page9, "Anatomical Registration", wx.ID_ANY)
+            self.AddSubPage(page10, "Tissue Segmentation", wx.ID_ANY)
+            self.AddPage(page11, "Functional Preprocessing", wx.ID_ANY)
+            self.AddSubPage(page12, "Time Series Options", wx.ID_ANY)
+            self.AddSubPage(page13, "Distortion Correction", wx.ID_ANY)
+            self.AddSubPage(page14, "Functional to Anatomical Registration",
+                            wx.ID_ANY)
+            self.AddSubPage(page15, "Functional to MNI Registration",
+                            wx.ID_ANY)
 
-        self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity", wx.ID_ANY)
-        self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
+            self.AddPage(page16, "Nuisance", wx.ID_ANY)
+            self.AddSubPage(ica_aroma, "ICA-AROMA De-noising", wx.ID_ANY)
+            self.AddSubPage(page17, "Nuisance Regression", wx.ID_ANY)
+            self.AddSubPage(page18, "Median Angle Correction", wx.ID_ANY)
 
-        self.AddPage(page33, "ALFF and f/ALFF", wx.ID_ANY)
-        self.AddSubPage(page34, "ALFF and f/ALFF Options", wx.ID_ANY)
+            self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
 
-        self.AddPage(page35, "Regional Homogeneity (ReHo)", wx.ID_ANY)
-        self.AddSubPage(page36, "ReHo Options", wx.ID_ANY)
+            self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
+            self.AddSubPage(page22, "Region-of-Interest TSE Options",
+                            wx.ID_ANY)
 
-        self.AddPage(page37, "Network Centrality", wx.ID_ANY)
-        self.AddSubPage(page38, "Network Centrality Options", wx.ID_ANY)
-        
-        self.AddPage(page39, "After Warping", wx.ID_ANY)
-        self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
+            self.AddPage(page27, "Seed-based Correlation Analysis (SCA)",
+                         wx.ID_ANY)
+            self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
 
-        self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
-        self.AddSubPage(page46, "General Settings", wx.ID_ANY)
-        self.AddSubPage(page47, "FSL FEAT Settings", wx.ID_ANY)
-        self.AddSubPage(page48, "FSL Randomise Settings", wx.ID_ANY)
-        self.AddSubPage(page49, "PyBASC Settings", wx.ID_ANY)
-        self.AddSubPage(page50, "MDMR Settings", wx.ID_ANY)
-        self.AddSubPage(page51, "ISC Settings", wx.ID_ANY)
+            self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity",
+                         wx.ID_ANY)
+            self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
+
+            self.AddPage(page33, "ALFF and f/ALFF", wx.ID_ANY)
+            self.AddSubPage(page34, "ALFF and f/ALFF Options", wx.ID_ANY)
+
+            self.AddPage(page35, "Regional Homogeneity (ReHo)", wx.ID_ANY)
+            self.AddSubPage(page36, "ReHo Options", wx.ID_ANY)
+
+            self.AddPage(page37, "Network Centrality", wx.ID_ANY)
+            self.AddSubPage(page38, "Network Centrality Options", wx.ID_ANY)
+
+            self.AddPage(page39, "After Warping", wx.ID_ANY)
+            self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
+
+        else:
+            page45 = GroupAnalysis(self)
+            page46 = GeneralGA(self)
+            page47 = GPASettings(self)
+            page48 = RandomiseSettings(self)
+            page49 = BASCSettings(self)
+            page50 = MDMRSettings(self)
+            page51 = ISCSettings(self)
+
+            self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
+            self.AddSubPage(page46, "General Settings", wx.ID_ANY)
+            self.AddSubPage(page47, "FSL FEAT Settings", wx.ID_ANY)
+            self.AddSubPage(page48, "FSL Randomise Settings", wx.ID_ANY)
+            self.AddSubPage(page49, "PyBASC Settings", wx.ID_ANY)
+            self.AddSubPage(page50, "MDMR Settings", wx.ID_ANY)
+            self.AddSubPage(page51, "ISC Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -221,14 +229,17 @@ class Mybook(wx.Treebook):
 
 class MainFrame(wx.Frame):
 
-    def __init__(self, parent, option='save', path="", pipeline_id=""):
+    def __init__(self, parent, option='save', path="", pipeline_id="",
+                 ind=True):
         wx.Frame.__init__(
             self, parent=parent, title="CPAC Pipeline Configuration",
             size=(1200, 520))
 
+        self.ind = ind
+
         # Here we create a panel and a notebook on the panel
         self.p = wx.Panel(self)
-        self.nb = Mybook(self.p)
+        self.nb = Mybook(self.p, ind=ind)
         self.path = path
         self.pipeline_id = pipeline_id
         self.option = option
@@ -241,11 +252,13 @@ class MainFrame(wx.Frame):
             (280, 10), wx.DefaultSize, 0)
         hbox.Add(submit, 0.6, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.submit_item, id=wx.ID_SAVE)
-        
-        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",
-            (350, 10), wx.DefaultSize, 0)
-        hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
+
+        if ind:
+            testConfig = wx.Button(btnPanel, wx.ID_PREVIEW,
+                                   "Test Configuration", (350, 10),
+                                   wx.DefaultSize, 0)
+            hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+            self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
         
         cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel",
             (220, 10), wx.DefaultSize, 0)
@@ -310,9 +323,14 @@ class MainFrame(wx.Frame):
 
         # repopulate the model setup checkbox grid, since this has to be
         # done specially
+        pheno_exists = False
         if 'pheno_file' in config_file_map.keys():
-            phenoFile = open(os.path.abspath(config_file_map['pheno_file']))
-            self.get_pheno_header(phenoFile)
+            if config_file_map['pheno_file']:
+                if os.path.isfile(config_file_map['pheno_file']):
+                    pheno_exists = True
+                    phenoFile = open(
+                        os.path.abspath(config_file_map['pheno_file']))
+                    self.get_pheno_header(phenoFile)
 
         for page in self.nb.get_page_list():
             ctrl_list = page.page.get_ctrl_list()
@@ -328,8 +346,9 @@ class MainFrame(wx.Frame):
                     # update the 'Model Setup' box and populate it with the 
                     # EVs and their associated checkboxes for categorical 
                     # and demean
-                    ctrl.set_value(self.phenoHeaderItems)
-                    ctrl.set_selection(config_file_map['ev_selections'])
+                    if pheno_exists:
+                        ctrl.set_value(self.phenoHeaderItems)
+                        ctrl.set_selection(config_file_map['ev_selections'])
 
                 if val:
                     if ("list" in name) and (name != "participant_list") and ('basc' not in name):
@@ -1032,6 +1051,9 @@ class MainFrame(wx.Frame):
                 config_list.append(ctrl)
 
         # Get the user's CPAC pipeline name for use in this script
+        # ....or the pipeline directory for group configs
+        pipeline_name = None
+        pipeline_dir = None
         for config in config_list:
             if config.get_name() == 'pipelineName':
                 pipeline_name = config.get_selection()
@@ -1043,10 +1065,32 @@ class MainFrame(wx.Frame):
                     noNameDlg.ShowModal()
                     noNameDlg.Destroy()
                     return
+            if config.get_name() == 'pipeline_dir':
+                pipeline_dir = config.get_selection()
+                if len(pipeline_dir) == 0:
+                    noNameDlg = wx.MessageDialog(
+                        self, 'Please enter a pipeline directory.',
+                        'Error!',
+                        wx.OK | wx.ICON_ERROR)
+                    noNameDlg.ShowModal()
+                    noNameDlg.Destroy()
+                    return
 
-        dlg = wx.FileDialog(
-            self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
-            defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
+        if self.ind:
+            dlg = wx.FileDialog(
+                self, message="Save CPAC configuration file as ...",
+                defaultDir=os.getcwd(),
+                defaultFile=("pipeline_config_{0}".format(pipeline_name)),
+                wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+                style=wx.SAVE)
+        elif not self.ind and pipeline_dir:
+            pipeline_name = pipeline_dir.rstrip('/').split('/')[-1]
+            dlg = wx.FileDialog(
+                self, message="Save CPAC configuration file as ...",
+                defaultDir=os.getcwd(),
+                defaultFile=("group_config_{0}".format(pipeline_name)),
+                wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+                style=wx.SAVE)
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
