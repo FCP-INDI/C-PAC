@@ -2762,42 +2762,42 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                         name='resample_functional_to_roi_%d' % num_strat)
 
-                roi_dataflow = create_roi_mask_dataflow(
-                    ts_analysis_dict["Avg"],
-                    'roi_dataflow_%d' % num_strat
-                )
+                    roi_dataflow = create_roi_mask_dataflow(
+                        ts_analysis_dict["Avg"],
+                        'roi_dataflow_%d' % num_strat
+                    )
 
-                roi_dataflow.inputs.inputspec.set(
-                    creds_path=input_creds_path,
-                    dl_dir=c.workingDirectory
-                )
+                    roi_dataflow.inputs.inputspec.set(
+                        creds_path=input_creds_path,
+                        dl_dir=c.workingDirectory
+                    )
 
-                roi_timeseries = get_roi_timeseries(
-                    'roi_timeseries_%d' % num_strat
-                )
-                roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
+                    roi_timeseries = get_roi_timeseries(
+                        'roi_timeseries_%d' % num_strat
+                    )
+                    roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
-                node, out_file = strat['functional_to_standard']
+                    node, out_file = strat['functional_to_standard']
 
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                 resample_functional_to_roi, 'in_file')
-                workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                 resample_functional_to_roi, 'reference')
+                    # resample the input functional file to roi
+                    workflow.connect(node, out_file,
+                                     resample_functional_to_roi, 'in_file')
+                    workflow.connect(roi_dataflow, 'outputspec.out_file',
+                                     resample_functional_to_roi, 'reference')
 
-                # connect it to the roi_timeseries
-                workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                 roi_timeseries, 'input_roi.roi')
-                workflow.connect(resample_functional_to_roi, 'out_file',
-                                 roi_timeseries, 'inputspec.rest')
+                    # connect it to the roi_timeseries
+                    workflow.connect(roi_dataflow, 'outputspec.out_file',
+                                     roi_timeseries, 'input_roi.roi')
+                    workflow.connect(resample_functional_to_roi, 'out_file',
+                                     roi_timeseries, 'inputspec.rest')
 
-                strat.append_name(roi_timeseries.name)
-                strat.update_resource_pool({
-                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
-                    'functional_to_roi': (resample_functional_to_roi, 'out_file')
-                })
-                create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
-                                num_strat)
+                    strat.append_name(roi_timeseries.name)
+                    strat.update_resource_pool({
+                        'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
+                        'functional_to_roi': (resample_functional_to_roi, 'out_file')
+                    })
+                    create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
+                                    num_strat)
 
                 if "Avg" in sca_analysis_dict.keys():
 
@@ -2808,71 +2808,71 @@ Maximum potential number of cores that might be used during this run: {max_cores
                         name='resample_functional_to_roi_for_sca_%d' % num_strat
                     )
 
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                 resample_functional_to_roi_for_sca,
-                                 'in_file')
-                workflow.connect(roi_dataflow_for_sca,
-                                 'outputspec.out_file',
-                                 resample_functional_to_roi_for_sca,
-                                 'reference')
+                    # resample the input functional file to roi
+                    workflow.connect(node, out_file,
+                                     resample_functional_to_roi_for_sca,
+                                     'in_file')
+                    workflow.connect(roi_dataflow_for_sca,
+                                     'outputspec.out_file',
+                                     resample_functional_to_roi_for_sca,
+                                     'reference')
 
-                # connect it to the roi_timeseries
-                workflow.connect(roi_dataflow_for_sca,
-                                 'outputspec.out_file',
-                                 roi_timeseries_for_sca, 'input_roi.roi')
-                workflow.connect(resample_functional_to_roi_for_sca,
-                                 'out_file',
-                                 roi_timeseries_for_sca, 'inputspec.rest')
+                    # connect it to the roi_timeseries
+                    workflow.connect(roi_dataflow_for_sca,
+                                     'outputspec.out_file',
+                                     roi_timeseries_for_sca, 'input_roi.roi')
+                    workflow.connect(resample_functional_to_roi_for_sca,
+                                     'out_file',
+                                     roi_timeseries_for_sca, 'inputspec.rest')
 
-                strat.append_name(roi_timeseries_for_sca.name)
-                strat.update_resource_pool({
-                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs'),
-                    'functional_to_roi_for_SCA': (resample_functional_to_roi, 'out_file')
+                    strat.append_name(roi_timeseries_for_sca.name)
+                    strat.update_resource_pool({
+                        'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs'),
+                        'functional_to_roi_for_SCA': (resample_functional_to_roi, 'out_file')
 
-                })
-                create_log_node(workflow, roi_timeseries_for_sca,
-                                'outputspec.roi_outputs', num_strat)
+                    })
+                    create_log_node(workflow, roi_timeseries_for_sca,
+                                    'outputspec.roi_outputs', num_strat)
 
-                roi_dataflow_for_sca = create_roi_mask_dataflow(
-                    sca_analysis_dict["Avg"],
-                    'roi_dataflow_for_sca_%d' % num_strat
-                )
+                    roi_dataflow_for_sca = create_roi_mask_dataflow(
+                        sca_analysis_dict["Avg"],
+                        'roi_dataflow_for_sca_%d' % num_strat
+                    )
 
-                roi_dataflow_for_sca.inputs.inputspec.set(
-                    creds_path=input_creds_path,
-                    dl_dir=c.workingDirectory
-                )
+                    roi_dataflow_for_sca.inputs.inputspec.set(
+                        creds_path=input_creds_path,
+                        dl_dir=c.workingDirectory
+                    )
 
-                roi_timeseries_for_sca = get_roi_timeseries(
-                    'roi_timeseries_for_sca_%d' % num_strat
-                )
+                    roi_timeseries_for_sca = get_roi_timeseries(
+                        'roi_timeseries_for_sca_%d' % num_strat
+                    )
 
-                node, out_file = strat['functional_to_standard']
+                    node, out_file = strat['functional_to_standard']
 
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                resample_functional_to_roi_for_sca,
-                                'in_file')
-                workflow.connect(roi_dataflow_for_sca,
-                                'outputspec.out_file',
-                                resample_functional_to_roi_for_sca,
-                                'reference')
+                    # resample the input functional file to roi
+                    workflow.connect(node, out_file,
+                                    resample_functional_to_roi_for_sca,
+                                    'in_file')
+                    workflow.connect(roi_dataflow_for_sca,
+                                    'outputspec.out_file',
+                                    resample_functional_to_roi_for_sca,
+                                    'reference')
 
-                # connect it to the roi_timeseries
-                workflow.connect(roi_dataflow_for_sca,
-                                'outputspec.out_file',
-                                roi_timeseries_for_sca, 'input_roi.roi')
-                workflow.connect(resample_functional_to_roi_for_sca,
-                                'out_file',
-                                roi_timeseries_for_sca, 'inputspec.rest')
+                    # connect it to the roi_timeseries
+                    workflow.connect(roi_dataflow_for_sca,
+                                    'outputspec.out_file',
+                                    roi_timeseries_for_sca, 'input_roi.roi')
+                    workflow.connect(resample_functional_to_roi_for_sca,
+                                    'out_file',
+                                    roi_timeseries_for_sca, 'inputspec.rest')
 
-                strat.append_name(roi_timeseries_for_sca.name)
-                strat.update_resource_pool({
-                    'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs')
-                })
-                create_log_node(workflow, roi_timeseries_for_sca,
-                                'outputspec.roi_outputs', num_strat)
+                    strat.append_name(roi_timeseries_for_sca.name)
+                    strat.update_resource_pool({
+                        'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs')
+                    })
+                    create_log_node(workflow, roi_timeseries_for_sca,
+                                    'outputspec.roi_outputs', num_strat)
 
                 if "MultReg" in sca_analysis_dict.keys():
 
