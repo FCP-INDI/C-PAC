@@ -9,8 +9,12 @@ from base64 import b64decode
 import datetime
 import time
 
+
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
+
+DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yaml"
+
 
 def load_yaml_config(config_filename, aws_input_creds):
 
@@ -100,7 +104,7 @@ parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket.'
                                             ' This may require AWS S3 credentials specificied via the'
                                             ' --aws_input_creds option.',
-                    default="/cpac_resources/default_pipeline.yaml")
+                    default=DEFAULT_PIPELINE)
 
 parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
                     help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
@@ -331,8 +335,12 @@ if "s3://" not in args.output_dir.lower():
 else:
     config_file = os.path.join("/scratch", "cpac_pipeline_config_{0}.yml".format(st))
 
+
+from CPAC.utils.yaml import create_yaml_from_template
+
 with open(config_file, 'w') as f:
-    yaml.dump(c, f)
+    f.write(create_yaml_from_template(c, DEFAULT_PIPELINE))
+
 
 # we have all we need if we are doing a group level analysis
 if args.analysis_level == "group":
@@ -424,6 +432,7 @@ with open(data_config_file, 'w') as f:
     noalias_dumper = yaml.dumper.SafeDumper
     noalias_dumper.ignore_aliases = lambda self, data: True
     yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
+
 
 if args.analysis_level == "participant":
     # build pipeline easy way
