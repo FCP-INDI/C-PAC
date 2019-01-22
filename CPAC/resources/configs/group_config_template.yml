@@ -166,6 +166,10 @@ basc_proc :  2
 basc_memory :  4
 
 
+# Standard FSL Skull Stripped Template.
+template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${basc_resolution}_brain.nii.gz
+
+
 # Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
 # If you do not wish to use a mask, set this field to None.
 # Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.

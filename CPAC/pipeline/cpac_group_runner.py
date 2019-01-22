@@ -1348,9 +1348,10 @@ def run_cwas(pipeline_config):
     with open(pipeline_config, "r") as f:
         pipeconfig_dct = yaml.load(f)
 
-    output_dir = pipeconfig_dct["outputDirectory"]
-    working_dir = pipeconfig_dct["workingDirectory"]
-    crash_dir = pipeconfig_dct["crashLogDirectory"]
+    pipeline = pipeconfig_dct["pipeline_dir"]
+    output_dir = pipeconfig_dct["output_dir"]
+    working_dir = pipeconfig_dct["work_dir"]
+    crash_dir = pipeconfig_dct["log_dir"]
 
     roi_file = pipeconfig_dct["mdmr_roi_file"]
     regressor_file = pipeconfig_dct["mdmr_regressor_file"]
@@ -1358,21 +1359,15 @@ def run_cwas(pipeline_config):
     columns = pipeconfig_dct["mdmr_regressor_columns"]
     permutations = pipeconfig_dct["mdmr_permutations"]
     parallel_nodes = pipeconfig_dct["mdmr_parallel_nodes"]
-    inclusion = pipeconfig_dct["mdmr_inclusion"]
+    inclusion = pipeconfig_dct["participant_list"]
 
     if not inclusion or "None" in inclusion or "none" in inclusion:
         inclusion = None
 
-    pipeline_dirs = []
-    for dirname in os.listdir(output_dir):
-        if "pipeline_" in dirname:
-            pipeline_dirs.append(os.path.join(output_dir, dirname))
-
-    for pipeline in pipeline_dirs:
-        run_cwas_group(pipeline, output_dir, working_dir, crash_dir, roi_file,
-                       regressor_file, participant_column, columns,
-                       permutations, parallel_nodes,
-                       inclusion=inclusion)
+    run_cwas_group(pipeline, output_dir, working_dir, crash_dir, roi_file,
+                   regressor_file, participant_column, columns,
+                   permutations, parallel_nodes,
+                   inclusion=inclusion)
 
 
 def find_other_res_template(template_path, new_resolution):
@@ -1558,8 +1553,8 @@ def run_basc(pipeline_config):
     with open(pipeline_config, "r") as f:
         pipeconfig_dct = yaml.load(f)
 
-    output_dir = os.path.abspath(pipeconfig_dct["outputDirectory"])
-    working_dir = os.path.abspath(pipeconfig_dct['workingDirectory'])
+    output_dir = os.path.abspath(pipeconfig_dct["output_dir"])
+    working_dir = os.path.abspath(pipeconfig_dct['work_dir'])
     if pipeconfig_dct['awsOutputBucketCredentials']:
         creds_path = os.path.abspath(pipeconfig_dct['awsOutputBucketCredentials'])
 
@@ -1569,8 +1564,7 @@ def run_basc(pipeline_config):
             func_template = func_template.replace('$FSLDIR',
                                                   os.environ['FSLDIR'])
 
-    basc_inclusion = pipeconfig_dct["basc_inclusion"]
-    basc_pipeline = pipeconfig_dct["basc_pipeline"]
+    basc_inclusion = pipeconfig_dct["participant_list"]
     basc_scan_inclusion = pipeconfig_dct["basc_scan_inclusion"]
     basc_resolution = pipeconfig_dct["basc_resolution"]
 
@@ -1594,13 +1588,6 @@ def run_basc(pipeline_config):
     if "None" in basc_inclusion or "none" in basc_inclusion:
         basc_inclusion = None
 
-    if "None" in basc_pipeline or "none" in basc_pipeline:
-        basc_pipeline = None
-    else:
-        # turn this into a list, even if there's only one pipeline folder
-        # given
-        basc_pipeline = basc_pipeline.split(",")
-
     # we have the functional template only for potential resampling - to make
     # sure everything is the same resolution and shape (as what the user has
     # selected)
@@ -1615,15 +1602,6 @@ def run_basc(pipeline_config):
         # TODO: better message
         raise Exception('\n[!] The reference file could not be found.\nPath: '
                         '{0}\n'.format(ref_file))
-
-    pipeline_dirs = []
-    if not basc_pipeline:
-        for dirname in os.listdir(output_dir):
-            if "pipeline_" in dirname:
-                pipeline_dirs.append(os.path.join(output_dir, dirname))
-    else:
-        for pipeline_name in basc_pipeline:
-            pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
 
     working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'PyBASC',
                                '{0}mm_resolution'.format(basc_resolution), 
@@ -1653,121 +1631,119 @@ def run_basc(pipeline_config):
         roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
         basc_config_dct['cross_cluster_mask_file'] = roi_file_two
 
-    for pipeline_dir in pipeline_dirs:
+    pipeline_dir = os.path.abspath(pipeconfig_dct["pipeline_dir"])
 
-        pipeline_dir = os.path.abspath(pipeline_dir)
-
-        out_dir = os.path.join(output_dir, 'cpac_group_analysis', 'PyBASC',
-                               '{0}mm_resolution'.format(basc_resolution),
+    out_dir = os.path.join(output_dir, 'cpac_group_analysis', 'PyBASC',
+                           '{0}mm_resolution'.format(basc_resolution),
+                           os.path.basename(pipeline_dir))
+    working_dir = os.path.join(working_dir,
                                os.path.basename(pipeline_dir))
-        working_dir = os.path.join(working_dir,
-                                   os.path.basename(pipeline_dir))
 
-        inclusion_list = None
-        scan_inclusion = None
+    inclusion_list = None
+    scan_inclusion = None
 
-        if basc_inclusion:
-            inclusion_list = load_text_file(basc_inclusion, "BASC participant"
-                                                            " inclusion list")
+    if basc_inclusion:
+        inclusion_list = load_text_file(basc_inclusion, "BASC participant"
+                                                        " inclusion list")
 
-        if 'none' in basc_scan_inclusion.lower():
-            basc_scan_inclusion = None
-        if basc_scan_inclusion:
-            scan_inclusion = basc_scan_inclusion.split(',')
+    if 'none' in basc_scan_inclusion.lower():
+        basc_scan_inclusion = None
+    if basc_scan_inclusion:
+        scan_inclusion = basc_scan_inclusion.split(',')
 
-        # create encompassing output dataframe dictionary
-        #     note, it is still limited to the lowest common denominator of all
-        #     group model choices- it does not pull in the entire output directory
-        # - there will be a dataframe for each combination of output measure
-        #   type and preprocessing strategy
-        # - each dataframe will contain output filepaths and their associated
-        #   information, and each dataframe will include ALL SERIES/SCANS
-        output_df_dct = gather_outputs(pipeline_dir,
-                                       ["functional_to_standard",
-                                        "functional_mni"],
-                                       inclusion_list, False, False,
-                                       get_func=True)
+    # create encompassing output dataframe dictionary
+    #     note, it is still limited to the lowest common denominator of all
+    #     group model choices- it does not pull in the entire output directory
+    # - there will be a dataframe for each combination of output measure
+    #   type and preprocessing strategy
+    # - each dataframe will contain output filepaths and their associated
+    #   information, and each dataframe will include ALL SERIES/SCANS
+    output_df_dct = gather_outputs(pipeline_dir,
+                                   ["functional_to_standard",
+                                    "functional_mni"],
+                                   inclusion_list, False, False,
+                                   get_func=True)
 
-        for preproc_strat in output_df_dct.keys():
-            # go over each preprocessing strategy
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
 
-            df_dct = {}
-            strat_df = output_df_dct[preproc_strat]
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
 
-            nuisance_string = \
-                preproc_strat[1].replace(os.path.basename(preproc_strat[1]),
-                                         '')
+        nuisance_string = \
+            preproc_strat[1].replace(os.path.basename(preproc_strat[1]),
+                                     '')
 
-            if len(set(strat_df["Series"])) > 1:
-                # more than one scan/series ID
-                for strat_scan in list(set(strat_df["Series"])):
-                    # make a list of sub-dataframes, each one with only file paths
-                    # from one scan ID each
-                    df_dct[strat_scan] = strat_df[
-                        strat_df["Series"] == strat_scan]
-            else:
-                df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[
+                    strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
 
-            # TODO: need a catch for if none of the df_scans below are in scan_inclusion
+        # TODO: need a catch for if none of the df_scans below are in scan_inclusion
 
-            for df_scan in df_dct.keys():
-                # do only the selected scans
-                if scan_inclusion:
-                    if df_scan not in scan_inclusion:
-                        continue
+        for df_scan in df_dct.keys():
+            # do only the selected scans
+            if scan_inclusion:
+                if df_scan not in scan_inclusion:
+                    continue
 
-                basc_config_dct['analysis_ID'] = '{0}_{1}'.format(os.path.basename(pipeline_dir),
-                                                                  df_scan)
+            basc_config_dct['analysis_ID'] = '{0}_{1}'.format(os.path.basename(pipeline_dir),
+                                                              df_scan)
 
-                # add scan label and nuisance regression strategy label to the
-                # output directory path
-                scan_out_dir = os.path.join(out_dir, df_scan,
+            # add scan label and nuisance regression strategy label to the
+            # output directory path
+            scan_out_dir = os.path.join(out_dir, df_scan,
+                                        nuisance_string.lstrip('/'))
+            scan_working_dir = os.path.join(working_dir, df_scan,
                                             nuisance_string.lstrip('/'))
-                scan_working_dir = os.path.join(working_dir, df_scan,
-                                                nuisance_string.lstrip('/'))
 
-                basc_config_dct['home'] = scan_out_dir
-                basc_config_dct['cluster_methods'] = ['ward']
+            basc_config_dct['home'] = scan_out_dir
+            basc_config_dct['cluster_methods'] = ['ward']
 
-                func_paths = list(df_dct[df_scan]["Filepath"])
+            func_paths = list(df_dct[df_scan]["Filepath"])
 
-                # affinity threshold is an iterable, and must match the number of
-                # functional file paths for the MapNodes
-                affinity_thresh = pipeconfig_dct['basc_affinity_thresh'] * len(func_paths)
+            # affinity threshold is an iterable, and must match the number of
+            # functional file paths for the MapNodes
+            affinity_thresh = pipeconfig_dct['basc_affinity_thresh'] * len(func_paths)
 
-                # resampling if necessary
-                #     each run should take the file, resample it and write it
-                #     into the BASC sub-dir of the working directory
-                #         should end up with a new "func_paths" list with all of
-                #         these file paths in it
-                ref_file_iterable = [ref_file] * len(func_paths)
-                working_dir_iterable = [scan_working_dir] * len(func_paths)
-                func_cmd_args_list = map(check_cpac_output_image, func_paths,
-                                         ref_file_iterable,
-                                         working_dir_iterable)
+            # resampling if necessary
+            #     each run should take the file, resample it and write it
+            #     into the BASC sub-dir of the working directory
+            #         should end up with a new "func_paths" list with all of
+            #         these file paths in it
+            ref_file_iterable = [ref_file] * len(func_paths)
+            working_dir_iterable = [scan_working_dir] * len(func_paths)
+            func_cmd_args_list = map(check_cpac_output_image, func_paths,
+                                     ref_file_iterable,
+                                     working_dir_iterable)
 
-                # resample them now
-                if func_cmd_args_list[0]:
-                    p = pool.Pool(int(basc_config_dct['proc_mem'][0]))
-                    func_paths = p.map(resample_cpac_output_image,
-                                       func_cmd_args_list)
+            # resample them now
+            if func_cmd_args_list[0]:
+                p = pool.Pool(int(basc_config_dct['proc_mem'][0]))
+                func_paths = p.map(resample_cpac_output_image,
+                                   func_cmd_args_list)
 
-                # TODO: add list into basc_config here
-                basc_config_dct['subject_file_list'] = func_paths
+            # TODO: add list into basc_config here
+            basc_config_dct['subject_file_list'] = func_paths
 
-                basc_config_outfile = os.path.join(scan_working_dir,
-                                                   'PyBASC_config.yml')
-                print('\nWriting PyBASC configuration file for {0} scan in\n'
-                      '{1}'.format(df_scan, basc_config_outfile))
-                with open(basc_config_outfile, 'wt') as f:
-                    noalias_dumper = yaml.dumper.SafeDumper
-                    noalias_dumper.ignore_aliases = lambda self, data: True
-                    f.write(yaml.dump(basc_config_dct,
-                                      default_flow_style=False,
-                                      Dumper=noalias_dumper))
+            basc_config_outfile = os.path.join(scan_working_dir,
+                                               'PyBASC_config.yml')
+            print('\nWriting PyBASC configuration file for {0} scan in\n'
+                  '{1}'.format(df_scan, basc_config_outfile))
+            with open(basc_config_outfile, 'wt') as f:
+                noalias_dumper = yaml.dumper.SafeDumper
+                noalias_dumper.ignore_aliases = lambda self, data: True
+                f.write(yaml.dump(basc_config_dct,
+                                  default_flow_style=False,
+                                  Dumper=noalias_dumper))
 
-                # go!
-                launch_PyBASC(basc_config_outfile)            
+            # go!
+            launch_PyBASC(basc_config_outfile)
                 
 
 def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
@@ -1867,9 +1843,9 @@ def run_isc(pipeline_config):
     with open(pipeline_config, "r") as f:
         pipeconfig_dct = yaml.load(f)
 
-    output_dir = pipeconfig_dct["outputDirectory"]
-    working_dir = pipeconfig_dct["workingDirectory"]
-    crash_dir = pipeconfig_dct["crashLogDirectory"]
+    output_dir = pipeconfig_dct["output_dir"]
+    working_dir = pipeconfig_dct["work_dir"]
+    crash_dir = pipeconfig_dct["log_dir"]
 
 
     isc = 1 in pipeconfig_dct.get("runISC", [])

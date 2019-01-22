@@ -481,12 +481,18 @@ class BASCSettings(wx.ScrolledWindow):
     
     def __init__(self, parent, counter=0):
         wx.ScrolledWindow.__init__(self, parent)
-                
+
+        import os
+
         self.counter = counter
         
         self.page = GenericClass(self, " PyBASC - Bootstrapped Analysis of "
                                        "Stable Clusters (BASC)")
-        
+
+        fsl = os.environ.get('FSLDIR')
+        if fsl == None:
+            fsl = "$FSLDIR"
+
         self.page.add(label="Run BASC ", 
                       control=control.CHOICE_BOX, 
                       name='run_basc',
@@ -517,6 +523,13 @@ class BASCSettings(wx.ScrolledWindow):
                       comment="Maximum amount of RAM (in GB) to be used when "
                               "running BASC.",
                       values=4)
+
+        self.page.add(label="Standard Brain only Template (functional resolution) ",
+                      control=control.COMBO_BOX,
+                      name='template_brain_only_for_func',
+                      type=dtype.STR,
+                      values = str(os.path.join(fsl,"data/standard/MNI152_T1_${basc_resolution}_brain.nii.gz")),
+                      comment="Standard FSL Skull Stripped Template.")
 
         self.page.add(label="ROI Mask File 1",
                       control=control.COMBO_BOX,
