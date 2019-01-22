@@ -4,9 +4,6 @@ MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 RUN mkdir -p /code 
 
-# install wget
-RUN apt-get update && apt-get install -y wget
-
 # Install the validator
 RUN apt-get update && \
      apt-get install -y curl && \
@@ -93,7 +90,7 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
            ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
     fi && \
     mkdir -p /opt/afni && \
-    wget -q http://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
+    curl -sO https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
     tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz $(cat /opt/required_afni_pkgs.txt) && \
     rm -rf linux_openmp_64.tgz
 
@@ -119,7 +116,7 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
 
 # install CPAC resources into FSL
 RUN cd /tmp && \
-    wget -q http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
+    curl -sO http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
     tar xfz cpac_resources.tar.gz && \
     cd cpac_image_resources && \
     cp -n MNI_3mm/* $FSLDIR/data/standard && \
@@ -135,12 +132,12 @@ RUN apt-get update && \
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
-RUN curl -SL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
+RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
 RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install miniconda
-RUN wget -q http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
+RUN curl -sO https://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
     bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
     rm Miniconda-3.8.3-Linux-x86_64.sh
 
@@ -166,11 +163,12 @@ RUN conda install -y  \
         wxpython==3.0.0.0 \
         pip
 
+
+
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
-RUN pip install awscli
 
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
@@ -179,7 +177,7 @@ RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
 
 # Get atlases
 RUN mkdir /ndmg_atlases && \
-    aws s3 cp s3://mrneurodata/data/resources/ndmg_atlases.zip /ndmg_atlases/ --no-sign-request && \
+    curl https://s3.amazonaws.com/mrneurodata/data/resources/ndmg_atlases.zip -o /ndmg_atlases/ndmg_atlases.zip && \
     cd /ndmg_atlases && unzip /ndmg_atlases/ndmg_atlases.zip && \
     rm /ndmg_atlases/ndmg_atlases.zip
 
