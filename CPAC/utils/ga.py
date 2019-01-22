@@ -108,7 +108,7 @@ def track_event(category, action, uid=None, label=None, value=0,
         'aid': "CPAC",
         'an': "CPAC",
         'av': __version__,
-        # 'aip': 1, # anonymize IP by removing last octet, slightly worse geolocation
+        'aip': 1, # anonymize IP by removing last octet, slightly worse geolocation
     }
     
     if thread:
