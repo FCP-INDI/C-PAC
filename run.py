@@ -4,6 +4,7 @@ import os
 import subprocess
 import yaml
 import sys
+from base64 import b64decode
 
 import datetime
 import time
@@ -12,6 +13,16 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
 
 def load_yaml_config(config_filename, aws_input_creds):
+
+    if config_filename.lower().startswith('data:'):
+        try:
+            header, encoded = config_filename.split(",", 1)
+            config_content = b64decode(encoded)
+            config_data = yaml.load(config_content)
+            return config_data
+        except:
+            print("Error! Could not find load config from data URI")
+            raise
 
     if config_filename.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -52,6 +63,16 @@ def run(command, env={}):
             break
 
 
+def parse_yaml(value):
+    try:
+        config = yaml.load(value)
+        if type(config) != dict:
+            raise
+        return config
+    except:
+         raise argparse.ArgumentTypeError("Invalid configuration: '%s'" % value)
+
+
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
@@ -73,13 +94,17 @@ parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' test_config will run through the entire configuration process but will'
                                            ' not execute the pipeline.',
                     choices=['participant', 'group', 'test_config', 'gui'], type=str.lower)
-parser.add_argument('--pipeline_file', help='Name for the pipeline '
+parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' configuration file to use. '
                                             'Use the format'
                                             ' s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket.'
                                             ' This may require AWS S3 credentials specificied via the'
                                             ' --aws_input_creds option.',
                     default="/cpac_resources/default_pipeline.yaml")
+
+parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
+                    help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
+
 parser.add_argument('--data_config_file', help='Yaml file containing the location'
                                                ' of the data that is to be processed. Can be generated from the CPAC'
                                                ' gui. This file is not necessary if the data in bids_dir is organized'
@@ -139,6 +164,9 @@ parser.add_argument('--bids_validator_config', help='JSON file specifying config
 parser.add_argument('--skip_bids_validator',
                     help='skips bids validation',
                     action='store_true')
+parser.add_argument('--ndmg_mode', help='produce ndmg connectome graphs and '
+                    'write out in the ndmg output format',
+                    action='store_true')
 
 parser.add_argument('--tracking_opt-out', action='store_true',
                     help='Disable usage tracking. Only the number of participants on the analysis is tracked.',
@@ -146,8 +174,6 @@ parser.add_argument('--tracking_opt-out', action='store_true',
 
 # get the command line arguments
 args = parser.parse_args()
-
-print(args)
 
 # if we are running the GUI, then get to it
 if args.analysis_level == "gui":
@@ -180,20 +206,35 @@ if args.bids_validator_config:
         config=args.bids_validator_config,
         bids_dir=args.bids_dir))
 elif args.skip_bids_validator:
-    print('skipping bids-validator...')
+    print('\nSkipping bids-validator...')
+elif args.bids_dir.lower().startswith("s3://"):
+    print('\nSkipping bids-validator for S3 datasets...')
 else:
     print("\nRunning BIDS validator")
     run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
+if args.ndmg_mode:
+    print('\nRunning ndmg mode')
+    import os
+    import pkg_resources as p
+    args.pipeline_file = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs",
+                                         "pipeline_config_ndmg.yml"))
+
 # otherwise, if we are running group, participant, or dry run we
 # begin by conforming the configuration
 c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+if args.pipeline_override:
+    overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
+    c.update(overrides)
 
 # get the aws_input_credentials, if any are specified
 if args.aws_input_creds:
     if args.aws_input_creds is "env":
         import urllib2
-        aws_creds_address = "169.254.170.2"+os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
+        aws_creds_address = "169.254.170.2" + os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         aws_creds = urllib2.urlopen(aws_creds_address).read()
 
         args.aws_input_creds = "/tmp/aws_input_creds.csv"
@@ -231,17 +272,16 @@ c['numParticipantsAtOnce'] = 1
 c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
 if args.aws_output_creds:
-
     if args.aws_output_creds is "env":
         import urllib2
-        aws_creds_address = "169.254.170.2"+os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
+        aws_creds_address = "169.254.170.2" + os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         aws_creds = urllib2.urlopen(aws_creds_address).read()
 
         args.aws_output_creds = "/tmp/aws_output_creds.csv"
 
         with open(args.aws_output_creds) as ofd:
             for key, vname in [("AccessKeyId","AWSAcessKeyId"), ("SecretAccessKey","AWSSecretKey")]:
-                ofd.write("{0}={1}".format(vname,aws_creds[key])) 
+                ofd.write("{0}={1}".format(vname, aws_creds[key])) 
 
     if os.path.isfile(args.aws_output_creds):
         c['awsOutputBucketCredentials'] = args.aws_output_creds
@@ -260,7 +300,7 @@ if args.save_working_dir is True:
     else:
         print ('Cannot write working directory to S3 bucket.'
                ' Either change the output directory to something'
-               ' local or turn off the --removeWorkingDir flag')
+               ' local or turn off the --save_working_dir flag')
 else:
     c['removeWorkingDir'] = True
     c['workingDirectory'] = os.path.join('/scratch', "working")
@@ -348,8 +388,11 @@ else:
 
         if not sub_list:
             print ("Did not find data for {0} in {1}".format(", ".join(args.participant_label),
-                                                             args.data_config_file))
+                                                             args.data_config_file
+                                                             if not args.data_config_file.startswith("data:")
+                                                             else "data URI"))
             sys.exit(1)
+
 
 if args.participant_ndx:
 

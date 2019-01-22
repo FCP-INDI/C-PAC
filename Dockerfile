@@ -1,11 +1,8 @@
+#using neurodebian runtime as parent image
 FROM neurodebian:xenial-non-free
-MAINTAINER The C-PAC Team <CNL@childmind.org>
+MAINTAINER The C-PAC Team <cnl@childmind.org>
 
-# create scratch directories for singularity
-RUN mkdir /scratch && mkdir /local-scratch && mkdir -p /code && mkdir -p /cpac_resources
-
-# install wget
-RUN apt-get update && apt-get install -y wget
+RUN mkdir -p /code 
 
 # Install the validator
 RUN apt-get update && \
@@ -170,11 +167,18 @@ RUN conda install -y  \
 COPY requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
+RUN pip install awscli
 
 # install cpac templates
 COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
 RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
     rm -f /cpac_resources/cpac_templates.tar.gz
+
+# Get atlases
+RUN mkdir /ndmg_atlases && \
+    aws s3 cp s3://mrneurodata/data/resources/ndmg_atlases.zip /ndmg_atlases/ --no-sign-request && \
+    cd /ndmg_atlases && unzip /ndmg_atlases/ndmg_atlases.zip && \
+    rm /ndmg_atlases/ndmg_atlases.zip
 
 # clean up
 RUN apt-get clean && \

@@ -61,7 +61,7 @@ class CentralitySettings(wx.ScrolledWindow):
                      name='degCorrelationThresholdOption', 
                      type = dtype.LSTR, 
                      comment="Select the type of threshold used when creating the degree centrality adjacency matrix.", 
-                     values=["Significance threshold","Sparsity threshold", "Correlation threshold"])
+                     values=["Sparsity threshold", "Significance threshold", "Correlation threshold"])
         
         self.page.add(label="Degree Centrality Threshold Value", 
                      control=control.FLOAT_CTRL, 
@@ -83,7 +83,7 @@ class CentralitySettings(wx.ScrolledWindow):
                      name='eigCorrelationThresholdOption', 
                      type = dtype.LSTR, 
                      comment="Select the type of threshold used when creating the eigenvector centrality adjacency matrix.", 
-                     values=["Significance threshold","Sparsity threshold", "Correlation threshold"])
+                     values=["Sparsity threshold", "Significance threshold", "Correlation threshold"])
         
         self.page.add(label="Eigenvector Centrality Threshold Value", 
                      control=control.FLOAT_CTRL, 

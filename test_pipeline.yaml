@@ -325,6 +325,9 @@ stopIdx :  None
 TR :  None
 
 
+# Run functional preproceessing
+runFunctional: [1]
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
