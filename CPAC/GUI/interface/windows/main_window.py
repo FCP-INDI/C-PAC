@@ -375,31 +375,28 @@ class ListBox(wx.Frame):
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
             
             pipelines = self.listbox.GetCheckedStrings()
-
+            group_config = False
             for p in pipelines:
-
                 pipeline = self.pipeline_map.get(p)
-
                 if os.path.exists(pipeline):
                     try:
                         import yaml
                         config = yaml.load(open(pipeline, 'r'))
                     except:
                         raise Exception("Error reading config file- %s", config)
-                    
-                    if config.get('outputDirectory'):
-                        derv_path = os.path.join(config.get('outputDirectory'),
-                                                 'pipeline_%s' % config.get('pipelineName'))
-                    else:
-                        derv_path = ''
-                    
-                    # Opens the sub-window which prompts the user
-                    # for the derivative file paths
-                    runGLA(self, pipeline, derv_path, p)
-
+                    if 'pipeline_dir' in config.keys():
+                        group_config = True
+                        import CPAC
+                        CPAC.pipeline.cpac_group_runner.run(pipeline)
                 else:
                     print "pipeline doesn't exist"
-
+            if not group_config:
+                dlg = wx.MessageDialog(self, 'None of the pipeline '
+                                       'configuration files had group config'
+                                       'uration information in them.',
+                                       'Error!', wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
         else:
             print "No pipeline selected"
 
@@ -866,87 +863,4 @@ class runCPAC(wx.Frame):
                                    wx.OK | wx.ICON_INFORMATION)
             dlg.Destroy()
        
-
-class runGLA(wx.Frame):
-    
-    # Opens sub window prompting user to input the derivative file path(s).
-    # If this is already supplied to the function, the path will show up
-    # in the input box already by default.
-
-    # Once the user clicks "Run", group level analysis begins
-
-    def __init__(self, parent, pipeline, path, name):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis "
-                                                 "for Pipeline - %s" % name,
-                          size=(730, 120))
-
-        self.parent = parent
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        panel = wx.Panel(self)
-        
-        flexsizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
-
-        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-       
-        label1 = wx.StaticText(panel, -1, label='Pipeline Output Directory ')
-        self.box1 = FileSelectorCombo(panel, id=wx.ID_ANY, size=(500, -1))
-        self.box1.GetTextCtrl().SetValue(str(path))
-        
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        help1 = wx.BitmapButton(panel, id=-1, bitmap=img,
-                                pos=(10, 20), size=(img.GetWidth()+5, img.GetHeight()+5))
-        help1.Bind(wx.EVT_BUTTON, self.OnShowDoc)
-        
-        hbox1.Add(label1)
-        hbox1.Add(help1)
-        
-        flexsizer.Add(hbox1)
-        flexsizer.Add(self.box1, flag=wx.EXPAND | wx.ALL)
-        
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        
-        button3 = wx.Button(panel, wx.ID_CANCEL, 'Cancel', size=(120, 30))
-        button3.Bind(wx.EVT_BUTTON, self.onCancel)
-        
-        button2 = wx.Button(panel, wx.ID_OK, 'Run', size=(120, 30))
-        button2.Bind(wx.EVT_BUTTON, lambda event: self.onOK(event, pipeline))
-        
-        hbox.Add(button3, 1, wx.EXPAND, border=5)
-        hbox.Add(button2, 1, wx.EXPAND, border=5)
-        
-        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
-        sizer.Add(hbox,0, wx.ALIGN_CENTER, 5)
-        panel.SetSizer(sizer)
-        
-        self.Show()
-        
-    def onCancel(self, event):
-        self.Close()
-        
-    def runAnalysis(self, pipeline, path):
-        import CPAC
-        CPAC.pipeline.cpac_group_runner.run(pipeline, path)
-
-    def onOK(self, event, pipeline):
-
-        # Once the user clicks "Run" in the derivative path file window
-        # (from runGLA function), get the filepath and run the
-        # "runAnalysis" function
-        
-        import thread
-
-        if self.box1.GetValue():
-            pid = thread.start_new(self.runAnalysis,
-                                   (pipeline, self.box1.GetValue()))
-            self.parent.pids.append(pid)
-            self.Close()
-        else:
-            wx.MessageBox("Please provide the path to the output directory "
-                          "for the pipeline you want to run group-level "
-                          "analysis for.")
-            
-    def OnShowDoc(self, event):
-        wx.TipWindow(self, "Path to output directory of the pipeline you "
-                           "wish to run group-level analysis for.", 500)
 

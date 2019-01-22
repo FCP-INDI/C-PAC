@@ -1158,7 +1158,6 @@ def run_feat(group_config_file, feat=True):
             try:
                 id_tuple = (second_half[0], second_half[1], second_half[2], 
                             second_half[3])
-                print id_tuple
             except IndexError:
                 # not a file we are interested in
                 continue
@@ -1479,38 +1478,6 @@ def resample_cpac_output_image(cmd_args):
             out_file = arg
 
     return out_file
-
-
-def run_randomise(group_config_file):
-
-    import os
-    import yaml
-    from CPAC.randomise.randomise import prep_randomise_workflow, run
-
-    group_config_file = os.path.abspath(group_config_file)
-
-    with open(group_config_file, "r") as f:
-        groupconfig_dct = yaml.load(f)
-
-    output_dir = groupconfig_dct["rand_outputDirectory"]
-    working_dir = groupconfig_dct["rand_workingDirectory"]
-    crash_dir = groupconfig_dct["rand_crashLogDirectory"]
-
-  
-    rand_wf = prep_randomise_workflow(c,
-                                      merged_file=merged_file,
-                                      mask_file=out_file,
-                                      working_dir=working_dir,
-                                      output_dir=output_dir,
-                                      crash_dir=crash_dir)
-    rand_wf.connect(c.randomise_dmat, 'local_path', rand_wf, 'inputspec.design_matrix_file')
-    rand_wf.connect(c.randomise_contrast, 'local_path', rand_wf, 'inputspec.contrast_file')
-    rand_wf.inputs.permutations = c.permutations
-    rand_wf.inputs.demean = c.demean
-    rand_wf.inputs.c_thresh = c.randomise_thresh
-    rand_wf.inputs.tfce = c.tfce
-        
-    rand_wf.run(group_config_file)
 
 
 def launch_PyBASC(pybasc_config):
@@ -1977,7 +1944,7 @@ def manage_processes(procss, output_dir, num_parallel=1):
     pid.close()
 
 
-def run(config_file, pipeline_output_folder):
+def run(config_file):
 
     # this runs all group analyses, and this function only really exists for
     # the "Run Group-Level Analysis" command on the GUI
@@ -2003,4 +1970,4 @@ def run(config_file, pipeline_output_folder):
 
     # Run randomise, if selected
     if 1 in c.run_randomise:
-        run_randomise(group_config_file)
+        run_feat(config_file, feat=False)
