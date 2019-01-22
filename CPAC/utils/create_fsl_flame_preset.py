@@ -159,61 +159,24 @@ def create_design_matrix_df(group_list, pheno_df=None,
 
     import pandas as pd
 
-    # kill duplicates
-    pheno_df = pheno_df.drop_duplicates()
-
-    # replace spaces and dashes with underscores, to prevent confusion with 
-    # the Patsy design formula
-    rename_pheno_cols = {}
-    for col_name in pheno_df.columns:
-        if ' ' in col_name or '-' in col_name:
-            rename_pheno_cols.update({col_name: col_name.replace(' ', '_').replace('-', '_')})
-    pheno_df = pheno_df.rename(columns=rename_pheno_cols)
-
-    # map the participant-session IDs to just participant IDs
-    '''
-    group_list_map = {}
-    for part_ses in group_list:
-        sub_id = part_ses.split("_")[0]
-        try:
-            ses_id = part_ses.split("_")[1]
-        except IndexError:
-            raise Exception('the group analysis participant list may not be '
-                            'in the appropriate format.')
-        group_list_map[part_ses] = [sub_id, ses_id, part_ses]
-    
-
-    # create a dataframe mapping the 'sub01_ses-1' CPAC-style unique IDs to
-    # subject and session columns, like this:
-    #     sub01    ses-1    sub01_ses-1
-    #     sub02    ses-1    sub02_ses-1
-    map_df = pd.DataFrame.from_dict(group_list, orient='index')
-
-    # also, rename the columns to be easier
-    map_df = map_df.rename(
-        columns={0: 'participant_id', 1: 'session_id',
-                 2: 'participant_session_id'})
-
-    # sort by ses_id, then sub_id
-    #     need everything grouped by session first, in case of the paired
-    #     analyses where the first condition is all on top and the second is
-    #     all on the bottom
-    map_df = map_df.sort_values(by=['participant_id'])
-
-    # drop unique_id column (does it ever need to really be included?)
-    # was just keeping it in up until here for mental book-keeping if anything
-    map_df = map_df[['participant_session_id', 'participant_id',
-                     'session_id']]
-    '''
-
     map_df = pd.DataFrame({'participant_id': group_list})
 
     if pheno_df is None:
         # no phenotypic matrix provided; simpler design models
-        design_df = map_df[['participant_session_id']]
+        design_df = map_df[['participant_id']]
 
     else:
         # if a phenotype CSV file is provided with the data
+
+        pheno_df = pheno_df.drop_duplicates()
+
+        # replace spaces and dashes with underscores, to prevent confusion with 
+        # the Patsy design formula
+        rename_pheno_cols = {}
+        for col_name in pheno_df.columns:
+            if ' ' in col_name or '-' in col_name:
+                rename_pheno_cols.update({col_name: col_name.replace(' ', '_').replace('-', '_')})
+        pheno_df = pheno_df.rename(columns=rename_pheno_cols)
 
         # align the pheno's participant ID column with the group sublist text
         # file
@@ -356,8 +319,9 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
 
     # change spaces and dashes to underscores to prevent confusion with the
     # Patsy design formula
-    covariate = covariate.lstrip(' ').rstrip(' ')
-    covariate = covariate.replace(' ', '_').replace('-', '_')
+    if covariate:
+        covariate = covariate.lstrip(' ').rstrip(' ')
+        covariate = covariate.replace(' ', '_').replace('-', '_')
 
     ev_selections = None
     if pheno_df is not None:
@@ -1007,6 +971,9 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
     if not group_list_text_file:
         from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
         group_list = grab_pipeline_dir_subs(pipeline_dir)
+        group_list_text_file = os.path.join(output_dir, model_name,
+                                            "group_participant_list_"
+                                            "{0}.txt".format(model_name))
 
     elif isinstance(group_list_text_file, list):
         group_list = group_list_text_file
@@ -1014,14 +981,15 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
         # write out a group analysis sublist text file so that it can be
         # linked in the group analysis config yaml
         group_list_text_file = os.path.join(output_dir, model_name,
-                                            "gpa_participant_list_"
+                                            "group_participant_list_"
                                             "{0}.txt".format(model_name))
     elif os.path.isfile(group_list_text_file):
         group_list = read_group_list_text_file(group_list_text_file)
+
         # write out a group analysis sublist text file so that it can be
         # linked in the group analysis config yaml
         group_list_text_file = os.path.join(output_dir, model_name,
-                                            "gpa_participant_list_"
+                                            "group_participant_list_"
                                             "{0}.txt".format(model_name))
 
     if len(group_list) == 0:
