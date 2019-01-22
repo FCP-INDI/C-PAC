@@ -162,23 +162,25 @@ def load_preset():
     pass
 
 @load_preset.command()
-@click.argument('group_participants')
+@click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('model_name')
 @click.option('--output_dir', default=None)
-def single_grp_avg(group_participants, z_thresh, p_thresh, model_name,
-                   output_dir=None):
+@click.option('--group_participants', default=None)
+def single_grp_avg(pipeline_dir, z_thresh, p_thresh, model_name,
+                   output_dir=None, group_participants=None):
     from CPAC.utils import create_fsl_flame_preset
     if not output_dir:
         import os
         output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
-    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
-                                'single_grp', output_dir=output_dir,
+    create_fsl_flame_preset.run(pipeline_dir, 'all', z_thresh, p_thresh,
+                                'single_grp', group_participants,
+                                output_dir=output_dir,
                                 model_name=model_name)
 
 @load_preset.command()
-@click.argument('group_participants')
+@click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('pheno_file')
@@ -186,14 +188,17 @@ def single_grp_avg(group_participants, z_thresh, p_thresh, model_name,
 @click.argument('covariate')
 @click.argument('model_name')
 @click.option('--output_dir', default=None)
-def single_grp_cov(group_participants, z_thresh, p_thresh, pheno_file,
-                   pheno_sub, covariate, model_name, output_dir=None):
+@click.option('--group_participants', default=None)
+def single_grp_cov(pipeline_dir, z_thresh, p_thresh, pheno_file,
+                   pheno_sub, covariate, model_name, output_dir=None,
+                   group_participants=None):
     from CPAC.utils import create_fsl_flame_preset
     if not output_dir:
         import os
         output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
-    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
-                                'single_grp_cov', pheno_file=pheno_file,
+    create_fsl_flame_preset.run(pipeline_dir, 'all', z_thresh, p_thresh,
+                                'single_grp_cov', group_participants,
+                                pheno_file=pheno_file,
                                 pheno_sub_label=pheno_sub,
                                 covariate=covariate, output_dir=output_dir,
                                 model_name=model_name)
@@ -223,41 +228,47 @@ def unpaired_two(pipeline_dir, z_thresh, p_thresh, pheno_file,
                                 model_name=model_name)
 
 @load_preset.command()
-@click.argument('group_participants')
+@click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('conditions')
 @click.argument('condition_type')
 @click.argument('model_name')
 @click.option('--output_dir', default=None)
-def paired_two(group_participants, z_thresh, p_thresh, conditions,
-               condition_type, model_name, output_dir=None):
+@click.option('--group_participants', default=None)
+def paired_two(pipeline_dir, z_thresh, p_thresh, conditions,
+               condition_type, model_name, output_dir=None,
+               group_participants=None):
     from CPAC.utils import create_fsl_flame_preset
     if not output_dir:
         import os
         output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
-    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
-                                'paired_two', covariate=conditions,
+    create_fsl_flame_preset.run(pipeline_dir, 'all', z_thresh, p_thresh,
+                                'paired_two', group_participants,
+                                covariate=conditions,
                                 condition_type=condition_type,
                                 output_dir=output_dir, model_name=model_name)
 
 
 @load_preset.command()
-@click.argument('group_participants')
+@click.argument('pipeline_dir')
 @click.argument('z_thresh')
 @click.argument('p_thresh')
 @click.argument('conditions')
 @click.argument('condition_type')
 @click.argument('model_name')
 @click.option('--output_dir', default=None)
-def tripled_two(group_participants, z_thresh, p_thresh, conditions,
-               condition_type, model_name, output_dir=None):
+@click.option('--group_participants', default=None)
+def tripled_two(pipeline_dir, z_thresh, p_thresh, conditions,
+                condition_type, model_name, output_dir=None,
+                group_participants=None):
     from CPAC.utils import create_fsl_flame_preset
     if not output_dir:
         import os
         output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
-    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
-                                'tripled_two', covariate=conditions,
+    create_fsl_flame_preset.run(pipeline_dir, 'all', z_thresh, p_thresh,
+                                'tripled_two', group_participants,
+                                covariate=conditions,
                                 condition_type=condition_type,
                                 output_dir=output_dir, model_name=model_name)
 
