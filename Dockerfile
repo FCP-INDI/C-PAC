@@ -4,9 +4,6 @@ MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 RUN mkdir -p /code 
 
-#Run the only command 
-RUN echo Please use the fcp-indi container instead. Use docker pull fcpindi/c-pac!
-
 # Install the validator
 RUN apt-get update && \
      apt-get install -y curl && \

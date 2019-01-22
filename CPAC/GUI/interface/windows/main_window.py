@@ -130,7 +130,7 @@ class ListBox(wx.Frame):
         btnPanel2 = wx.Panel(innerPanel2, -1)
         btnSizer2 = wx.BoxSizer(wx.VERTICAL)
 
-        label2 = wx.StaticText(lboxPanel2, -1, "Subject Lists")
+        label2 = wx.StaticText(lboxPanel2, -1, "Data Configurations")
         
         if 'linux' in sys.platform:
             label2.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD))
