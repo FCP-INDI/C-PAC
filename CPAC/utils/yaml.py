@@ -34,7 +34,6 @@ def create_yaml_from_template(d, template):
             key_group = re.match(r'^([a-zA-Z_-]+)\s*:', line)
             if key_group:
                 key = key_group.group(1)
-                # output += key + ":"
                 if key in d and d[key] is not None:
 
                     default_flow_style = False
