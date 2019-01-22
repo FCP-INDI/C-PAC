@@ -59,6 +59,8 @@ __version__ = "%s.%s.%s%s" % (_version_major,
                               _version_micro,
                               _version_extra)
 
+ga_tracker = 'UA-19224662-10'
+
 CLASSIFIERS = ["Development Status :: 4 - Beta",
                "Environment :: Console",
                "Intended Audience :: Science/Research",

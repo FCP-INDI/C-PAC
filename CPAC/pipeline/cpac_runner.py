@@ -8,7 +8,8 @@ This module contains functions used to run a C-PAC pipeline
 # Import packages
 from multiprocessing import Process
 import os
-from CPAC.utils.utils import create_seeds_
+from CPAC.utils.utils import create_seeds_, create_group_log_template
+from CPAC.utils.ga import track_run
 from CPAC.utils import Configuration
 import yaml
 import time
@@ -362,7 +363,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 # Run C-PAC subjects via job queue
 def run(config_file, subject_list_file, p_name=None, plugin=None,
-        plugin_args=None):
+        plugin_args=None, tracking=True):
     '''
     '''
 
@@ -420,7 +421,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     strategies = sorted(build_strategies(c))
 
     # Populate subject scan map
-    sub_scan_map ={}
+    sub_scan_map = {}
     try:
         for sub in sublist:
             if sub['unique_id']:
@@ -449,8 +450,12 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     pipeline_timing_info.append(pipeline_start_stamp)
     pipeline_timing_info.append(len(sublist))
 
+    if tracking:
+        track_run(level='participant', participants=len(sublist))
+
     # If we're running on cluster, execute job scheduler
     if c.runOnGrid:
+
         # Create cluster log dir
         cluster_files_dir = os.path.join(c.logDirectory, 'cluster_files')
         if not os.path.exists(cluster_files_dir):
