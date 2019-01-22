@@ -144,11 +144,12 @@ class GPASettings(wx.ScrolledWindow):
             self.gpa_settings = gpa_settings
 
         self.page.add(label="Run FSL-FEAT ",
-                      control=control.INT_CTRL,
+                      control=control.CHOICE_BOX,
                       name='run_fsl_feat',
-                      type=dtype.NUM,
+                      type=dtype.LSTR, 
                       comment="Run the FSL-FEAT pipeline.",
-                      values=self.gpa_settings['run_fsl_feat'])
+                      values=["Off", "On"],
+                      wkf_switch=True)
 
         self.page.add(label="Number of Models to Run Simultaneously ",
                       control=control.INT_CTRL,
