@@ -4,6 +4,9 @@ MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 RUN mkdir -p /code 
 
+# install wget
+RUN apt-get update && apt-get install -y wget
+
 # Install the validator
 RUN apt-get update && \
      apt-get install -y curl && \
