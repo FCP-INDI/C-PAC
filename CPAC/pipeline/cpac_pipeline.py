@@ -1082,10 +1082,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
   
             strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
-            strat.update_resource_pool({
-                'raw_functional': (func_wf, 'outputspec.rest')
-            })
-
             if 1 in c.runEPI_DistCorr:
                 try:
                     strat.update_resource_pool({
@@ -2760,22 +2756,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
             # ROI Based Time Series
             new_strat_list = []
 
-            roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
-            roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
-
             for num_strat, strat in enumerate(strat_list):
 
                 if "Avg" in ts_analysis_dict.keys():
                     resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                         name='resample_functional_to_roi_%d' % num_strat)
-
-                strat.append_name(roi_timeseries.name)
-                strat.update_resource_pool({
-                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
-                    'functional_to_roi': (resample_functional_to_roi, 'out_file')
-                })
-                create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
-                                num_strat)
 
                 roi_dataflow = create_roi_mask_dataflow(
                     ts_analysis_dict["Avg"],
@@ -2790,24 +2775,26 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 roi_timeseries = get_roi_timeseries(
                     'roi_timeseries_%d' % num_strat
                 )
+                roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
                 node, out_file = strat['functional_to_standard']
 
                 # resample the input functional file to roi
                 workflow.connect(node, out_file,
-                                resample_functional_to_roi, 'in_file')
+                                 resample_functional_to_roi, 'in_file')
                 workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                resample_functional_to_roi, 'reference')
+                                 resample_functional_to_roi, 'reference')
 
                 # connect it to the roi_timeseries
                 workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                roi_timeseries, 'input_roi.roi')
+                                 roi_timeseries, 'input_roi.roi')
                 workflow.connect(resample_functional_to_roi, 'out_file',
-                                roi_timeseries, 'inputspec.rest')
+                                 roi_timeseries, 'inputspec.rest')
 
                 strat.append_name(roi_timeseries.name)
                 strat.update_resource_pool({
-                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs')
+                    'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
+                    'functional_to_roi': (resample_functional_to_roi, 'out_file')
                 })
                 create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
                                 num_strat)

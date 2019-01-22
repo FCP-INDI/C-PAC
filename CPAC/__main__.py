@@ -121,7 +121,7 @@ def run(data_config, pipe_config=None, num_cores=None):
                                              "data_config_S3-BIDS-NKI-RocklandSample.yml"))
 
     import CPAC.pipeline.cpac_runner as cpac_runner
-    cpac_runner.run(pipe_config, data_config, num_cores)
+    cpac_runner.run(pipe_config, data_config, num_subs_at_once=num_cores)
 
 
 # Group analysis
