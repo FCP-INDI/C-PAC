@@ -1122,6 +1122,7 @@ def build_feat_models(group_config_file):
 def run_feat(group_config_file, feat=True):
 
     import os
+    import numpy as np
     import pandas as pd
     from multiprocessing import Process
     from CPAC.pipeline.cpac_ga_model_generator import create_dir
@@ -1145,8 +1146,15 @@ def run_feat(group_config_file, feat=True):
                              '{0}'.format(pipeline_name),
                              'group_model_{0}'.format(model_name))
 
-    # TODO: more checking of this file
     custom_contrasts_csv = os.path.join(model_dir, 'contrasts.csv')
+
+    contrasts_df = pd.read_csv(custom_contrasts_csv)
+    if contrasts_df.shape[0] == 1 and np.count_nonzero(contrasts_df.values[0][1:]) == 0:
+        err = "\n\n[!] C-PAC says: It appears you haven't defined any " \
+              "contrasts in your contrasts CSV file.\n\nContrasts file:\n{0}" \
+              "\n\nDefine your contrasts in this file and run again." \
+              "\n\n".format(custom_contrasts_csv)
+        raise Exception(err)
 
     models = {}
     for root, dirs, files in os.walk(model_dir):

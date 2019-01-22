@@ -993,6 +993,16 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         with open(contrast_out_path, "w") as f:
             cons.to_csv(f, index=False)
     else:
+        if os.path.isfile(contrast_out_path):
+            contrasts_df = pd.read_csv(contrast_out_path)
+            if contrasts_df.shape[0] > 1 or np.count_nonzero(contrasts_df.values[0][1:]) > 0:
+                msg = "\n\n[!] C-PAC says: It appears you have modified your " \
+                      "contrasts CSV file already- back up this file before " \
+                      "building your model again to avoid overwriting your " \
+                      "changes.\n\nContrasts file:\n{0}" \
+                      "\n\n".format(contrast_out_path)
+            raise Exception(msg)
+
         with open(contrast_out_path, "w") as f:
             f.write('Contrasts')
             for col in contrasts_columns:
