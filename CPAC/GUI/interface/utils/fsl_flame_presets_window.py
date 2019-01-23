@@ -671,7 +671,7 @@ class FlamePresetsTwoConditions(wx.Frame):
             new_deriv_list.append(substitution_map.get(deriv_string))
         self.gpa_settings["derivative_list"] = new_deriv_list
 
-    def click_OK(self):
+    def click_OK(self, event):
         # gather data
         self.gather_form_data()
         self.substitute_derivative_names()

@@ -145,7 +145,8 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
 
 def create_design_matrix_df(group_list, pheno_df=None,
                             ev_selections=None, pheno_sub_label=None,
-                            pheno_ses_label=None, pheno_site_label=None):
+                            pheno_ses_label=None, pheno_site_label=None,
+                            ses_id=False):
     """Create the design matrix intended for group-level analysis via the FSL
     FLAME tool.
 
@@ -159,7 +160,16 @@ def create_design_matrix_df(group_list, pheno_df=None,
 
     import pandas as pd
 
-    map_df = pd.DataFrame({'participant_id': group_list})
+    if ses_id:
+        # if the group_list is participant_session_id instead of participant_id
+        map_df = pd.DataFrame({'participant_session_id': group_list})
+        part_ids = []
+        for part_ses in group_list:
+            part = part_ses.split('_')[0]
+            part_ids.append(part)
+        map_df['participant_id'] = part_ids
+    else:
+        map_df = pd.DataFrame({'participant_id': group_list})
 
     if pheno_df is None:
         # no phenotypic matrix provided; simpler design models
@@ -167,7 +177,6 @@ def create_design_matrix_df(group_list, pheno_df=None,
 
     else:
         # if a phenotype CSV file is provided with the data
-
         pheno_df = pheno_df.drop_duplicates()
 
         # replace spaces and dashes with underscores, to prevent confusion with 
@@ -586,13 +595,20 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
         # TODO: msg
         raise Exception
 
-    design_df = create_design_matrix_df(group_list)
+    sess_conditions = ["session", "Session", "sessions", "Sessions"]
+    scan_conditions = ["scan", "scans", "series", "Series/Scans"]
+
+    sesflag = False
+    if condition_type in sess_conditions:
+        sesflag = True
+
+    design_df = create_design_matrix_df(group_list, ses_id=sesflag)
 
     # make the "condition" EV (the 1's and -1's delineating the two
     # conditions, with the "conditions" being the two sessions or two scans)
     condition_ev = []
 
-    if condition_type == "session":
+    if condition_type in sess_conditions:
         # note: the participant_id column in design_df should be in order, so
         #       the condition_ev should come out in order:
         #           1,1,1,1,-1,-1,-1,-1  (this is checked further down)
@@ -604,7 +620,7 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
 
         group_config = {"sessions_list": conditions, "series_list": []}
 
-    elif condition_type == "scan":
+    elif condition_type in scan_conditions:
         # TODO: re-visit later, when session/scan difference in how to run
         # TODO: group-level analysis repeated measures is streamlined and
         # TODO: simplified
@@ -614,9 +630,9 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
         # half of this list (will need to ensure these scans exist for each
         # selected derivative in the output directory later on)
 
-        for sub_ses_id in design_df["participant_session_id"]:
+        for sub_ses_id in design_df["participant_id"]:
             condition_ev.append(1)
-        for sub_ses_id in design_df["participant_session_id"]:
+        for sub_ses_id in design_df["participant_id"]:
             condition_ev.append(-1)
 
         # NOTE: there is only one iteration of the sub_ses list in
@@ -1097,7 +1113,11 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
         # or two scans) will be coming in as a string of either one covariate
         # name, or a string with two covariates separated by a comma
         #     either way, it needs to be in list form in this case, not string
-        covariate = covariate.split(",")
+        try:        
+            covariate = covariate.split(",")
+        except AttributeError:
+            # it's already a list- keep it that way
+            pass
 
         design_df, contrasts_df, group_config_update = \
             preset_paired_two_group(group_list,

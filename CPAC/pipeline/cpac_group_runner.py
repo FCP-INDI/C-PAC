@@ -66,10 +66,13 @@ def load_text_file(filepath, label="file"):
     return lines_list
 
 
-def grab_pipeline_dir_subs(pipeline_dir):
+def grab_pipeline_dir_subs(pipeline_dir, ses=False):
     import os
     inclusion_list = []
-    pipeline_list = [x.split('_')[0] for x in os.listdir(pipeline_dir) if os.path.isdir(os.path.join(pipeline_dir, x))]
+    if ses:
+        pipeline_list = [x for x in os.listdir(pipeline_dir) if os.path.isdir(os.path.join(pipeline_dir, x))]
+    else:
+        pipeline_list = [x.split('_')[0] for x in os.listdir(pipeline_dir) if os.path.isdir(os.path.join(pipeline_dir, x))]
     for sub_id in pipeline_list:
         if sub_id not in inclusion_list:
             inclusion_list.append(sub_id)
