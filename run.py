@@ -171,6 +171,8 @@ parser.add_argument('--skip_bids_validator',
 parser.add_argument('--ndmg_mode', help='produce ndmg connectome graphs and '
                     'write out in the ndmg output format',
                     action='store_true')
+parser.add_argument('--anat_only', help='run only the anatomical preprocessing',
+                    action='store_true')
 
 parser.add_argument('--tracking_opt-out', action='store_true',
                     help='Disable usage tracking. Only the number of participants on the analysis is tracked.',
@@ -233,6 +235,9 @@ c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 if args.pipeline_override:
     overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
     c.update(overrides)
+
+if args.ants_only:
+    c.update({ runFunctional: [0] })
 
 # get the aws_input_credentials, if any are specified
 if args.aws_input_creds:
