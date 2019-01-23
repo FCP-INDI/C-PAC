@@ -12,7 +12,7 @@ def seperate_warps_list(warp_list, selection):
 
 
 def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
-                  reference_skull):
+                  reference_skull, fixed_image_mask="<undefined>"):
 
     regcmd = ["antsRegistration",
               "--collapse-output-transforms", "0",
