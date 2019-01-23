@@ -1001,7 +1001,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
                       "building your model again to avoid overwriting your " \
                       "changes.\n\nContrasts file:\n{0}" \
                       "\n\n".format(contrast_out_path)
-            raise Exception(msg)
+                raise Exception(msg)
 
         with open(contrast_out_path, "w") as f:
             f.write('Contrasts')

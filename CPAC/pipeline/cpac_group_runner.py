@@ -73,6 +73,7 @@ def grab_pipeline_dir_subs(pipeline_dir):
     for sub_id in pipeline_list:
         if sub_id not in inclusion_list:
             inclusion_list.append(sub_id)
+    inclusion_list = sorted(inclusion_list)
     return inclusion_list
 
 
