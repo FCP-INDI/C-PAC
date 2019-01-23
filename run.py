@@ -236,7 +236,7 @@ if args.pipeline_override:
     overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
     c.update(overrides)
 
-if args.ants_only:
+if args.anat_only:
     c.update({ "runFunctional": [0] })
 
 # get the aws_input_credentials, if any are specified
