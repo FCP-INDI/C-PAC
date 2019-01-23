@@ -1342,7 +1342,9 @@ def gen_histogram(measure_file, measure):
                 measure = fname
             if 'dr_tempreg' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('tempreg_maps_')[1]
+                for i in ['temp_reg_map_', 'tempreg_map_', 'tempreg_maps_', 'temp_reg_maps_']:
+                    if i in fname:
+                        fname = fname.split(i)[1]
                 fname = 'dual_regression_map_'+ fname.split('_')[0]
                 measure = fname
             if 'centrality' in measure.lower():
