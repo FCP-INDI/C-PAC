@@ -1332,7 +1332,10 @@ def gen_histogram(measure_file, measure):
             measure = m_
             if 'sca_roi' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('roi_')[1]
+                if 'ROI_' in fname:
+                    fname = fname.rsplit('ROI_')[1]
+                elif 'roi_' in fname:
+                    fname = fname.rsplit('roi_')[1]
                 fname = 'sca_roi_' + fname.split('_')[0]
                 measure = fname
             if 'sca_tempreg' in measure.lower():
@@ -1344,7 +1347,11 @@ def gen_histogram(measure_file, measure):
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
                 for i in ['temp_reg_map_', 'tempreg_map_', 'tempreg_maps_', 'temp_reg_maps_']:
                     if i in fname:
-                        fname = fname.split(i)[1]
+                        try:
+                            fname = fname.rsplit(i)[1]
+                            break
+                        except IndexError:
+                            continue
                 fname = 'dual_regression_map_'+ fname.split('_')[0]
                 measure = fname
             if 'centrality' in measure.lower():
