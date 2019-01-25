@@ -160,20 +160,28 @@ def create_design_matrix_df(group_list, pheno_df=None,
 
     import pandas as pd
 
+    keep_cols = ['participant_id']
+
     if ses_id:
         # if the group_list is participant_session_id instead of participant_id
         map_df = pd.DataFrame({'participant_session_id': group_list})
+        keep_cols += ['participant_session_id']
         part_ids = []
+        sess_ids = []
         for part_ses in group_list:
             part = part_ses.split('_')[0]
+            sess = part_ses.split('_')[1]
             part_ids.append(part)
+            sess_ids.append(sess)
         map_df['participant_id'] = part_ids
+        map_df['session'] = sess_ids
+        map_df = map_df.sort_values(by=['session', 'participant_id'])
     else:
         map_df = pd.DataFrame({'participant_id': group_list})
 
     if pheno_df is None:
         # no phenotypic matrix provided; simpler design models
-        design_df = map_df[['participant_id']]
+        design_df = map_df[keep_cols]
 
     else:
         # if a phenotype CSV file is provided with the data
@@ -276,6 +284,9 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
 
     # TODO:
     # if session, if site, remove
+
+    print 'design df: ', design_df
+    print 'contrast dct list: ', contrasts_dct_list
 
     if contrasts_dct_list:
         # if we are initializing the contrasts matrix with pre-set contrast
@@ -704,8 +715,10 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     contrast_one.update({condition_type: 1})
     contrast_two.update({condition_type: -1})
 
-    contrasts = [contrast_one, contrast_two]
+    design_df = design_df.drop(labels=['participant_session_id'],
+                               axis='columns')
 
+    contrasts = [contrast_one, contrast_two]
     contrasts_df = create_contrasts_template_df(design_df, contrasts)
 
     # create design and contrasts matrix file paths
@@ -986,7 +999,10 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
 
     if not group_list_text_file:
         from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
-        group_list = grab_pipeline_dir_subs(pipeline_dir)
+        if preset == "paired_two" or preset == "tripled_two":
+            group_list = grab_pipeline_dir_subs(pipeline_dir, True)
+        else:
+            group_list = grab_pipeline_dir_subs(pipeline_dir)
         group_list_text_file = os.path.join(output_dir, model_name,
                                             "group_participant_list_"
                                             "{0}.txt".format(model_name))
