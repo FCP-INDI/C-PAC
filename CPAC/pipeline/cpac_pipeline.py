@@ -34,6 +34,7 @@ from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
+from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
@@ -746,37 +747,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 ]
             )
 
-            if 'lesion_mask' in sub_dict and c.use_lesion_mask:
-                lesion_preproc = pe.Workflow(
-                    name='lesion_preproc_%d' % num_strat)
-                # We could also use create_anat_preproc
-                # I just didn't want to use the "anat" names for the lesion
-                inputnode = pe.Node(util.IdentityInterface(
-                    fields=['lesion']), name='inputspec')
-
-                outputnode = pe.Node(util.IdentityInterface(fields=['refit',
-                                                                    'reorient']),
-                                     name='outputspec')
-
-                lesion_deoblique = pe.Node(interface=afni.Refit(),
-                                           name='lesion_deoblique')
-
-                lesion_deoblique.inputs.deoblique = True
-                lesion_preproc.connect(
-                    inputnode, 'lesion', lesion_deoblique, 'in_file')
-                lesion_preproc.connect(
-                    lesion_deoblique, 'out_file', outputnode, 'refit')
-
-                # Anatomical reorientation
-                lesion_reorient = pe.Node(interface=afni.Resample(),
-                                          name='lesion_reorient')
-
-                lesion_reorient.inputs.orientation = 'RPI'
-                lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
-                lesion_preproc.connect(
-                    lesion_deoblique, 'out_file', lesion_reorient, 'in_file')
-                lesion_preproc.connect(
-                    lesion_reorient, 'out_file', outputnode, 'reorient')
+            if 'lesion_mask' in sub_dict and c.use_lesion_mask \
+                    and 'lesion_preproc' not in nodes:
+                lesion_preproc = create_lesion_preproc(
+                    wf_name='lesion_preproc_%d' % num_strat
+                )
 
                 strat.append_name(lesion_preproc.name)
                 # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
@@ -993,38 +968,11 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                       [3, 2, 1, 0]]
                 )
 
-                if 'lesion_mask' in sub_dict and c.use_lesion_mask:
-                    lesion_preproc = pe.Workflow(
-                        name='lesion_preproc_%d' % num_strat)
-                    # We could also use create_anat_preproc
-                    # I just didn't want to use the "anat" names for the lesion
-                    inputnode = pe.Node(util.IdentityInterface(
-                        fields=['lesion']), name='inputspec')
-
-                    outputnode = pe.Node(util.IdentityInterface(fields=['refit',
-                                                                        'reorient']),
-                                         name='outputspec')
-
-                    lesion_deoblique = pe.Node(interface=afni.Refit(),
-                                               name='lesion_deoblique')
-
-                    lesion_deoblique.inputs.deoblique = True
-                    lesion_preproc.connect(
-                        inputnode, 'lesion', lesion_deoblique, 'in_file')
-                    lesion_preproc.connect(
-                        lesion_deoblique, 'out_file', outputnode, 'refit')
-
-                    # Anatomical reorientation
-                    lesion_reorient = pe.Node(interface=afni.Resample(),
-                                              name='lesion_reorient')
-
-                    lesion_reorient.inputs.orientation = 'RPI'
-                    lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
-                    lesion_preproc.connect(
-                        lesion_deoblique, 'out_file', lesion_reorient,
-                        'in_file')
-                    lesion_preproc.connect(
-                        lesion_reorient, 'out_file', outputnode, 'reorient')
+                if 'lesion_mask' in sub_dict and c.use_lesion_maskand and\
+                        'lesion_preproc' not in nodes:
+                    lesion_preproc = create_lesion_preproc(
+                        wf_name='lesion_preproc_%d' % num_strat
+                    )
 
                     # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
 
