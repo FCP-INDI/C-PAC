@@ -409,8 +409,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                 if task_key not in \
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
 
-                    subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = \
-                        { "scan": task_info }
+                    subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = task_info
 
                 else:
                     print("Func file (%s)" %
