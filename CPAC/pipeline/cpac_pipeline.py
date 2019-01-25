@@ -118,7 +118,6 @@ from CPAC.utils.utils import (
 
 logger = logging.getLogger('nipype.workflow')
 
-config.enable_debug_mode()
 # TODO ASH move to somewhere else
 def pick_wm(seg_prob_list):
     seg_prob_list.sort()
@@ -791,6 +790,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 # Not sure to understand how log nodes work yet
                 # create_log_node(workflow, lesion_preproc,
                 #                 'inputspec.brain', num_strat)
+                print "LESION MASK OMG !!!" + str(sub_dict['lesion_mask'])
                 lesion_preproc.inputs.inputspec.lesion = sub_dict['lesion_mask']
 
                 workflow.connect(
@@ -993,6 +993,60 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                       [3, 2, 1, 0]]
                 )
 
+                if 'lesion_mask' in sub_dict and c.use_lesion_mask:
+                    lesion_preproc = pe.Workflow(
+                        name='lesion_preproc_%d' % num_strat)
+                    # We could also use create_anat_preproc
+                    # I just didn't want to use the "anat" names for the lesion
+                    inputnode = pe.Node(util.IdentityInterface(
+                        fields=['lesion']), name='inputspec')
+
+                    outputnode = pe.Node(util.IdentityInterface(fields=['refit',
+                                                                        'reorient']),
+                                         name='outputspec')
+
+                    lesion_deoblique = pe.Node(interface=afni.Refit(),
+                                               name='lesion_deoblique')
+
+                    lesion_deoblique.inputs.deoblique = True
+                    lesion_preproc.connect(
+                        inputnode, 'lesion', lesion_deoblique, 'in_file')
+                    lesion_preproc.connect(
+                        lesion_deoblique, 'out_file', outputnode, 'refit')
+
+                    # Anatomical reorientation
+                    lesion_reorient = pe.Node(interface=afni.Resample(),
+                                              name='lesion_reorient')
+
+                    lesion_reorient.inputs.orientation = 'RPI'
+                    lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
+                    lesion_preproc.connect(
+                        lesion_deoblique, 'out_file', lesion_reorient,
+                        'in_file')
+                    lesion_preproc.connect(
+                        lesion_reorient, 'out_file', outputnode, 'reorient')
+
+                    # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
+
+                    strat.update_resource_pool({
+                        'lesion_mask': (lesion_preproc, 'inputspec.lesion')
+                    })
+                    strat.update_resource_pool({
+                        'lesion_reorient': (
+                        lesion_preproc, 'outputspec.reorient')
+                    })
+                    # Not sure to understand how log nodes work yet
+                    # create_log_node(workflow, lesion_preproc,
+                    #                 'inputspec.brain', num_strat)
+                    print "LESION MASK OMG !!! (SYM)" + str(sub_dict['lesion_mask'])
+                    lesion_preproc.inputs.inputspec.lesion = sub_dict[
+                        'lesion_mask']
+
+                    workflow.connect(
+                        lesion_preproc, 'outputspec.reorient',
+                        ants_reg_anat_symm_mni, 'inputspec.fixed_image_mask'
+                    )
+
                 strat.append_name(ants_reg_anat_symm_mni.name)
                 strat.set_leaf_properties(ants_reg_anat_symm_mni,
                                           'outputspec.normalized_output_brain')
@@ -1013,10 +1067,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
         strat_list += new_strat_list
 
-    # Inserting Segmentation Preprocessing Workflow
-    def stop_workflow():
-        raise Exception('PUT THIS WORKFLOW DOWN, RIGHT NOW!!!')
-
     new_strat_list = []
     workflow_counter += 1
 
@@ -1030,19 +1080,12 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             seg_preproc = None
 
-            crash_node = pe.Node(
-                interface=util.Function(output_names=['out'],
-                                        function=stop_workflow),
-                name='crash_workflow')
-
             # TODO ASH based on config, instead of nodes?
             if 'anat_mni_fnirt_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=False,
                                                  wf_name='seg_preproc_%d' % num_strat)
             elif 'anat_mni_ants_register' in nodes:
-                # seg_preproc = create_seg_preproc(use_ants=True,
-                #                                  wf_name='seg_preproc_%d' % num_strat)
-                seg_preproc = create_seg_preproc(use_ants=crash_node.outputs.out,
+                seg_preproc = create_seg_preproc(use_ants=True,
                                                  wf_name='seg_preproc_%d' % num_strat)
 
             # TODO ASH review

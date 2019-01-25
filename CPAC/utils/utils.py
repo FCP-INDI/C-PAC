@@ -151,6 +151,8 @@ files_folders_wf = {
     'sca_tempreg_maps_files_smooth': 'sca_roi',
     'sca_tempreg_maps_zstat_files': 'sca_roi',
     'sca_tempreg_maps_zstat_files_smooth': 'sca_roi',
+    'lesion_reorient': 'lesion',
+    'lesion_mask': 'lesion'
 }
 
 
