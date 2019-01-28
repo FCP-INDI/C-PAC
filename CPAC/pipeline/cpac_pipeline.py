@@ -1831,14 +1831,50 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     if "De-Spiking" in c.runMotionSpike:
                         subwf_name = "nuisance_with_despiking"
 
+                    nuisance_wf_name = '{0}_{1}'.format(subwf_name, num_strat)
+
+                    # :param pipeline_resource_pool: dictionary of pipeline resources and their source nodes
+                    # :param nuisance_configuration_selector: dictionary describing nuisance regression to be performed
+                    # :param functional_specifier: key corresponding to functional data that should be used
+                    # :param use_ants: flag indicating whether FNIRT or ANTS is used
+                    # :param name: Name of the workflow, defaults to 'nuisance'
+
                     if 'anat_mni_fnirt_register' in nodes:
-                        nuisance = create_nuisance(False,
-                                                '{0}_{1}'.format(subwf_name,
-                                                                    num_strat))
+
+                        nuisance = create_nuisance_workflow(
+                            strat,
+                            nuisance_configuration_selector,
+                            functional_specifier,
+                            use_ants=False,
+                            name=nuisance_wf_name
+                        )
+
                     else:
-                        nuisance = create_nuisance(True,
-                                                '{0}_{1}'.format(subwf_name,
-                                                                    num_strat))
+
+                        nuisance = create_nuisance_workflow(
+                            strat,
+                            nuisance_configuration_selector,
+                            functional_specifier,
+                            use_ants=True,
+                            name=nuisance_wf_name
+                        )
+
+                    # 'functional_file_path'
+                    # 'wm_mask_file_path'
+                    # 'csf_mask_file_path'
+                    # 'gm_mask_file_path'
+                    # 'functional_brain_mask_file_path'
+                    # 'mni_to_anat_linear_xfm_file_path'
+                    # 'anat_to_mni_initial_xfm_file_path'
+                    # 'anat_to_mni_rigid_xfm_file_path'
+                    # 'anat_to_mni_affine_xfm_file_path'
+                    # 'func_to_anat_linear_xfm_file_path'
+                    # 'lat_ventricles_mask_file_path'
+                    # 'motion_parameters_file_path'
+                    # 'fd_file_path'
+                    # 'dvars_file_path'
+                    # 'brain_template_file_path'
+                    # 'selector'
 
                     nuisance.get_node('residuals').iterables = ([
                         ('selector', c.Regressors),

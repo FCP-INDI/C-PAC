@@ -1,133 +1,127 @@
+from CPAC.nuisance import create_nuisance_workflow
 
 
-def test_calc_residuals_compcor():
+def test_nuisance_workflow_type1():
 
-    from CPAC.nuisance import calc_residuals
+    """
+    test_selector = {'Anaticor' : None | {radius = <radius in mm>},
+        'aCompCor' : None | {num_pcs = <number of components to retain>,
+                            tissues = 'WM' | 'CSF' | 'WM+CSF',
+                            include_delayed = True | False,
+                            include_squared = True | False,
+                            include_delayed_squared = True | False},
+        'WhiteMatter' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                       num_pcs = <number of components to retain>,
+                       include_delayed = True | False,
+                       include_squared = True | False,
+                       include_delayed_squared = True | False},
+        'Ventricles' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                       num_pcs = <number of components to retain>,
+                       include_delayed = True | False,
+                       include_squared = True | False,
+                       include_delayed_squared = True | False},
+        'GreyMatter' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                       num_pcs = <number of components to retain>,
+                       include_delayed = True | False,
+                       include_squared = True | False,
+                       include_delayed_squared = True | False},
+        'GlobalSignal' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                           num_pcs = <number of components to retain>,
+                           include_delayed = True | False,
+                           include_squared = True | False,
+                           include_delayed_squared = True | False},
+        'Motion' : None | {include_delayed = True | False,
+                           include_squared = True | False,
+                           include_delayed_squared = True | False},
+        'Censor' : None | { thresh_metric = 'RMSD','DVARS', or 'RMSD+DVARS',
+                            threshold = <threshold to be applied to metric, if using
+                              RMSD+DVARS, this should be a tuple (RMSD thresh, DVARS thresh)>,
+                            number_of_previous_trs_to_remove = True | False,
+                            number_of_subsequent_trs_to_remove = True | False,
+                            method = 'Kill', 'Zero', 'Interpolate', 'SpikeRegression'},
+        'PolyOrt' : None | { degree = <polynomial degree up to which will be removed, e.g. 2 means
+                                       constant + linear + quadratic, practically that is probably,
+                                       the most that will be need esp. if band pass filtering>},
+        'Bandpass' : None | { bottom_frequency = <frequency in hertz of the highpass part of the pass
+                                                  band, frequencies below this will be removed>,
+                              top_frequency = <frequency in hertz of the lowpass part of the pass
+                                               band, frequencies above this will be removed>},
+        }
 
-    func_preproc = '/Users/steven.giavasis/run/cpac/nipype13_test/output' \
-                   '/pipeline_nipype13_test/sub-0050304_ses-1/preprocessed' \
-                   '/_scan_rest_run-1/sub-0050304_task-rest_run-1_bold_' \
-                   'calc_tshift_resample_volreg_calc_maths.nii.gz'
+    """
 
-    selector = {'compcor': True,
-                'wm': False,
-                'csf': False,
-                'gm': False,
-                'global': True,
-                'pc1': True,
-                'motion': False,
-                'linear': True,
-                'quadratic': True}
+    selector_test = {
+        'Anaticor': None,
+        'tCompCor': {
+            'num_pcs': 3,
+            'threshold': '2 PCT',
+            'by_slice': True,
+            'tissues': 'WM',
+            'include_delayed': False,
+            'include_squared': False,
+            'include_delayed_squared': False
+        },
+        'aCompCor': {
+            'num_pcs': 5,
+            'tissues': 'WM',
+            'include_delayed': False,
+            'include_squared': False,
+            'include_delayed_squared': False
+        },
+        'WhiteMatter': None,
+        'Ventricles': {
+            'summary_method': 'DetrendNormMean',
+            'num_pcs': None,
+            'include_delayed': False,
+            'include_squared': False,
+            'include_delayed_squared': False
+        },
+        'GreyMatter': None,
+        'GlobalSignal': None,
+        'Motion': {
+            'include_delayed': True,
+            'include_squared': True,
+            'include_delayed_squared': True
+        },
+        'Censor': {
+            'thresh_metric': 'FD',
+            'fd_threshold': '1.5 SD',
+            'number_of_previous_trs_to_remove': 0,
+            'number_of_subsequent_trs_to_remove': 0,
+            'censor_method': 'SpikeRegression'
+        },
+        'PolyOrt': {
+            'degree': 2
+        },
+        'Bandpass': None
+    }
 
-    calc_residuals(func_preproc, selector, compcor_ncomponents=5)
+    nuisance_regression_workflow = create_nuisance_workflow(use_ants=True, selector=selector_test)
 
+    nuisance_regression_workflow.inputs.inputspec.set({
+        "selector": selector_test,
+        "wm_mask_file_path": '/home/ccraddock/nuisance_test/wm_mask.nii.gz',
+        "csf_mask_file_path": '/home/ccraddock/nuisance_test/csf_mask.nii.gz',
+        "gm_mask_file_path": '/home/ccraddock/nuisance_test/gm_mask.nii.gz',
+        "lat_ventricles_mask_file_path": '/home/ccraddock/nuisance_test/MNI152_T1_2mm_VentricleMask.nii.gz',
+        
+        "motion_parameters_file_path":  '/home/ccraddock/nuisance_test/motion_parameters.1D',
+        "fd_file_path": '/home/ccraddock/nuisance_test/fd.1D',
+        "dvars_file_path": '/home/ccraddock/nuisance_test/dvars.1d',
+        "functional_file_path": '/home/ccraddock/nuisance_test/functional.nii.gz',
+        "functional_brain_mask_file_path": '/home/ccraddock/nuisance_test/func_mask.nii.gz',
+        "brain_template_file_path": '/home/ccraddock/nuisance_test/MNI152_T1_2mm_brain.nii.gz',
+        
+        "anat_to_mni_initial_xfm_file_path":  '/home/ccraddock/nuisance_test/anat_to_mni_initial_xfm.mat',
+        "anat_to_mni_rigid_xfm_file_path":  '/home/ccraddock/nuisance_test/anat_to_mni_rigid_xfm.mat',
+        "anat_to_mni_affine_xfm_file_path":  '/home/ccraddock/nuisance_test/anat_to_mni_affine_xfm.mat',
+        "func_to_anat_linear_xfm_file_path": '/home/ccraddock/nuisance_test/func_to_anat_linear_xfm.mat',
+    })
 
+    nuisance_regression_workflow.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
+    result_value = nuisance_regression_workflow.run()
 
+    print("result {0}".format(result_value))
 
-def test_calc_residuals():
-    import numpy as np
-    from CPAC.nuisance import calc_residuals
-    from scipy.io import loadmat
-    from scipy.stats import pearsonr
-    import nibabel as nb
-    
-    def normalize(X):
-        Xc = X - X.mean(0)
-        return Xc/np.sqrt( (Xc**2).sum(0) )
-    
-    subject = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_scale/mapflow/_func_scale0/lfo_3dc_RPI_3dv_3dc_maths.nii.gz'
-    csf_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/seg_mask/mapflow/_seg_mask0/segment_prob_0_flirt_maths_maths_maths.nii.gz'
-    wm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_wm_threshold_0.66/seg_mask1/mapflow/_seg_mask10/segment_prob_2_flirt_maths_maths_maths.nii.gz'
-    gm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_gm_threshold_0.2/seg_mask2/mapflow/_seg_mask20/segment_prob_1_flirt_maths_maths_maths.nii.gz'
-    motion_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_volreg_1/mapflow/_func_volreg_10/lfo_3dc_RPI_3dv1D.1D'
-    
-    stor = {'compcor' : True,
-            'wm' : True,
-            'csf' : True,
-            'gm' : True,
-            'global' : True,
-            'pc1' : True,
-            'motion' : True,
-            'linear' : True,
-            'quadratic' : True}    
-
-    calc_residuals(subject, stor, wm_file, csf_file, gm_file, motion_file, compcor_ncomponents=3)
-    X = loadmat('nuisance_regressors.mat')
-    
-    nii = nb.load('residual.nii.gz')
-    data = nii.get_data().astype(np.float64)
-    global_mask = (data != 0).sum(-1) != 0
-    Y = data[global_mask].T
-
-    r_glb = normalize(Y).T.dot(X['global'])
-    r_csf = normalize(Y).T.dot(X['csf'])
-    r_wm = normalize(Y).T.dot(X['wm'])
-    
-
-def test_nuisance():
-#    from CPAC.nuisance import create_nuisance
-#    cn = create_nuisance()
-#    subjects_list = open('/home/data/Projects/ADHD200/adhd200_sublist_for_basc_withGSR').readlines()
-#    subjects_list = [ subject.strip() for subject in subjects_list ]
-#    
-#    subject = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_scale/mapflow/_func_scale0/lfo_3dc_RPI_3dv_3dc_maths.nii.gz'
-#    csf_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/seg_mask/mapflow/_seg_mask0/segment_prob_0_flirt_maths_maths_maths.nii.gz'
-#    wm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_wm_threshold_0.66/seg_mask1/mapflow/_seg_mask10/segment_prob_2_flirt_maths_maths_maths.nii.gz'
-#    gm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_gm_threshold_0.2/seg_mask2/mapflow/_seg_mask20/segment_prob_1_flirt_maths_maths_maths.nii.gz'
-#    motion_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_volreg_1/mapflow/_func_volreg_10/lfo_3dc_RPI_3dv1D.1D'
-#    
-#    stor = {'compcor' : True,
-#            'wm' : True,
-#            'csf' : True,
-#            'gm' : True,
-#            'global' : True,
-#            'pc1' : True,
-#            'motion' : True,
-#            'linear' : True,
-#            'quadratic' : True}
-#    
-#    stor2 = {'compcor' : True,
-#            'wm' : True,
-#            'csf' : True,
-#            'gm' : True,
-#            'global' : False,
-#            'pc1' : True,
-#            'motion' : False,
-#            'linear' : True,
-#            'quadratic' : False}
-#      
-#    cn.inputs.inputspec.subject = subject
-#    cn.inputs.inputspec.gm_mask = gm_file
-#    cn.inputs.inputspec.wm_mask = wm_file
-#    cn.inputs.inputspec.csf_mask = csf_file
-#    cn.inputs.inputspec.motion_components = motion_file
-#    cn.get_node('residuals').iterables = ('selector',[stor, stor2])
-#    cn.inputs.inputspec.compcor_ncomponents = 5
-#    
-#    cn.run(plugin='MultiProc', plugin_args={'n_procs' : 2})
-    
-    from nipype import config
-    config.update_config({'execution': {'remove_unnecessary_outputs':False}})
-    from CPAC.nuisance import create_nuisance
-    cn = create_nuisance()
-    stor = {'compcor' : True,
-            'wm' : True,
-            'csf' : True,
-            'gm' : True,
-            'global' : True,
-            'pc1' : True,
-            'motion' : True,
-            'linear' : True,
-            'quadratic' : True}
-    cn.inputs.inputspec.selector = stor
-    cn.inputs.inputspec.compcor_ncomponents = 5
-    cn.inputs.inputspec.motion_components = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/movement_parameters/_scan_rest_1_rest/rest_3dc_RPI_3dv1D.1D'
-    cn.inputs.inputspec.func_to_anat_linear_xfm = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/functional_to_anat_linear_xfm/_scan_rest_1_rest/rest_3dc_RPI_3dv_3dc_3dT_flirt.mat'
-    cn.inputs.inputspec.mni_to_anat_linear_xfm = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/mni_to_anatomical_linear_xfm/mprage_RPI_3dc_flirt_inv.mat'
-    cn.inputs.inputspec.gm_mask = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/anatomical_gm_mask/_gm_threshold_0.2/segment_prob_1_maths_maths_maths.nii.gz'
-    cn.inputs.inputspec.csf_mask = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/anatomical_csf_mask/_csf_threshold_0.4/segment_prob_0_maths_maths_maths.nii.gz'
-    cn.inputs.inputspec.wm_mask = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/anatomical_wm_mask/_wm_threshold_0.66/segment_prob_2_maths_maths_maths.nii.gz'
-    cn.inputs.inputspec.harvard_oxford_mask = '/usr/share/fsl/4.1/data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz'
-    cn.inputs.inputspec.subject = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/preprocessed/_scan_rest_1_rest/rest_3dc_RPI_3dv_3dc_maths.nii.gz'
-    cn.base_dir = '/home/bcheung/cn_run'
+    assert 0 == 0
