@@ -320,45 +320,32 @@ class ListBox(wx.Frame):
 
     def buildFSLModels(self, event):
         from CPAC.pipeline.cpac_group_runner import build_feat_models
-        from CPAC.utils.create_fsl_flame_preset import write_config_dct_to_yaml
 
-        dialog_msg = 'Building your FSL-FEAT models. Check the terminal ' \
-                     'window for details and progress.'
-        dialog_title = 'Building models..'
-        bld_dialog = wx.MessageDialog(self, dialog_msg, dialog_title,
+        if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
+            
+            pipelines = self.listbox.GetCheckedStrings()
+            group_config = False
+            for p in pipelines:
+                pipeline = self.pipeline_map.get(p)
+                if os.path.exists(pipeline):
+                    try:
+                        import yaml
+                        config = yaml.load(open(pipeline, 'r'))
+                    except:
+                        raise Exception("Error reading config file- %s", config)
+                    if 'pipeline_dir' in config.keys():
+                        group_config = True
+
+                        dialog_msg = 'Building your FSL-FEAT models. Check the terminal ' \
+                                     'window for details and progress.'
+                        dialog_title = 'Building models..'
+                        bld_dialog = wx.MessageDialog(self, dialog_msg, 
+                                                      dialog_title,
                                       wx.OK | wx.ICON_INFORMATION)
-        bld_dialog.ShowModal()
-        bld_dialog.Destroy()
+                        bld_dialog.ShowModal()
+                        bld_dialog.Destroy()
 
-        for ctrl in self.page.get_ctrl_list():
-            name = ctrl.get_name()
-            val = str(ctrl.get_selection())
-            if val in substitution_map.keys():
-                val = substitution_map[val]
-            if isinstance(val, list):
-                new_val = []
-                for v in val:
-                    if v in substitution_map.keys():
-                        v = substitution_map[v]
-                    new_val.append(v)
-                val = new_val
-            elif isinstance(val, str):
-                if 'derivative' in name:
-                    val = val.replace('[', '').replace(']', '').replace(' ', '').replace("'", "")
-                    val = val.split(',')
-                    new_val = []
-                    for v in val:
-                        if v in substitution_map.keys():
-                            v = substitution_map[v]
-                        new_val.append(v)
-                    val = new_val
-                    
-            self.gpa_settings[name] = val
-
-        group_config_path = os.path.join(self.gpa_settings['output_dir'],
-                                         'group_config_{0}.yml'.format(self.gpa_settings['model_name']))
-        write_config_dct_to_yaml(self.gpa_settings, group_config_path)
-        retval = build_feat_models(group_config_path)
+                        retval = build_feat_models(pipeline)
 
         if retval == 0:
             self.Close()
