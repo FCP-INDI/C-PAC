@@ -1,14 +1,17 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import argparse
+import datetime
 import os
 import subprocess
-import yaml
 import sys
-from base64 import b64decode
-
-import datetime
 import time
+from base64 import b64decode
+import shutil
+import yaml
 
+from CPAC.utils.yaml import create_yaml_from_template
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
@@ -105,6 +108,11 @@ parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' This may require AWS S3 credentials specificied via the'
                                             ' --aws_input_creds option.',
                     default=DEFAULT_PIPELINE)
+parser.add_argument('--group_file', help='Path for the group analysis configuration file to use. '
+                                         'Use the format s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket. '
+                                         'This may require AWS S3 credentials specificied via the --aws_input_creds option. '
+                                         'The output directory needs to refer to the output of a preprocessing individual pipeline.',
+                    default=None)
 
 parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
                     help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
@@ -183,7 +191,7 @@ args = parser.parse_args()
 
 # if we are running the GUI, then get to it
 if args.analysis_level == "gui":
-    print "Starting CPAC GUI"
+    print("Starting CPAC GUI")
     import CPAC
 
     CPAC.GUI.run()
@@ -307,7 +315,7 @@ if args.save_working_dir is True:
         c['removeWorkingDir'] = False
         c['workingDirectory'] = os.path.join(args.output_dir, "working")
     else:
-        print ('Cannot write working directory to S3 bucket.'
+        print('Cannot write working directory to S3 bucket.'
                ' Either change the output directory to something'
                ' local or turn off the --save_working_dir flag')
 else:
@@ -315,20 +323,20 @@ else:
     c['workingDirectory'] = os.path.join('/scratch', "working")
 
 if args.participant_label:
-    print ("#### Running C-PAC on {0}".format(args.participant_label))
+    print("#### Running C-PAC on {0}".format(args.participant_label))
 else:
-    print ("#### Running C-PAC")
+    print("#### Running C-PAC")
 
-print ("Number of participants to run in parallel: {0}".format(c['numParticipantsAtOnce']))
-print ("Input directory: {0}".format(args.bids_dir))
-print ("Output directory: {0}".format(c['outputDirectory']))
-print ("Working directory: {0}".format(c['workingDirectory']))
-print ("Crash directory: {0}".format(c['crashLogDirectory']))
-print ("Log directory: {0}".format(c['logDirectory']))
-print ("Remove working directory: {0}".format(c['removeWorkingDir']))
-print ("Available memory: {0} (GB)".format(c['maximumMemoryPerParticipant']))
-print ("Available threads: {0}".format(c['maxCoresPerParticipant']))
-print ("Number of threads for ANTs: {0}".format(c['num_ants_threads']))
+print("Number of participants to run in parallel: {0}".format(c['numParticipantsAtOnce']))
+print("Input directory: {0}".format(args.bids_dir))
+print("Output directory: {0}".format(c['outputDirectory']))
+print("Working directory: {0}".format(c['workingDirectory']))
+print("Crash directory: {0}".format(c['crashLogDirectory']))
+print("Log directory: {0}".format(c['logDirectory']))
+print("Remove working directory: {0}".format(c['removeWorkingDir']))
+print("Available memory: {0} (GB)".format(c['maximumMemoryPerParticipant']))
+print("Available threads: {0}".format(c['maxCoresPerParticipant']))
+print("Number of threads for ANTs: {0}".format(c['num_ants_threads']))
 
 # create a timestamp for writing config files
 ts = time.time()
@@ -341,20 +349,56 @@ else:
     config_file = os.path.join("/scratch", "cpac_pipeline_config_{0}.yml".format(st))
 
 
-from CPAC.utils.yaml import create_yaml_from_template
-
 with open(config_file, 'w') as f:
     f.write(create_yaml_from_template(c, DEFAULT_PIPELINE))
 
 
 # we have all we need if we are doing a group level analysis
 if args.analysis_level == "group":
-    # print ("Starting group level analysis of data in %s using %s"%(args.bids_dir, config_file))
-    # import CPAC
-    # CPAC.pipeline.cpac_group_runner.run(config_file, args.bids_dir)
-    # sys.exit(1)
-    print ("Starting group level analysis of data in {0} using {1}".format(args.bids_dir, config_file))
-    sys.exit(0)
+
+    if not args.group_file or not os.path.exists(args.group_file):
+
+        print()
+        print()
+        print("No group analysis configuration file was supplied.")
+        print()
+
+        import pkg_resources as p
+        args.group_file = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                            "configs",
+                                            "group_config_template.yml"))
+
+        output_group = os.path.join(args.output_dir, "group_config.yml")
+
+        try:
+            if args.output_dir.lower().startswith("s3://"):
+                raise Exception
+
+            if not os.path.exists(output_group):
+                shutil.copyfile(args.group_file, output_group)
+        except Exception, IOError:
+            print("Could not create group analysis configuration file.")
+            print("Please refer to the C-PAC documentation for group analysis set up.")
+            print()
+        else:
+            print(
+                "Please refer to the output directory for a template of the file "
+                "and, after customizing to your analysis, add the flag\n\n"
+                "    --group_file %s"
+                "\n\nto your `docker run` command\n"
+                % output_group
+            )
+
+        sys.exit(1)
+
+    else:
+        import CPAC.pipeline.cpac_group_runner as cgr
+        print("Starting group level analysis of data in {0} using {1}".format(args.bids_dir, args.group_file))
+        cgr.run(args.group_file)
+        
+        sys.exit(0)
 
 # otherwise we move on to conforming the data configuration
 if not args.data_config_file:
@@ -376,7 +420,7 @@ if not args.data_config_file:
         file_paths = pt_file_paths
 
     if not file_paths:
-        print ("Did not find any files to process")
+        print("Did not find any files to process")
         sys.exit(1)
 
     sub_list = bids_gen_cpac_sublist(args.bids_dir, file_paths, config,
@@ -400,7 +444,7 @@ else:
         sub_list = t_sub_list
 
         if not sub_list:
-            print ("Did not find data for {0} in {1}".format(", ".join(args.participant_label),
+            print("Did not find data for {0} in {1}".format(", ".join(args.participant_label),
                                                              args.data_config_file
                                                              if not args.data_config_file.startswith("data:")
                                                              else "data URI"))
@@ -418,7 +462,7 @@ if args.participant_ndx:
         sub_list = [sub_list[int(args.participant_ndx)]]
         data_config_file = "cpac_data_config_pt%s_%s.yml" % (args.participant_ndx, st)
     else:
-        print ("Participant ndx {0} is out of bounds [0,{1})".format(int(args.participant_ndx),
+        print("Participant ndx {0} is out of bounds [0,{1})".format(int(args.participant_ndx),
                                                                      len(sub_list)))
         sys.exit(1)
 else:
