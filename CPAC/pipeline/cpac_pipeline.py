@@ -3590,7 +3590,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                                      'roits_file'],
                                                        function=ndmg_roi_timeseries,
                                                        imports=ndmg_ts_imports),
-                                         name='ndmg_ts')
+                                         name='ndmg_ts_%d' % num_strat)
 
                     node, out_file = strat['functional_to_standard']
                     workflow.connect(node, out_file, resample_functional_to_roi,
@@ -3608,7 +3608,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                                               'out_file'],
                                                           function=ndmg_create_graphs,
                                                           imports=ndmg_graph_imports),
-                                            name='ndmg_graphs',
+                                            name='ndmg_graphs_%d' % num_strat,
                                             iterfield=['labels'])
 
                     workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
