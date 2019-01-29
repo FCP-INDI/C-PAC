@@ -370,21 +370,25 @@ if args.analysis_level == "group":
                                             "configs",
                                             "group_config_template.yml"))
 
+        output_group = os.path.join(args.output_dir, "group_config.yml")
+
         try:
-            if not args.output_dir.lower().startswith("s3://"):
-                shutil.copyfile(args.group_file, args.output_dir + "/group_config.yml")
-            else:
+            if args.output_dir.lower().startswith("s3://"):
                 raise Exception
+
+            if not os.path.exists(output_group):
+                shutil.copyfile(args.group_file, output_group)
         except Exception, IOError:
             print("Could not create group analysis configuration file.")
             print("Please refer to the C-PAC documentation for group analysis set up.")
+            print()
         else:
             print(
                 "Please refer to the output directory for a template of the file "
                 "and, after customizing to your analysis, add the flag\n\n"
-                "    --group_file %s/group_config.yml"
+                "    --group_file %s"
                 "\n\nto your `docker run` command\n"
-                % args.output_dir
+                % output_group
             )
 
         sys.exit(1)
