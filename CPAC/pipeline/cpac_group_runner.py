@@ -415,7 +415,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             
             new_row_dict = {}
             new_row_dict["participant_session_id"] = unique_id
-            new_row_dict["participant_id"], new_row_dict["session"] = \
+            new_row_dict["participant_id"], new_row_dict["Sessions"] = \
                 unique_id.split('_')
 
             new_row_dict["Series"] = series_id
@@ -485,8 +485,6 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
                    get_motion, get_raw_score, get_func=False, derivatives=None,
                    exts=['nii', 'nii.gz']):
 
-    # probably won't have a session list due to subject ID format!
-
     nifti_globs = gather_nifti_globs(
         pipeline_folder,
         resource_list,
@@ -529,7 +527,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
           [ses01, ses02]
 
     Expected output:
-        pheno_df       Session  participant_sub01  participant_sub02
+        pheno_df      Sessions  participant_sub01  participant_sub02
           sub01          ses01                  1                  0
           sub02          ses01                  0                  1
           sub01          ses02                  1                  0
@@ -541,12 +539,12 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     #     NOTE: this is mainly for PRESET GROUP ANALYSIS MODELS!!!
     num_partic_cols = 0
     for col_names in pheno_df.columns:
-        if "participant_id" in col_names:
+        if "participant_" in col_names:
             num_partic_cols += 1
             
-    if num_partic_cols > 1 and ("session" in pheno_df.columns or "session_column_one" in pheno_df.columns):
-        for part_ses_id in pheno_df["participant_session_id"]:
-            if "participant_{0}".format(part_ses_id.split("_")[0]) in pheno_df.columns:
+    if num_partic_cols > 1 and ("Sessions" in pheno_df.columns or "session_column_one" in pheno_df.columns):
+        for part_id in pheno_df["participant_id"]:
+            if "participant_{0}".format(part_id) in pheno_df.columns:
                 continue
             break
         else:
@@ -563,7 +561,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
 
         for session in sessions_list:
             sub_pheno_df = pheno_df.copy()
-            sub_pheno_df["session"] = session
+            sub_pheno_df["Sessions"] = session
             sub_pheno_df["participant_session_id"] = pheno_df.participant_id+'_ses-%s' % session
             new_rows.append(sub_pheno_df)
             another_new_row.append(sub_pheno_df)
@@ -585,8 +583,8 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
                 #print(participant_unique_id)# generate/update sessions categorical column
                 part_id = participant_unique_id.split("_")[0]
                 
-                part_ids_col.append(part_id)
-                sessions_col.append(session)
+                part_ids_col.append(str(part_id))
+                sessions_col.append(str(session))
 
                 header_title = "participant_%s" % part_id
                 
@@ -598,7 +596,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
                     participant_id_cols[header_title][i] = 1
         i += 1
 
-    pheno_df["session"] = sessions_col
+    pheno_df["Sessions"] = sessions_col
     pheno_df["participant"] = part_ids_col
 
     # add new participant ID columns
@@ -606,6 +604,8 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
         new_col = 'participant_{0}'.format(sub_id)
         pheno_df[new_col] = participant_id_cols[new_col]
     
+    pheno_df = pheno_df.astype('object')
+
     return pheno_df
 
 
@@ -664,6 +664,8 @@ def pheno_series_to_repeated_measures(pheno_df, series_list,
         for new_col in participant_id_cols.keys():
             pheno_df[new_col] = participant_id_cols[new_col]
         
+    pheno_df = pheno_df.astype('object')
+
     return pheno_df
 
 
@@ -700,9 +702,7 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
 
 def prep_feat_inputs(group_config_file):
-    
     # Preps group analysis run
-
     # config_file: filepath to the C-PAC group-level config file
     
     import os
@@ -982,7 +982,7 @@ def prep_feat_inputs(group_config_file):
                 else:
                     series = "repeated_measures_multiple_series"
                     if 'session' in output_df:
-                        for ses_df_tuple in new_pheno_df.groupby('session'):
+                        for ses_df_tuple in new_pheno_df.groupby('Sessions'):
                             session = 'ses-{0}'.format(ses_df_tuple[0])
                             ses_df = ses_df_tuple[1]
 
@@ -1009,6 +1009,7 @@ def prep_feat_inputs(group_config_file):
                     # series_df is output_df but with only one of the
                     # Series
                     series_df = series_df_tuple[1]
+                    series_df = series_df.astype('str')
 
                     # trim down the pheno DF to match the output DF, remove any
                     # extra participant_<ID> identity columns, and merge
@@ -1018,14 +1019,12 @@ def prep_feat_inputs(group_config_file):
                             if col.replace('participant_', '') not in list(series_df['participant_id']):
                                 newer_pheno_df = newer_pheno_df.drop(labels=col, axis=1)
 
-                    newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id", "session"])
+                    newer_pheno_df = newer_pheno_df.astype('str')
+                    newer_pheno_df = pd.merge(newer_pheno_df, series_df, how="inner", on=["participant_id", "Sessions"])
 
                     # this can be removed/modified once sessions are no
                     # longer integrated in the full unique participant IDs
-                    if "session" in newer_pheno_df.columns:
-                        # TODO: re-visit why there is a "participant_ID"
-                        # TODO: column? will this still work without
-                        # TODO: presets?
+                    if "Sessions" in newer_pheno_df.columns:
                         newer_pheno_df, dropped_parts = \
                             balance_repeated_measures(newer_pheno_df,
                                                       group_model.sessions_list,
@@ -1058,8 +1057,8 @@ def prep_feat_inputs(group_config_file):
                     new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
 
                 # multiple sessions?
-                if 'session' in series_df:
-                    for ses_df_tuple in series_df.groupby('session'):
+                if 'Sessions' in series_df:
+                    for ses_df_tuple in series_df.groupby('Sessions'):
                         session = 'ses-{0}'.format(ses_df_tuple[0])
                         ses_df = ses_df_tuple[1]
                         newer_ses_pheno_df = \
