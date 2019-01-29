@@ -2553,29 +2553,6 @@ Maximum potential number of cores that might be used during this run: {max_cores
             ts_analysis_dict = {}
             sca_analysis_dict = {}
 
-            # c.tsa_roi_paths and c.sca_roi_paths come in a format as such:
-            # a list containing a dictionary
-            # [
-            #     {
-            #         '/path/to/rois1.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois2.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois3.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois4.nii.gz': 'DualReg'
-            #     }
-            # ]
-
-        # TODO ASH normalize w schema val
-        if 1 in c.runROITimeseries:
-
-            # TODO ASH normalize w schema val
-            if c.tsa_roi_paths:
-                tsa_roi_dict = c.tsa_roi_paths[0]
-            else:
-                err = "\n\n[!] CPAC says: Time Series Extraction is " \
-                    "set to run, but no ROI NIFTI file paths were provided!" \
-                    "\n\n"
-                raise Exception(err)
-
             # flip the dictionary
             for roi_path in tsa_roi_dict.keys():
 
@@ -2595,6 +2572,27 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     if analysis_type not in ts_analysis_dict.keys():
                         ts_analysis_dict[analysis_type] = []
                     ts_analysis_dict[analysis_type].append(roi_path)
+
+            # c.tsa_roi_paths and c.sca_roi_paths come in a format as such:
+            # a list containing a dictionary
+            # [
+            #     {
+            #         '/path/to/rois1.nii.gz': 'Avg, MultReg',
+            #         '/path/to/rois2.nii.gz': 'Avg, MultReg',
+            #         '/path/to/rois3.nii.gz': 'Avg, MultReg',
+            #         '/path/to/rois4.nii.gz': 'DualReg'
+            #     }
+            # ]
+
+        # TODO ASH normalize w schema val
+        if 1 in c.runROITimeseries:
+
+            # TODO ASH normalize w schema val
+            if not c.tsa_roi_paths:
+                err = "\n\n[!] CPAC says: Time Series Extraction is " \
+                    "set to run, but no ROI NIFTI file paths were provided!" \
+                    "\n\n"
+                raise Exception(err)
 
         # TODO ASH normalize w schema val
         if 1 in c.runSCA:
@@ -3443,7 +3441,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             pipes = []
 
-            for strat in strat_list:
+            for num_strat, strat in enumerate(strat_list):
 
                 rp = strat.get_resource_pool()
 
