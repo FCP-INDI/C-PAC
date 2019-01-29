@@ -282,12 +282,6 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
     contrast_cols = list(design_df.columns)
     contrast_cols.remove('participant_id')
 
-    # TODO:
-    # if session, if site, remove
-
-    print 'design df: ', design_df
-    print 'contrast dct list: ', contrasts_dct_list
-
     if contrasts_dct_list:
         # if we are initializing the contrasts matrix with pre-set contrast
         # vectors - just check for accuracy here
@@ -622,12 +616,13 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     if condition_type in sess_conditions:
         # note: the participant_id column in design_df should be in order, so
         #       the condition_ev should come out in order:
-        #           1,1,1,1,-1,-1,-1,-1  (this is checked further down)
+        #           1,1,1,1,2,2,2,2 (if the sessions are 1 and 2)
+        #       later on, this has to be converted to 1,1,1,1,-1,-1,-1,-1 !
         for sub_ses_id in design_df["participant_session_id"]:
             if sub_ses_id.split("_")[-1] == conditions[0]:
-                condition_ev.append(1)
+                condition_ev.append(conditions[0])
             elif sub_ses_id.split("_")[-1] == conditions[1]:
-                condition_ev.append(-1)
+                condition_ev.append(conditions[1])
 
         group_config = {"sessions_list": conditions, "series_list": []}
 
@@ -641,10 +636,14 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
         # half of this list (will need to ensure these scans exist for each
         # selected derivative in the output directory later on)
 
+        # the condition_ev should come out in order:
+        #     scan-1,scan-1,scan-1,scan-2,scan-2,scan-2
+        #         (if the scans are scan-1 and scan-2, etc.)
+        # later on, this has to be converted to 1,1,1,-1,-1,-1 !
         for sub_ses_id in design_df["participant_id"]:
-            condition_ev.append(1)
+            condition_ev.append(conditions[0])
         for sub_ses_id in design_df["participant_id"]:
-            condition_ev.append(-1)
+            condition_ev.append(conditions[1])
 
         # NOTE: there is only one iteration of the sub_ses list in
         #       design_df["participant_id"] at this point! so use append to
@@ -659,16 +658,21 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
 
     # let's check to make sure it came out right
     #   first half
+    past_val = None
     for val in condition_ev[0:(len(condition_ev) / 2) - 1]:
-        if val != 1:
-            # TODO: msg
-            raise Exception('Non-equal amount of participants for each '
-                            '{0}.\n'.format(condition_type))
+        if past_val:
+            if val != past_val:
+                raise Exception('Non-equal amount of participants for each '
+                                '{0}.\n'.format(condition_type))
+        past_val = val
     #   second half
+    past_val = None
     for val in condition_ev[(len(condition_ev) / 2):]:
-        if val != -1:
-            # TODO: msg
-            raise Exception('second half')
+        if past_val:
+            if val != past_val:
+                raise Exception('Non-equal amount of participants for each '
+                                '{0}.\n'.format(condition_type))
+        past_val = val
 
     design_df[condition_type] = condition_ev
 
