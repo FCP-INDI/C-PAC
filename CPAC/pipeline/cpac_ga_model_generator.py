@@ -879,10 +879,20 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     else:
         if 'Sessions' in model_df:
             sess_levels = list(set(list(model_df['Sessions'].values)))
-            sess_map = {sess_levels[0]: '1', sess_levels[1]: '-1'}
-            if len(sess_levels) == 2:
+            if len(sess_levels) > 1:
+                sess_map = {sess_levels[0]: '1', sess_levels[1]: '-1'}
+                if len(sess_levels) == 3:
+                    sess_map.update({sess_levels[2]: '0'})
                 new_sess = [s.replace(s, sess_map[s]) for s in list(model_df['Sessions'].values)]
                 model_df['Sessions'] = new_sess
+        if 'Series' in model_df:
+            sess_levels = list(set(list(model_df['Series'].values)))
+            if len(sess_levels) > 1:
+                sess_map = {sess_levels[0]: '1', sess_levels[1]: '-1'}
+                if len(sess_levels) == 3:
+                    sess_map.update({sess_levels[2]: '0'})
+                new_sess = [s.replace(s, sess_map[s]) for s in list(model_df['Series'].values)]
+                model_df['Series'] = new_sess
         
         keep_cols = [x for x in model_df.columns if x in design_formula]
         dmatrix = model_df[keep_cols].astype('float')

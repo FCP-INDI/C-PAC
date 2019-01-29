@@ -542,7 +542,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
         if "participant_" in col_names:
             num_partic_cols += 1
             
-    if num_partic_cols > 1 and ("Sessions" in pheno_df.columns or "session_column_one" in pheno_df.columns):
+    if num_partic_cols > 1 and ("Sessions" in pheno_df.columns or "Sessions_column_one" in pheno_df.columns):
         for part_id in pheno_df["participant_id"]:
             if "participant_{0}".format(part_id) in pheno_df.columns:
                 continue
@@ -624,11 +624,11 @@ def pheno_series_to_repeated_measures(pheno_df, series_list,
     # in the pheno CSV file
     num_partic_cols = 0
     for col_names in pheno_df.columns:
-        if "participant_id" in col_names:
+        if "participant_" in col_names:
             num_partic_cols += 1
-    if num_partic_cols > 1 and "scan" in pheno_df.columns:
-        for part_ses_id in pheno_df["participant_session_id"]:
-            if "participant_{0}".format(part_ses_id.split("_")[0]) in pheno_df.columns:
+    if num_partic_cols > 1 and "Series" in pheno_df.columns:
+        for part_id in pheno_df["participant_id"]:
+            if "participant_{0}".format(part_id) in pheno_df.columns:
                 continue
             break
         else:
@@ -917,42 +917,7 @@ def prep_feat_inputs(group_config_file):
 
             join_columns = ["participant_id"]
 
-            if "scan" in new_pheno_df:
-                # TODO: maybe come up with something more unique than
-                # TODO: "session" or "scan" for covariate names to signal
-                # TODO: when presets are being used?
-                # if we're using one of the FSL presets!
-                # IMPT: we need to match the rows with the actual scans
-
-                # ALSO IMPT: we're going to rely on the series_list from
-                #            the group model config to match, so always
-                #            make sure the order remains the same
-                #            example: the 1,1,1,-1,-1,-1 condition vector
-                #                     in the preset should be the first
-                #                     scan in the list for 1,1,1 and the
-                #                     second for -1,-1,-1
-                scan_label_col = []
-                for val in new_pheno_df["scan"]:
-                    if len(group_model.series_list) == 2:
-                        if val == 1:
-                            scan_label_col.append(
-                                group_model.series_list[0])
-                        elif val == -1:
-                            scan_label_col.append(
-                                group_model.series_list[1])
-                new_pheno_df["Series"] = scan_label_col
-
-                # now make sure the 1,1,1,-1,-1,-1,...etc. matches
-                # properly with the actual scans by merging
-                join_columns.append("Series")
-                new_pheno_df = pd.merge(new_pheno_df, output_df,
-                                        how="inner", on=join_columns)
-                run_label = "repeated_measures_multiple_series"
-
-                analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
-                    new_pheno_df
-
-            elif "Series" in new_pheno_df:
+            if "Series" in new_pheno_df:
                 # if Series is one of the categorically-encoded covariates
                 # make sure we only are including the series the user has
                 # selected to include in the repeated measures analysis
@@ -961,10 +926,12 @@ def prep_feat_inputs(group_config_file):
                 # exist in the output directory, first
                 new_pheno_df = \
                     new_pheno_df[new_pheno_df["Series"].isin(output_df["Series"])]
+
                 # okay, now check against the user-specified series list
                 new_pheno_df = \
                     new_pheno_df[new_pheno_df["Series"].isin(group_model.series_list)]
                 join_columns.append("Series")
+
                 # pull together the pheno DF and the output files DF!
                 new_pheno_df = pd.merge(new_pheno_df, output_df,
                                         how="inner", on=join_columns)
