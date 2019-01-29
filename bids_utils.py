@@ -129,6 +129,10 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
             params = t_dict
             break
 
+    for k, v in params.items():
+        if isinstance(v, unicode):
+            params[k] = v.encode('ascii', errors='ignore')
+
     return params
 
 
