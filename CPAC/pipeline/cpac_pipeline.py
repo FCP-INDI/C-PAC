@@ -1113,7 +1113,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
             # connect the functional data from the leaf node into the wf
             workflow.connect(node, out_file,
-                            trunc_wf, 'inputspec.func')
+                             trunc_wf, 'inputspec.func')
 
             # connect the other input parameters
             workflow.connect(scan_params, 'start_indx',
