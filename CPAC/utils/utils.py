@@ -1452,8 +1452,9 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
         if value is not None:
             return value
 
-    raise Exception("Missing Value for {0} for subject "
-                    "{1}".format(' or '.join(keys), subject))
+    return None
+    #raise Exception("Missing Value for {0} for subject "
+    #                "{1}".format(' or '.join(keys), subject))
 
 
 def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
