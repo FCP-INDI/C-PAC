@@ -604,7 +604,11 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     import nipype.interfaces.ants as ants
     from nipype.interfaces.utility import Function
-    from CPAC.registration.utils import seperate_warps_list, combine_inputs_into_list, hardcoded_reg
+    from CPAC.registration.utils import (
+        seperate_warps_list,
+        combine_inputs_into_list,
+        hardcoded_reg
+    )
 
     calc_ants_warp_wf = pe.Workflow(name=name)
 

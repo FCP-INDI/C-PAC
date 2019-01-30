@@ -46,7 +46,8 @@ def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
 
     # Still have to work on that
     if fixed_image_mask != "<undefined>":
-        regcmd.append(["--masks", fixed_image_mask])
+        regcmd.append("-x")
+        regcmd.append(str(fixed_image_mask))
 
     # write out the actual command-line entry for testing/validation later
     command_file = os.path.join(os.getcwd(), 'command.txt')

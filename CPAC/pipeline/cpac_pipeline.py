@@ -118,6 +118,7 @@ from CPAC.utils.utils import (
 )
 
 logger = logging.getLogger('nipype.workflow')
+config.enable_debug_mode()
 
 # TODO ASH move to somewhere else
 def pick_wm(seg_prob_list):
@@ -968,11 +969,13 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                       [3, 2, 1, 0]]
                 )
 
-                if 'lesion_mask' in sub_dict and c.use_lesion_maskand and\
-                        'lesion_preproc' not in nodes:
+                if 'lesion_mask' in sub_dict and c.use_lesion_mask\
+                        and 'lesion_preproc' not in nodes:
                     lesion_preproc = create_lesion_preproc(
                         wf_name='lesion_preproc_%d' % num_strat
                     )
+
+                    strat.append_name(lesion_preproc.name)
 
                     # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
 
@@ -1014,6 +1017,8 @@ Maximum potential number of cores that might be used during this run: {max_cores
                                 num_strat)
 
         strat_list += new_strat_list
+
+    # Inserting Segmentation Preprocessing Workflow
 
     new_strat_list = []
     workflow_counter += 1
@@ -1099,6 +1104,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
     strat_list += new_strat_list
 
     # Inserting Functional Data workflow
+
     for num_strat, strat in enumerate(strat_list):
 
         if 'func' in sub_dict:

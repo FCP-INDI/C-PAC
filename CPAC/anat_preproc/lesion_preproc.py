@@ -42,7 +42,7 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
 
     Examples
     --------
-    >>> from CPAC.lesion_preproc import create_lesion_preproc
+    >>> from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
     >>> preproc = create_lesion_preproc()
     >>> preproc.inputs.inputspec.lesion = 'sub1/anat/lesion-mask.nii.gz'
     >>> preproc.run() #doctest: +SKIP
