@@ -1611,6 +1611,9 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
 
     unit = 's'
 
+    if 'None' in pattern or 'none' in pattern:
+        pattern = None
+
     if not pattern:
         if pipeconfig_tpattern:
             if "Use NIFTI Header" in pipeconfig_tpattern:
