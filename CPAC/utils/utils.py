@@ -1452,8 +1452,9 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
         if value is not None:
             return value
 
-    raise Exception("Missing Value for {0} for subject "
-                    "{1}".format(' or '.join(keys), subject))
+    return None
+    #raise Exception("Missing Value for {0} for subject "
+    #                "{1}".format(' or '.join(keys), subject))
 
 
 def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
@@ -1610,6 +1611,9 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
 
     unit = 's'
 
+    if 'None' in pattern or 'none' in pattern:
+        pattern = None
+
     if not pattern:
         if pipeconfig_tpattern:
             if "Use NIFTI Header" in pipeconfig_tpattern:
@@ -1620,9 +1624,11 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
     tpattern_file = None
-    if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z',
-                                   'altminus', 'alt-z2', 'seq+z', 'seqplus',
-                                   'seq-z', 'seqminus']:
+
+    valid_patterns = ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
+                      'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']
+
+    if pattern and pattern != '' and pattern not in valid_patterns:
 
         if isinstance(pattern, list) or \
                 ("[" in pattern and "]" in pattern and "," in pattern):
