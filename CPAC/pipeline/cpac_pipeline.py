@@ -235,14 +235,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     information = """
 
-C-PAC version: {cpac_version}
+    C-PAC version: {cpac_version}
 
-Setting maximum number of cores per participant to {cores}
-Setting number of participants at once to {participants}
-Setting OMP_NUM_THREADS to {threads}
-Setting MKL_NUM_THREADS to {threads}
-Setting ANTS/ITK thread usage to {ants_threads}
-Maximum potential number of cores that might be used during this run: {max_cores}
+    Setting maximum number of cores per participant to {cores}
+    Setting number of participants at once to {participants}
+    Setting OMP_NUM_THREADS to {threads}
+    Setting MKL_NUM_THREADS to {threads}
+    Setting ANTS/ITK thread usage to {ants_threads}
+    Maximum potential number of cores that might be used during this run: {max_cores}
 
 """
 
@@ -721,7 +721,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
     new_strat_list = []
     workflow_counter += 1
 
-    if 1 in c.runVMHC:
+    if 1 in c.runVMHC and 1 in getattr(c, 'runFunctional', [1]):
 
         workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
 
@@ -998,7 +998,7 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
     # Inserting Functional Data workflow
     if ('func' in sub_dict or 'rest' in sub_dict) and \
-            0 not in getattr(c, 'runFunctional', [1]):
+            1 in getattr(c, 'runFunctional', [1]):
         #  pipeline needs to have explicit [0] to disable functional workflow
 
         for num_strat, strat in enumerate(strat_list):
@@ -3290,778 +3290,778 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     strat = calc_avg(workflow, key, strat,
                                     num_strat, map_node=True)
 
-        # Quality Control
-        qc_montage_id_a = {}
-        qc_montage_id_s = {}
-        qc_plot_id = {}
-        qc_hist_id = {}
+    # Quality Control
+    qc_montage_id_a = {}
+    qc_montage_id_s = {}
+    qc_plot_id = {}
+    qc_hist_id = {}
 
-        if 1 in c.generateQualityControlImages:
-            qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
-                create_qc_workflow(workflow, c, strat_list, Outputs.qc)
+    if 1 in c.generateQualityControlImages:
+        qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
+            create_qc_workflow(workflow, c, strat_list, Outputs.qc)
 
-        logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
+    logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
-        # Run the pipeline only if the user signifies.
-        # otherwise, only construct the pipeline (above)
-        if run == 1:
+    # Run the pipeline only if the user signifies.
+    # otherwise, only construct the pipeline (above)
+    if run == 1:
 
+        try:
+            workflow.write_graph(graph2use='orig')
+        except:
+            pass
+
+        # this section creates names for the different branched strategies.
+        # it identifies where the pipeline has forked and then appends the
+        # name of the forked nodes to the branch name in the output directory
+        renamedStrats = []
+        forkPoints = []
+        forkPointsDict = {}
+
+        def is_number(s):
+            # function which returns boolean checking if a character
+            # is a number or not
             try:
-                workflow.write_graph(graph2use='orig')
+                int(s)
+                return True
+            except ValueError:
+                return False
+
+        for strat in strat_list:
+
+            # load list of nodes in this one particular
+            # strat into the list "nodeList"
+            renamedNodesList = []
+
+            # strip the _n (n being the strat number) from
+            # each node name and return to a list
+            for node in strat.name:
+                pieces = node.split('_')
+                if is_number(pieces[-1]):
+                    pieces = pieces[:-1]
+                renamedNode = "_".join(pieces)
+                renamedNodesList.append(renamedNode)
+
+            renamedStrats.append(renamedNodesList)
+
+        # here, renamedStrats is a list containing each strat (forks)
+        for strat in renamedStrats:
+
+            tmpForkPoint = []
+
+            # here, 'strat' is a list of node names within one of the forks
+            for nodeName in strat:
+
+                # compare each strat against the first one in the strat list,
+                # and if any node names in the new strat are not present in
+                # the 'original' one, then append to a list of 'fork points'
+                for renamedStratNodes in renamedStrats:
+
+                    if nodeName not in renamedStratNodes and \
+                        nodeName not in tmpForkPoint:
+
+                        tmpForkPoint.append(nodeName)
+
+            forkPoints.append(tmpForkPoint)
+
+        # forkPoints is a list of lists, each list containing node names of
+        # nodes run in that strat/fork that are unique to that strat/fork
+
+        forkNames = []
+
+        # here 'forkPoint' is an individual strat with its unique nodes
+        for forkPoint in forkPoints:
+
+            forkName = ''
+            forklabel = ''
+
+            for fork in forkPoint:
+
+                forklabel = ''
+
+                if 'ants' in fork:
+                    forklabel = 'ants'
+                if 'fnirt' in fork:
+                    forklabel = 'fnirt'
+                if 'automask' in fork:
+                    forklabel = 'func-3dautomask'
+                if 'bet' in fork:
+                    forklabel = 'func-bet'
+                if 'epi_distcorr' in fork:
+                    forklabel = 'dist_corr'
+                if 'bbreg' in fork:
+                    forklabel = 'bbreg'
+                if 'frequency' in fork:
+                    forklabel = 'freq-filter'
+                if 'nuisance_with_despiking' in fork:
+                    forklabel = 'nuisance_with_despiking'
+                elif 'nuisance_no_despiking' in fork:
+                    forklabel = 'nuisance_no_despiking'
+                elif 'nuisance' in fork:
+                    forklabel = 'nuisance'
+                if 'median' in fork:
+                    forklabel = 'median'
+                if 'friston' in fork:
+                    forklabel = 'friston'
+                if 'motion_stats' in fork:
+                    forklabel = 'motion'
+                if 'scrubbing' in fork:
+                    forklabel = 'scrub'
+                if 'slice' in fork:
+                    forklabel = 'slice'
+                if 'anat_preproc_afni' in fork:
+                    forklabel = 'anat-afni'
+                if 'anat_preproc_bet' in fork:
+                    forklabel = 'anat-bet'
+
+                if forklabel not in forkName:
+                    forkName = forkName + '__' + forklabel
+
+            forkNames.append(forkName)
+
+        # match each strat_list with fork point list
+        # this is for the datasink
+        for x in range(len(strat_list)):
+            forkPointsDict[strat_list[x]] = forkNames[x]
+
+        # DataSink
+        sink_idx = 0
+        pip_ids = []
+
+        wf_names = []
+        scan_ids = ['scan_anat']
+
+        if 'func' in sub_dict:
+            scan_ids += ['scan_' + str(scan_id)
+                            for scan_id in sub_dict['func']]
+
+        if 'rest' in sub_dict:
+            scan_ids += ['scan_' + str(scan_id)
+                            for scan_id in sub_dict['rest']]
+
+        pipes = []
+
+        for num_strat, strat in enumerate(strat_list):
+
+            rp = strat.get_resource_pool()
+
+            # Build helper dictionary to assist with
+            # a clean strategy label for symlinks
+            strategy_tag_helper_symlinks = {}
+
+            if any('scrubbing' in name for name in strat.get_name()):
+                strategy_tag_helper_symlinks['_threshold'] = 1
+            else:
+                strategy_tag_helper_symlinks['_threshold'] = 0
+
+            if any('seg_preproc' in name for name in strat.get_name()):
+                strategy_tag_helper_symlinks['_csf_threshold'] = 1
+                strategy_tag_helper_symlinks['_wm_threshold'] = 1
+                strategy_tag_helper_symlinks['_gm_threshold'] = 1
+            else:
+                strategy_tag_helper_symlinks['_csf_threshold'] = 0
+                strategy_tag_helper_symlinks['_wm_threshold'] = 0
+                strategy_tag_helper_symlinks['_gm_threshold'] = 0
+
+            if any('median_angle_corr' in name for name in strat.get_name()):
+                strategy_tag_helper_symlinks['_target_angle_deg'] = 1
+            else:
+                strategy_tag_helper_symlinks['_target_angle_deg'] = 0
+
+            if any('nuisance' in name for name in strat.get_name()):
+                strategy_tag_helper_symlinks['nuisance'] = 1
+            else:
+                strategy_tag_helper_symlinks['nuisance'] = 0
+
+            if p_name is None or p_name == 'None':
+                if forkPointsDict[strat]:
+                    pipeline_id = c.pipelineName + forkPointsDict[strat]
+                else:
+                    pipeline_id = c.pipelineName
+                    # if running multiple pipelines with gui, need to change
+                    # this in future
+                    p_name = None
+            else:
+                if forkPointsDict[strat]:
+                    pipeline_id = c.pipelineName + forkPointsDict[strat]
+                else:
+                    pipeline_id = p_name
+                    # if running multiple pipelines with gui, need to change
+                    # this in future
+                    p_name = None
+
+            pip_ids.append(pipeline_id)
+            wf_names.append(strat.get_name())
+
+            # TODO enforce value with schema validation
+            # Extract credentials path for output if it exists
+            try:
+                # Get path to creds file
+                creds_path = ''
+                if c.awsOutputBucketCredentials:
+                    creds_path = str(c.awsOutputBucketCredentials)
+                    creds_path = os.path.abspath(creds_path)
+
+                if c.outputDirectory.lower().startswith('s3://'):
+                    # Test for s3 write access
+                    s3_write_access = \
+                        aws_utils.test_bucket_access(creds_path,
+                                                        c.outputDirectory)
+
+                    if not s3_write_access:
+                        raise Exception('Not able to write to bucket!')
+
+            except Exception as exc:
+                if c.outputDirectory.lower().startswith('s3://'):
+                    err_msg = 'There was an error processing credentials or ' \
+                                'accessing the S3 bucket. Check and try again.\n' \
+                                'Error: %s' % exc
+                    raise Exception(err_msg)
+
+            # TODO enforce value with schema validation
+            try:
+                encrypt_data = bool(c.s3Encryption[0])
+            except Exception as exc:
+                encrypt_data = False
+
+            # TODO ASH verify with team
+            # TODO: remove this once forking for despiking/scrubbing is
+            # TODO: modified at the gen motion params level
+            # ensure X_frames_included/excluded only gets sent to output dir
+            # for appropriate strats
+            nodes = strat.get_nodes_names()
+
+            if "nuisance_with_despiking" not in nodes:
+                if "despiking_frames_included" in rp.keys():
+                    del rp["despiking_frames_included"]
+                if "despiking_frames_excluded" in rp.keys():
+                    del rp["despiking_frames_excluded"]
+
+            if "scrubbing" not in nodes:
+                if "scrubbing_frames_included" in rp.keys():
+                    del rp["scrubbing_frames_included"]
+                if "scrubbing_frames_excluded" in rp.keys():
+                    del rp["scrubbing_frames_excluded"]
+
+            ndmg_out = False
+            try:
+                # let's encapsulate this inside a Try..Except block so if
+                # someone doesn't have ndmg_outputs in their pipe config,
+                # it will default to the regular datasink
+                #     TODO: update this when we change to the optionals
+                #     TODO: only pipe config
+                if 1 in c.ndmg_mode:
+                    ndmg_out = True
             except:
                 pass
 
-            # this section creates names for the different branched strategies.
-            # it identifies where the pipeline has forked and then appends the
-            # name of the forked nodes to the branch name in the output directory
-            renamedStrats = []
-            forkPoints = []
-            forkPointsDict = {}
+            if ndmg_out:
+                # create the graphs
+                from CPAC.utils.ndmg_utils import ndmg_roi_timeseries, \
+                    ndmg_create_graphs
 
-            def is_number(s):
-                # function which returns boolean checking if a character
-                # is a number or not
-                try:
-                    int(s)
-                    return True
-                except ValueError:
-                    return False
+                atlases = []
+                if 'Avg' in ts_analysis_dict.keys():
+                    atlases = ts_analysis_dict['Avg']
 
-            for strat in strat_list:
+                roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
+                    'roi_dataflow_for_ndmg_%d' % num_strat
+                )
 
-                # load list of nodes in this one particular
-                # strat into the list "nodeList"
-                renamedNodesList = []
+                resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
+                                                        name='resample_functional_to_roi_ndmg_%d' % num_strat)
+                resample_functional_to_roi.inputs.set(
+                    interp='trilinear',
+                    apply_xfm=True,
+                    in_matrix_file=c.identityMatrix
+                )
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                    resample_functional_to_roi, 'reference')
 
-                # strip the _n (n being the strat number) from
-                # each node name and return to a list
-                for node in strat.name:
-                    pieces = node.split('_')
-                    if is_number(pieces[-1]):
-                        pieces = pieces[:-1]
-                    renamedNode = "_".join(pieces)
-                    renamedNodesList.append(renamedNode)
+                ndmg_ts_imports = ['import os',
+                                    'import nibabel as nb',
+                                    'import numpy as np']
+                ndmg_ts = pe.Node(util.Function(input_names=['func_file',
+                                                                'label_file'],
+                                                    output_names=['roi_ts',
+                                                                    'rois',
+                                                                    'roits_file'],
+                                                    function=ndmg_roi_timeseries,
+                                                    imports=ndmg_ts_imports),
+                                        name='ndmg_ts_%d' % num_strat)
 
-                renamedStrats.append(renamedNodesList)
+                node, out_file = strat['functional_to_standard']
+                workflow.connect(node, out_file, resample_functional_to_roi,
+                                    'in_file')
+                workflow.connect(resample_functional_to_roi, 'out_file',
+                                    ndmg_ts, 'func_file')
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                    ndmg_ts, 'label_file')
 
-            # here, renamedStrats is a list containing each strat (forks)
-            for strat in renamedStrats:
+                ndmg_graph_imports = ['import os',
+                                        'from CPAC.utils.ndmg_utils import graph']
+                ndmg_graph = pe.MapNode(util.Function(input_names=['ts',
+                                                                    'labels'],
+                                                        output_names=[
+                                                            'out_file'],
+                                                        function=ndmg_create_graphs,
+                                                        imports=ndmg_graph_imports),
+                                        name='ndmg_graphs_%d' % num_strat,
+                                        iterfield=['labels'])
 
-                tmpForkPoint = []
+                workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
+                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
+                                    ndmg_graph, 'labels')
 
-                # here, 'strat' is a list of node names within one of the forks
-                for nodeName in strat:
-
-                    # compare each strat against the first one in the strat list,
-                    # and if any node names in the new strat are not present in
-                    # the 'original' one, then append to a list of 'fork points'
-                    for renamedStratNodes in renamedStrats:
-
-                        if nodeName not in renamedStratNodes and \
-                           nodeName not in tmpForkPoint:
-
-                            tmpForkPoint.append(nodeName)
-
-                forkPoints.append(tmpForkPoint)
-
-            # forkPoints is a list of lists, each list containing node names of
-            # nodes run in that strat/fork that are unique to that strat/fork
-
-            forkNames = []
-
-            # here 'forkPoint' is an individual strat with its unique nodes
-            for forkPoint in forkPoints:
-
-                forkName = ''
-                forklabel = ''
-
-                for fork in forkPoint:
-
-                    forklabel = ''
-
-                    if 'ants' in fork:
-                        forklabel = 'ants'
-                    if 'fnirt' in fork:
-                        forklabel = 'fnirt'
-                    if 'automask' in fork:
-                        forklabel = 'func-3dautomask'
-                    if 'bet' in fork:
-                        forklabel = 'func-bet'
-                    if 'epi_distcorr' in fork:
-                        forklabel = 'dist_corr'
-                    if 'bbreg' in fork:
-                        forklabel = 'bbreg'
-                    if 'frequency' in fork:
-                        forklabel = 'freq-filter'
-                    if 'nuisance_with_despiking' in fork:
-                        forklabel = 'nuisance_with_despiking'
-                    elif 'nuisance_no_despiking' in fork:
-                        forklabel = 'nuisance_no_despiking'
-                    elif 'nuisance' in fork:
-                        forklabel = 'nuisance'
-                    if 'median' in fork:
-                        forklabel = 'median'
-                    if 'friston' in fork:
-                        forklabel = 'friston'
-                    if 'motion_stats' in fork:
-                        forklabel = 'motion'
-                    if 'scrubbing' in fork:
-                        forklabel = 'scrub'
-                    if 'slice' in fork:
-                        forklabel = 'slice'
-                    if 'anat_preproc_afni' in fork:
-                        forklabel = 'anat-afni'
-                    if 'anat_preproc_bet' in fork:
-                        forklabel = 'anat-bet'
-
-                    if forklabel not in forkName:
-                        forkName = forkName + '__' + forklabel
-
-                forkNames.append(forkName)
-
-            # match each strat_list with fork point list
-            # this is for the datasink
-            for x in range(len(strat_list)):
-                forkPointsDict[strat_list[x]] = forkNames[x]
-
-            # DataSink
-            sink_idx = 0
-            pip_ids = []
-
-            wf_names = []
-            scan_ids = ['scan_anat']
-
-            if 'func' in sub_dict:
-                scan_ids += ['scan_' + str(scan_id)
-                             for scan_id in sub_dict['func']]
-
-            if 'rest' in sub_dict:
-                scan_ids += ['scan_' + str(scan_id)
-                             for scan_id in sub_dict['rest']]
-
-            pipes = []
-
-            for num_strat, strat in enumerate(strat_list):
+                strat.update_resource_pool({
+                    'ndmg_ts': (ndmg_ts, 'roits_file'),
+                    'ndmg_graph': (ndmg_graph, 'out_file')
+                })
 
                 rp = strat.get_resource_pool()
 
-                # Build helper dictionary to assist with
-                # a clean strategy label for symlinks
-                strategy_tag_helper_symlinks = {}
+            for key in sorted(rp.keys()):
 
-                if any('scrubbing' in name for name in strat.get_name()):
-                    strategy_tag_helper_symlinks['_threshold'] = 1
-                else:
-                    strategy_tag_helper_symlinks['_threshold'] = 0
+                if not key.startswith('qc___') and key not in Outputs.any:
+                    continue
 
-                if any('seg_preproc' in name for name in strat.get_name()):
-                    strategy_tag_helper_symlinks['_csf_threshold'] = 1
-                    strategy_tag_helper_symlinks['_wm_threshold'] = 1
-                    strategy_tag_helper_symlinks['_gm_threshold'] = 1
-                else:
-                    strategy_tag_helper_symlinks['_csf_threshold'] = 0
-                    strategy_tag_helper_symlinks['_wm_threshold'] = 0
-                    strategy_tag_helper_symlinks['_gm_threshold'] = 0
+                if key not in Outputs.override_optional and not ndmg_out:
 
-                if any('median_angle_corr' in name for name in strat.get_name()):
-                    strategy_tag_helper_symlinks['_target_angle_deg'] = 1
-                else:
-                    strategy_tag_helper_symlinks['_target_angle_deg'] = 0
-
-                if any('nuisance' in name for name in strat.get_name()):
-                    strategy_tag_helper_symlinks['nuisance'] = 1
-                else:
-                    strategy_tag_helper_symlinks['nuisance'] = 0
-
-                if p_name is None or p_name == 'None':
-                    if forkPointsDict[strat]:
-                        pipeline_id = c.pipelineName + forkPointsDict[strat]
-                    else:
-                        pipeline_id = c.pipelineName
-                        # if running multiple pipelines with gui, need to change
-                        # this in future
-                        p_name = None
-                else:
-                    if forkPointsDict[strat]:
-                        pipeline_id = c.pipelineName + forkPointsDict[strat]
-                    else:
-                        pipeline_id = p_name
-                        # if running multiple pipelines with gui, need to change
-                        # this in future
-                        p_name = None
-
-                pip_ids.append(pipeline_id)
-                wf_names.append(strat.get_name())
-
-                # TODO enforce value with schema validation
-                # Extract credentials path for output if it exists
-                try:
-                    # Get path to creds file
-                    creds_path = ''
-                    if c.awsOutputBucketCredentials:
-                        creds_path = str(c.awsOutputBucketCredentials)
-                        creds_path = os.path.abspath(creds_path)
-
-                    if c.outputDirectory.lower().startswith('s3://'):
-                        # Test for s3 write access
-                        s3_write_access = \
-                            aws_utils.test_bucket_access(creds_path,
-                                                         c.outputDirectory)
-
-                        if not s3_write_access:
-                            raise Exception('Not able to write to bucket!')
-
-                except Exception as exc:
-                    if c.outputDirectory.lower().startswith('s3://'):
-                        err_msg = 'There was an error processing credentials or ' \
-                                  'accessing the S3 bucket. Check and try again.\n' \
-                                  'Error: %s' % exc
-                        raise Exception(err_msg)
-
-                # TODO enforce value with schema validation
-                try:
-                    encrypt_data = bool(c.s3Encryption[0])
-                except Exception as exc:
-                    encrypt_data = False
-
-                # TODO ASH verify with team
-                # TODO: remove this once forking for despiking/scrubbing is
-                # TODO: modified at the gen motion params level
-                # ensure X_frames_included/excluded only gets sent to output dir
-                # for appropriate strats
-                nodes = strat.get_nodes_names()
-
-                if "nuisance_with_despiking" not in nodes:
-                    if "despiking_frames_included" in rp.keys():
-                        del rp["despiking_frames_included"]
-                    if "despiking_frames_excluded" in rp.keys():
-                        del rp["despiking_frames_excluded"]
-
-                if "scrubbing" not in nodes:
-                    if "scrubbing_frames_included" in rp.keys():
-                        del rp["scrubbing_frames_included"]
-                    if "scrubbing_frames_excluded" in rp.keys():
-                        del rp["scrubbing_frames_excluded"]
-
-                ndmg_out = False
-                try:
-                    # let's encapsulate this inside a Try..Except block so if
-                    # someone doesn't have ndmg_outputs in their pipe config,
-                    # it will default to the regular datasink
-                    #     TODO: update this when we change to the optionals
-                    #     TODO: only pipe config
-                    if 1 in c.ndmg_mode:
-                        ndmg_out = True
-                except:
-                    pass
-
-                if ndmg_out:
-                    # create the graphs
-                    from CPAC.utils.ndmg_utils import ndmg_roi_timeseries, \
-                        ndmg_create_graphs
-
-                    atlases = []
-                    if 'Avg' in ts_analysis_dict.keys():
-                        atlases = ts_analysis_dict['Avg']
-
-                    roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
-                        'roi_dataflow_for_ndmg_%d' % num_strat
-                    )
-
-                    resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                                                         name='resample_functional_to_roi_ndmg_%d' % num_strat)
-                    resample_functional_to_roi.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
-                    workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                     resample_functional_to_roi, 'reference')
-
-                    ndmg_ts_imports = ['import os',
-                                       'import nibabel as nb',
-                                       'import numpy as np']
-                    ndmg_ts = pe.Node(util.Function(input_names=['func_file',
-                                                                    'label_file'],
-                                                       output_names=['roi_ts',
-                                                                     'rois',
-                                                                     'roits_file'],
-                                                       function=ndmg_roi_timeseries,
-                                                       imports=ndmg_ts_imports),
-                                         name='ndmg_ts_%d' % num_strat)
-
-                    node, out_file = strat['functional_to_standard']
-                    workflow.connect(node, out_file, resample_functional_to_roi,
-                                     'in_file')
-                    workflow.connect(resample_functional_to_roi, 'out_file',
-                                     ndmg_ts, 'func_file')
-                    workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                     ndmg_ts, 'label_file')
-
-                    ndmg_graph_imports = ['import os',
-                                          'from CPAC.utils.ndmg_utils import graph']
-                    ndmg_graph = pe.MapNode(util.Function(input_names=['ts',
-                                                                       'labels'],
-                                                          output_names=[
-                                                              'out_file'],
-                                                          function=ndmg_create_graphs,
-                                                          imports=ndmg_graph_imports),
-                                            name='ndmg_graphs_%d' % num_strat,
-                                            iterfield=['labels'])
-
-                    workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
-                    workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                     ndmg_graph, 'labels')
-
-                    strat.update_resource_pool({
-                        'ndmg_ts': (ndmg_ts, 'roits_file'),
-                        'ndmg_graph': (ndmg_graph, 'out_file')
-                    })
-
-                    rp = strat.get_resource_pool()
-
-                for key in sorted(rp.keys()):
-
-                    if not key.startswith('qc___') and key not in Outputs.any:
-                        continue
-
-                    if key not in Outputs.override_optional and not ndmg_out:
-
-                        if 1 not in c.write_func_outputs:
-                            if key in Outputs.extra_functional:
-                                continue
-
-                        if 1 not in c.write_debugging_outputs:
-                            if key in Outputs.debugging:
-                                continue
-
-                        if 0 not in c.runRegisterFuncToMNI:
-                            if key in Outputs.native_nonsmooth or \
-                                key in Outputs.native_nonsmooth_mult or \
-                                    key in Outputs.native_smooth:
-                                continue
-
-                        if 0 not in c.runZScoring:
-                            # write out only the z-scored outputs
-                            if key in Outputs.template_raw or \
-                                    key in Outputs.template_raw_mult:
-                                continue
-
-                        if 0 not in c.run_smoothing:
-                            # write out only the smoothed outputs
-                            if key in Outputs.native_nonsmooth or \
-                                key in Outputs.template_nonsmooth or \
-                                    key in Outputs.native_nonsmooth_mult or \
-                                    key in Outputs.template_nonsmooth_mult:
-                                continue
-
-                    if ndmg_out:
-                        ds = pe.Node(nio.DataSink(),
-                                     name='sinker_{0}'.format(sink_idx))
-                        ds.inputs.base_directory = c.outputDirectory
-                        ds.inputs.creds_path = creds_path
-                        ds.inputs.encrypt_bucket_keys = encrypt_data
-                        ds.inputs.parameterization = True
-                        ds.inputs.regexp_substitutions = [('_rename_(.)*/', ''),
-                                                          ('_scan_', 'scan-'),
-                                                          ('/_mask_', '/roi-'),
-                                                          ('file_s3(.)*/', ''),
-                                                          ('ndmg_atlases', ''),
-                                                          ('func_atlases', ''),
-                                                          ('label', ''),
-                                                          ('res-.+\/', ''),
-                                                          ('_mask_.+\/', '_'),
-                                                          ('mask_sub-', 'sub-'),
-                                                          ('/_compcor_ncomponents_', '_nuis-'),
-                                                          ('_selector_pc', ''),
-                                                          ('.linear', ''),
-                                                          ('.wm', ''),
-                                                          ('.global', ''),
-                                                          ('.motion', ''),
-                                                          ('.quadratic', ''),
-                                                          ('.gm', ''),
-                                                          ('.compcor', ''),
-                                                          ('.csf', ''),
-                                                          ('(\.\.)', '')]
-
-                        container = 'pipeline_{0}'.format(pipeline_id)
-
-                        sub_ses_id = subject_id.split('_')
-
-                        if 'sub-' not in sub_ses_id[0]:
-                            sub_tag = 'sub-{0}'.format(sub_ses_id[0])
-                        else:
-                            sub_tag = sub_ses_id[0]
-
-                        if 'ses-' not in sub_ses_id[1]:
-                            ses_tag = 'ses-{0}'.format(sub_ses_id[1])
-                        else:
-                            ses_tag = sub_ses_id[1]
-
-                        id_tag = '_'.join([sub_tag, ses_tag])
-
-                        anat_template_tag = 'standard'
-                        func_template_tag = 'standard'
-
-                        try:
-                            if 'FSL' in c.regOption and 'ANTS' not in c.regOption:
-                                if 'MNI152' in c.fnirtConfig:
-                                    anat_template_tag = 'MNI152'
-                                    func_template_tag = 'MNI152'
-                        except:
-                            pass
-
-                        anat_res_tag = c.resolution_for_anat
-                        anat_res_tag = anat_res_tag.replace('mm', '')
-                        func_res_tag = c.resolution_for_func_preproc
-                        func_res_tag = func_res_tag.replace('mm', '')
-
-                        ndmg_key_dct = {'anatomical_brain':
-                                            ('anat', 'preproc',
-                                             '{0}_T1w_preproc_brain'.format(id_tag)),
-                                        'anatomical_to_standard':
-                                            ('anat', 'registered',
-                                             '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, anat_template_tag, anat_res_tag)),
-                                        'functional_preprocessed':
-                                            ('func', 'preproc',
-                                             '{0}_bold_preproc'.format(id_tag)),
-                                        'functional_nuisance_residuals':
-                                            ('func', 'clean',
-                                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, func_template_tag, func_res_tag)),
-                                        'functional_to_standard':
-                                            ('func', 'registered',
-                                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'.format(
-                                                 id_tag, func_template_tag,
-                                                 func_res_tag)),
-                                        'functional_mask_to_standard':
-                                            ('func', 'registered',
-                                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'.format(
-                                                 id_tag, func_template_tag,
-                                                 func_res_tag)),
-                                        'ndmg_ts':
-                                            ('func', 'roi-timeseries',
-                                             '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
-                                                 id_tag, func_res_tag)),
-                                        'ndmg_graph':
-                                            ('func', 'roi-connectomes',
-                                             '{0}_bold_res-{1}x{1}x{1}_measure-correlation'.format(
-                                                 id_tag, func_res_tag))
-                                        }
-
-                        if key not in ndmg_key_dct.keys():
+                    if 1 not in c.write_func_outputs:
+                        if key in Outputs.extra_functional:
                             continue
 
-                        ds.inputs.container = '{0}/{1}'.format(container,
-                                                               ndmg_key_dct[key][0])
-                        node, out_file = rp[key]
+                    if 1 not in c.write_debugging_outputs:
+                        if key in Outputs.debugging:
+                            continue
 
-                        # rename the file
-                        if 'roi_' in key or 'ndmg_graph' in key:
-                            rename_file = pe.MapNode(interface=util.Rename(),
-                                                     name='rename_{0}'.format(sink_idx),
-                                                     iterfield=['in_file'])
-                        else:
-                            rename_file = pe.Node(interface=util.Rename(),
-                                                  name='rename_{0}'.format(sink_idx))
-                        rename_file.inputs.keep_ext = True
-                        rename_file.inputs.format_string = ndmg_key_dct[key][2]
+                    if 0 not in c.runRegisterFuncToMNI:
+                        if key in Outputs.native_nonsmooth or \
+                            key in Outputs.native_nonsmooth_mult or \
+                                key in Outputs.native_smooth:
+                            continue
 
-                        workflow.connect(node, out_file,
-                                         rename_file, 'in_file')
-                        workflow.connect(rename_file, 'out_file',
-                                         ds, ndmg_key_dct[key][1])
+                    if 0 not in c.runZScoring:
+                        # write out only the z-scored outputs
+                        if key in Outputs.template_raw or \
+                                key in Outputs.template_raw_mult:
+                            continue
 
-                        sink_idx += 1
+                    if 0 not in c.run_smoothing:
+                        # write out only the smoothed outputs
+                        if key in Outputs.native_nonsmooth or \
+                            key in Outputs.template_nonsmooth or \
+                                key in Outputs.native_nonsmooth_mult or \
+                                key in Outputs.template_nonsmooth_mult:
+                            continue
 
+                if ndmg_out:
+                    ds = pe.Node(nio.DataSink(),
+                                    name='sinker_{0}'.format(sink_idx))
+                    ds.inputs.base_directory = c.outputDirectory
+                    ds.inputs.creds_path = creds_path
+                    ds.inputs.encrypt_bucket_keys = encrypt_data
+                    ds.inputs.parameterization = True
+                    ds.inputs.regexp_substitutions = [('_rename_(.)*/', ''),
+                                                        ('_scan_', 'scan-'),
+                                                        ('/_mask_', '/roi-'),
+                                                        ('file_s3(.)*/', ''),
+                                                        ('ndmg_atlases', ''),
+                                                        ('func_atlases', ''),
+                                                        ('label', ''),
+                                                        ('res-.+\/', ''),
+                                                        ('_mask_.+\/', '_'),
+                                                        ('mask_sub-', 'sub-'),
+                                                        ('/_compcor_ncomponents_', '_nuis-'),
+                                                        ('_selector_pc', ''),
+                                                        ('.linear', ''),
+                                                        ('.wm', ''),
+                                                        ('.global', ''),
+                                                        ('.motion', ''),
+                                                        ('.quadratic', ''),
+                                                        ('.gm', ''),
+                                                        ('.compcor', ''),
+                                                        ('.csf', ''),
+                                                        ('(\.\.)', '')]
+
+                    container = 'pipeline_{0}'.format(pipeline_id)
+
+                    sub_ses_id = subject_id.split('_')
+
+                    if 'sub-' not in sub_ses_id[0]:
+                        sub_tag = 'sub-{0}'.format(sub_ses_id[0])
                     else:
-                        # regular datasink
-                        ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-                        ds.inputs.base_directory = c.outputDirectory
-                        ds.inputs.creds_path = creds_path
-                        ds.inputs.encrypt_bucket_keys = encrypt_data
-                        ds.inputs.container = os.path.join(
-                            'pipeline_%s' % pipeline_id, subject_id)
-                        ds.inputs.regexp_substitutions = [
-                            (r"/_sca_roi(.)*[/]", '/'),
-                            (r"/_smooth_centrality_(\d)+[/]", '/'),
-                            (r"/_z_score(\d)+[/]", "/"),
-                            (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                            (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                            (r"/qc___", '/qc/')
-                        ]
+                        sub_tag = sub_ses_id[0]
 
-                        node, out_file = rp[key]
-                        workflow.connect(node, out_file, ds, key)
+                    if 'ses-' not in sub_ses_id[1]:
+                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                    else:
+                        ses_tag = sub_ses_id[1]
 
-                        link_node = pe.Node(
-                            interface=function.Function(
-                                input_names=['in_file', 'strategies',
-                                             'subject_id', 'pipeline_id',
-                                             'helper', 'create_sym_links'],
-                                output_names=[],
-                                function=process_outputs,
-                                as_module=True),
-                            name='process_outputs_%d' % sink_idx
-                        )
+                    id_tag = '_'.join([sub_tag, ses_tag])
 
-                        link_node.inputs.strategies = strategies
-                        link_node.inputs.subject_id = subject_id
-                        link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
-                        link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+                    anat_template_tag = 'standard'
+                    func_template_tag = 'standard'
 
-                        # TODO ASH enforce boolean with schema validation
-                        if 1 in c.runSymbolicLinks:
-                            link_node.inputs.create_sym_links = True
-                        else:
-                            link_node.inputs.create_sym_links = False
+                    try:
+                        if 'FSL' in c.regOption and 'ANTS' not in c.regOption:
+                            if 'MNI152' in c.fnirtConfig:
+                                anat_template_tag = 'MNI152'
+                                func_template_tag = 'MNI152'
+                    except:
+                        pass
 
-                        workflow.connect(ds, 'out_file', link_node, 'in_file')
+                    anat_res_tag = c.resolution_for_anat
+                    anat_res_tag = anat_res_tag.replace('mm', '')
+                    func_res_tag = c.resolution_for_func_preproc
+                    func_res_tag = func_res_tag.replace('mm', '')
 
-                        sink_idx += 1
-                        logger.debug('sink index: %s' % sink_idx)
+                    ndmg_key_dct = {'anatomical_brain':
+                                        ('anat', 'preproc',
+                                            '{0}_T1w_preproc_brain'.format(id_tag)),
+                                    'anatomical_to_standard':
+                                        ('anat', 'registered',
+                                            '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, anat_template_tag, anat_res_tag)),
+                                    'functional_preprocessed':
+                                        ('func', 'preproc',
+                                            '{0}_bold_preproc'.format(id_tag)),
+                                    'functional_nuisance_residuals':
+                                        ('func', 'clean',
+                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, func_template_tag, func_res_tag)),
+                                    'functional_to_standard':
+                                        ('func', 'registered',
+                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'.format(
+                                                id_tag, func_template_tag,
+                                                func_res_tag)),
+                                    'functional_mask_to_standard':
+                                        ('func', 'registered',
+                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'.format(
+                                                id_tag, func_template_tag,
+                                                func_res_tag)),
+                                    'ndmg_ts':
+                                        ('func', 'roi-timeseries',
+                                            '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
+                                                id_tag, func_res_tag)),
+                                    'ndmg_graph':
+                                        ('func', 'roi-connectomes',
+                                            '{0}_bold_res-{1}x{1}x{1}_measure-correlation'.format(
+                                                id_tag, func_res_tag))
+                                    }
 
-                try:
-                    G = nx.DiGraph()
-                    strat_name = strat.get_name()
-                    G.add_edges_from([
-                        (strat_name[s], strat_name[s + 1])
-                        for s in range(len(strat_name) - 1)
-                    ])
+                    if key not in ndmg_key_dct.keys():
+                        continue
 
-                    dotfilename = os.path.join(log_dir, 'strategy.dot')
-                    nx.drawing.nx_pydot.write_dot(G, dotfilename)
-                    format_dot(dotfilename, 'png')
-                except:
-                    logger.warn('Cannot Create the strategy and pipeline '
-                                'graph, dot or/and pygraphviz is not installed')
+                    ds.inputs.container = '{0}/{1}'.format(container,
+                                                            ndmg_key_dct[key][0])
+                    node, out_file = rp[key]
 
-                pipes.append(pipeline_id)
+                    # rename the file
+                    if 'roi_' in key or 'ndmg_graph' in key:
+                        rename_file = pe.MapNode(interface=util.Rename(),
+                                                    name='rename_{0}'.format(sink_idx),
+                                                    iterfield=['in_file'])
+                    else:
+                        rename_file = pe.Node(interface=util.Rename(),
+                                                name='rename_{0}'.format(sink_idx))
+                    rename_file.inputs.keep_ext = True
+                    rename_file.inputs.format_string = ndmg_key_dct[key][2]
 
-            forks = "\n\nStrategy forks:\n" + \
-                    "\n".join(["- " + pipe for pipe in pipes]) + \
-                    "\n\n"
+                    workflow.connect(node, out_file,
+                                        rename_file, 'in_file')
+                    workflow.connect(rename_file, 'out_file',
+                                        ds, ndmg_key_dct[key][1])
 
-            logger.info(forks)
+                    sink_idx += 1
 
-            pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    # regular datasink
+                    ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
+                    ds.inputs.base_directory = c.outputDirectory
+                    ds.inputs.creds_path = creds_path
+                    ds.inputs.encrypt_bucket_keys = encrypt_data
+                    ds.inputs.container = os.path.join(
+                        'pipeline_%s' % pipeline_id, subject_id)
+                    ds.inputs.regexp_substitutions = [
+                        (r"/_sca_roi(.)*[/]", '/'),
+                        (r"/_smooth_centrality_(\d)+[/]", '/'),
+                        (r"/_z_score(\d)+[/]", "/"),
+                        (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                        (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                        (r"/qc___", '/qc/')
+                    ]
 
-            subject_info['resource_pool'] = []
+                    node, out_file = rp[key]
+                    workflow.connect(node, out_file, ds, key)
 
-            for strat_no, strat in enumerate(strat_list):
-                strat_label = 'strat_%d' % strat_no
-                subject_info[strat_label] = strat.get_name()
-                subject_info['resource_pool'].append(strat.get_resource_pool())
+                    link_node = pe.Node(
+                        interface=function.Function(
+                            input_names=['in_file', 'strategies',
+                                            'subject_id', 'pipeline_id',
+                                            'helper', 'create_sym_links'],
+                            output_names=[],
+                            function=process_outputs,
+                            as_module=True),
+                        name='process_outputs_%d' % sink_idx
+                    )
 
-            subject_info['status'] = 'Running'
+                    link_node.inputs.strategies = strategies
+                    link_node.inputs.subject_id = subject_id
+                    link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
+                    link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
-            # TODO:set memory and num_threads of critical nodes if running
-            # MultiProcPlugin
+                    # TODO ASH enforce boolean with schema validation
+                    if 1 in c.runSymbolicLinks:
+                        link_node.inputs.create_sym_links = True
+                    else:
+                        link_node.inputs.create_sym_links = False
 
-            # Create callback logger
-            cb_log_filename = os.path.join(log_dir,
-                                           'callback.log')
+                    workflow.connect(ds, 'out_file', link_node, 'in_file')
+
+                    sink_idx += 1
+                    logger.debug('sink index: %s' % sink_idx)
 
             try:
-                if not os.path.exists(os.path.dirname(cb_log_filename)):
-                    os.makedirs(os.path.dirname(cb_log_filename))
-            except IOError:
-                pass
+                G = nx.DiGraph()
+                strat_name = strat.get_name()
+                G.add_edges_from([
+                    (strat_name[s], strat_name[s + 1])
+                    for s in range(len(strat_name) - 1)
+                ])
 
-            # Add handler to callback log file
-            cb_logger = cb_logging.getLogger('callback')
-            cb_logger.setLevel(cb_logging.DEBUG)
-            handler = cb_logging.FileHandler(cb_log_filename)
-            cb_logger.addHandler(handler)
+                dotfilename = os.path.join(log_dir, 'strategy.dot')
+                nx.drawing.nx_pydot.write_dot(G, dotfilename)
+                format_dot(dotfilename, 'png')
+            except:
+                logger.warn('Cannot Create the strategy and pipeline '
+                            'graph, dot or/and pygraphviz is not installed')
 
-            # Log initial information from all the nodes
-            for node_name in workflow.list_node_names():
-                node = workflow.get_node(node_name)
-                cb_logger.debug(json.dumps({
-                    "id": str(node),
-                    "hash": node.inputs.get_hashval()[1],
-                }))
+            pipes.append(pipeline_id)
 
-            # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.1.2'):
-                err_msg = "This version of Nipype may not be compatible with " \
-                          "CPAC v%s, please install Nipype version 1.1.2\n" \
-                           % (CPAC.__version__)
-                logger.error(err_msg)
-            else:
-                from CPAC.utils.monitoring import log_nodes_cb
-                plugin_args['status_callback'] = log_nodes_cb
+        forks = "\n\nStrategy forks:\n" + \
+                "\n".join(["- " + pipe for pipe in pipes]) + \
+                "\n\n"
+
+        logger.info(forks)
+
+        pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+
+        subject_info['resource_pool'] = []
+
+        for strat_no, strat in enumerate(strat_list):
+            strat_label = 'strat_%d' % strat_no
+            subject_info[strat_label] = strat.get_name()
+            subject_info['resource_pool'].append(strat.get_resource_pool())
+
+        subject_info['status'] = 'Running'
+
+        # TODO:set memory and num_threads of critical nodes if running
+        # MultiProcPlugin
+
+        # Create callback logger
+        cb_log_filename = os.path.join(log_dir,
+                                        'callback.log')
+
+        try:
+            if not os.path.exists(os.path.dirname(cb_log_filename)):
+                os.makedirs(os.path.dirname(cb_log_filename))
+        except IOError:
+            pass
+
+        # Add handler to callback log file
+        cb_logger = cb_logging.getLogger('callback')
+        cb_logger.setLevel(cb_logging.DEBUG)
+        handler = cb_logging.FileHandler(cb_log_filename)
+        cb_logger.addHandler(handler)
+
+        # Log initial information from all the nodes
+        for node_name in workflow.list_node_names():
+            node = workflow.get_node(node_name)
+            cb_logger.debug(json.dumps({
+                "id": str(node),
+                "hash": node.inputs.get_hashval()[1],
+            }))
+
+        # Add status callback function that writes in callback log
+        if nipype.__version__ not in ('1.1.2'):
+            err_msg = "This version of Nipype may not be compatible with " \
+                        "CPAC v%s, please install Nipype version 1.1.2\n" \
+                        % (CPAC.__version__)
+            logger.error(err_msg)
+        else:
+            from CPAC.utils.monitoring import log_nodes_cb
+            plugin_args['status_callback'] = log_nodes_cb
 
 
-            # Actually run the pipeline now, for the current subject
-            workflow.run(plugin=plugin, plugin_args=plugin_args)
+        # Actually run the pipeline now, for the current subject
+        workflow.run(plugin=plugin, plugin_args=plugin_args)
 
 
-            # Dump subject info pickle file to subject log dir
-            subject_info['status'] = 'Completed'
+        # Dump subject info pickle file to subject log dir
+        subject_info['status'] = 'Completed'
 
-            subject_info_file = os.path.join(
-                log_dir, 'subject_info_%s.pkl' % subject_id
-            )
-            with open(subject_info_file, 'wb') as info:
-                pickle.dump(subject_info, info)
+        subject_info_file = os.path.join(
+            log_dir, 'subject_info_%s.pkl' % subject_id
+        )
+        with open(subject_info_file, 'wb') as info:
+            pickle.dump(subject_info, info)
 
-            for i, _ in enumerate(pip_ids):
-                for scan in scan_ids:
-                    create_log_node(workflow, None, None, i, scan).run()
+        for i, _ in enumerate(pip_ids):
+            for scan in scan_ids:
+                create_log_node(workflow, None, None, i, scan).run()
 
-            if 1 in c.generateQualityControlImages and not ndmg_out:
-                for pip_id in pip_ids:
-                    pipeline_base = os.path.join(c.outputDirectory,
-                                                 'pipeline_%s' % pip_id)
-                    qc_output_folder = os.path.join(pipeline_base, subject_id,
-                                                    'qc_html')
-                    sub_output_dir = os.path.join(c.outputDirectory,
-                                                  'pipeline_{0}'.format(pip_id),
-                                                  subject_id)
+        if 1 in c.generateQualityControlImages and not ndmg_out:
+            for pip_id in pip_ids:
+                pipeline_base = os.path.join(c.outputDirectory,
+                                                'pipeline_%s' % pip_id)
+                qc_output_folder = os.path.join(pipeline_base, subject_id,
+                                                'qc_html')
+                sub_output_dir = os.path.join(c.outputDirectory,
+                                                'pipeline_{0}'.format(pip_id),
+                                                subject_id)
 
-                    generate_qc_pages(qc_output_folder,
-                                      sub_output_dir,
-                                      qc_montage_id_a,
-                                      qc_montage_id_s,
-                                      qc_plot_id,
-                                      qc_hist_id)
+                generate_qc_pages(qc_output_folder,
+                                    sub_output_dir,
+                                    qc_montage_id_a,
+                                    qc_montage_id_s,
+                                    qc_plot_id,
+                                    qc_hist_id)
 
-            # have this check in case the user runs cpac_runner from terminal and
-            # the timing parameter list is not supplied as usual by the GUI
-            if pipeline_timing_info != None:
+        # have this check in case the user runs cpac_runner from terminal and
+        # the timing parameter list is not supplied as usual by the GUI
+        if pipeline_timing_info != None:
 
-                # pipeline_timing_info list:
-                #  [0] - unique pipeline ID
-                #  [1] - pipeline start time stamp (first click of 'run' from GUI)
-                #  [2] - number of subjects in subject list
-                unique_pipeline_id = pipeline_timing_info[0]
-                pipeline_start_stamp = pipeline_timing_info[1]
-                num_subjects = pipeline_timing_info[2]
+            # pipeline_timing_info list:
+            #  [0] - unique pipeline ID
+            #  [1] - pipeline start time stamp (first click of 'run' from GUI)
+            #  [2] - number of subjects in subject list
+            unique_pipeline_id = pipeline_timing_info[0]
+            pipeline_start_stamp = pipeline_timing_info[1]
+            num_subjects = pipeline_timing_info[2]
 
-                # elapsed time data list:
-                #  [0] - elapsed time in minutes
-                elapsed_time_data = []
+            # elapsed time data list:
+            #  [0] - elapsed time in minutes
+            elapsed_time_data = []
 
-                elapsed_time_data.append(
-                    int(((time.time() - pipeline_start_time) / 60)))
+            elapsed_time_data.append(
+                int(((time.time() - pipeline_start_time) / 60)))
 
-                # elapsedTimeBin list:
-                #  [0] - cumulative elapsed time (minutes) across all subjects
-                #  [1] - number of times the elapsed time has been appended
-                #        (effectively a measure of how many subjects have run)
+            # elapsedTimeBin list:
+            #  [0] - cumulative elapsed time (minutes) across all subjects
+            #  [1] - number of times the elapsed time has been appended
+            #        (effectively a measure of how many subjects have run)
 
-                # TODO
-                # write more doc for all this
-                # warning in .csv that some runs may be partial
-                # code to delete .tmp file
+            # TODO
+            # write more doc for all this
+            # warning in .csv that some runs may be partial
+            # code to delete .tmp file
 
-                timing_temp_file_path = os.path.join(c.logDirectory,
-                                                     '%s_pipeline_timing.tmp' % unique_pipeline_id)
+            timing_temp_file_path = os.path.join(c.logDirectory,
+                                                    '%s_pipeline_timing.tmp' % unique_pipeline_id)
 
-                if not os.path.isfile(timing_temp_file_path):
-                    elapsedTimeBin = []
-                    elapsedTimeBin.append(0)
-                    elapsedTimeBin.append(0)
-
-                    with open(timing_temp_file_path, 'wb') as handle:
-                        pickle.dump(elapsedTimeBin, handle)
-
-                with open(timing_temp_file_path, 'rb') as handle:
-                    elapsedTimeBin = pickle.loads(handle.read())
-
-                elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
-                elapsedTimeBin[1] = elapsedTimeBin[1] + 1
+            if not os.path.isfile(timing_temp_file_path):
+                elapsedTimeBin = []
+                elapsedTimeBin.append(0)
+                elapsedTimeBin.append(0)
 
                 with open(timing_temp_file_path, 'wb') as handle:
                     pickle.dump(elapsedTimeBin, handle)
 
-                # this happens once the last subject has finished running!
-                if elapsedTimeBin[1] == num_subjects:
+            with open(timing_temp_file_path, 'rb') as handle:
+                elapsedTimeBin = pickle.loads(handle.read())
 
-                    pipelineTimeDict = {}
-                    pipelineTimeDict['Pipeline'] = c.pipelineName
-                    pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
-                    pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
-                    pipelineTimeDict['Number_of_Subjects'] = num_subjects
-                    pipelineTimeDict['Start_Time'] = pipeline_start_stamp
-                    pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
-                    pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
-                    pipelineTimeDict['Status'] = 'Complete'
+            elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
+            elapsedTimeBin[1] = elapsedTimeBin[1] + 1
 
-                    gpaTimeFields = ['Pipeline', 'Cores_Per_Subject',
-                                     'Simultaneous_Subjects',
-                                     'Number_of_Subjects', 'Start_Time',
-                                     'End_Time', 'Elapsed_Time_(minutes)',
-                                     'Status']
-                    timeHeader = dict((n, n) for n in gpaTimeFields)
+            with open(timing_temp_file_path, 'wb') as handle:
+                pickle.dump(elapsedTimeBin, handle)
 
-                    with open(os.path.join(
-                        c.logDirectory,
-                        'cpac_individual_timing_%s.csv' % c.pipelineName
-                    ), 'a') as timeCSV, open(os.path.join(
-                        c.logDirectory,
-                        'cpac_individual_timing_%s.csv' % c.pipelineName
-                    ), 'rb') as readTimeCSV:
+            # this happens once the last subject has finished running!
+            if elapsedTimeBin[1] == num_subjects:
 
-                        timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-                        timeReader = csv.DictReader(readTimeCSV)
+                pipelineTimeDict = {}
+                pipelineTimeDict['Pipeline'] = c.pipelineName
+                pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
+                pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
+                pipelineTimeDict['Number_of_Subjects'] = num_subjects
+                pipelineTimeDict['Start_Time'] = pipeline_start_stamp
+                pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+                pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
+                pipelineTimeDict['Status'] = 'Complete'
 
-                        headerExists = False
-                        for line in timeReader:
-                            if 'Start_Time' in line:
-                                headerExists = True
+                gpaTimeFields = ['Pipeline', 'Cores_Per_Subject',
+                                    'Simultaneous_Subjects',
+                                    'Number_of_Subjects', 'Start_Time',
+                                    'End_Time', 'Elapsed_Time_(minutes)',
+                                    'Status']
+                timeHeader = dict((n, n) for n in gpaTimeFields)
 
-                        if headerExists == False:
-                            timeWriter.writerow(timeHeader)
+                with open(os.path.join(
+                    c.logDirectory,
+                    'cpac_individual_timing_%s.csv' % c.pipelineName
+                ), 'a') as timeCSV, open(os.path.join(
+                    c.logDirectory,
+                    'cpac_individual_timing_%s.csv' % c.pipelineName
+                ), 'rb') as readTimeCSV:
 
-                        timeWriter.writerow(pipelineTimeDict)
+                    timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                    timeReader = csv.DictReader(readTimeCSV)
 
-                    # remove the temp timing file now that it is no longer needed
-                    os.remove(timing_temp_file_path)
+                    headerExists = False
+                    for line in timeReader:
+                        if 'Start_Time' in line:
+                            headerExists = True
 
-            # Upload logs to s3 if s3_str in output directory
-            if c.outputDirectory.lower().startswith('s3://'):
+                    if headerExists == False:
+                        timeWriter.writerow(timeHeader)
 
-                try:
+                    timeWriter.writerow(pipelineTimeDict)
 
-                    # Store logs in s3 output director/logs/...
-                    s3_log_dir = c.outputDirectory + '/logs/' + \
-                        os.path.basename(log_dir)
-                    bucket_name = c.outputDirectory.split('/')[2]
-                    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                # remove the temp timing file now that it is no longer needed
+                os.remove(timing_temp_file_path)
 
-                    # Collect local log files
-                    local_log_files = []
-                    for root, _, files in os.walk(log_dir):
-                        local_log_files.extend([os.path.join(root, fil)
-                                                for fil in files])
-                        # Form destination keys
-                    s3_log_files = [loc.replace(log_dir, s3_log_dir)
-                                    for loc in local_log_files]
-                    # Upload logs
-                    aws_utils.s3_upload(bucket,
-                                        (local_log_files, s3_log_files),
-                                        encrypt=encrypt_data)
-                    # Delete local log files
-                    for log_f in local_log_files:
-                        os.remove(log_f)
+        # Upload logs to s3 if s3_str in output directory
+        if c.outputDirectory.lower().startswith('s3://'):
 
-                except Exception as exc:
-                    err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
-                    logger.error(err_msg, log_dir, exc)
+            try:
 
-            # Remove working directory when done
-            if c.removeWorkingDir:
-                try:
-                    subject_wd = os.path.join(c.workingDirectory, workflow_name)
-                    if os.path.exists(subject_wd):
-                        logger.info("Removing working dir: %s" % subject_wd)
-                        shutil.rmtree(subject_wd)
-                except:
-                    logger.warn('Could not remove subjects %s working directory',
-                                workflow_name)
+                # Store logs in s3 output director/logs/...
+                s3_log_dir = c.outputDirectory + '/logs/' + \
+                    os.path.basename(log_dir)
+                bucket_name = c.outputDirectory.split('/')[2]
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
-            execution_info = """
+                # Collect local log files
+                local_log_files = []
+                for root, _, files in os.walk(log_dir):
+                    local_log_files.extend([os.path.join(root, fil)
+                                            for fil in files])
+                    # Form destination keys
+                s3_log_files = [loc.replace(log_dir, s3_log_dir)
+                                for loc in local_log_files]
+                # Upload logs
+                aws_utils.s3_upload(bucket,
+                                    (local_log_files, s3_log_files),
+                                    encrypt=encrypt_data)
+                # Delete local log files
+                for log_f in local_log_files:
+                    os.remove(log_f)
+
+            except Exception as exc:
+                err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
+                logger.error(err_msg, log_dir, exc)
+
+        # Remove working directory when done
+        if c.removeWorkingDir:
+            try:
+                subject_wd = os.path.join(c.workingDirectory, workflow_name)
+                if os.path.exists(subject_wd):
+                    logger.info("Removing working dir: %s" % subject_wd)
+                    shutil.rmtree(subject_wd)
+            except:
+                logger.warn('Could not remove subjects %s working directory',
+                            workflow_name)
+
+        execution_info = """
 
     End of subject workflow {workflow}
 
@@ -4075,13 +4075,13 @@ Maximum potential number of cores that might be used during this run: {max_cores
         System time of completion: {run_finish}
 
     """
-            logger.info(execution_info.format(
-                workflow=workflow_name,
-                pipeline=c.pipelineName,
-                log_dir=c.logDirectory,
-                elapsed=(time.time() - pipeline_start_time) / 60,
-                run_start=pipeline_start_datetime,
-                run_finish=strftime("%Y-%m-%d %H:%M:%S")
-            ))
+        logger.info(execution_info.format(
+            workflow=workflow_name,
+            pipeline=c.pipelineName,
+            log_dir=c.logDirectory,
+            elapsed=(time.time() - pipeline_start_time) / 60,
+            run_start=pipeline_start_datetime,
+            run_finish=strftime("%Y-%m-%d %H:%M:%S")
+        ))
 
-        return workflow
+    return workflow
