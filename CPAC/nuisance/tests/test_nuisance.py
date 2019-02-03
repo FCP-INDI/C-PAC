@@ -3,53 +3,6 @@ from CPAC.nuisance import create_nuisance_workflow
 
 def test_nuisance_workflow_type1():
 
-    """
-    test_selector = {'Anaticor' : None | {radius = <radius in mm>},
-        'aCompCor' : None | {num_pcs = <number of components to retain>,
-                            tissues = 'WM' | 'CSF' | 'WM+CSF',
-                            include_delayed = True | False,
-                            include_squared = True | False,
-                            include_delayed_squared = True | False},
-        'WhiteMatter' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
-                       num_pcs = <number of components to retain>,
-                       include_delayed = True | False,
-                       include_squared = True | False,
-                       include_delayed_squared = True | False},
-        'Ventricles' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
-                       num_pcs = <number of components to retain>,
-                       include_delayed = True | False,
-                       include_squared = True | False,
-                       include_delayed_squared = True | False},
-        'GreyMatter' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
-                       num_pcs = <number of components to retain>,
-                       include_delayed = True | False,
-                       include_squared = True | False,
-                       include_delayed_squared = True | False},
-        'GlobalSignal' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
-                           num_pcs = <number of components to retain>,
-                           include_delayed = True | False,
-                           include_squared = True | False,
-                           include_delayed_squared = True | False},
-        'Motion' : None | {include_delayed = True | False,
-                           include_squared = True | False,
-                           include_delayed_squared = True | False},
-        'Censor' : None | { thresh_metric = 'RMSD','DVARS', or 'RMSD+DVARS',
-                            threshold = <threshold to be applied to metric, if using
-                              RMSD+DVARS, this should be a tuple (RMSD thresh, DVARS thresh)>,
-                            number_of_previous_trs_to_remove = True | False,
-                            number_of_subsequent_trs_to_remove = True | False,
-                            method = 'Kill', 'Zero', 'Interpolate', 'SpikeRegression'},
-        'PolyOrt' : None | { degree = <polynomial degree up to which will be removed, e.g. 2 means
-                                       constant + linear + quadratic, practically that is probably,
-                                       the most that will be need esp. if band pass filtering>},
-        'Bandpass' : None | { bottom_frequency = <frequency in hertz of the highpass part of the pass
-                                                  band, frequencies below this will be removed>,
-                              top_frequency = <frequency in hertz of the lowpass part of the pass
-                                               band, frequencies above this will be removed>},
-        }
-
-    """
-
     selector_test = {
         'Anaticor': None,
         'tCompCor': {
@@ -100,14 +53,14 @@ def test_nuisance_workflow_type1():
 
     nuisance_regression_workflow.inputs.inputspec.set({
         "selector": selector_test,
-        "wm_mask_file_path": '/home/ccraddock/nuisance_test/wm_mask.nii.gz',
-        "csf_mask_file_path": '/home/ccraddock/nuisance_test/csf_mask.nii.gz',
-        "gm_mask_file_path": '/home/ccraddock/nuisance_test/gm_mask.nii.gz',
-        "lat_ventricles_mask_file_path": '/home/ccraddock/nuisance_test/MNI152_T1_2mm_VentricleMask.nii.gz',
+        "wm_mask_file_path": '/home/anibalsolon/cpac_tests/adhd/o/output/pipeline_analysis/sub-3899622_ses-1/anatomical_wm_mask/segment_seg_2_maths.nii.gz',
+        "csf_mask_file_path": '/home/anibalsolon/cpac_tests/adhd/o/output/pipeline_analysis/sub-3899622_ses-1/anatomical_gm_mask/segment_seg_1_maths.nii.gz',
+        "gm_mask_file_path": '/home/anibalsolon/cpac_tests/adhd/o/output/pipeline_analysis/sub-3899622_ses-1/anatomical_csf_mask/segment_seg_0_maths.nii.gz',
+        "lat_ventricles_mask_file_path": '/usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_VentricleMask.nii.gz',
         
-        "motion_parameters_file_path":  '/home/ccraddock/nuisance_test/motion_parameters.1D',
-        "fd_file_path": '/home/ccraddock/nuisance_test/fd.1D',
-        "dvars_file_path": '/home/ccraddock/nuisance_test/dvars.1d',
+        "motion_parameters_file_path":  '/home/anibalsolon/cpac_tests/adhd/o/output/pipeline_analysis/sub-3899622_ses-1/motion_params/_scan_rest_run-1/motion_parameters.txt',
+        "fd_file_path": '/home/anibalsolon/cpac_tests/adhd/o/output/pipeline_analysis/sub-3899622_ses-1/frame_wise_displacement_jenkinson/_scan_rest_run-1/FD_J.1D',
+        "dvars_file_path": '/home/anibalsolon/cpac_tests/adhd/working/resting_preproc_sub-3899622_ses-1/gen_motion_stats_0/_scan_rest_run-1/cal_DVARS/DVARS.1D',
         "functional_file_path": '/home/ccraddock/nuisance_test/functional.nii.gz',
         "functional_brain_mask_file_path": '/home/ccraddock/nuisance_test/func_mask.nii.gz',
         "brain_template_file_path": '/home/ccraddock/nuisance_test/MNI152_T1_2mm_brain.nii.gz',
