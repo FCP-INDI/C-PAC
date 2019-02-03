@@ -569,6 +569,12 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
                            series_or_repeated_label,
                            preproc_strat)
 
+    try:
+        preset_contrast = group_config_obj.preset
+        preset = True
+    except AttributeError:
+        preset = False
+
     if 'sca_roi' in resource_id:
         out_dir = os.path.join(out_dir,
             re.search('sca_ROI_(\d)+', os.path.splitext(\
@@ -856,25 +862,45 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     design_formula = patsify_design_formula(design_formula, cat_list,
                                             group_config_obj.coding_scheme[0])
 
-    # send to Patsy
-    try:
-        dmatrix = patsy.dmatrix(design_formula, model_df)
-    except Exception as e:
-        err = "\n\n[!] Something went wrong with processing the group model "\
-              "design matrix using the Python Patsy package. Patsy might " \
-              "not be properly installed, or there may be an issue with the "\
-              "formatting of the design matrix.\n\nDesign matrix columns: " \
-              "%s\n\nPatsy-formatted design formula: %s\n\nError details: " \
-              "%s\n\n" % (model_df.columns, design_formula, e)
-        raise Exception(err)
+    if not preset:
+        # send to Patsy
+        try:
+            dmatrix = patsy.dmatrix(design_formula, model_df)
+            dmatrix.design_info.column_names.append(model_df["Filepath"])
+            dmatrix_column_names = dmatrix.design_info.column_names
+        except Exception as e:
+            err = "\n\n[!] Something went wrong with processing the group model "\
+                  "design matrix using the Python Patsy package. Patsy might " \
+                  "not be properly installed, or there may be an issue with the "\
+                  "formatting of the design matrix.\n\nDesign matrix columns: " \
+                  "%s\n\nPatsy-formatted design formula: %s\n\nError details: " \
+                  "%s\n\n" % (model_df.columns, design_formula, e)
+            raise Exception(err)
+    else:
+        if 'Sessions' in model_df:
+            sess_levels = list(set(list(model_df['Sessions'].values)))
+            if len(sess_levels) > 1:
+                sess_map = {sess_levels[0]: '1', sess_levels[1]: '-1'}
+                if len(sess_levels) == 3:
+                    sess_map.update({sess_levels[2]: '0'})
+                new_sess = [s.replace(s, sess_map[s]) for s in list(model_df['Sessions'].values)]
+                model_df['Sessions'] = new_sess
+        if 'Series' in model_df:
+            sess_levels = list(set(list(model_df['Series'].values)))
+            if len(sess_levels) > 1:
+                sess_map = {sess_levels[0]: '1', sess_levels[1]: '-1'}
+                if len(sess_levels) == 3:
+                    sess_map.update({sess_levels[2]: '0'})
+                new_sess = [s.replace(s, sess_map[s]) for s in list(model_df['Series'].values)]
+                model_df['Series'] = new_sess
+        
+        keep_cols = [x for x in model_df.columns if x in design_formula]
+        dmatrix = model_df[keep_cols].astype('float')
+        dmatrix_column_names = list(dmatrix.columns)
 
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
     check_multicollinearity(np.array(dmatrix))
- 
-    # prepare for final stages
-    dmatrix.design_info.column_names.append(model_df["Filepath"])
-    dmatrix_column_names = dmatrix.design_info.column_names
     
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
     contrast_out_path = os.path.join(out_dir, "contrast.csv")
@@ -943,9 +969,9 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         dmatrix = dmat_T.transpose()
         readme_flags.append("cat_demeaned")
 
-    dmatrix_df = pd.DataFrame(dmatrix, index=model_df["participant_id"],
-                              columns=dmatrix.design_info.column_names)
-
+    dmatrix_df = pd.DataFrame(np.array(dmatrix), 
+                              index=model_df["participant_id"],
+                              columns=dmatrix_column_names)
     cols = dmatrix_df.columns.tolist()
 
     # make sure "column_names" is in the same order as the original EV column
@@ -979,12 +1005,6 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
                 contrasts_columns.append('f_test_{0}'.format(i)) 
     else:
         pass
-
-    try:
-        preset_contrast = group_config_obj.preset
-        preset = True
-    except AttributeError:
-        preset = False
 
     contrast_out_path = os.path.join(model_dir, "contrasts.csv")
 

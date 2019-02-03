@@ -146,6 +146,24 @@ custom_contrasts: None
 # FSL-Randomise
 ##############################################################################
 
+# Run Randomise
+run_randomise :  [0]
+
+
+# Number of permutations you would like to use when building up the null distribution to test against.
+randomise_permutation :  500
+
+
+# Cluster-based thresholding corrected for multiple comparisons by using the null distribution of the max (across the image) cluster mask.
+randomise_thresh :  5
+
+
+# Demean data temporally before model fitting.
+randomise_demean :  True
+
+
+# From the FMRIB FSL-Randomise user guide: TFCE (Threshold-Free Cluster Enhancement) is a new method for finding 'clusters' in your data without having to define clusters in a binary way. Cluster-like structures are enhanced but the image remains fundamentally voxelwise.
+randomise_tfce :  True
 
 
 # Bootstrap Analysis of Stable Clusters (BASC) - via PyBASC

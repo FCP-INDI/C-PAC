@@ -871,14 +871,15 @@ def create_wf_apply_ants_warp(map_node=False, inverse=False,
     if map_node:
         apply_ants_warp = pe.MapNode(interface=ants.ApplyTransforms(),
                                      name='apply_ants_warp_mapnode',
-                                     iterfield=['input_image', 'transforms'])
+                                     iterfield=['input_image', 'transforms'],
+                                     mem_gb=1.5)
     else:
         apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
-                                  name='apply_ants_warp')
+                                  name='apply_ants_warp',
+                                  mem_gb=1.5)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = ants_threads
-    apply_ants_warp.interface.estimated_memory_gb = 1.5
 
     if inverse:
         apply_ants_warp.inputs.invert_transform_flags = [True, True, True, True,

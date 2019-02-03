@@ -549,7 +549,7 @@ class FlamePresetsTwoConditions(wx.Frame):
         # TODO
         # text blurb depending on the specific preset
 
-        self.page.add(label="Conditions: Sessions or Series/Scans? ",
+        self.page.add(label="Conditions: Sessions or Series? ",
                       control=control.CHOICE_BOX,
                       name="condition_type",
                       type=dtype.LSTR,
@@ -561,7 +561,7 @@ class FlamePresetsTwoConditions(wx.Frame):
                               "functional series or scans within each a "
                               "single session each?".format(num_condition,
                                                             self.gpa_settings["flame_preset"]),
-                      values=["Sessions", "Series/Scans"])
+                      values=["Sessions", "Series"])
 
         self.page.add(label='Session or Series/Scan IDs: ',
                       control=control.LISTBOX_COMBO,
@@ -671,7 +671,7 @@ class FlamePresetsTwoConditions(wx.Frame):
             new_deriv_list.append(substitution_map.get(deriv_string))
         self.gpa_settings["derivative_list"] = new_deriv_list
 
-    def click_OK(self):
+    def click_OK(self, event):
         # gather data
         self.gather_form_data()
         self.substitute_derivative_names()
