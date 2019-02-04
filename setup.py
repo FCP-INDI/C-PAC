@@ -38,10 +38,6 @@ def configuration(parent_package='', top_path=None):
                          sources=['CPAC/network_centrality/thresh_and_sum.pyx'], 
                          include_dirs=[get_numpy_include_dirs()])
 
-    config.add_extension('CPAC.cwas.mdmr', 
-                         sources=['CPAC/cwas/mdmr.pyx'], 
-                         include_dirs=[get_numpy_include_dirs()])
-
     return config
 
 
