@@ -83,3 +83,17 @@ def create_despike_regressor_matrix(frames_excluded, total_vols):
         i += 1
 
     return reg_matrix
+
+
+def find_offending_time_points(thresh_metric, out_file_path, fd_file_path, 
+                               dvars_file_path, fd_threshold, dvars_threshold,
+                               number_of_previous_trs_to_remove,
+                               number_of_subsequent_trs_to_remove):
+
+    return 'out_file'
+
+
+def create_temporal_variance_mask(functional_data_file_path, mask_file_path,
+                                  threshold, output_file_name, by_slice):
+
+    return 'tCompCor_mask_file_path'
