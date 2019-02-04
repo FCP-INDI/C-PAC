@@ -19,6 +19,10 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
 
 
+def bandpass_voxels(realigned_file, bandpass_freqs, sample_period):
+    return 'bandpassed_file'
+
+
 def gather_nuisance(functional_file_path, selector, output_file_path, grey_matter_summary_file_path=None,
                     white_matter_summary_file_path=None, csf_summary_file_path=None, acompcorr_file_path=None,
                     tcompcorr_file_path=None, global_summary_file_path=None, motion_parameters_file_path=None,
@@ -781,7 +785,10 @@ def create_nuisance(use_ants, name='nuisance'):
     return nuisance
 
 
-def create_nuisance_workflow(pipeline_resource_pool, nuisance_configuration_selector, functional_specifier, use_ants,
+def create_nuisance_workflow(pipeline_resource_pool,
+                             nuisance_configuration_selector,
+                             functional_specifier,
+                             use_ants,
                              name='nuisance'):
     """
     Workflow for the removal of various signals considered to be noise from resting state
@@ -1092,7 +1099,7 @@ def create_nuisance_workflow(pipeline_resource_pool, nuisance_configuration_sele
 
                                 if 'functional-variance' in mask_file_resource_key:
                                     pipeline_resource_pool[mask_file_resource_key] = \
-                                        insert_create_variance_mask_node(nuisance, pipeline_resource_pool['functional'],
+                                        insert_create_variance_mask_node(nuisance, pipeline_resource_pool[functional_specifier],
                                                                          nuisance_configuration_selector)
 
                                 else:
