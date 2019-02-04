@@ -2157,8 +2157,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 frequency_filter = pe.Node(
                     function.Function(input_names=['realigned_file',
-                                                'bandpass_freqs',
-                                                'sample_period'],
+                                                   'bandpass_freqs',
+                                                   'sample_period'],
                                     output_names=['bandpassed_file'],
                                     function=bandpass_voxels,
                                     as_module=True),
