@@ -97,3 +97,46 @@ def create_temporal_variance_mask(functional_data_file_path, mask_file_path,
                                   threshold, output_file_name, by_slice):
 
     return 'tCompCor_mask_file_path'
+
+
+def insert_create_variance_mask_node(workflow, functional_path,
+                                     nuisance_configuration_selector):
+
+    
+
+
+
+### CODE FOR ANATICOR
+
+    # if 'Anaticor' in selector and selector['Anaticor']:
+
+    #     # make sure we have a radius
+    #     if 'radius' not in selector['Anaticor']:
+    #         raise ValueError('Anaticor specified in selector, but not radius. Radius is a required parameter.')
+
+    #     # construct the regressors for anaticor
+    #     # '3dLocalstat -prefix __WMeLOCAL_r${r} -nbhd 'SPHERE('${r}')' \
+    #     #    -stat mean -mask  __mask_WMe${view} \
+    #     #    -use_nonmask ${fn_epi}'
+    #     construct_anaticor_regressor = pe.Node(interface=afni.Localstat(),
+    #                                            name="construct_anaticor_regressor")
+
+    #     construct_anaticor_regressor.interface.num_threads = 4
+    #     construct_anaticor_regressor.inputs.neighborhood = 'SPHERE({0})'.format(selector['Anaticor']['radius'])
+    #     construct_anaticor_regressor.inputs.statistic = 'mean'
+    #     construct_anaticor_regressor.inputs.use_nonmask = True
+    #     construct_anaticor_regressor.inputs.output = 'anaticor_regressor_2mm.nii.gz'
+    #     construct_anaticor_regressor.inputs.output_type = 'NIFTI_GZ'
+
+    #     nuisance.connect(wm_anat_2mm_erode, 'out_file', construct_anaticor_regressor, 'mask')
+    #     nuisance.connect(func_to_2mm, 'out_file', construct_anaticor_regressor, 'mask')
+
+    #     # down sample the data to match functional image space
+    #     anaticor_regressor_to_functional_space = pe.Node(interface=fsl.FLIRT(),
+    #                                                      name='anaticor_regressor_to_functional_space')
+    #     anaticor_regressor_to_functional_space.inputs.args = '-applyxfm'
+
+    #     nuisance.connect(construct_anaticor_regressor, 'out_file', anaticor_regressor_to_functional_space, 'in_file')
+    #     nuisance.connect(inputspec, 'functional_file_path', anaticor_regressor_to_functional_space, 'reference')
+
+
