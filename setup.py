@@ -38,11 +38,6 @@ def configuration(parent_package='', top_path=None):
     numpy_nodepr_api = dict()
 
     # cython
-    config.add_extension('CPAC.network_centrality.thresh_and_sum', 
-                         sources=['CPAC/network_centrality/thresh_and_sum.pyx'], 
-                         include_dirs=[get_numpy_include_dirs()],
-                         **numpy_nodepr_api)
-
     config.add_extension('CPAC.cwas.mdmr', 
                          sources=['CPAC/cwas/mdmr.pyx'], 
                          include_dirs=[get_numpy_include_dirs()],

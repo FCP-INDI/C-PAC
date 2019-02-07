@@ -275,26 +275,24 @@ def tripled_two(pipeline_dir, z_thresh, p_thresh, conditions,
 
 # Group analysis - PyBASC
 @group.command()
-@click.argument('pipe_config')
-def basc(pipe_config):
+@click.argument('group_config')
+def basc(group_config):
     import CPAC.pipeline.cpac_group_runner as cpac_group_runner
-    cpac_group_runner.run_basc(pipe_config)
+    cpac_group_runner.run_basc(group_config)
 
 
 @group.command(name="mdmr")
-@click.argument("pipeline_config", type=click.Path(exists=True))
-def group_mdmr(pipeline_config):
+@click.argument("group_config", type=click.Path(exists=True))
+def group_mdmr(group_config):
     from CPAC.pipeline.cpac_group_runner import run_cwas
-    
-    run_cwas(pipeline_config)
+    run_cwas(group_config)
 
 
 @group.command(name="isc")
-@click.argument("pipeline_config", type=click.Path(exists=True))
-def group_isc(pipeline_config):
+@click.argument("group_config", type=click.Path(exists=True))
+def group_isc(group_config):
     from CPAC.pipeline.cpac_group_runner import run_isc
-
-    run_isc(pipeline_config)
+    run_isc(group_config)
 
 # Utilities
 @main.group()

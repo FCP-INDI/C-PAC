@@ -9,27 +9,27 @@
 # General Group-Level Analysis Settings
 ##############################################################################
 
-# Individual-level analysis pipeline output directory
+# The main input of group-level analysis- the output directory of your individual-level analysis pipeline run (pre-processing & derivatives for each participant). This should be a path to your C-PAC individual-level run's pipeline folder, which includes the sub-directories labeled with the participant IDs.
 pipeline_dir: /path/to/output_dir
 
 
-# (Optional) Full path to a list of participants to be included in the model.
-# This should be a text file with one participant ID per line.
-# If not provided, C-PAC will pull the participants present in your pipeline
-# output directory.
-participant_list: /path/to/subject/list.txt
+# (Optional) Full path to a list of participants to be included in the model. You can use this to easily prune participants from your model. In group-level analyses involving phenotype files, this allows you to prune participants without removing them from the phenotype CSV/TSV file. This should be a text file with one subject per line. An easy way to manually create this file is to copy the participant ID column from your phenotype file.
+participant_list: None
 
 
 # Full path to the directory where CPAC should place group-level analysis outputs and any applicable statistical model files.
 output_dir: /path/to/output/dir
 
 
+#Much like the working directory for individual-level analysis, this is where the intermediate and working files will be stored during your run. This directory can be deleted later on. However, saving this directory allows the group analysis run to skip steps that have been already completed, in the case of re-runs.
 work_dir: /path/to/work/dir
 
 
+#Where to write out log information for your group analysis run.
 log_dir: /path/to/log/dir
 
 
+# The path to your FSL installation directory. This can be left as 'FSLDIR' to grab your system's default FSL installation. However, if you prefer to use a specific install of FSL, you can enter the path here.
 FSLDIR: FSLDIR
 
 
@@ -173,6 +173,12 @@ randomise_tfce :  True
 run_basc :  [0]
 
 
+# If there are multiple series or scans in any of the pipeline outputs for which PyBASC is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').
+# If nothing is listed, all available pipelines will be run.
+basc_scan_inclusion :  None
+
+
+# The resolution to run PyBASC with.
 basc_resolution :  4mm
 
 
@@ -188,19 +194,22 @@ basc_memory :  4
 template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${basc_resolution}_brain.nii.gz
 
 
-# Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
+# Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis. This is the region that you’d like to parcellate.
 # If you do not wish to use a mask, set this field to None.
 # Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
 basc_roi_mask_file :  None
 
 
+# If cross clustering is enabled, then clustering of the first region will be calculated based on pairwise similarity between the timeseries of the ROI Mask File, and this second ROI.
 basc_cross_cluster_mask_file :  None
 
 
+# The metric used to compare similarity between voxel timeseries.
+# Options: ['correlation', 'euclidean', 'cityblock', 'cosine']
 basc_similarity_metric_list :  ['correlation']
 
 
-# Number of bootstraps to apply to individual time series.
+# How many times individual level circular block bootstrapping of the timeseries will be applied.
 basc_timeseries_bootstrap_list :  100
 
 
@@ -212,34 +221,24 @@ basc_dataset_bootstrap_list :  30
 basc_n_clusters_list :  2
 
 
+# The similarity threshold at which the similarity matrices will be set to 0.
 basc_affinity_thresh : [0.0]
 
 
+# This is the amount of feature agglomeration that will be applied. Smaller values mean more feature agglomeration.
 basc_output_sizes :  800
 
 
+# If set to true, then the ROI Mask file parcellation will be based on the similarity between ROI Mask file voxels based on their connectivity to each voxel in ROI mask file for cross-clustering.
 basc_cross_cluster :  True
 
 
+# This parameter determines the width of the time window used in the circular block bootstrap.
 basc_blocklength_list :  1
 
 
+# If this is set to true, the all individuals will have feature agglomeration applied together, resulting in the same mapping across subjects. Use this only when memory demands limit ability to process ROIs with a high number of voxels.
 basc_group_dim_reduce :  False
-
-
-# Full path to a text file listing which participant IDs you want included in the analysis, with one ID on each line.
-# Tip: A sample group-level participant inclusion text file is generated when you first create your data configuration.
-basc_inclusion :  None
-
-
-# If there are multiple pipeline output directories, and you only want to run BASC on one or some of them, you can list them here - pipeline names separated by commas (check the output directory of your individual-level analysis run to see which pipeline directories are available).
-# If nothing is listed, all available pipelines will be run.
-basc_pipeline :  None
-
-
-# If there are multiple series or scans in any of the pipeline outputs for which PyBASC is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').
-# If nothing is listed, all available pipelines will be run.
-basc_scan_inclusion :  None
 
 
 # Multivariate Distance Matrix Regression (MDMR)

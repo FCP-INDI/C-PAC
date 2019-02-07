@@ -157,7 +157,7 @@ RUN conda install -y  \
         nose==1.3.7 \
         numpy==1.13.0 \
         pandas==0.23.4 \
-        pyyaml==3.12 \
+        pyyaml==4.2b1 \
         scipy==0.19.1 \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
