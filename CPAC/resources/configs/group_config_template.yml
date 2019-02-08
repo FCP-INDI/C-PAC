@@ -275,3 +275,29 @@ mdmr_permutations :  500
 # Number of Nipype nodes created while computing MDMR. Dependent upon computing resources.
 mdmr_parallel_nodes :  1
 
+
+# Inter-Subject Correlation (ISC) & Inter-Subject Functional Correlation (ISFC)
+###############################################################################
+
+# Used to determine if Inter-subject Correlation (ISC) will be added to the pipeline or not.
+runISC :  [0]
+
+
+# Used to determine if Inter-subject Functional Correlation (ISFC) will be added to the pipeline or not.
+runISFC :  [0]
+
+
+# Used to determine if the ISC and ISFC will run in the ROI level.
+isc_level_roi :  [0]
+
+
+# Used to determine if the ISC and ISFC will run in the voxel level. Depending on the image resolution, it may take several hours and consume a great amount of available memory.
+isc_level_voxel :  [0]
+
+
+# Filter out voxels that, in the correlation distribution, is greater then the informed standard deviation. Zero value will disable the filter.
+isc_level_voxel_std_filter :  0.0
+
+
+# Number of permutation tests to compute the statistics.
+isc_permutations :  1000

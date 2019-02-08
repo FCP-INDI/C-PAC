@@ -4023,7 +4023,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if c.outputDirectory.lower().startswith('s3://'):
 
             try:
-
                 # Store logs in s3 output director/logs/...
                 s3_log_dir = c.outputDirectory + '/logs/' + \
                     os.path.basename(log_dir)
@@ -4035,7 +4034,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 for root, _, files in os.walk(log_dir):
                     local_log_files.extend([os.path.join(root, fil)
                                             for fil in files])
-                    # Form destination keys
+                # Form destination keys
                 s3_log_files = [loc.replace(log_dir, s3_log_dir)
                                 for loc in local_log_files]
                 # Upload logs

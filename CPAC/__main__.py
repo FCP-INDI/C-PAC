@@ -330,6 +330,17 @@ def new_template():
 
 
 @utils.group()
+def group_config():
+    pass
+
+
+@group_config.command()
+def new_template():
+    from CPAC.utils.build_data_config import util_copy_template
+    util_copy_template('group_config')
+
+
+@utils.group()
 def tools():
     pass
 
