@@ -165,6 +165,7 @@ RUN conda install -y  \
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
+RUN pip install --upgrade pip==9.0.1
 RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
 
