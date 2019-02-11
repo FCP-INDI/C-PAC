@@ -1452,8 +1452,9 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
         if value is not None:
             return value
 
-    raise Exception("Missing Value for {0} for subject "
-                    "{1}".format(' or '.join(keys), subject))
+    return None
+    #raise Exception("Missing Value for {0} for subject "
+    #                "{1}".format(' or '.join(keys), subject))
 
 
 def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
@@ -1610,6 +1611,9 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
 
     unit = 's'
 
+    if 'None' in pattern or 'none' in pattern:
+        pattern = None
+
     if not pattern:
         if pipeconfig_tpattern:
             if "Use NIFTI Header" in pipeconfig_tpattern:
@@ -1620,9 +1624,11 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
     tpattern_file = None
-    if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z',
-                                   'altminus', 'alt-z2', 'seq+z', 'seqplus',
-                                   'seq-z', 'seqminus']:
+
+    valid_patterns = ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
+                      'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']
+
+    if pattern and pattern != '' and pattern not in valid_patterns:
 
         if isinstance(pattern, list) or \
                 ("[" in pattern and "]" in pattern and "," in pattern):
@@ -1855,13 +1861,13 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
         )
 
     with open(out_file, 'w') as f:
-        f.write("version: {0}".format(str(version)))
-        f.write("timestamp: {0}".format(str(stamp)))
-        f.write("pipeline_index: {0}".format(index))
-        f.write("subject_id: {0}".format(subject_id))
-        f.write("scan_id: {0}".format(scan_id))
-        f.write("strategy: {0}".format(strategy))
-        f.write("workflow_name: {0}".format(workflow))
+        f.write("version: {0}\n".format(str(version)))
+        f.write("timestamp: {0}\n".format(str(stamp)))
+        f.write("pipeline_index: {0}\n".format(index))
+        f.write("subject_id: {0}\n".format(subject_id))
+        f.write("scan_id: {0}\n".format(scan_id))
+        f.write("strategy: {0}\n".format(strategy))
+        f.write("workflow_name: {0}\n".format(workflow))
         f.write(status_msg)
 
     return out_file
@@ -1916,104 +1922,6 @@ def create_log(wf_name="log", scan_id=None):
     ])
 
     return wf
-
-
-def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
-    import datetime, os
-    from os import path as op
-    from jinja2 import Template
-    import pkg_resources as p
-    import CPAC
-    import itertools
-
-    now = datetime.datetime.now()
-
-    chain = itertools.chain(*wf_list)
-    wf_keys = list(chain)
-    wf_keys = list(set(wf_keys))
-
-    tvars = {}
-    tvars['subject_id'] = subject_id
-    tvars['scans'] = scan_ids
-    tvars['pipelines'] = pip_ids
-    tvars['wf_list'] = "%s" % wf_list
-    tvars['wf_keys'] = "%s" % wf_keys
-    tvars['pipeline_indices'] = range(len(tvars['pipelines']))
-    tvars['resources'] = p.resource_filename('CPAC', 'resources')
-    tvars['gui_resources'] = p.resource_filename('CPAC', 'GUI/resources')
-
-    reportdir = op.join(log_dir, "reports")
-    if not op.exists(reportdir):
-        os.mkdir(reportdir)
-
-    for scan in scan_ids:
-        jsfile = op.join(reportdir, "%s.js" % scan)
-        open(jsfile, 'w').close()
-
-        tvars['cur_scan'] = scan
-        tvars['logfile'] = jsfile
-        tvars['timestamp'] = now.strftime("%Y-%m-%d %H:%M:%S")
-
-        fname = p.resource_filename('CPAC', 'resources/templates/'
-                                            'cpac_runner.html')
-        with open(fname, 'r') as tfile:
-            raw_text = tfile.read()
-
-        template = Template(raw_text)
-        text = template.render(**tvars)
-
-        htmlfile = op.join(reportdir, "%s.html" % scan)
-        with open(htmlfile, 'w') as html:
-            html.write(text)
-
-    # Index File
-    fname = p.resource_filename('CPAC',
-                                'resources/templates/'
-                                'logger_subject_index.html')
-
-    with open(fname, 'r') as tfile:
-        raw_text = tfile.read()
-
-    template = Template(raw_text)
-    text = template.render(**tvars)
-
-    htmlfile = op.join(reportdir, "index.html")
-    with open(htmlfile, 'w') as html:
-        html.write(text)
-
-    return
-
-
-def create_group_log_template(subject_scan_map, log_dir):
-    import os
-    from os import path as op
-    from jinja2 import Template
-    import pkg_resources as p
-    import CPAC
-
-    tvars = {}
-    tvars['subject_ids'] = subject_scan_map.keys()
-    tvars['scan_ids'] = subject_scan_map
-    tvars['resources'] = op.join(CPAC.__path__[0], 'resources')
-    tvars['log_dir'] = log_dir
-
-    reportdir = op.join(log_dir, "reports")
-    if not op.exists(reportdir):
-        os.makedirs(reportdir)
-
-    fname = p.resource_filename('CPAC',
-                                'resources/templates/logger_group_index.html')
-    with open(fname, "r") as f:
-        raw_text = f.read()
-
-    template = Template(raw_text)
-    text = template.render(**tvars)
-
-    htmlfile = op.join(reportdir, "index.html")
-    with open(htmlfile, "wt") as f:
-        f.write(text)
-
-    return
 
 
 def find_files(directory, pattern):

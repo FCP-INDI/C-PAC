@@ -1355,12 +1355,16 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     import glob
     import fnmatch
 
+    if not func_template:
+        func_template = ''
+
     # should have the {participant} label at the very least
     if '{participant}' not in anat_template:
         err = "\n[!] The {participant} keyword is missing from your " \
               "anatomical path template.\n"
         raise Exception(err)
-    if '{participant}' not in func_template:
+
+    if len(func_template) > 0 and '{participant}' not in func_template:
         err = "\n[!] The {participant} keyword is missing from your " \
               "functional path template.\n"
         raise Exception(err)
@@ -1376,6 +1380,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     if '{series}' in anat_glob:
         anat_template = anat_template.replace('{series}', '{scan}')
         anat_glob = anat_glob.replace('{series}', '{scan}')
+
     if '{series}' in func_glob:
         func_template = func_template.replace('{series}', '{scan}')
         func_glob = func_glob.replace('{series}', '{scan}')
@@ -1686,8 +1691,7 @@ def run(data_settings_yml):
                                      exclusion_dct=excl_dct,
                                      config_dir=settings_dct["outputSubjectListLocation"])
 
-    elif 'Custom' in settings_dct['dataFormat'] or \
-            'custom' in settings_dct['dataFormat']:
+    elif 'custom' in settings_dct['dataFormat'].lower():
 
         # keep as None if local data set (not on AWS S3 bucket)
         file_list = None
@@ -1741,10 +1745,6 @@ def run(data_settings_yml):
 
     if len(data_dct) > 0:
 
-        # TODO: make this a toggle option later for when we want anat-only
-        # TODO: data configs, i.e. for preprocessing only
-        anats_only = False
-
         data_config_outfile = \
             os.path.join(settings_dct['outputSubjectListLocation'],
                          "data_config_{0}.yml"
@@ -1765,33 +1765,16 @@ def run(data_settings_yml):
         for site in sorted(data_dct.keys()):
             for sub in sorted(data_dct[site].keys()):
                 for ses in sorted(data_dct[site][sub].keys()):
-                    if not anats_only:
-                        if 'func' in data_dct[site][sub][ses]:
-                            # if there are scans, get some numbers
-                            included['site'].append(site)
-                            included['sub'].append(sub)
-                            num_sess += 1
-                            for scan in data_dct[site][sub][ses]['func'].keys():
-                                num_scan += 1
-                        else:
-                            # avoiding including anatomicals if there are no
-                            # functionals associated with it (i.e. if we're
-                            # using scan inclusion/exclusion and only some
-                            # participants have the scans included)
-                            continue
-                    else:
-                        # preprocessing for anats only, so count all subs
-                        included['site'].append(site)
-                        included['sub'].append(sub)
-                        num_sess += 1
+                    # if there are scans, get some numbers
+                    included['site'].append(site)
+                    included['sub'].append(sub)
+                    num_sess += 1
+                    if 'func' in data_dct[site][sub][ses]:
+                        for scan in data_dct[site][sub][ses]['func'].keys():
+                            num_scan += 1
 
                     data_list.append(data_dct[site][sub][ses])
                     group_list.append("{0}_{1}".format(sub, ses))
-
-        if num_scan == 0:
-            err = '\n\n[!] No functional scans found in the data directory ' \
-                  'provided.\n'
-            raise Exception(err)
 
         # calculate numbers
         num_sites = len(set(included['site']))

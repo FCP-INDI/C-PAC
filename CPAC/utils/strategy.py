@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger('workflow')
 
 
-class Strategy:
+class Strategy(object):
 
     def __init__(self):
         self.resource_pool = {}
@@ -58,6 +58,10 @@ class Strategy:
         except:
             logger.error('No node for output: %s', resource_key)
             raise
+
+    def __contains__(self, resource_key):
+        assert isinstance(resource_key, six.string_types)
+        return resource_key in self.resource_pool
 
     def fork(self):
         fork = Strategy()

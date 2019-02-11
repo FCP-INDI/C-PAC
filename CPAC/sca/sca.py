@@ -129,9 +129,7 @@ def create_sca(name_sca='sca'):
     rename_rois.inputs.keep_ext = True
 
     sca.connect(corr, 'out_file', concat, 'in_files')
-
     sca.connect(concat, 'out_file', split, 'in_file')
-
     sca.connect(concat, 'out_file',
                 outputNode, 'correlation_stack')
 

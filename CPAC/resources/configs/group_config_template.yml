@@ -1,0 +1,303 @@
+# CPAC Group-Level Analysis Configuration YAML file
+# Version 1.4.0
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+
+# General Group-Level Analysis Settings
+##############################################################################
+
+# The main input of group-level analysis- the output directory of your individual-level analysis pipeline run (pre-processing & derivatives for each participant). This should be a path to your C-PAC individual-level run's pipeline folder, which includes the sub-directories labeled with the participant IDs.
+pipeline_dir: /path/to/output_dir
+
+
+# (Optional) Full path to a list of participants to be included in the model. You can use this to easily prune participants from your model. In group-level analyses involving phenotype files, this allows you to prune participants without removing them from the phenotype CSV/TSV file. This should be a text file with one subject per line. An easy way to manually create this file is to copy the participant ID column from your phenotype file.
+participant_list: None
+
+
+# Full path to the directory where CPAC should place group-level analysis outputs and any applicable statistical model files.
+output_dir: /path/to/output/dir
+
+
+#Much like the working directory for individual-level analysis, this is where the intermediate and working files will be stored during your run. This directory can be deleted later on. However, saving this directory allows the group analysis run to skip steps that have been already completed, in the case of re-runs.
+work_dir: /path/to/work/dir
+
+
+#Where to write out log information for your group analysis run.
+log_dir: /path/to/log/dir
+
+
+# The path to your FSL installation directory. This can be left as 'FSLDIR' to grab your system's default FSL installation. However, if you prefer to use a specific install of FSL, you can enter the path here.
+FSLDIR: FSLDIR
+
+
+# FSL-FEAT
+##############################################################################
+
+# Run FSL FEAT group-level analysis.
+run_fsl_feat :  [1]
+
+
+# How many statistical models to run in parallel. This number depends on computing resources.
+num_models_at_once :  1
+
+
+# Specify a name for the new model.
+model_name: model_name_here
+
+
+# Phenotype file
+# Full path to a .csv or .tsv file containing EV/regressor information for each subject.
+pheno_file: /path/to/phenotypic/file.csv
+
+
+# Name of the participants column in your phenotype file.
+participant_id_label: Participant
+
+
+# Specify which EVs from your phenotype are categorical or numerical. Of those which are numerical, specify which are to be demeaned.
+# ev_selections: {'demean': ['Age'], 'categorical': ['Sex', 'Diagnosis']}
+ev_selections: {'demean': [], 'categorical': []}
+
+
+# Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD, Measure_Mean, and Custom_ROI_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.
+# design_formula: Sex + Diagnosis + Age + MeanFD_Jenkinson + Custom_ROI_Mean
+design_formula:
+
+
+# Choose the derivatives to run the group model on.
+#
+# These must be written out as a list, and must be one of the options listed below.
+#
+# For z-scored analyses:
+# 'alff_to_standard_zstd', 'alff_to_standard_smooth_zstd', 'falff_to_standard_zstd', 'falff_to_standard_smooth_zstd', 'reho_to_standard_zstd', 'reho_to_standard_smooth_zstd', 'sca_roi_files_to_standard_fisher_zstd', 'sca_roi_files_to_standard_smooth_fisher_zstd', 'vmhc_fisher_zstd_zstat_map', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth', 'sca_tempreg_maps_zstat_files', 'sca_tempreg_maps_zstat_files_smooth', 'centrality_outputs_zstd', 'centrality_outputs_smoothed_zstd'
+#
+# Example input: derivative_list :  ['alff_to_standard_smooth_zstd', 'sca_roi_files_to_standard_smooth_fisher_zstd']
+#
+derivative_list: []
+
+
+# Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.
+#
+# This only takes effect if you include the 'Measure_Mean' regressor in your Design Matrix Formula.
+mean_mask: ['Group Mask']
+
+
+# Full path to a NIFTI file containing one or more ROI masks. The means of the masked regions will then be computed for each subject's output and will be included in the model as regressors (one for each ROI in the mask file) if you include 'Custom_ROI_Mean' in the Design Matrix Formula.
+# custom_roi_mask: /path/to/mask.nii.gz
+custom_roi_mask: None
+
+
+# Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.
+#
+# Available options:
+# 'Treatment', 'Sum'
+#
+coding_scheme: ['Treatment']
+
+
+# Specify whether FSL should model the variance for each group separately.
+#
+# If this option is enabled, you must specify a grouping variable below.
+group_sep: Off
+
+
+# The name of the EV that should be used to group subjects when modeling variances.
+#
+# If you do not wish to model group variances separately, set this value to None.
+grouping_var: None
+
+
+# Only voxels with a Z-score higher than this value will be considered significant.
+z_threshold: ['2.3']
+
+
+# Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.
+p_threshold: ['0.05']
+
+
+# For repeated measures only. Enter the session names in your dataset that you wish to include within the same model (this is for repeated measures / within-subject designs).\n\nTip: These will be the names listed as "unique_id" in the original individual-level participant list, or the labels in the original data directories you marked as {session} while creating the CPAC participant list.
+# sessions_list: ['ses-01', 'ses-02']
+sessions_list: []
+
+
+# For repeated measures only. Enter the series names in your dataset that you wish to include within the same model (this is for repeated measures / within-subject designs).\n\nTip: These will be the labels listed under "func:" in the original individual-level participant list, or the labels in the original data directories you marked as {series} while creating the CPAC participant list.
+# series_list: ['task-rest_run-1', 'task-rest_run-2']
+series_list: []
+
+
+# Specify your contrasts here. For example, if two of your available contrasts are EV1 and EV0, you can enter contrast descriptions such as 'EV1 - EV0 = 0' or 'EV1 = 0'. Consult the User Guide for more information about describing contrasts. Alternatively, you can provide your own custom-written contrasts matrix in a CSV file in the 'Custom Contrasts Matrix' field below.
+# contrasts: ['C(Diagnosis)[T.ADHD] - C(Diagnosis)[T.Typical] = 0', 'C(Diagnosis)[T.Typical] - C(Diagnosis)[T.ADHD] = 0']
+contrasts: []
+
+
+# Optional: A list of f-test strings containing contrasts. If you do not wish to run f-tests, leave this blank.
+f_tests: []
+
+
+# Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. Consult the User Guide for proper formatting.
+# If you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead, and will use the f-tests described in this custom file only (ignoring those you have input in the f-tests field above).
+# If you wish to include f-tests, create a new column in your CSV file for each f-test named 'f_test_1', 'f_test_2', .. etc. Then, mark the contrasts you would like to include in each f-test with a 1, and mark the rest 0. Note that you must select at least two contrasts per f-test.
+custom_contrasts: None
+
+
+# FSL-Randomise
+##############################################################################
+
+# Run Randomise
+run_randomise :  [0]
+
+
+# Number of permutations you would like to use when building up the null distribution to test against.
+randomise_permutation :  500
+
+
+# Cluster-based thresholding corrected for multiple comparisons by using the null distribution of the max (across the image) cluster mask.
+randomise_thresh :  5
+
+
+# Demean data temporally before model fitting.
+randomise_demean :  True
+
+
+# From the FMRIB FSL-Randomise user guide: TFCE (Threshold-Free Cluster Enhancement) is a new method for finding 'clusters' in your data without having to define clusters in a binary way. Cluster-like structures are enhanced but the image remains fundamentally voxelwise.
+randomise_tfce :  True
+
+
+# Bootstrap Analysis of Stable Clusters (BASC) - via PyBASC
+##############################################################################
+
+# Run Bootstrap Analysis of Stable Clusters
+run_basc :  [0]
+
+
+# If there are multiple series or scans in any of the pipeline outputs for which PyBASC is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').
+# If nothing is listed, all available pipelines will be run.
+basc_scan_inclusion :  None
+
+
+# The resolution to run PyBASC with.
+basc_resolution :  4mm
+
+
+# Maximum amount of processors to use while performing BASC.
+basc_proc :  2
+
+
+# Maximum amount of RAM (in GB) to be used when running BASC.
+basc_memory :  4
+
+
+# Standard FSL Skull Stripped Template.
+template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${basc_resolution}_brain.nii.gz
+
+
+# Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis. This is the region that you’d like to parcellate.
+# If you do not wish to use a mask, set this field to None.
+# Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
+basc_roi_mask_file :  None
+
+
+# If cross clustering is enabled, then clustering of the first region will be calculated based on pairwise similarity between the timeseries of the ROI Mask File, and this second ROI.
+basc_cross_cluster_mask_file :  None
+
+
+# The metric used to compare similarity between voxel timeseries.
+# Options: ['correlation', 'euclidean', 'cityblock', 'cosine']
+basc_similarity_metric_list :  ['correlation']
+
+
+# How many times individual level circular block bootstrapping of the timeseries will be applied.
+basc_timeseries_bootstrap_list :  100
+
+
+# Number of bootstraps to apply to the original dataset.
+basc_dataset_bootstrap_list :  30
+
+
+# Number of clusters to create during clustering at both the individual and group levels.
+basc_n_clusters_list :  2
+
+
+# The similarity threshold at which the similarity matrices will be set to 0.
+basc_affinity_thresh : [0.0]
+
+
+# This is the amount of feature agglomeration that will be applied. Smaller values mean more feature agglomeration.
+basc_output_sizes :  800
+
+
+# If set to true, then the ROI Mask file parcellation will be based on the similarity between ROI Mask file voxels based on their connectivity to each voxel in ROI mask file for cross-clustering.
+basc_cross_cluster :  True
+
+
+# This parameter determines the width of the time window used in the circular block bootstrap.
+basc_blocklength_list :  1
+
+
+# If this is set to true, the all individuals will have feature agglomeration applied together, resulting in the same mapping across subjects. Use this only when memory demands limit ability to process ROIs with a high number of voxels.
+basc_group_dim_reduce :  False
+
+
+# Multivariate Distance Matrix Regression (MDMR)
+##############################################################################
+
+# Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
+runMDMR :  [0]
+
+
+# Inclusion list text file listing the participant IDs you wish to include in the MDMR analysis. If left as None, will include all subjects.
+mdmr_inclusion : None
+
+
+# Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
+mdmr_roi_file :
+
+
+# Path to a CSV file containing the phenotypic regressor.
+mdmr_regressor_file :
+
+
+# Name of the participants column in your regressor file.
+mdmr_regressor_participant_column :
+
+
+# Columns from the CSV file indicating factor variables. Other columns will be handled as covariates. Separated by commas.
+mdmr_regressor_columns :
+
+
+# Number of permutation tests to run on the Pseudo-F statistics.
+mdmr_permutations :  500
+
+
+# Number of Nipype nodes created while computing MDMR. Dependent upon computing resources.
+mdmr_parallel_nodes :  1
+
+
+# Inter-Subject Correlation (ISC) & Inter-Subject Functional Correlation (ISFC)
+###############################################################################
+
+# Used to determine if Inter-subject Correlation (ISC) will be added to the pipeline or not.
+runISC :  [0]
+
+
+# Used to determine if Inter-subject Functional Correlation (ISFC) will be added to the pipeline or not.
+runISFC :  [0]
+
+
+# Used to determine if the ISC and ISFC will run in the ROI level.
+isc_level_roi :  [0]
+
+
+# Used to determine if the ISC and ISFC will run in the voxel level. Depending on the image resolution, it may take several hours and consume a great amount of available memory.
+isc_level_voxel :  [0]
+
+
+# Filter out voxels that, in the correlation distribution, is greater then the informed standard deviation. Zero value will disable the filter.
+isc_level_voxel_std_filter :  0.0
+
+
+# Number of permutation tests to compute the statistics.
+isc_permutations :  1000

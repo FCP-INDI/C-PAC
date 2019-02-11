@@ -2,7 +2,7 @@
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
-from ..utils.custom_control import FileSelectorCombo
+from ..utils.custom_control import FileSelectorCombo, fsl_flame_presets_window
 from ..utils.constants import multiple_value_wfs
 import wx.lib.agw.aquabutton as AB
 import os
@@ -13,6 +13,7 @@ import yaml
 
 # Init constants
 ID_NEW = 1
+ID_GROUP = 12
 ID_RENAME = 2
 ID_CLEAR = 3
 ID_DELETE = 4
@@ -35,7 +36,8 @@ class ListBox(wx.Frame):
         import CPAC
         
         self.CreateStatusBar()
-        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.__version__)
+        self.SetStatusText("The Configurable Pipeline for the Analysis of "
+                           "Connectomes (C-PAC) v" + CPAC.__version__)
     
         self.pipeline_map = {}
         self.sublist_map= {}
@@ -82,6 +84,8 @@ class ListBox(wx.Frame):
         lboxPanel1.SetBackgroundColour('#E9E3DB')
         
         new = wx.Button(btnPanel1, ID_NEW, 'New', size=(90, 30))
+        group = wx.Button(btnPanel1, ID_GROUP, 'New Group',
+                          size=(90, 30))
         ren = wx.Button(btnPanel1, ID_RENAME, 'Rename', size=(90, 30))
         dlt = wx.Button(btnPanel1, ID_DELETE, 'Delete', size=(90, 30))
         load = wx.Button(btnPanel1, ID_LOAD, 'Load', size=(90,30))
@@ -90,6 +94,7 @@ class ListBox(wx.Frame):
         clr = wx.Button(btnPanel1, ID_CLEAR, 'Clear', size=(90, 30))
     
         self.Bind(wx.EVT_BUTTON, self.NewItem, id=ID_NEW)
+        self.Bind(wx.EVT_BUTTON, self.NewGroup, id=ID_GROUP)
         self.Bind(wx.EVT_BUTTON, self.OnRename, id=ID_RENAME)
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=ID_DELETE)
         self.Bind(wx.EVT_BUTTON, self.AddConfig, id=ID_LOAD)
@@ -105,6 +110,7 @@ class ListBox(wx.Frame):
             btnSizer1.Add((-1, 27))
         
         btnSizer1.Add(new, 0, wx.TOP)
+        btnSizer1.Add(group, 0, wx.TOP)
         btnSizer1.Add(load, 0, wx.TOP)
         btnSizer1.Add(edit, 0, wx.TOP)
         btnSizer1.Add(shw, 0, wx.TOP)
@@ -130,7 +136,7 @@ class ListBox(wx.Frame):
         btnPanel2 = wx.Panel(innerPanel2, -1)
         btnSizer2 = wx.BoxSizer(wx.VERTICAL)
 
-        label2 = wx.StaticText(lboxPanel2, -1, "Subject Lists")
+        label2 = wx.StaticText(lboxPanel2, -1, "Data Configurations")
         
         if 'linux' in sys.platform:
             label2.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD))
@@ -188,21 +194,21 @@ class ListBox(wx.Frame):
                                   'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
 
-        self.stopCPAC1 = wx.Button(outerPanel3, -1,
-                                   'Stop Individual Level Analysis')
-        self.stopCPAC1.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
-
         self.runCPAC2 = wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
 
-        self.stopCPAC2 = wx.Button(outerPanel3, -1,
-                                   'Stop Group Level Analysis')
-        self.stopCPAC2.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
+        self.openPresets = wx.Button(outerPanel3, -1,
+                                     'Generate FSL-FEAT Presets')
+        self.openPresets.Bind(wx.EVT_BUTTON, self.openFSLPresets)
+
+        self.buildModels = wx.Button(outerPanel3, -1,
+                                     'Build FSL-FEAT Models')
+        self.buildModels.Bind(wx.EVT_BUTTON, self.buildFSLModels)
 
         outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 12)
         outerSizer2.Add(self.runCPAC2, 1, wx.LEFT, 12)
-        outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 12)
-        outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 12)
+        outerSizer3.Add(self.openPresets, 1, wx.RIGHT, 12)
+        outerSizer3.Add(self.buildModels, 1, wx.LEFT, 12)
 
         #outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 20)
         #outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 20)
@@ -309,6 +315,41 @@ class ListBox(wx.Frame):
 
             print e
 
+    def openFSLPresets(self, event):
+        fsl_flame_presets_window.FlamePresetsOne(self)
+
+    def buildFSLModels(self, event):
+        from CPAC.pipeline.cpac_group_runner import build_feat_models
+
+        if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
+            
+            pipelines = self.listbox.GetCheckedStrings()
+            group_config = False
+            for p in pipelines:
+                pipeline = self.pipeline_map.get(p)
+                if os.path.exists(pipeline):
+                    try:
+                        import yaml
+                        config = yaml.load(open(pipeline, 'r'))
+                    except:
+                        raise Exception("Error reading config file- %s", config)
+                    if 'pipeline_dir' in config.keys():
+                        group_config = True
+
+                        dialog_msg = 'Building your FSL-FEAT models. Check the terminal ' \
+                                     'window for details and progress.'
+                        dialog_title = 'Building models..'
+                        bld_dialog = wx.MessageDialog(self, dialog_msg, 
+                                                      dialog_title,
+                                      wx.OK | wx.ICON_INFORMATION)
+                        bld_dialog.ShowModal()
+                        bld_dialog.Destroy()
+
+                        retval = build_feat_models(pipeline)
+
+        if retval == 0:
+            self.Close()
+
     def stopIndividualAnalysis(self, event):
         import os
         # not the best way to implement this...
@@ -327,31 +368,28 @@ class ListBox(wx.Frame):
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
             
             pipelines = self.listbox.GetCheckedStrings()
-
+            group_config = False
             for p in pipelines:
-
                 pipeline = self.pipeline_map.get(p)
-
                 if os.path.exists(pipeline):
                     try:
                         import yaml
                         config = yaml.load(open(pipeline, 'r'))
                     except:
                         raise Exception("Error reading config file- %s", config)
-                    
-                    if config.get('outputDirectory'):
-                        derv_path = os.path.join(config.get('outputDirectory'),
-                                                 'pipeline_%s' % config.get('pipelineName'))
-                    else:
-                        derv_path = ''
-                    
-                    # Opens the sub-window which prompts the user
-                    # for the derivative file paths
-                    runGLA(self, pipeline, derv_path, p)
-
+                    if 'pipeline_dir' in config.keys():
+                        group_config = True
+                        import CPAC
+                        CPAC.pipeline.cpac_group_runner.run(pipeline)
                 else:
                     print "pipeline doesn't exist"
-
+            if not group_config:
+                dlg = wx.MessageDialog(self, 'None of the pipeline '
+                                       'configuration files had group config'
+                                       'uration information in them.',
+                                       'Error!', wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
         else:
             print "No pipeline selected"
 
@@ -366,7 +404,11 @@ class ListBox(wx.Frame):
         return path
 
     def NewItem(self, event):
-        MainFrame(self, "save")
+        MainFrame(self, "load", path=p.resource_filename('CPAC', 'resources/configs/pipeline_config_template.yml'))
+
+    def NewGroup(self, event):
+        MainFrame(self, "load", path=p.resource_filename('CPAC', 'resources/configs/group_config_template.yml'),
+                  ind=False)
 
     def OnRename(self, event):
         sel = self.listbox.GetSelection()
@@ -412,7 +454,6 @@ class ListBox(wx.Frame):
         sel = self.listbox.GetSelection()
         
         if sel != -1:
-            
             # 'text' - name of pipeline config displayed in listbox
             text = str(self.listbox.GetString(sel))
             
@@ -420,8 +461,21 @@ class ListBox(wx.Frame):
             path = self.get_pipeline_path(text)
             
             if os.path.exists(path):
+                import yaml
+                with open(path, 'r') as f:
+                    config = yaml.load(f)
+
+                if 'pipelineName' in config.keys():
+                    ind = True
+                elif 'pipeline_dir' in config.keys():
+                    ind = False
+                else:
+                    raise Exception('[!] This is not a C-PAC configuration '
+                                    'file.')
+
                 # open the pipeline_config editor window
-                MainFrame(self, option ="edit", path=path, pipeline_id = text)
+                MainFrame(self, option="edit", path=path, pipeline_id=text,
+                          ind=ind)
             else:
                 print "Couldn't find the config file %s "%path
      
@@ -568,6 +622,10 @@ class ListBox(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
 
+        # if this is a group config file
+        if 'pipeline_dir' in c.keys():
+            return ret_val
+
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
         missingParams = []
@@ -599,9 +657,9 @@ class ListBox(wx.Frame):
                         missingParams.append(param)
                         if notify_centrality_misconfig:
                             notify_centrality_misconfig = False
-                            msg = 'At least one of your centrality treshold '\
+                            msg = 'At least one of your centrality threshold '\
                                   'options is mis-formatted as an integer. '\
-                                  'Fix this in the pipeline config edit window'
+                                  'Fix this in the pipeline config edit window.'
                             dlg = wx.MessageDialog(self, msg, 'Error!', wx.OK | wx.ICON_ERROR)
                             ret_val = -1
                             dlg.ShowModal()
@@ -675,7 +733,7 @@ class ListBox(wx.Frame):
                     print 'Error:\n%s\n\n' % e
                     raise Exception
                 if type(f_cfg) == dict:
-                    if not f_cfg.has_key('pipelineName'):
+                    if not f_cfg.has_key('pipelineName') and not f_cfg.has_key('pipeline_dir'):
                         err_msg = 'File is not a pipeline configuration '\
                                   'file. It might be a data configuration file.'
                         raise Exception(err_msg)
@@ -710,16 +768,30 @@ class ListBox(wx.Frame):
                                   'chosen the wrong file.\n'
                             print 'Error name: main_window_0001\n'
                             print 'Exception: %s\n\n' % e
+
+
                     # Valid pipeline name
-                    if c.pipelineName != None:
-                            if self.pipeline_map.get(c.pipelineName) == None:
+                    pipeline_name = None
+                    try:
+                        pipeline_name = c.pipelineName
+                    except AttributeError:
+                        pass
+                    try:
+                        pipeline_name = c.pipeline_dir
+                        pipeline_name = pipeline_name.split('/')[-1].replace('pipeline_', '')
+                        pipeline_name = 'group_config_{0}'.format(pipeline_name)
+                    except AttributeError:
+                        pass
+
+                    if pipeline_name != None:
+                            if self.pipeline_map.get(pipeline_name) == None:
                                 # this runs if you click 'Load' on the main
                                 # CPAC window, enter a path, and the pipeline
                                 # name attribute of the pipeline config file
                                 # you are loading does NOT already exist in
                                 # the listbox, i.e., the proper condition
-                                self.pipeline_map[str(c.pipelineName)] = path
-                                self.listbox.Append(str(c.pipelineName))
+                                self.pipeline_map[str(pipeline_name)] = path
+                                self.listbox.Append(str(pipeline_name))
                                 dlg.Destroy()
                                 break
                             else:
@@ -742,7 +814,7 @@ class ListBox(wx.Frame):
                                         ' new configuration file.\n\n' \
                                         'Pipeline configuration with' \
                                         ' conflicting name:\n%s' \
-                                         % c.pipelineName,
+                                         % pipeline_name,
                                                'Conflicting Pipeline Names',
                                            wx.OK | wx.ICON_ERROR)
                                 dlg3.ShowModal()
@@ -801,87 +873,4 @@ class runCPAC(wx.Frame):
                                    wx.OK | wx.ICON_INFORMATION)
             dlg.Destroy()
        
-
-class runGLA(wx.Frame):
-    
-    # Opens sub window prompting user to input the derivative file path(s).
-    # If this is already supplied to the function, the path will show up
-    # in the input box already by default.
-
-    # Once the user clicks "Run", group level analysis begins
-
-    def __init__(self, parent, pipeline, path, name):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis "
-                                                 "for Pipeline - %s" % name,
-                          size=(730, 120))
-
-        self.parent = parent
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        panel = wx.Panel(self)
-        
-        flexsizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
-
-        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-       
-        label1 = wx.StaticText(panel, -1, label='Pipeline Output Directory ')
-        self.box1 = FileSelectorCombo(panel, id=wx.ID_ANY, size=(500, -1))
-        self.box1.GetTextCtrl().SetValue(str(path))
-        
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        help1 = wx.BitmapButton(panel, id=-1, bitmap=img,
-                                pos=(10, 20), size=(img.GetWidth()+5, img.GetHeight()+5))
-        help1.Bind(wx.EVT_BUTTON, self.OnShowDoc)
-        
-        hbox1.Add(label1)
-        hbox1.Add(help1)
-        
-        flexsizer.Add(hbox1)
-        flexsizer.Add(self.box1, flag=wx.EXPAND | wx.ALL)
-        
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        
-        button3 = wx.Button(panel, wx.ID_CANCEL, 'Cancel', size=(120, 30))
-        button3.Bind(wx.EVT_BUTTON, self.onCancel)
-        
-        button2 = wx.Button(panel, wx.ID_OK, 'Run', size=(120, 30))
-        button2.Bind(wx.EVT_BUTTON, lambda event: self.onOK(event, pipeline))
-        
-        hbox.Add(button3, 1, wx.EXPAND, border=5)
-        hbox.Add(button2, 1, wx.EXPAND, border=5)
-        
-        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
-        sizer.Add(hbox,0, wx.ALIGN_CENTER, 5)
-        panel.SetSizer(sizer)
-        
-        self.Show()
-        
-    def onCancel(self, event):
-        self.Close()
-        
-    def runAnalysis(self, pipeline, path):
-        import CPAC
-        CPAC.pipeline.cpac_group_runner.run(pipeline, path)
-
-    def onOK(self, event, pipeline):
-
-        # Once the user clicks "Run" in the derivative path file window
-        # (from runGLA function), get the filepath and run the
-        # "runAnalysis" function
-        
-        import thread
-
-        if self.box1.GetValue():
-            pid = thread.start_new(self.runAnalysis,
-                                   (pipeline, self.box1.GetValue()))
-            self.parent.pids.append(pid)
-            self.Close()
-        else:
-            wx.MessageBox("Please provide the path to the output directory "
-                          "for the pipeline you want to run group-level "
-                          "analysis for.")
-            
-    def OnShowDoc(self, event):
-        wx.TipWindow(self, "Path to output directory of the pipeline you "
-                           "wish to run group-level analysis for.", 500)
 

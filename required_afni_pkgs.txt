@@ -24,7 +24,6 @@ linux_openmp_64/libgts.a
 linux_openmp_64/libmri.a
 linux_openmp_64/libmrix.a
 linux_openmp_64/libSUMA.a
-linux_openmp_64/libvolpack.a
 linux_openmp_64/model_beta.so
 linux_openmp_64/model_constant.so
 linux_openmp_64/model_conv_cosine4.so
@@ -77,7 +76,6 @@ linux_openmp_64/plug_histog_multi.so
 linux_openmp_64/plug_histog.so
 linux_openmp_64/plug_imreg.so
 linux_openmp_64/plug_L1fit.so
-linux_openmp_64/plug_lsqfit.so
 linux_openmp_64/plug_maskave.so
 linux_openmp_64/plug_maskcalc.so
 linux_openmp_64/plug_maxima.so
@@ -89,7 +87,6 @@ linux_openmp_64/plug_permtest.so
 linux_openmp_64/plug_power.so
 linux_openmp_64/plug_realtime.so
 linux_openmp_64/plug_rename.so
-linux_openmp_64/plug_render.so
 linux_openmp_64/plug_reorder.so
 linux_openmp_64/plug_retroicor.so
 linux_openmp_64/plug_roiedit.so

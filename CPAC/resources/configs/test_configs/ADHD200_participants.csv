@@ -1,0 +1,392 @@
+participant_id,gender,age,dx
+20001,Male,10.09,Typically Developing Children
+20002,Female,10.97,Typically Developing Children
+20003,Male,9.47,Typically Developing Children
+20008,Male,8.32,ADHD-Combined
+20010,Male,8.39,ADHD-Combined
+20014,Male,10.63,Typically Developing Children
+20015,Male,8.39,Typically Developing Children
+20016,Male,11.32,Typically Developing Children
+20017,Male,9.5,ADHD-Combined
+20021,Male,11.82,Typically Developing Children
+20022,Male,11.77,Typically Developing Children
+20001,Male,10.09,Typically Developing Children
+20002,Female,10.97,Typically Developing Children
+20003,Male,9.47,Typically Developing Children
+20008,Male,8.32,ADHD-Combined
+20010,Male,8.39,ADHD-Combined
+20014,Male,10.63,Typically Developing Children
+20015,Male,8.39,Typically Developing Children
+20016,Male,11.32,Typically Developing Children
+20017,Male,9.5,ADHD-Combined
+20021,Male,11.82,Typically Developing Children
+20022,Male,11.77,Typically Developing Children
+21002,Male,11.72,ADHD-Combined
+21003,Female,9.11,ADHD-Inattentive
+21005,Male,11.03,Typically Developing Children
+21006,Male,9.81,ADHD-Combined
+21007,Male,10.52,Typically Developing Children
+21008,Male,11.28,ADHD-Combined
+21009,Female,11.65,ADHD-Combined
+21010,Male,15.69,ADHD-Inattentive
+21013,Male,7.51,ADHD-Combined
+21014,Male,15.93,ADHD-Combined
+21015,Male,9.3,ADHD-Combined
+21016,Male,16.55,Typically Developing Children
+21017,Female,11.11,ADHD-Inattentive
+21018,Male,11.73,Typically Developing Children
+21019,Male,15.53,Typically Developing Children
+21020,Female,15.42,Typically Developing Children
+21021,Male,15.03,ADHD-Inattentive
+21022,Female,9.62,ADHD-Combined
+21023,Male,8.11,ADHD-Combined
+21024,Female,8.5,Typically Developing Children
+21025,Male,8.92,ADHD-Inattentive
+21026,Male,7.49,ADHD-Combined
+21027,Female,10.43,ADHD-Inattentive
+21028,Female,8.52,Typically Developing Children
+21029,Male,10.73,Typically Developing Children
+21030,Male,10.74,ADHD-Combined
+21031,Female,7.35,ADHD-Combined
+21032,Female,8.84,ADHD-Combined
+21033,Female,8.08,ADHD-Combined
+21034,Male,13.18,Typically Developing Children
+21035,Male,13.65,ADHD-Combined
+21036,Male,12.55,ADHD-Combined
+21037,Male,13.63,ADHD-Inattentive
+21038,Male,7.26,Typically Developing Children
+21039,Male,7.56,ADHD-Combined
+21040,Male,7.62,ADHD-Combined
+21041,Female,12.1,Typically Developing Children
+21042,Male,9.42,ADHD-Combined
+21043,Female,9.17,ADHD-Combined
+21044,Male,7.74,ADHD-Combined
+21046,Male,9.61,ADHD-Combined
+21002,Male,11.72,ADHD-Combined
+21003,Female,9.11,ADHD-Inattentive
+21005,Male,11.03,Typically Developing Children
+21006,Male,9.81,ADHD-Combined
+21007,Male,10.52,Typically Developing Children
+21008,Male,11.28,ADHD-Combined
+21009,Female,11.65,ADHD-Combined
+21010,Male,15.69,ADHD-Inattentive
+21013,Male,7.51,ADHD-Combined
+21014,Male,15.93,ADHD-Combined
+21015,Male,9.3,ADHD-Combined
+21016,Male,16.55,Typically Developing Children
+21017,Female,11.11,ADHD-Inattentive
+21018,Male,11.73,Typically Developing Children
+21019,Male,15.53,Typically Developing Children
+21020,Female,15.42,Typically Developing Children
+21021,Male,15.03,ADHD-Inattentive
+21022,Female,9.62,ADHD-Combined
+21023,Male,8.11,ADHD-Combined
+21024,Female,8.5,Typically Developing Children
+21025,Male,8.92,ADHD-Inattentive
+21026,Male,7.49,ADHD-Combined
+21027,Female,10.43,ADHD-Inattentive
+21028,Female,8.52,Typically Developing Children
+21029,Male,10.73,Typically Developing Children
+21030,Male,10.74,ADHD-Combined
+21031,Female,7.35,ADHD-Combined
+21032,Female,8.84,ADHD-Combined
+21033,Female,8.08,ADHD-Combined
+21034,Male,13.18,Typically Developing Children
+21035,Male,13.65,ADHD-Combined
+21036,Male,12.55,ADHD-Combined
+21037,Male,13.63,ADHD-Inattentive
+21038,Male,7.26,Typically Developing Children
+21039,Male,7.56,ADHD-Combined
+21040,Male,7.62,ADHD-Combined
+21041,Female,12.1,Typically Developing Children
+21042,Male,9.42,ADHD-Combined
+21043,Female,9.17,ADHD-Combined
+21044,Male,7.74,ADHD-Combined
+21046,Male,9.61,ADHD-Combined
+27000,Female,20.9,Typically Developing Children
+27003,Male,17.54,ADHD-Combined
+27004,Male,14.24,ADHD-Combined
+27005,Female,18.65,Typically Developing Children
+27007,Male,16.92,ADHD-Combined
+27008,Male,25.04,Typically Developing Children
+27010,Female,16.45,Typically Developing Children
+27011,Male,20.82,ADHD-Combined
+27012,Female,14.05,Typically Developing Children
+27015,Female,20.34,Typically Developing Children
+27016,Female,20.31,Typically Developing Children
+27017,Female,26.31,Typically Developing Children
+27018,Male,19.08,ADHD-Combined
+27020,Female,23.59,Typically Developing Children
+27021,Female,20.02,Typically Developing Children
+27022,Female,16.65,Typically Developing Children
+27023,Male,18.08,ADHD-Combined
+27024,Female,20.67,Typically Developing Children
+27025,Female,21.53,Typically Developing Children
+27026,Female,20.55,Typically Developing Children
+27028,Male,14.94,ADHD-Combined
+27034,Male,13.35,ADHD-Combined
+27037,Male,17.74,ADHD-Combined
+27040,Male,17.18,ADHD-Combined
+27042,Male,16.72,ADHD-Combined
+27000,Female,20.9,Typically Developing Children
+27003,Male,17.54,ADHD-Combined
+27004,Male,14.24,ADHD-Combined
+27005,Female,18.65,Typically Developing Children
+27007,Male,16.92,ADHD-Combined
+27008,Male,25.04,Typically Developing Children
+27010,Female,16.45,Typically Developing Children
+27011,Male,20.82,ADHD-Combined
+27012,Female,14.05,Typically Developing Children
+27015,Female,20.34,Typically Developing Children
+27016,Female,20.31,Typically Developing Children
+27017,Female,26.31,Typically Developing Children
+27018,Male,19.08,ADHD-Combined
+27020,Female,23.59,Typically Developing Children
+27021,Female,20.02,Typically Developing Children
+27022,Female,16.65,Typically Developing Children
+27023,Male,18.08,ADHD-Combined
+27024,Female,20.67,Typically Developing Children
+27025,Female,21.53,Typically Developing Children
+27026,Female,20.55,Typically Developing Children
+27028,Male,14.94,ADHD-Combined
+27034,Male,13.35,ADHD-Combined
+27037,Male,17.74,ADHD-Combined
+27040,Male,17.18,ADHD-Combined
+27042,Male,16.72,ADHD-Combined
+23000,Female,10.42,ADHD-Combined
+23001,Male,9.33,Typically Developing Children
+23002,Male,10.67,ADHD-Combined
+23003,Male,7.67,ADHD-Hyperactive/Impulsive
+23004,Male,9.33,ADHD-Combined
+23005,Male,11.75,Typically Developing Children
+23006,Female,9.25,Typically Developing Children
+23007,Male,11.08,ADHD-Inattentive
+23008,Male,9.17,Typically Developing Children
+23010,Female,7.67,Typically Developing Children
+23011,Male,8.92,Typically Developing Children
+23012,Female,11.33,ADHD-Combined
+23013,Male,10.58,Typically Developing Children
+23016,Female,10.25,Typically Developing Children
+23017,Female,12.5,Typically Developing Children
+23018,Female,9.5,Typically Developing Children
+23019,Female,8.08,Typically Developing Children
+23020,Male,11,Typically Developing Children
+23024,Female,9.58,Typically Developing Children
+23025,Female,8.33,Typically Developing Children
+23026,Female,8.33,Typically Developing Children
+23027,Male,11.58,Typically Developing Children
+23028,Female,9.92,Typically Developing Children
+23030,Male,8.5,Typically Developing Children
+23031,Male,11.92,Typically Developing Children
+23033,Female,8.5,Typically Developing Children
+23035,Male,9.75,Typically Developing Children
+23036,Female,9.75,Typically Developing Children
+23037,Male,9.42,Typically Developing Children
+23038,Male,9.33,Typically Developing Children
+23039,Male,11.17,Typically Developing Children
+23040,Female,7.5,Typically Developing Children
+23041,Female,9.92,Typically Developing Children
+23042,Female,8.08,Typically Developing Children
+23000,Female,10.42,ADHD-Combined
+23001,Male,9.33,Typically Developing Children
+23002,Male,10.67,ADHD-Combined
+23003,Male,7.67,ADHD-Hyperactive/Impulsive
+23004,Male,9.33,ADHD-Combined
+23005,Male,11.75,Typically Developing Children
+23006,Female,9.25,Typically Developing Children
+23007,Male,11.08,ADHD-Inattentive
+23008,Male,9.17,Typically Developing Children
+23010,Female,7.67,Typically Developing Children
+23011,Male,8.92,Typically Developing Children
+23012,Female,11.33,ADHD-Combined
+23013,Male,10.58,Typically Developing Children
+23016,Female,10.25,Typically Developing Children
+23017,Female,12.5,Typically Developing Children
+23018,Female,9.5,Typically Developing Children
+23019,Female,8.08,Typically Developing Children
+23020,Male,11,Typically Developing Children
+23024,Female,9.58,Typically Developing Children
+23025,Female,8.33,Typically Developing Children
+23026,Female,8.33,Typically Developing Children
+23027,Male,11.58,Typically Developing Children
+23028,Female,9.92,Typically Developing Children
+23030,Male,8.5,Typically Developing Children
+23031,Male,11.92,Typically Developing Children
+23033,Female,8.5,Typically Developing Children
+23035,Male,9.75,Typically Developing Children
+23036,Female,9.75,Typically Developing Children
+23037,Male,9.42,Typically Developing Children
+23038,Male,9.33,Typically Developing Children
+23039,Male,11.17,Typically Developing Children
+23040,Female,7.5,Typically Developing Children
+23041,Female,9.92,Typically Developing Children
+23042,Female,8.08,Typically Developing Children
+1038415,Male,14.92,ADHD-Inattentive
+1201251,Male,12.33,ADHD-Inattentive
+1245758,Female,8.58,Typically Developing Children
+1253411,Male,8.08,Typically Developing Children
+1419103,Female,9.92,Typically Developing Children
+1517058,Male,9.75,Typically Developing Children
+1581470,Male,8.83,Typically Developing Children
+1784368,Male,8.92,ADHD-Inattentive
+1849382,Male,11.67,Typically Developing Children
+1854691,Female,8.83,Typically Developing Children
+1883688,Female,9.08,ADHD-Inattentive
+1951511,Female,11.92,Typically Developing Children
+1985430,Female,11.92,Typically Developing Children
+2024999,Male,10.33,ADHD-Combined
+2051479,Female,13.75,Typically Developing Children
+2101067,Female,15.17,Typically Developing Children
+2275786,Male,9.5,Typically Developing Children
+2342030,Female,10.17,Typically Developing Children
+2380326,Female,9.58,ADHD-Inattentive
+2380967,Male,10,ADHD-Inattentive
+2411995,Male,9.75,Typically Developing Children
+2443191,Male,8.92,Typically Developing Children
+2488729,Female,13.75,Typically Developing Children
+2505328,Female,8.83,ADHD-Inattentive
+2511886,Male,8.33,Typically Developing Children
+2528407,Male,8.92,Typically Developing Children
+2591713,Male,10,Typically Developing Children
+2599965,Male,14,ADHD-Combined
+2628237,Female,13,ADHD-Inattentive
+2872641,Female,8.5,Typically Developing Children
+3107623,Female,11.92,Typically Developing Children
+3124419,Male,8.75,ADHD-Combined
+3169448,Male,11,ADHD-Inattentive
+3313497,Male,9.33,ADHD-Combined
+3320367,Male,10.67,Typically Developing Children
+3348989,Female,8.33,Typically Developing Children
+3378296,Male,9.83,ADHD-Combined
+3407871,Male,13.33,ADHD-Inattentive
+3504058,Male,13.17,ADHD-Inattentive
+3520880,Male,9.83,ADHD-Combined
+3559087,Male,12.58,ADHD-Hyperactive/Impulsive
+3605062,Female,8.58,Typically Developing Children
+3767334,Male,8.33,ADHD-Inattentive
+3834703,Male,12.92,ADHD-Combined
+4125514,Male,9.17,Typically Developing Children
+6550938,Male,11.5,Typically Developing Children
+7591533,Male,12.42,ADHD-Combined
+7947495,Female,9.17,Typically Developing Children
+8463326,Female,12.67,ADHD-Inattentive
+9190596,Male,12.5,ADHD-Inattentive
+9744150,Male,9.5,ADHD-Combined
+1038415,Male,14.92,ADHD-Inattentive
+1201251,Male,12.33,ADHD-Inattentive
+1245758,Female,8.58,Typically Developing Children
+1253411,Male,8.08,Typically Developing Children
+1419103,Female,9.92,Typically Developing Children
+1517058,Male,9.75,Typically Developing Children
+1581470,Male,8.83,Typically Developing Children
+1784368,Male,8.92,ADHD-Inattentive
+1849382,Male,11.67,Typically Developing Children
+1854691,Female,8.83,Typically Developing Children
+1883688,Female,9.08,ADHD-Inattentive
+1951511,Female,11.92,Typically Developing Children
+1985430,Female,11.92,Typically Developing Children
+2024999,Male,10.33,ADHD-Combined
+2051479,Female,13.75,Typically Developing Children
+2101067,Female,15.17,Typically Developing Children
+2275786,Male,9.5,Typically Developing Children
+2342030,Female,10.17,Typically Developing Children
+2380326,Female,9.58,ADHD-Inattentive
+2380967,Male,10,ADHD-Inattentive
+2411995,Male,9.75,Typically Developing Children
+2443191,Male,8.92,Typically Developing Children
+2488729,Female,13.75,Typically Developing Children
+2505328,Female,8.83,ADHD-Inattentive
+2511886,Male,8.33,Typically Developing Children
+2528407,Male,8.92,Typically Developing Children
+2591713,Male,10,Typically Developing Children
+2599965,Male,14,ADHD-Combined
+2628237,Female,13,ADHD-Inattentive
+2872641,Female,8.5,Typically Developing Children
+3107623,Female,11.92,Typically Developing Children
+3124419,Male,8.75,ADHD-Combined
+3169448,Male,11,ADHD-Inattentive
+3313497,Male,9.33,ADHD-Combined
+3320367,Male,10.67,Typically Developing Children
+3348989,Female,8.33,Typically Developing Children
+3378296,Male,9.83,ADHD-Combined
+3407871,Male,13.33,ADHD-Inattentive
+3504058,Male,13.17,ADHD-Inattentive
+3520880,Male,9.83,ADHD-Combined
+3559087,Male,12.58,ADHD-Hyperactive/Impulsive
+3605062,Female,8.58,Typically Developing Children
+3767334,Male,8.33,ADHD-Inattentive
+3834703,Male,12.92,ADHD-Combined
+4125514,Male,9.17,Typically Developing Children
+6550938,Male,11.5,Typically Developing Children
+7591533,Male,12.42,ADHD-Combined
+7947495,Female,9.17,Typically Developing Children
+8463326,Female,12.67,ADHD-Inattentive
+9190596,Male,12.5,ADHD-Inattentive
+9744150,Male,9.5,ADHD-Combined
+3655623,Male,13.83,Typically Developing Children
+3248920,Male,12.17,Typically Developing Children
+2659769,Male,14.25,Typically Developing Children
+9640133,Male,13.75,Typically Developing Children
+4055710,Male,13.33,ADHD-Inattentive
+1050975,Male,13.58,Typically Developing Children
+1809715,Male,13.5,ADHD-Inattentive
+1916266,Male,13.17,Typically Developing Children
+1117299,Male,13.5,Typically Developing Children
+2559537,Male,11.17,Typically Developing Children
+2296326,Male,12.17,Typically Developing Children
+7407032,Male,13.42,Typically Developing Children
+3157406,Male,14,Typically Developing Children
+3994098,Male,12.75,Typically Developing Children
+3561920,Male,13.75,ADHD-Combined
+2140063,Male,9.42,Typically Developing Children
+3610134,Male,10.83,Typically Developing Children
+3494778,Male,9.17,Typically Developing Children
+2033178,Male,11.33,Typically Developing Children
+1562298,Male,9.58,Typically Developing Children
+1093743,Male,11.92,Typically Developing Children
+1177160,Female,10.5,Typically Developing Children
+1860323,Male,8.75,Typically Developing Children
+1494102,Male,10.33,Typically Developing Children
+2498847,Male,9.75,Typically Developing Children
+1875013,Male,9.83,Typically Developing Children
+1068505,Male,10.25,Typically Developing Children
+3993793,Male,10.33,Typically Developing Children
+2310449,Male,10.33,Typically Developing Children
+3308331,Male,9.08,Typically Developing Children
+4265987,Male,10.08,Typically Developing Children
+3562883,Male,11.25,Typically Developing Children
+9578631,Male,14.33,Typically Developing Children
+2377207,Male,13.83,Typically Developing Children
+7011503,Male,13.33,Typically Developing Children
+8278680,Male,13.25,ADHD-Inattentive
+4075719,Male,13.08,ADHD-Combined
+2737106,Male,14.17,ADHD-Inattentive
+1159908,Male,15.08,ADHD-Combined
+4053388,Male,11.08,ADHD-Combined
+7689953,Male,13.5,ADHD-Inattentive
+2884672,Male,12.83,ADHD-Inattentive
+2601519,Male,13.83,ADHD-Inattentive
+2529026,Male,13.33,ADHD-Inattentive
+6500128,Male,11.33,ADHD-Inattentive
+1628610,Male,14.92,ADHD-Combined
+3691107,Male,9.67,ADHD-Combined
+4221029,Male,9.67,ADHD-Combined
+3856956,Male,13.75,ADHD-Inattentive
+1643780,Male,10,ADHD-Combined
+3910672,Male,10.08,ADHD-Combined
+3194757,Male,12.92,ADHD-Inattentive
+2141250,Male,12.83,ADHD-Inattentive
+9002207,Male,11.17,ADHD-Combined
+3446674,Male,14.58,ADHD-Inattentive
+2031422,Male,10.92,ADHD-Inattentive
+4073815,Male,9.83,ADHD-Inattentive
+1341865,Male,9.25,ADHD-Combined
+7253183,Male,13.17,ADHD-Inattentive
+5993008,Male,12.25,ADHD-Inattentive
+4225073,Male,10.33,ADHD-Inattentive
+1094669,Male,12.42,ADHD-Combined
+2950754,Male,13.33,ADHD-Combined
+2207418,Male,13.17,ADHD-Combined
+2919220,Male,13.58,ADHD-Inattentive
+3827352,Male,15.83,ADHD-Inattentive
+3205761,Male,14.58,ADHD-Combined

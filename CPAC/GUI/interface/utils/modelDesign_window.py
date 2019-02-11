@@ -10,22 +10,22 @@ import modelconfig_window
 ID_RUN = 11
 
 
-def check_contrast_equation(frame, dmatrix_obj, contrast_equation):
+#def check_contrast_equation(frame, dmatrix_obj, contrast_equation):
+# MAYBE CAN BE USED AS A CHECK AFTER THE USER WRITES OUT THEIR CONTRAST FILE"
+#    import wx
+#    import patsy
 
-    import wx
-    import patsy
+#    try:
+#        dmatrix_obj.design_info.linear_constraint(str(contrast_equation))
+#    except Exception as e:
+#        errmsg = "This contrast equation is invalid.\n\nDetails:\n%s" % e
+#        errSubID = wx.MessageDialog(frame, errmsg,
+#            'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+#        errSubID.ShowModal()
+#        errSubID.Destroy()
+#        raise Exception
 
-    try:
-        dmatrix_obj.design_info.linear_constraint(str(contrast_equation))
-    except Exception as e:
-        errmsg = "This contrast equation is invalid.\n\nDetails:\n%s" % e
-        errSubID = wx.MessageDialog(frame, errmsg,
-            'Invalid Contrast', wx.OK | wx.ICON_ERROR)
-        errSubID.ShowModal()
-        errSubID.Destroy()
-        raise Exception
-
-    return 0
+#    return 0
 
 
 class ModelDesign(wx.Frame):
@@ -43,10 +43,10 @@ class ModelDesign(wx.Frame):
         self.contrasts_list = varlist
 
         if 'contrasts' not in self.gpa_settings.keys():
-            self.gpa_settings['contrasts'] = {}
+            self.gpa_settings['file path for blank contrasts'] = {}
 
-        if 'custom_contrasts' not in self.gpa_settings.keys():
-            self.gpa_settings['custom_contrasts'] = 'None'
+        #if 'custom_contrasts' not in self.gpa_settings.keys():
+        #    self.gpa_settings['custom_contrasts'] = 'None'
 
         if 'f_tests' not in self.gpa_settings.keys():
             self.gpa_settings['f_tests'] = []
@@ -81,23 +81,26 @@ class ModelDesign(wx.Frame):
 
         self.page.add_pheno_load_panel(varlist_sizer)
 
-        self.page.add(label = 'Contrasts ',
-                      control = control.LISTBOX_COMBO,
-                      name = 'contrasts',
-                      type = dtype.LSTR,
-                      values = self.gpa_settings['contrasts'],
-                      comment = 'Specify your contrasts in this window. '
-                                'For example, if two of your available '
-                                'contrasts are EV1 and EV0, you can enter '
-                                'contrast descriptions such as \'EV1 - EV0 '
-                                '= 0\' or \'EV1 = 0\' . Consult the User '
-                                'Guide for more information about describing '
-                                'contrasts. Alternatively, you can provide '
-                                'your own custom-written contrasts matrix in '
-                                'a CSV file in the \'Custom Contrasts '
-                                'Matrix\' field below.',
-                      size = (300,200),
-                      combo_type = 4)
+        #self.page.add(label = 'Contrasts ',
+        #              control = control.LISTBOX_COMBO,
+        #              name = 'contrasts',
+        #              type = dtype.LSTR,
+        #              values = self.gpa_settings['contrasts'],
+        #              comment = "This field shows where the blank contrast files are\
+        #              located within the local system. Use this file to input the desired \
+        #              contrast description. This will be a CSV file."
+                      # 'Specify your contrasts in this window. '
+                      #          'For example, if two of your available '
+                      #          'contrasts are EV1 and EV0, you can enter '
+                      #          'contrast descriptions such as \'EV1 - EV0 '
+                      #          '= 0\' or \'EV1 = 0\' . Consult the User '
+                      #          'Guide for more information about describing '
+                      #          'contrasts. Alternatively, you can provide '
+                      #          'your own custom-written contrasts matrix in '
+                      #          'a CSV file in the \'Custom Contrasts '
+                      #          'Matrix\' field below.',
+        #              size = (300,200),
+        #              combo_type = 4)
 
         # this sends the list of available contrast names to the 'Add
         # Contrast' dialog box, so that it may do validation immediately when
@@ -117,11 +120,11 @@ class ModelDesign(wx.Frame):
                       size = (300,120),
                       combo_type = 5)
 
-        self.page.add(label="Custom Contrasts Matrix ",
+        self.page.add(label="Custom Contrasts File ",
                       control=control.COMBO_BOX,
-                      name="custom_contrasts",
+                      name="contrast_out_path",
                       type=dtype.STR,
-                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. This allows you to describe your own custom contrasts matrix if you do not wish to use the contrasts builder above. Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead, and will use the f-tests described in this custom file only (ignoring those you have input in the f-tests field in the GUI above).\n\nIf you wish to include f-tests, create a new column in your CSV file for each f-test named 'f_test_1', 'f_test_2', .. etc. Then, mark the contrasts you would like to include in each f-test with a 1, and mark the rest 0. Note that you must select at least two contrasts per f-test.",
+                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. This allows you to describe your own custom contrasts matrix.Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead, and will use the f-tests described in this custom file only (ignoring those you have input in the f-tests field in the GUI above).\n\nIf you wish to include f-tests, create a new column in your CSV file for each f-test named 'f_test_1', 'f_test_2', .. etc. Then, mark the contrasts you would like to include in each f-test with a 1, and mark the rest 0. Note that you must select at least two contrasts per f-test.",
                       values=str(self.gpa_settings['custom_contrasts']))
         
         self.page.add(label="Model Name ",

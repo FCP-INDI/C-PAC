@@ -84,6 +84,10 @@ write_func_outputs :  [0]
 write_debugging_outputs :  [0]
 
 
+# Generate connectome graphs and write out preprocessing results in the same output format as the ndmg pipeline.
+ndmg_mode :  [0]
+
+
 # Generate quality control pages containing preprocessing and derivative outputs.
 generateQualityControlImages :  [1]
 
@@ -311,6 +315,9 @@ stopIdx :  None
 # Default is None (TR information is read from image file header)
 TR :  None
 
+
+# Run functional preproceessing
+runFunctional: [1]
 
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]

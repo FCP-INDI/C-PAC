@@ -288,10 +288,28 @@ def clean_roi_csv(roi_csv):
         with open(edited_roi_csv, 'wt') as f:
             for line in edited_lines:
                 f.write(line)
+        edited_roi_csv = [edited_roi_csv]
     else:
-        edited_roi_csv = roi_csv
+        edited_roi_csv = [roi_csv]
 
     return edited_roi_csv
+
+
+def write_roi_npz(roi_csv, out_type=None):
+
+    roi_npz = None
+    roi_outputs = [roi_csv[0]]
+
+    if not out_type:
+        return roi_outputs
+    elif out_type[1]:
+        np_roi_data = genfromtxt(roi_csv[0], delimiter=',')
+        roi_npz = os.path.join(os.getcwd(), 'roi_stats.npz')
+        with open(roi_npz, 'wt') as f:
+            np.savez(f, np_roi_data)
+        roi_outputs.append(roi_npz)
+
+    return roi_outputs
 
 
 def get_roi_timeseries(wf_name='roi_timeseries'):
@@ -375,7 +393,16 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     wflow.connect(timeseries_roi, 'stats', clean_csv, 'roi_csv')
 
-    wflow.connect(clean_csv, 'edited_roi_csv', outputNode, 'roi_outputs')
+    write_npz_imports = ['import os', 'import numpy as np',
+                         'from numpy import genfromtxt']
+    write_npz = pe.Node(util.Function(input_names=['roi_csv', 'out_type'],
+                                      output_names=['roi_outputs'],
+                                      function=write_roi_npz,
+                                      imports=write_npz_imports),
+                        name='write_roi_npz')
+    wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
+    wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
+    wflow.connect(write_npz, 'roi_outputs', outputNode, 'roi_outputs')
 
     return wflow
 

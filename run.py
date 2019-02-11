@@ -1,17 +1,35 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import argparse
+import datetime
 import os
 import subprocess
-import yaml
 import sys
-
-import datetime
 import time
+from base64 import b64decode
+import shutil
+import yaml
+
+from CPAC.utils.yaml import create_yaml_from_template
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
 
+DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yaml"
+
+
 def load_yaml_config(config_filename, aws_input_creds):
+
+    if config_filename.lower().startswith('data:'):
+        try:
+            header, encoded = config_filename.split(",", 1)
+            config_content = b64decode(encoded)
+            config_data = yaml.load(config_content)
+            return config_data
+        except:
+            print("Error! Could not find load config from data URI")
+            raise
 
     if config_filename.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -52,6 +70,16 @@ def run(command, env={}):
             break
 
 
+def parse_yaml(value):
+    try:
+        config = yaml.load(value)
+        if type(config) != dict:
+            raise
+        return config
+    except:
+         raise argparse.ArgumentTypeError("Invalid configuration: '%s'" % value)
+
+
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
@@ -73,13 +101,22 @@ parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' test_config will run through the entire configuration process but will'
                                            ' not execute the pipeline.',
                     choices=['participant', 'group', 'test_config', 'gui'], type=str.lower)
-parser.add_argument('--pipeline_file', help='Name for the pipeline '
+parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' configuration file to use. '
                                             'Use the format'
                                             ' s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket.'
                                             ' This may require AWS S3 credentials specificied via the'
                                             ' --aws_input_creds option.',
-                    default="/cpac_resources/default_pipeline.yaml")
+                    default=DEFAULT_PIPELINE)
+parser.add_argument('--group_file', help='Path for the group analysis configuration file to use. '
+                                         'Use the format s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket. '
+                                         'This may require AWS S3 credentials specificied via the --aws_input_creds option. '
+                                         'The output directory needs to refer to the output of a preprocessing individual pipeline.',
+                    default=None)
+
+parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
+                    help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
+
 parser.add_argument('--data_config_file', help='Yaml file containing the location'
                                                ' of the data that is to be processed. Can be generated from the CPAC'
                                                ' gui. This file is not necessary if the data in bids_dir is organized'
@@ -139,15 +176,22 @@ parser.add_argument('--bids_validator_config', help='JSON file specifying config
 parser.add_argument('--skip_bids_validator',
                     help='skips bids validation',
                     action='store_true')
+parser.add_argument('--ndmg_mode', help='produce ndmg connectome graphs and '
+                    'write out in the ndmg output format',
+                    action='store_true')
+parser.add_argument('--anat_only', help='run only the anatomical preprocessing',
+                    action='store_true')
+
+parser.add_argument('--tracking_opt-out', action='store_true',
+                    help='Disable usage tracking. Only the number of participants on the analysis is tracked.',
+                    default=False)
 
 # get the command line arguments
 args = parser.parse_args()
 
-print(args)
-
 # if we are running the GUI, then get to it
 if args.analysis_level == "gui":
-    print "Starting CPAC GUI"
+    print("Starting CPAC GUI")
     import CPAC
 
     CPAC.GUI.run()
@@ -176,20 +220,38 @@ if args.bids_validator_config:
         config=args.bids_validator_config,
         bids_dir=args.bids_dir))
 elif args.skip_bids_validator:
-    print('skipping bids-validator...')
+    print('\nSkipping bids-validator...')
+elif args.bids_dir.lower().startswith("s3://"):
+    print('\nSkipping bids-validator for S3 datasets...')
 else:
     print("\nRunning BIDS validator")
     run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
+if args.ndmg_mode:
+    print('\nRunning ndmg mode')
+    import os
+    import pkg_resources as p
+    args.pipeline_file = \
+        p.resource_filename("CPAC",
+                            os.path.join("resources",
+                                         "configs",
+                                         "pipeline_config_ndmg.yml"))
+
 # otherwise, if we are running group, participant, or dry run we
 # begin by conforming the configuration
 c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+if args.pipeline_override:
+    overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
+    c.update(overrides)
+
+if args.anat_only:
+    c.update({ "runFunctional": [0] })
 
 # get the aws_input_credentials, if any are specified
 if args.aws_input_creds:
     if args.aws_input_creds is "env":
         import urllib2
-        aws_creds_address = "169.254.170.2"+os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
+        aws_creds_address = "169.254.170.2" + os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         aws_creds = urllib2.urlopen(aws_creds_address).read()
 
         args.aws_input_creds = "/tmp/aws_input_creds.csv"
@@ -227,17 +289,16 @@ c['numParticipantsAtOnce'] = 1
 c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
 if args.aws_output_creds:
-
     if args.aws_output_creds is "env":
         import urllib2
-        aws_creds_address = "169.254.170.2"+os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
+        aws_creds_address = "169.254.170.2" + os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         aws_creds = urllib2.urlopen(aws_creds_address).read()
 
         args.aws_output_creds = "/tmp/aws_output_creds.csv"
 
         with open(args.aws_output_creds) as ofd:
             for key, vname in [("AccessKeyId","AWSAcessKeyId"), ("SecretAccessKey","AWSSecretKey")]:
-                ofd.write("{0}={1}".format(vname,aws_creds[key])) 
+                ofd.write("{0}={1}".format(vname, aws_creds[key])) 
 
     if os.path.isfile(args.aws_output_creds):
         c['awsOutputBucketCredentials'] = args.aws_output_creds
@@ -254,28 +315,28 @@ if args.save_working_dir is True:
         c['removeWorkingDir'] = False
         c['workingDirectory'] = os.path.join(args.output_dir, "working")
     else:
-        print ('Cannot write working directory to S3 bucket.'
+        print('Cannot write working directory to S3 bucket.'
                ' Either change the output directory to something'
-               ' local or turn off the --removeWorkingDir flag')
+               ' local or turn off the --save_working_dir flag')
 else:
     c['removeWorkingDir'] = True
     c['workingDirectory'] = os.path.join('/scratch', "working")
 
 if args.participant_label:
-    print ("#### Running C-PAC on {0}".format(args.participant_label))
+    print("#### Running C-PAC on {0}".format(args.participant_label))
 else:
-    print ("#### Running C-PAC")
+    print("#### Running C-PAC")
 
-print ("Number of participants to run in parallel: {0}".format(c['numParticipantsAtOnce']))
-print ("Input directory: {0}".format(args.bids_dir))
-print ("Output directory: {0}".format(c['outputDirectory']))
-print ("Working directory: {0}".format(c['workingDirectory']))
-print ("Crash directory: {0}".format(c['crashLogDirectory']))
-print ("Log directory: {0}".format(c['logDirectory']))
-print ("Remove working directory: {0}".format(c['removeWorkingDir']))
-print ("Available memory: {0} (GB)".format(c['maximumMemoryPerParticipant']))
-print ("Available threads: {0}".format(c['maxCoresPerParticipant']))
-print ("Number of threads for ANTs: {0}".format(c['num_ants_threads']))
+print("Number of participants to run in parallel: {0}".format(c['numParticipantsAtOnce']))
+print("Input directory: {0}".format(args.bids_dir))
+print("Output directory: {0}".format(c['outputDirectory']))
+print("Working directory: {0}".format(c['workingDirectory']))
+print("Crash directory: {0}".format(c['crashLogDirectory']))
+print("Log directory: {0}".format(c['logDirectory']))
+print("Remove working directory: {0}".format(c['removeWorkingDir']))
+print("Available memory: {0} (GB)".format(c['maximumMemoryPerParticipant']))
+print("Available threads: {0}".format(c['maxCoresPerParticipant']))
+print("Number of threads for ANTs: {0}".format(c['num_ants_threads']))
 
 # create a timestamp for writing config files
 ts = time.time()
@@ -287,17 +348,57 @@ if "s3://" not in args.output_dir.lower():
 else:
     config_file = os.path.join("/scratch", "cpac_pipeline_config_{0}.yml".format(st))
 
+
 with open(config_file, 'w') as f:
-    yaml.dump(c, f)
+    f.write(create_yaml_from_template(c, DEFAULT_PIPELINE))
+
 
 # we have all we need if we are doing a group level analysis
 if args.analysis_level == "group":
-    # print ("Starting group level analysis of data in %s using %s"%(args.bids_dir, config_file))
-    # import CPAC
-    # CPAC.pipeline.cpac_group_runner.run(config_file, args.bids_dir)
-    # sys.exit(1)
-    print ("Starting group level analysis of data in {0} using {1}".format(args.bids_dir, config_file))
-    sys.exit(0)
+
+    if not args.group_file or not os.path.exists(args.group_file):
+
+        print()
+        print()
+        print("No group analysis configuration file was supplied.")
+        print()
+
+        import pkg_resources as p
+        args.group_file = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                            "configs",
+                                            "group_config_template.yml"))
+
+        output_group = os.path.join(args.output_dir, "group_config.yml")
+
+        try:
+            if args.output_dir.lower().startswith("s3://"):
+                raise Exception
+
+            if not os.path.exists(output_group):
+                shutil.copyfile(args.group_file, output_group)
+        except Exception, IOError:
+            print("Could not create group analysis configuration file.")
+            print("Please refer to the C-PAC documentation for group analysis set up.")
+            print()
+        else:
+            print(
+                "Please refer to the output directory for a template of the file "
+                "and, after customizing to your analysis, add the flag\n\n"
+                "    --group_file %s"
+                "\n\nto your `docker run` command\n"
+                % output_group
+            )
+
+        sys.exit(1)
+
+    else:
+        import CPAC.pipeline.cpac_group_runner as cgr
+        print("Starting group level analysis of data in {0} using {1}".format(args.bids_dir, args.group_file))
+        cgr.run(args.group_file)
+        
+        sys.exit(0)
 
 # otherwise we move on to conforming the data configuration
 if not args.data_config_file:
@@ -319,7 +420,7 @@ if not args.data_config_file:
         file_paths = pt_file_paths
 
     if not file_paths:
-        print ("Did not find any files to process")
+        print("Did not find any files to process")
         sys.exit(1)
 
     sub_list = bids_gen_cpac_sublist(args.bids_dir, file_paths, config,
@@ -343,9 +444,12 @@ else:
         sub_list = t_sub_list
 
         if not sub_list:
-            print ("Did not find data for {0} in {1}".format(", ".join(args.participant_label),
-                                                             args.data_config_file))
+            print("Did not find data for {0} in {1}".format(", ".join(args.participant_label),
+                                                             args.data_config_file
+                                                             if not args.data_config_file.startswith("data:")
+                                                             else "data URI"))
             sys.exit(1)
+
 
 if args.participant_ndx:
 
@@ -358,7 +462,7 @@ if args.participant_ndx:
         sub_list = [sub_list[int(args.participant_ndx)]]
         data_config_file = "cpac_data_config_pt%s_%s.yml" % (args.participant_ndx, st)
     else:
-        print ("Participant ndx {0} is out of bounds [0,{1})".format(int(args.participant_ndx),
+        print("Participant ndx {0} is out of bounds [0,{1})".format(int(args.participant_ndx),
                                                                      len(sub_list)))
         sys.exit(1)
 else:
@@ -378,6 +482,7 @@ with open(data_config_file, 'w') as f:
     noalias_dumper.ignore_aliases = lambda self, data: True
     yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
 
+
 if args.analysis_level == "participant":
     # build pipeline easy way
     import CPAC
@@ -389,7 +494,8 @@ if args.analysis_level == "participant":
 
     print ("Starting participant level processing")
     CPAC.pipeline.cpac_runner.run(config_file, data_config_file,
-                                  plugin='MultiProc', plugin_args=plugin_args)
+                                  plugin='MultiProc', plugin_args=plugin_args,
+                                  tracking=not args.tracking_opt_out)
 else:
     print ('This has been a test run, the pipeline and data configuration files should'
            ' have been written to {0} and {1} respectively.'

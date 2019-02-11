@@ -1,0 +1,62 @@
+# CPAC Data Configuration File
+# Version 1.3.0
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003001/ses-1/anat/sub-0003001_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003001/ses-1/func/sub-0003001_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+    rest_run-2:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003001/ses-1/func/sub-0003001_ses-1_task-rest_run-2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+  site: BMB_1
+  subject_id: '0003001'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003002/ses-1/anat/sub-0003002_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003002/ses-1/func/sub-0003002_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+    rest_run-2:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003002/ses-1/func/sub-0003002_ses-1_task-rest_run-2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+  site: BMB_1
+  subject_id: '0003002'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003004/ses-1/anat/sub-0003004_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003004/ses-1/func/sub-0003004_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+    rest_run-2:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003004/ses-1/func/sub-0003004_ses-1_task-rest_run-2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+  site: BMB_1
+  subject_id: '0003004'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003006/ses-1/anat/sub-0003006_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003006/ses-1/func/sub-0003006_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+    rest_run-2:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003006/ses-1/func/sub-0003006_ses-1_task-rest_run-2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+  site: BMB_1
+  subject_id: '0003006'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003007/ses-1/anat/sub-0003007_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_run-1:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003007/ses-1/func/sub-0003007_ses-1_task-rest_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+    rest_run-2:
+      scan: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/sub-0003007/ses-1/func/sub-0003007_ses-1_task-rest_run-2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/BMB_1/task-rest_bold.json
+  site: BMB_1
+  subject_id: '0003007'
+  unique_id: '1'

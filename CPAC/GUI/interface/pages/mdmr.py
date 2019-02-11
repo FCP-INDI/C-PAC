@@ -22,16 +22,6 @@ class MDMRSettings(wx.ScrolledWindow):
                       values=["Off", "On"],
                       wkf_switch = True)
 
-        self.page.add(label="Participant Inclusion (Optional)",
-                      control=control.COMBO_BOX,
-                      name="mdmr_inclusion",
-                      type=dtype.STR,
-                      values="None",
-                      comment="Inclusion list text file listing the "
-                              "participant IDs you wish to include in the "
-                              "MDMR analysis. If left as None, will include "
-                              "all subjects.")
-
         self.page.add(label="Mask ROI File", 
                      control=control.COMBO_BOX,
                      name='mdmr_roi_file', 
