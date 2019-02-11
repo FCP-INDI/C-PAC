@@ -1,142 +1,486 @@
+import os
+import re
 import numpy as np
+import nibabel as nb
+
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
+import nipype.interfaces.fsl as fsl
+import nipype.interfaces.ants as ants
+from nipype.interfaces import afni
+
+from CPAC.utils.function import Function
+
+import scipy.signal as signal
 
 
-def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
-
-    import scipy.signal as signal
-    
-    wmcsf_sigs = np.vstack((wm_sigs, csf_sigs))
-
-    # filter out any voxels whose variance equals 0
-    print 'Removing zero variance components'
-    wmcsf_sigs = wmcsf_sigs[wmcsf_sigs.std(1)!=0,:]
-
-    if wmcsf_sigs.shape.count(0):
-        err = "\n\n[!] No wm or csf signals left after removing those " \
-              "with zero variance.\n\n"
-        raise Exception(err)
-    
-    print 'Detrending and centering data'
-    Y = signal.detrend(wmcsf_sigs, axis=1, type='linear').T
-    Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
-    Yc = Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1))
-    
-    print 'Calculating SVD decomposition of Y*Y\''
-    U, S, Vh = np.linalg.svd(Yc)
-    
-    return U[:, :nComponents]
-
-
-def erode_mask(data):
-    mask = data != 0
-    eroded_mask = np.zeros_like(data, dtype='bool')
-    max_x, max_y, max_z = data.shape
-    x,y,z = np.where(data != 0)
-    for i in range(x.shape[0]):
-        if (max_x-1) == x[i] or \
-           (max_y-1) == y[i] or \
-           (max_z-1) == z[i] or \
-           x[i] == 0 or \
-           y[i] == 0 or \
-           z[i] == 0:
-            eroded_mask[x[i],y[i],z[i]] = False
-        else:
-            eroded_mask[x[i],y[i],z[i]] = mask[x[i], y[i], z[i]] * \
-                                          mask[x[i] + 1, y[i], z[i]] * \
-                                          mask[x[i], y[i] + 1, z[i]] * \
-                                          mask[x[i], y[i], z[i] + 1] * \
-                                          mask[x[i] - 1, y[i], z[i]] * \
-                                          mask[x[i], y[i] - 1, z[i]] * \
-                                          mask[x[i], y[i], z[i] - 1]
-
-    eroded_data = np.zeros_like(data)
-    eroded_data[eroded_mask] = data[eroded_mask]
-    
-    return eroded_data
-
-
-def create_despike_regressor_matrix(frames_excluded, total_vols):
-    """Create a Numpy array describing which volumes are to be regressed out
-    during nuisance regression, for de-spiking.
-
-    :param frames_excluded: 1D file of the volume indices to be excluded. This
-    is a 1D text file of integers separated by commas.
-    :param total_vols: integer value of the length of the time series (number
-    of volumes).
-    :return: Numpy array consisting of a row for every volume, and a column
-    for every volume being regressed out, with a 1 where they match.
+def find_offending_time_points(fd_file_path=None, dvars_file_path=None,
+                               fd_threshold=None, dvars_threshold=None,
+                               number_of_previous_trs_to_remove=0,
+                               number_of_subsequent_trs_to_remove=0):
     """
 
-    with open(frames_excluded, 'r') as f:
-        excl_vols = f.readlines()
+    Applies criterion in method to find time points whose FD or DVARS (or both) are above threshold
 
-    if len(excl_vols) > 0:
-        excl_vols = sorted([int(x) for x in excl_vols[0].split(',') if x != ''])
+    :param thresh_metric: metric for determining offending time points, either 'FD', 'DVARS', or 'FD+DVARS'. In the last
+        case time points will be chosen from the intersection of the FD and DVARS criteria
+    :param out_file_path: name of output TSV, which will contain the indices of offending time points list in a
+        single column
+    :param fd_file_path: path to TSV containing framewise displacement as a single column
+    :param dvars_file_path: path to TSV containing DVARS as a single column
+    :param fd_threshold: threshold to apply to framewise displacement, can be a value such as 0.2 or a floating
+      point multiple of the standard deviation specified as, e.g. '1.5 SD'
+    :param dvars_threshold: threshold to apply to DVARS, can be a value such as 0.5 or a floating
+      point multiple of the standard deviation specified as, e.g. '1.5 SD'
+    :param number_of_previous_trs_to_remove: extent of censorship window before the censor
+    :param number_of_subsequent_trs_to_remove: extent of censorship window after the censor
+
+    :return: file path to output file
+    """
+    import numpy as np
+    import os
+    import re
+
+    offending_time_points = []
+    time_course_len = 0
+
+    if fd_file_path:
+
+        if not os.path.isfile(fd_file_path):
+            raise ValueError(
+                "Framewise displacement file {0} could not be found."
+                .format(fd_file_path)
+            )
+
+        if not fd_threshold:
+            raise ValueError("Method FD requires the specification of a "
+                             "framewise displacement threshold, none received")
+
+        framewise_displacement = np.loadtxt(fd_file_path)
+
+        time_course_len = framewise_displacement.shape[0]
+
+        try:
+            fd_threshold_sd = \
+                re.match(r"([0-9]*\.*[0-9]*)\s*SD", str(fd_threshold))
+
+            if fd_threshold_sd:
+                fd_threshold_sd = float(fd_threshold_sd.groups()[0])
+                fd_threshold = framewise_displacement.mean() + \
+                    fd_threshold_sd * framewise_displacement.std()
+            else:
+                fd_threshold = float(fd_threshold)
+        except:
+            raise ValueError("Could not translate fd_threshold {0} into a "
+                             "meaningful value".format(fd_threshold))
+
+        offending_time_points = \
+            np.where(framewise_displacement > fd_threshold)[0].tolist()
+
+    if dvars_file_path:
+
+        if not os.path.isfile(dvars_file_path):
+            raise ValueError(
+                "DVARS file {0} could not be found.".format(dvars_file_path))
+
+        if not dvars_threshold:
+            raise ValueError("Method DVARS requires the specification of a "
+                             "DVARS threshold, none received")
+
+        dvars = np.array([0.0] + np.loadtxt(dvars_file_path).tolist())
+
+        time_course_len = dvars.shape[0]
+
+        try:
+            dvars_threshold_sd = \
+                re.match(r"([0-9]*\.*[0-9]*)\s*SD", str(dvars_threshold))
+
+            if dvars_threshold_sd:
+                dvars_threshold_sd = float(dvars_threshold_sd.groups()[0])
+                dvars_threshold = dvars.mean() + \
+                    dvars_threshold_sd * dvars.std()
+            else:
+                dvars_threshold = float(dvars_threshold)
+        except:
+            raise ValueError("Could not translate dvars_threshold {0} into a "
+                             "meaningful value".format(dvars_threshold))
+
+        if not offending_time_points:
+            offending_time_points = \
+                np.where(dvars > dvars_threshold)[0].tolist()
+        else:
+            offending_time_points = list(set(offending_time_points).intersection(
+                np.where(dvars > dvars_threshold)[0].tolist()))
+
+    extended_censors = []
+    for censor in offending_time_points:
+        extended_censors += range(
+            (censor - number_of_previous_trs_to_remove),
+            (censor + number_of_subsequent_trs_to_remove + 1)
+        )
+
+    extended_censors = [
+        censor
+        for censor in np.unique(extended_censors)
+        if 0 <= censor < time_course_len
+    ]
+
+    censor_vector = np.ones((time_course_len, 1))
+    censor_vector[extended_censors] = 0
+
+    out_file_path = os.path.join(os.getcwd(), "censors.tsv")
+    np.savetxt(out_file_path, censor_vector, fmt='%d')
+
+    return out_file_path
+
+
+def create_temporal_variance_mask(functional_file_path, mask_file_path,
+                                  threshold, by_slice=False):
+    """
+    Create a mask by applying threshold to the temporal variance of 4D nifti file in functional_file_path. Only
+    non-zero voxels in mask will be considered for inclusion.
+
+    :param functional_file_path: 4D nifti file containing functional data
+    :param output_file_name: name of 3D nifti file containing created mask, the current directory will be prepended
+        to this value, and the mask will be written to the resulting location.
+    :param mask_file_path: name of 3D nifti file containing mask to use to restrict the voxels considered by the masking
+        operation
+    :param threshold: only voxels whose temporal variance meet the threshold criterion will be included in the created
+        mask. Appropriate values are:
+         - a floating point value, values whose temporal variance is greater than this value will be included in mask
+         - a floating point value followed by SD, (1.5SD), values whose temporal variance is greater that 1.5 standard
+              deviations of voxels will be included in the mask
+         - a floating point value followed by PCT, (2PCT), values whose temporal variance is in the specified percentile
+              _from the top_ will be included in the mask. For example 2pct results in the top 2% voxels being included
+    :param by_slice: indicates whether threshold criterion should be applied by slice, or to all data, only changes
+        result for thresholds expressed in terms of SD or pct
+    :return: the full path of the 3D nifti file containing the mask created by this operation.
+    """
+
+    # begin by verifying the input parameters
+    if not (functional_file_path and (
+        functional_file_path.endswith(".nii") or
+        functional_file_path.endswith(".nii.gz")
+    )):
+        raise ValueError("Improper functional file specified ({0}), "
+                         "should be a 4D nifti file."
+                         .format(functional_file_path))
+
+    if not (mask_file_path and (
+        mask_file_path.endswith(".nii") or
+        mask_file_path.endswith(".nii.gz")
+    )):
+        raise ValueError("Improper mask file specified ({0}), "
+                         "should be a 3D nifti file.".format(mask_file_path))
+
+    if not output_file_name:
+        raise ValueError("Output file name must be specified. Received None")
+
+    if not threshold:
+        raise ValueError("Threshold must be specified. Received None")
+
+    threshold_method = "VAR"
+    threshold_value = threshold
+
+    if isinstance(threshold, str):
+        regex_match = {
+            "SD": r"([0-9]+(\.[0-9]+)?)\s*SD",
+            "PCT": r"([0-9]+(\.[0-9]+)?)\s*PCT",
+        }
+
+        for method, regex in regex_match.items():
+            matched = re.match(regex, threshold)
+            if matched:
+                threshold_method = method
+                threshold_value = matched.groups()[0]
+
+    try:
+        threshold_value = float(threshold_value)
+    except:
+        raise ValueError("Error converting threshold value {0} from {1} to a "
+                         "floating point number. The threshold value can "
+                         "contain SD or PCT for selecting a threshold based on "
+                         "the variance distribution, otherwise it should be a "
+                         "floating point number.".format(threshold_value,
+                                                         threshold))
+
+    if threshold_value < 0:
+        raise ValueError("Threshold value should be positive, instead of {0}."
+                         .format(threshold_value))
+
+    if threshold_method is "PCT" and threshold_value >= 100.0:
+        raise ValueError("Percentile should be less than 100, received {0}."
+                         .format(threshold_value))
+
+    if not isinstance(by_slice, bool):
+        raise ValueError("Parameter by_slice should be a boolean.")
+
+    functional_data_img = nb.load(functional_file_path)
+
+    if len(functional_data_img.shape) != 4 or functional_data_img.shape[3] < 3:
+        raise ValueError("Functional data used to create mask ({0}) should be "
+                         "4D and should contain 3 or more time points."
+                         .format(functional_file_path))
+
+    functional_data_variance = functional_data_img.get_data().var(axis=3)
+
+    if mask_file_path:
+        mask_image = nb.load(mask_file_path)
+
+        if not(np.all(mask_image.shape == functional_data_img.shape[0:3]) and
+               np.all(mask_image.affine == functional_data_img.affine)):
+
+            raise ValueError("Shape and affine of mask image {0} ({1} {2}) "
+                             "should match those of the functional data "
+                             "{3} ({4} {5})".format(mask_file_path,
+                                                    mask_image.shape,
+                                                    mask_image.affine,
+                                                    functional_file_path,
+                                                    functional_data_img.shape,
+                                                    functional_data_img.affine))
+
+        mask_data = mask_image.get_data().astype(bool)
     else:
-        return None
+        mask_data = functional_data_variance > 0
 
-    reg_matrix = np.zeros((total_vols, len(excl_vols)), dtype=int)
+    if by_slice is True:
+        functional_data_variance_shape = (
+            np.prod(functional_data_variance.shape[0:2]),
+            functional_data_variance.shape[2]
+        )
+    else:
+        functional_data_variance_shape = (
+            np.prod(functional_data_variance.shape[0:3]),
+            1,
+        )
 
-    i = 0
-    for vol in excl_vols:
-        reg_matrix[vol][i] = 1
-        i += 1
+    functional_data_variance = \
+        functional_data_variance.reshape(functional_data_variance_shape)
 
-    return reg_matrix
+    # Conform output file and mask to functional data shape
+    output_variance_mask = np.zeros(functional_data_variance.shape, dtype=bool)
+    mask_data = mask_data.reshape(functional_data_variance.shape)
 
+    for slice_number in range(functional_data_variance.shape[1]):
 
-def find_offending_time_points(thresh_metric, out_file_path, fd_file_path, 
-                               dvars_file_path, fd_threshold, dvars_threshold,
-                               number_of_previous_trs_to_remove,
-                               number_of_subsequent_trs_to_remove):
+        # Make sure that there are some voxels at this slice
+        if not np.any(mask_data[:, slice_number]):
+            continue
 
-    return 'out_file'
+        functional_data_variance_slice = \
+            functional_data_variance[
+                mask_data[:, slice_number],
+                slice_number
+            ]
 
+        if threshold_method is "PCT":
+            slice_threshold_value = np.percentile(
+                functional_data_variance_slice,
+                100.0 - threshold_value
+            )
 
-def create_temporal_variance_mask(functional_data_file_path, mask_file_path,
-                                  threshold, output_file_name, by_slice):
+        elif threshold_method is "SD":
+            slice_threshold_value = \
+                functional_data_variance_slice.mean() + \
+                threshold_value * functional_data_variance_slice.std()
 
-    return 'tCompCor_mask_file_path'
+        else:
+            slice_threshold_value = threshold_value
 
+        output_variance_mask[:, slice_number] = \
+            mask_data[:, slice_number] & \
+            (functional_data_variance[:, slice_number] > slice_threshold_value)
 
-def insert_create_variance_mask_node(workflow, functional_path,
-                                     nuisance_configuration_selector):
+    # Make sure that the output mask is the correct shape and format
+    output_variance_mask = np.uint8(output_variance_mask) \
+                             .reshape(mask_image.shape)
 
-    
+    output_file_path = os.path.join(os.getcwd(), 'variance_mask.nii.gz')
+    output_img = nb.Nifti1Image(output_variance_mask, mask_image.affine)
+    output_img.to_filename(output_file_path)
 
-
-
-### CODE FOR ANATICOR
-
-    # if 'Anaticor' in selector and selector['Anaticor']:
-
-    #     # make sure we have a radius
-    #     if 'radius' not in selector['Anaticor']:
-    #         raise ValueError('Anaticor specified in selector, but not radius. Radius is a required parameter.')
-
-    #     # construct the regressors for anaticor
-    #     # '3dLocalstat -prefix __WMeLOCAL_r${r} -nbhd 'SPHERE('${r}')' \
-    #     #    -stat mean -mask  __mask_WMe${view} \
-    #     #    -use_nonmask ${fn_epi}'
-    #     construct_anaticor_regressor = pe.Node(interface=afni.Localstat(),
-    #                                            name="construct_anaticor_regressor")
-
-    #     construct_anaticor_regressor.interface.num_threads = 4
-    #     construct_anaticor_regressor.inputs.neighborhood = 'SPHERE({0})'.format(selector['Anaticor']['radius'])
-    #     construct_anaticor_regressor.inputs.statistic = 'mean'
-    #     construct_anaticor_regressor.inputs.use_nonmask = True
-    #     construct_anaticor_regressor.inputs.output = 'anaticor_regressor_2mm.nii.gz'
-    #     construct_anaticor_regressor.inputs.output_type = 'NIFTI_GZ'
-
-    #     nuisance.connect(wm_anat_2mm_erode, 'out_file', construct_anaticor_regressor, 'mask')
-    #     nuisance.connect(func_to_2mm, 'out_file', construct_anaticor_regressor, 'mask')
-
-    #     # down sample the data to match functional image space
-    #     anaticor_regressor_to_functional_space = pe.Node(interface=fsl.FLIRT(),
-    #                                                      name='anaticor_regressor_to_functional_space')
-    #     anaticor_regressor_to_functional_space.inputs.args = '-applyxfm'
-
-    #     nuisance.connect(construct_anaticor_regressor, 'out_file', anaticor_regressor_to_functional_space, 'in_file')
-    #     nuisance.connect(inputspec, 'functional_file_path', anaticor_regressor_to_functional_space, 'reference')
+    return output_file_path
 
 
+def generate_summarize_tissue_mask(pipeline_resource_pool,
+                                   regressor_descriptor,
+                                   regressor_selector):
+    """
+    Add tissue mask generation into pipeline.
+    """
+
+    steps = [
+        key
+        for key in ['tissue', 'resolution', 'erosion']
+        if key in regressor_descriptor
+    ]
+
+    full_mask_key = "_".join(
+        regressor_descriptor[s]
+        for s in steps
+    )
+
+    if full_mask_key in pipeline_resource_pool:
+        return {}, full_mask_key, None
+
+    pipeline_resource_pool = pipeline_resource_pool.copy()
+
+    summarize_workflow = pe.Workflow(
+        name=re.sub(r"[^\w]", "_", full_mask_key)
+    )
+
+    inputspec = pe.Node(util.IdentityInterface(
+        fields=['func_to_anat_linear_xfm_file_path',
+                'functional_file_path',
+                'tissue_file_path']
+    ), name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(
+        fields=['mask_file_path']
+    ), name='outputspec')
+
+    for step_i, step in enumerate(steps):
+
+        mask_key = "_".join(
+            regressor_descriptor[s]
+            for s in steps[:step_i+1]
+        )
+
+        prev_mask_key = "_".join(
+            regressor_descriptor[s]
+            for s in steps[:step_i]
+        )
+
+        if step is 'tissue':
+
+            if regressor_descriptor[step].startswith('FunctionalVariance'):
+
+                create_variance_mask_node = pe.Node(
+                    Function(
+                        input_names=[
+                            'functional_file_path',
+                            'mask_file_path',
+                            'threshold',
+                            'by_slice'
+                        ],
+                        output_names=['mask_file_path'],
+                        function=create_temporal_variance_mask,
+                        as_module=True,
+                    ),
+                    name='create_temporal_variance_mask'
+                )
+
+                summarize_workflow.connect(
+                    inputspec, 'functional_file_path',
+                    create_variance_mask_node, 'functional_file_path'
+                )
+
+                pipeline_resource_pool[mask_key] = \
+                    (create_variance_mask_node, 'mask_file_path')
+
+            else:
+
+                pipeline_resource_pool[mask_key] = \
+                    (inputspec, 'tissue_file_path')
+
+        if step is 'resolution':
+
+            mask_to_epi = pe.Node(interface=fsl.FLIRT(),
+                                  name='mask_to_epi_flirt_applyxfm')
+
+            mask_to_epi.inputs.apply_isoxfm = \
+                regressor_selector['extraction_resolution']
+
+            summarize_workflow.connect(*(
+                pipeline_resource_pool[prev_mask_key] +
+                (mask_to_epi, 'in_file')
+            ))
+
+            summarize_workflow.connect(
+                inputspec, 'functional_file_path',
+                mask_to_epi, 'reference'
+            )
+
+            summarize_workflow.connect(
+                inputspec, "func_to_anat_linear_xfm_file_path",
+                mask_to_epi, 'in_matrix_file'
+            )
+
+            pipeline_resource_pool[mask_key] = \
+                (mask_to_epi, 'out_file')
+
+        if step is 'erosion':
+
+            # erode the lateral ventricle mask by 1 voxel to avoid overlap with other tissues
+            erode_mask_node = pe.Node(interface=afni.Calc(),
+                                      name='erode_mask_node')
+            erode_mask_node.inputs.args = "-b a+i -c a-i -d a+j " + \
+                                          "-e a-j -f a+k -g a-k"
+            erode_mask_node.inputs.expr = 'a*(1-amongst(0,b,c,d,e,f,g))'
+            erode_mask_node.inputs.outputtype = 'NIFTI_GZ'
+            erode_mask_node.inputs.out_file = 'erode_mask_node.nii.gz'
+
+            summarize_workflow.connect(*(
+                pipeline_resource_pool[prev_mask_key] +
+                (erode_mask_node, 'in_file_a')
+            ))
+
+            pipeline_resource_pool[mask_key] = \
+                (erode_mask_node, 'out_file')
+
+    summarize_workflow.connect(*(
+        pipeline_resource_pool[full_mask_key] + (outputspec, 'mask_file_path')
+    ))
+
+    pipeline_resource_pool[full_mask_key] = \
+        (summarize_workflow, 'outputspec.mask_file_path')
+
+    summarize_workflow.write_graph(graph2use='flat', simple_form=False)
+
+    return pipeline_resource_pool, full_mask_key, summarize_workflow
+
+
+def summarize_timeseries(functional_path, masks_path, summary):
+
+    if type(summary) is not dict:
+        summary = {'method': summary}
+
+    masks_img = [nb.load(mask_path) for mask_path in masks_path]
+    mask = np.sum(np.array([
+        mask_img.get_data() for mask_img in masks_img
+    ]), axis=0) > 0.0
+
+    functional_img = nb.load(functional_path)
+    masked_functional = functional_img.get_data()[mask]
+
+    regressors = np.zeros(masked_functional.shape[-1])
+
+    if summary['method'] == 'Mean':
+        regressors = masked_functional.mean(0)
+
+    if summary['method'] == 'NormMean':
+        masked_functional /= np.linalg.norm(masked_functional, 2)
+        regressors = masked_functional.mean(0)
+
+    if summary['method'] == 'DetrendNormMean':
+        masked_functional = \
+            signal.detrend(masked_functional, axis=1, type='linear').T
+
+        masked_functional /= np.linalg.norm(masked_functional, 2)
+        regressors = masked_functional.mean(0)
+
+    if summary['method'] == 'PC':
+        mean_signal = np.tile(
+            masked_functional.mean(1),
+            (masked_functional.shape[1], 1)
+        )
+        U, _, _ = np.linalg.svd(
+            masked_functional.T - mean_signal,
+            full_matrices=False
+        )
+        regressors = U[:, 0:summary['components']]
+
+    output_file_path = os.path.join(os.getcwd(), 'summary_regressors.1D')
+    np.savetxt(output_file_path, regressors.flatten(), fmt='%.18f')
+
+    return output_file_path
