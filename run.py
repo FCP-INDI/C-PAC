@@ -186,6 +186,10 @@ parser.add_argument('--tracking_opt-out', action='store_true',
                     help='Disable usage tracking. Only the number of participants on the analysis is tracked.',
                     default=False)
 
+parser.add_argument('--monitoring',
+                    help='Enable monitoring server on port 8080. You need to bind the port using the Docker flag "-p".',
+                    action='store_true')
+
 # get the command line arguments
 args = parser.parse_args()
 
@@ -486,7 +490,14 @@ with open(data_config_file, 'w') as f:
 if args.analysis_level == "participant":
     # build pipeline easy way
     import CPAC
-    from CPAC.utils.monitoring import log_nodes_cb
+    from CPAC.utils.monitoring import log_nodes_cb, monitor_server
+
+    monitoring = None
+    if args.monitoring:
+        try:
+            monitoring = monitor_server(c['pipelineName'], c['logDirectory'])
+        except:
+            pass
 
     plugin_args = {'n_procs': int(c['maxCoresPerParticipant']),
                    'memory_gb': int(c['maximumMemoryPerParticipant']),
@@ -496,6 +507,9 @@ if args.analysis_level == "participant":
     CPAC.pipeline.cpac_runner.run(config_file, data_config_file,
                                   plugin='MultiProc', plugin_args=plugin_args,
                                   tracking=not args.tracking_opt_out)
+
+    if monitoring:
+        monitoring.join(10)
 else:
     print ('This has been a test run, the pipeline and data configuration files should'
            ' have been written to {0} and {1} respectively.'
