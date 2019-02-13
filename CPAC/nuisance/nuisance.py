@@ -476,7 +476,7 @@ def create_nuisance_workflow(nuisance_selectors,
     regressors = {
         'GreyMatter': ['grey_matter_summary_file_path', ()],
         'WhiteMatter': ['white_matter_summary_file_path', ()],
-        'Ventricles': ['csf_summary_file_path', ()],
+        'CerebrospinalFluid': ['csf_summary_file_path', ()],
         'aCompCor': ['acompcorr_file_path', ()],
         'tCompCor': ['tcompcorr_file_path', ()],
         'GlobalSignal': ['global_summary_file_path', ()],
@@ -486,7 +486,7 @@ def create_nuisance_workflow(nuisance_selectors,
     }
 
     derived = ['tCompCor', 'aCompCor']
-    tissues = ['GreyMatter', 'WhiteMatter', 'Ventricles']
+    tissues = ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid']
 
     for regressor_type, regressor_resource in regressors.items():
 
@@ -501,9 +501,14 @@ def create_nuisance_workflow(nuisance_selectors,
             if 'summary' not in regressor_selector:
                 regressor_selector['summary'] = {}
 
+            if type(regressor_selector['summary']) is not dict:
+                raise ValueError("Regressor {0} requires PC summary method, "
+                                 "but {1} specified"
+                                 .format(regressor_type,
+                                         regressor_selector['summary']))
+
             regressor_selector['summary']['method'] = 'PC'
 
-            # TODO review
             if not regressor_selector.get('components'):
                 regressor_selector['summary']['components'] = 1
             else:
@@ -547,6 +552,10 @@ def create_nuisance_workflow(nuisance_selectors,
                 regressor_descriptor['resolution'] = \
                     str(regressor_selector['extraction_resolution']) + "mm"
 
+            elif regressor_type in tissues:
+                regressor_selector['extraction_resolution'] = "Functional"
+                regressor_descriptor['resolution'] = "Functional"
+
             if regressor_selector.get('erode_mask'):
                 regressor_descriptor['erosion'] = 'Eroded'
 
@@ -573,6 +582,40 @@ def create_nuisance_workflow(nuisance_selectors,
                 regressor_descriptor['tissue'] = \
                     [regressor_descriptor['tissue']]
 
+
+            if regressor_selector.get('extraction_resolution') and \
+                    regressor_selector["extraction_resolution"] != "Functional":
+
+                functional_at_resolution_key = "Functional_{0}mm".format(
+                    regressor_selector["extraction_resolution"]
+                )
+
+                if functional_at_resolution_key not in pipeline_resource_pool:
+
+                    func_resample = pe.Node(
+                        interface=fsl.FLIRT(),
+                        name='{}_flirt_applyxfm'
+                             .format(functional_at_resolution_key)
+                    )
+                    func_resample.inputs.interp = 'nearestneighbour'
+
+                    func_resample.inputs.apply_isoxfm = \
+                        regressor_selector['extraction_resolution']
+
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Functional'] +
+                        (func_resample, 'in_file')
+                    ))
+
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Functional'] +
+                        (func_resample, 'reference')
+                    ))
+
+                    pipeline_resource_pool[functional_at_resolution_key] = \
+                        (func_resample, 'out_file')
+                        
+
             # Create merger to summarize the functional timeseries
             regressor_mask_file_resource_keys = []
             for tissue in regressor_descriptor['tissue']:
@@ -585,37 +628,14 @@ def create_nuisance_workflow(nuisance_selectors,
                 tissue_regressor_descriptor = regressor_descriptor.copy()
                 tissue_regressor_descriptor['tissue'] = tissue
 
-                (summarize_pipeline_resource_pool,
-                 regressor_mask_file_resource_key,
-                 summarize_workflow) = \
+                (pipeline_resource_pool,
+                 regressor_mask_file_resource_key) = \
                     generate_summarize_tissue_mask(
+                        nuisance_wf,
                         pipeline_resource_pool,
                         tissue_regressor_descriptor,
                         regressor_selector,
                 )
-
-                if regressor_mask_file_resource_key in pipeline_resource_pool:
-                    continue
-
-                pipeline_resource_pool.update({
-                    k: v for k, v in summarize_pipeline_resource_pool.items()
-                    if k not in pipeline_resource_pool
-                })
-
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Functional'] +
-                    (summarize_workflow, 'inputspec.functional_file_path')
-                ))
-
-                nuisance_wf.connect(
-                    inputspec, "func_to_anat_linear_xfm_file_path",
-                    summarize_workflow, 'inputspec.func_to_anat_linear_xfm_file_path'
-                )
-
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool[tissue] +
-                    (summarize_workflow, 'inputspec.tissue_file_path')
-                ))
 
                 regressor_mask_file_resource_keys += \
                     [regressor_mask_file_resource_key]
@@ -624,14 +644,6 @@ def create_nuisance_workflow(nuisance_selectors,
             regressor_mask_file_resource_keys = \
                 list(sorted(regressor_mask_file_resource_keys))
 
-            if regressor_descriptor.get("extraction_resolution"):
-                functional_at_resolution_key = "Functional_{0}mm".format(
-                    regressor_descriptor["extraction_resolution"]
-                )
-
-                if not pipeline_resource_pool.get(functional_at_resolution_key):
-                    # TODO resample functional
-                    pass
 
             # Create key for the final regressors
             regressor_file_resource_key = "_".join([
@@ -685,8 +697,16 @@ def create_nuisance_workflow(nuisance_selectors,
                     summarize_timeseries_node, 'masks_path'
                 )
 
+                functional_key = 'Functional'
+                if regressor_selector.get('extraction_resolution') and \
+                        regressor_selector["extraction_resolution"] != "Functional":
+
+                    functional_key = 'Functional_{}mm'.format(
+                        regressor_selector['extraction_resolution']
+                    )
+
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool["Functional"] +
+                    pipeline_resource_pool[functional_key] +
                     (summarize_timeseries_node, 'functional_path')
                 ))
 

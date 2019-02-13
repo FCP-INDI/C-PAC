@@ -173,9 +173,6 @@ def create_temporal_variance_mask(functional_file_path, mask_file_path,
         raise ValueError("Improper mask file specified ({0}), "
                          "should be a 3D nifti file.".format(mask_file_path))
 
-    if not output_file_name:
-        raise ValueError("Output file name must be specified. Received None")
-
     if not threshold:
         raise ValueError("Threshold must be specified. Received None")
 
@@ -302,7 +299,8 @@ def create_temporal_variance_mask(functional_file_path, mask_file_path,
     return output_file_path
 
 
-def generate_summarize_tissue_mask(pipeline_resource_pool,
+def generate_summarize_tissue_mask(nuisance_wf,
+                                   pipeline_resource_pool,
                                    regressor_descriptor,
                                    regressor_selector):
     """
@@ -320,25 +318,6 @@ def generate_summarize_tissue_mask(pipeline_resource_pool,
         for s in steps
     )
 
-    if full_mask_key in pipeline_resource_pool:
-        return {}, full_mask_key, None
-
-    pipeline_resource_pool = pipeline_resource_pool.copy()
-
-    summarize_workflow = pe.Workflow(
-        name=re.sub(r"[^\w]", "_", full_mask_key)
-    )
-
-    inputspec = pe.Node(util.IdentityInterface(
-        fields=['func_to_anat_linear_xfm_file_path',
-                'functional_file_path',
-                'tissue_file_path']
-    ), name='inputspec')
-
-    outputspec = pe.Node(util.IdentityInterface(
-        fields=['mask_file_path']
-    ), name='outputspec')
-
     for step_i, step in enumerate(steps):
 
         mask_key = "_".join(
@@ -346,14 +325,21 @@ def generate_summarize_tissue_mask(pipeline_resource_pool,
             for s in steps[:step_i+1]
         )
 
+        if mask_key in pipeline_resource_pool:
+            continue
+
+
+        node_mask_key = re.sub(r"[^\w]", "_", mask_key)
+
         prev_mask_key = "_".join(
             regressor_descriptor[s]
             for s in steps[:step_i]
         )
 
+
         if step is 'tissue':
 
-            if regressor_descriptor[step].startswith('FunctionalVariance'):
+            if mask_key.startswith('FunctionalVariance'):
 
                 create_variance_mask_node = pe.Node(
                     Function(
@@ -367,60 +353,63 @@ def generate_summarize_tissue_mask(pipeline_resource_pool,
                         function=create_temporal_variance_mask,
                         as_module=True,
                     ),
-                    name='create_temporal_variance_mask'
+                    name='create_temporal_variance_mask_{}'
+                         .format(node_mask_key)
                 )
 
-                summarize_workflow.connect(
-                    inputspec, 'functional_file_path',
-                    create_variance_mask_node, 'functional_file_path'
-                )
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool['Functional'] + 
+                    (create_variance_mask_node, 'functional_file_path')
+                ))
 
                 pipeline_resource_pool[mask_key] = \
                     (create_variance_mask_node, 'mask_file_path')
 
-            else:
-
-                pipeline_resource_pool[mask_key] = \
-                    (inputspec, 'tissue_file_path')
 
         if step is 'resolution':
 
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
-                                  name='mask_to_epi_flirt_applyxfm')
+                                  name='mask_to_epi_flirt_applyxfm_{}'
+                                       .format(node_mask_key))
 
-            mask_to_epi.inputs.apply_isoxfm = \
-                regressor_selector['extraction_resolution']
+            if regressor_selector['extraction_resolution'] == "Functional":
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool['Functional'] +
+                    (mask_to_epi, 'reference')
+                ))
+            else:
 
-            summarize_workflow.connect(*(
+                resolution = regressor_selector['extraction_resolution']
+                mask_to_epi.inputs.apply_isoxfm = \
+                    resolution
+
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool['Functional_{}mm'
+                                           .format(resolution)] +
+                    (mask_to_epi, 'reference')
+                ))
+
+            nuisance_wf.connect(*(
                 pipeline_resource_pool[prev_mask_key] +
                 (mask_to_epi, 'in_file')
             ))
 
-            summarize_workflow.connect(
-                inputspec, 'functional_file_path',
-                mask_to_epi, 'reference'
-            )
-
-            summarize_workflow.connect(
-                inputspec, "func_to_anat_linear_xfm_file_path",
-                mask_to_epi, 'in_matrix_file'
-            )
-
             pipeline_resource_pool[mask_key] = \
                 (mask_to_epi, 'out_file')
 
+
         if step is 'erosion':
 
-            # erode the lateral ventricle mask by 1 voxel to avoid overlap with other tissues
             erode_mask_node = pe.Node(interface=afni.Calc(),
-                                      name='erode_mask_node')
+                                      name='erode_mask_node_{}'
+                                           .format(node_mask_key))
             erode_mask_node.inputs.args = "-b a+i -c a-i -d a+j " + \
                                           "-e a-j -f a+k -g a-k"
             erode_mask_node.inputs.expr = 'a*(1-amongst(0,b,c,d,e,f,g))'
             erode_mask_node.inputs.outputtype = 'NIFTI_GZ'
             erode_mask_node.inputs.out_file = 'erode_mask_node.nii.gz'
 
-            summarize_workflow.connect(*(
+            nuisance_wf.connect(*(
                 pipeline_resource_pool[prev_mask_key] +
                 (erode_mask_node, 'in_file_a')
             ))
@@ -428,16 +417,8 @@ def generate_summarize_tissue_mask(pipeline_resource_pool,
             pipeline_resource_pool[mask_key] = \
                 (erode_mask_node, 'out_file')
 
-    summarize_workflow.connect(*(
-        pipeline_resource_pool[full_mask_key] + (outputspec, 'mask_file_path')
-    ))
 
-    pipeline_resource_pool[full_mask_key] = \
-        (summarize_workflow, 'outputspec.mask_file_path')
-
-    summarize_workflow.write_graph(graph2use='flat', simple_form=False)
-
-    return pipeline_resource_pool, full_mask_key, summarize_workflow
+    return pipeline_resource_pool, full_mask_key
 
 
 def summarize_timeseries(functional_path, masks_path, summary):
@@ -481,6 +462,6 @@ def summarize_timeseries(functional_path, masks_path, summary):
         regressors = U[:, 0:summary['components']]
 
     output_file_path = os.path.join(os.getcwd(), 'summary_regressors.1D')
-    np.savetxt(output_file_path, regressors.flatten(), fmt='%.18f')
+    np.savetxt(output_file_path, regressors, fmt='%.18f')
 
     return output_file_path
