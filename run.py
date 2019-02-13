@@ -17,6 +17,11 @@ __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
 
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yaml"
+if not os.path.exists(DEFAULT_PIPELINE):
+    DEFAULT_PIPELINE = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        "default_pipeline.yaml"
+    )
 
 
 def load_yaml_config(config_filename, aws_input_creds):

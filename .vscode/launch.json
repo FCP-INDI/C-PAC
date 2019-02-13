@@ -6,6 +6,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
             "console": "integratedTerminal",
             "pythonPath": "${config:python.pythonPath}",
             "debugStdLib": true,
@@ -18,6 +19,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
             "console": "integratedTerminal",
             "pythonPath": "${config:python.pythonPath}",
             "debugStdLib": true,
@@ -40,7 +42,7 @@
                 // "--pipeline_file",
                 // "${workspaceFolder}/default_pipeline.yaml",
                 "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/OHSU",
-                "${workspaceFolder}",
+                "${workspaceFolder}/cpac_runs",
                 "participant"
             ]
         },
@@ -49,6 +51,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
             "console": "integratedTerminal",
             "pythonPath": "${config:python.pythonPath}",
             "debugStdLib": true,
@@ -62,9 +65,9 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
             "console": "integratedTerminal",
             "pythonPath": "${config:python.pythonPath}",
-            "cwd": "${workspaceFolder}/cpac_runs",
             "debugStdLib": true,
             "args": [
                 "run", "ADHD200_2", "--pipe_config", "benchmark-ants"
