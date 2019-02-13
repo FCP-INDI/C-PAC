@@ -18,6 +18,9 @@ def create_yaml_from_template(d, template):
 
     output = ""
 
+    with open(template, 'r') as dtf:
+        d_default = yaml.load(dtf)
+
     with open(template, 'r') as f:
         for line in f:
 
@@ -35,26 +38,29 @@ def create_yaml_from_template(d, template):
             if key_group:
                 key = key_group.group(1)
                 if key in d and d[key] is not None:
-
-                    default_flow_style = False
-
-                    # Flow style for non-dict list or empty list
-                    if type(d[key]) is list and \
-                       (
-                           (len(d[key]) > 0 and type(d[key][0]) is not dict) or \
-                           (len(d[key]) == 0)
-                        ):
-
-                       default_flow_style = True
-
-                    output += yaml.dump(
-                        { key: d[key] } ,
-                        default_flow_style=default_flow_style,
-                        Dumper=noalias_dumper
-                    ).strip("{}\n\r") + "\n"
-                
+                    pass
+                elif key in d_default and d_default[key] is not None:
+                    d[key] = d_default[key]
                 else:
-
                     output += key + ":\n"
+                    continue
+                    
+                default_flow_style = False
+
+                # Flow style for non-dict list or empty list
+                if type(d[key]) is list and \
+                    (
+                        (len(d[key]) > 0 and type(d[key][0]) is not dict) or \
+                        (len(d[key]) == 0)
+                    ):
+
+                    default_flow_style = True
+
+                output += yaml.dump(
+                    { key: d[key] } ,
+                    default_flow_style=default_flow_style,
+                    Dumper=noalias_dumper
+                ).strip("{}\n\r") + "\n"
+                
 
     return output
