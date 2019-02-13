@@ -47,8 +47,8 @@ def create_wf_edit_func(wf_name="edit_func"):
 
     # configure the workflow's input spec
     inputNode = pe.Node(util.IdentityInterface(fields=['func',
-                                                        'start_idx',
-                                                        'stop_idx']),
+                                                       'start_idx',
+                                                       'stop_idx']),
                         name='inputspec')
 
     # configure the workflow's output spec
@@ -58,11 +58,11 @@ def create_wf_edit_func(wf_name="edit_func"):
     # allocate a node to check that the requested edits are
     # reasonable given the data
     func_get_idx = pe.Node(util.Function(input_names=['in_files',
-                                                        'stop_idx',
-                                                        'start_idx'],
-                                            output_names=['stopidx',
-                                                        'startidx'],
-                                            function=get_idx),
+                                                      'stop_idx',
+                                                      'start_idx'],
+                                         output_names=['stopidx',
+                                                       'startidx'],
+                                         function=get_idx),
                             name='func_get_idx')
 
     # wire in the func_get_idx node

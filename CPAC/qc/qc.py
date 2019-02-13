@@ -367,7 +367,6 @@ def create_qc_fd(wf_name='qc_fd'):
 
     return wf
 
-
 def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
 
     wf = pe.Workflow(name=wf_name)
@@ -389,10 +388,10 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
     wf.connect(input_node, 'mean_functional_to_standard', gm_resample, 'master')
 
     gm_mask = pe.Node(afni.Calc(), name="gm_mask")
-    gm_mask.inputs.expr = 'astep(a, 0.5) * b'
+    gm_mask.inputs.expr = 'astep(a, 0.5)'
     gm_mask.inputs.outputtype = 'NIFTI'
     wf.connect(gm_resample, 'out_file', gm_mask, 'in_file_a')
-    wf.connect(input_node, 'functional_to_standard', gm_mask, 'in_file_b')
+
 
 
     wm_resample = pe.Node(afni.Resample(), name='wm_resample')
@@ -401,10 +400,10 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
     wf.connect(input_node, 'mean_functional_to_standard', wm_resample, 'master')
 
     wm_mask = pe.Node(afni.Calc(), name="wm_mask")
-    wm_mask.inputs.expr = 'astep(a, 0.5) * b'
+    wm_mask.inputs.expr = 'astep(a, 0.5)'
     wm_mask.inputs.outputtype = 'NIFTI'
     wf.connect(wm_resample, 'out_file', wm_mask, 'in_file_a')
-    wf.connect(input_node, 'functional_to_standard', wm_mask, 'in_file_b')
+
 
 
     csf_resample = pe.Node(afni.Resample(), name='csf_resample')
@@ -413,21 +412,27 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
     wf.connect(input_node, 'mean_functional_to_standard', csf_resample, 'master')
 
     csf_mask = pe.Node(afni.Calc(), name="csf_mask")
-    csf_mask.inputs.expr = 'astep(a, 0.5) * b'
+    csf_mask.inputs.expr = 'astep(a, 0.5)'
     csf_mask.inputs.outputtype = 'NIFTI'
     wf.connect(csf_resample, 'out_file', csf_mask, 'in_file_a')
-    wf.connect(input_node, 'functional_to_standard', csf_mask, 'in_file_b')
 
-    carpet_plot = pe.Node(Function(input_names=['gm_voxels', 'wm_voxels', 'csf_voxels', 'output'],
+
+
+    carpet_plot = pe.Node(Function(input_names=['gm_mask',
+                                                'wm_mask',
+                                                'csf_mask',
+                                                'functional_to_standard',
+                                                'output'],
                                    output_names=['carpet_plot'],
                                    function=gen_carpet_plt,
                                    as_module=True),
                           name='carpet_plot')
 
     carpet_plot.inputs.output = output_image
-    wf.connect(gm_mask, 'out_file', carpet_plot, 'gm_voxels')
-    wf.connect(wm_mask, 'out_file', carpet_plot, 'wm_voxels')
-    wf.connect(csf_mask, 'out_file', carpet_plot, 'csf_voxels')
+    wf.connect(gm_mask, 'out_file', carpet_plot, 'gm_mask')
+    wf.connect(wm_mask, 'out_file', carpet_plot, 'wm_mask')
+    wf.connect(csf_mask, 'out_file', carpet_plot, 'csf_mask')
+    wf.connect(input_node, 'functional_to_standard', carpet_plot, 'functional_to_standard')
     wf.connect(carpet_plot, 'carpet_plot', output_node, 'carpet_plot')
 
     return wf

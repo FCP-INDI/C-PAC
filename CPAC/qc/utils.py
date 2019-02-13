@@ -1187,18 +1187,17 @@ def gen_plot_png(arr, measure, ex_vol=None):
     return png_name
 
 
-def gen_carpet_plt(gm_voxels, wm_voxels, csf_voxels, output):
+def gen_carpet_plt(gm_mask, wm_mask, csf_mask, functional_to_standard, output):
     
     size = (950, 800)
     
     carpet_plot_path = os.path.join(os.getcwd(), output + '.png')
 
-    gm_voxels = nb.load(gm_voxels).get_data()
-    gm_voxels = gm_voxels[gm_voxels.std(axis=3) > 0.0]
-    wm_voxels = nb.load(wm_voxels).get_data()
-    wm_voxels = wm_voxels[wm_voxels.std(axis=3) > 0.0]
-    csf_voxels = nb.load(csf_voxels).get_data()
-    csf_voxels = csf_voxels[csf_voxels.std(axis=3) > 0.0]
+    func = nb.load(functional_to_standard).get_data()
+    gm_voxels = func[nb.load(gm_mask).get_data().astype(bool)]
+    wm_voxels = func[nb.load(wm_mask).get_data().astype(bool)]
+    csf_voxels = func[nb.load(csf_mask).get_data().astype(bool)]
+    del func
 
     data = np.concatenate((gm_voxels, wm_voxels, csf_voxels))
     seg = np.concatenate((
@@ -1206,8 +1205,6 @@ def gen_carpet_plt(gm_voxels, wm_voxels, csf_voxels, output):
         np.ones(wm_voxels.shape[0]) * 2,
         np.ones(csf_voxels.shape[0]) * 3
     ))
-
-    tr = data.shape[-1]
 
     p_dec = 1 + data.shape[0] // size[0]
     if p_dec:
@@ -1332,7 +1329,10 @@ def gen_histogram(measure_file, measure):
             measure = m_
             if 'sca_roi' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('roi_')[1]
+                if 'ROI_' in fname:
+                    fname = fname.rsplit('ROI_')[1]
+                elif 'roi_' in fname:
+                    fname = fname.rsplit('roi_')[1]
                 fname = 'sca_roi_' + fname.split('_')[0]
                 measure = fname
             if 'sca_tempreg' in measure.lower():
@@ -1344,7 +1344,11 @@ def gen_histogram(measure_file, measure):
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
                 for i in ['temp_reg_map_', 'tempreg_map_', 'tempreg_maps_', 'temp_reg_maps_']:
                     if i in fname:
-                        fname = fname.split(i)[1]
+                        try:
+                            fname = fname.rsplit(i)[1]
+                            break
+                        except IndexError:
+                            continue
                 fname = 'dual_regression_map_'+ fname.split('_')[0]
                 measure = fname
             if 'centrality' in measure.lower():

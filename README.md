@@ -25,7 +25,7 @@ User documentation can be found here: http://fcp-indi.github.com/docs/user/index
 
 Developer documentation can be found here: http://fcp-indi.github.com/docs/developer/index.html
 
-Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.3.0
+Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.4.0
 
 
 Discussion Forum

@@ -55,12 +55,16 @@ class GeneralGA(wx.ScrolledWindow):
                       control=control.COMBO_BOX,
                       name="participant_list",
                       type=dtype.STR,
-                      comment="(Optional) Full path to a list of "
-                              "participants to be included in the model.\n\n"
-                              "This should be a text file with each "
-                              "participant ID on its own line.\n\nUse this "
-                              "to easily prune participants from the "
-                              "analysis.",
+                      comment="(Optional)\n\nFull path to a list of "
+                              "participants to be included in the model. You "
+                              "can use this to easily prune participants "
+                              "from your model. In group-level analyses "
+                              "involving phenotype files, this allows you to "
+                              "prune participants without removing them from "
+                              "the phenotype CSV/TSV file. This should be a "
+                              "text file with one subject per line. An easy "
+                              "way to manually create this file is to copy "
+                              "the subjects column from your phenotype file.",
                       values=self.gpa_settings['participant_list'])
 
         self.page.add(label="Output Directory ",
@@ -74,8 +78,14 @@ class GeneralGA(wx.ScrolledWindow):
                       control=control.DIR_COMBO_BOX,
                       name="work_dir",
                       type=dtype.STR,
-                      comment="Working directory for the intermediates of the "
-                              "FSL FEAT pipeline. Can be deleted afterwards.",
+                      comment="Much like the working directory for "
+                              "individual-level analysis, this is where the "
+                              "intermediate and working files will be stored "
+                              "during your run.\n\nThis directory can be "
+                              "deleted later on. However, saving this "
+                              "directory allows the group analysis run to "
+                              "skip steps that have been already completed, "
+                              "in the case of re-runs.",
                       values=self.gpa_settings['work_dir'])
 
         self.page.add(label="Log Directory ",
@@ -501,6 +511,20 @@ class BASCSettings(wx.ScrolledWindow):
                       values=["Off", "On"],
                       wkf_switch=True)
 
+        self.page.add(label="Series/Scan Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='basc_scan_inclusion',
+                      type=dtype.STR,
+                      values="None",
+                      comment="If there are multiple series/scans in any "
+                              "of the pipeline outputs for which PyBASC is "
+                              "being run, and you only want to run for some "
+                              "of them, you can list them here - scan labels "
+                              "separated by commas (ex. 'rest_run-1, "
+                              "rest_run-3').\n\nIf nothing is listed, PyBASC "
+                              "will run once for each scan, for all "
+                              "available scans.")
+
         self.page.add(label="Output File Resolution ",
                       control=control.CHOICE_BOX,
                       name='basc_resolution',
@@ -621,19 +645,6 @@ class BASCSettings(wx.ScrolledWindow):
                       type=dtype.BOOL,
                       values=["False", "True"],
                       comment="")
-
-        self.page.add(label="Series/Scan Inclusion (Optional) ",
-                      control=control.COMBO_BOX,
-                      name='basc_scan_inclusion',
-                      type=dtype.STR,
-                      values="None",
-                      comment="If there are multiple series or scans in any "
-                              "of the pipeline outputs for which PyBASC is "
-                              "being run, and you only want to run for some "
-                              "of them, you can list them here - scan labels "
-                              "separated by commas (ex. 'rest_run-1, "
-                              "rest_run-3').\n\nIf nothing is listed, all "
-                              "available pipelines will be run.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

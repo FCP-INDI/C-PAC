@@ -119,7 +119,8 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
                    'custom_roi_mask', 'derivative_list', 'coding_scheme', 
                    'group_sep', 'grouping_var', 'z_threshold', 'p_threshold',
                    'sessions_list', 'series_list', 'contrasts', 'f_tests',
-                   'custom_contrasts']
+                   'custom_contrasts', 'run_randomise', 'randomise_permutation',
+                   'randomise_thresh', 'randomise_demean', 'randomise_tfce']
 
     with open(out_file, "wt") as f:
         f.write("# CPAC Group-Level Analysis Configuration File\n"
@@ -137,6 +138,9 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
             if key == 'FSLDIR':
                 f.write("\n# FSL-FEAT\n########################################"
                         "######################################\n\n")
+            if key == 'custom_contrasts':
+                f.write("\n# FSL-Randomise\n###################################"
+                        "###########################################\n\n")
 
     if os.path.exists(out_file):
         print "Group-level analysis configuration YAML file written:\n" \
@@ -145,7 +149,8 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
 
 def create_design_matrix_df(group_list, pheno_df=None,
                             ev_selections=None, pheno_sub_label=None,
-                            pheno_ses_label=None, pheno_site_label=None):
+                            pheno_ses_label=None, pheno_site_label=None,
+                            ses_id=False):
     """Create the design matrix intended for group-level analysis via the FSL
     FLAME tool.
 
@@ -159,15 +164,31 @@ def create_design_matrix_df(group_list, pheno_df=None,
 
     import pandas as pd
 
-    map_df = pd.DataFrame({'participant_id': group_list})
+    keep_cols = ['participant_id']
+
+    if ses_id:
+        # if the group_list is participant_session_id instead of participant_id
+        map_df = pd.DataFrame({'participant_session_id': group_list})
+        keep_cols += ['participant_session_id']
+        part_ids = []
+        sess_ids = []
+        for part_ses in group_list:
+            part = part_ses.split('_')[0]
+            sess = part_ses.split('_')[1]
+            part_ids.append(part)
+            sess_ids.append(sess)
+        map_df['participant_id'] = part_ids
+        map_df['session'] = sess_ids
+        map_df = map_df.sort_values(by=['session', 'participant_id'])
+    else:
+        map_df = pd.DataFrame({'participant_id': group_list})
 
     if pheno_df is None:
         # no phenotypic matrix provided; simpler design models
-        design_df = map_df[['participant_id']]
+        design_df = map_df[keep_cols]
 
     else:
         # if a phenotype CSV file is provided with the data
-
         pheno_df = pheno_df.drop_duplicates()
 
         # replace spaces and dashes with underscores, to prevent confusion with 
@@ -264,9 +285,6 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
 
     contrast_cols = list(design_df.columns)
     contrast_cols.remove('participant_id')
-
-    # TODO:
-    # if session, if site, remove
 
     if contrasts_dct_list:
         # if we are initializing the contrasts matrix with pre-set contrast
@@ -586,25 +604,33 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
         # TODO: msg
         raise Exception
 
-    design_df = create_design_matrix_df(group_list)
+    sess_conditions = ["session", "Session", "sessions", "Sessions"]
+    scan_conditions = ["scan", "scans", "series", "Series/Scans", "Series"]
+
+    sesflag = False
+    if condition_type in sess_conditions:
+        sesflag = True
+
+    design_df = create_design_matrix_df(group_list, ses_id=sesflag)
 
     # make the "condition" EV (the 1's and -1's delineating the two
     # conditions, with the "conditions" being the two sessions or two scans)
     condition_ev = []
 
-    if condition_type == "session":
+    if condition_type in sess_conditions:
         # note: the participant_id column in design_df should be in order, so
         #       the condition_ev should come out in order:
-        #           1,1,1,1,-1,-1,-1,-1  (this is checked further down)
+        #           1,1,1,1,2,2,2,2 (if the sessions are 1 and 2)
+        #       later on, this has to be converted to 1,1,1,1,-1,-1,-1,-1 !
         for sub_ses_id in design_df["participant_session_id"]:
             if sub_ses_id.split("_")[-1] == conditions[0]:
-                condition_ev.append(1)
+                condition_ev.append(conditions[0])
             elif sub_ses_id.split("_")[-1] == conditions[1]:
-                condition_ev.append(-1)
+                condition_ev.append(conditions[1])
 
         group_config = {"sessions_list": conditions, "series_list": []}
 
-    elif condition_type == "scan":
+    elif condition_type in scan_conditions:
         # TODO: re-visit later, when session/scan difference in how to run
         # TODO: group-level analysis repeated measures is streamlined and
         # TODO: simplified
@@ -614,10 +640,14 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
         # half of this list (will need to ensure these scans exist for each
         # selected derivative in the output directory later on)
 
-        for sub_ses_id in design_df["participant_session_id"]:
-            condition_ev.append(1)
-        for sub_ses_id in design_df["participant_session_id"]:
-            condition_ev.append(-1)
+        # the condition_ev should come out in order:
+        #     scan-1,scan-1,scan-1,scan-2,scan-2,scan-2
+        #         (if the scans are scan-1 and scan-2, etc.)
+        # later on, this has to be converted to 1,1,1,-1,-1,-1 !
+        for sub_ses_id in design_df["participant_id"]:
+            condition_ev.append(conditions[0])
+        for sub_ses_id in design_df["participant_id"]:
+            condition_ev.append(conditions[1])
 
         # NOTE: there is only one iteration of the sub_ses list in
         #       design_df["participant_id"] at this point! so use append to
@@ -632,16 +662,21 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
 
     # let's check to make sure it came out right
     #   first half
+    past_val = None
     for val in condition_ev[0:(len(condition_ev) / 2) - 1]:
-        if val != 1:
-            # TODO: msg
-            raise Exception('Non-equal amount of participants for each '
-                            '{0}.\n'.format(condition_type))
+        if past_val:
+            if val != past_val:
+                raise Exception('Non-equal amount of participants for each '
+                                '{0}.\n'.format(condition_type))
+        past_val = val
     #   second half
+    past_val = None
     for val in condition_ev[(len(condition_ev) / 2):]:
-        if val != -1:
-            # TODO: msg
-            raise Exception('second half')
+        if past_val:
+            if val != past_val:
+                raise Exception('Non-equal amount of participants for each '
+                                '{0}.\n'.format(condition_type))
+        past_val = val
 
     design_df[condition_type] = condition_ev
 
@@ -652,7 +687,7 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     design_formula = "{0}".format(condition_type)
 
     # create the participant identity columns
-    for sub_ses_id in design_df["participant_session_id"]:
+    for sub_ses_id in design_df["participant_id"]:
         new_part_col = []
         sub_id = sub_ses_id.split("_")[0]
         new_part_label = "participant_{0}".format(sub_id)
@@ -688,8 +723,13 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     contrast_one.update({condition_type: 1})
     contrast_two.update({condition_type: -1})
 
-    contrasts = [contrast_one, contrast_two]
+    try:
+        design_df = design_df.drop(labels=['participant_session_id'],
+                                   axis='columns')
+    except KeyError:
+        pass
 
+    contrasts = [contrast_one, contrast_two]
     contrasts_df = create_contrasts_template_df(design_df, contrasts)
 
     # create design and contrasts matrix file paths
@@ -716,7 +756,7 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     return design_df, contrasts_df, group_config
 
 
-def preset_tripled_two_group(group_list, conditions, condition_type="session",
+def preset_tripled_two_group(group_list, conditions, condition_type="Sessions",
                              output_dir=None,
                              model_name="tripled_T-test"):
     """Set up the design matrix and contrasts matrix for running a tripled
@@ -746,7 +786,14 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
         raise Exception('Three conditions are required for the tripled '
                         't-test.\n')
 
-    design_df = create_design_matrix_df(group_list)
+    sess_conditions = ["session", "Session", "sessions", "Sessions"]
+    scan_conditions = ["scan", "scans", "series", "Series/Scans", "Series"]
+
+    sesflag = False
+    if condition_type in sess_conditions:
+        sesflag = True
+
+    design_df = create_design_matrix_df(group_list, ses_id=sesflag)
 
     # make the "condition" EVs (the 1's, -1's, and 0's delineating the three
     # conditions, with the "conditions" being the three sessions or three
@@ -754,7 +801,7 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
     condition_ev_one = []
     condition_ev_two = []
 
-    if condition_type == "session":
+    if condition_type in sess_conditions:
         # note: the participant_id column in design_df should be in order, so
         #       the condition_ev's should come out in order:
         #           1,1,1,-1,-1,-1, 0, 0, 0  (this is checked further down)
@@ -772,7 +819,7 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
 
         group_config = {"sessions_list": conditions, "series_list": []}
 
-    elif condition_type == "scan":
+    elif condition_type in scan_conditions:
         # TODO: re-visit later, when session/scan difference in how to run
         # TODO: group-level analysis repeated measures is streamlined and
         # TODO: simplified
@@ -782,13 +829,13 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
         # half of this list (will need to ensure these scans exist for each
         # selected derivative in the output directory later on)
 
-        for sub_ses_id in design_df["participant_session_id"]:
+        for sub_ses_id in design_df["participant_id"]:
             condition_ev_one.append(1)
             condition_ev_two.append(1)
-        for sub_ses_id in design_df["participant_session_id"]:
+        for sub_ses_id in design_df["participant_id"]:
             condition_ev_one.append(-1)
             condition_ev_two.append(0)
-        for sub_ses_id in design_df["participant_session_id"]:
+        for sub_ses_id in design_df["participant_id"]:
             condition_ev_one.append(0)
             condition_ev_two.append(-1)
 
@@ -851,9 +898,8 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
     design_formula = "{0} + {1}".format(column_one, column_two)
 
     # create the participant identity columns
-    for sub_ses_id in design_df["participant_session_id"]:
+    for sub_id in design_df["participant_id"]:
         new_part_col = []
-        sub_id = sub_ses_id.split("_")[0]
         new_part_label = "participant_{0}".format(sub_id)
         for moving_sub_ses_id in design_df["participant_id"]:
             moving_sub_id = moving_sub_ses_id.split("_")[0]
@@ -896,8 +942,13 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
     contrast_two.update({column_one: 1, column_two: 2})
     contrast_three.update({column_one: -1, column_two: 1})
 
-    contrasts = [contrast_one, contrast_two, contrast_three]
+    try:
+        design_df = design_df.drop(labels=['participant_session_id'],
+                                   axis='columns')
+    except KeyError:
+        pass
 
+    contrasts = [contrast_one, contrast_two, contrast_three]
     contrasts_df = create_contrasts_template_df(design_df, contrasts)
 
     # create design and contrasts matrix file paths
@@ -970,7 +1021,10 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
 
     if not group_list_text_file:
         from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
-        group_list = grab_pipeline_dir_subs(pipeline_dir)
+        if (preset == "paired_two" or preset == "tripled_two") and "Sessions" in condition_type:
+            group_list = grab_pipeline_dir_subs(pipeline_dir, True)
+        else:
+            group_list = grab_pipeline_dir_subs(pipeline_dir)
         group_list_text_file = os.path.join(output_dir, model_name,
                                             "group_participant_list_"
                                             "{0}.txt".format(model_name))
@@ -1018,7 +1072,12 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
                     "z_threshold": [float(z_thresh)],
                     "p_threshold": [float(p_thresh)],
                     "contrasts": [],
-                    "f_tests": []}
+                    "f_tests": [],
+                    "run_randomise": [0],
+                    "randomise_permutation": 500,
+                    "randomise_thresh": 5, 
+                    "randomise_demean": True,
+                    "randomise_tfce": True}
 
     if preset == "single_grp":
         design_df, contrasts_df, group_config_update = \
@@ -1097,7 +1156,11 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
         # or two scans) will be coming in as a string of either one covariate
         # name, or a string with two covariates separated by a comma
         #     either way, it needs to be in list form in this case, not string
-        covariate = covariate.split(",")
+        try:        
+            covariate = covariate.split(",")
+        except AttributeError:
+            # it's already a list- keep it that way
+            pass
 
         design_df, contrasts_df, group_config_update = \
             preset_paired_two_group(group_list,
@@ -1130,7 +1193,11 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
         # covariate name, or a string with three covariates separated by a
         # comma
         #     either way, it needs to be in list form in this case, not string
-        covariate = covariate.split(",")
+        try:        
+            covariate = covariate.split(",")
+        except AttributeError:
+            # it's already a list- keep it that way
+            pass
 
         design_df, contrasts_df, group_config_update = \
             preset_tripled_two_group(group_list,
