@@ -59,7 +59,7 @@ from CPAC.registration import (
     create_wf_c3d_fsl_to_itk,
     create_wf_collect_transforms
 )
-from CPAC.nuisance import create_nuisance, bandpass_voxels
+# from CPAC.nuisance import create_nuisance, bandpass_voxels
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
@@ -1821,15 +1821,98 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 nodes = strat.get_nodes_names()
 
+                nuisance_regression_workflow = create_nuisance_workflow(
+                    nuisance_configuration_selector,
+                    use_ants=not'anat_mni_fnirt_register' in nodes,
+                    name=nuisance_wf_name
+                )
+
                 # this is needed here in case tissue segmentation is set on/off
                 # and you have nuisance enabled- this will ensure nuisance will
                 # run for the strat that has segmentation but will not run (thus
                 # avoiding a crash) on the strat without segmentation
-                if 'seg_preproc' in nodes:
+
+                requires_seg = any(reg in c.Regressors for reg in [
+                    'aCompCor', 'WhiteMatter', 'GreyMatter', 'CerebrospinalFluid'
+                ])
+
+                if requires_seg:
+
+                    if not 'seg_preproc' in nodes:
+                        err = "\n\n[!] CPAC says: Nuisance regression options require " \
+                            "segmentation, but segmentation is not enabled!" \
+                            "\n\n"
+                        raise Exception(err)
+                    else:
+
+                        workflow.connect(
+                            c.lateral_ventricles_mask, 'local_path',
+                            nuisance, 'inputspec.lat_ventricles_mask_file_path'
+                        )
+
+                        node, out_file = strat['anatomical_gm_mask']
+                        workflow.connect(node, out_file,
+                                        nuisance, 'inputspec.gm_mask')
+
+                        node, out_file = strat['anatomical_wm_mask']
+                        workflow.connect(node, out_file,
+                                        nuisance, 'inputspec.wm_mask')
+
+                        node, out_file = strat['anatomical_csf_mask']
+                        workflow.connect(node, out_file,
+                                        nuisance, 'inputspec.csf_mask')
+
+
+                node, out_file = strat['movement_parameters']
+                workflow.connect(
+                    node, out_file,
+                    nuisance, 'inputspec.motion_parameters_file_path'
+                )
+
+                node, out_file= strat['functional_to_anat_linear_xfm']
+                workflow.connect(
+                    node, out_file,
+                    nuisance, 'inputspec.func_to_anat_linear_xfm_file_path'
+                )
+
+                if 'anat_mni_fnirt_register' in nodes:
+                    node, out_file = strat['mni_to_anatomical_linear_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance, 'inputspec.mni_to_anat_linear_xfm_file_path'
+                    )
+                else:
+                    # pass the ants_affine_xfm to the input for the
+                    # INVERSE transform, but ants_affine_xfm gets inverted
+                    # within the workflow
+
+                    node, out_file = strat['ants_initial_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance, 'inputspec.anat_to_mni_initial_xfm_file_path'
+                    )
+
+                    node, out_file = strat['ants_rigid_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance, 'inputspec.anat_to_mni_rigid_xfm_file_path'
+                    )
+
+                    node, out_file = strat['ants_affine_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance, 'inputspec.anat_to_mni_affine_xfm_file_path'
+                    )
+                
+                    nuisance_regression_workflow.inputs.inputspec.functional_file_path
+                    nuisance_regression_workflow.inputs.inputspec.functional_brain_mask_file_path
+                    nuisance_regression_workflow.inputs.inputspec.mni_to_anat_linear_xfm_file_path
+                    nuisance_regression_workflow.inputs.inputspec.dvars_file_path
+                    nuisance_regression_workflow.inputs.inputspec.fd_file_path
+                    nuisance_regression_workflow.inputs.inputspec.brain_template_file_path
+                    nuisance_regression_workflow.inputs.inputspec.selector
 
                     subwf_name = "nuisance"
-                    if "De-Spiking" in c.runMotionSpike:
-                        subwf_name = "nuisance_with_despiking"
 
                     nuisance_wf_name = '{0}_{1}'.format(subwf_name, num_strat)
 
@@ -1839,25 +1922,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     # :param use_ants: flag indicating whether FNIRT or ANTS is used
                     # :param name: Name of the workflow, defaults to 'nuisance'
 
-                    if 'anat_mni_fnirt_register' in nodes:
-
-                        nuisance = create_nuisance_workflow(
-                            strat,
-                            nuisance_configuration_selector,
-                            functional_specifier,
-                            use_ants=False,
-                            name=nuisance_wf_name
-                        )
-
-                    else:
-
-                        nuisance = create_nuisance_workflow(
-                            strat,
-                            nuisance_configuration_selector,
-                            functional_specifier,
-                            use_ants=True,
-                            name=nuisance_wf_name
-                        )
 
                     # 'functional_file_path'
                     # 'wm_mask_file_path'
@@ -1878,7 +1942,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                     nuisance.get_node('residuals').iterables = ([
                         ('selector', c.Regressors),
-                        ('compcor_ncomponents', c.nComponents)
                     ])
 
                     workflow.connect(c.lateral_ventricles_mask, 'local_path',

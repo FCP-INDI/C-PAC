@@ -284,7 +284,6 @@ def create_nuisance_workflow(nuisance_selectors,
 
     Parameters
     ----------
-    :param pipeline_resource_pool: dictionary of pipeline resources and their source nodes
     :param nuisance_selectors: dictionary describing nuisance regression to be performed
     :param use_ants: flag indicating whether FNIRT or ANTS is used
     :param name: Name of the workflow, defaults to 'nuisance'
@@ -433,30 +432,28 @@ def create_nuisance_workflow(nuisance_selectors,
 
     nuisance_wf = pe.Workflow(name=name)
 
-    inputspec = pe.Node(util.IdentityInterface(fields=['functional_file_path',
+    inputspec = pe.Node(util.IdentityInterface(fields=[
+        'functional_file_path',
 
-                                                       'wm_mask_file_path',
-                                                       'csf_mask_file_path',
-                                                       'gm_mask_file_path',
-                                                       'lat_ventricles_mask_file_path',
+        'wm_mask_file_path',
+        'csf_mask_file_path',
+        'gm_mask_file_path',
+        'lat_ventricles_mask_file_path',
 
-                                                       'functional_brain_mask_file_path',
+        'functional_brain_mask_file_path',
 
-                                                       'mni_to_anat_linear_xfm_file_path',
-                                                       'func_to_anat_linear_xfm_file_path',
+        'func_to_anat_linear_xfm_file_path',
+        'mni_to_anat_linear_xfm_file_path',
+        'anat_to_mni_initial_xfm_file_path',
+        'anat_to_mni_rigid_xfm_file_path',
+        'anat_to_mni_affine_xfm_file_path',
 
-                                                       'anat_to_mni_initial_xfm_file_path',
-                                                       'anat_to_mni_rigid_xfm_file_path',
-                                                       'anat_to_mni_affine_xfm_file_path',
+        'motion_parameters_file_path',
+        'dvars_file_path',
+        'fd_file_path',
 
-                                                       'motion_parameters_file_path',
-                                                       'dvars_file_path',
-                                                       'fd_file_path',
-
-                                                       'brain_template_file_path',
-
-                                                       'selector']),
-                        name='inputspec')
+        'brain_template_file_path'
+    ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
                                                         'regressors_file_path']),
@@ -467,9 +464,17 @@ def create_nuisance_workflow(nuisance_selectors,
         "Functional": (inputspec, 'functional_file_path'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
-        "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
+        "CerebrospinalFluidUnmasked": (inputspec, 'csf_mask_file_path'),
         "GreyMatter": (inputspec, 'gm_mask_file_path'),
         "Ventricles": (inputspec, 'lat_ventricles_mask_file_path'),
+
+        "Transformations": {
+            "func_to_anat_linear_xfm": (inputspec, "func_to_anat_linear_xfm_file_path"),
+            "mni_to_anat_linear_xfm": (inputspec, "mni_to_anat_linear_xfm_file_path"),
+            "anat_to_mni_initial_xfm": (inputspec, "anat_to_mni_initial_xfm_file_path"),
+            "anat_to_mni_rigid_xfm": (inputspec, "anat_to_mni_rigid_xfm_file_path"),
+            "anat_to_mni_affine_xfm": (inputspec, "anat_to_mni_affine_xfm_file_path"),
+        }
     }
 
     # Regressor map to simplify construction of the needed regressors
@@ -533,6 +538,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     'tissue': regressor_selector['tissues']
                 }
 
+
             if regressor_type == 'tCompCor':
                 if not regressor_selector.get('threshold'):
                     raise ValueError("Threshold required for tCompCor, "
@@ -545,6 +551,9 @@ def create_nuisance_workflow(nuisance_selectors,
 
                 if regressor_selector.get('by_slice'):
                     regressor_descriptor['tissue'] += '-BySlice'
+                else:
+                    regressor_selector['by_slice'] = True
+
 
             # Add selector into regressor description
 
@@ -621,7 +630,8 @@ def create_nuisance_workflow(nuisance_selectors,
             for tissue in regressor_descriptor['tissue']:
 
                 # Ignore non tissue masks
-                if tissue not in tissues:
+                if tissue not in tissues and \
+                    not tissue.startswith('FunctionalVariance'):
                     regressor_mask_file_resource_keys += [tissue]
                     continue
 
