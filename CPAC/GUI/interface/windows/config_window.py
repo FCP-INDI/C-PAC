@@ -393,7 +393,10 @@ class MainFrame(wx.Frame):
 
                         ctrl.set_value(grouping_var)
 
-                    elif name != 'model_setup' and name != 'derivative_list':
+                                      # and this line is just sad
+                    elif name not in ('model_setup', 'derivative_list',
+                                      'Regressors', 'nuisanceBandpassFreq',
+                                      'tsa_roi_paths', 'sca_roi_paths'):
                         try:
                             ctrl.set_value(str(val))
                         except ValueError:
