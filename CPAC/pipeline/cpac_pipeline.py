@@ -1873,10 +1873,26 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                     nuisance_regression_workflow,
                                     'inputspec.functional_file_path')
 
-                    # nuisance_regression_workflow.inputs.inputspec.functional_brain_mask_file_path
-                    # nuisance_regression_workflow.inputs.inputspec.dvars_file_path
-                    # nuisance_regression_workflow.inputs.inputspec.fd_file_path
-                    # nuisance_regression_workflow.inputs.inputspec.brain_template_file_path
+                    node, out_file= strat['frame_wise_displacement_jenkinson']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.fd_file_path'
+                    )
+
+                    node, out_file= strat['dvars']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.dvars_file_path'
+                    )
+
+                    node, out_file= strat['functional_brain_mask']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.functional_brain_mask_file_path'
+                    )
 
                     nuisance_regression_workflow.get_node('residuals').iterables = ([
                         ('selector', c.Regressors),
