@@ -190,12 +190,12 @@ class NuisanceRegressor(object):
         ]
 
         nr_repr = ""
-
+  
         for r in regs:
             if r not in self.selectors:
                 continue
             
-            nr_repr += 
+            nr_repr += "a"
 
         # tC-1.5PCT-PC5S-SDB
         # aC-WC-2mmE-PC5-SDB

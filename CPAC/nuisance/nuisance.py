@@ -892,4 +892,4 @@ def create_nuisance_workflow(nuisance_selectors,
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')
 
-    return nuisance_wf, pipeline_resource_pool
+    return nuisance_wf
