@@ -315,8 +315,6 @@ def create_nuisance_workflow(nuisance_selectors,
             ANTS affine (13 parameter, scales and shears) transform from anat to MNI
         inputspec.func_to_anat_linear_xfm_file_path: string (nifti file)
             FLIRT Linear Transform between functional and anatomical spaces 
-        inputspec.brain_template_file_path: string (nifti file)
-            Template used to define MNI space
         inputspec.mni_to_anat_linear_xfm_file_path : string (nifti file)
             Corresponding MNI to anatomical linear transformation 
         inputspec.func_to_anat_linear_xfm_file_path : string (nifti file)
@@ -451,8 +449,6 @@ def create_nuisance_workflow(nuisance_selectors,
         'motion_parameters_file_path',
         'dvars_file_path',
         'fd_file_path',
-
-        'brain_template_file_path'
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
