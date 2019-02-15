@@ -330,6 +330,7 @@ def motion_power_statistics(calculation='Jenkinson',
 
     outputNode = pe.Node(util.IdentityInterface(fields=['FDP_1D',
                                                         'FDJ_1D',
+                                                        'DVARS_1D',
                                                         'frames_ex_1D',
                                                         'frames_in_1D',
                                                         'power_params',
@@ -345,6 +346,9 @@ def motion_power_statistics(calculation='Jenkinson',
     # calculate mean DVARS
     pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
     pm.connect(inputNode, 'mask', cal_DVARS, 'mask')
+
+    pm.connect(cal_DVARS, 'out_file', 
+               outputNode, 'DVARS_1D')
     
     # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(util.Function(input_names=['in_file'],
