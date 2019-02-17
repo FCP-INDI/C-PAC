@@ -13,9 +13,10 @@ class GenericClass(wx.ScrolledWindow):
     def __init__(self, parent, title="", static=True):
         self.parent = parent
         self.title = title
+        self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         self.flexSizer = wx.FlexGridSizer(cols=2, hgap=15, vgap=15)
         self.flexSizer.AddGrowableCol(1)
-        self.mainSizer = wx.BoxSizer(wx.VERTICAL)
+
         self.ctrl_list = []
 
         if static:
@@ -131,12 +132,9 @@ class GenericClass(wx.ScrolledWindow):
                 self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
 
     def EvtChoice(self, event, ctrl):
-        
         if type(event.GetString()) == unicode:
             value = event.GetString().encode('ascii', 'ignore')
-        
         ctrl.set_selection(value)
-            
         self.parent.Refresh()
         
     def TxtEnterBox(self, event, ctrl):
@@ -179,13 +177,13 @@ class GenericClass(wx.ScrolledWindow):
             wx.TipWindow(self.parent, comment, 500)
 
     def set_sizer(self):
-        self.mainSizer.Add(self.flexSizer,1,wx.EXPAND|wx.ALL,15)
+        self.mainSizer.Add(self.flexSizer, 1, wx.EXPAND | wx.ALL, 15)
         self.parent.SetSizer(self.mainSizer)
 
     def get_ctrl_list(self):
         return self.ctrl_list
 
-    def get_switch(self):    
+    def get_switch(self):
         return self.switch
         
 
