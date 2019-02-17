@@ -9,6 +9,78 @@ from ..utils.validator import CharValidator
 import pkg_resources as p
 
 
+regressor_selectors = [
+    {
+        'CerebrospinalFluid': {'erode_mask': True,
+                               'extraction_resolution': 2,
+                               'summary': {'components': 5, 'method': 'PC'}},
+        'GlobalSignal': {'include_delayed': True,
+                         'include_delayed_squared': True,
+                         'include_squared': True,
+                         'summary': 'Mean'},
+        'Motion': {'include_delayed': True,
+                   'include_delayed_squared': True,
+                   'include_squared': True},
+        'WhiteMatter': {'extraction_resolution': 2,
+                        'summary': {'components': 5, 'method': 'PC'}},
+        'aCompCor': {'extraction_resolution': 2,
+                     'summary': {'components': 5, 'method': 'PC'},
+                     'tissues': ['WhiteMatter', 'CerebrospinalFluid']},
+        'tCompCor': {'by_slice': True,
+                     'summary': {'components': 5, 'method': 'PC'},
+                     'threshold': '1.5SD'},
+        'PolyOrt': {'degree': 2},
+        'Bandpass': {
+            'bottom_frequency': 0.01,
+            'top_frequency': 0.1,
+        },
+        'Censor': {'method': 'Interpolate',
+                   'thresholds': [
+                        {'type': 'FD', 'value': 0.5},
+                        {'type': 'DVARS', 'value': 17}
+                    ]},
+    },
+    {
+        'CerebrospinalFluid': {'erode_mask': True,
+                               'extraction_resolution': 2,
+                               'summary': {'components': 5, 'method': 'PC'}},
+        'Motion': {'include_delayed': True,
+                   'include_delayed_squared': True,
+                   'include_squared': True},
+        'WhiteMatter': {'extraction_resolution': 2,
+                        'summary': {'components': 5, 'method': 'PC'}},
+        'aCompCor': {'extraction_resolution': 2,
+                     'summary': {'components': 5, 'method': 'PC'},
+                     'tissues': ['WhiteMatter', 'CerebrospinalFluid']},
+        'tCompCor': {'by_slice': True,
+                     'summary': {'components': 5, 'method': 'PC'},
+                     'threshold': '1.5SD'},
+        'PolyOrt': {'degree': 2},
+        'Bandpass': {
+            'bottom_frequency': 0.01,
+            'top_frequency': 0.1,
+        },
+        'Censor': {'method': 'Interpolate',
+                   'thresholds': [{'type': 'FD', 'value': 0.5},
+                                  {'type': 'DVARS', 'value': 17}]},
+    },
+]
+
+def find(lst, lmbd):
+    return next((t for t in lst if lmbd(t)), None)
+
+def findi(lst, lmbd):
+    return next((i for i, t in enumerate(lst) if lmbd(t)), None)
+
+def ctrl_enable(ctrl):
+    ctrl.SetEditable(True)
+    ctrl.SetBackgroundColour(wx.WHITE)
+
+def ctrl_disable(ctrl):
+    color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_BACKGROUND)
+    ctrl.SetEditable(False)
+    ctrl.SetBackgroundColour(color)
+
 class Nuisance(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
@@ -207,7 +279,6 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         description = wx.StaticText(self.editor, wx.ID_ANY, title)
         description.SetFont(font)
         sizer.Add(description, flag=wx.EXPAND | wx.ALL, border=5)
-        self.titles.append(description)
         return description
 
     def render_selectors(self):
@@ -229,17 +300,210 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
 
         self.titles = []
 
-        for k in parts:
+        self.selectors = {
+            'PolyOrt': {
+                'degree': 2
+            },
+            'Bandpass': {
+                'bottom_frequency': 0.01,
+                'top_frequency': 0.1,
+            },
+            'Censor': {'method': 'Interpolate',
+                       'thresholds': [{'type': 'FD', 'value': 0.5},
+                                      {'type': 'DVARS', 'value': 17}]},
+        }
 
-            self.render_selectors_title(selector_renaming[k])
+        self.titles += [self.render_selectors_title('Detrending')]
 
-            # description = wx.StaticText(self.editor, wx.ID_ANY, selector_renaming[k])
-            # sizer.Add(description, flag=wx.EXPAND | wx.ALL, border=5)
-            # self.titles.append(description)
 
-            # for _ in range(100):
-            #     description = wx.StaticText(self.editor, wx.ID_ANY, selector_renaming[k])
-            #     sizer.Add(description, flag=wx.EXPAND | wx.ALL, border=5)
+        self.titles += [self.render_selectors_title('Poly Regression')]
+        
+        has_poly = 'PolyOrt' in self.selectors
+
+        poly_panel = wx.Panel(self.editor)
+        poly_panel.SetBackgroundColour(wx.WHITE)
+        poly_panel_sizer = wx.FlexGridSizer(cols=2)
+        poly_panel_sizer.AddGrowableCol(1)
+        poly_panel.SetSizer(poly_panel_sizer)
+        sizer.Add(poly_panel, flag=wx.EXPAND | wx.ALL, border=5)
+
+        poly_enabled_label = wx.StaticText(poly_panel, wx.ID_ANY, label='Enabled', style=wx.ALIGN_RIGHT)
+        poly_enabled_control = wx.CheckBox(poly_panel, wx.ID_ANY)
+        poly_enabled_control.SetValue(has_poly)
+        poly_panel_sizer.Add(poly_enabled_label, 1, wx.EXPAND | wx.ALL, border=5)
+        poly_panel_sizer.Add(poly_enabled_control, 2, wx.EXPAND | wx.ALL, border=5)
+        
+
+        poly_degree_label = wx.StaticText(poly_panel, wx.ID_ANY, label='Degree', style=wx.ALIGN_RIGHT)
+        poly_degree_control = wx.TextCtrl(poly_panel, id=wx.ID_ANY, value='0')
+        poly_panel_sizer.Add(poly_degree_label, 1, wx.EXPAND | wx.ALL, border=5)
+        poly_panel_sizer.Add(poly_degree_control, 2, wx.EXPAND | wx.ALL, border=5)
+        if has_poly:
+            poly_degree_control.SetValue(str(self.selectors['PolyOrt']['degree']))
+        else:
+            ctrl_disable(poly_degree_control)
+
+        def poly_enabled_update(event):
+            if poly_enabled_control.GetValue():
+                ctrl_enable(poly_degree_control)
+                self.selectors['PolyOrt'] = {
+                    'degree': 2,
+                }
+                poly_degree_control.SetValue(str(self.selectors['PolyOrt']['degree']))
+            else:
+                ctrl_disable(poly_degree_control)
+                del self.selectors['PolyOrt']
+
+        poly_enabled_control.Bind(
+            wx.EVT_CHECKBOX, poly_enabled_update
+        )
+
+
+        self.titles += [self.render_selectors_title('Bandpass')]
+
+        has_bandpass = 'Bandpass' in self.selectors
+
+        bandpass_freq_panel = wx.Panel(self.editor)
+        bandpass_freq_panel.SetBackgroundColour(wx.WHITE)
+        bandpass_freq_panel_sizer = wx.FlexGridSizer(cols=2)
+        bandpass_freq_panel_sizer.AddGrowableCol(1)
+        bandpass_freq_panel.SetSizer(bandpass_freq_panel_sizer)
+        sizer.Add(bandpass_freq_panel, flag=wx.EXPAND | wx.ALL, border=5)
+
+        bandpass_freq_enabled_label = wx.StaticText(bandpass_freq_panel, wx.ID_ANY, label='Enabled', style=wx.ALIGN_RIGHT)
+        bandpass_freq_enabled_control = wx.CheckBox(bandpass_freq_panel, wx.ID_ANY)
+        bandpass_freq_enabled_control.SetValue(has_bandpass)
+        bandpass_freq_panel_sizer.Add(bandpass_freq_enabled_label, 1, wx.EXPAND | wx.ALL, border=5)
+        bandpass_freq_panel_sizer.Add(bandpass_freq_enabled_control, 2, wx.EXPAND | wx.ALL, border=5)
+
+        bandpass_freq_bottom_label = wx.StaticText(bandpass_freq_panel, wx.ID_ANY, label='Bottom Frequency', style=wx.ALIGN_RIGHT)
+        bandpass_freq_bottom_control = wx.TextCtrl(bandpass_freq_panel, id=wx.ID_ANY, value='0.0')
+        bandpass_freq_panel_sizer.Add(bandpass_freq_bottom_label, 1, wx.EXPAND | wx.ALL, border=5)
+        bandpass_freq_panel_sizer.Add(bandpass_freq_bottom_control, 2, wx.EXPAND | wx.ALL, border=5)
+        if has_bandpass:
+            bandpass_freq_bottom_control.SetValue(str(self.selectors['Bandpass']['bottom_frequency']))
+        else:
+            ctrl_disable(bandpass_freq_bottom_control)
+        
+
+        bandpass_freq_top_label = wx.StaticText(bandpass_freq_panel, wx.ID_ANY, label='Top Frequency', style=wx.ALIGN_RIGHT)
+        bandpass_freq_top_control = wx.TextCtrl(bandpass_freq_panel, id=wx.ID_ANY, value='0.0')
+        bandpass_freq_panel_sizer.Add(bandpass_freq_top_label, 1, wx.EXPAND | wx.ALL, border=5)
+        bandpass_freq_panel_sizer.Add(bandpass_freq_top_control, 2, wx.EXPAND | wx.ALL, border=5)
+        if has_bandpass:
+            bandpass_freq_top_control.SetValue(str(self.selectors['Bandpass']['top_frequency']))
+        else:
+            ctrl_disable(bandpass_freq_top_control)
+        
+
+        def bandpass_freq_enabled_update(event):
+            if bandpass_freq_enabled_control.GetValue():
+                ctrl_enable(bandpass_freq_bottom_control)
+                ctrl_enable(bandpass_freq_top_control)
+                self.selectors['Bandpass'] = {
+                    'bottom_frequency': 0.01,
+                    'top_frequency': 0.1,
+                }
+                bandpass_freq_bottom_control.SetValue(str(self.selectors['Bandpass']['bottom_frequency']))
+                bandpass_freq_top_control.SetValue(str(self.selectors['Bandpass']['top_frequency']))
+            else:
+                ctrl_disable(bandpass_freq_bottom_control)
+                ctrl_disable(bandpass_freq_top_control)
+                del self.selectors['Bandpass']
+
+        bandpass_freq_enabled_control.Bind(
+            wx.EVT_CHECKBOX, bandpass_freq_enabled_update
+        )
+
+
+        self.titles += [self.render_selectors_title('Censoring')]
+
+        censoring = self.selectors.get('Censor', {})
+        censoring_thresholds = censoring.get('thresholds', [])
+
+        # Framewise displacement control
+        censoring_thresholds_fd = find(censoring_thresholds, lambda t:  t.get('type') == 'FD')
+        has_censoring_thresholds_fd = censoring_thresholds_fd is not None
+        censoring_thresholds_fd_checkbox = wx.CheckBox(self.editor, wx.ID_ANY, 'Framewise Displacement')
+        censoring_thresholds_fd_checkbox.SetValue(has_censoring_thresholds_fd)
+        sizer.Add(censoring_thresholds_fd_checkbox, flag=wx.EXPAND | wx.ALL, border=5)
+
+        censoring_thresholds_fd_thresh_panel = wx.Panel(self.editor)
+        censoring_thresholds_fd_thresh_panel.SetBackgroundColour(wx.WHITE)
+        censoring_thresholds_fd_thresh_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        censoring_thresholds_fd_thresh_panel.SetSizer(censoring_thresholds_fd_thresh_panel_sizer)
+        sizer.Add(censoring_thresholds_fd_thresh_panel, flag=wx.EXPAND | wx.ALL, border=5)
+
+        censoring_thresholds_fd_thresh_label = wx.StaticText(censoring_thresholds_fd_thresh_panel, wx.ID_ANY, 'Threshold')
+        censoring_thresholds_fd_thresh_panel_sizer.Add(censoring_thresholds_fd_thresh_label, 1, wx.CENTER | wx.ALL, border=5)
+
+        censoring_thresholds_fd_thresh_control = wx.TextCtrl(censoring_thresholds_fd_thresh_panel, id=wx.ID_ANY, value=str(censoring_thresholds_fd['value']))
+        censoring_thresholds_fd_thresh_panel_sizer.Add(censoring_thresholds_fd_thresh_control, 2, wx.CENTER | wx.ALL, border=5)
+        if not has_censoring_thresholds_fd:
+            ctrl_disable(censoring_thresholds_fd_thresh_control)
+
+        def censoring_thresholds_fd_update(event):
+            if 'Censor' not in self.selectors:
+                self.selectors['Censor'] = {}
+            if 'thresholds' not in self.selectors['Censor']:
+                self.selectors['Censor']['thresholds'] = []
+
+            fd = findi(self.selectors['Censor']['thresholds'], lambda t:  t.get('type') == 'FD')
+            if censoring_thresholds_fd_checkbox.GetValue():
+                if fd is None:
+                    self.selectors['Censor']['thresholds'].append({"type": "FD", "value": 0.0})
+                    ctrl_enable(censoring_thresholds_fd_thresh_control)
+            else:
+                if fd is not None:
+                    del self.selectors['Censor']['thresholds'][fd]
+                ctrl_disable(censoring_thresholds_fd_thresh_control)
+
+        censoring_thresholds_fd_checkbox.Bind(
+            wx.EVT_CHECKBOX, censoring_thresholds_fd_update
+        )
+
+        # DVARS control
+        censoring_thresholds_dvars = find(censoring_thresholds, lambda t:  t.get('type') == 'DVARS')
+        has_censoring_thresholds_dvars = censoring_thresholds_dvars is not None
+        censoring_thresholds_dvars_checkbox = wx.CheckBox(self.editor, wx.ID_ANY, 'DVARS')
+        censoring_thresholds_dvars_checkbox.SetValue(has_censoring_thresholds_dvars)
+        sizer.Add(censoring_thresholds_dvars_checkbox, flag=wx.EXPAND | wx.ALL, border=5)
+
+        censoring_thresholds_dvars_thresh_panel = wx.Panel(self.editor)
+        censoring_thresholds_dvars_thresh_panel.SetBackgroundColour(wx.WHITE)
+        censoring_thresholds_dvars_thresh_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        censoring_thresholds_dvars_thresh_panel.SetSizer(censoring_thresholds_dvars_thresh_panel_sizer)
+        sizer.Add(censoring_thresholds_dvars_thresh_panel, flag=wx.EXPAND | wx.ALL, border=5)
+
+        censoring_thresholds_dvars_thresh_label = wx.StaticText(censoring_thresholds_dvars_thresh_panel, wx.ID_ANY, 'Threshold')
+        censoring_thresholds_dvars_thresh_panel_sizer.Add(censoring_thresholds_dvars_thresh_label, 1, wx.CENTER | wx.ALL, border=5)
+
+        censoring_thresholds_dvars_thresh_control = wx.TextCtrl(censoring_thresholds_dvars_thresh_panel, id=wx.ID_ANY, value=str(censoring_thresholds_dvars['value']))
+        censoring_thresholds_dvars_thresh_panel_sizer.Add(censoring_thresholds_dvars_thresh_control, 2, wx.CENTER | wx.ALL, border=5)
+        if not has_censoring_thresholds_dvars:
+            ctrl_disable(censoring_thresholds_dvars_thresh_control)
+
+        def censoring_thresholds_dvars_update(event):
+            if 'Censor' not in self.selectors:
+                self.selectors['Censor'] = {}
+            if 'thresholds' not in self.selectors['Censor']:
+                self.selectors['Censor']['thresholds'] = []
+
+            dvars = findi(self.selectors['Censor']['thresholds'], lambda t:  t.get('type') == 'DVARS')
+            if censoring_thresholds_dvars_checkbox.GetValue():
+                if dvars is None:
+                    self.selectors['Censor']['thresholds'].append({"type": "DVARS", "value": 0.0})
+                    ctrl_enable(censoring_thresholds_dvars_thresh_control)
+            else:
+                if dvars is not None:
+                    del self.selectors['Censor']['thresholds'][dvars]
+                ctrl_disable(censoring_thresholds_dvars_thresh_control)
+
+        censoring_thresholds_dvars_checkbox.Bind(
+            wx.EVT_CHECKBOX, censoring_thresholds_dvars_update
+        )
+
+
 
     def scroll_selector(self, event):
         item_name = str(self.tree.GetItemText(event.GetItem()))
@@ -256,7 +520,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         root = self.tree.AddRoot('Selectors')
         root_regressors = self.tree.AppendItem(root, 'Regressors')
         root_detrending = self.tree.AppendItem(root, 'Detrending')
-        root_censoring = self.tree.AppendItem(root, 'Censor')
+        root_censoring = self.tree.AppendItem(root, 'Censoring')
 
         valid_regressors = [
             'Motion',
@@ -381,61 +645,6 @@ class NuisanceRegressionRegressors(Control):
         self.name = 'Regressors'
         self.default_values = []
 
-        regressor_selectors=[
-            {
-                'CerebrospinalFluid': {'erode_mask': True,
-                                        'extraction_resolution': 2,
-                                        'summary': {'components': 5, 'method': 'PC'}},
-                'GlobalSignal': {'include_delayed': True,
-                                    'include_delayed_squared': True,
-                                    'include_squared': True,
-                                    'summary': 'Mean'},
-                'Motion': {'include_delayed': True,
-                            'include_delayed_squared': True,
-                            'include_squared': True},
-                'WhiteMatter': {'extraction_resolution': 2,
-                                'summary': {'components': 5, 'method': 'PC'}},
-                'aCompCor': {'extraction_resolution': 2,
-                                'summary': {'components': 5, 'method': 'PC'},
-                                'tissues': ['WhiteMatter', 'CerebrospinalFluid']},
-                'tCompCor': {'by_slice': True,
-                                'summary': {'components': 5, 'method': 'PC'},
-                                'threshold': '1.5SD'},
-                'PolyOrt': {'degree': 2},
-                'Bandpass': {
-                    'bottom_frequency': 0.01,
-                    'top_frequency': 0.1,
-                },
-                'Censor': {'method': 'Interpolate',
-                            'thresholds': [{'type': 'FD', 'value': 0.5},
-                                            {'type': 'DVARS', 'value': 17}]},
-            },
-            {
-                'CerebrospinalFluid': {'erode_mask': True,
-                                        'extraction_resolution': 2,
-                                        'summary': {'components': 5, 'method': 'PC'}},
-                'Motion': {'include_delayed': True,
-                            'include_delayed_squared': True,
-                            'include_squared': True},
-                'WhiteMatter': {'extraction_resolution': 2,
-                                'summary': {'components': 5, 'method': 'PC'}},
-                'aCompCor': {'extraction_resolution': 2,
-                                'summary': {'components': 5, 'method': 'PC'},
-                                'tissues': ['WhiteMatter', 'CerebrospinalFluid']},
-                'tCompCor': {'by_slice': True,
-                                'summary': {'components': 5, 'method': 'PC'},
-                                'threshold': '1.5SD'},
-                'PolyOrt': {'degree': 2},
-                'Bandpass': {
-                    'bottom_frequency': 0.01,
-                    'top_frequency': 0.1,
-                },
-                'Censor': {'method': 'Interpolate',
-                            'thresholds': [{'type': 'FD', 'value': 0.5},
-                                            {'type': 'DVARS', 'value': 17}]},
-            },
-        ]
-
         self.ctrl = NuisanceRegressionRegressorsGrid(
             parent, id=wx.ID_ANY,
             regressor_selectors=regressor_selectors,
@@ -521,8 +730,13 @@ def test_nuisance():
 
     app = wx.App(False)
     frame = wx.Frame(None, wx.ID_ANY, "Nuisance Regression")
-    NuisanceRegression(frame)
-    frame.Show(True)
-    app.MainLoop()
+    # NuisanceRegression(frame)
+    # frame.Show(True)
 
+    frame.regressor_selectors = regressor_selectors
+    editor = NuisanceRegressionRegressorEditor(frame, 0)
+    editor.Show(True)
+    editor.Bind(wx.EVT_CLOSE, lambda event: app.Destroy())
+    
+    app.MainLoop()
 
