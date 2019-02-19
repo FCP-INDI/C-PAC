@@ -649,3 +649,117 @@ class BASCSettings(wx.ScrolledWindow):
         self.page.set_sizer()
         parent.get_page_list().append(self)
 
+
+class QPP(wx.html.HtmlWindow):
+    def __init__(self, parent, counter=0):
+        wx.html.HtmlWindow.__init__(self, parent,
+                                    style=wx.html.HW_SCROLLBAR_AUTO)
+        self.SetStandardFonts()
+
+        self.counter = counter
+
+        self.LoadFile(p.resource_filename('CPAC',
+                                          'GUI/resources/html/basc.html'))
+
+    def get_counter(self):
+        return self.counter
+
+
+class QPPSettings(wx.ScrolledWindow):
+
+    def __init__(self, parent, counter=0):
+        wx.ScrolledWindow.__init__(self, parent)
+
+        import os
+
+        self.counter = counter
+
+        self.page = GenericClass(self, " QPP - Quasi Periodic Patterns"
+                                       "(QPP)")
+
+        fsl = os.environ.get('FSLDIR')
+        if fsl == None:
+            fsl = "$FSLDIR"
+
+        self.page.add(label="Run QPP ",
+                      control=control.CHOICE_BOX,
+                      name='run_qpp',
+                      type=dtype.LSTR,
+                      comment="Run Quasi Periodic Pattern Analysis",
+                      values=["Off", "On"],
+                      wkf_switch=True)
+
+        self.page.add(label="Series/Scan Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='qpp_scan_inclusion',
+                      type=dtype.STR,
+                      values="None",
+                      comment="If there are multiple series/scans in any "
+                              "of the pipeline outputs for which QPP is "
+                              "being run, and you only want to run for some "
+                              "of them, you can list them here - scan labels "
+                              "separated by commas (ex. 'rest_run-1, "
+                              "rest_run-3').\n\nIf nothing is listed, QPP "
+                              "will run once for each scan, for all "
+                              "available scans.")
+
+        self.page.add(label="Window Length(WL)",
+                      control=control.INT_CTRL,
+                      name='qpp_wl',
+                      type=dtype.NUM,
+                      values=30,
+                      comment="provide the length of window you would like to search for the template in")
+
+        self.page.add(label="Number of Repetitions ",
+                      control=control.INT_CTRL,
+                      name='qpp_nrp',
+                      type=dtype.NUM,
+                      comment="Number of random repetitions to use while "
+                              "performing QPP. It is set initially as equal to the number" \
+                              "of number of subjects*number of runs per subject, but can be varied if that," \
+                              "does not work"
+                      values=0)
+
+        self.page.add(label="cth ",
+                      control=control.INT_CTRL,
+                      name='qpp_cth',
+                      type=dtype.LNUM,
+                      comment="Correlation threshold for early and late iterations.",
+                      )
+
+        self.page.add(label="Number of early iterations with lower threshold ",
+                      control=control.INT_CTRL,
+                      name='qpp_n_iter_th1',
+                      type=dtype.NUM,
+                      values=2,
+                      comment="Set the number of early iterations with lower thresholds")
+
+        self.page.add(label="mx_iter",
+                      control=control.INT_CTRL,
+                      name='qpp_mx_iter',
+                      type=dtype.NUM,
+                      values="15",
+                      comment="Maximum number of iterations. ")
+
+        self.page.add(label="nrn",
+                      control=control.INT_CTRL,
+                      name='qpp_nrn',
+                      type=dtype.NUM,
+                      values="1",
+                      comment="Number of scans you have the data recorded with.This is independent"\
+                      "of the number of scans you wish to include in your scan/series list.")
+
+
+
+        self.page.add(label="glassr_360",
+                      control=control.CHOICE_BOX,
+                      name='qpp_glassr_360',
+                      type=dtype.BOOL,
+                      comment="Is your input data organized as glassr_360? If you choose True, you will need to provide" \
+                      "the path to .mat files of glassr 360 organization. This should further contain a matrix g2y7,YLB1 and YLB.",
+                      values=['True', 'False'])
+
+        
+
+        self.page.set_sizer()
+        parent.get_page_list().append(self)
