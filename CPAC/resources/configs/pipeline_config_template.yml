@@ -260,6 +260,10 @@ template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat
 regOption :  ['ANTS']
 
 
+# Use only FLIRT, without FNIRT, for anatomical-to-template registration.
+fsl_linear_reg_only :  [0]
+
+
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
 fnirtConfig :  T1_2_MNI152_2mm

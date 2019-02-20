@@ -3,7 +3,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
-from CPAC.registration import create_nonlinear_register, \
+from CPAC.registration import create_fsl_fnirt_nonlinear_reg, \
     create_register_func_to_anat, \
     create_bbregister_func_to_anat, \
     create_wf_calculate_ants_warp, \
@@ -137,9 +137,12 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
         node, out_file = strat['functional_to_anat_linear_xfm']
         workflow.connect(node, out_file, apply_fsl_warp, 'premat')
 
-        # nonlinear warp from anatomical->template FNIRT registration
-        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
-        workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
+        try:
+            # nonlinear warp from anatomical->template FNIRT registration
+            node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+            workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
+        except KeyError:
+            pass
 
         strat.update_resource_pool({'{0}_to_standard'.format(output_name): (apply_fsl_warp, 'out_file')})
         strat.append_name(apply_fsl_warp.name)
