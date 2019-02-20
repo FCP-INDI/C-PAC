@@ -21,6 +21,8 @@ from CPAC.GUI.interface.pages import (
     AROMA_ICA, AromaSettings
 )
 
+from ..utils.constants import dtype as data_types
+
 ID_SUBMIT = 6
 
 
@@ -342,6 +344,10 @@ class MainFrame(wx.Frame):
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
 
+                if name == 'Regressors':
+                    ctrl.set_value(val)
+                    continue
+
                 if name == 'model_setup':
                     # update the 'Model Setup' box and populate it with the 
                     # EVs and their associated checkboxes for categorical 
@@ -350,7 +356,7 @@ class MainFrame(wx.Frame):
                         ctrl.set_value(self.phenoHeaderItems)
                         ctrl.set_selection(config_file_map['ev_selections'])
 
-                if val:
+                if val is not None:
                     if ("list" in name) and (name != "participant_list") and ('basc' not in name):
                         try:
                             mapped_vals = [s_map.get(item) for item in val if s_map.get(item) != None]
@@ -1328,26 +1334,37 @@ class MainFrame(wx.Frame):
                 #     ALSO: the Nuisance Corrections lists                
                 elif dtype == 8:
 
-                    print>>f, label,":"
+                    if type(value) == list:
 
-                    value = ast.literal_eval(str(value))
+                        import yaml
+                        yml = yaml.dump({
+                            label: value
+                        }, default_flow_style=False)
 
-                    for val in value:
-                        val = val.split(',')
-                        f.write("  - ")
-                        flag = 0
-                        for sample in sample_list:
-                            if flag == 0:
-                                space = ""
-                                flag = 1
-                            else:
-                                space = "    "
-                            if sample in val:
-                                print>>f, space, sample, ": ", 1
-                            else:
-                                print>>f, space, sample, ": ", 0
+                        print>>f, yml
 
-                    print >>f, "\n"
+                    else:
+
+                        print>>f, label,":"
+
+                        value = ast.literal_eval(str(value))
+
+                        for val in value:
+                            val = val.split(',')
+                            f.write("  - ")
+                            flag = 0
+                            for sample in sample_list:
+                                if flag == 0:
+                                    space = ""
+                                    flag = 1
+                                else:
+                                    space = "    "
+                                if sample in val:
+                                    print>>f, space, sample, ": ", 1
+                                else:
+                                    print>>f, space, sample, ": ", 0
+
+                        print >>f, "\n"
 
                 elif dtype == 9:
 

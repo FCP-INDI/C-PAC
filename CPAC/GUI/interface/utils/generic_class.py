@@ -77,8 +77,9 @@ class GenericClass(wx.ScrolledWindow):
         hbox.Add(button, flag=wx.CENTER | wx.ALL)
         self.flexSizer.Add(hbox)
         
-        if control not in control_types.__dict__.values():
+        if control not in [v for k, v in control_types.__dict__.items() if not k.startswith('__')]:
             self.ctrl_list.append(control)
+            self.type = control.__class__.__name__
             self.flexSizer.Add(control.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
 
         else:
@@ -91,6 +92,8 @@ class GenericClass(wx.ScrolledWindow):
                            validation_req=validation_req,
                            combo_type=combo_type,
                            selections=selections)
+            
+            self.ctrl_list.append(ctrl)
         
             if wkf_switch:
                 self.switch = ctrl

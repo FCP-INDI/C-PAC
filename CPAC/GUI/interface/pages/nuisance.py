@@ -878,6 +878,13 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
         self.Bind(wx.EVT_SHOW, self.render)
         self.Bind(wx.EVT_SIZE, self.render)
 
+    def update(self, regressor_selectors):
+        self.regressor_selectors = regressor_selectors
+        self.render()
+
+    def get_value(self):
+        return self.regressor_selectors
+
     def add_regressor(self, event):
         editor = NuisanceRegressionRegressorEditor(self)
 
@@ -972,11 +979,24 @@ class NuisanceRegressionRegressors(Control):
 
         self.name = 'Regressors'
         self.default_values = []
+        self.datatype = dtype.LDICT
+        self.help = "Get moro info"
+
+        self.type = self.__class__.__name__
 
         self.ctrl = NuisanceRegressionRegressorsGrid(
             parent,
             value=regressor_selectors
         )
+
+    def set_value(self, value):
+        self.ctrl.update(value)
+
+    def get_validation(self):
+        return False
+
+    def get_selection(self):
+        return self.ctrl.get_value()
 
 
 class NuisanceRegression(wx.ScrolledWindow):
