@@ -590,6 +590,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     'anat_mni_fnirt_register_%d' % num_strat
                 )
 
+                node, out_file = strat['anatomical_brain']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_anat_mni, 'inputspec.input_brain')
+
+                # pass the reference files
+                workflow.connect(
+                    c.template_brain_only_for_anat, 'local_path',
+                    fnirt_reg_anat_mni, 'inputspec.reference_brain'
+                )
+
                 node, out_file = strat['anatomical_reorient']
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.input_skull')
@@ -842,6 +852,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 if 'anat_mni_flirt_register' in nodes:
                     fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
                         'anat_symmetric_mni_fnirt_register_%d' % num_strat
+                    )
+
+                    node, out_file = strat['anatomical_brain']
+                    workflow.connect(node, out_file,
+                                     fnirt_reg_anat_symm_mni,
+                                     'inputspec.input_brain')
+
+                    # pass the reference files
+                    workflow.connect(
+                        c.template_brain_only_for_anat, 'local_path',
+                        fnirt_reg_anat_symm_mni, 'inputspec.reference_brain'
                     )
 
                     node, out_file = strat['anatomical_reorient']
@@ -1924,7 +1945,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if "De-Spiking" in c.runMotionSpike:
                         subwf_name = "nuisance_with_despiking"
 
-                    if 'anat_mni_fnirt_register' in nodes:
+                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                         nuisance = create_nuisance(False,
                                                 '{0}_{1}'.format(subwf_name,
                                                                     num_strat))
@@ -2070,7 +2091,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # avoiding a crash) on the strat without segmentation
                 if 'seg_preproc' in nodes:
 
-                    use_ants = 'anat_mni_fnirt_register' in nodes
+                    use_ants = 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes
                     nuisance = create_nuisance(use_ants=use_ants,
                                             name='nuisance_no_despiking_%d' % num_strat)
 
@@ -2113,7 +2134,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                     nuisance,
                                     'inputspec.func_to_anat_linear_xfm')
 
-                    if 'anat_mni_fnirt_register' in nodes:
+                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                         node, out_file = strat['mni_to_anatomical_linear_xfm']
                         workflow.connect(node, out_file,
                                         nuisance,
