@@ -44,7 +44,6 @@ def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
               "--use-histogram-matching", "1",
               "--winsorize-image-intensities", "[0.01,0.99]"]
 
-    # Still have to work on that
     if fixed_image_mask != "<undefined>":
         regcmd.append("-x")
         regcmd.append(str(fixed_image_mask))
