@@ -13,7 +13,7 @@ import time
 
 
 
-def qpp_wf(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn,glassr_360):
+def qpp_wf(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
 
     if img.endswith('.mat'):
         D_file = scipy.io.loadmat(img)
@@ -89,40 +89,40 @@ def qpp_wf(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn,glassr_360):
     C_1,FTP1,Met1 = BSTT(time_course,ftp,nd,B)
     #regress QPP
     T =TBLD2WL(B,wl,FTP1)
-    Br, C1r=regressqpp(B, nd, T, C_1,args.glassr_360)
+    Br, C1r=regressqpp(B, nd, T, C_1)
     print("-----%s seconds ----"%(time.time() - start_time))
 
 if __name__ == "__main__":
 
-    import argparse
-    parser = argparse.ArgumentParser()
+    #import argparse
+    #parser = argparse.ArgumentParser()
 
-    parser.add_argument("img", type=str,help='Provide the path to the 2D nifti file')
+    #parser.add_argument("img", type=str,help='Provide the path to the 2D nifti file')
 
-    parser.add_argument("mask", type=str, help='provide the path to the mask of 2D nifti file')
-
-
-    parser.add_argument("wl", type=int,help='provide the length of window you would like to search for the template in')
-
-    parser.add_argument("nrp", type=int, help='provide the number of random permutations you would like to perform')
-
-    parser.add_argument("cth", nargs= '+',type=float,help='provide the threshold value, as a list')
-
-    parser.add_argument("n_itr_th", type=int, help='provide the number of scans contatenated')
-
-    parser.add_argument("mx_itr", type=int, help='provide the maximum number of iterations')
-
-    parser.add_argument("pfs", type=str, help='provide the path to the directory you would like to save the files in')
-
-    parser.add_argument("nsubj", type=int, help='provide the number of subjects')
-
-    parser.add_argument("nrn",type=int,help='provide the number of runs per subject')
-
-    parser.add_argument("glassr_360",type=bool,help='If you have data organized with glasser 360 parcels, set this option to true,else set it to False.')
+    #parser.add_argument("mask", type=str, help='provide the path to the mask of 2D nifti file')
 
 
-    args = parser.parse_args()
-    qpp_wf(args.img,args.mask,args.wl,args.nrp,args.cth,args.n_itr_th,args.mx_itr,args.pfs,args.nsubj,args.nrn,args.glassr_360)
+    #parser.add_argument("wl", type=int,help='provide the length of window you would like to search for the template in')
+
+    #parser.add_argument("nrp", type=int, help='provide the number of random permutations you would like to perform')
+
+    #parser.add_argument("cth", nargs= '+',type=float,help='provide the threshold value, as a list')
+
+    #parser.add_argument("n_itr_th", type=int, help='provide the number of scans contatenated')
+
+    #parser.add_argument("mx_itr", type=int, help='provide the maximum number of iterations')
+
+    #parser.add_argument("pfs", type=str, help='provide the path to the directory you would like to save the files in')
+
+    #parser.add_argument("nsubj", type=int, help='provide the number of subjects')
+
+    #parser.add_argument("nrn",type=int,help='provide the number of runs per subject')
+
+    #parser.add_argument("glassr_360",type=bool,help='If you have data organized with glasser 360 parcels, set this option to true,else set it to False.')
+
+
+    #args = parser.parse_args()
+    qpp_wf(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn)
 
 
 
