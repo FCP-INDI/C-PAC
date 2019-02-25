@@ -308,7 +308,7 @@ def TBLD2WL(B,wl,FTP1):
 
     return T
 
-def regressqpp(B,nd,T1,C_1,glassr_360):
+def regressqpp(B,nd,T1,C_1):
     #to do: check shape of c in loop
     wl = np.round(T1.shape[1]/2)
     wlhs = np.round(wl/2)
