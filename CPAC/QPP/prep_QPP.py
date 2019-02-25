@@ -1,7 +1,4 @@
-import fnmatch
-import nump
-from QPPv0418 import detectqppv
-from detectqppv import qpp_wf
+
 
 def load_config_yml(config_file, individual=False):
 
@@ -580,46 +577,7 @@ def create_merge_mask(merged_file, mask_outfile):
 
     return mask_outfile
 
-def run_qpp_group(group_config_file):
 
-    #creating output directory paths
-
-    merge_file,merge_mask,inclusion_list = prep_inputs(group_config_file)
-    return merge_file,merge_mask,inclusion_list
-
-def run_qpp(group_config_file):
-    group_config_file = '/home/nrajamani/grp/tests_v1/fsl-feat_config_adhd200_test7.yml'
-    img, mask, inclusion_list = run_qpp_group(group_config_file)
-
-    group_config_obj = load_yaml(group_config_file)
-
-
-
-    pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
-
-    out_dir = os.path.join(group_model.output_dir,
-                           'cpac_group_analysis',
-                           'CPAC_QPP',
-                           '{0}'.format(pipeline_ID),
-                           nuisance_strat,  # nuisance strat to initialize
-                           session_id,  # initialize
-                           scan_or_session_label)  # series or repeated label == same as qpp scan or sessions list)
-
-    wl  = group_config_obj.wl
-
-    nrp = group_config_obj.nrp
-
-    cth = group_config_obj.cth
-
-    n_itr_th = group_config_obj.n_itr_th
-
-    mx_itr = group_config_obj.mx_itr
-
-    nsubj = len(inclusion_list)
-    nrn =  group_config_obj.nrn #How many runs have you run each subject by. Please note that this is different from
-    #the number of scans or sessions you want to include in the qpp analysis
-
-    qpp_wf(img,mask,wl,nrp,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
 
 
 
