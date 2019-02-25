@@ -1,3 +1,4 @@
+
 import fnmatch
 import pandas
 
@@ -1850,6 +1851,137 @@ def run_isc(pipeline_config):
                       permutations=permutations,
                       std_filter=std_filter)
 
+def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
+                  isc, isfc, levels=[], permutations=1000,
+                  std_filter=None):
+
+    import os
+    from CPAC.isc.pipeline import create_isc, create_isfc
+
+    pipeline_dir = os.path.abspath(pipeline_dir)
+
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'ISC',
+                           os.path.basename(pipeline_dir))
+
+    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'ISC',
+                               os.path.basename(pipeline_dir))
+
+    crash_dir = os.path.join(crash_dir, 'cpac_group_analysis', 'ISC',
+                             os.path.basename(pipeline_dir))
+
+    output_df_dct = gather_outputs(
+        pipeline_dir,
+        ["functional_to_standard", "roi_timeseries"],
+        inclusion_list=None,
+        get_motion=False, get_raw_score=False, get_func=True,
+        derivatives=["functional_to_standard", "roi_timeseries"],
+        exts=['nii', 'nii.gz', 'csv']
+    )
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        derivative, _ = preproc_strat
+
+        if "voxel" not in levels and derivative == "functional_to_standard":
+            continue
+
+        if "roi" not in levels and derivative == "roi_timeseries":
+            continue
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        if isc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
+
+                isc_wf = create_isc(name="ISC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                isc_wf.inputs.inputspec.subjects = func_paths
+                isc_wf.inputs.inputspec.permutations = permutations
+                isc_wf.inputs.inputspec.std = std_filter
+                isc_wf.inputs.inputspec.collapse_subj = False
+                isc_wf.run()
+
+        if isfc:
+            for df_scan in df_dct.keys():
+                func_paths = {
+                    p.split("_")[0]: f
+                    for p, f in
+                    zip(
+                        df_dct[df_scan].participant_id,
+                        df_dct[df_scan].Filepath
+                    )
+                }
+
+                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                isfc_wf.inputs.inputspec.subjects = func_paths
+                isfc_wf.inputs.inputspec.permutations = permutations
+                isfc_wf.inputs.inputspec.std = std_filter
+                isfc_wf.inputs.inputspec.collapse_subj = False
+                isfc_wf.run()
+
+
+def run_qpp_group(group_config_file):
+    from CPAC.QPP.prep_QPP import prep_inputs
+    #creating output directory paths
+
+    merge_file,merge_mask,inclusion_list = prep_inputs(group_config_file)
+    return merge_file,merge_mask,inclusion_list
+
+def run_qpp(group_config_file):
+    from CPAC.QPP.QPPV0418v import qpp_wf
+
+    group_config_file = os.path.abspath(group_config_file)
+    img, mask, inclusion_list = run_qpp_group(group_config_file)
+
+    group_config_obj = load_yaml(group_config_file)
+
+    working_dir = group_config_obj["work_dir"]
+    crash_dir = group_config_obj["log_dir"]
+
+    pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
+
+    out_dir = os.path.join(group_model.output_dir,
+                           'cpac_group_analysis',
+                           'CPAC_QPP',
+                           '{0}'.format(pipeline_ID),
+                           nuisance_strat,  # nuisance strat to initialize
+                           session_id,  # initialize
+                           scan_or_session_label)  # series or repeated label == same as qpp scan or sessions list)
+
+    wl  = group_config_obj.wl
+
+    nrp = group_config_obj.nrp
+
+    cth = group_config_obj.cth
+
+    n_itr_th = group_config_obj.n_itr_th
+
+    mx_itr = group_config_obj.mx_itr
+
+    nsubj = len(inclusion_list)
+    nrn =  group_config_obj.nrn #How many runs have you run each subject by. Please note that this is different from
+    #the number of scans or sessions you want to include in the qpp analysis
+
+    qpp_wf(img,mask,wl,nrp,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
+
 
 def manage_processes(procss, output_dir, num_parallel=1):
 
@@ -1925,3 +2057,7 @@ def run(config_file):
     # Run randomise, if selected
     if 1 in c.run_randomise:
         run_feat(config_file, feat=False)
+
+    #Run QPP, if selected
+    if 1 in c.run_qpp:
+        run_qpp(config_file)
