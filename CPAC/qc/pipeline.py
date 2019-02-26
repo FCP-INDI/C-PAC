@@ -99,16 +99,6 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
 
                 workflow.connect(fd, out_file, qc_workflow, 'inputspec.fd')
 
-                if "De-Spiking" in c.runMotionSpike:
-                    excluded, out_file_ex = strat['despiking_frames_excluded']
-                    workflow.connect(excluded, out_file_ex,
-                                        qc_workflow, 'inputspec.excluded_volumes')
-
-                elif "Scrubbing" in c.runMotionSpike:
-                    excluded, out_file_ex = strat['scrubbing_frames_excluded']
-                    workflow.connect(excluded, out_file_ex,
-                                        qc_workflow, 'inputspec.excluded_volumes')
-
                 strat.update_resource_pool({
                     'qc___fd_plot': (qc_workflow, 'outputspec.fd_histogram_plot')
                 })
