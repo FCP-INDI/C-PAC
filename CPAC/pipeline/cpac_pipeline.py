@@ -59,7 +59,7 @@ from CPAC.registration import (
     create_wf_c3d_fsl_to_itk,
     create_wf_collect_transforms
 )
-from CPAC.nuisance import create_nuisance_workflow
+from CPAC.nuisance import create_nuisance_workflow, NuisanceRegressor
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
@@ -600,7 +600,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
                     'anat_mni_ants_register_%d' % num_strat,
-                    c.regWithSkull[0],
                     num_threads=num_ants_cores
                 )
 
@@ -806,7 +805,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
                         'anat_symmetric_mni_ants_register_%d' % num_strat,
-                        c.regWithSkull[0],
                         num_threads=num_ants_cores
                     )
 
@@ -1342,47 +1340,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
-        '''
-        Inserting Friston's 24 parameter Workflow
-        In case this workflow runs , it overwrites the movement_parameters file
-        So the file contains 24 parameters for motion and that gets wired to all the workflows
-        that depend on. The effect should be seen when regressing out nuisance signals and motion
-        is used as one of the regressors
-        '''
 
         new_strat_list = []
         workflow_counter += 1
-
-        if 1 in c.runFristonModel:
-
-            workflow_bit_id['fristons_parameter_model'] = workflow_counter
-
-            for num_strat, strat in enumerate(strat_list):
-
-                fristons_model = fristons_twenty_four(
-                    wf_name='fristons_parameter_model_%d' % num_strat
-                )
-
-                node, out_file = strat['movement_parameters']
-                workflow.connect(node, out_file,
-                                fristons_model, 'inputspec.movement_file')
-
-                # TODO ASH review forking
-                if 0 in c.runFristonModel:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(fristons_model.name)
-
-                strat.update_resource_pool({
-                    'movement_parameters': (fristons_model, 'outputspec.movement_file')
-                }, override=True)
-
-                create_log_node(workflow,
-                                fristons_model, 'outputspec.movement_file',
-                                num_strat)
-
-        strat_list += new_strat_list
 
         # Func -> T1 Registration (Initial Linear reg)
 
@@ -1489,8 +1449,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         new_strat_list = []
         workflow_counter += 1
 
-        if 1 in c.runRegisterFuncToAnat and \
-        1 in c.runBBReg:
+        if 1 in c.runRegisterFuncToAnat and 1 in c.runBBReg:
 
             workflow_bit_id['func_to_anat_bbreg'] = workflow_counter
 
@@ -1508,11 +1467,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if 'epi_distcorr' in nodes:
                         dist_corr = True
 
-                    func_to_anat_bbreg = create_bbregister_func_to_anat(dist_corr,
-                                                                        'func_to_anat_bbreg_%d' % num_strat)
+                    func_to_anat_bbreg = create_bbregister_func_to_anat(
+                        dist_corr,
+                        'func_to_anat_bbreg_%d' % num_strat
+                    )
 
                     # Input registration parameters
-                    func_to_anat_bbreg.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
+                    func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
+                        c.boundaryBasedRegistrationSchedule
 
                     # TODO ASH normalize strings with enums?
                     if 'Mean Functional' in c.func_reg_input:
@@ -1606,14 +1568,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             gen_motion_stats = motion_power_statistics(
                 c.fdCalc[0], 'gen_motion_stats_%d' % num_strat
             )
-
-            gen_motion_stats.inputs.scrubbing_input.set(
-                threshold=c.spikeThreshold,
-                remove_frames_before=c.numRemovePrecedingFrames,
-                remove_frames_after=c.numRemoveSubsequentFrames
-            )
-            gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold',
-                                                                    c.spikeThreshold)
 
             # Special case where the workflow is not getting outputs from
             # resource pool but is connected to functional datasource
@@ -2005,122 +1959,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strat.update_resource_pool({
                     'alff_input_functional': (node, out_file)
                 })
-
-        # Inserting Frequency Filtering Node
-
-        new_strat_list = []
-        workflow_counter += 1
-
-        # TODO ASH normalize w schema val
-        if 1 in c.runFrequencyFiltering:
-
-            workflow_bit_id['frequency_filter'] = workflow_counter
-
-            for num_strat, strat in enumerate(strat_list):
-
-                frequency_filter = pe.Node(
-                    function.Function(input_names=['realigned_file',
-                                                   'bandpass_freqs',
-                                                   'sample_period'],
-                                    output_names=['bandpassed_file'],
-                                    function=bandpass_voxels,
-                                    as_module=True),
-                    name='frequency_filter_%d' % num_strat)
-
-                frequency_filter.iterables = (
-                    'bandpass_freqs', c.nuisanceBandpassFreq
-                )
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file,
-                                frequency_filter, 'realigned_file')
-
-                # TODO ASH replace with create_fork
-                if 0 in c.runFrequencyFiltering:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(frequency_filter.name)
-                strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
-                strat.update_resource_pool({
-                    'functional_freq_filtered': (frequency_filter, 'bandpassed_file')
-                })
-
-                create_log_node(workflow,
-                                frequency_filter, 'bandpassed_file',
-                                num_strat)
-
-        strat_list += new_strat_list
-
-        # Inserting Scrubbing Workflow
-
-        new_strat_list = []
-        workflow_counter += 1
-
-        # TODO ASH normalize w schema val
-        if "Scrubbing" in c.runMotionSpike and \
-                1 in c.runNuisance:
-
-            workflow_bit_id['scrubbing'] = workflow_counter
-
-            # set a flag in case we're doing nuisance on/off
-            non_nuisance_strat = False
-
-            for num_strat, strat in enumerate(strat_list):
-
-                nodes = strat.get_nodes_names()
-
-                # TODO ASH normalize w schema val
-                if 0 in c.runNuisance and \
-                    "nuisance" not in nodes and \
-                    "nuisance_with_despiking" not in nodes and \
-                        "nuisance_no_despiking" not in nodes:
-
-                    if not non_nuisance_strat:
-                        # save one of the strats so that it won't have any
-                        # nuisance at all - this only fires if nuisance is on/off
-                        non_nuisance_strat = True
-                        continue
-
-                # skip if this strat had de-spiking (mutually exclusive)
-                if "nuisance_with_despiking" in nodes:
-                    continue
-
-                if 'gen_motion_stats' in nodes:
-
-                    scrubbing = \
-                        create_scrubbing_preproc('scrubbing_%d' % num_strat)
-
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file,
-                                    scrubbing, 'inputspec.preprocessed')
-
-                    node, out_file = strat['scrubbing_frames_included']
-                    workflow.connect(node, out_file,
-                                    scrubbing, 'inputspec.frames_in_1D')
-
-                    node, out_file = strat['movement_parameters']
-                    workflow.connect(node, out_file,
-                                    scrubbing, 'inputspec.movement_parameters')
-
-                    if "None" in c.runMotionSpike:
-                        strat = strat.fork()
-                        new_strat_list.append(strat)
-
-                    strat.append_name(scrubbing.name)
-
-                    strat.set_leaf_properties(scrubbing,
-                                            'outputspec.preprocessed')
-
-                    strat.update_resource_pool({
-                        'scrubbing_movement_parameters': (scrubbing, 'outputspec.scrubbed_movement_parameters'),
-                        'scrubbed_preprocessed': (scrubbing, 'outputspec.preprocessed')
-                    })
-
-                    create_log_node(workflow,
-                                    scrubbing, 'outputspec.preprocessed',
-                                    num_strat)
-
-        strat_list += new_strat_list
 
         # Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp

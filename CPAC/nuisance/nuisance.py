@@ -83,6 +83,8 @@ def gather_nuisance(functional_file_path,
 
     regressor_length = functional_image.shape[3]
 
+    selectors = selectors.selector
+
     if not isinstance(selectors, dict):
         raise ValueError("Invalid type for selectors {0}, expecting dict"
                          .format(type(selectors)))
@@ -433,9 +435,9 @@ def create_nuisance_workflow(nuisance_selectors,
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'functional_file_path',
 
+        'gm_mask_file_path',
         'wm_mask_file_path',
         'csf_mask_file_path',
-        'gm_mask_file_path',
         'lat_ventricles_mask_file_path',
 
         'functional_brain_mask_file_path',
