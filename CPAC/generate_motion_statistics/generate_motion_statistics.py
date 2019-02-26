@@ -323,11 +323,6 @@ def motion_power_statistics(calculation='Jenkinson',
                                                        'oned_matrix_save']),
                         name='inputspec')
 
-    scrubbing_input = pe.Node(util.IdentityInterface(fields=['threshold',
-                                                             'remove_frames_before',
-                                                             'remove_frames_after']),
-                              name='scrubbing_input')
-
     outputNode = pe.Node(util.IdentityInterface(fields=['FDP_1D',
                                                         'FDJ_1D',
                                                         'DVARS_1D',
@@ -374,52 +369,6 @@ def motion_power_statistics(calculation='Jenkinson',
     pm.connect(calculate_FDJ, 'out_file', 
                outputNode, 'FDJ_1D')
 
-    # calculating frames to exclude and include after scrubbing
-    exc_frames_imports = ['import os', 'import numpy as np',
-                          'from numpy import loadtxt']
-    exclude_frames = pe.Node(util.Function(input_names=['in_file', 
-                                                        'threshold',
-                                                        'frames_before',
-                                                        'frames_after'],
-                                           output_names=['out_file'],
-                                           function=set_frames_ex,
-                                           imports=exc_frames_imports),
-                             name='exclude_frames')
-
-    if calculation == 'Jenkinson':
-        pm.connect(calculate_FDJ, 'out_file', exclude_frames, 'in_file')
-    elif calculation == 'Power':
-        pm.connect(calculate_FDP, 'out_file', exclude_frames, 'in_file')
-
-    pm.connect(scrubbing_input, 'threshold', exclude_frames, 'threshold')
-    pm.connect(scrubbing_input, 'remove_frames_before',
-               exclude_frames, 'frames_before')
-    pm.connect(scrubbing_input, 'remove_frames_after',
-               exclude_frames, 'frames_after')
-    pm.connect(exclude_frames, 'out_file', 
-               outputNode, 'frames_ex_1D')
-
-    inc_frames_imports = ['import os', 'import numpy as np',
-                          'from numpy import loadtxt']
-    include_frames = pe.Node(util.Function(input_names=['in_file', 
-                                                        'threshold', 
-                                                        'exclude_list'],
-                                           output_names=['out_file'],
-                                           function=set_frames_in,
-                                           imports=inc_frames_imports),
-                             name='include_frames')
-
-    if calculation == 'Jenkinson':
-        pm.connect(calculate_FDJ, 'out_file', include_frames, 'in_file')
-    elif calculation == 'Power':
-        pm.connect(calculate_FDP, 'out_file', include_frames, 'in_file')
-
-    pm.connect(scrubbing_input, 'threshold', include_frames, 'threshold')
-    pm.connect(exclude_frames, 'out_file', 
-               include_frames, 'exclude_list')
-    pm.connect(include_frames, 'out_file', 
-               outputNode, 'frames_in_1D')
-
     motion_imports = ['import os', 'import numpy as np', 'import re']
     calc_motion_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
@@ -447,7 +396,6 @@ def motion_power_statistics(calculation='Jenkinson',
                                                                 "scan_id", 
                                                                 "FDP_1D",
                                                                 "FDJ_1D", 
-                                                                "threshold",
                                                                 "DVARS"],
                                                   output_names=['out_file'],
                                                   function=gen_power_parameters,
@@ -463,8 +411,6 @@ def motion_power_statistics(calculation='Jenkinson',
                calc_power_parameters, 'FDP_1D')
     pm.connect(calculate_FDJ, 'out_file',
                calc_power_parameters, 'FDJ_1D')
-    pm.connect(scrubbing_input, 'threshold',
-               calc_power_parameters, 'threshold')
 
     pm.connect(calc_power_parameters, 'out_file', 
                outputNode, 'power_params')
@@ -567,114 +513,6 @@ def calculate_FD_J(in_file):
     
     return out_file
 
-
-def set_frames_in(in_file, threshold, exclude_list):
-
-    """
-     Method to Calculate  the frames that are left
-     after censoring for scrubbing.
-     
-     Parameters
-     ----------
-     in_file : string
-        framewise displacement(FD) file path
-     threshold : float
-        scrubbing thereshold set in configuration file
-     exclude_list : string
-        path of file containing sensored timepoints
-    
-     Returns
-     -------
-     out_file : string 
-        path of file containing remaining uncensored timepoints 
-    """
-
-    out_file = os.path.join(os.getcwd(), 'frames_in.1D')
-
-    data = loadtxt(in_file)
-    # masking zeroth timepoint value as 0, since the mean displacment value
-    # for zeroth timepoint cannot be calculated, as there is no timepoint
-    # before it
-    data[0] = 0
-
-    indices = [i[0] for i in (np.argwhere(data < threshold)).tolist()]
-
-    indx = []
-    with open(exclude_list, 'r') as f:
-        line = f.readline()
-
-    if line:
-        line = line.strip(',')
-        indx = map(int, line.split(","))
-
-    if indx:
-        indices = list(set(indices) - set(indx))
-
-    with open(out_file, 'a') as f:
-        for idx in indices:
-            f.write('{0},'.format(idx))
-
-    return out_file
-
-
-def set_frames_ex(in_file, threshold, frames_before=1, frames_after=2):
-    """
-    Method to calculate Number of frames that would be censored
-    ("scrubbed") by removing the offending time frames
-    (i.e., those exceeding FD threshold), the preceding frame,
-    and the two subsequent frames
-
-    Parameters
-    ----------
-    in_file : a string
-        framewise displacement(FD) file path
-    threshold : a float
-         scrubbing threshold value set in configuration file
-    frames_before : an integer
-        number of frames preceding the offending time frame
-        by default value is 1
-    frames_after : an integer
-        number of frames following the offending time frame
-        by default value is 2
-
-    Returns
-    -------
-    out_file : string
-        path to file containing offending time frames
-    """
-
-    out_file = os.path.join(os.getcwd(), 'frames_ex.1D')
-    data = loadtxt(in_file)
-    # masking zeroth timepoint value as 0, since the mean displacment value
-    # for zeroth timepoint cannot be calculated, as there is no timepoint
-    # before it
-    data[0] = 0
-
-    extra_indices = []
-    indices = [i[0] for i in (np.argwhere(data >= threshold)).tolist()]
-
-    for i in indices:
-        # remove preceding frames
-        if i > 0:
-            count = 1
-            while count <= frames_before:
-                extra_indices.append(i - count)
-                count += 1
-        # remove following frames
-        count = 1
-        while count <= frames_after and (i+count) < len(data):
-            extra_indices.append(i + count)
-            count += 1
-
-    indices = list(set(indices) | set(extra_indices))
-    indices.sort()
-
-    with open(out_file, 'a') as f:
-        for idx in indices:
-            f.write('{0},'.format(idx))
-
-    return out_file
-  
 
 def gen_motion_parameters(subject_id, scan_id, movement_parameters, 
                           max_displacement):
@@ -795,8 +633,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
-                         threshold=1.0):
+def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS):
     
     """
     Method to generate Power parameters for scrubbing
@@ -823,10 +660,8 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
         path to csv file containing all the pow parameters 
     """
 
-    threshold = float(threshold)
-
-    powersFD_data = loadtxt(FDP_1D)
-    jenkFD_data = loadtxt(FDJ_1D)
+    powersFD_data = np.loadtxt(FDP_1D)
+    jenkFD_data = np.loadtxt(FDJ_1D)
     
     # Mean (across time/frames) of the absolute values
     # for Framewise Displacement (FD)
@@ -834,10 +669,6 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
     
     # Mean FD Jenkinson
     meanFD_Jenkinson = np.mean(jenkFD_data)
-    
-    # Number of frames (time points) where movement
-    # (FD) exceeded threshold
-    numFD = float(jenkFD_data[jenkFD_data > threshold].size)
     
     # Root mean square (RMS; across time/frames)
     # of the absolute values for FD
@@ -847,10 +678,6 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
     quat=int(len(jenkFD_data)/4)
     FDquartile=np.mean(np.sort(jenkFD_data)[::-1][:quat])
 
-    # NUMBER OF FRAMES >threshold FD as percentage of total num frames
-    count = np.float(jenkFD_data[jenkFD_data>threshold].size)
-    percentFD = (count*100/(len(jenkFD_data)+1))
-
     # Mean DVARS
     meanDVARS = np.mean(np.load(DVARS))
 
@@ -858,15 +685,13 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
 
     with open(out_file, 'w') as f:
         f.write("Subject, Scan, MeanFD_Power, MeanFD_Jenkinson, "
-                "NumFD_greater_than_{0:.2f}, rootMeanSquareFD, "
-                "FDquartile(top1/4thFD), PercentFD_greater_than_{1:.2f}, "
-                "MeanDVARS\n".format(threshold, threshold))
+                "rootMeanSquareFD, FDquartile(top1/4thFD), "
+                "MeanDVARS\n")
 
         f.write("{0}, {1}, ".format(subject_id, scan_id))
         f.write('{0:.4f}, {1:.4f}, '.format(meanFD_Power, meanFD_Jenkinson))
-        f.write('{0:.4f}, {1:.4f}, '.format(numFD, rmsFD))
-        f.write('{0:.4f}, {1:.4f}, '.format(FDquartile, percentFD))
-        f.write('{0:.4f}'.format(meanDVARS))
+        f.write('{0:.4f}, {1:.4f}, '.format(rmsFD, FDquartile))
+        f.write('{0:.4f}\n'.format(meanDVARS))
     
     return out_file
 
