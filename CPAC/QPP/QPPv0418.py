@@ -5,7 +5,6 @@ import os
 from scipy import signal
 from scipy.signal import find_peaks
 from scipy.ndimage.filters import gaussian_filter
-import h5py
 from numpy import ndarray
 import matplotlib.pyplot as plt
 from detect_peaks import detect_peaks

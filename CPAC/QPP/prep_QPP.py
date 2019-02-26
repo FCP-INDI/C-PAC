@@ -137,6 +137,7 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
 def create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir,derivatives=None):
     import os
     import glob
+    import fnmatch
     import itertools
     import pandas as pd
     import pkg_resources as p
@@ -197,6 +198,7 @@ def create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir
         #analysis, grouped either by sessions or scans.
     return output_dict_list
 
+
 def create_output_df_dict(output_dict_list,inclusion_list):
 
     import pandas as pd
@@ -227,11 +229,7 @@ def create_output_df_dict(output_dict_list,inclusion_list):
     return output_df_dict
 
 
-
 def gather_outputs(pipeline_folder,resource_list,inclusion_list):
-
-
-
     nifti_globs,search_dir = gather_nifti_globs(pipeline_folder,resource_list,derivatives=None)
 
     output_dict_list = create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir,derivatives=None)
@@ -246,11 +244,13 @@ def gather_outputs(pipeline_folder,resource_list,inclusion_list):
 
     return output_df_dict
 
+
 def prep_inputs(group_config_file):
 
     import os
     import pandas as pd
     import pkg_resources as p
+    from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
 
     keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
     try:
@@ -280,6 +280,12 @@ def prep_inputs(group_config_file):
         inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
     resource_list = ['functional_nuisance_residuals']
     output_df_dict=gather_outputs(pipeline_folder,resource_list,inclusion_list)
+
+    if not output_df_dict:
+        err = '\n\n[!] For QPP, C-PAC requires the \'functional_nuisance_residuals\' outputs '\
+              'in the individual-level analysis pipeline output directory! But none were '\
+              'found.\n\nPipeline directory:\n{0}\n\n'.format(pipeline_folder)
+        raise Exception(err)
 
     for unique_resource in output_df_dict.keys():
 

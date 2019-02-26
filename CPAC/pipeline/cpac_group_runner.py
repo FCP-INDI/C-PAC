@@ -1945,8 +1945,10 @@ def run_qpp_group(group_config_file):
     merge_file,merge_mask,inclusion_list = prep_inputs(group_config_file)
     return merge_file,merge_mask,inclusion_list
 
+
 def run_qpp(group_config_file):
-    from CPAC.QPP.QPPV0418v import qpp_wf
+    import os
+    from CPAC.QPP.QPPv0418 import qppv
 
     group_config_file = os.path.abspath(group_config_file)
     img, mask, inclusion_list = run_qpp_group(group_config_file)
@@ -1971,6 +1973,7 @@ def run_qpp(group_config_file):
     nrp = group_config_obj.nrp
 
     cth = group_config_obj.cth
+    cth = cth.split(',')
 
     n_itr_th = group_config_obj.n_itr_th
 
@@ -1980,7 +1983,7 @@ def run_qpp(group_config_file):
     nrn =  group_config_obj.nrn #How many runs have you run each subject by. Please note that this is different from
     #the number of scans or sessions you want to include in the qpp analysis
 
-    qpp_wf(img,mask,wl,nrp,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
+    qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

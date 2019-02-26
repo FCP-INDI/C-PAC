@@ -717,14 +717,15 @@ class QPPSettings(wx.ScrolledWindow):
                       comment="Number of random repetitions to use while "
                               "performing QPP. It is set initially as equal to the number" \
                               "of number of subjects*number of runs per subject, but can be varied if that," \
-                              "does not work"
+                              "does not work",
                       values=0)
 
         self.page.add(label="cth ",
-                      control=control.INT_CTRL,
+                      control=control.COMBO_BOX,
                       name='qpp_cth',
-                      type=dtype.LNUM,
-                      comment="Correlation threshold for early and late iterations.",
+                      type=dtype.STR,
+                      values='0.2, 0.3',
+                      comment="Correlation threshold for early and late iterations."
                       )
 
         self.page.add(label="Number of early iterations with lower threshold ",
@@ -738,18 +739,16 @@ class QPPSettings(wx.ScrolledWindow):
                       control=control.INT_CTRL,
                       name='qpp_mx_iter',
                       type=dtype.NUM,
-                      values="15",
+                      values=15,
                       comment="Maximum number of iterations. ")
 
         self.page.add(label="nrn",
                       control=control.INT_CTRL,
                       name='qpp_nrn',
                       type=dtype.NUM,
-                      values="1",
+                      values=1,
                       comment="Number of scans you have the data recorded with.This is independent"\
                       "of the number of scans you wish to include in your scan/series list.")
-
-
 
         self.page.add(label="glassr_360",
                       control=control.CHOICE_BOX,
@@ -759,7 +758,8 @@ class QPPSettings(wx.ScrolledWindow):
                       "the path to .mat files of glassr 360 organization. This should further contain a matrix g2y7,YLB1 and YLB.",
                       values=['True', 'False'])
 
-        
-
         self.page.set_sizer()
         parent.get_page_list().append(self)
+
+    def get_counter(self):
+            return self.counter

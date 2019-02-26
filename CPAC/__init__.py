@@ -43,16 +43,17 @@ import anat_preproc, \
        utils, \
        pipeline, \
        cwas, \
+       QPP, \
        GUI
 
 __all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'epi_distcorr',
            'registration', 'seg_preproc', 'reho', 'sca', 'nuisance',
            'alff', 'vmhc', 'median_angle', 'generate_motion_statistics',
            'timeseries', 'network_centrality', 'scrubbing', 'utils',
-           'group_analysis','randomise', 'easy_thresh', 'aroma','qc']
+           'group_analysis','randomise', 'easy_thresh', 'aroma', 'qc', 'QPP']
 
 try:
-    version = '1.4.0'
+    version = '1.4.1_dev/QPP'
 except OSError:
     version = 'unknown_version'
 
