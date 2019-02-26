@@ -359,12 +359,12 @@ def generate_summarize_tissue_mask(nuisance_wf,
                 )
 
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool['Functional'] + 
+                    pipeline_resource_pool['Functional'] +
                     (create_variance_mask_node, 'functional_file_path')
                 ))
 
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool['GlobalSignal'] + 
+                    pipeline_resource_pool['GlobalSignal'] +
                     (create_variance_mask_node, 'mask_file_path')
                 ))
 
@@ -378,7 +378,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     (create_variance_mask_node, 'mask_file_path')
 
             elif mask_key == 'CerebrospinalFluid':
-                
+
                 transforms = pipeline_resource_pool['Transformations']
 
                 # reduce CSF mask to the lateral ventricles
@@ -405,7 +405,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
                     nuisance_wf.connect(*(pipeline_resource_pool['CerebrospinalFluidUnmasked'] + (lat_ven_mni_to_anat, 'reference_image')))
-                    
+
                     nuisance_wf.connect(lat_ven_mni_to_anat, 'output_image', mask_cfs_with_lat_ven, 'in_file_b')
 
                     pipeline_resource_pool[mask_key] = \
@@ -420,7 +420,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
                     nuisance_wf.connect(*(pipeline_resource_pool['CerebrospinalFluidUnmasked'] + (lat_ven_mni_to_anat, 'reference')))
-                    
+
                     nuisance_wf.connect(lat_ven_mni_to_anat, 'out_file', mask_cfs_with_lat_ven, 'in_file_b')
 
                     pipeline_resource_pool[mask_key] = \
@@ -530,3 +530,175 @@ def summarize_timeseries(functional_path, masks_path, summary):
     np.savetxt(output_file_path, regressors, fmt='%.18f')
 
     return output_file_path
+
+
+class NuisanceRegressor(object):
+
+    def __init__(self, selector, selectors):
+        self.selector = selector
+        self.selectors = selectors
+
+    def get(self, key, default=None):
+        return self.selector.get(key, default)
+
+    def __contains__(self, key):
+        return key in self.selector
+
+    def __getitem__(self, key):
+        return self.selector[key]
+
+    def _derivative_params(self, selector):
+        nr_repr = ''
+        if selector.get('include_squared'):
+            nr_repr += 'S'
+        if selector.get('include_delayed'):
+            nr_repr += 'D'
+        if selector.get('include_delayed_squared'):
+            nr_repr += 'B'
+        return nr_repr
+
+    def _summary_params(self, selector):
+        summ = selector['summary']
+
+        methods = {
+            'PC': 'PC',
+            'Mean': 'M',
+            'NormMean': 'NM',
+            'DetrendMean': 'DM',
+            'DetrendNormMean': 'DNM',
+        }
+
+        if type(summ) == dict:
+            method = summ['method']
+            rep = methods[method]
+            if method == 'PC':
+                rep += "%d" % summ['components']
+        else:
+            rep = methods[summ]
+
+        return rep
+
+    def __repr__(self):
+        regs = {
+            'GreyMatter': 'GM',
+            'WhiteMatter': 'WM',
+            'CerebrospinalFluid': 'CSF',
+            'tCompCor': 'tC',
+            'aCompCor': 'aC',
+            'GlobalSignal': 'G',
+            'Motion': 'M',
+            'PolyOrt': 'P',
+            'Bandpass': 'B',
+            'Censor': 'C',
+        }
+
+        tissues = ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid']
+
+        selectors_representations = []
+
+        # tC-1.5PT-PC5S-SDB
+        # aC-WC-2mmE-PC5-SDB
+
+        # WM-2mmE-PC5-SDB
+        # CSF-2mmE-M-SDB
+        # GM-2mmE-DNM-SDB
+
+        # G-PC5-SDB
+        # M-SDB
+        # C-S-FD1.5SD-D1.5SD
+        # PR-2
+        # BP-T0.01-B0.1
+
+        for r in regs.keys():
+            if r not in self.selector:
+                continue
+
+            s = self.selector[r]
+
+            pieces = [regs[r]]
+
+            if r in tissues:
+                if s.get('extraction_resolution'):
+                    res = "%.2f" % s['extraction_resolution']
+                    if s.get('erode_mask'):
+                        res += 'E'
+
+                pieces += [self._summary_params(s)]
+                pieces += [self._derivative_params(s)]
+
+            elif r == 'tCompCor':
+
+                threshold = ""
+                if s.get('by_slice'):
+                    threshold += 'S'
+                t = s.get('threshold')
+                if t:
+                    if type(t) != str:
+                        t = "%.2f" % t
+                    threshold += t
+
+                pieces += [threshold]
+                pieces += [self._summary_params(s)]
+                pieces += [self._derivative_params(s)]
+
+            elif r == 'aCompCor':
+                if s.get('tissues'):
+                    pieces += ["+".join([regs[t] for t in s['tissues']])]
+                if s.get('extraction_resolution'):
+                    res = "%.2f" % s['extraction_resolution']
+                    if s.get('erode_mask'):
+                        res += 'E'
+
+                pieces += [self._summary_params(s)]
+                pieces += [self._derivative_params(s)]
+
+            elif r == 'Global':
+                pieces += [self._summary_params(s)]
+                pieces += [self._derivative_params(s)]
+
+            elif r == 'Motion':
+                pieces += [self._derivative_params(s)]
+
+            elif r == 'PolyOrt':
+                pieces += ['%d' % s['degree']]
+
+            elif r == 'BandPass':
+                pieces += ['T%.2f' % s['top_frequency']]
+                pieces += ['B%.2f' % s['bottom_frequency']]
+
+            elif r == 'Censor':
+                censoring = {
+                    'Kill': 'K',
+                    'Zero': 'Z',
+                    'Interpolate': 'I',
+                    'SpikeRegression': 'S',
+                }
+
+                thresholds = {
+                    'FD': 'FD',
+                    'DVARS': 'DV',
+                }
+
+                pieces += [censoring[s['method']]]
+
+                trs_range = ['0', '0']
+                if s.get('number_of_previous_trs_to_remove'):
+                    trs_range[0] = '%d' % s['number_of_previous_trs_to_remove']
+                if s.get('number_of_subsequent_trs_to_remove'):
+                    trs_range[1] = '%d' % s['number_of_subsequent_trs_to_remove']
+
+                pieces += ['+'.join(trs_range)]
+
+                threshs = sorted(s['thresholds'], reverse=True, key=lambda d: d['type'])
+                for st in threshs:
+                    thresh = thresholds[st['type']]
+                    if type(st['value']) == str:
+                        thresh += st['value']
+                    else:
+                        thresh += "%.2g" % st['value']
+
+                    pieces += [thresh]
+
+            selectors_representations += ['-'.join(filter(None, pieces))]
+
+        return "_".join(selectors_representations)

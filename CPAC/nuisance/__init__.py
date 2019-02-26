@@ -3,6 +3,7 @@ from .utils import (
     create_temporal_variance_mask,
     generate_summarize_tissue_mask,
     summarize_timeseries,
+    NuisanceRegressor,
 )
 
 from .nuisance import (
