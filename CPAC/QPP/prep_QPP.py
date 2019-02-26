@@ -1,68 +1,6 @@
 
 
-def load_config_yml(config_file, individual=False):
 
-    # loads a configuration YAML file
-    #
-    # input
-    #   config_file: full filepath to YAML (.yml) file
-    #
-    # output
-    #   config: Configuration object
-
-    import os
-    import yaml
-    from CPAC.utils import Configuration
-
-    try:
-        config_path = os.path.realpath(config_file)
-
-        with open(config_path,"r") as f:
-            config_dict = yaml.load(f)
-
-        config = Configuration(config_dict)
-
-    except Exception as e:
-        err = "\n\n[!] CPAC says: Could not load or read the configuration " \
-        	  "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
-        raise Exception(err)
-
-    if individual:
-        config.logDirectory = os.path.abspath(config.logDirectory)
-        config.workingDirectory = os.path.abspath(config.workingDirectory)
-        config.outputDirectory = os.path.abspath(config.outputDirectory)
-        config.crashLogDirectory = os.path.abspath(config.crashLogDirectory)
-
-    return config
-
-
-def load_text_file(filepath, label="file"):
-
-    # loads a text file and returns the lines in a list
-    #
-    # input
-    #   filepath: full filepath to the text file
-    #
-    # output
-    #   lines_list: list of lines from text file
-
-    if not filepath.endswith(".txt"):
-        err = "\n\n[!] CPAC says: The %s should be a text file (.txt).\n" \
-              "Path provided: %s\n\n" % (label, filepath)
-        raise Exception(err)
-
-    try:
-        with open(filepath,"r") as f:
-            lines_list = f.readlines()
-    except Exception as e:
-        err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
-              "Details: %s\n\n" % (label, filepath, e)
-        raise Exception(err)
-
-    # get rid of those \n's that love to show up everywhere
-    lines_list = [i.rstrip("\n") for i in lines_list]
-
-    return lines_list
 
 
 def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
@@ -250,7 +188,9 @@ def prep_inputs(group_config_file):
     import os
     import pandas as pd
     import pkg_resources as p
+    from CPAC.pipeline.cpac_group_runner import load_text_file
     from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
+    from CPAC.pipeline.cpac_group_runner import load_config_yml
 
     keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
     try:
@@ -293,6 +233,7 @@ def prep_inputs(group_config_file):
         resource_id = unique_resource[0]
 
         strat_info=unique_resource[1]
+        print(strat_info)
         output_df=output_df_dict[unique_resource]
 
         #We're going to reduce the size of the output df based on nuisance strat and the

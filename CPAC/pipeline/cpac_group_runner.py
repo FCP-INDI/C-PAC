@@ -1964,7 +1964,7 @@ def run_qpp(group_config_file):
                            'cpac_group_analysis',
                            'CPAC_QPP',
                            '{0}'.format(pipeline_ID),
-                           nuisance_strat,  # nuisance strat to initialize
+                           start_info,  # nuisance strat to initialize
                            session_id,  # initialize
                            scan_or_session_label)  # series or repeated label == same as qpp scan or sessions list)
 
@@ -1980,7 +1980,7 @@ def run_qpp(group_config_file):
     mx_itr = group_config_obj.mx_itr
 
     nsubj = len(inclusion_list)
-    nrn =  group_config_obj.nrn #How many runs have you run each subject by. Please note that this is different from
+    nrn =  len(group_config_obj.qpp_scan_inclusion) #How many runs have you run each subject by. Please note that this is different from
     #the number of scans or sessions you want to include in the qpp analysis
 
     qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)

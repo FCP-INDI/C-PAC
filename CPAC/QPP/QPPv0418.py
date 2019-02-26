@@ -13,7 +13,8 @@ from detect_peaks import detect_peaks
 
 
 
-def qppv(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
+def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
+    # TODOconsolidate this to one function as Behnaz suggested
     """This code is adapted from the paper
        "Quasi-periodic patterns(QP):Large-scale dynamics in resting state fMRI that correlate"\
        with local infraslow electrical activity" Shella Keilholz,D et al.NeuroImage,Volume 84, 1 January 2014."\
@@ -435,10 +436,9 @@ def RDRG2Y7(bi):
         p4lb[i]=(nind[i+1]+nind[i])/2
     return bo,nind,p4lb,ylb
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
 
-    qppv(d,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs)
-
+#    qpp_wf(d,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs)
 
 
 

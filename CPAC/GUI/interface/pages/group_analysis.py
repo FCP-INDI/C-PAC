@@ -718,9 +718,9 @@ class QPPSettings(wx.ScrolledWindow):
                               "performing QPP. It is set initially as equal to the number" \
                               "of number of subjects*number of runs per subject, but can be varied if that," \
                               "does not work",
-                      values=0)
+                      values=20)
 
-        self.page.add(label="cth ",
+        self.page.add(label="Correlation Threshold ",
                       control=control.COMBO_BOX,
                       name='qpp_cth',
                       type=dtype.STR,
@@ -742,21 +742,14 @@ class QPPSettings(wx.ScrolledWindow):
                       values=15,
                       comment="Maximum number of iterations. ")
 
-        self.page.add(label="nrn",
-                      control=control.INT_CTRL,
-                      name='qpp_nrn',
-                      type=dtype.NUM,
-                      values=1,
-                      comment="Number of scans you have the data recorded with.This is independent"\
-                      "of the number of scans you wish to include in your scan/series list.")
+        #self.page.add(label="nrn",
+        #              control=control.INT_CTRL,
+        #              name='qpp_nrn',
+        #              type=dtype.NUM,
+        #              values=1,
+        #              comment="Number of scans you have the data recorded with.This is independent"\
+        #              "of the number of scans you wish to include in your scan/series list.")
 
-        self.page.add(label="glassr_360",
-                      control=control.CHOICE_BOX,
-                      name='qpp_glassr_360',
-                      type=dtype.BOOL,
-                      comment="Is your input data organized as glassr_360? If you choose True, you will need to provide" \
-                      "the path to .mat files of glassr 360 organization. This should further contain a matrix g2y7,YLB1 and YLB.",
-                      values=['True', 'False'])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
