@@ -1,11 +1,30 @@
 # -*- coding: utf-8 -*-
 
 from nipype.interfaces import afni
-from nipype.interfaces import fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
+
+
+def inverse_lesion(lesion_path):
+    """
+
+    Parameters
+    ----------
+    lesion_path: str
+        path to the nifti file to be checked and inverted if needed.
+
+    Returns
+    -------
+
+    """
+    import CPAC.utils.nifti_utils as nu
+    import nibabel as nib
+    
+    if nu.more_zeros_than_ones(image_path=lesion_path):
+        nii = nu.inverse_nifti_values(image_path=lesion_path)
+        nib.save(nii, lesion_path)
+    return lesion_path
 
 
 def create_lesion_preproc(wf_name='lesion_preproc'):
@@ -35,7 +54,8 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
     - Deobliqing the scans. ::
         3drefit -deoblique mprage.nii.gz
 
-    - Re-orienting the Image into Right-to-Left Posterior-to-Anterior Inferior-to-Superior  (RPI) orientation ::
+    - Re-orienting the Image into Right-to-Left Posterior-to-Anterior
+    Inferior-to-Superior  (RPI) orientation ::
         3dresample -orient RPI
                    -prefix mprage_RPI.nii.gz
                    -inset mprage.nii.gz
@@ -61,8 +81,19 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
                                name='lesion_deoblique')
 
     lesion_deoblique.inputs.deoblique = True
+
+    lesion_inverted = pe.Node(interface=util.Function(
+        input_names=['lesion_path'],
+        output_names=['lesion_out'],
+        function=inverse_lesion),
+        name='inverse_lesion')
+    # We first check and invert the lesion if needed to be used by ANTs
     preproc.connect(
-        inputnode, 'lesion', lesion_deoblique, 'in_file')
+        inputnode, 'lesion', lesion_inverted, 'lesion_path')
+
+    preproc.connect(
+        lesion_inverted, 'lesion_out', lesion_deoblique, 'in_file')
+
     preproc.connect(
         lesion_deoblique, 'out_file', outputnode, 'refit')
 
@@ -72,6 +103,7 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
 
     lesion_reorient.inputs.orientation = 'RPI'
     lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
+
     preproc.connect(
         lesion_deoblique, 'out_file', lesion_reorient,
         'in_file')
