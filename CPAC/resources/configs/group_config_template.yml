@@ -301,3 +301,31 @@ isc_level_voxel_std_filter :  0.0
 
 # Number of permutation tests to compute the statistics.
 isc_permutations :  1000
+
+#Quasi Periodic Patterns (QPP)
+###############################
+
+#Used to determine if QPP will be added to the pipeline or not.
+run_qpp: [0]
+
+#The number of scans you wish to include in the QPP analysis. Leaving it blank will switch to the deafault option of adding all the scans
+qpp_scan_inclusion: 
+
+#Window length to search the template in.
+qpp_wl: 30
+
+
+#Number of random repetitions to use while performing qpp.
+qpp_nrp: 20
+
+#Correlation Threshold.
+qpp_cth: [0.2,0.3]
+
+#Number of early iterations for correlation threshold.
+qpp_n_iter_th: 2
+
+#Number of maximum iterations.
+qpp_mx_iter: 15
+
+
+
