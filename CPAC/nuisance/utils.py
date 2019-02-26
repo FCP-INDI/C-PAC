@@ -549,6 +549,8 @@ class NuisanceRegressor(object):
 
     def _derivative_params(self, selector):
         nr_repr = ''
+        if not selector:
+            return nr_repr
         if selector.get('include_squared'):
             nr_repr += 'S'
         if selector.get('include_delayed'):

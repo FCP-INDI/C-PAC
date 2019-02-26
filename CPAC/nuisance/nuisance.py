@@ -749,8 +749,6 @@ def create_nuisance_workflow(nuisance_selectors,
         build_nuisance_regressors, 'functional_file_path'
     )
 
-    build_nuisance_regressors.inputs.selectors = nuisance_selectors
-
     # Check for any regressors to combine into files
     has_nuisance_regressors = any(
         regressor_resource[1]

@@ -1784,7 +1784,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                 del regressors_selector[reg]
 
 
-                    sanitized_name = re.sub(r'[^\w]+', '-', str(regressors_selector))
+                    sanitized_name = re.sub(r'[^\w]+', '_', str(regressors_selector))
 
                     nuisance_regression_workflow = create_nuisance_workflow(
                         regressors_selector,
@@ -1916,7 +1916,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                     new_strat_list.append(new_strat)
 
-        strat_list += new_strat_list
+        # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
+        # Each regressor forks the strategy, instead of reusing it, to keep the code simple
+        strat_list = new_strat_list
 
 
         # Inserting Median Angle Correction Workflow
@@ -3052,7 +3054,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     if run == 1:
 
         try:
-            workflow.write_graph(graph2use='orig')
+            workflow.write_graph(graph2use='hierarchical')
         except:
             pass
 
@@ -3139,7 +3141,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 if 'frequency' in fork:
                     forklabel = 'freq-filter'
                 elif 'nuisance' in fork:
-                    forklabel = fork
+                    forklabel = 'nuisance'
                 if 'median' in fork:
                     forklabel = 'median'
                 if 'motion_stats' in fork:
@@ -3230,6 +3232,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             pip_ids.append(pipeline_id)
             wf_names.append(strat.get_name())
 
+
             # TODO enforce value with schema validation
             # Extract credentials path for output if it exists
             try:
@@ -3261,24 +3264,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except Exception as exc:
                 encrypt_data = False
 
-            # TODO ASH verify with team
-            # TODO: remove this once forking for despiking/scrubbing is
-            # TODO: modified at the gen motion params level
-            # ensure X_frames_included/excluded only gets sent to output dir
-            # for appropriate strats
             nodes = strat.get_nodes_names()
-
-            if "nuisance_with_despiking" not in nodes:
-                if "despiking_frames_included" in rp.keys():
-                    del rp["despiking_frames_included"]
-                if "despiking_frames_excluded" in rp.keys():
-                    del rp["despiking_frames_excluded"]
-
-            if "scrubbing" not in nodes:
-                if "scrubbing_frames_included" in rp.keys():
-                    del rp["scrubbing_frames_included"]
-                if "scrubbing_frames_excluded" in rp.keys():
-                    del rp["scrubbing_frames_excluded"]
 
             ndmg_out = False
             try:

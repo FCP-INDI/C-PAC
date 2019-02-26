@@ -679,7 +679,7 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS):
     FDquartile=np.mean(np.sort(jenkFD_data)[::-1][:quat])
 
     # Mean DVARS
-    meanDVARS = np.mean(np.load(DVARS))
+    meanDVARS = np.mean(np.loadtxt(DVARS))
 
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
 
@@ -719,7 +719,7 @@ def calculate_DVARS(rest, mask):
     import nibabel as nib
     import os
     
-    out_file = os.path.join(os.getcwd(), 'DVARS.npy')
+    out_file = os.path.join(os.getcwd(), 'DVARS.txt')
     
     rest_data = nib.load(rest).get_data().astype(np.float32)
     mask_data = nib.load(mask).get_data().astype('bool')
@@ -733,7 +733,7 @@ def calculate_DVARS(rest, mask):
     # square root and mean across all timepoints inside mask
     DVARS = np.sqrt(np.mean(data, axis=0))
 
-    np.save(out_file, DVARS)
+    np.savetxt(out_file, DVARS)
     
     return out_file
 
