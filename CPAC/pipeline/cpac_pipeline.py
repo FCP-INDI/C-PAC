@@ -3138,20 +3138,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = 'bbreg'
                 if 'frequency' in fork:
                     forklabel = 'freq-filter'
-                if 'nuisance_with_despiking' in fork:
-                    forklabel = 'nuisance_with_despiking'
-                elif 'nuisance_no_despiking' in fork:
-                    forklabel = 'nuisance_no_despiking'
                 elif 'nuisance' in fork:
-                    forklabel = 'nuisance'
+                    forklabel = fork
                 if 'median' in fork:
                     forklabel = 'median'
-                if 'friston' in fork:
-                    forklabel = 'friston'
                 if 'motion_stats' in fork:
                     forklabel = 'motion'
-                if 'scrubbing' in fork:
-                    forklabel = 'scrub'
                 if 'slice' in fork:
                     forklabel = 'slice'
                 if 'anat_preproc_afni' in fork:
