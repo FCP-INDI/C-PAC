@@ -581,7 +581,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         self.data_controls['tCompCor']['enabled'].UpdateState()
 
 
-        self.titles += [self.render_selectors_title('Detrending', main=True)]
+        self.titles += [self.render_selectors_title('Detrending and Filtering', main=True)]
 
         self.titles += [self.render_selectors_title('Poly Regression')]
 
@@ -635,6 +635,18 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             censoring_method_control.SetValue(selector_censor_method_renaming[censoring_method])
         self.add_to_new_row(censoring_method_label, censoring_method_control)
         self.data_controls['Censor']['method'] = censoring_method_control
+
+        censoring_prev_tr_label = wx.StaticText(self.editor, label='Previous TRs to remove')
+        censoring_prev_tr_control = wx.TextCtrl(self.editor, value='0')
+        censoring_prev_tr_control.SetValue(str(self.selectors.get('Censor', {}).get('number_of_previous_trs_to_remove', 0)))
+        self.add_to_new_row(censoring_prev_tr_label, censoring_prev_tr_control)
+        self.data_controls['Censor']['number_of_previous_trs_to_remove'] = censoring_prev_tr_control
+
+        censoring_subs_tr_label = wx.StaticText(self.editor, label='Subsequent TRs to remove')
+        censoring_subs_tr_control = wx.TextCtrl(self.editor, value='0')
+        censoring_subs_tr_control.SetValue(str(self.selectors.get('Censor', {}).get('number_of_subsequent_trs_to_remove', 0)))
+        self.add_to_new_row(censoring_subs_tr_label, censoring_subs_tr_control)
+        self.data_controls['Censor']['number_of_subsequent_trs_to_remove'] = censoring_subs_tr_control
 
         # Framewise displacement control
         censoring_thresholds_fd = find(censoring_thresholds, lambda t:  t.get('type') == 'FD') or {}
@@ -823,6 +835,8 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         if self.data_controls['Censor']['enabled'].GetValue():
             selector['Censor'] = {
                 'method': self.data_controls['Censor']['method'].GetValue(),
+                'number_of_previous_trs_to_remove': self.data_controls['Censor']['number_of_previous_trs_to_remove'].GetValue() or 0,
+                'number_of_subsequent_trs_to_remove': self.data_controls['Censor']['number_of_subsequent_trs_to_remove'].GetValue() or 0,
                 'thresholds': [],
             }
 
