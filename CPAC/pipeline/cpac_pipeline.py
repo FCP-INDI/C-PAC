@@ -1859,8 +1859,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         'inputspec.functional_brain_mask_file_path'
                     )
 
-                    nuisance_regression_workflow.get_node('build_nuisance_regressors').iterables = ([
-                        ('selectors', [regressors_selector]),
+                    nuisance_regression_workflow.get_node('inputspec').iterables = ([
+                        ('selector', [regressors_selector]),
                     ])
 
                     if 'anat_mni_fnirt_register' in nodes:
@@ -1898,6 +1898,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         )
 
                     new_strat.append_name(nuisance_regression_workflow.name)
+
                     new_strat.set_leaf_properties(
                         nuisance_regression_workflow,
                         'outputspec.residual_file_path'

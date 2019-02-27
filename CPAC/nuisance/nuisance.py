@@ -28,7 +28,7 @@ import nipype.interfaces.ants as ants
 
 
 def gather_nuisance(functional_file_path,
-                    selectors,
+                    selector,
                     grey_matter_summary_file_path=None,
                     white_matter_summary_file_path=None,
                     csf_summary_file_path=None,
@@ -83,11 +83,11 @@ def gather_nuisance(functional_file_path,
 
     regressor_length = functional_image.shape[3]
 
-    selectors = selectors.selector
+    selector = selector.selector
 
-    if not isinstance(selectors, dict):
+    if not isinstance(selector, dict):
         raise ValueError("Invalid type for selectors {0}, expecting dict"
-                         .format(type(selectors)))
+                         .format(type(selector)))
 
     regressor_files = {
         'aCompCorr': acompcorr_file_path,
@@ -107,10 +107,10 @@ def gather_nuisance(functional_file_path,
 
     for regressor_type, regressor_file in regressor_files.items():
 
-        if regressor_type not in selectors:
+        if regressor_type not in selector:
             continue
 
-        regressor_selector = selectors.get(regressor_type) or {}
+        regressor_selector = selector.get(regressor_type) or {}
 
         if 'summary' in regressor_selector:
             if type(regressor_selector['summary']) is str:
@@ -194,9 +194,9 @@ def gather_nuisance(functional_file_path,
                 )
 
     # Add spike regressors
-    if selectors.get('Censor', {}).get('method') == 'SpikeRegression':
+    if selector.get('Censor', {}).get('method') == 'SpikeRegression':
 
-        selector = selectors['Censor']
+        selector = selector['Censor']
 
         regressor_file = censor_file_path
 
@@ -433,8 +433,10 @@ def create_nuisance_workflow(nuisance_selectors,
     nuisance_wf = pe.Workflow(name=name)
 
     inputspec = pe.Node(util.IdentityInterface(fields=[
+        'selector',
         'functional_file_path',
 
+        'anatomical_file_path',
         'gm_mask_file_path',
         'wm_mask_file_path',
         'csf_mask_file_path',
@@ -459,6 +461,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
     # Resources to create regressors
     pipeline_resource_pool = {
+        "Anatomical": (inputspec, 'anatomical_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
@@ -597,6 +600,33 @@ def create_nuisance_workflow(nuisance_selectors,
                     regressor_selector["extraction_resolution"]
                 )
 
+                anatomical_at_resolution_key = "Anatomical_{0}mm".format(
+                    regressor_selector["extraction_resolution"]
+                )
+
+                if anatomical_at_resolution_key not in pipeline_resource_pool:
+
+                    anat_resample = pe.Node(
+                        interface=fsl.FLIRT(),
+                        name='{}_flirt_applyxfm'
+                             .format(anatomical_at_resolution_key)
+                    )
+                    anat_resample.inputs.interp = 'nearestneighbour'
+                    anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
+
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Anatomical'] +
+                        (anat_resample, 'in_file')
+                    ))
+
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Anatomical'] +
+                        (anat_resample, 'reference')
+                    ))
+
+                    pipeline_resource_pool[anatomical_at_resolution_key] = \
+                        (anat_resample, 'out_file')
+
                 if functional_at_resolution_key not in pipeline_resource_pool:
 
                     func_resample = pe.Node(
@@ -605,9 +635,12 @@ def create_nuisance_workflow(nuisance_selectors,
                              .format(functional_at_resolution_key)
                     )
                     func_resample.inputs.interp = 'nearestneighbour'
+                    func_resample.inputs.apply_xfm = True
 
-                    func_resample.inputs.apply_isoxfm = \
-                        regressor_selector['extraction_resolution']
+                    nuisance_wf.connect(*(
+                        pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] +
+                        (func_resample, 'in_matrix_file')
+                    ))
 
                     nuisance_wf.connect(*(
                         pipeline_resource_pool['Functional'] +
@@ -615,13 +648,12 @@ def create_nuisance_workflow(nuisance_selectors,
                     ))
 
                     nuisance_wf.connect(*(
-                        pipeline_resource_pool['Functional'] +
+                        pipeline_resource_pool[anatomical_at_resolution_key] +
                         (func_resample, 'reference')
                     ))
 
                     pipeline_resource_pool[functional_at_resolution_key] = \
                         (func_resample, 'out_file')
-                        
 
             # Create merger to summarize the functional timeseries
             regressor_mask_file_resource_keys = []
@@ -728,7 +760,7 @@ def create_nuisance_workflow(nuisance_selectors,
     # Build regressors and combine them into a single file
     build_nuisance_regressors = pe.Node(Function(
         input_names=['functional_file_path',
-                     'selectors',
+                     'selector',
                      'grey_matter_summary_file_path',
                      'white_matter_summary_file_path',
                      'csf_summary_file_path',
@@ -747,6 +779,11 @@ def create_nuisance_workflow(nuisance_selectors,
     nuisance_wf.connect(
         inputspec, 'functional_file_path',
         build_nuisance_regressors, 'functional_file_path'
+    )
+
+    nuisance_wf.connect(
+        inputspec, 'selector',
+        build_nuisance_regressors, 'selector'
     )
 
     # Check for any regressors to combine into files

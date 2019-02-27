@@ -408,9 +408,6 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
                     nuisance_wf.connect(lat_ven_mni_to_anat, 'output_image', mask_cfs_with_lat_ven, 'in_file_b')
 
-                    pipeline_resource_pool[mask_key] = \
-                        (lat_ven_mni_to_anat, 'output_image')
-
                 else:
 
                     # perform the transform using FLIRT
@@ -423,13 +420,10 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
                     nuisance_wf.connect(lat_ven_mni_to_anat, 'out_file', mask_cfs_with_lat_ven, 'in_file_b')
 
-                    pipeline_resource_pool[mask_key] = \
-                        (lat_ven_mni_to_anat, 'out_file')
-
-
                 nuisance_wf.connect(*(pipeline_resource_pool['CerebrospinalFluidUnmasked'] + (mask_cfs_with_lat_ven, 'in_file_a')))
 
-
+                pipeline_resource_pool[mask_key] = \
+                    (mask_cfs_with_lat_ven, 'out_file')
 
         if step is 'resolution':
 
@@ -449,7 +443,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     resolution
 
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool['Functional_{}mm'
+                    pipeline_resource_pool['Anatomical_{}mm'
                                            .format(resolution)] +
                     (mask_to_epi, 'reference')
                 ))
