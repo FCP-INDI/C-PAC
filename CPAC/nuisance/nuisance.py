@@ -107,10 +107,10 @@ def gather_nuisance(functional_file_path,
 
     for regressor_type, regressor_file in regressor_files.items():
 
-        if not selectors.get(regressor_type):
+        if regressor_type not in selectors:
             continue
 
-        regressor_selector = selectors[regressor_type]
+        regressor_selector = selectors.get(regressor_type) or {}
 
         if 'summary' in regressor_selector:
             if type(regressor_selector['summary']) is str:
@@ -150,9 +150,9 @@ def gather_nuisance(functional_file_path,
             regressors = np.expand_dims(regressors, axis=1)
 
         if regressors.shape[1] != num_regressors:
-            raise ValueError("Expecting {0} regressors for {1}, but only "
+            raise ValueError("Expecting {0} regressors for {1}, but "
                              "found {2} in file {3}."
-                             .format(regressor_selector['components'],
+                             .format(num_regressors,
                                      regressor_type,
                                      regressors.shape[1],
                                      regressor_file))
@@ -758,7 +758,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
     if has_nuisance_regressors:
         for regressor_key, (regressor_arg, regressor_node) in regressors.items():
-            if nuisance_selectors.get(regressor_key):
+            if regressor_key in nuisance_selectors:
                 nuisance_wf.connect(
                     regressor_node[0], regressor_node[1],
                     build_nuisance_regressors, regressor_arg
