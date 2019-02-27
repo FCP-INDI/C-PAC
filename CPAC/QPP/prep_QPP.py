@@ -1,8 +1,3 @@
-
-
-
-
-
 def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
     import os
     import glob
@@ -233,7 +228,7 @@ def prep_inputs(group_config_file):
         resource_id = unique_resource[0]
 
         strat_info=unique_resource[1]
-        print(strat_info)
+
         output_df=output_df_dict[unique_resource]
 
         #We're going to reduce the size of the output df based on nuisance strat and the
@@ -329,6 +324,12 @@ def prep_inputs(group_config_file):
                     'phenotype file provided.\n\n'
             raise Exception(err)
 
+        out_dir = os.path.join(group_model.output_dir,
+                               'cpac_group_analysis',
+                               'CPAC_QPP_{0}'.format(pipeline_ID),
+                                resource_id,  # nuisance strat to initialize
+                                strat_info)  # series or repeated label == same as qpp scan or sessions list)
+
         merge_outfile = out_dir
         merge_file = create_merge_file(new_output_df["Filepath"].tolist(),merge_outfile)
         merge_mask_outfile = '_'.join([model_name, resource_id,
@@ -336,7 +337,7 @@ def prep_inputs(group_config_file):
         merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
         merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
-    return merge_file,merge_mask,inclusion_list
+    return merge_file,merge_mask,inclusion_list,out_dir
 
 
 def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
@@ -351,7 +352,6 @@ def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
         for part_id in output_df["participant_id"]:
             if "participant_{0}".format(part_id) in output_df.columns:
                 continue
-            break
         else:
             # if it's already set up properly, then just send the output_df
             # back and bypass all the machinery below
