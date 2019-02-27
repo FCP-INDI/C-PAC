@@ -730,7 +730,7 @@ class QPPSettings(wx.ScrolledWindow):
 
         self.page.add(label="Number of early iterations with lower threshold ",
                       control=control.INT_CTRL,
-                      name='qpp_n_iter_th1',
+                      name='qpp_n_iter_th',
                       type=dtype.NUM,
                       values=2,
                       comment="Set the number of early iterations with lower thresholds")
