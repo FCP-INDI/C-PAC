@@ -186,6 +186,7 @@ def prep_inputs(group_config_file):
     from CPAC.pipeline.cpac_group_runner import load_text_file
     from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
     from CPAC.pipeline.cpac_group_runner import load_config_yml
+    from CPAC.pipeline.cpac_ga_
 
     keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
     try:
@@ -328,7 +329,8 @@ def prep_inputs(group_config_file):
                                'cpac_group_analysis',
                                'CPAC_QPP_{0}'.format(pipeline_ID),
                                 resource_id,  # nuisance strat to initialize
-                                strat_info)  # series or repeated label == same as qpp scan or sessions list)
+                                strat_info,  # initialize
+                                scan_or_session_label)  # series or repeated label == same as qpp scan or sessions list)
 
         merge_outfile = out_dir
         merge_file = create_merge_file(new_output_df["Filepath"].tolist(),merge_outfile)
@@ -352,6 +354,7 @@ def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
         for part_id in output_df["participant_id"]:
             if "participant_{0}".format(part_id) in output_df.columns:
                 continue
+            break
         else:
             # if it's already set up properly, then just send the output_df
             # back and bypass all the machinery below
