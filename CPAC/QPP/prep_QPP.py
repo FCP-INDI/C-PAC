@@ -186,7 +186,7 @@ def prep_inputs(group_config_file):
     from CPAC.pipeline.cpac_group_runner import load_text_file
     from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
     from CPAC.pipeline.cpac_group_runner import load_config_yml
-    from CPAC.pipeline.cpac_ga_
+    from CPAC.pipeline.cpac_ga_model_generator import create_merge_file,create_merge_mask
 
     keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
     try:
@@ -491,41 +491,6 @@ def balance_df(output_df,sessions_list,scan_list):
             dropped_parts.append(part_ID)
     return output_df, dropped_parts
 
-def create_merge_file(list_of_output_files, merged_outfile):
-    import subprocess
-
-    merge_string = ["fslmerge", "-t", merged_outfile]
-    merge_string = merge_string + list_of_output_files
-
-    try:
-        retcode = subprocess.check_output(merge_string)
-    except Exception as e:
-        err = "\n\n[!] Something went wrong with FSL's fslmerge during the " \
-              "creation of the 4D merged file for group analysis.\n\n" \
-              "Attempted to create file: %s\n\nLength of list of files to " \
-              "merge: %d\n\nError details: %s\n\n" \
-              % (merged_outfile, len(list_of_output_files), e)
-        raise Exception(err)
-
-    return merged_outfile
-
-def create_merge_mask(merged_file, mask_outfile):
-
-    import subprocess
-
-    mask_string = ["fslmaths", merged_file, "-abs", "-Tmin", "-bin",
-                   mask_outfile]
-
-    try:
-        retcode = subprocess.check_output(mask_string)
-    except Exception as e:
-        err = "\n\n[!] Something went wrong with FSL's fslmaths during the " \
-              "creation of the merged copefile group mask.\n\nAttempted to " \
-              "create file: %s\n\nMerged file: %s\n\nError details: %s\n\n" \
-              % (mask_outfile, merged_file, e)
-        raise Exception(err)
-
-    return mask_outfile
 
 
 
