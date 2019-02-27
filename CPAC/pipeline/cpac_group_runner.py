@@ -1942,8 +1942,11 @@ def run_qpp_group(group_config_file):
     from CPAC.QPP.prep_QPP import prep_inputs
     #creating output directory paths
 
-    merge_file,merge_mask,inclusion_list = prep_inputs(group_config_file)
-    return merge_file,merge_mask,inclusion_list
+    merge_file,merge_mask,inclusion_list,out_dir = prep_inputs(group_config_file)
+
+
+
+    return merge_file,merge_mask,inclusion_list,out_dir
 
 
 def run_qpp(group_config_file):
@@ -1951,7 +1954,7 @@ def run_qpp(group_config_file):
     from CPAC.QPP.QPPv0418 import qppv
 
     group_config_file = os.path.abspath(group_config_file)
-    img, mask, inclusion_list = run_qpp_group(group_config_file)
+    img, mask, inclusion_list,out_dir = run_qpp_group(group_config_file)
 
     group_config_obj = load_yaml(group_config_file)
 
@@ -1960,13 +1963,6 @@ def run_qpp(group_config_file):
 
     pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
 
-    out_dir = os.path.join(group_model.output_dir,
-                           'cpac_group_analysis',
-                           'CPAC_QPP',
-                           '{0}'.format(pipeline_ID),
-                           start_info,  # nuisance strat to initialize
-                           session_id,  # initialize
-                           scan_or_session_label)  # series or repeated label == same as qpp scan or sessions list)
 
     wl  = group_config_obj.wl
 
