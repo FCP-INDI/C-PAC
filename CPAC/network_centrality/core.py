@@ -9,9 +9,6 @@ These are function nodes of sorts that compute a centrality measure.
 ####
 
 import numpy as np
-#import pyximport
-#pyximport.install(setup_args={'include_dirs': [np.get_include()]})
-from CPAC.network_centrality.thresh_and_sum import *
 
 
 def degree_centrality(corr_matrix, r_value, method, out=None):
