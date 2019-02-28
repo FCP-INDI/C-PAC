@@ -1945,13 +1945,12 @@ def run_qpp_group(group_config_file):
     merge_file,merge_mask,inclusion_list,out_dir = prep_inputs(group_config_file)
 
 
-
     return merge_file,merge_mask,inclusion_list,out_dir
 
 
 def run_qpp(group_config_file):
     import os
-    from CPAC.QPP.QPPv0418 import qppv
+    from CPAC.QPP.detectqppv import qppv
 
     group_config_file = os.path.abspath(group_config_file)
     img, mask, inclusion_list,out_dir = run_qpp_group(group_config_file)
