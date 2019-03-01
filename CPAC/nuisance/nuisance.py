@@ -919,7 +919,18 @@ def create_nuisance_workflow(nuisance_selectors,
         nuisance_regression.inputs.bandpass = (float(bottom_frequency),
                                                float(top_frequency))
 
+    regress_out = pe.Node(afni.Calc(), name='regress_out')
+
+    regress_out.inputs.expr = 'a-b'
+    regress_out.inputs.outputtype = 'NIFTI_GZ'
+
+    nuisance_wf.connect(inputspec, 'functional_file_path',
+                        regress_out, 'in_file_a')
+
     nuisance_wf.connect(nuisance_regression, 'out_file',
+                        regress_out, 'in_file_b')
+
+    nuisance_wf.connect(regress_out, 'out_file',
                         outputspec, 'residual_file_path')
 
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
