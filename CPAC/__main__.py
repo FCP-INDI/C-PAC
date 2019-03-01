@@ -294,6 +294,14 @@ def group_isc(group_config):
     from CPAC.pipeline.cpac_group_runner import run_isc
     run_isc(group_config)
 
+# Group analysis - QPP
+@group.command()
+@click.argument('group_config')
+def group_qpp(group_config):
+    from CPAC.QPP.prep_QPP import prep_inputs
+    prep_inputs(group_config)
+
+
 # Utilities
 @main.group()
 def utils():
