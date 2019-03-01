@@ -383,7 +383,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
                 # reduce CSF mask to the lateral ventricles
                 mask_cfs_with_lat_ven = pe.Node(interface=afni.Calc(), name='mask_cfs_with_lat_ven')
-                mask_cfs_with_lat_ven.inputs.expr = 'step(a)*step(b)'
+                mask_cfs_with_lat_ven.inputs.expr = 'a*b'
                 mask_cfs_with_lat_ven.inputs.outputtype = 'NIFTI_GZ'
                 mask_cfs_with_lat_ven.inputs.out_file = 'cfs_lat_ven_mask.nii.gz'
 
@@ -404,7 +404,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
-                    nuisance_wf.connect(*(pipeline_resource_pool['CerebrospinalFluidUnmasked'] + (lat_ven_mni_to_anat, 'reference_image')))
+                    nuisance_wf.connect(*(pipeline_resource_pool['Anatomical'] + (lat_ven_mni_to_anat, 'reference_image')))
 
                     nuisance_wf.connect(lat_ven_mni_to_anat, 'output_image', mask_cfs_with_lat_ven, 'in_file_b')
 

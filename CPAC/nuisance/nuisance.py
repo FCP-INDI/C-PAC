@@ -176,7 +176,7 @@ def gather_nuisance(functional_file_path,
             if regressor_selector.get('include_delayed', False):
                 column_names.append("{0}Back".format(regressor_name))
                 nuisance_regressors.append(
-                    np.append(regressors[1:, regressor_index], [0.0])
+                    np.append([0.0], regressors[0:-1, regressor_index])
                 )
 
             if regressor_selector.get('include_squared', False):
@@ -189,7 +189,7 @@ def gather_nuisance(functional_file_path,
                 column_names.append("{0}BackSq".format(regressor_name))
                 nuisance_regressors.append(
                     np.square(
-                        np.append(regressors[1:, regressor_index], [0.0])
+                        np.append([0.0], regressors[0:-1, regressor_index])
                     )
                 )
 
@@ -611,7 +611,6 @@ def create_nuisance_workflow(nuisance_selectors,
                         name='{}_flirt_applyxfm'
                              .format(anatomical_at_resolution_key)
                     )
-                    anat_resample.inputs.interp = 'nearestneighbour'
                     anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
 
                     nuisance_wf.connect(*(
@@ -634,7 +633,6 @@ def create_nuisance_workflow(nuisance_selectors,
                         name='{}_flirt_applyxfm'
                              .format(functional_at_resolution_key)
                     )
-                    func_resample.inputs.interp = 'nearestneighbour'
                     func_resample.inputs.apply_xfm = True
 
                     nuisance_wf.connect(*(
@@ -875,7 +873,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
     nuisance_regression.inputs.out_file = 'residuals.nii.gz'
     nuisance_regression.inputs.outputtype = 'NIFTI_GZ'
-    nuisance_regression.inputs.norm = True
+    nuisance_regression.inputs.norm = False
 
     nuisance_wf.connect([
         (inputspec, nuisance_regression, [
@@ -910,8 +908,10 @@ def create_nuisance_workflow(nuisance_selectors,
         nuisance_regression.inputs.polort = \
             nuisance_selectors['PolyOrt']['degree']
 
-    if nuisance_selectors.get('Bandpass'):
+    else:
+        nuisance_regression.inputs.polort = 0
 
+    if nuisance_selectors.get('Bandpass'):
         bandpass_selector = nuisance_selectors['Bandpass']
         bottom_frequency = bandpass_selector.get('bottom_frequency', 0.0)
         top_frequency = bandpass_selector.get('top_frequency', 9999.9)
