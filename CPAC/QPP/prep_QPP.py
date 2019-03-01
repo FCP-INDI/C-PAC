@@ -8,6 +8,7 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
         err = "\n\n[!] please choose atleast one nusiance stratergy!\n\n"
         raise Exception(err)
 
+
     if derivatives is None:
 
         keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
@@ -17,18 +18,20 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
             err = "\n[!] Could not access or read the cpac_outputs.csv " \
                   "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
             raise Exception(err)
-        derivatives = list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
+        derivatives = resource_list
 
+        #list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
 
+    #choose which nuisance residual method you want to apply
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
     #print "\n\nGathering the output file paths from %s..." \
     #% pipeline_output_folder
 
     search_dir = []
     for derivative_name in derivatives:
-        for resource_name in resource_list:
-            for resource_name in derivative_name:
-                search_dir.append(derivative_name)
+        #for resource_name in resource_list:
+        #    for resource_name in derivative_name:
+        search_dir.append(derivative_name)
     nifti_globs=[]
 
     for resource_name in search_dir:
@@ -186,7 +189,7 @@ def prep_inputs(group_config_file):
     from CPAC.pipeline.cpac_group_runner import load_text_file
     from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
     from CPAC.pipeline.cpac_group_runner import load_config_yml
-    from CPAC.pipeline.cpac_ga_model_generator import create_merge_file,create_merge_mask
+    from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile,create_merge_mask
 
     keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
     try:
@@ -214,8 +217,10 @@ def prep_inputs(group_config_file):
 
     else:
         inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
+
     resource_list = ['functional_nuisance_residuals']
     output_df_dict=gather_outputs(pipeline_folder,resource_list,inclusion_list)
+    print(output_df_dict)
 
     if not output_df_dict:
         err = '\n\n[!] For QPP, C-PAC requires the \'functional_nuisance_residuals\' outputs '\
@@ -333,7 +338,7 @@ def prep_inputs(group_config_file):
                                 scan_or_session_label)  # series or repeated label == same as qpp scan or sessions list)
 
         merge_outfile = out_dir
-        merge_file = create_merge_file(new_output_df["Filepath"].tolist(),merge_outfile)
+        merge_file = create_merged_copefile(new_output_df["Filepath"].tolist(),merge_outfile)
         merge_mask_outfile = '_'.join([model_name, resource_id,
                                        "merged_mask.nii.gz"])
         merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
