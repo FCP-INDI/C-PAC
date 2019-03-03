@@ -248,21 +248,21 @@ def gather_nuisance(functional_file_path,
 
         if len(censor_indices) > 0:
 
-            # if number_of_previous_trs_to_remove and number_of_subsequent_trs_to_remove
+            # if number_of_previous_trs_to_censor and number_of_subsequent_trs_to_censor
             # are not set, assume they should be zero
-            previous_trs_to_remove = \
-                selector.get('number_of_previous_trs_to_remove', 0)
+            previous_trs_to_censor = \
+                selector.get('number_of_previous_trs_to_censor', 0)
 
-            subsequent_trs_to_remove = \
-                selector.get('number_of_subsequent_trs_to_remove', 0)
+            subsequent_trs_to_censor = \
+                selector.get('number_of_subsequent_trs_to_censor', 0)
 
             for censor_index in censor_indices:
 
-                censor_begin_index = censor_index - previous_trs_to_remove
+                censor_begin_index = censor_index - previous_trs_to_censor
                 if censor_begin_index < 0:
                     censor_begin_index = 0
 
-                censor_end_index = censor_index + subsequent_trs_to_remove
+                censor_end_index = censor_index + subsequent_trs_to_censor
                 if censor_end_index >= regressor_length:
                     censor_end_index = regressor_length - 1
 
@@ -307,18 +307,25 @@ def create_nuisance_workflow(nuisance_selectors,
     Notes
     -----
 
+    Workflow Inputs
+    ---------------
     Workflow Inputs::
-
+    
         inputspec.functional_file_path : string (nifti file)
             Path to realigned and motion corrected functional image (nifti) file.
+
+        inputspec.functional_brain_mask_file_path : string (nifti file)
+            Whole brain mask corresponding to the functional data.
+
         inputspec.wm_mask_file_path : string (nifti file)
             Corresponding white matter mask.
         inputspec.csf_mask_file_path : string (nifti file)
             Corresponding cerebral spinal fluid mask.
         inputspec.gm_mask_file_path : string (nifti file)
             Corresponding grey matter mask.
-        inputspec.functional_brain_mask_file_path : string (nifti file)
-            Whole brain mask corresponding to the functional data.
+        inputspec.lat_ventricles_mask_file_path : string (nifti file)
+            Mask of lateral ventricles calculated from the Harvard Oxford Atlas.
+
         inputspec.mni_to_anat_linear_xfm_file_path: string (nifti file)
             FLIRT Linear MNI to Anat transform
         inputspec.anat_to_mni_initial_xfm_file_path: string (nifti file)
@@ -327,95 +334,136 @@ def create_nuisance_workflow(nuisance_selectors,
             ANTS rigid (6 parameter, no scaling) transform from anat to MNI
         inputspec.anat_to_mni_affine_xfm_file_path: string (nifti file)
             ANTS affine (13 parameter, scales and shears) transform from anat to MNI
+
         inputspec.func_to_anat_linear_xfm_file_path: string (nifti file)
             FLIRT Linear Transform between functional and anatomical spaces 
-        inputspec.mni_to_anat_linear_xfm_file_path : string (nifti file)
-            Corresponding MNI to anatomical linear transformation 
-        inputspec.func_to_anat_linear_xfm_file_path : string (nifti file)
-            Corresponding EPI to anatomical linear transformation
-        inputspec.lat_ventricles_mask_file_path : string (nifti file)
-            Mask of lateral ventricles calculated from the Harvard Oxford Atlas.
+
         inputspec.motion_parameter_file_path : string (text file)
-            Corresponding rigid-body motion parameters.  Matrix in the file should be of shape 
+            Corresponding rigid-body motion parameters. Matrix in the file should be of shape 
             (`T`, `R`), `T` time points and `R` motion parameters.
         inputspec.fd_file_path : string (text file)
             Framewise displacement calculated from the motion parameters.
         inputspec.dvars_file_path : string (text file)
             DVARS calculated from the functional data.
-        inputspec.selector : Dictionary containing configuration parameters for nuisance regression
-            selector = {'aCompCor' : None | {components = <number of components to retain>,
-                                            tissue = 'WM' | 'CSF' | 'WM+CSF',
-                                            extraction_resolution = None | floating point value indicating isotropic
-                                                resolution (ex. 2 for 2mm x 2mm x 2mm that data should be extracted at,
-                                                the corresponding tissue mask will be resampled to this resolution. The
-                                                functional data will also be resampled to this resolution, and the
-                                                extraction will occur at this new resolution. The goal is to avoid
-                                                contamination from undesired tissue components when extracting nuisance
-                                                regressors,
-                                             erode_mask = True | False, whether or not the mask should be eroded to
-                                                further avoid a mask overlapping with a different tissue class,
-                                            include_delayed = True | False,
-                                            include_squared = True | False,
-                                            include_delayed_squared = True | False},
-                        'tCompCor' : None | {components = <number of components to retain>,
-                                            threshold = <floating point number = cutoff as raw variance value,
-                                                         floating point number followed by SD (ex. 1.5SD) = mean + a
-                                                             multiple of the SD,
-                                                         floating point number followed by PCT (ex. 2PCT) = percentile
-                                                             from the top (ex is top 2%),
-                                            by_slice = boolean, whether or not the threshold criterion should be applied
-                                                       by slice or across the entire volume, makes most sense for SD or
-                                                       PCT,
-                                            include_delayed = True | False,
-                                            include_squared = True | False,
-                                            include_delayed_squared = True | False},
-                        'WhiteMatter' : None | {summary_method = 'Anaticor', 'PCA', 'Mean', 'NormMean' or
-                                           'DetrendNormMean',
-                                       components = <number of components to retain>,
-                                       anaticor_radius = <radius in mm>,
-                                       extraction_resolution = None | floating point value (same as for aCompCor),
-                                       erode_mask = True | False (same as for aCompCor),
-                                       include_delayed = True | False,
-                                       include_squared = True | False,
-                                       include_delayed_squared = True | False},
-                        'Ventricles' : None | {summary_method = 'PCA', 'Mean', 'NormMean' or 'DetrendNormMean',
-                                       components = <number of components to retain>,
-                                       extraction_resolution = None | floating point value (same as for aCompCor),
-                                       erode_mask = True | False (same as for aCompCor),
-                                       include_delayed = True | False,
-                                       include_squared = True | False,
-                                       include_delayed_squared = True | False},
-                        'GreyMatter' : None | {summary_method = 'PCA', 'Mean', 'NormMean' or 'DetrendNormMean',
-                                       components = <number of components to retain>,
-                                       extraction_resolution = None | floating point value (same as for aCompCor),
-                                       erode_mask = True | False (same as for aCompCor),
-                                       include_delayed = True | False,
-                                       include_squared = True | False,
-                                       include_delayed_squared = True | False},
-                        'GlobalSignal' : None | {summary_method = 'PCA', 'Mean', 'NormMean' or 'DetrendNormMean',
-                                           components = <number of components to retain>,
-                                           extraction_resolution = None | floating point value (same as for aCompCor),
-                                           erode_mask = True | False (same as for aCompCor),
-                                           include_delayed = True | False,
-                                           include_squared = True | False,
-                                           include_delayed_squared = True | False},
-                        'Motion' : None | {include_delayed = True | False,
-                                           include_squared = True | False,
-                                           include_delayed_squared = True | False},
-                        'Censor' : None | { thresh_metric = 'RMSD','DVARS', or 'RMSD+DVARS',
-                                            threshold = <threshold to be applied to metric, if using
-                                              RMSD+DVARS, this should be a tuple (RMSD thresh, DVARS thresh)>,
-                                            number_of_previous_trs_to_remove = True | False,
-                                            number_of_subsequent_trs_to_remove = True | False,
-                                            method = 'Kill', 'Zero', 'Interpolate', 'SpikeRegression'},
-                        'PolyOrt' : None | { degree = <polynomial degree up to which will be removed, e.g. 2 means
-                                                       constant + linear + quadratic, practically that is probably,
-                                                       the most that will be need esp. if band pass filtering>},
-                        'Bandpass' : None | { bottom_frequency = <frequency in hertz of the highpass part of the pass
-                                                                  band, frequencies below this will be removed>,
-                                              top_frequency = <frequency in hertz of the lowpass part of the pass
-                                                               band, frequencies above this will be removed>}
-                        }
+
+        inputspec.selector : Dictionary containing configuration parameters for nuisance regression.
+            To not run a type of nuisance regression, it may be ommited from the dictionary.
+            selector = {
+                aCompCor: {
+                    symmary: {
+                        method: 'PC', aCompCor will always extract the principal components from
+                            tissues signal,
+                        components: number of components to retain,
+                    },
+                    tissues: list of tissues to extract regressors.
+                        Valid values are: 'WhiteMatter', 'CerebrospinalFluid',
+                    extraction_resolution: None | floating point value indicating isotropic
+                        resolution (ex. 2 for 2mm x 2mm x 2mm that data should be extracted at,
+                        the corresponding tissue mask will be resampled to this resolution. The
+                        functional data will also be resampled to this resolution, and the
+                        extraction will occur at this new resolution. The goal is to avoid
+                        contamination from undesired tissue components when extracting nuisance
+                        regressors,
+                    erode_mask: True | False, whether or not the mask should be eroded to
+                        further avoid a mask overlapping with a different tissue class,
+                    include_delayed: True | False, whether or not to include a one-frame delay regressor,
+                        default to False,
+                    include_squared: True | False, whether or not to include a squared regressor,
+                        default to False,
+                    include_delayed_squared: True | False, whether or not to include a squared one-frame
+                        delay regressor, default to False,
+                },
+                tCompCor: {
+                    symmary: {
+                        method: 'PC', tCompCor will always extract the principal components from
+                            BOLD signal,
+                        components: number of components to retain,
+                    },
+                    threshold:
+                        floating point number = cutoff as raw variance value,
+                        floating point number followed by SD (ex. 1.5SD) = mean + a multiple of the SD,
+                        floating point number followed by PCT (ex. 2PCT) = percentile from the top (ex is top 2%),
+                    by_slice: True | False, whether or not the threshold criterion should be applied
+                        by slice or across the entire volume, makes most sense for thresholds
+                        using SD or PCT,
+                    include_delayed: True | False,
+                    include_squared: True | False,
+                    include_delayed_squared: True | False,
+                },
+                WhiteMatter: {
+                    symmary: {
+                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        components: number of components to retain, if PC,
+                    },
+                    extraction_resolution: None | floating point value (same as for aCompCor),
+                    erode_mask: True | False (same as for aCompCor),
+                    include_delayed: True | False (same as for aCompCor),
+                    include_squared: True | False (same as for aCompCor),
+                    include_delayed_squared: True | False (same as for aCompCor),
+                },
+                CerebrospinalFluid: {
+                    symmary: {
+                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        components: number of components to retain, if PC,
+                    },
+                    extraction_resolution: None | floating point value (same as for aCompCor),
+                    erode_mask: True | False (same as for aCompCor),
+                    include_delayed: True | False (same as for aCompCor),
+                    include_squared: True | False (same as for aCompCor),
+                    include_delayed_squared: True | False (same as for aCompCor),
+                },
+                GreyMatter: {
+                    symmary: {
+                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        components: number of components to retain, if PC,
+                    },
+                    extraction_resolution: None | floating point value (same as for aCompCor),
+                    erode_mask: True | False (same as for aCompCor),
+                    include_delayed: True | False (same as for aCompCor),
+                    include_squared: True | False (same as for aCompCor),
+                    include_delayed_squared: True | False (same as for aCompCor),
+                },
+                GlobalSignal: {
+                    symmary: {
+                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        components: number of components to retain, if PC,
+                    },
+                    include_delayed: True | False (same as for aCompCor),
+                    include_squared: True | False (same as for aCompCor),
+                    include_delayed_squared: True | False (same as for aCompCor),
+                },
+                Motion: None | { 
+                    include_delayed: True | False (same as for aCompCor),
+                    include_squared: True | False (same as for aCompCor),
+                    include_delayed_squared: True | False (same as for aCompCor),
+                },
+                Censor: {
+                    method: 'Kill', 'Zero', 'Interpolate', 'SpikeRegression',
+                    thresholds: list of dictionary, {
+                        type: 'FD', 'DVARS',
+                        value: threshold value to be applied to metric
+                    },
+                    number_of_previous_trs_to_censor: integer, number of previous
+                        TRs to censor (remove or regress, if spike regression)
+                    number_of_subsequent_trs_to_censor: integer, number of
+                        subsequent TRs to censor (remove or regress, if spike
+                        regression)
+                },
+                PolyOrt: {
+                    degree: integer, polynomial degree up to which will be removed,
+                        e.g. 2 means constant + linear + quadratic, practically
+                        that is probably, the most that will be need especially
+                        if band pass filtering
+                },
+                Bandpass: {
+                    bottom_frequency: floating point value, frequency in hertz of
+                        the highpass part of the pass band, frequencies below this
+                        will be removed,
+                    top_frequency: floating point value, frequency in hertz of the
+                        lowpass part of the pass band, frequencies above this
+                        will be removed
+                }
+            }
 
     Workflow Outputs::
 
@@ -826,8 +874,8 @@ def create_nuisance_workflow(nuisance_selectors,
                          'fd_threshold',
                          'dvars_file_path',
                          'dvars_threshold',
-                         'number_of_previous_trs_to_remove',
-                         'number_of_subsequent_trs_to_remove'],
+                         'number_of_previous_trs_to_censor',
+                         'number_of_subsequent_trs_to_censor'],
             output_names=['out_file'],
             function=find_offending_time_points,
             as_module=True
@@ -860,23 +908,23 @@ def create_nuisance_workflow(nuisance_selectors,
                 nuisance_wf.connect(inputspec, "dvars_file_path",
                                     find_censors, "dvars_file_path")
 
-        if censor_selector.get('number_of_previous_trs_to_remove') and \
+        if censor_selector.get('number_of_previous_trs_to_censor') and \
                 censor_selector['method'] != 'SpikeRegression':
 
-            find_censors.inputs.number_of_previous_trs_to_remove = \
-                censor_selector['number_of_previous_trs_to_remove']
+            find_censors.inputs.number_of_previous_trs_to_censor = \
+                censor_selector['number_of_previous_trs_to_censor']
 
         else:
-            find_censors.inputs.number_of_previous_trs_to_remove = 0
+            find_censors.inputs.number_of_previous_trs_to_censor = 0
 
-        if censor_selector.get('number_of_subsequent_trs_to_remove') and \
+        if censor_selector.get('number_of_subsequent_trs_to_censor') and \
                 censor_selector['method'] != 'SpikeRegression':
 
-            find_censors.inputs.number_of_subsequent_trs_to_remove = \
-                censor_selector['number_of_subsequent_trs_to_remove']
+            find_censors.inputs.number_of_subsequent_trs_to_censor = \
+                censor_selector['number_of_subsequent_trs_to_censor']
 
         else:
-            find_censors.inputs.number_of_subsequent_trs_to_remove = 0
+            find_censors.inputs.number_of_subsequent_trs_to_censor = 0
 
     # Use 3dTproject to perform nuisance variable regression
     nuisance_regression = pe.Node(interface=afni.TProject(),

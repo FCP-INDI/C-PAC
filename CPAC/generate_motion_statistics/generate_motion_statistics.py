@@ -7,7 +7,7 @@ import nipype.interfaces.utility as util
 from CPAC.utils.function import Function
 
 
-def motion_power_statistics(wf_name='gen_motion_stats'):
+def motion_power_statistics(name='motion_stats'):
 
     """
     The main purpose of this workflow is to get various statistical measures
@@ -15,18 +15,12 @@ def motion_power_statistics(wf_name='gen_motion_stats'):
 
     Parameters
     ----------
-    wf_name : str
-        Workflow name
-
-    Returns
-    -------
-    wf : workflow object
-          Workflow object containing various movement/motion and power parameters estimates.
+    :param str name: Name of the workflow, defaults to 'motion_stats'
+    :return: Nuisance workflow.
+    :rtype: nipype.pipeline.engine.Workflow
 
     Notes
     -----
-
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/generate_parmeters/generate_parmeters.py>`_
 
     Workflow Inputs::
 
@@ -180,7 +174,7 @@ def motion_power_statistics(wf_name='gen_motion_stats'):
 
     """
 
-    wf = pe.Workflow(name=wf_name)
+    wf = pe.Workflow(name=name)
     input_node = pe.Node(util.IdentityInterface(fields=['subject_id',
                                                        'scan_id',
                                                        'movement_parameters',

@@ -16,26 +16,28 @@ import scipy.signal as signal
 
 def find_offending_time_points(fd_file_path=None, dvars_file_path=None,
                                fd_threshold=None, dvars_threshold=None,
-                               number_of_previous_trs_to_remove=0,
-                               number_of_subsequent_trs_to_remove=0):
+                               number_of_previous_trs_to_censor=0,
+                               number_of_subsequent_trs_to_censor=0):
     """
+    Applies criterion in method to find time points whose FD or DVARS (or both)
+    are above threshold. 
 
-    Applies criterion in method to find time points whose FD or DVARS (or both) are above threshold
+    :param fd_file_path: path to TSV containing framewise displacement as a
+        single column. If not specified, it will not be used.
+    :param dvars_file_path: path to TSV containing DVARS as a single column.
+        If not specified, it will not be used.
+    :param fd_threshold: threshold to apply to framewise displacement,
+        it can be a value such as 0.2 or a floating point multiple of the
+        standard deviation specified as, e.g. '1.5SD'.
+    :param dvars_threshold: threshold to apply to DVARS, can be a value such
+        as 0.5 or a floating point multiple of the standard deviation specified
+        as, e.g. '1.5SD'.
+    :param number_of_previous_trs_to_censor: extent of censorship window before
+        the censor.
+    :param number_of_subsequent_trs_to_censor: extent of censorship window after
+        the censor.
 
-    :param thresh_metric: metric for determining offending time points, either 'FD', 'DVARS', or 'FD+DVARS'. In the last
-        case time points will be chosen from the intersection of the FD and DVARS criteria
-    :param out_file_path: name of output TSV, which will contain the indices of offending time points list in a
-        single column
-    :param fd_file_path: path to TSV containing framewise displacement as a single column
-    :param dvars_file_path: path to TSV containing DVARS as a single column
-    :param fd_threshold: threshold to apply to framewise displacement, can be a value such as 0.2 or a floating
-      point multiple of the standard deviation specified as, e.g. '1.5 SD'
-    :param dvars_threshold: threshold to apply to DVARS, can be a value such as 0.5 or a floating
-      point multiple of the standard deviation specified as, e.g. '1.5 SD'
-    :param number_of_previous_trs_to_remove: extent of censorship window before the censor
-    :param number_of_subsequent_trs_to_remove: extent of censorship window after the censor
-
-    :return: file path to output file
+    :return: File path to TSV file containing the volumes to be censored.
     """
     import numpy as np
     import os
@@ -115,8 +117,8 @@ def find_offending_time_points(fd_file_path=None, dvars_file_path=None,
     extended_censors = []
     for censor in offending_time_points:
         extended_censors += range(
-            (censor - number_of_previous_trs_to_remove),
-            (censor + number_of_subsequent_trs_to_remove + 1)
+            (censor - number_of_previous_trs_to_censor),
+            (censor + number_of_subsequent_trs_to_censor + 1)
         )
 
     extended_censors = [
@@ -137,24 +139,31 @@ def find_offending_time_points(fd_file_path=None, dvars_file_path=None,
 def create_temporal_variance_mask(functional_file_path, mask_file_path,
                                   threshold, by_slice=False):
     """
-    Create a mask by applying threshold to the temporal variance of 4D nifti file in functional_file_path. Only
-    non-zero voxels in mask will be considered for inclusion.
+    Create a mask by applying threshold to the temporal variance of 4D nifti
+    file in functional_file_path. Only non-zero voxels in mask will be
+    considered for inclusion.
 
-    :param functional_file_path: 4D nifti file containing functional data
-    :param output_file_name: name of 3D nifti file containing created mask, the current directory will be prepended
-        to this value, and the mask will be written to the resulting location.
-    :param mask_file_path: name of 3D nifti file containing mask to use to restrict the voxels considered by the masking
-        operation
-    :param threshold: only voxels whose temporal variance meet the threshold criterion will be included in the created
-        mask. Appropriate values are:
-         - a floating point value, values whose temporal variance is greater than this value will be included in mask
-         - a floating point value followed by SD, (1.5SD), values whose temporal variance is greater that 1.5 standard
-              deviations of voxels will be included in the mask
-         - a floating point value followed by PCT, (2PCT), values whose temporal variance is in the specified percentile
-              _from the top_ will be included in the mask. For example 2pct results in the top 2% voxels being included
-    :param by_slice: indicates whether threshold criterion should be applied by slice, or to all data, only changes
-        result for thresholds expressed in terms of SD or pct
-    :return: the full path of the 3D nifti file containing the mask created by this operation.
+    :param functional_file_path: 4D nifti file containing functional data.
+    :param mask_file_path: name of 3D nifti file containing mask to use to
+        restrict the voxels considered by the masking operation.
+    :param threshold: only voxels whose temporal variance meet the threshold
+        criterion will be included in the created mask. Appropriate values are:
+
+        - a floating point value, values whose temporal variance is greater than
+          this value will be included in mask
+        - a floating point value followed by SD, (1.5SD), values whose temporal
+          variance is greater that 1.5 standard deviations of voxels will be
+          included in the mask
+        - a floating point value followed by PCT, (2PCT), values whose temporal
+          variance is in the specified percentile from the top will be included
+          in the mask. E.g.: 2PCT results in the top 2% voxels being included.
+
+    :param by_slice: indicates whether threshold criterion should be applied by
+        slice, or to all data, only changes result for thresholds expressed in
+        terms of SD or PCT.
+
+    :return: the full path of the 3D nifti file containing the mask created by
+        this operation.
     """
 
     # begin by verifying the input parameters
@@ -305,7 +314,16 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                    regressor_selector,
                                    use_ants=True):
     """
-    Add tissue mask generation into pipeline.
+    Add tissue mask generation into pipeline according to the selector.
+
+    :param nuisance_wf: Nuisance regressor workflow.
+    :param pipeline_resource_pool: dictionary of available resources.
+    :param regressor_descriptor: dictionary of steps to build, including keys:
+        'tissue', 'resolution', 'erosion'
+    :param regressor_selector: dictionary with the original selector
+
+    :return: the full path of the 3D nifti file containing the mask created by
+        this operation.
     """
 
     steps = [
@@ -528,7 +546,7 @@ def summarize_timeseries(functional_path, masks_path, summary):
 
 class NuisanceRegressor(object):
 
-    def __init__(self, selector, selectors):
+    def __init__(self, selector, selectors=None):
         self.selector = selector
         self.selectors = selectors
 
@@ -541,7 +559,8 @@ class NuisanceRegressor(object):
     def __getitem__(self, key):
         return self.selector[key]
 
-    def _derivative_params(self, selector):
+    @staticmethod
+    def _derivative_params(selector):
         nr_repr = ''
         if not selector:
             return nr_repr
@@ -553,7 +572,8 @@ class NuisanceRegressor(object):
             nr_repr += 'B'
         return nr_repr
 
-    def _summary_params(self, selector):
+    @staticmethod
+    def _summary_params(selector):
         summ = selector['summary']
 
         methods = {
@@ -574,7 +594,8 @@ class NuisanceRegressor(object):
 
         return rep
 
-    def __repr__(self):
+    @staticmethod
+    def encode(selector, selectors=None):
         regs = {
             'GreyMatter': 'GM',
             'WhiteMatter': 'WM',
@@ -606,21 +627,22 @@ class NuisanceRegressor(object):
         # BP-T0.01-B0.1
 
         for r in regs.keys():
-            if r not in self.selector:
+            if r not in selector:
                 continue
 
-            s = self.selector[r]
+            s = selector[r]
 
             pieces = [regs[r]]
 
             if r in tissues:
                 if s.get('extraction_resolution'):
-                    res = "%.2f" % s['extraction_resolution']
+                    res = "%.2gmm" % s['extraction_resolution']
                     if s.get('erode_mask'):
                         res += 'E'
+                    pieces += [res]
 
-                pieces += [self._summary_params(s)]
-                pieces += [self._derivative_params(s)]
+                pieces += [NuisanceRegressor._summary_params(s)]
+                pieces += [NuisanceRegressor._derivative_params(s)]
 
             elif r == 'tCompCor':
 
@@ -634,8 +656,8 @@ class NuisanceRegressor(object):
                     threshold += t
 
                 pieces += [threshold]
-                pieces += [self._summary_params(s)]
-                pieces += [self._derivative_params(s)]
+                pieces += [NuisanceRegressor._summary_params(s)]
+                pieces += [NuisanceRegressor._derivative_params(s)]
 
             elif r == 'aCompCor':
                 if s.get('tissues'):
@@ -645,15 +667,15 @@ class NuisanceRegressor(object):
                     if s.get('erode_mask'):
                         res += 'E'
 
-                pieces += [self._summary_params(s)]
-                pieces += [self._derivative_params(s)]
+                pieces += [NuisanceRegressor._summary_params(s)]
+                pieces += [NuisanceRegressor._derivative_params(s)]
 
             elif r == 'Global':
-                pieces += [self._summary_params(s)]
-                pieces += [self._derivative_params(s)]
+                pieces += [NuisanceRegressor._summary_params(s)]
+                pieces += [NuisanceRegressor._derivative_params(s)]
 
             elif r == 'Motion':
-                pieces += [self._derivative_params(s)]
+                pieces += [NuisanceRegressor._derivative_params(s)]
 
             elif r == 'PolyOrt':
                 pieces += ['%d' % s['degree']]
@@ -678,10 +700,10 @@ class NuisanceRegressor(object):
                 pieces += [censoring[s['method']]]
 
                 trs_range = ['0', '0']
-                if s.get('number_of_previous_trs_to_remove'):
-                    trs_range[0] = '%d' % s['number_of_previous_trs_to_remove']
-                if s.get('number_of_subsequent_trs_to_remove'):
-                    trs_range[1] = '%d' % s['number_of_subsequent_trs_to_remove']
+                if s.get('number_of_previous_trs_to_censor'):
+                    trs_range[0] = '%d' % s['number_of_previous_trs_to_censor']
+                if s.get('number_of_subsequent_trs_to_censor'):
+                    trs_range[1] = '%d' % s['number_of_subsequent_trs_to_censor']
 
                 pieces += ['+'.join(trs_range)]
 
@@ -698,3 +720,9 @@ class NuisanceRegressor(object):
             selectors_representations += ['-'.join(filter(None, pieces))]
 
         return "_".join(selectors_representations)
+
+    def __repr__(self):
+        return NuisanceRegressor.encode(
+            self.selector,
+            self.selectors,
+        )
