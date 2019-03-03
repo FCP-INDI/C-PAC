@@ -63,7 +63,6 @@ from CPAC.nuisance import create_nuisance_workflow, NuisanceRegressor
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
-from CPAC.generate_motion_statistics import fristons_twenty_four
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import (
     create_surface_registration,
@@ -1562,7 +1561,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         for num_strat, strat in enumerate(strat_list):
 
             gen_motion_stats = motion_power_statistics(
-                c.fdCalc[0], 'gen_motion_stats_%d' % num_strat
+                'gen_motion_stats_%d' % num_strat
             )
 
             # Special case where the workflow is not getting outputs from
@@ -1592,7 +1591,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             node, out_file = strat['coordinate_transformation']
             workflow.connect(node, out_file,
-                            gen_motion_stats, 'inputspec.oned_matrix_save')
+                             gen_motion_stats, 'inputspec.transformations')
 
             strat.append_name(gen_motion_stats.name)
 
