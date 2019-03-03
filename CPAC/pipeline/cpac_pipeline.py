@@ -147,7 +147,7 @@ def create_log_node(workflow, logged_wf, output, index, scan_id=None):
         print(e)
 
 
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
+def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                   p_name=None, plugin='MultiProc', plugin_args=None):
     '''
     Function to prepare and, optionally, run the C-PAC workflow
@@ -158,9 +158,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         subject dictionary with anatomical and functional image paths
     c : Configuration object
         CPAC pipeline configuration dictionary object
-    strategies : obj
-        strategies object describing what strategies to run the pipeline
-        through
     run : boolean
         flag to indicate whether to run the prepared workflow
     pipeline_timing_info : list (optional); default=None
@@ -266,7 +263,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
-    subject_info['strategies'] = strategies
 
     # Check system dependencies
     check_system_deps(check_ants='ANTS' in c.regOption,
@@ -3519,25 +3515,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                     link_node = pe.Node(
                         interface=function.Function(
-                            input_names=['in_file', 'strategies',
-                                            'subject_id', 'pipeline_id',
-                                            'helper', 'create_sym_links'],
+                            input_names=['in_file', 'subject_id', 'pipeline_id',
+                                         'helper', 'create_sym_links'],
                             output_names=[],
                             function=process_outputs,
                             as_module=True),
                         name='process_outputs_%d' % sink_idx
                     )
 
-                    link_node.inputs.strategies = strategies
                     link_node.inputs.subject_id = subject_id
                     link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
                     link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
                     # TODO ASH enforce boolean with schema validation
-                    if 1 in c.runSymbolicLinks:
-                        link_node.inputs.create_sym_links = True
-                    else:
-                        link_node.inputs.create_sym_links = False
+                    link_node.inputs.create_sym_links = 1 in c.runSymbolicLinks
 
                     workflow.connect(ds, 'out_file', link_node, 'in_file')
 
