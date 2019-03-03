@@ -962,17 +962,17 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
             bmp = wx.ArtProvider.GetBitmap(wx.ART_EXECUTABLE_FILE, wx.ART_OTHER, (16, 16))
             button = wx.BitmapButton(buttons_panel, wx.ID_ANY, bmp)
             button.Bind(wx.EVT_BUTTON, (lambda i: lambda event: self.edit_regressor(event, i))(i))
-            buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=5)
+            buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=3)
 
-            bmp = wx.ArtProvider.GetBitmap(wx.ART_EXECUTABLE_FILE, wx.ART_OTHER, (16, 16))
+            bmp = wx.ArtProvider.GetBitmap(wx.ART_COPY, wx.ART_OTHER, (16, 16))
             button = wx.BitmapButton(buttons_panel, wx.ID_ANY, bmp)
             button.Bind(wx.EVT_BUTTON, (lambda i: lambda event: self.duplicate_regressor(event, i))(i))
-            buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=5)
+            buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=3)
             
             bmp = wx.ArtProvider.GetBitmap(wx.ART_DELETE, wx.ART_OTHER, (16, 16))
             button = wx.BitmapButton(buttons_panel, wx.ID_ANY, bmp)
             button.Bind(wx.EVT_BUTTON, (lambda i: lambda event: self.remove_regressor(event, i))(i))
-            buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=5)
+            buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=3)
 
             self.scroll_sizer.Add(buttons_panel, pos=(row, 0), flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL, border=5)
 
@@ -994,7 +994,7 @@ class NuisanceRegressionRegressors(Control):
         self.name = 'Regressors'
         self.default_values = []
         self.datatype = dtype.LDICT
-        self.help = "Get moro info"
+        self.help = "Select which nuisance signal corrections to apply"
 
         self.type = self.__class__.__name__
 
