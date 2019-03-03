@@ -7,17 +7,15 @@ import nipype.interfaces.utility as util
 from CPAC.utils.function import Function
 
 
-def motion_power_statistics(calculation='Jenkinson',
-                            wf_name='gen_motion_stats'):
+def motion_power_statistics(wf_name='gen_motion_stats'):
 
     """
-    The main purpose of this workflow is to get various statistical measures from the
-    movement/motion parameters obtained in functional preprocessing. These parameters
-    (FD calculations) are also required to carry out scrubbing.
+    The main purpose of this workflow is to get various statistical measures
+     from the movement/motion parameters obtained in functional preprocessing.
 
     Parameters
     ----------
-    wf_name : workflow object
+    wf_name : str
         Workflow name
 
     Returns
@@ -52,30 +50,11 @@ def motion_power_statistics(calculation='Jenkinson',
             1D file containing six movement/motion parameters(3 Translation, 3 Rotations)
             in different columns (roll pitch yaw dS  dL  dP), obtained in functional preprocessing step
 
-        scrubbing_input.threshold : a float
-            scrubbing threshold
-
-        scrubbing_input.remove_frames_before : an integer
-            count of preceding frames to the offending time
-            frames to be removed (i.e.,those exceeding FD threshold)
-
-        scrubbing_input.remove_frames_after : an integer
-            count of subsequent frames to the offending time
-            frames to be removed (i.e., those exceeding FD threshold)
-
 
     Workflow Outputs::
 
         outputspec.FDP_1D : 1D file
             mean Framewise Displacement (FD)
-
-        outputspec.frames_ex_1D : 1D file
-            Number of frames that would be censored ("scrubbed")
-            also removing the offending time frames (i.e., those exceeding the threshold),
-            the preceeding frame, and the two subsequent frames
-
-        outputspec.frames_in_1D : 1d file
-            Number of frames left after removing for scrubbing
 
         outputspec.power_params : txt file
             Text file containing various power parameters for scrubbing
@@ -155,40 +134,33 @@ def motion_power_statistics(calculation='Jenkinson',
 
     High Level Workflow Graph:
 
-    .. image:: ../images/parameters.dot.png
+    .. exec::
+        from CPAC.generate_motion_statistics import motion_power_statistics
+        wf = motion_power_statistics()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/parameters.dot'
+        )
+
+    .. image:: ../images/parameters.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/parameters_detailed.dot.png
+    .. image:: ../images/parameters_detailed.png
        :width: 1000
 
     Examples
     --------
-
-    >>> import generate_motion_statistics
-    >>> wf = generate_motion_statistics.motion_power_statistics()
-    >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outputs/sub01/func/movement_parameteres/rest_mc.1D'
-    >>> wf.inputs.inputspec.max_displacement = 'CPAC_outputs/sub01/func/max_dispalcement/max_disp.1D'
-    >>> wf.inputs.inputspec.motion_correct = 'CPAC_outputs/sub01/func/motion_correct/rest_mc.nii.gz'
-    >>> wf.inputs.inputspec.mask = 'CPAC_outputs/sub01/func/func_mask/rest_mask.nii.gz'
-    >>> wf.inputs.inputspec.subject_id = 'sub01'
-    >>> wf.inputs.inputspec.scan_id = 'rest_1'
-    >>> wf.inputs.scrubbing_input.threshold = 0.5
-    >>> wf.base_dir = './working_dir'
-    >>> wf.run()
-
     >>> import generate_motion_statistics
     >>> wf = generate_motion_statistics.motion_power_statistics("generate_statistics")
     >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outupts/sub01/func/movement_parameteres/rest_mc.1D'
     >>> wf.inputs.inputspec.max_displacement = 'CPAC_outputs/sub01/func/max_dispalcement/max_disp.1D'
     >>> wf.inputs.inputspec.motion_correct = 'CPAC_outputs/sub01/func/motion_correct/rest_mc.nii.gz'
     >>> wf.inputs.inputspec.mask = 'CPAC_outputs/sub01/func/func_mask/rest_mask.nii.gz'
+    >>> wf.inputs.inputspec.transformations = 'CPAC_outputs/sub01/func/coordinate_transformation/rest_mc.aff12.1D'
     >>> wf.inputs.inputspec.subject_id = 'sub01'
     >>> wf.inputs.inputspec.scan_id = 'rest_1'
-    >>> wf.inputs.scrubbing_input.threshold = 0.2
-    >>> wf.inputs.scrubbing_input.remove_frames_before = 1
-    >>> wf.inputs.scrubbing_input.remove_frames_after = 1
     >>> wf.base_dir = './working_dir'
     >>> wf.run()
 
@@ -215,7 +187,7 @@ def motion_power_statistics(calculation='Jenkinson',
                                                        'max_displacement',
                                                        'motion_correct',
                                                        'mask',
-                                                       'oned_matrix_save']),
+                                                       'transformations']),
                         name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['FDP_1D',
@@ -258,7 +230,7 @@ def motion_power_statistics(calculation='Jenkinson',
                                      as_module=True),
                             name='calculate_FDJ')
 
-    wf.connect(input_node, 'oned_matrix_save',
+    wf.connect(input_node, 'transformations',
                calculate_FDJ, 'in_file')
     wf.connect(calculate_FDJ, 'out_file',
                output_node, 'FDJ_1D')
