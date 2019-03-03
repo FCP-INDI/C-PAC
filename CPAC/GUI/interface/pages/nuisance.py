@@ -141,7 +141,7 @@ def selectors_repr(selectors):
             continue
 
         renamed = reg if reg not in renaming else renaming[reg]
-        regressor = selectors[reg]
+        regressor = selectors[reg] or {}
 
         terms = [renamed]
         if regressor.get('include_squared'):
@@ -961,16 +961,19 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
 
             bmp = wx.ArtProvider.GetBitmap(wx.ART_EXECUTABLE_FILE, wx.ART_OTHER, (16, 16))
             button = wx.BitmapButton(buttons_panel, wx.ID_ANY, bmp)
+            button.SetToolTip(wx.ToolTip("Edit regressors"))
             button.Bind(wx.EVT_BUTTON, (lambda i: lambda event: self.edit_regressor(event, i))(i))
             buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=3)
 
             bmp = wx.ArtProvider.GetBitmap(wx.ART_COPY, wx.ART_OTHER, (16, 16))
             button = wx.BitmapButton(buttons_panel, wx.ID_ANY, bmp)
+            button.SetToolTip(wx.ToolTip("Duplicate regressors"))
             button.Bind(wx.EVT_BUTTON, (lambda i: lambda event: self.duplicate_regressor(event, i))(i))
             buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=3)
             
             bmp = wx.ArtProvider.GetBitmap(wx.ART_DELETE, wx.ART_OTHER, (16, 16))
             button = wx.BitmapButton(buttons_panel, wx.ID_ANY, bmp)
+            button.SetToolTip(wx.ToolTip("Remove regressors"))
             button.Bind(wx.EVT_BUTTON, (lambda i: lambda event: self.remove_regressor(event, i))(i))
             buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=3)
 
