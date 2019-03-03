@@ -99,16 +99,28 @@ def gather_nuisance(functional_file_path,
         'Motion': motion_parameters_file_path,
     }
 
+    regressors_order = [
+        'Motion',
+        'GlobalSignal',
+        'aCompCorr',
+        'tCompCorr',
+        'CerebrospinalFluid',
+        'WhiteMatter',
+        'GreyMatter',
+    ]
+
     motion_labels = ['RotY', 'RotX', 'RotZ', 'Y', 'X', 'Z']
 
     # Compile regressors into a matrix
     column_names = []
     nuisance_regressors = []
 
-    for regressor_type, regressor_file in regressor_files.items():
+    for regressor_type in regressors_order:
 
         if regressor_type not in selector:
             continue
+
+        regressor_file = regressor_files[regressors_order]
 
         regressor_selector = selector.get(regressor_type) or {}
 
@@ -553,7 +565,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 if regressor_selector.get('by_slice'):
                     regressor_descriptor['tissue'] += '-BySlice'
                 else:
-                    regressor_selector['by_slice'] = True
+                    regressor_selector['by_slice'] = False
 
 
             # Add selector into regressor description
@@ -685,7 +697,6 @@ def create_nuisance_workflow(nuisance_selectors,
 
             # Create key for the final regressors
             regressor_file_resource_key = "_".join([
-
                 "-".join(regressor_descriptor[key])
                 if type(regressor_descriptor[key]) == list
                 else regressor_descriptor[key]
