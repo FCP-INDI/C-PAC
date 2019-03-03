@@ -415,6 +415,18 @@ Maximum potential number of cores that might be used during this run: {max_cores
                 'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
             })
 
+    if 'lesion_mask' in sub_dict.keys():
+        lesion_datasource = create_anat_datasource(
+            'lesion_gather_%d' % num_strat)
+        lesion_datasource.inputs.inputnode.subject = subject_id
+        lesion_datasource.inputs.inputnode.anat = sub_dict['lesion_mask']
+        lesion_datasource.inputs.inputnode.creds_path = input_creds_path
+        lesion_datasource.inputs.inputnode.dl_dir = c.workingDirectory
+
+        strat_initial.update_resource_pool({
+            'lesion_mask': (lesion_datasource, 'outputspec.anat')
+        })
+
     num_strat += 1
 
     strat_list.append(strat_initial)
@@ -747,28 +759,39 @@ Maximum potential number of cores that might be used during this run: {max_cores
                     [3, 2, 1, 0]
                 ]
             )
-
+            # Test if a lesion mask is found for the anatomical image
             if 'lesion_mask' in sub_dict and c.use_lesion_mask \
                     and 'lesion_preproc' not in nodes:
+                # Create lesion preproc node to apply afni Refit and Resample
                 lesion_preproc = create_lesion_preproc(
                     wf_name='lesion_preproc_%d' % num_strat
                 )
-
+                # Add the name of the node in the strat object
                 strat.append_name(lesion_preproc.name)
+                # I think I don't need to set this node as leaf but not sure
                 # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
 
-                strat.update_resource_pool({
-                    'lesion_mask': (lesion_preproc, 'inputspec.lesion')
-                })
+                # Add the lesion preprocessed to the resource pool
                 strat.update_resource_pool({
                     'lesion_reorient': (lesion_preproc, 'outputspec.reorient')
                 })
-                # Not sure to understand how log nodes work yet
-                # create_log_node(workflow, lesion_preproc,
-                #                 'inputspec.brain', num_strat)
-                print "LESION MASK OMG !!!" + str(sub_dict['lesion_mask'])
-                lesion_preproc.inputs.inputspec.lesion = sub_dict['lesion_mask']
+                # The Refit lesion is not added to the resource pool because
+                # it is not used afterward
 
+                # Not sure to understand how log nodes work yet
+                create_log_node(workflow, lesion_preproc,
+                                'inputspec.lesion', num_strat)
+
+                # Retieve the lesion mask from the resource pool
+                node, out_file = strat['lesion_mask']
+                # Set the lesion mask as input of lesion_preproc
+                workflow.connect(
+                    node, out_file,
+                    lesion_preproc, 'inputspec.lesion'
+                )
+
+                # Set the output of lesion preproc as parameter of ANTs
+                # fixed_image_mask option
                 workflow.connect(
                     lesion_preproc, 'outputspec.reorient',
                     ants_reg_anat_mni, 'inputspec.fixed_image_mask'
@@ -971,28 +994,39 @@ Maximum potential number of cores that might be used during this run: {max_cores
 
                 if 'lesion_mask' in sub_dict and c.use_lesion_mask\
                         and 'lesion_preproc' not in nodes:
+                    # Create lesion preproc node to apply afni Refit & Resample
                     lesion_preproc = create_lesion_preproc(
                         wf_name='lesion_preproc_%d' % num_strat
                     )
-
+                    # Add the name of the node in the strat object
                     strat.append_name(lesion_preproc.name)
 
-                    # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
+                    # I think I don't need to set this node as leaf but not sure
+                    # strat.set_leaf_properties(lesion_preproc,
+                    # 'inputspec.lesion')
 
-                    strat.update_resource_pool({
-                        'lesion_mask': (lesion_preproc, 'inputspec.lesion')
-                    })
+                    # Add the lesion preprocessed to the resource pool
                     strat.update_resource_pool({
                         'lesion_reorient': (
-                        lesion_preproc, 'outputspec.reorient')
+                            lesion_preproc, 'outputspec.reorient')
                     })
-                    # Not sure to understand how log nodes work yet
-                    # create_log_node(workflow, lesion_preproc,
-                    #                 'inputspec.brain', num_strat)
-                    print "LESION MASK OMG !!! (SYM)" + str(sub_dict['lesion_mask'])
-                    lesion_preproc.inputs.inputspec.lesion = sub_dict[
-                        'lesion_mask']
+                    # The Refit lesion is not added to the resource pool because
+                    # it is not used afterward
 
+                    # Not sure to understand how log nodes work yet
+                    create_log_node(workflow, lesion_preproc,
+                                    'inputspec.lesion', num_strat)
+
+                    # Retieve the lesion mask from the resource pool
+                    node, out_file = strat['lesion_mask']
+                    # Set the lesion mask as input of lesion_preproc
+                    workflow.connect(
+                        node, out_file,
+                        lesion_preproc, 'inputspec.lesion'
+                    )
+
+                    # Set the output of lesion preproc as parameter of ANTs
+                    # fixed_image_mask option
                     workflow.connect(
                         lesion_preproc, 'outputspec.reorient',
                         ants_reg_anat_symm_mni, 'inputspec.fixed_image_mask'

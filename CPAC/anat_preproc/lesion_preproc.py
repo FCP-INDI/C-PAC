@@ -5,10 +5,10 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-
 def inverse_lesion(lesion_path):
     """
-
+    Check if the image contains more zeros than non-zeros, if so,
+    replaces non-zeros by zeros and zeros by ones.
     Parameters
     ----------
     lesion_path: str
@@ -36,7 +36,7 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
     Returns
     -------
     lesion_preproc : workflow
-        Lesion Preprocessing Workflow
+        Lesion preprocessing Workflow
 
     Workflow Inputs::
         inputspec.lesion : string
