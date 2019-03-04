@@ -66,7 +66,7 @@ def bids_decode_fname(file_path, dbg=False):
         raise ValueError("Filename (%s) is a BOLD file, but " % (fname) +
                          "doesn't contain a task, does it conform to the" +
                          " BIDS format?")
-    print str(f_dict)
+
     return f_dict
 
 
@@ -434,7 +434,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                f_dict["ses"],
                                task_key,
                                p))
-    # Here I have to do something to add the mask
+                    
     sublist = []
     for ksub, sub in subdict.iteritems():
         for kses, ses in sub.iteritems():
