@@ -181,42 +181,4 @@ def test_registration_lesion():
         ]
     )
 
-    # ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = lesion_file
-    #
-    # apply_wf = create_wf_apply_ants_warp()
-    #
-    # ants_reg_les_workflow.connect([(
-    #     ants_reg_anat_mni, apply_wf, [
-    #         ('inputspec.anatomical_brain', 'inputspec.input_image'),
-    #         ('inputspec.reference_brain', 'inputspec.reference_image'),
-    #         ('inputspec.transforms', 'inputspec.transforms'),
-    #         ('inputspec.', 'inputspec.'),
-    #         ('inputspec.', 'inputspec.'),
-    #         ('inputspec.', 'inputspec.')
-    #                                           ])
-    #                   ])
-    #
-    #
-    # apply_wf.outputspec.outputs.output_image = \
-    #     '/outputs/registration_T1_res.nii.gz'
-    #
-    # inputspec = pe.Node(util.IdentityInterface(fields=['input_image',
-    #                                                    'reference_image',
-    #                                                    'transforms',
-    #                                                    'dimension',
-    #                                                    'input_image_type',
-    #                                                    'interpolation']),
-    #                     name='inputspec')
-    #
-    # apply_ants_warp_wf.connect(apply_ants_warp, 'output_image',
-    #                            outputspec, 'output_image')
-
-    # datasink = pe.Node(interface=nio.DataSink(), name="datasink")
-    # datasink.inputs.base_directory = os.path.abspath('/outputs')
-    #
-    # wf.connect(ants_reg_anat_mni, 'outputspec.ants_reg_anat_mni', datasink,
-    #                       'anat_reg')
-
-    # wf.write_graph(graph2use='flat')
-
     wf.run()
