@@ -1088,21 +1088,3 @@ class MedianAngleCorrection(wx.ScrolledWindow):
 
     def get_counter(self):
             return self.counter
-
-
-def test_nuisance():
-
-    app = wx.App(False)
-    frame = wx.Frame(None, wx.ID_ANY, "Nuisance Regression")
-    
-    editor = NuisanceRegression(frame)
-    frame.Show(True)
-    frame.Bind(wx.EVT_CLOSE, lambda event: app.Destroy())
-
-    # frame.regressor_selectors = regressor_selectors
-    # editor = NuisanceRegressionRegressorEditor(frame, 0)
-    # editor.Show(True)
-    # editor.Bind(wx.EVT_CLOSE, lambda event: app.Destroy())
-
-    app.MainLoop()
-

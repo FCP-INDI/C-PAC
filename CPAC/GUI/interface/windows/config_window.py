@@ -232,10 +232,10 @@ class Mybook(wx.Treebook):
 class MainFrame(wx.Frame):
 
     def __init__(self, parent, option='save', path="", pipeline_id="",
-                 ind=True):
+                 ind=True, size=(1200, 520)):
         wx.Frame.__init__(
             self, parent=parent, title="CPAC Pipeline Configuration",
-            size=(1200, 520))
+            size=size)
 
         self.ind = ind
 
@@ -311,6 +311,28 @@ class MainFrame(wx.Frame):
             errSubID.ShowModal()
             errSubID.Destroy()
             raise Exception
+
+    def OpenPage(self, page):
+
+        tree = self.nb.GetTreeCtrl()
+
+        def GetItemByName(tree_ctrl_instance, search_text):
+            retval = None
+            root_list = [tree_ctrl_instance.GetRootItem()]
+            for root_child in root_list:
+                item, cookie = tree_ctrl_instance.GetFirstChild(root_child)
+                while item.IsOk():
+                    if tree_ctrl_instance.GetItemText(item) == search_text:
+                        retval = item
+                        break
+                    if tree_ctrl_instance.ItemHasChildren(item):
+                        root_list.append(item)
+                    item, cookie = tree_ctrl_instance.GetNextChild(root_child, cookie)
+            return retval
+            
+        page_item = GetItemByName(tree, page)
+        tree.SelectItem(page_item)
+        return page_item
 
     def load(self):
         import os
