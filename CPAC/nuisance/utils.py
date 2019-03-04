@@ -619,12 +619,12 @@ class NuisanceRegressor(object):
         # WM-2mmE-PC5-SDB
         # CSF-2mmE-M-SDB
         # GM-2mmE-DNM-SDB
-
+ 
         # G-PC5-SDB
         # M-SDB
         # C-S-FD1.5SD-D1.5SD
-        # PR-2
-        # BP-T0.01-B0.1
+        # P-2
+        # B-T0.01-B0.1
 
         for r in regs.keys():
             if r not in selector:
@@ -661,7 +661,7 @@ class NuisanceRegressor(object):
 
             elif r == 'aCompCor':
                 if s.get('tissues'):
-                    pieces += ["+".join([regs[t] for t in s['tissues']])]
+                    pieces += ["+".join([regs[t] for t in sorted(s['tissues'])])]
                 if s.get('extraction_resolution'):
                     res = "%.2f" % s['extraction_resolution']
                     if s.get('erode_mask'):
