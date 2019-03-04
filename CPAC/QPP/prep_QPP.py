@@ -18,20 +18,25 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
             err = "\n[!] Could not access or read the cpac_outputs.csv " \
                   "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
             raise Exception(err)
-        derivatives = resource_list
-
+        #derivatives = resource_list
+        derivatives = list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-score']['Resource'])
+        derivatives = derivatives + list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'z-stat']['Resource'])
         #list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
 
     #choose which nuisance residual method you want to apply
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
-    #print "\n\nGathering the output file paths from %s..." \
-    #% pipeline_output_folder
+    print "\n\nGathering the output file paths from %s..." \
+    % pipeline_output_folder
 
     search_dir = []
     for derivative_name in derivatives:
-        #for resource_name in resource_list:
-        #    for resource_name in derivative_name:
-        search_dir.append(derivative_name)
+        for resource_name in resource_list:
+            for resource_name in derivative_name:
+                search_dir.append(derivative_name)
     nifti_globs=[]
 
     for resource_name in search_dir:
@@ -70,7 +75,7 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
     return nifti_globs,search_dir
 
 
-def create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir,derivatives=None):
+def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,search_dir,derivatives=None):
     import os
     import glob
     import fnmatch
@@ -85,6 +90,7 @@ def create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir
         keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
         try:
             keys=pd.read_csv(keys_csv)
+
         except Exception as e:
             err= "\n[!] Could not access or read the cpac_outputs.csv " \
                 "resource file:\n{0}\n\nError details {1}\n".format(keys_csv,e)
@@ -92,7 +98,7 @@ def create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir
     exts=['nii','nii.gz']
     exts = ['.'+ ext.lstrip('.')for ext in exts]
     output_dict_list={}
-    for root,_,files in os.walk(pipeline_folder):
+    for root, _,files in os.walk(pipeline_output_folder):
         for filename in files:
             filepath=os.path.join(root,filename)
 
@@ -100,7 +106,7 @@ def create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir
                 continue
             if not any(filepath.endswith(ext)for ext in exts):
                 continue
-            relative_filepath=filepath.split(pipeline_folder)[1]
+            relative_filepath=filepath.split(pipeline_output_folder)[1]
             filepath_pieces=filter(None, relative_filepath.split("/"))
             resource_id = filepath_pieces[1]
 
@@ -132,6 +138,7 @@ def create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir
             output_dict_list[unique_resource_id].append(new_row_dict)
 
         #analysis, grouped either by sessions or scans.
+
     return output_dict_list
 
 
@@ -146,13 +153,16 @@ def create_output_df_dict(output_dict_list,inclusion_list):
 
         ##This dataframe will give you what is in the C-PAC output directory for individual level analysis outputs##
         new_df = pd.DataFrame(output_dict_list[unique_resource_id])
+
         col_names = new_df.columns.tolist()
 
         if inclusion_list:
             #this is for participants only, not scans/sessions/etc
-            new_df=new_df[new_df.participant_session_id.isin(inclusion_list)]
+
+            new_df=new_df[new_df.participant_id.isin(inclusion_list)]
 
         if new_df.empty:
+
                 print("No outputs found for {0} the participants "\
                       "listed in the group manalysis participant list you "\
                       "used. Skipping generating model for this "\
@@ -216,11 +226,11 @@ def prep_inputs(group_config_file):
             inclusion_list = load_text_file(group_model.participant_list,"group-level analysis participant list")
 
     else:
-        inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
+        inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
 
-    resource_list = ['functional_nuisance_residuals']
+    resource_list = ['alff']
     output_df_dict=gather_outputs(pipeline_folder,resource_list,inclusion_list)
-    print(output_df_dict)
+
 
     if not output_df_dict:
         err = '\n\n[!] For QPP, C-PAC requires the \'functional_nuisance_residuals\' outputs '\
@@ -240,7 +250,7 @@ def prep_inputs(group_config_file):
         #We're going to reduce the size of the output df based on nuisance strat and the
         #participant list that actually is included.
         if not group_model.participant_list:
-            inclusion_list = grab_pipeline_dir_subs(pipeline_dir)
+            inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
             output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
         elif os.path.isfile(group_model.participant_list):
             inclusion_list = load_text_file(group_model.participant_list,
