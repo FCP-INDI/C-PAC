@@ -154,7 +154,6 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         resamp_node.inputs.apply_xfm = True
         resamp_node.inputs.in_matrix_file = self.ident_mat
         resamp_node.inputs.reference = self.mask_path
-        resamp_node.interface.estimated_memory_gb = 2.0
 
         # Connect input node to resample
         wflow.connect(input_node, 'local_path', resamp_node, 'in_file')
@@ -169,7 +168,6 @@ class RestingStateCentralityTestCase(unittest.TestCase):
                                             output_names=['centrality_outputs'],
                                             function=eigenvector_golden.eigen_centrality),
                               name=wf_name)
-        golden_node.interface.estimated_memory_gb = 4.0
         golden_node.inputs.mask_path = self.mask_path
         golden_node.inputs.thresh_type = thresh_option
         golden_node.inputs.thresh_val = thresh

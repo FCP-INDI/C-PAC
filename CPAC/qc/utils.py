@@ -13,6 +13,9 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
+import matplotlib.cm as cm
+from matplotlib import gridspec as mgs
+from matplotlib.colors import ListedColormap
 
 from nipype.interfaces import afni
 import nipype.pipeline.engine as pe
@@ -20,6 +23,8 @@ import nipype.interfaces.utility as util
 
 
 derivative_descriptions = {
+    'carpet': 'Carpet',
+
     'alff_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
     'alff_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
     'alff_to_standard': 'Amplitude of Low-Frequency Fluctuation',
@@ -73,8 +78,25 @@ derivative_descriptions = {
     'reho_to_standard_zstd': 'Regional Homogeneity (z-score standardized)',
     'reho_to_standard_zstd_hist': 'Histogram of Regional Homogeneity (z-score standardized)',
 
-    'sca_roi_smooth_hist': 'Histogram of Seed-based Correlation Analysis (smoothed)',
     'sca_roi_smooth': 'Seed-based Correlation Analysis (smoothed)',
+    'sca_roi_smooth_hist': 'Histogram of Seed-based Correlation Analysis (smoothed)',
+    'sca_roi_files_to_standard': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_fisher_zstd': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_fisher_zstd_hist': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_hist': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth_fisher_zstd': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth_fisher_zstd_hist': 'Seed-based Correlation Analysis',
+    'sca_roi_files_to_standard_smooth_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files_smooth': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_files_smooth_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files_hist': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files_smooth': 'Seed-based Correlation Analysis',
+    'sca_tempreg_maps_zstat_files_smooth_hist': 'Seed-based Correlation Analysis',
+
     
     'skullstrip_vis': 'Visual Result of Skull Strip',
     'snr_hist': 'Histogram of Signal to Noise Ratio',
@@ -91,6 +113,19 @@ derivative_descriptions = {
     'vmhc_fisher_zstd_zstat_map_hist': 'Histogram of Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
     'vmhc_raw_score': 'Voxel-Mirrored Homotopic Connectivity',
     'vmhc_raw_score_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity',
+
+    'dr_tempreg_maps_files_to_standard': 'Spatial Regression',
+    'dr_tempreg_maps_files_to_standard_hist': 'Histogram of Spatial Regression',
+    'dr_tempreg_maps_files_to_standard_smooth': 'Spatial Regression (smoothed)',
+    'dr_tempreg_maps_files_to_standard_smooth_hist': 'Histogram of Spatial Regression (smoothed)',
+    'dr_tempreg_maps_files_to_standard_smooth_zstd': 'Spatial Regression (smoothed, z-score standardized)',
+    'dr_tempreg_maps_files_to_standard_smooth_zstd_hist': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
+    'dr_tempreg_maps_files_to_standard_zstd': 'Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_files_to_standard_zstd_hist': 'Histogram of Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard': 'Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard_hist': 'Histogram of Spatial Regression (z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard_smooth': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
+    'dr_tempreg_maps_zstat_files_to_standard_smooth_hist': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
 }
 
 
@@ -560,7 +595,7 @@ def feed_line_nav(image_name, anchor, menu_html_fd, content_html_fd):
     """
 
     image_readable = derivative_descriptions[image_name]
-
+        
     html_content_relative_name = os.path.join('qc_html', os.path.basename(content_html_fd.name))
     menu_html = """
                     <li><a href="{page}#{anchor}">{description}</a></li>
@@ -715,13 +750,13 @@ def get_map_and_measure(png_a):
     str_ = os.path.basename(png_a)
 
     if 'sca_tempreg' in png_a:
-        map_name = get_map_id(str_, 'maps_roi_')
+        map_name = get_map_id(str_, 'maps_')
 
     if 'sca_roi' in png_a:
-        map_name = get_map_id(str_, 'ROI_')
+        map_name = get_map_id(str_, 'roi_')
 
     if 'dr_tempreg' in png_a:
-        map_name = get_map_id(str_, 'temp_reg_map_')
+        map_name = get_map_id(str_, 'tempreg_maps_')
 
     if 'centrality' in png_a:
         map_name = get_map_id(str_, 'centrality_')
@@ -819,14 +854,14 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
                 image_name_h_nav = qc_hist_id[montage_id]
                 
             if map_name is not None:
-                image_name_a = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                image_name_a = "Measure: {measure}; Mask: {mask}; Map: {map}".format(
                     measure=image_name_a_nav,
                     mask=measure_name,
                     map=map_name
                 )
 
                 if montage_id in qc_hist_id:
-                    image_name_h = "Measure: {}; Mask: {mask}; Map: {map}".format(
+                    image_name_h = "Measure: {measure}; Mask: {mask}; Map: {map}".format(
                         measure=qc_hist_id[montage_id],
                         mask=measure_name,
                         map=map_name
@@ -844,14 +879,14 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
             if idx == 0:
                 feed_line_nav(image_name_a_nav, id_a, menu_html_fd, content_html_fd)
 
-            feed_line_body(image_name_a, id_a, png_a, content_html_fd)
+            feed_line_body(image_name_a_nav, id_a, png_a, content_html_fd)
             feed_line_body(None, id_s, png_s, content_html_fd)
 
             if montage_id in histograms.keys():
                 if idx == 0:
                     feed_line_nav(image_name_h_nav, id_h, menu_html_fd, content_html_fd)
                 if png_h is not None:
-                    feed_line_body(image_name_h, id_h, png_h, content_html_fd)
+                    feed_line_body(image_name_h_nav, id_h, png_h, content_html_fd)
 
     if montage_id in dict_plot:
         id_a = str(montage_id)
@@ -981,12 +1016,11 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
             continue
         try:
             make_page(os.path.join(qc_path, qc_file), sub_output_dir,
-                      qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                      qc_hist_id)
+                        qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                        qc_hist_id)
         except IndexError as e:
             print('\n[!] Did not generate QC sub-page: {0}\n\nDetails:\n'
                   '{1}\n'.format(os.path.join(qc_path, qc_file), e))
-            pass
 
 
 def generate_qc_pages(qc_path, sub_output_dir,
@@ -1153,6 +1187,69 @@ def gen_plot_png(arr, measure, ex_vol=None):
     return png_name
 
 
+def gen_carpet_plt(gm_mask, wm_mask, csf_mask, functional_to_standard, output):
+    
+    size = (950, 800)
+    
+    carpet_plot_path = os.path.join(os.getcwd(), output + '.png')
+
+    func = nb.load(functional_to_standard).get_data()
+    gm_voxels = func[nb.load(gm_mask).get_data().astype(bool)]
+    wm_voxels = func[nb.load(wm_mask).get_data().astype(bool)]
+    csf_voxels = func[nb.load(csf_mask).get_data().astype(bool)]
+    del func
+
+    data = np.concatenate((gm_voxels, wm_voxels, csf_voxels))
+    seg = np.concatenate((
+        np.ones(gm_voxels.shape[0]) * 1,
+        np.ones(wm_voxels.shape[0]) * 2,
+        np.ones(csf_voxels.shape[0]) * 3
+    ))
+
+    p_dec = 1 + data.shape[0] // size[0]
+    if p_dec:
+        data = data[::p_dec, :]
+        seg = seg[::p_dec]
+
+    t_dec = 1 + data.shape[1] // size[1]
+    if t_dec:
+        data = data[:, ::t_dec]
+        
+    interval = max((int(data.shape[-1] + 1) // 10, int(data.shape[-1] + 1) // 5, 1))
+    xticks = list(range(0, data.shape[-1])[::interval])
+
+    mycolors = ListedColormap(cm.get_cmap('tab10').colors[:4][::-1])
+
+    gs = mgs.GridSpecFromSubplotSpec(1, 2, subplot_spec=mgs.GridSpec(1, 1)[0],
+                                    width_ratios=[1, 100],
+                                    wspace=0.0)
+    ax0 = plt.subplot(gs[0])
+    ax0.set_yticks([])
+    ax0.set_xticks([])
+    ax0.imshow(seg[:, np.newaxis], interpolation='none', aspect='auto',
+            cmap=mycolors, vmin=1, vmax=4)
+    ax0.grid(False)
+    ax0.spines["left"].set_visible(False)
+    ax0.spines["top"].set_visible(False)
+
+    ax1 = plt.subplot(gs[1])
+    ax1.imshow(data, interpolation='nearest', aspect='auto', cmap='gray')
+    ax1.grid(False)
+    ax1.set_yticks([])
+    ax1.set_yticklabels([])
+    ax1.set_xticks(xticks)
+    ax1.set_xlabel('time (frames)')
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax1.yaxis.set_ticks_position('left')
+    ax1.xaxis.set_ticks_position('bottom')
+
+    plt.savefig(carpet_plot_path, dpi=200, bbox_inches='tight')
+    plt.close()
+
+    return carpet_plot_path
+
+
 def gen_motion_plt(motion_parameters):
 
     """
@@ -1176,48 +1273,30 @@ def gen_motion_plt(motion_parameters):
 
     """
 
-    png_name1 = 'motion_trans_plot.png'
-    png_name2 = 'motion_rot_plot.png'
-    data = np.loadtxt(motion_parameters)
+    rotation_plot = os.path.join(os.getcwd(), 'motion_trans_plot.png')
+    translation_plot = os.path.join(os.getcwd(), 'motion_rot_plot.png')
 
-    data_t = data.T
-
-    translation_plot = None
-    rotation_plot = None
-
-    titles1 = ['x', 'y', 'z']
-    titles2 = ['roll', 'pitch', 'yaw']
+    data = np.loadtxt(motion_parameters).T
 
     plt.gca().set_color_cycle(['red', 'green', 'blue'])
-    plt.plot(data_t[0])
-    plt.plot(data_t[1])
-    plt.plot(data_t[2])
-    plt.legend(['x', 'y', 'z'], loc='upper right')
-    plt.ylabel('Translation (mm)')
-    plt.xlabel('Volume')
-
-    plt.savefig(os.path.join(os.getcwd(), png_name1))
-
-    plt.close()
-
-    for i in range(3, 6):
-        for j in range(len(data_t[i])):
-            data_t[i][j] = math.degrees(data_t[i][j])
-
-    plt.gca().set_color_cycle(['red', 'green', 'blue'])
-    plt.plot(data_t[3])
-    plt.plot(data_t[4])
-    plt.plot(data_t[5])
+    plt.plot(data[0])
+    plt.plot(data[1])
+    plt.plot(data[2])
     plt.legend(['roll', 'pitch', 'yaw'], loc='upper right')
     plt.ylabel('Rotation (degrees)')
     plt.xlabel('Volume')
-
-    plt.savefig(os.path.join(os.getcwd(), png_name2))
-
+    plt.savefig(rotation_plot)
     plt.close()
 
-    translation_plot = os.path.join(os.getcwd(), png_name1)
-    rotation_plot = os.path.join(os.getcwd(), png_name2)
+    plt.gca().set_color_cycle(['red', 'green', 'blue'])
+    plt.plot(data[3])
+    plt.plot(data[4])
+    plt.plot(data[5])
+    plt.legend(['x', 'y', 'z'], loc='upper right')
+    plt.ylabel('Translation (mm)')
+    plt.xlabel('Volume')
+    plt.savefig(translation_plot)
+    plt.close()
 
     return translation_plot, rotation_plot
 
@@ -1250,17 +1329,26 @@ def gen_histogram(measure_file, measure):
             measure = m_
             if 'sca_roi' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('ROI_')[1]
-                fname = 'sca_ROI_' + fname.split('_')[0]
+                if 'ROI_' in fname:
+                    fname = fname.rsplit('ROI_')[1]
+                elif 'roi_' in fname:
+                    fname = fname.rsplit('roi_')[1]
+                fname = 'sca_roi_' + fname.split('_')[0]
                 measure = fname
             if 'sca_tempreg' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
                 fname = fname.split('z_maps_roi_')[1]
-                fname = 'sca_mult_regression_maps_ROI_' + fname.split('_')[0]
+                fname = 'sca_mult_regression_maps_roi_' + fname.split('_')[0]
                 measure = fname
             if 'dr_tempreg' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('temp_reg_map_')[1]
+                for i in ['temp_reg_map_', 'tempreg_map_', 'tempreg_maps_', 'temp_reg_maps_']:
+                    if i in fname:
+                        try:
+                            fname = fname.rsplit(i)[1]
+                            break
+                        except IndexError:
+                            continue
                 fname = 'dual_regression_map_'+ fname.split('_')[0]
                 measure = fname
             if 'centrality' in measure.lower():

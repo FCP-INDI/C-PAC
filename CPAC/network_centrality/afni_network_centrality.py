@@ -69,14 +69,14 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
     if method_option == 'degree':
         afni_centrality_node = \
             pe.Node(DegreeCentrality(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                    name='afni_centrality')
+                    name='afni_centrality', mem_gb=memory_gb)
         afni_centrality_node.inputs.out_file = 'degree_centrality_merged.nii.gz'
         out_names = ('degree_centrality_binarize', 'degree_centrality_weighted')
     # Eigenvector centrality
     elif method_option == 'eigenvector':
         afni_centrality_node = \
         pe.Node(ECM(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                name='afni_centrality')
+                name='afni_centrality', mem_gb=memory_gb)
         afni_centrality_node.inputs.out_file = 'eigenvector_centrality_merged.nii.gz'
         afni_centrality_node.inputs.memory = memory_gb # 3dECM input only
         out_names = ('eigenvector_centrality_binarize',
@@ -85,13 +85,12 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
     elif method_option == 'lfcd':
         afni_centrality_node = \
             pe.Node(LFCD(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                    name='afni_centrality')
+                    name='afni_centrality', mem_gb=memory_gb)
         afni_centrality_node.inputs.out_file = 'lfcd_merged.nii.gz'
         out_names = ('lfcd_binarize', 'lfcd_weighted')
 
     # Limit its num_threads and memory via MultiProc plugin
     afni_centrality_node.interface.num_threads = num_threads
-    afni_centrality_node.interface.estimated_memory_gb = memory_gb
 
     # Connect input image and mask tempalte
     centrality_wf.connect(input_node, 'in_file',

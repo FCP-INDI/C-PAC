@@ -14,6 +14,9 @@ class Outputs():
               "resource file:\n{0}\n\nError details {1}\n".format(reference_csv, e)
         raise Exception(err)
 
+    # all outputs
+    any = list(reference.Resource)
+
     # outputs marked as optional in the matrix file, but we want them to be
     # written out no matter what for a specific reason
     override_optional = list(

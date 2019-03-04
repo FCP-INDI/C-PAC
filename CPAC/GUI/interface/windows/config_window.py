@@ -16,7 +16,7 @@ from CPAC.GUI.interface.pages import (
     AfterWarping, AfterWarpingOptions,
     FilteringSettings,
     TimeSeries, EPI_DistCorr, ROITimeseries,
-    GroupAnalysis, GPASettings, MDMRSettings, ISCSettings,
+    GroupAnalysis, GeneralGA, GPASettings, MDMRSettings, ISCSettings, RandomiseSettings,
     TimeSeriesOptions, BASCSettings,
     AROMA_ICA, AromaSettings
 )
@@ -70,118 +70,129 @@ def gen_checkboxgrid_config_string(label, value):
 
 class Mybook(wx.Treebook):
 
-    def __init__(self, parent):
+    def __init__(self, parent, ind=True):
         wx.Treebook.__init__(self, parent, wx.ID_ANY, style=
                              wx.BK_DEFAULT)
         self.page_list = []
 
         # create the page windows as children of the notebook
-        page1 = Settings(self)
-        page2 = ComputerSettings(self)
-        page3 = DirectorySettings(self)
 
-        page4 = SkullStripProcessing(self)
-        page5 = SkullStripOptions(self)
-        page6 = AFNI_options(self)
-        page7 = BET_options(self)
+        if ind:
+            page1 = Settings(self)
+            page2 = ComputerSettings(self)
+            page3 = DirectorySettings(self)
 
-        page8 = AnatomicalPreprocessing(self)
-        page9 = Registration(self, 1)
-        page10 = Segmentation(self, 2)
+            page4 = SkullStripProcessing(self)
+            page5 = SkullStripOptions(self)
+            page6 = AFNI_options(self)
+            page7 = BET_options(self)
 
-        page11 = FunctionalPreProcessing(self)
-        page12 = TimeSeriesOptions(self)
-        page13 = EPI_DistCorr(self)
-        page14 = AnatToFuncRegistration(self, 5)
-        page15 = FuncToMNIRegistration(self, 6)
+            page8 = AnatomicalPreprocessing(self)
+            page9 = Registration(self, 1)
+            page10 = Segmentation(self, 2)
 
-        page16= Nuisance(self)
-        ica_aroma = AromaSettings(self)
-        page17= NuisanceRegression(self, 7)
-        page18= MedianAngleCorrection(self, 8)
+            page11 = FunctionalPreProcessing(self)
+            page12 = TimeSeriesOptions(self)
+            page13 = EPI_DistCorr(self)
+            page14 = AnatToFuncRegistration(self, 5)
+            page15 = FuncToMNIRegistration(self, 6)
 
-        page19 = FilteringSettings(self, 9)
+            page16= Nuisance(self)
+            ica_aroma = AromaSettings(self)
+            page17= NuisanceRegression(self, 7)
+            page18= MedianAngleCorrection(self, 8)
 
-        page20 = TimeSeries(self)
-        page22 = ROITimeseries(self)
-        
-        page27 = SCA(self)
-        page28 = SCASettings(self)
+            page19 = FilteringSettings(self, 9)
 
-        page31 = VMHC(self)
-        page32 = VMHCSettings(self)
+            page20 = TimeSeries(self)
+            page22 = ROITimeseries(self)
 
-        page33 = ALFF(self)
-        page34 = ALFFSettings(self)
+            page27 = SCA(self)
+            page28 = SCASettings(self)
 
-        page35 = ReHo(self)
-        page36 = ReHoSettings(self)
+            page31 = VMHC(self)
+            page32 = VMHCSettings(self)
 
-        page37 = Centrality(self)
-        page38 = CentralitySettings(self)
-        
-        page39 = AfterWarping(self)
-        page40 = AfterWarpingOptions(self)
+            page33 = ALFF(self)
+            page34 = ALFFSettings(self)
 
-        page45 = GroupAnalysis(self)
-        page46 = GPASettings(self)
-        page47 = BASCSettings(self)
-        page48 = MDMRSettings(self)
-        page49 = ISCSettings(self)
+            page35 = ReHo(self)
+            page36 = ReHoSettings(self)
 
-        # add the pages to the notebook with the label to show on the tab
-        self.AddPage(page1, "Environment Setup", wx.ID_ANY)
-        self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
-        self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
+            page37 = Centrality(self)
+            page38 = CentralitySettings(self)
 
-        self.AddPage(page4,"Skull-Strip", wx.ID_ANY)
-        self.AddSubPage(page5,"Skull-Stripping ", wx.ID_ANY)
-        self.AddSubPage(page6, "3dSkullStrip options", wx.ID_ANY)
-        self.AddSubPage(page7,"FSL BET options", wx.ID_ANY)
+            page39 = AfterWarping(self)
+            page40 = AfterWarpingOptions(self)
 
-        self.AddPage(page8, "Anatomical Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page9, "Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page10, "Tissue Segmentation", wx.ID_ANY)
-        self.AddPage(page11, "Functional Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page12, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(page13, "Distortion Correction", wx.ID_ANY)
-        self.AddSubPage(page14,"Functional to Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page15,"Functional to MNI Registration", wx.ID_ANY)
+            # add the pages to the notebook with the label to show on the tab
+            self.AddPage(page1, "Environment Setup", wx.ID_ANY)
+            self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
+            self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
 
-        self.AddPage(page16,"Nuisance", wx.ID_ANY)
-        self.AddSubPage(ica_aroma, "ICA-AROMA De-noising", wx.ID_ANY)
-        self.AddSubPage(page17,"Nuisance Regression", wx.ID_ANY)
-        self.AddSubPage(page18,"Median Angle Correction", wx.ID_ANY)
+            self.AddPage(page4, "Skull-Strip", wx.ID_ANY)
+            self.AddSubPage(page5, "Skull-Stripping ", wx.ID_ANY)
+            self.AddSubPage(page6, "3dSkullStrip options", wx.ID_ANY)
+            self.AddSubPage(page7, "FSL BET options", wx.ID_ANY)
 
-        self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
+            self.AddPage(page8, "Anatomical Preprocessing", wx.ID_ANY)
+            self.AddSubPage(page9, "Anatomical Registration", wx.ID_ANY)
+            self.AddSubPage(page10, "Tissue Segmentation", wx.ID_ANY)
+            self.AddPage(page11, "Functional Preprocessing", wx.ID_ANY)
+            self.AddSubPage(page12, "Time Series Options", wx.ID_ANY)
+            self.AddSubPage(page13, "Distortion Correction", wx.ID_ANY)
+            self.AddSubPage(page14, "Functional to Anatomical Registration",
+                            wx.ID_ANY)
+            self.AddSubPage(page15, "Functional to MNI Registration",
+                            wx.ID_ANY)
 
-        self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
-        self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-        
-        self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
-        self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
+            self.AddPage(page16, "Nuisance", wx.ID_ANY)
+            self.AddSubPage(ica_aroma, "ICA-AROMA De-noising", wx.ID_ANY)
+            self.AddSubPage(page17, "Nuisance Regression", wx.ID_ANY)
+            self.AddSubPage(page18, "Median Angle Correction", wx.ID_ANY)
 
-        self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity", wx.ID_ANY)
-        self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
+            self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
 
-        self.AddPage(page33, "ALFF and f/ALFF", wx.ID_ANY)
-        self.AddSubPage(page34, "ALFF and f/ALFF Options", wx.ID_ANY)
+            self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
+            self.AddSubPage(page22, "Region-of-Interest TSE Options",
+                            wx.ID_ANY)
 
-        self.AddPage(page35, "Regional Homogeneity (ReHo)", wx.ID_ANY)
-        self.AddSubPage(page36, "ReHo Options", wx.ID_ANY)
+            self.AddPage(page27, "Seed-based Correlation Analysis (SCA)",
+                         wx.ID_ANY)
+            self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
 
-        self.AddPage(page37, "Network Centrality", wx.ID_ANY)
-        self.AddSubPage(page38, "Network Centrality Options", wx.ID_ANY)
-        
-        self.AddPage(page39, "After Warping", wx.ID_ANY)
-        self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
+            self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity",
+                         wx.ID_ANY)
+            self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
 
-        self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
-        self.AddSubPage(page46, "FSL FEAT Settings", wx.ID_ANY)
-        self.AddSubPage(page47, "PyBASC Settings",
-                        wx.ID_ANY)
-        self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)
-        self.AddSubPage(page49, "ISC Settings", wx.ID_ANY)
+            self.AddPage(page33, "ALFF and f/ALFF", wx.ID_ANY)
+            self.AddSubPage(page34, "ALFF and f/ALFF Options", wx.ID_ANY)
+
+            self.AddPage(page35, "Regional Homogeneity (ReHo)", wx.ID_ANY)
+            self.AddSubPage(page36, "ReHo Options", wx.ID_ANY)
+
+            self.AddPage(page37, "Network Centrality", wx.ID_ANY)
+            self.AddSubPage(page38, "Network Centrality Options", wx.ID_ANY)
+
+            self.AddPage(page39, "After Warping", wx.ID_ANY)
+            self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
+
+        else:
+            page45 = GroupAnalysis(self)
+            page46 = GeneralGA(self)
+            page47 = GPASettings(self)
+            page48 = RandomiseSettings(self)
+            page49 = BASCSettings(self)
+            page50 = MDMRSettings(self)
+            page51 = ISCSettings(self)
+
+            self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
+            self.AddSubPage(page46, "General Settings", wx.ID_ANY)
+            self.AddSubPage(page47, "FSL FEAT Settings", wx.ID_ANY)
+            self.AddSubPage(page48, "FSL Randomise Settings", wx.ID_ANY)
+            self.AddSubPage(page49, "PyBASC Settings", wx.ID_ANY)
+            self.AddSubPage(page50, "MDMR Settings", wx.ID_ANY)
+            self.AddSubPage(page51, "ISC Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -218,14 +229,17 @@ class Mybook(wx.Treebook):
 
 class MainFrame(wx.Frame):
 
-    def __init__(self, parent, option='save', path="", pipeline_id=""):
+    def __init__(self, parent, option='save', path="", pipeline_id="",
+                 ind=True):
         wx.Frame.__init__(
             self, parent=parent, title="CPAC Pipeline Configuration",
             size=(1200, 520))
 
+        self.ind = ind
+
         # Here we create a panel and a notebook on the panel
         self.p = wx.Panel(self)
-        self.nb = Mybook(self.p)
+        self.nb = Mybook(self.p, ind=ind)
         self.path = path
         self.pipeline_id = pipeline_id
         self.option = option
@@ -238,11 +252,13 @@ class MainFrame(wx.Frame):
             (280, 10), wx.DefaultSize, 0)
         hbox.Add(submit, 0.6, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.submit_item, id=wx.ID_SAVE)
-        
-        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",
-            (350, 10), wx.DefaultSize, 0)
-        hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
+
+        if ind:
+            testConfig = wx.Button(btnPanel, wx.ID_PREVIEW,
+                                   "Test Configuration", (350, 10),
+                                   wx.DefaultSize, 0)
+            hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+            self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
         
         cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel",
             (220, 10), wx.DefaultSize, 0)
@@ -264,30 +280,128 @@ class MainFrame(wx.Frame):
         if option == 'edit' or option == 'load':
             self.load()
 
-    def load(self):
+    def get_pheno_header(self, pheno_file_obj):
+        phenoHeaderString = pheno_file_obj.readline().rstrip('\r\n')
+        phenoHeaderString = phenoHeaderString.replace(" ", "_")
+        phenoHeaderString = phenoHeaderString.replace("/","_")
+        
+        if ',' in phenoHeaderString:
+            self.phenoHeaderItems = phenoHeaderString.split(',')
+            
+        
+        elif '\t' in phenoHeaderString:
+            self.phenoHeaderItems = phenoHeaderString.split('\t')
+            
+        
+        else:
+            self.phenoHeaderItems = [phenoHeaderString]
+        
+        if self.config_map['participant_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.config_map['participant_id_label'])
+        else:
+            print('Header labels found:\n{0}'.format(self.phenoHeaderItems))
+            err = 'Please enter the name of the participant ID column as ' \
+                  'it is labeled in the phenotype file.'
+            print(err)
+            errSubID = wx.MessageDialog(self, err,
+                                        'Blank/Incorrect Subject Header Input',
+                                        wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+            raise Exception
 
+    def load(self):
+        import os
         import yaml
+
         try:
             config_file_map = yaml.load(open(self.path, 'r'))
         except:
             raise Exception("Error importing file - %s , Make"
-                      " sure it is in correct yaml format")
+                            " sure it is in correct yaml format")
+        self.config_map = config_file_map
+
+        # repopulate the model setup checkbox grid, since this has to be
+        # done specially
+        pheno_exists = False
+        if 'pheno_file' in config_file_map.keys():
+            if config_file_map['pheno_file']:
+                if os.path.isfile(config_file_map['pheno_file']):
+                    pheno_exists = True
+                    phenoFile = open(
+                        os.path.abspath(config_file_map['pheno_file']))
+                    self.get_pheno_header(phenoFile)
 
         for page in self.nb.get_page_list():
-
             ctrl_list = page.page.get_ctrl_list()
 
             for ctrl in ctrl_list:
-
                 name = ctrl.get_name()
-
                 val = config_file_map.get(str(name))
-
                 sample_list = ctrl.get_values()
-
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
+
+                if name == 'model_setup':
+                    # update the 'Model Setup' box and populate it with the 
+                    # EVs and their associated checkboxes for categorical 
+                    # and demean
+                    if pheno_exists:
+                        ctrl.set_value(self.phenoHeaderItems)
+                        ctrl.set_selection(config_file_map['ev_selections'])
+
                 if val:
+                    if ("list" in name) and (name != "participant_list") and ('basc' not in name):
+                        try:
+                            mapped_vals = [s_map.get(item) for item in val if s_map.get(item) != None]
+                        except TypeError:
+                            mapped_vals = None
+
+                        if not mapped_vals:
+                            val = [str(item) for item in val]
+                        else:
+                            val = mapped_vals
+
+                        new_derlist = []
+                        for val in val:
+                            new_derlist.append(val)
+
+                        if len(new_derlist) > 0:
+                            ctrl.set_value(new_derlist)
+                        else:
+                            ctrl.set_value(None)
+                    elif name == 'z_threshold' or name == 'p_threshold':
+                        try:
+                            val = val[0]
+                            ctrl.set_value(val)
+                        except TypeError:
+                            # if the user has put it in as a float and not a list
+                            ctrl.set_value(str(val))  
+
+                    elif name == 'group_sep':
+                        val = s_map.get(val)
+                        ctrl.set_value(val)
+
+                    elif name == 'grouping_var':
+                        if isinstance(val, list) or "[" in val:
+                            grouping_var = ""
+                            for cov in val:
+                                grouping_var += "{0},".format(cov)
+                            grouping_var = grouping_var.rstrip(",")
+                        else:
+                            grouping_var = val
+
+                        ctrl.set_value(grouping_var)
+
+                                      # and this line is just sad
+                    elif name not in ('model_setup', 'derivative_list',
+                                      'Regressors', 'nuisanceBandpassFreq',
+                                      'tsa_roi_paths', 'sca_roi_paths'):
+                        try:
+                            ctrl.set_value(str(val))
+                        except ValueError:
+                            ctrl.set_value(int(val[0]))
+
                     if isinstance(val, list):
                         if ctrl.get_datatype() == 8:
                             value = []
@@ -311,7 +425,6 @@ class MainFrame(wx.Frame):
                                      for i, x in enumerate(val) if x == True]
 
                         elif ctrl.get_datatype() == 4:
-
                             if 1 in val and 0 in val:
                                 val = [10]
                                 
@@ -326,14 +439,13 @@ class MainFrame(wx.Frame):
                             value = [s_map.get(item)
                                          for item in val if s_map.get(item) != None]
                             if not value:
-                                value = [ str(item) for item in val]
+                                value = [str(item) for item in val]
 
                         elif ctrl.get_datatype() == 5 and \
                             ctrl.get_type() == 6:
                                 value = [sample_list[v] for v in val]
 
                         elif ctrl.get_datatype() == 9:
-
                             value = val[0] # pass the dictionary straight up
                                 
                         else:
@@ -420,10 +532,13 @@ class MainFrame(wx.Frame):
         # Iterate and test each subject's files
         for sub in sublist:
             anat_file = sub['anat']
-            try:
+
+            func_files = None
+            if 'func' in sub:
                 func_files = sub['func']
-            except KeyError:
+            elif 'rest' in sub:
                 func_files = sub['rest']
+
             checked_anat_s3 = False
 
             if not anat_file:
@@ -432,13 +547,7 @@ class MainFrame(wx.Frame):
                       "of your participant list YAML file.\n\n"
                 raise Exception(err)
 
-            if not func_files:
-                err = "\n\n[!] Could not read in at least one of your functi"\
-                      "onal input files. Please double-check the formatting "\
-                      "of your participant list YAML file.\n\n"
-                raise Exception(err)
-
-            if not isinstance(func_files, dict):
+            if func_files and not isinstance(func_files, dict):
                 err = "\n\n[!] The functional files in the participant " \
                       "list YAML should be listed with a scan name key and " \
                       "a file path value.\n\nFor example:\nfunc_1: " \
@@ -483,51 +592,54 @@ class MainFrame(wx.Frame):
                     os.remove(anat_file)
                 except:
                     pass
-            # For each functional file
-            for func_file in func_files.values():
-                checked_s3 = False
-                if '.nii' not in func_file:
-                    # probably a JSON file
-                    continue
-                if func_file.lower().startswith(s3_str):
-                    dl_dir = tempfile.mkdtemp()
-                    try:
-                        creds_path = sub['creds_path']
-                    except KeyError:
-                        # if no creds path is provided, it could be that the 
-                        # user is downloading public data - leave it to down-
-                        # stream to handle creds issues
-                        creds_path = None
-                    func_file = check_for_s3(func_file, creds_path,
-                                             dl_dir=dl_dir, img_type='func')
-                    checked_s3 = True
-                # Check if functional file exists
-                if os.path.exists(func_file):
-                    try:
-                        img = nb.load(func_file)
-                    except Exception as e:
-                        print(e)
+
+            if func_files:
+                for func_file in func_files.values():
+                    checked_s3 = False
+                    if '.nii' not in func_file:
+                        # probably a JSON file
                         continue
-                    hdr = img.get_header()
-                    dims = hdr.get_data_shape()
-                    # Check to make sure it has the proper dimensions
-                    if len(dims) != 4:
-                        bad_dim_flg = True
-                        err_str_suffix = 'Func file not 4-dimensional: %s\n' \
-                                         % func_file
+
+                    if func_file.lower().startswith(s3_str):
+                        dl_dir = tempfile.mkdtemp()
+                        try:
+                            creds_path = sub['creds_path']
+                        except KeyError:
+                            # if no creds path is provided, it could be that the 
+                            # user is downloading public data - leave it to down-
+                            # stream to handle creds issues
+                            creds_path = None
+                        func_file = check_for_s3(func_file, creds_path,
+                                                dl_dir=dl_dir, img_type='func')
+                        checked_s3 = True
+
+                    if os.path.exists(func_file):
+                        try:
+                            img = nb.load(func_file)
+                        except Exception as e:
+                            print(e)
+                            continue
+                        hdr = img.get_header()
+                        dims = hdr.get_data_shape()
+                        # Check to make sure it has the proper dimensions
+                        if len(dims) != 4:
+                            bad_dim_flg = True
+                            err_str_suffix = 'Func file not 4-dimensional: %s\n' \
+                                            % func_file
+                            err_str = err_str + err_str_suffix
+                    # Functional file doesnt exist
+                    else:
+                        not_found_flg = True
+                        err_str_suffix = 'File not found: %s\n' % func_file
                         err_str = err_str + err_str_suffix
-                # Functional file doesnt exist
-                else:
-                    not_found_flg = True
-                    err_str_suffix = 'File not found: %s\n' % func_file
-                    err_str = err_str + err_str_suffix
-                # If we're just checking s3 files, remove the temporarily 
-                # downloaded
-                if checked_s3:
-                    try:
-                        os.remove(func_file)
-                    except:
-                        pass
+                    # If we're just checking s3 files, remove the temporarily 
+                    # downloaded
+                    if checked_s3:
+                        try:
+                            os.remove(func_file)
+                        except:
+                            pass
+
             # Check flags for error message
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'
@@ -644,7 +756,7 @@ class MainFrame(wx.Frame):
                     
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
-                        if not value:
+                        if not value and 'session' not in option_name and 'series' not in option_name:
                             display(
                                 win, "\"%s\" field is empty or the items are " \
                                      "not checked!" % ctrl.get_pretty_name(), False)
@@ -882,7 +994,7 @@ class MainFrame(wx.Frame):
 
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and option_name not in ['derivativeList', 'modelConfigs']:
+                    and option_name not in ['derivativeList', 'modelConfigs', 'sessions_list', 'series_list']:
                 
                     win = ctrl.get_ctrl()
                     
@@ -942,6 +1054,9 @@ class MainFrame(wx.Frame):
                 config_list.append(ctrl)
 
         # Get the user's CPAC pipeline name for use in this script
+        # ....or the pipeline directory for group configs
+        pipeline_name = None
+        pipeline_dir = None
         for config in config_list:
             if config.get_name() == 'pipelineName':
                 pipeline_name = config.get_selection()
@@ -953,10 +1068,32 @@ class MainFrame(wx.Frame):
                     noNameDlg.ShowModal()
                     noNameDlg.Destroy()
                     return
+            if config.get_name() == 'pipeline_dir':
+                pipeline_dir = config.get_selection()
+                if len(pipeline_dir) == 0:
+                    noNameDlg = wx.MessageDialog(
+                        self, 'Please enter a pipeline directory.',
+                        'Error!',
+                        wx.OK | wx.ICON_ERROR)
+                    noNameDlg.ShowModal()
+                    noNameDlg.Destroy()
+                    return
 
-        dlg = wx.FileDialog(
-            self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
-            defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
+        if self.ind:
+            dlg = wx.FileDialog(
+                self, message="Save CPAC configuration file as ...",
+                defaultDir=os.getcwd(),
+                defaultFile=("pipeline_config_{0}".format(pipeline_name)),
+                wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+                style=wx.SAVE)
+        elif not self.ind and pipeline_dir:
+            pipeline_name = pipeline_dir.rstrip('/').split('/')[-1]
+            dlg = wx.FileDialog(
+                self, message="Save CPAC configuration file as ...",
+                defaultDir=os.getcwd(),
+                defaultFile=("group_config_{0}".format(pipeline_name)),
+                wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+                style=wx.SAVE)
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
@@ -1220,8 +1357,33 @@ class MainFrame(wx.Frame):
                     print >>f, string
                     print >>f, "\n"
 
-                else:
+                elif label == 'derivative_list':
+                    # this takes the user selection in the derivative
+                    # list and matches it with the output directory
+                    # folder name for each chosen derivative via the
+                    # substitution map in constants.py
 
+                    # go over each string in the list
+                    value = []
+                    for val in ast.literal_eval(str(item[1])):
+                        if substitution_map.get(val) != None:
+                            if substitution_map.get(val) not in value:
+                                value.append(substitution_map.get(val))
+                        elif val != 'None':
+                            if ast.literal_eval(val) not in value:
+                                value.append(ast.literal_eval(val))
+                    print>>f, label, ":", value
+                    print>>f, "\n"
+
+                elif label == 'model_setup':
+                    # basically, ctrl is checkbox_grid in this case, and
+                    # get_selection goes to generic_class.py first, which links
+                    # it to the custom GetGridSelection() function in the
+                    # checkbox_grid class in custom_control.py
+                    print>>f, 'ev_selections:', value
+                    print>>f, "\n"
+
+                else:
                     value = ast.literal_eval(str(value))
 
                     print>>f, label, ":", value

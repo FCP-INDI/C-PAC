@@ -6,7 +6,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
-from CPAC.utils import dbg_file_lineno
 
 
 # workflow to edit the scan to the proscribed TRs
@@ -44,75 +43,35 @@ def create_wf_edit_func(wf_name="edit_func"):
     """
 
     # allocate a workflow object
-    try:
-        preproc = pe.Workflow(name=wf_name)
-    except:
-        logger.info("Error allocating workflow %s." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    preproc = pe.Workflow(name=wf_name)
 
     # configure the workflow's input spec
-    try:
-        inputNode = pe.Node(util.IdentityInterface(fields=['func',
-                                                           'start_idx',
-                                                           'stop_idx']),
-                            name='inputspec')
-    except:
-        logger.info("Error allocating inputspec (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    inputNode = pe.Node(util.IdentityInterface(fields=['func',
+                                                       'start_idx',
+                                                       'stop_idx']),
+                        name='inputspec')
 
     # configure the workflow's output spec
-    try:
-        outputNode = pe.Node(util.IdentityInterface(fields=['edited_func']),
-                             name='outputspec')
-    except:
-        logger.info("Error allocating output spec (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    outputNode = pe.Node(util.IdentityInterface(fields=['edited_func']),
+                         name='outputspec')
 
     # allocate a node to check that the requested edits are
     # reasonable given the data
-    try:
-        func_get_idx = pe.Node(util.Function(input_names=['in_files',
-                                                          'stop_idx',
-                                                          'start_idx'],
-                                             output_names=['stopidx',
-                                                           'startidx'],
-                                             function=get_idx),
-                               name='func_get_idx')
-    except:
-        logger.info("Error allocating get_idx function node (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    func_get_idx = pe.Node(util.Function(input_names=['in_files',
+                                                      'stop_idx',
+                                                      'start_idx'],
+                                         output_names=['stopidx',
+                                                       'startidx'],
+                                         function=get_idx),
+                            name='func_get_idx')
 
     # wire in the func_get_idx node
-    try:
-        preproc.connect(inputNode, 'func',
-                        func_get_idx, 'in_files')
-    except:
-        logger.info(
-            "Error connecting 'in_files' input to get_idx function node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
-
-    try:
-        preproc.connect(inputNode, 'start_idx',
-                        func_get_idx, 'start_idx')
-    except:
-        logger.info(
-            "Error connecting 'start_idx' input to get_idx function node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
-
-    try:
-        preproc.connect(inputNode, 'stop_idx',
-                        func_get_idx, 'stop_idx')
-    except:
-        logger.info(
-            "Error connecting 'stop_idx' input to get_idx function node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    preproc.connect(inputNode, 'func',
+                    func_get_idx, 'in_files')
+    preproc.connect(inputNode, 'start_idx',
+                    func_get_idx, 'start_idx')
+    preproc.connect(inputNode, 'stop_idx',
+                    func_get_idx, 'stop_idx')
 
     # allocate a node to edit the functional file
     try:
@@ -122,50 +81,23 @@ def create_wf_edit_func(wf_name="edit_func"):
     except ImportError:
         func_drop_trs = pe.Node(interface=preprocess.Calc(),
                                 name='func_drop_trs')
-    except:
-        logger.info("Error allocating afni Calc node (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
 
     func_drop_trs.inputs.expr = 'a'
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
 
     # wire in the inputs
-    try:
-        preproc.connect(inputNode, 'func',
-                        func_drop_trs, 'in_file_a')
-    except:
-        logger.info(
-            "Error connecting 'in_file_a' input to afni Calc node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    preproc.connect(inputNode, 'func',
+                    func_drop_trs, 'in_file_a')
 
-    try:
-        preproc.connect(func_get_idx, 'startidx',
-                        func_drop_trs, 'start_idx')
-    except:
-        logger.info(
-            "Error connecting 'start_idx' input to afni Calc node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    preproc.connect(func_get_idx, 'startidx',
+                    func_drop_trs, 'start_idx')
 
-    try:
-        preproc.connect(func_get_idx, 'stopidx',
-                        func_drop_trs, 'stop_idx')
-    except:
-        logger.info(
-            "Error connecting 'stop_idx' input to afni Calc node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    preproc.connect(func_get_idx, 'stopidx',
+                    func_drop_trs, 'stop_idx')
 
-    try:
-        # wire the output
-        preproc.connect(func_drop_trs, 'out_file',
-                        outputNode, 'edited_func')
-    except:
-        logger.info("Error connecting output (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
-        raise
+    # wire the output
+    preproc.connect(func_drop_trs, 'out_file',
+                    outputNode, 'edited_func')
 
     return preproc
 

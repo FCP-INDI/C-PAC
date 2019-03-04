@@ -498,9 +498,10 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'reference')
 
-    func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm_flirt_applyxfm')
+    func_to_2mm = pe.Node(interface=fsl.FLIRT(),
+                          name='func_to_2mm_flirt_applyxfm',
+                          mem_gb=2.0)
     func_to_2mm.inputs.args = '-applyisoxfm 2'
-    func_to_2mm.interface.estimated_memory_gb = 2.0
 
     nuisance.connect(inputspec, 'subject', func_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'csf_mask', func_to_2mm, 'reference')
@@ -540,8 +541,7 @@ def create_nuisance(use_ants, name='nuisance'):
                                                       'wm_seg_file', 'csf_seg_file', 'gm_seg_file'],
                                          output_names=['file_wm', 'file_csf', 'file_gm'],
                                          function=extract_tissue_data),
-                           name='tissue_masks')
-    tissue_masks._interface.estimated_memory_gb = 3.0
+                           name='tissue_masks', mem_gb=3.0)
 
     nuisance.connect(func_to_2mm, 'out_file', tissue_masks, 'data_file')
     nuisance.connect(wm_anat_to_2mm, 'out_file', tissue_masks, 'wm_seg_file')
