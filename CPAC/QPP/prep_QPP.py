@@ -344,6 +344,7 @@ def prep_inputs(group_config_file):
                     'phenotype file provided.\n\n'
             raise Exception(err)
 
+        pipeline_ID = group_model.pipeline_dir.rstrip('/').split('/')[-1]
         out_dir = os.path.join(group_model.output_dir,
                                'cpac_group_analysis',
                                'CPAC_QPP_{0}'.format(pipeline_ID),
