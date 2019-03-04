@@ -301,7 +301,7 @@ def prep_inputs(group_config_file):
                 new_output_df = new_output_df[new_output_df["Session"].isin(group_model.qpp_sessions_list)]
                 join_colums.append("Session")
                 # balance the DF
-                new_output_df, dropped_parts = balance_df(new_output_df, group_model.qpp_sessions_list, scan_list=None)
+                new_output_df, dropped_parts = balance_df(new_output_df, group_model.qpp_sess_list, scan_list=None)
 
             if grp_by_sessions:
                 #multilple scans
@@ -320,7 +320,7 @@ def prep_inputs(group_config_file):
 
 
             if grp_by_both:
-                new_output_df = new_output_df(new_output_df,group_model.qpp_sessions_list,group_model.qpp_scan_list)
+                new_output_df = new_output_df(new_output_df,group_model.qpp_sess_list,group_model.qpp_scan_list)
 
         else:
             for scan_df_tuple in output_df.groupby("Scans"):
