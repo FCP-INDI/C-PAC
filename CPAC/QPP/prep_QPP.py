@@ -228,7 +228,7 @@ def prep_inputs(group_config_file):
     else:
         inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
 
-    resource_list = ['alff']
+    resource_list = ['functional_nuisance_residuals']
     output_df_dict=gather_outputs(pipeline_folder,resource_list,inclusion_list)
 
 
@@ -251,18 +251,19 @@ def prep_inputs(group_config_file):
         #participant list that actually is included.
         if not group_model.participant_list:
             inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
-            output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
-        elif os.path.isfile(group_model.participant_list):
-            inclusion_list = load_text_file(group_model.participant_list,
+            output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
+        elif '.' in group_model.participant_list:
+            if os.path.isfile(group_model.participant_list):
+                inclusion_list = load_text_file(group_model.participant_list,
                                         "group-level analysis "
                                         "participant list")
-            output_df = output_df[output_df["participant_session_id"].isin(inclusion_list)]
-        else:
-            raise Exception('\nCannot read group-level analysis participant ' \
+                output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
+            else:
+                raise Exception('\nCannot read group-level analysis participant ' \
                         'list.\n')
         if len(output_df) == 0:
-            err = "\n\n[!]The output data frame has not been compiled correctly. Please" \
-                  "recheck the participants in the participant inclusion list and the" \
+            err = "\n\n[!]The output data frame has not been compiled correctly. Please " \
+                  "recheck the participants in the participant inclusion list and the " \
                   "pipeline output directory to troubleshoot.\n\n"
             raise Exception(err)
         join_columns = ["participant_id"]
