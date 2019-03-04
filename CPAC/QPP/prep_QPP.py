@@ -19,13 +19,13 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
                   "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
             raise Exception(err)
         #derivatives = resource_list
-        derivatives = list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-                keys['Values'] == 'z-score']['Resource'])
-        derivatives = derivatives + list(
-            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-                keys['Values'] == 'z-stat']['Resource'])
-        #list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
+        #derivatives = list(
+        #    keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+        #        keys['Values'] == 'z-score']['Resource'])
+        #derivatives = derivatives + list(
+        #    keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+        #        keys['Values'] == 'z-stat']['Resource'])
+        derivatives =list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
 
     #choose which nuisance residual method you want to apply
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
