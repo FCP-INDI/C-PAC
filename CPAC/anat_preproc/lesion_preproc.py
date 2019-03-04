@@ -9,22 +9,34 @@ def inverse_lesion(lesion_path):
     """
     Check if the image contains more zeros than non-zeros, if so,
     replaces non-zeros by zeros and zeros by ones.
+    It also copies the file to the working_dir and
     Parameters
     ----------
     lesion_path: str
         path to the nifti file to be checked and inverted if needed.
+    working_dir: str
+        path to the working directory
 
     Returns
     -------
-
+    new_path: str
+        path to the output file
     """
+    import shutil
+    import os
+    import ntpath
+
     import CPAC.utils.nifti_utils as nu
     import nibabel as nib
+
+    new_path = os.path.join(os.getcwd(), ntpath.basename(lesion_path))
+
+    shutil.copyfile(lesion_path, new_path)
     
     if nu.more_zeros_than_ones(image_path=lesion_path):
         nii = nu.inverse_nifti_values(image_path=lesion_path)
-        nib.save(nii, lesion_path)
-    return lesion_path
+        nib.save(nii, new_path)
+    return new_path
 
 
 def create_lesion_preproc(wf_name='lesion_preproc'):
