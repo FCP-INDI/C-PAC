@@ -118,7 +118,7 @@ from CPAC.utils.utils import (
 )
 
 logger = logging.getLogger('nipype.workflow')
-config.enable_debug_mode()
+# config.enable_debug_mode()
 
 # TODO ASH move to somewhere else
 def pick_wm(seg_prob_list):
