@@ -56,13 +56,13 @@ def bids_decode_fname(file_path, dbg=False):
             chunks = key_val_pair.split("-")
             f_dict[chunks[0]] = "-".join(chunks[1:])
         else:
-            f_dict["scan_type"] = key_val_pair.split(".")[0]
+            f_dict["scantype"] = key_val_pair.split(".")[0]
 
-    if not f_dict["scan_type"]:
+    if not f_dict["scantype"]:
         raise ValueError("Filename (%s) does not appear to contain" % (fname) +
                          " scan type, does it conform to the BIDS format?")
 
-    if 'bold' in f_dict["scan_type"] and not f_dict["task"]:
+    if 'bold' in f_dict["scantype"] and not f_dict["task"]:
         raise ValueError("Filename (%s) is a BOLD file, but " % (fname) +
                          "doesn't contain a task, does it conform to the" +
                          " BIDS format?")
@@ -96,7 +96,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     t_dict = bids_config_dict  # pointer to current dictionary
     # try to populate the configuration using information
     # already in the list
-    for level in ['scan_type', 'site', 'sub', 'ses', 'task', 'acq',
+    for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
                   'rec', 'run']:
         if level in f_dict:
             key = "-".join([level, f_dict[level]])
@@ -159,7 +159,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
     # initialize 'default' entries, this essentially is a pointer traversal
     # of the dictionary
     t_dict = bids_config_dict
-    for level in ['scan_type', 'site', 'sub', 'ses', 'task',
+    for level in ['scantype', 'site', 'sub', 'ses', 'task',
                   'acq', 'rec', 'run']:
         key = '-'.join([level, 'none'])
         t_dict[key] = {}
@@ -214,7 +214,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
         # e.g. run-1, run-2, ... will all map to run-none if no jsons
         # explicitly define values for those runs
         t_dict = bids_config_dict  # pointer to current dictionary
-        for level in ['scan_type', 'site', 'sub', 'ses', 'task', 'acq',
+        for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
                       'rec', 'run']:
             if level in f_dict:
                 key = "-".join([level, f_dict[level]])
@@ -388,7 +388,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "subject_id": subjid,
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
-            if "T1w" in f_dict["scan_type"]:
+            if "T1w" in f_dict["scantype"]:
                 if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
                     if "lesion_mask" not in \
                             subdict[f_dict["sub"]][f_dict["ses"]]:
