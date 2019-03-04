@@ -689,9 +689,23 @@ class QPPSettings(wx.ScrolledWindow):
                       values=["Off", "On"],
                       wkf_switch=True)
 
-        self.page.add(label="Series/Scan Inclusion (Optional) ",
+        self.page.add(label="Scan Inclusion (Optional) ",
                       control=control.COMBO_BOX,
-                      name='qpp_scan_inclusion',
+                      name='qpp_scan_list',
+                      type=dtype.STR,
+                      values="None",
+                      comment="If there are multiple series/scans in any "
+                              "of the pipeline outputs for which QPP is "
+                              "being run, and you only want to run for some "
+                              "of them, you can list them here - scan labels "
+                              "separated by commas (ex. 'rest_run-1, "
+                              "rest_run-3').\n\nIf nothing is listed, QPP "
+                              "will run once for each scan, for all "
+                              "available scans.")
+
+        self.page.add(label="Session Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='qpp_sess_list',
                       type=dtype.STR,
                       values="None",
                       comment="If there are multiple series/scans in any "
@@ -742,13 +756,7 @@ class QPPSettings(wx.ScrolledWindow):
                       values=15,
                       comment="Maximum number of iterations. ")
 
-        #self.page.add(label="nrn",
-        #              control=control.INT_CTRL,
-        #              name='qpp_nrn',
-        #              type=dtype.NUM,
-        #              values=1,
-        #              comment="Number of scans you have the data recorded with.This is independent"\
-        #              "of the number of scans you wish to include in your scan/series list.")
+
 
 
         self.page.set_sizer()
