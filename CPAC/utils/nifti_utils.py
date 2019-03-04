@@ -1,32 +1,32 @@
 import os
 import numpy as np
+import six
 
 import nibabel as nib
 
 
-def more_zeros_than_ones(image_path=None, nifti=None):
+def more_zeros_than_ones(image):
     """
     Return True is there is more zeros than other values in a given nifti image.
     Parameters
     ----------
-    image_path: str
-        path to the nifti file to be checked
-    nifti: nibabel.nifti1.Nifti1Image
+    image: str or nibabel.nifti1.Nifti1Image
+        path to the nifti file to be inverted or
         the image already loaded through nibabel
 
     Returns
     -------
     more_zeros: boolean
     """
-    if nifti is not None:
-        img = nifti
-    elif image_path is not None:
-        if not os.path.exists(image_path):
-            raise ValueError(str(image_path) + " does not exist.")
+    if isinstance(image, nib.nifti1.Nifti1Image):
+        img = image
+    elif isinstance(image, six.string_types):
+        if not os.path.exists(image):
+            raise ValueError(str(image) + " does not exist.")
         else:
-            img = nib.load(image_path)
+            img = nib.load(image)
     else:
-        raise ValueError("Empty parameters")
+        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
 
     data = img.get_data()
     nb_zeros = len(np.where(data == 0)[0])
@@ -35,29 +35,28 @@ def more_zeros_than_ones(image_path=None, nifti=None):
     return more_zeros
 
 
-def inverse_nifti_values(image_path=None, nifti=None):
+def inverse_nifti_values(image):
     """
     Replace zeros by ones and non-zero values by 1
     Parameters
     ----------
-    image_path: str
-        path to the nifti file to be inverted
-    nifti: nibabel.nifti1.Nifti1Image
+    image: str or nibabel.nifti1.Nifti1Image
+        path to the nifti file to be inverted or
         the image already loaded through nibabel
 
     Returns
     -------
     output: Nibabel Nifti1Image
     """
-    if nifti is not None:
-        img = nifti
-    elif image_path is not None:
-        if not os.path.exists(image_path):
-            raise ValueError(str(image_path) + " does not exist.")
+    if isinstance(image, nib.nifti1.Nifti1Image):
+        img = image
+    elif isinstance(image, six.string_types):
+        if not os.path.exists(image):
+            raise ValueError(str(image) + " does not exist.")
         else:
-            img = nib.load(image_path)
+            img = nib.load(image)
     else:
-        raise ValueError("Empty parameters")
+        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
 
     data = img.get_data()
     zeros = np.where(data)
