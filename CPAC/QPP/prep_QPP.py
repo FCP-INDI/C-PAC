@@ -275,12 +275,15 @@ def prep_inputs(group_config_file):
         grp_by_scans = False
         grp_by_both = False
         repeated_measures=False
+        if group_model.qpp_sess_list:
         #multiple sessions, so you're going group by scans
-        if len(group_model.qpp_sess_list) > 0:
-            grp_by_scans = True
+            if len(group_model.qpp_sess_list) > 0:
+                grp_by_scans = True
         #Multiple scans so you're going to group by sessions
-        if len(group_model.qpp_scan_list) > 0:
-            grp_by_sessions = True
+        if group_model.qpp_scan_list:
+            if len(group_model.qpp_scan_list) > 0:
+                grp_by_sessions = True
+
         if grp_by_scans or grp_by_sessions:
             repeated_measures=True
         if grp_by_scans and grp_by_sessions:
