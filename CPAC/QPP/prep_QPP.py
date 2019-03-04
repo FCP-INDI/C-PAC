@@ -35,8 +35,9 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
     search_dir = []
     for derivative_name in derivatives:
         for resource_name in resource_list:
-            for resource_name in derivative_name:
+            if resource_name in derivative_name:
                 search_dir.append(derivative_name)
+
     nifti_globs=[]
 
     for resource_name in search_dir:
@@ -339,7 +340,7 @@ def prep_inputs(group_config_file):
 
         if len(new_output_df) == 0:
             err = '\n\n[!]C-PAC says:Could not find match betterrn the ' \
-              'particoants in your pipeline output directory that were ' \
+              'particpants in your pipeline output directory that were ' \
               'included in your analysis, and the particpants in the phenotype ' \
                     'phenotype file provided.\n\n'
             raise Exception(err)
@@ -349,11 +350,10 @@ def prep_inputs(group_config_file):
                                'cpac_group_analysis',
                                'CPAC_QPP_{0}'.format(pipeline_ID),
                                 resource_id,  # nuisance strat to initialize
-                                strat_info,  # initialize
-                                scan_or_session_label)  # series or repeated label == same as qpp scan or sessions list)
-
+                                strat_info)  # series or repeated label == same as qpp scan or sessions list)
+        print(new_output_df)
         merge_outfile = out_dir
-        merge_file = create_merged_copefile(new_output_df["Filepath"].tolist(),merge_outfile)
+        merge_file = create_merged_copefile(new_output_df["Filepath_x"].tolist(),merge_outfile)
         merge_mask_outfile = '_'.join([model_name, resource_id,
                                        "merged_mask.nii.gz"])
         merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
