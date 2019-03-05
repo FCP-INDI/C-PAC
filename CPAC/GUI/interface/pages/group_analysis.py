@@ -694,7 +694,7 @@ class QPPSettings(wx.ScrolledWindow):
                       name='qpp_scan_list',
                       type=dtype.STR,
                       values="None",
-                      comment="If there are multiple series/scans in any "
+                      comment="If there are multiple scans in any "
                               "of the pipeline outputs for which QPP is "
                               "being run, and you only want to run for some "
                               "of them, you can list them here - scan labels "
@@ -708,7 +708,7 @@ class QPPSettings(wx.ScrolledWindow):
                       name='qpp_sess_list',
                       type=dtype.STR,
                       values="None",
-                      comment="If there are multiple series/scans in any "
+                      comment="If there are multiple sessions in any "
                               "of the pipeline outputs for which QPP is "
                               "being run, and you only want to run for some "
                               "of them, you can list them here - scan labels "
