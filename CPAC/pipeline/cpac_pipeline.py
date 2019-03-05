@@ -747,6 +747,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     lesion_preproc, 'outputspec.reorient',
                     ants_reg_anat_mni, 'inputspec.fixed_image_mask'
                 )
+            else:
+                ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = None
 
             strat.append_name(ants_reg_anat_mni.name)
 
@@ -982,6 +984,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         lesion_preproc, 'outputspec.reorient',
                         ants_reg_anat_symm_mni, 'inputspec.fixed_image_mask'
                     )
+                else:
+                    ants_reg_anat_symm_mni.inputs.inputspec.fixed_image_mask = \
+                        None
 
                 strat.append_name(ants_reg_anat_symm_mni.name)
                 strat.set_leaf_properties(ants_reg_anat_symm_mni,

@@ -12,8 +12,8 @@ def seperate_warps_list(warp_list, selection):
 
 
 def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
-                  reference_skull, fixed_image_mask="<undefined>"):
-
+                  reference_skull, fixed_image_mask=None):
+    
     regcmd = ["antsRegistration",
               "--collapse-output-transforms", "0",
               "--dimensionality", "3",
@@ -44,7 +44,7 @@ def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
               "--use-histogram-matching", "1",
               "--winsorize-image-intensities", "[0.01,0.99]"]
 
-    if fixed_image_mask != "<undefined>":
+    if fixed_image_mask is not None:
         regcmd.append("-x")
         regcmd.append(str(fixed_image_mask))
 
