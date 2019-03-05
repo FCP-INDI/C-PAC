@@ -11,7 +11,7 @@ from base64 import b64decode
 import shutil
 import yaml
 
-from CPAC.utils.yaml import create_yaml_from_template
+from CPAC.utils.yaml_template import create_yaml_from_template
 
 __version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'version')).read()
