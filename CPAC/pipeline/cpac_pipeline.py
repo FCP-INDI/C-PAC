@@ -102,7 +102,7 @@ from CPAC.qc.utils import generate_qc_pages
 from CPAC.utils.utils import (
     extract_one_d,
     set_gauss,
-    process_outputs,
+    create_symlinks,
     get_scan_params,
     get_tr,
     extract_txt,
@@ -1813,7 +1813,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             nuisance_regression_workflow, 'inputspec.csf_mask_file_path'
                         )
 
-
                     node, out_file = new_strat['movement_parameters']
                     workflow.connect(
                         node, out_file,
@@ -1902,9 +1901,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     new_strat.update_resource_pool({
                         'functional_nuisance_residuals': (
                             nuisance_regression_workflow,
-                            'outputspec.residual_file_path')
+                            'outputspec.bandpass_residual_file_path')
                         ,
                         'functional_nuisance_regressors': (
+                            nuisance_regression_workflow,
+                            'outputspec.regressors_file_path'
+                        ),
+
+                        # Keep an non-bandpassed version of functional
+                        # to use on ALFF
+                        'alff_input_functional': (
                             nuisance_regression_workflow,
                             'outputspec.regressors_file_path'
                         )
@@ -1957,18 +1963,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
-        # Drop the leaf node into the resource pool at this point, so it can be
-        # threaded into ALFF/fALFF further down
-        if 1 in c.runALFF:
-            for num_strat, strat in enumerate(strat_list):
-                node, out_file = strat.get_leaf_properties()
-                strat.update_resource_pool({
-                    'alff_input_functional': (node, out_file)
-                })
-
         # Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp
-
         new_strat_list = []
 
         if 1 in c.runRegisterFuncToMNI:
@@ -3180,34 +3176,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             rp = strat.get_resource_pool()
 
-            # Build helper dictionary to assist with
-            # a clean strategy label for symlinks
-            strategy_tag_helper_symlinks = {}
-
-            if any('scrubbing' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['_threshold'] = 1
-            else:
-                strategy_tag_helper_symlinks['_threshold'] = 0
-
-            if any('seg_preproc' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['_csf_threshold'] = 1
-                strategy_tag_helper_symlinks['_wm_threshold'] = 1
-                strategy_tag_helper_symlinks['_gm_threshold'] = 1
-            else:
-                strategy_tag_helper_symlinks['_csf_threshold'] = 0
-                strategy_tag_helper_symlinks['_wm_threshold'] = 0
-                strategy_tag_helper_symlinks['_gm_threshold'] = 0
-
-            if any('median_angle_corr' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['_target_angle_deg'] = 1
-            else:
-                strategy_tag_helper_symlinks['_target_angle_deg'] = 0
-
-            if any('nuisance' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['nuisance'] = 1
-            else:
-                strategy_tag_helper_symlinks['nuisance'] = 0
-
             if p_name is None or p_name == 'None':
                 if forkPointsDict[strat]:
                     pipeline_id = c.pipelineName + forkPointsDict[strat]
@@ -3512,24 +3480,23 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = rp[key]
                     workflow.connect(node, out_file, ds, key)
 
-                    link_node = pe.Node(
-                        interface=function.Function(
-                            input_names=['in_file', 'subject_id', 'pipeline_id',
-                                         'helper', 'create_sym_links'],
-                            output_names=[],
-                            function=process_outputs,
-                            as_module=True),
-                        name='process_outputs_%d' % sink_idx
-                    )
+                    if 1 in c.runSymbolicLinks:
 
-                    link_node.inputs.subject_id = subject_id
-                    link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
-                    link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+                        link_node = pe.Node(
+                            interface=function.Function(
+                                input_names=['in_file',
+                                            'subject_id',
+                                            'pipeline_id'],
+                                output_names=[],
+                                function=create_symlinks,
+                                as_module=True
+                            ), name='create_symlinks_%d' % sink_idx
+                        )
 
-                    # TODO ASH enforce boolean with schema validation
-                    link_node.inputs.create_sym_links = 1 in c.runSymbolicLinks
+                        link_node.inputs.subject_id = subject_id
+                        link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
 
-                    workflow.connect(ds, 'out_file', link_node, 'in_file')
+                        workflow.connect(ds, 'out_file', link_node, 'in_file')
 
                     sink_idx += 1
                     logger.debug('sink index: %s' % sink_idx)

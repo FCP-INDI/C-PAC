@@ -12,11 +12,13 @@ from CPAC.registration import create_nonlinear_register, \
     create_wf_collect_transforms
 
 from CPAC.utils import Configuration, function, find_files
-from CPAC.utils.utils import extract_one_d, set_gauss, \
-    process_outputs, get_scan_params, \
-    get_tr, extract_txt, create_log, \
-    extract_output_mean, create_output_mean_csv, get_zscore, \
-    get_fisher_zscore, dbg_file_lineno, add_afni_prefix
+from CPAC.utils.utils import (
+    set_gauss,
+    get_scan_params,
+    extract_output_mean,
+    get_zscore,
+    get_fisher_zscore
+)
 
 # Apply warps, Z-scoring, Smoothing, Averages
 

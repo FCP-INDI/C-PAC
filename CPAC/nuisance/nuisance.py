@@ -518,6 +518,7 @@ def create_nuisance_workflow(nuisance_selectors,
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
+                                                        'bandpass_residual_file_path',
                                                         'regressors_file_path']),
                          name='outputspec')
 
@@ -971,15 +972,26 @@ def create_nuisance_workflow(nuisance_selectors,
         nuisance_regression.inputs.polort = 0
 
     if nuisance_selectors.get('Bandpass'):
+
+        bandpass_nuisance_regression = nuisance_regression.clone('bandpass_nuisance_regression')
+
         bandpass_selector = nuisance_selectors['Bandpass']
         bottom_frequency = bandpass_selector.get('bottom_frequency', 0.0)
         top_frequency = bandpass_selector.get('top_frequency', 9999.9)
 
-        nuisance_regression.inputs.bandpass = (float(bottom_frequency),
-                                               float(top_frequency))
+        bandpass_nuisance_regression.inputs.bandpass = (float(bottom_frequency),
+                                                        float(top_frequency))
+    else:
+
+        bandpass_nuisance_regression = nuisance_regression
+
+
 
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
+
+    nuisance_wf.connect(bandpass_nuisance_regression, 'out_file',
+                        outputspec, 'bandpass_residual_file_path')
 
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')
