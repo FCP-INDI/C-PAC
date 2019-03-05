@@ -1960,7 +1960,7 @@ def run_qpp(group_config_file):
     working_dir = group_config_obj["work_dir"]
     crash_dir = group_config_obj["log_dir"]
 
-    pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
+
 
 
     wl  = group_config_obj.wl
