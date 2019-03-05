@@ -345,17 +345,36 @@ def prep_inputs(group_config_file):
                     'phenotype file provided.\n\n'
             raise Exception(err)
 
+
+
+
+
         pipeline_ID = group_model.pipeline_dir.rstrip('/').split('/')[-1]
-        out_dir = os.path.join(group_model.output_dir,
+
+
+        model_dir = os.path.join(group_model.output_dir,
                                'cpac_group_analysis',
-                               'CPAC_QPP_{0}'.format(pipeline_ID),
-                                resource_id,  # nuisance strat to initialize
-                                strat_info)  # series or repeated label == same as qpp scan or sessions list)
+                               'CPAC_QPP_{0}'.format(pipeline_ID))
+
+        out_dir = os.path.join(model_dir,
+                               resource_id,  # nuisance strat to initialize
+                               strat_info)  # series or repeated label == same as qpp scan or sessions list)
+        model_path = os.path.join(out_dir, "CPAC_QPP_model_files")
+
         print(new_output_df)
-        merge_outfile = out_dir
+
+        merge_outfile = "CPAC_QPP_model" + "_" + resource_id + "_merged.nii.gz"
+
+        merge_outfile = os.path.join(model_path, merge_outfile)
+
+
+
         merge_file = create_merged_copefile(new_output_df["Filepath_x"].tolist(),merge_outfile)
-        merge_mask_outfile = '_'.join([model_name, resource_id,
+
+
+        merge_mask_outfile = '_'.join(["CPAC_QPP_model", resource_id,
                                        "merged_mask.nii.gz"])
+
         merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
         merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
