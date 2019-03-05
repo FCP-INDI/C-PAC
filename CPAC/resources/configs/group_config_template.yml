@@ -308,8 +308,11 @@ isc_permutations :  1000
 #Used to determine if QPP will be added to the pipeline or not.
 run_qpp: [0]
 
-#The number of scans you wish to include in the QPP analysis. Leaving it blank will switch to the deafault option of adding all the scans
-qpp_scan_inclusion: 
+#The number of scans you wish to include in the QPP analysis. Leaving it blank will switch to the default option of adding all the scans. Add the scan number as 1,2,3, etc
+qpp_scan_list:
+
+#The number of sessions you wish to include in the QPP analysis. Leaving it blank will switch to the default option of adding all the session. Add the session number as 1,2,3 etc
+qpp_sess_list:  
 
 #Window length to search the template in.
 qpp_wl: 30
