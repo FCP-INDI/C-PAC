@@ -3620,6 +3620,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 rp = strat.get_resource_pool()
 
+            if c.write_debugging_outputs:
+                import pickle
+                workdir = os.path.join(c.workingDirectory, workflow_name)
+                with open(workdir, 'wt') as f:
+                    pickle.dump(rp, f)
+
             for key in sorted(rp.keys()):
 
                 if not key.startswith('qc___') and key not in Outputs.any:

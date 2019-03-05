@@ -363,7 +363,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 # Run C-PAC subjects via job queue
 def run(config_file, subject_list_file, p_name=None, plugin=None,
-        plugin_args=None, tracking=True, num_subs_at_once=None):
+        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False):
     '''
     '''
 
@@ -400,6 +400,9 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     c.workingDirectory = os.path.abspath(c.workingDirectory)
     c.outputDirectory = os.path.abspath(c.outputDirectory)
     c.crashLogDirectory = os.path.abspath(c.crashLogDirectory)
+
+    if debug:
+        c.write_debugging_outputs = "[1]"
 
     if num_subs_at_once:
         if not str(num_subs_at_once).isdigit():
