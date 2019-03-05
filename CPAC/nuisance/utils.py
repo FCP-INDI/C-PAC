@@ -355,7 +355,6 @@ def generate_summarize_tissue_mask(nuisance_wf,
             for s in steps[:step_i]
         )
 
-
         if step is 'tissue':
 
             if mask_key.startswith('FunctionalVariance'):
@@ -400,21 +399,21 @@ def generate_summarize_tissue_mask(nuisance_wf,
                 transforms = pipeline_resource_pool['Transformations']
 
                 # reduce CSF mask to the lateral ventricles
-                mask_cfs_with_lat_ven = pe.Node(interface=afni.Calc(), name='mask_cfs_with_lat_ven')
-                mask_cfs_with_lat_ven.inputs.expr = 'a*b'
-                mask_cfs_with_lat_ven.inputs.outputtype = 'NIFTI_GZ'
-                mask_cfs_with_lat_ven.inputs.out_file = 'cfs_lat_ven_mask.nii.gz'
+                mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(), name='mask_csf_with_lat_ven')
+                mask_csf_with_lat_ven.inputs.expr = 'a*b'
+                mask_csf_with_lat_ven.inputs.outputtype = 'NIFTI_GZ'
+                mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
                 if use_ants is True:
 
                     # perform the transform using ANTS
-                    collect_linear_transforms = pe.Node(util.Merge(3), name='ho_mni_to_2mm_ants_collect_linear_transforms')
+                    collect_linear_transforms = pe.Node(util.Merge(3), name='VentriclesToAnat_ants_transforms')
 
                     nuisance_wf.connect(*(transforms['anat_to_mni_initial_xfm'] + (collect_linear_transforms, 'in1')))
                     nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
                     nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
 
-                    lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='lat_ven_mni_to_anat_ants')
+                    lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='VentriclesToAnat_ants')
                     lat_ven_mni_to_anat.inputs.invert_transform_flags = [True, True, True]
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
@@ -424,29 +423,29 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
                     nuisance_wf.connect(*(pipeline_resource_pool['Anatomical'] + (lat_ven_mni_to_anat, 'reference_image')))
 
-                    nuisance_wf.connect(lat_ven_mni_to_anat, 'output_image', mask_cfs_with_lat_ven, 'in_file_b')
+                    nuisance_wf.connect(lat_ven_mni_to_anat, 'output_image', mask_csf_with_lat_ven, 'in_file_b')
 
                 else:
 
                     # perform the transform using FLIRT
-                    lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='lat_ven_mni_to_anat_flirt')
+                    lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='VentriclesToAnat_flirt')
                     lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
 
                     nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
                     nuisance_wf.connect(*(pipeline_resource_pool['CerebrospinalFluidUnmasked'] + (lat_ven_mni_to_anat, 'reference')))
 
-                    nuisance_wf.connect(lat_ven_mni_to_anat, 'out_file', mask_cfs_with_lat_ven, 'in_file_b')
+                    nuisance_wf.connect(lat_ven_mni_to_anat, 'out_file', mask_csf_with_lat_ven, 'in_file_b')
 
-                nuisance_wf.connect(*(pipeline_resource_pool['CerebrospinalFluidUnmasked'] + (mask_cfs_with_lat_ven, 'in_file_a')))
+                nuisance_wf.connect(*(pipeline_resource_pool['CerebrospinalFluidUnmasked'] + (mask_csf_with_lat_ven, 'in_file_a')))
 
                 pipeline_resource_pool[mask_key] = \
-                    (mask_cfs_with_lat_ven, 'out_file')
+                    (mask_csf_with_lat_ven, 'out_file')
 
         if step is 'resolution':
 
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
-                                  name='mask_to_epi_flirt_applyxfm_{}'
+                                  name='{}_flirt'
                                        .format(node_mask_key))
 
             if regressor_selector['extraction_resolution'] == "Functional":
@@ -478,8 +477,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
         if step is 'erosion':
 
             erode_mask_node = pe.Node(interface=afni.Calc(),
-                                      name='erode_mask_node_{}'
-                                           .format(node_mask_key))
+                                      name='{}'.format(node_mask_key))
             erode_mask_node.inputs.args = "-b a+i -c a-i -d a+j " + \
                                           "-e a-j -f a+k -g a-k"
             erode_mask_node.inputs.expr = 'a*(1-amongst(0,b,c,d,e,f,g))'
@@ -528,15 +526,13 @@ def summarize_timeseries(functional_path, masks_path, summary):
         regressors = masked_functional.mean(0)
 
     if summary['method'] == 'PC':
-        mean_signal = np.tile(
-            masked_functional.mean(1),
-            (masked_functional.shape[1], 1)
-        )
-        U, _, _ = np.linalg.svd(
-            masked_functional.T - mean_signal,
-            full_matrices=False
-        )
-        regressors = U[:, 0:summary['components']]
+
+        Y = signal.detrend(masked_functional, axis=1, type='linear').T
+        Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
+        Yc = Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1))
+        U, _, _ = np.linalg.svd(Yc)
+
+        regressors = U[0:summary['components'], :].T
 
     output_file_path = os.path.join(os.getcwd(), 'summary_regressors.1D')
     np.savetxt(output_file_path, regressors, fmt='%.18f')
@@ -609,6 +605,19 @@ class NuisanceRegressor(object):
             'Censor': 'C',
         }
 
+        regs_order = [
+            'GreyMatter',
+            'WhiteMatter',
+            'CerebrospinalFluid',
+            'tCompCor',
+            'aCompCor',
+            'GlobalSignal',
+            'Motion',
+            'PolyOrt',
+            'Bandpass',
+            'Censor',
+        ]
+
         tissues = ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid']
 
         selectors_representations = []
@@ -626,7 +635,7 @@ class NuisanceRegressor(object):
         # P-2
         # B-T0.01-B0.1
 
-        for r in regs.keys():
+        for r in regs_order:
             if r not in selector:
                 continue
 
@@ -662,15 +671,17 @@ class NuisanceRegressor(object):
             elif r == 'aCompCor':
                 if s.get('tissues'):
                     pieces += ["+".join([regs[t] for t in sorted(s['tissues'])])]
+
                 if s.get('extraction_resolution'):
-                    res = "%.2f" % s['extraction_resolution']
+                    res = "%.2gmm" % s['extraction_resolution']
                     if s.get('erode_mask'):
                         res += 'E'
+                    pieces += [res]
 
                 pieces += [NuisanceRegressor._summary_params(s)]
                 pieces += [NuisanceRegressor._derivative_params(s)]
 
-            elif r == 'Global':
+            elif r == 'GlobalSignal':
                 pieces += [NuisanceRegressor._summary_params(s)]
                 pieces += [NuisanceRegressor._derivative_params(s)]
 
@@ -680,9 +691,9 @@ class NuisanceRegressor(object):
             elif r == 'PolyOrt':
                 pieces += ['%d' % s['degree']]
 
-            elif r == 'BandPass':
-                pieces += ['T%.2f' % s['top_frequency']]
-                pieces += ['B%.2f' % s['bottom_frequency']]
+            elif r == 'Bandpass':
+                pieces += ['B%.2g' % s['bottom_frequency']]
+                pieces += ['T%.2g' % s['top_frequency']]
 
             elif r == 'Censor':
                 censoring = {
