@@ -3,6 +3,8 @@ import os
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
+from CPAC.utils.function import Function
+
 
 from .cwas import (
     joint_mask,
@@ -82,93 +84,98 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     if not crash_dir:
         crash_dir = os.path.join(os.getcwd(), 'MDMR_crash_dir')
 
+    workflow = pe.Workflow(name=name)
+    workflow.base_dir = working_dir
+    workflow.config['execution'] = {'hash_method': 'timestamp',
+                                    'crashdump_dir': os.path.abspath(crash_dir)}
+
     inputspec = pe.Node(util.IdentityInterface(fields=['roi',
                                                        'subjects',
                                                        'regressor',
                                                        'participant_column',
-                                                       'columns', 
-                                                       'permutations', 
+                                                       'columns',
+                                                       'permutations',
                                                        'parallel_nodes']),
                         name='inputspec')
-                        
+
     outputspec = pe.Node(util.IdentityInterface(fields=['F_map',
-                                                        'p_map']),
+                                                        'p_map',
+                                                        'neglog_p_map']),
                          name='outputspec')
-    
-    cwas = pe.Workflow(name=name)
-    cwas.base_dir = working_dir
-    cwas.config['execution'] = {'hash_method': 'timestamp',
-                                'crashdump_dir': os.path.abspath(crash_dir)}
-    
-    ccb = pe.Node(util.Function(input_names=['mask_file',
-                                             'batches'],
-                                output_names='batch_list',
-                                function=create_cwas_batches),
+
+    ccb = pe.Node(Function(input_names=['mask_file',
+                                        'batches'],
+                           output_names='batch_list',
+                           function=create_cwas_batches,
+                           as_module=True),
                   name='cwas_batches')
-    
-    ncwas = pe.MapNode(util.Function(input_names=['subjects',
-                                                  'mask_file',
-                                                  'regressor_file', 
-                                                  'participant_column',
-                                                  'columns_string', 
-                                                  'permutations',
-                                                  'voxel_range'],
-                                     output_names=['result_batch'],
-                                     function=nifti_cwas),
+
+    ncwas = pe.MapNode(Function(input_names=['subjects',
+                                             'mask_file',
+                                             'regressor_file',
+                                             'participant_column',
+                                             'columns_string',
+                                             'permutations',
+                                             'voxel_range'],
+                                output_names=['result_batch'],
+                                function=nifti_cwas,
+                                as_module=True),
                        name='cwas_batch',
                        iterfield='voxel_range')
-    
-    jmask = pe.Node(util.Function(input_names=['subjects', 
-                                               'mask_file'],
-                                  output_names=['joint_mask'],
-                                  function=joint_mask),
+
+    jmask = pe.Node(Function(input_names=['subjects',
+                                          'mask_file'],
+                             output_names=['joint_mask'],
+                             function=joint_mask,
+                             as_module=True),
                     name='joint_mask')
-    
-    mcwasb = pe.Node(util.Function(input_names=['cwas_batches',
-                                                'mask_file'],
-                                   output_names=['F_file',
-                                                 'p_file'],
-                                   function=merge_cwas_batches),
+
+    mcwasb = pe.Node(Function(input_names=['cwas_batches',
+                                           'mask_file'],
+                              output_names=['F_file',
+                                            'p_file',
+                                            'neglog_p_file'],
+                              function=merge_cwas_batches,
+                              as_module=True),
                      name='cwas_volumes')
-    
+
     #Compute the joint mask
-    cwas.connect(inputspec, 'subjects',
-                 jmask, 'subjects')
-    cwas.connect(inputspec, 'roi',
-                 jmask, 'mask_file')
+    workflow.connect(inputspec, 'subjects',
+                     jmask, 'subjects')
+    workflow.connect(inputspec, 'roi',
+                     jmask, 'mask_file')
 
     #Create batches based on the joint mask
-    cwas.connect(jmask, 'joint_mask',
-                 ccb, 'mask_file')
-    cwas.connect(inputspec, 'parallel_nodes',
-                 ccb, 'batches')
-    
+    workflow.connect(jmask, 'joint_mask',
+                     ccb, 'mask_file')
+    workflow.connect(inputspec, 'parallel_nodes',
+                     ccb, 'batches')
+
     #Compute CWAS over batches of voxels
-    cwas.connect(jmask, 'joint_mask',
-                 ncwas, 'mask_file')
-    cwas.connect(inputspec, 'subjects',
-                 ncwas, 'subjects')
-    cwas.connect(inputspec, 'regressor',
-                 ncwas, 'regressor_file')
-    cwas.connect(inputspec, 'permutations',
-                 ncwas, 'permutations')
-    cwas.connect(inputspec, 'participant_column',
-                 ncwas, 'participant_column')
-    cwas.connect(inputspec, 'columns',
-                 ncwas, 'columns_string')
-                 
-    cwas.connect(ccb, 'batch_list',
-                 ncwas, 'voxel_range')
-    
+    workflow.connect(jmask, 'joint_mask',
+                     ncwas, 'mask_file')
+    workflow.connect(inputspec, 'subjects',
+                     ncwas, 'subjects')
+    workflow.connect(inputspec, 'regressor',
+                     ncwas, 'regressor_file')
+    workflow.connect(inputspec, 'permutations',
+                     ncwas, 'permutations')
+    workflow.connect(inputspec, 'participant_column',
+                     ncwas, 'participant_column')
+    workflow.connect(inputspec, 'columns',
+                     ncwas, 'columns_string')
+
+    workflow.connect(ccb, 'batch_list',
+                     ncwas, 'voxel_range')
+
     #Merge the computed CWAS data
-    cwas.connect(ncwas, 'result_batch',
-                 mcwasb, 'cwas_batches')
-    cwas.connect(jmask, 'joint_mask',
-                 mcwasb, 'mask_file')
-    
-    cwas.connect(mcwasb, 'F_file',
-                 outputspec, 'F_map')
-    cwas.connect(mcwasb, 'p_file',
-                 outputspec, 'p_map')
-    
-    return cwas
+    workflow.connect(ncwas, 'result_batch',
+                     mcwasb, 'cwas_batches')
+    workflow.connect(jmask, 'joint_mask',
+                     mcwasb, 'mask_file')
+
+    workflow.connect(mcwasb, 'F_file', outputspec, 'F_map')
+    workflow.connect(mcwasb, 'p_file', outputspec, 'p_map')
+    workflow.connect(mcwasb, 'neglog_p_file', outputspec, 'neglog_p_map')
+
+    return workflow
