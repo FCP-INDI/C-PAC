@@ -50,8 +50,8 @@ def gui():
 @click.argument('data_config')
 @click.option('--pipe_config')
 @click.option('--num_cores')
-@click.option('--ndmg_mode', default=False)
-@click.option('--debug', default=False)
+@click.option('--ndmg_mode', is_flag=True)
+@click.option('--debug', is_flag=True)
 def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False, 
         debug=False):
     if not pipe_config:

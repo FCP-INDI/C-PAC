@@ -3623,7 +3623,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             if c.write_debugging_outputs:
                 import pickle
                 workdir = os.path.join(c.workingDirectory, workflow_name)
-                with open(workdir, 'wt') as f:
+                rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
+                with open(rp_pkl, 'wt') as f:
                     pickle.dump(rp, f)
 
             for key in sorted(rp.keys()):
