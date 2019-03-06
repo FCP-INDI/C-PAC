@@ -21,16 +21,16 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 import nipype.interfaces.afni as afni
 from nipype.interfaces.afni import preprocess
-from nipype.pipeline.engine.utils import format_dot
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
+from nipype.interfaces.utility import Merge
+from nipype.pipeline.engine.utils import format_dot
 from nipype import config
 from nipype import logging
 
 from indi_aws import aws_utils, fetch_creds
 
 import CPAC
-from CPAC.network_centrality.utils import merge_lists
 from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
@@ -87,6 +87,7 @@ from CPAC.sca.sca import create_sca, create_temporal_reg
 
 from CPAC.connectome.pipeline import create_connectome
 
+from CPAC.utils.symlinks import create_symlinks
 from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
@@ -101,8 +102,6 @@ from CPAC.qc.utils import generate_qc_pages
 
 from CPAC.utils.utils import (
     extract_one_d,
-    set_gauss,
-    create_symlinks,
     get_scan_params,
     get_tr,
     extract_txt,
@@ -111,7 +110,6 @@ from CPAC.utils.utils import (
     create_output_mean_csv,
     get_zscore,
     get_fisher_zscore,
-    dbg_file_lineno,
     add_afni_prefix
 )
 
@@ -3156,7 +3154,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             forkPointsDict[strat_list[x]] = forkNames[x]
 
         # DataSink
-        sink_idx = 0
         pip_ids = []
 
         wf_names = []
@@ -3307,69 +3304,74 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 rp = strat.get_resource_pool()
 
-            for key in sorted(rp.keys()):
+            output_sink_nodes = []
 
-                if not key.startswith('qc___') and key not in Outputs.any:
+            for resource_i, resource in enumerate(sorted(rp.keys())):
+
+                if not resource.startswith('qc___') and resource not in Outputs.any:
                     continue
 
-                if key not in Outputs.override_optional and not ndmg_out:
+                if resource not in Outputs.override_optional and not ndmg_out:
 
                     if 1 not in c.write_func_outputs:
-                        if key in Outputs.extra_functional:
+                        if resource in Outputs.extra_functional:
                             continue
 
                     if 1 not in c.write_debugging_outputs:
-                        if key in Outputs.debugging:
+                        if resource in Outputs.debugging:
                             continue
 
                     if 0 not in c.runRegisterFuncToMNI:
-                        if key in Outputs.native_nonsmooth or \
-                            key in Outputs.native_nonsmooth_mult or \
-                                key in Outputs.native_smooth:
+                        if resource in Outputs.native_nonsmooth or \
+                            resource in Outputs.native_nonsmooth_mult or \
+                                resource in Outputs.native_smooth:
                             continue
 
                     if 0 not in c.runZScoring:
                         # write out only the z-scored outputs
-                        if key in Outputs.template_raw or \
-                                key in Outputs.template_raw_mult:
+                        if resource in Outputs.template_raw or \
+                                resource in Outputs.template_raw_mult:
                             continue
 
                     if 0 not in c.run_smoothing:
                         # write out only the smoothed outputs
-                        if key in Outputs.native_nonsmooth or \
-                            key in Outputs.template_nonsmooth or \
-                                key in Outputs.native_nonsmooth_mult or \
-                                key in Outputs.template_nonsmooth_mult:
+                        if resource in Outputs.native_nonsmooth or \
+                            resource in Outputs.template_nonsmooth or \
+                                resource in Outputs.native_nonsmooth_mult or \
+                                resource in Outputs.template_nonsmooth_mult:
                             continue
 
                 if ndmg_out:
                     ds = pe.Node(nio.DataSink(),
-                                    name='sinker_{0}'.format(sink_idx))
+                                 name='sinker_{}_{}'.format(num_strat,
+                                                              resource_i))
                     ds.inputs.base_directory = c.outputDirectory
                     ds.inputs.creds_path = creds_path
                     ds.inputs.encrypt_bucket_keys = encrypt_data
                     ds.inputs.parameterization = True
-                    ds.inputs.regexp_substitutions = [('_rename_(.)*/', ''),
-                                                        ('_scan_', 'scan-'),
-                                                        ('/_mask_', '/roi-'),
-                                                        ('file_s3(.)*/', ''),
-                                                        ('ndmg_atlases', ''),
-                                                        ('func_atlases', ''),
-                                                        ('label', ''),
-                                                        ('res-.+\/', ''),
-                                                        ('_mask_.+\/', '_'),
-                                                        ('mask_sub-', 'sub-'),
-                                                        ('/_compcor_ncomponents_', '_nuis-'),
-                                                        ('_selector_pc', ''),
-                                                        ('.linear', ''),
-                                                        ('.wm', ''),
-                                                        ('.global', ''),
-                                                        ('.motion', ''),
-                                                        ('.quadratic', ''),
-                                                        ('.gm', ''),
-                                                        ('.compcor', ''),
-                                                        ('.csf', ''),
-                                                        ('(\.\.)', '')]
+                    ds.inputs.regexp_substitutions = [
+                        (r'_rename_(.)*/', ''),
+                        (r'_scan_', 'scan-'),
+                        (r'/_mask_', '/roi-'),
+                        (r'file_s3(.)*/', ''),
+                        (r'ndmg_atlases', ''),
+                        (r'func_atlases', ''),
+                        (r'label', ''),
+                        (r'res-.+\/', ''),
+                        (r'_mask_.+\/', '_'),
+                        (r'mask_sub-', 'sub-'),
+                        (r'/_compcor_ncomponents_', '_nuis-'),
+                        (r'_selector_pc', ''),
+                        (r'.linear', ''),
+                        (r'.wm', ''),
+                        (r'.global', ''),
+                        (r'.motion', ''),
+                        (r'.quadratic', ''),
+                        (r'.gm', ''),
+                        (r'.compcor', ''),
+                        (r'.csf', ''),
+                        (r'(\.\.)', '')
+                    ]
 
                     container = 'pipeline_{0}'.format(pipeline_id)
 
@@ -3380,10 +3382,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     else:
                         sub_tag = sub_ses_id[0]
 
-                    if 'ses-' not in sub_ses_id[1]:
-                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
-                    else:
-                        ses_tag = sub_ses_id[1]
+                    ses_tag = 'ses-1'
+                    if len(sub_ses_id) > 1:
+                        if 'ses-' not in sub_ses_id[1]:
+                            ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                        else:
+                            ses_tag = sub_ses_id[1]
 
                     id_tag = '_'.join([sub_tag, ses_tag])
 
@@ -3435,39 +3439,44 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                 id_tag, func_res_tag))
                                     }
 
-                    if key not in ndmg_key_dct.keys():
+                    if resource not in ndmg_key_dct.keys():
                         continue
 
                     ds.inputs.container = '{0}/{1}'.format(container,
-                                                            ndmg_key_dct[key][0])
-                    node, out_file = rp[key]
+                                                           ndmg_key_dct[key][0])
+                    node, out_file = rp[resource]
 
                     # rename the file
-                    if 'roi_' in key or 'ndmg_graph' in key:
-                        rename_file = pe.MapNode(interface=util.Rename(),
-                                                    name='rename_{0}'.format(sink_idx),
-                                                    iterfield=['in_file'])
+                    if 'roi_' in resource or 'ndmg_graph' in resource:
+                        rename_file = pe.MapNode(
+                            interface=util.Rename(),
+                            name='rename__{}_{}'.format(num_strat, resource_i),
+                                                 iterfield=['in_file'])
                     else:
-                        rename_file = pe.Node(interface=util.Rename(),
-                                                name='rename_{0}'.format(sink_idx))
+                        rename_file = pe.Node(
+                            interface=util.Rename(),
+                            name='rename_{}_{}'.format(num_strat, resource_i)
+                        )
                     rename_file.inputs.keep_ext = True
-                    rename_file.inputs.format_string = ndmg_key_dct[key][2]
+                    rename_file.inputs.format_string = ndmg_key_dct[resource][2]
 
                     workflow.connect(node, out_file,
-                                        rename_file, 'in_file')
+                                     rename_file, 'in_file')
                     workflow.connect(rename_file, 'out_file',
-                                        ds, ndmg_key_dct[key][1])
-
-                    sink_idx += 1
+                                     ds, ndmg_key_dct[resource][1])
 
                 else:
                     # regular datasink
-                    ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
+                    ds = pe.Node(
+                        nio.DataSink(),
+                        name='sinker_{}_{}'.format(num_strat, resource_i)
+                    )
                     ds.inputs.base_directory = c.outputDirectory
                     ds.inputs.creds_path = creds_path
                     ds.inputs.encrypt_bucket_keys = encrypt_data
                     ds.inputs.container = os.path.join(
-                        'pipeline_%s' % pipeline_id, subject_id)
+                        'pipeline_%s' % pipeline_id, subject_id
+                    )
                     ds.inputs.regexp_substitutions = [
                         (r"/_sca_roi(.)*[/]", '/'),
                         (r"/_smooth_centrality_(\d)+[/]", '/'),
@@ -3477,29 +3486,42 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         (r"/qc___", '/qc/')
                     ]
 
-                    node, out_file = rp[key]
-                    workflow.connect(node, out_file, ds, key)
+                    node, out_file = rp[resource]
+                    workflow.connect(node, out_file, ds, resource)
 
-                    if 1 in c.runSymbolicLinks:
+                    output_sink_nodes += [(ds, 'out_file')]
 
-                        link_node = pe.Node(
-                            interface=function.Function(
-                                input_names=['in_file',
-                                            'subject_id',
-                                            'pipeline_id'],
-                                output_names=[],
-                                function=create_symlinks,
-                                as_module=True
-                            ), name='create_symlinks_%d' % sink_idx
-                        )
+            if 1 in c.runSymbolicLinks and not ndmg_out:
 
-                        link_node.inputs.subject_id = subject_id
-                        link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
+                merge_link_node = pe.Node(
+                    interface=Merge(len(output_sink_nodes)),
+                    name='create_symlinks_paths_{}'.format(num_strat)
+                )
+                merge_link_node.inputs.ravel_inputs = True
 
-                        workflow.connect(ds, 'out_file', link_node, 'in_file')
+                link_node = pe.Node(
+                    interface=function.Function(
+                        input_names=[
+                            'output_dir',
+                            'symlink_dir',
+                            'pipeline_id',
+                            'subject_id',
+                            'paths',
+                        ],
+                        output_names=[],
+                        function=create_symlinks,
+                        as_module=True
+                    ), name='create_symlinks_{}'.format(num_strat)
+                )
 
-                    sink_idx += 1
-                    logger.debug('sink index: %s' % sink_idx)
+                link_node.inputs.output_dir = c.outputDirectory
+                link_node.inputs.subject_id = subject_id
+                link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
+
+                for i, (node, node_input) in enumerate(output_sink_nodes):
+                    workflow.connect(node, node_input, merge_link_node, 'in{}'.format(i))
+
+                workflow.connect(merge_link_node, 'out', link_node, 'paths')
 
             try:
                 G = nx.DiGraph()

@@ -8,7 +8,6 @@ This module contains functions used to run a C-PAC pipeline
 # Import packages
 from multiprocessing import Process
 import os
-from CPAC.utils.utils import create_seeds_ #, create_group_log_template
 from CPAC.utils.ga import track_run
 from CPAC.utils import Configuration
 import yaml
