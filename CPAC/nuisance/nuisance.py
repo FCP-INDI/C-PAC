@@ -353,8 +353,8 @@ def create_nuisance_workflow(nuisance_selectors,
             selector = {
                 aCompCor: {
                     symmary: {
-                        method: 'PC', aCompCor will always extract the principal components from
-                            tissues signal,
+                        method: 'DetrendPC', aCompCor will always extract the principal components from
+                            detrended tissues signal,
                         components: number of components to retain,
                     },
                     tissues: list of tissues to extract regressors.
@@ -394,7 +394,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 },
                 WhiteMatter: {
                     symmary: {
-                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
                     extraction_resolution: None | floating point value (same as for aCompCor),
@@ -405,7 +405,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 },
                 CerebrospinalFluid: {
                     symmary: {
-                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
                     extraction_resolution: None | floating point value (same as for aCompCor),
@@ -416,7 +416,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 },
                 GreyMatter: {
                     symmary: {
-                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
                     extraction_resolution: None | floating point value (same as for aCompCor),
@@ -427,7 +427,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 },
                 GlobalSignal: {
                     symmary: {
-                        method: 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                        method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
                     include_delayed: True | False (same as for aCompCor),
@@ -576,7 +576,8 @@ def create_nuisance_workflow(nuisance_selectors,
                                  .format(regressor_type,
                                          regressor_selector['summary']))
 
-            regressor_selector['summary']['method'] = 'PC'
+            regressor_selector['summary']['method'] = \
+                'DetrendPC' if regressor_type == 'aCompCor' else 'PC'
 
             if not regressor_selector['summary'].get('components'):
                 regressor_selector['summary']['components'] = 1
@@ -640,7 +641,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 regressor_descriptor['extraction'] = \
                     regressor_selector['summary']
 
-            if regressor_descriptor['extraction'] == 'PC':
+            if regressor_descriptor['extraction'] in ['DetrendPC', 'PC']:
                 if not regressor_selector['summary'].get('components'):
                     raise ValueError("Summary method PC requires components, "
                                      "but received none.")

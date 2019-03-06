@@ -161,7 +161,7 @@ def selectors_repr(selectors):
         if 'summary' in regressor:
             if type(regressor['summary']) == dict:
                 regressor_terms += ' ' + regressor['summary']['method']
-                if regressor['summary']['method'] == 'PC':
+                if regressor['summary']['method'] in ['DetrendPC', 'PC']:
                     regressor_terms += ' {}'.format(regressor['summary']['components'])
             else:
                 regressor_terms += ' ' + regressor['summary']
@@ -230,6 +230,7 @@ selector_renaming_inverse = \
 
 selector_summary_method_renaming = {
     'PC': 'Principal Components',
+    'DetrendPC': 'Detrended Principal Components',
     'Mean': 'Mean',
     'NormMean': 'Norm Mean',
     'DetrendNormMean': 'Detrended Norm Mean',
@@ -406,7 +407,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         controls['summary']['method'] = control
 
         def control_update(event=None):
-            if selector_summary_method_renaming_inverse.get(control.GetValue()) == 'PC':
+            if selector_summary_method_renaming_inverse.get(control.GetValue()) in ['DetrendPC', 'PC']:
                 components_control = wx.TextCtrl(summary, value='1')
                 summary_sizer.Add(components_control, flag=wx.EXPAND | wx.ALL)
                 controls['summary']['components'] = components_control
@@ -764,7 +765,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
                 'method': method
             }
         }
-        if method == 'PC':
+        if method in ['DetrendPC', 'PC']:
             params['summary']['components'] = int(selector['summary']['components'].GetValue())
         return params
 

@@ -228,7 +228,9 @@ def create_temporal_variance_mask(functional_file_path, mask_file_path,
                          "4D and should contain 3 or more time points."
                          .format(functional_file_path))
 
-    functional_data_variance = functional_data_img.get_data().var(axis=3)
+
+    functional_data_variance = \
+        signal.detrend(functional_data_img.get_data(), type='linear').var(axis=-1)
 
     if mask_file_path:
         mask_image = nb.load(mask_file_path)
@@ -520,14 +522,17 @@ def summarize_timeseries(functional_path, masks_path, summary):
 
     if summary['method'] == 'DetrendNormMean':
         masked_functional = \
-            signal.detrend(masked_functional, axis=1, type='linear').T
+            signal.detrend(masked_functional, type='linear').T
 
         masked_functional /= np.linalg.norm(masked_functional, 2)
         regressors = masked_functional.mean(0)
 
-    if summary['method'] == 'PC':
+    if summary['method'] in ['DetrendPC', 'PC']:
+        if summary['method'] == 'DetrendPC':
+            Y = signal.detrend(masked_functional, type='linear').T
+        else:
+            Y = masked_functional.T
 
-        Y = signal.detrend(masked_functional, axis=1, type='linear').T
         Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
         Yc = Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1))
         U, _, _ = np.linalg.svd(Yc)
@@ -574,6 +579,7 @@ class NuisanceRegressor(object):
 
         methods = {
             'PC': 'PC',
+            'DetrendPC': 'DetrendPC',
             'Mean': 'M',
             'NormMean': 'NM',
             'DetrendMean': 'DM',
@@ -583,7 +589,7 @@ class NuisanceRegressor(object):
         if type(summ) == dict:
             method = summ['method']
             rep = methods[method]
-            if method == 'PC':
+            if method in ['DetrendPC', 'PC']:
                 rep += "%d" % summ['components']
         else:
             rep = methods[summ]
