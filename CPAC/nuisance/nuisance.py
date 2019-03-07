@@ -528,7 +528,7 @@ def create_nuisance_workflow(nuisance_selectors,
         "Functional": (inputspec, 'functional_file_path'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
-        "CerebrospinalFluidUnmasked": (inputspec, 'csf_mask_file_path'),
+        "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
         "GreyMatter": (inputspec, 'gm_mask_file_path'),
         "Ventricles": (inputspec, 'lat_ventricles_mask_file_path'),
 
