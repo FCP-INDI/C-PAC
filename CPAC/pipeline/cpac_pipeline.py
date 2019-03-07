@@ -3677,7 +3677,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                         ('func_atlases', ''),
                                                         ('label', ''),
                                                         ('res-.+\/', ''),
-                                                        ('_mask_.+\/', '_'),
+                                                        ('_mask_', 'roi-'),
                                                         ('mask_sub-', 'sub-'),
                                                         ('/_compcor_ncomponents_', '_nuis-'),
                                                         ('_selector_pc', ''),
@@ -3689,6 +3689,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                         ('.gm', ''),
                                                         ('.compcor', ''),
                                                         ('.csf', ''),
+                                                        ('/_bandpass_freqs_', ''),
+                                                        ('_sub-', '/sub-'),
                                                         ('(\.\.)', '')]
 
                     container = 'pipeline_{0}'.format(pipeline_id)
