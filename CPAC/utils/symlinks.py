@@ -328,11 +328,11 @@ def create_paths_to_symlinks(
 
 def create_symlinks(
     output_dir,
-    symlink_dir,
     pipeline_id,
     subject_id,
     paths,
-    relative=True
+    relative=True,
+    symlink_dir='sym_links'
 ):
 
     original_cwd = os.getcwd()
