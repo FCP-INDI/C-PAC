@@ -2135,7 +2135,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     node, out_file = strat['functional_to_anat_linear_xfm']
                     workflow.connect(node, out_file,
-                                    func_mni_warp, 'premat')
+                                     func_mni_warp, 'premat')
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file,
@@ -2144,11 +2144,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     if 'anat_mni_fnirt_register' in nodes:
                         node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                         workflow.connect(node, out_file,
-                                        functional_brain_mask_to_standard, 'field_file')
+                                         functional_brain_mask_to_standard, 'field_file')
                         workflow.connect(node, out_file,
-                                        mean_functional_warp, 'field_file')
+                                         mean_functional_warp, 'field_file')
                         workflow.connect(node, out_file,
-                                        motion_correct_warp, 'field_file')
+                                         motion_correct_warp, 'field_file')
 
                     node, out_file = strat['functional_to_anat_linear_xfm']
                     workflow.connect(node, out_file,
@@ -2365,9 +2365,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     vmhc, 'inputspec.ants_symm_warp_field')
 
                 else:
-                    node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
-                    workflow.connect(node, out_file,
-                                    vmhc, 'inputspec.fnirt_nonlinear_warp')
+                    if 'anat_mni_fnirt_register' in nodes:
+                        node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
+                        workflow.connect(node, out_file,
+                                         vmhc, 'inputspec.fnirt_nonlinear_warp')
+                    elif 'anat_mni_flirt_register' in nodes:
+                        node, out_file = strat[
+                            'anatomical_to_symmetric_mni_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         vmhc,
+                                         'inputspec.flirt_linear_aff')
 
                 strat.update_resource_pool({
                     'vmhc_raw_score': (vmhc, 'outputspec.VMHC_FWHM_img'),
