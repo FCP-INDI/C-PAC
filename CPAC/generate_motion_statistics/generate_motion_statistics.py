@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import nibabel as nb
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
@@ -530,8 +531,8 @@ def calculate_DVARS(rest, mask):
         path to file containing array of DVARS calculation for each voxel
     """
 
-    rest_data = nib.load(rest).get_data().astype(np.float32)
-    mask_data = nib.load(mask).get_data().astype('bool')
+    rest_data = nb.load(rest).get_data().astype(np.float32)
+    mask_data = nb.load(mask).get_data().astype('bool')
 
     # square of relative intensity value for each voxel across every timepoint
     data = np.square(np.diff(rest_data, axis=3))
