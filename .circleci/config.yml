@@ -4,8 +4,8 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: docker build -t cpac:$CIRCLE_BRANCH .
+      - run: docker build -t cpac:${CIRCLE_BRANCH//\//_} .
       - run:
           name: Run C-PAC
-          command: docker run -i --rm -v $HOME:/output -v /tmp:/scratch cpac:$CIRCLE_BRANCH s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_ci.yml
+          command: docker run -i --rm -v $HOME:/output -v /tmp:/scratch cpac:${CIRCLE_BRANCH//\//_} s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_ci.yml
           no_output_timeout: 3h
