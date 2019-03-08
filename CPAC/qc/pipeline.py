@@ -90,10 +90,7 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
 
             # make FD plot and volumes removed
             if 'gen_motion_stats' in nodes and 1 in c.runNuisance:
-                if c.fdCalc == 'Power':
-                    fd, out_file = strat['frame_wise_displacement_power']
-                else:
-                    fd, out_file = strat['frame_wise_displacement_jenkinson']
+                fd, out_file = strat['frame_wise_displacement_jenkinson']
 
                 qc_workflow = create_qc_fd('qc_fd_{0}'.format(num_strat))
 
