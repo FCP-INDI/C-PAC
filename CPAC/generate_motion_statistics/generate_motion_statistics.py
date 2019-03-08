@@ -344,7 +344,7 @@ def calculate_FD_J(in_file):
     for i in range(1, pm.shape[0]):
         T_rb = pm[i].reshape(4, 4)
 
-        M = np.dot(T_rb, T_rb_prev.I) - np.eye(4)
+        M = np.dot(T_rb, np.linalg.inv(T_rb_prev)) - np.eye(4)
         A = M[0:3, 0:3]
         b = M[0:3, 3]
 
