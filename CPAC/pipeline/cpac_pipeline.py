@@ -1785,12 +1785,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name=nuisance_wf_name.format(sanitized_name, num_strat)
                     )
 
+                    node, out_file = new_strat['anatomical_brain']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow, 'inputspec.anatomical_file_path'
+                    )
+
                     if has_segmentation:
 
                         workflow.connect(
                             c.lateral_ventricles_mask, 'local_path',
-                            nuisance_regression_workflow,
-                            'inputspec.lat_ventricles_mask_file_path'
+                            nuisance_regression_workflow, 'inputspec.lat_ventricles_mask_file_path'
                         )
 
                         node, out_file = new_strat['anatomical_gm_mask']
@@ -1826,9 +1831,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     )
 
                     node, out_file = new_strat.get_leaf_properties()
-                    workflow.connect(node, out_file,
-                                    nuisance_regression_workflow,
-                                    'inputspec.functional_file_path')
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.functional_file_path'
+                    )
 
                     node, out_file = new_strat['frame_wise_displacement_jenkinson']
                     workflow.connect(

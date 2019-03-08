@@ -319,6 +319,8 @@ def create_nuisance_workflow(nuisance_selectors,
         inputspec.functional_brain_mask_file_path : string (nifti file)
             Whole brain mask corresponding to the functional data.
 
+        inputspec.anatomical_file_path : string (nifti file)
+            Corresponding preprocessed anatomical.
         inputspec.wm_mask_file_path : string (nifti file)
             Corresponding white matter mask.
         inputspec.csf_mask_file_path : string (nifti file)
@@ -936,17 +938,6 @@ def create_nuisance_workflow(nuisance_selectors,
     nuisance_regression.inputs.outputtype = 'NIFTI_GZ'
     nuisance_regression.inputs.norm = False
 
-    nuisance_wf.connect([
-        (inputspec, nuisance_regression, [
-            ('functional_file_path', 'in_file'),
-            ('functional_brain_mask_file_path', 'mask'),
-        ])
-    ])
-
-    if has_nuisance_regressors:
-        nuisance_wf.connect(build_nuisance_regressors, 'out_file',
-                            nuisance_regression, 'ort')
-
     if nuisance_selectors.get('Censor'):
         if nuisance_selectors['Censor']['method'] == 'SpikeRegression':
             nuisance_wf.connect(find_censors, 'out_file',
@@ -972,27 +963,45 @@ def create_nuisance_workflow(nuisance_selectors,
     else:
         nuisance_regression.inputs.polort = 0
 
+    no_bandpass_nuisance_regression = None
     if nuisance_selectors.get('Bandpass'):
 
-        bandpass_nuisance_regression = nuisance_regression.clone('bandpass_nuisance_regression')
+        no_bandpass_nuisance_regression = nuisance_regression.clone('no_bandpass_nuisance_regression')
 
         bandpass_selector = nuisance_selectors['Bandpass']
         bottom_frequency = bandpass_selector.get('bottom_frequency', 0.0)
         top_frequency = bandpass_selector.get('top_frequency', 9999.9)
 
-        bandpass_nuisance_regression.inputs.bandpass = (float(bottom_frequency),
+        no_bandpass_nuisance_regression.inputs.bandpass = (float(bottom_frequency),
                                                         float(top_frequency))
-    else:
 
-        bandpass_nuisance_regression = nuisance_regression
+    nuisance_wf.connect([
+        (inputspec, nuisance_regression, [
+            ('functional_file_path', 'in_file'),
+            ('functional_brain_mask_file_path', 'mask'),
+        ]),
+        (inputspec, no_bandpass_nuisance_regression, [
+            ('functional_file_path', 'in_file'),
+            ('functional_brain_mask_file_path', 'mask'),
+        ]),
+    ])
 
-
+    if has_nuisance_regressors:
+        nuisance_wf.connect(build_nuisance_regressors, 'out_file',
+                            nuisance_regression, 'ort')
+        nuisance_wf.connect(build_nuisance_regressors, 'out_file',
+                            no_bandpass_nuisance_regression, 'ort')
 
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
 
-    nuisance_wf.connect(bandpass_nuisance_regression, 'out_file',
-                        outputspec, 'bandpass_residual_file_path')
+    if nuisance_selectors.get('Bandpass'):
+        nuisance_wf.connect(no_bandpass_nuisance_regression, 'out_file',
+                            outputspec, 'bandpass_residual_file_path')
+    else:
+        nuisance_wf.connect(nuisance_regression, 'out_file',
+                            outputspec, 'bandpass_residual_file_path')
+
 
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')
