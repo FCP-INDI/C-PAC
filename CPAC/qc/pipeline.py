@@ -90,24 +90,11 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
 
             # make FD plot and volumes removed
             if 'gen_motion_stats' in nodes and 1 in c.runNuisance:
-                if c.fdCalc == 'Power':
-                    fd, out_file = strat['frame_wise_displacement_power']
-                else:
-                    fd, out_file = strat['frame_wise_displacement_jenkinson']
+                fd, out_file = strat['frame_wise_displacement_jenkinson']
 
                 qc_workflow = create_qc_fd('qc_fd_{0}'.format(num_strat))
 
                 workflow.connect(fd, out_file, qc_workflow, 'inputspec.fd')
-
-                if "De-Spiking" in c.runMotionSpike:
-                    excluded, out_file_ex = strat['despiking_frames_excluded']
-                    workflow.connect(excluded, out_file_ex,
-                                        qc_workflow, 'inputspec.excluded_volumes')
-
-                elif "Scrubbing" in c.runMotionSpike:
-                    excluded, out_file_ex = strat['scrubbing_frames_excluded']
-                    workflow.connect(excluded, out_file_ex,
-                                        qc_workflow, 'inputspec.excluded_volumes')
 
                 strat.update_resource_pool({
                     'qc___fd_plot': (qc_workflow, 'outputspec.fd_histogram_plot')

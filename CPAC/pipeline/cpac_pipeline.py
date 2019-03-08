@@ -21,16 +21,16 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 import nipype.interfaces.afni as afni
 from nipype.interfaces.afni import preprocess
-from nipype.pipeline.engine.utils import format_dot
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
+from nipype.interfaces.utility import Merge
+from nipype.pipeline.engine.utils import format_dot
 from nipype import config
 from nipype import logging
 
 from indi_aws import aws_utils, fetch_creds
 
 import CPAC
-from CPAC.network_centrality.utils import merge_lists
 from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
@@ -60,11 +60,10 @@ from CPAC.registration import (
     create_wf_c3d_fsl_to_itk,
     create_wf_collect_transforms
 )
-from CPAC.nuisance import create_nuisance, bandpass_voxels
+from CPAC.nuisance import create_nuisance_workflow, NuisanceRegressor
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
-from CPAC.generate_motion_statistics import fristons_twenty_four
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import (
     create_surface_registration,
@@ -89,6 +88,7 @@ from CPAC.sca.sca import create_sca, create_temporal_reg
 
 from CPAC.connectome.pipeline import create_connectome
 
+from CPAC.utils.symlinks import create_symlinks
 from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
@@ -103,8 +103,6 @@ from CPAC.qc.utils import generate_qc_pages
 
 from CPAC.utils.utils import (
     extract_one_d,
-    set_gauss,
-    process_outputs,
     get_scan_params,
     get_tr,
     extract_txt,
@@ -113,7 +111,6 @@ from CPAC.utils.utils import (
     create_output_mean_csv,
     get_zscore,
     get_fisher_zscore,
-    dbg_file_lineno,
     add_afni_prefix
 )
 
@@ -148,7 +145,7 @@ def create_log_node(workflow, logged_wf, output, index, scan_id=None):
         print(e)
 
 
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
+def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                   p_name=None, plugin='MultiProc', plugin_args=None):
     '''
     Function to prepare and, optionally, run the C-PAC workflow
@@ -159,9 +156,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         subject dictionary with anatomical and functional image paths
     c : Configuration object
         CPAC pipeline configuration dictionary object
-    strategies : obj
-        strategies object describing what strategies to run the pipeline
-        through
     run : boolean
         flag to indicate whether to run the prepared workflow
     pipeline_timing_info : list (optional); default=None
@@ -267,7 +261,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
-    subject_info['strategies'] = strategies
 
     # Check system dependencies
     check_system_deps(check_ants='ANTS' in c.regOption,
@@ -658,7 +651,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
                     'anat_mni_ants_register_%d' % num_strat,
-                    c.regWithSkull[0],
                     num_threads=num_ants_cores
                 )
 
@@ -926,7 +918,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
                         'anat_symmetric_mni_ants_register_%d' % num_strat,
-                        c.regWithSkull[0],
                         num_threads=num_ants_cores
                     )
 
@@ -1462,47 +1453,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
-        '''
-        Inserting Friston's 24 parameter Workflow
-        In case this workflow runs , it overwrites the movement_parameters file
-        So the file contains 24 parameters for motion and that gets wired to all the workflows
-        that depend on. The effect should be seen when regressing out nuisance signals and motion
-        is used as one of the regressors
-        '''
 
         new_strat_list = []
         workflow_counter += 1
-
-        if 1 in c.runFristonModel:
-
-            workflow_bit_id['fristons_parameter_model'] = workflow_counter
-
-            for num_strat, strat in enumerate(strat_list):
-
-                fristons_model = fristons_twenty_four(
-                    wf_name='fristons_parameter_model_%d' % num_strat
-                )
-
-                node, out_file = strat['movement_parameters']
-                workflow.connect(node, out_file,
-                                fristons_model, 'inputspec.movement_file')
-
-                # TODO ASH review forking
-                if 0 in c.runFristonModel:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(fristons_model.name)
-
-                strat.update_resource_pool({
-                    'movement_parameters': (fristons_model, 'outputspec.movement_file')
-                }, override=True)
-
-                create_log_node(workflow,
-                                fristons_model, 'outputspec.movement_file',
-                                num_strat)
-
-        strat_list += new_strat_list
 
         # Func -> T1 Registration (Initial Linear reg)
 
@@ -1609,8 +1562,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         new_strat_list = []
         workflow_counter += 1
 
-        if 1 in c.runRegisterFuncToAnat and \
-        1 in c.runBBReg:
+        if 1 in c.runRegisterFuncToAnat and 1 in c.runBBReg:
 
             workflow_bit_id['func_to_anat_bbreg'] = workflow_counter
 
@@ -1628,11 +1580,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if 'epi_distcorr' in nodes:
                         dist_corr = True
 
-                    func_to_anat_bbreg = create_bbregister_func_to_anat(dist_corr,
-                                                                        'func_to_anat_bbreg_%d' % num_strat)
+                    func_to_anat_bbreg = create_bbregister_func_to_anat(
+                        dist_corr,
+                        'func_to_anat_bbreg_%d' % num_strat
+                    )
 
                     # Input registration parameters
-                    func_to_anat_bbreg.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
+                    func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
+                        c.boundaryBasedRegistrationSchedule
 
                     # TODO ASH normalize strings with enums?
                     if 'Mean Functional' in c.func_reg_input:
@@ -1723,16 +1678,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
-            gen_motion_stats = motion_power_statistics(c.fdCalc[0],
-                                                    'gen_motion_stats_%d'
-                                                    % num_strat)
-            gen_motion_stats.inputs.scrubbing_input.set(
-                threshold=c.spikeThreshold,
-                remove_frames_before=c.numRemovePrecedingFrames,
-                remove_frames_after=c.numRemoveSubsequentFrames
+            gen_motion_stats = motion_power_statistics(
+                'gen_motion_stats_%d' % num_strat
             )
-            gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold',
-                                                                    c.spikeThreshold)
 
             # Special case where the workflow is not getting outputs from
             # resource pool but is connected to functional datasource
@@ -1761,32 +1709,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             node, out_file = strat['coordinate_transformation']
             workflow.connect(node, out_file,
-                            gen_motion_stats, 'inputspec.oned_matrix_save')
+                             gen_motion_stats, 'inputspec.transformations')
 
             strat.append_name(gen_motion_stats.name)
 
             strat.update_resource_pool({
                 'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
                 'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
+                'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
                 'power_params': (gen_motion_stats, 'outputspec.power_params'),
                 'motion_params': (gen_motion_stats, 'outputspec.motion_params')
             })
-
-            if "De-Spiking" in c.runMotionSpike and 1 in c.runNuisance:
-                strat.update_resource_pool({
-                    'despiking_frames_excluded': (gen_motion_stats, 'outputspec.frames_ex_1D'),
-                    'despiking_frames_included': (gen_motion_stats, 'outputspec.frames_in_1D')
-                })
-
-            if "Scrubbing" in c.runMotionSpike and 1 in c.runNuisance:
-                strat.update_resource_pool({
-                    'scrubbing_frames_excluded': (gen_motion_stats, 'outputspec.frames_ex_1D'),
-                    'scrubbing_frames_included': (gen_motion_stats, 'outputspec.frames_in_1D')
-                })
-
-            create_log_node(workflow,
-                            gen_motion_stats, 'outputspec.motion_params',
-                            num_strat)
 
         new_strat_list = []
         workflow_bit_id['aroma_preproc'] = workflow_counter
@@ -1812,46 +1745,43 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
                     #aroma_preproc.inputs.params.dim = c.aroma_dim
 
-                    if c.aroma_denoise_type == 'nonaggr':
-                        aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                            c.workingDirectory, workflow_name,
-                            'create_aroma_%d' % num_strat)
-                    elif c.aroma_denoise_type == 'aggr':
-                        aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                            c.workingDirectory, workflow_name,
-                            'create_aroma_%d' % num_strat)
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
+                        c.workingDirectory, workflow_name,
+                        'create_aroma_%d' % num_strat
+                    )
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, aroma_preproc,
                                     'inputspec.denoise_file')
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'functional_to_anat_linear_xfm')
+                    node, out_file = strat['functional_to_anat_linear_xfm']
                     workflow.connect(node, out_file, aroma_preproc,
                                     'inputspec.mat_file')
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'anatomical_to_mni_nonlinear_xfm')
+                    node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                     workflow.connect(node, out_file, aroma_preproc,
                                     'inputspec.fnirt_warp_file')
 
                     if c.aroma_denoise_type == 'nonaggr':
+
                         strat.set_leaf_properties(aroma_preproc,
-                                                'outputspec.nonaggr_denoised_file')
-                        strat.update_resource_pool({'ica_aroma_denoised_functional': (
-                            aroma_preproc, 'outputspec.nonaggr_denoised_file')})
-                        create_log_node(workflow, aroma_preproc,
-                                        'outputspec.nonaggr_denoised_file',
-                                        num_strat)
+                                                  'outputspec.nonaggr_denoised_file')
+
+                        strat.update_resource_pool({
+                            'ica_aroma_denoised_functional': (
+                                aroma_preproc, 'outputspec.nonaggr_denoised_file')
+                            }
+                        )
 
                     elif c.aroma_denoise_type == 'aggr':
                         strat.set_leaf_properties(aroma_preproc,
-                                                'outputspec.aggr_denoised_file')
-                        strat.update_resource_pool({'ica_aroma_denoised_functional': (
-                            aroma_preproc, 'outputspec.aggr_denoised_file')})
-                        create_log_node(workflow, aroma_preproc,
-                                        'outputspec.aggr_denoised_file',
-                                        num_strat)
+                                                  'outputspec.aggr_denoised_file')
+
+                        strat.update_resource_pool({
+                            'ica_aroma_denoised_functional': (
+                                aroma_preproc, 'outputspec.aggr_denoised_file')
+                            }
+                        )
 
                     strat.append_name(aroma_preproc.name)
 
@@ -1866,51 +1796,47 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                     # 4D FUNCTIONAL apply warp
                     node, out_file = strat.get_leaf_properties()
-                    node2, out_file2 = strat["mean_functional"]
-
-                    warp_leaf_wf = ants_apply_warps_func_mni(
+                    mean_func_node, mean_func_out_file = strat["mean_functional"]
+                    
+                    # Insert it on the resource pool, so no need to connect externally
+                    ants_apply_warps_func_mni(
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
-                        node2, out_file2,
+                        mean_func_node, mean_func_out_file,
                         c.template_brain_only_for_func,
-                        "leaf_node_to_standard",
+                        "ica_aroma_functional_to_standard",
                         "Linear", 3
                     )
 
                     aroma_preproc = create_aroma(tr=TR,
-                                                wf_name='create_aroma_%d'
-                                                        % num_strat)
+                                                 wf_name='create_aroma_%d'
+                                                         % num_strat)
 
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
                     #aroma_preproc.inputs.params.dim = c.aroma_dim
 
-                    if c.aroma_denoise_type == 'nonaggr':
-                        aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                            c.workingDirectory, workflow_name,
-                            'create_aroma_%d' % num_strat)
-                    elif c.aroma_denoise_type == 'aggr':
-                        aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                            c.workingDirectory, workflow_name,
-                            'create_aroma_%d' % num_strat)
+                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
+                        c.workingDirectory, workflow_name,
+                        'create_aroma_%d' % num_strat)
 
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'leaf_node_to_standard')
+                    node, out_file = strat['ica_aroma_functional_to_standard']
                     workflow.connect(node, out_file, aroma_preproc,
                                     'inputspec.denoise_file')
 
                     # warp back
                     if c.aroma_denoise_type == 'nonaggr':
                         node, out_file = (
-                            aroma_preproc, 'outputspec.nonaggr_denoised_file')
+                            aroma_preproc, 'outputspec.nonaggr_denoised_file'
+                        )
+
                     elif c.aroma_denoise_type == 'aggr':
                         node, out_file = (
-                            aroma_preproc, 'outputspec.aggr_denoised_file')
+                            aroma_preproc, 'outputspec.aggr_denoised_file'
+                        )
 
-                    node2, out_file2 = strat["mean_functional"]
-
-                    warp_template_wf = ants_apply_inverse_warps_template_to_func(
+                    ants_apply_inverse_warps_template_to_func(
                         workflow, strat, num_strat, num_ants_cores, node,
-                        out_file, node2, out_file2,
+                        out_file, mean_func_node, mean_func_out_file,
                         "ica_aroma_denoised_functional", "Linear", 3
                     )
 
@@ -1930,6 +1856,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
+
         # Inserting Nuisance Workflow
 
         new_strat_list = []
@@ -1941,246 +1868,191 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             for num_strat, strat in enumerate(strat_list):
 
+                # for each strategy, create a new one without nuisance
+                if 0 in c.runNuisance:
+                    new_strat_list.append(strat.fork())
+
                 nodes = strat.get_nodes_names()
 
-                # this is needed here in case tissue segmentation is set on/off
-                # and you have nuisance enabled- this will ensure nuisance will
-                # run for the strat that has segmentation but will not run (thus
-                # avoiding a crash) on the strat without segmentation
-                if 'seg_preproc' in nodes:
+                has_segmentation = 'seg_preproc' in nodes
+                nuisance_wf_name = 'nuisance_{0}_{1}'
 
-                    subwf_name = "nuisance"
-                    if "De-Spiking" in c.runMotionSpike:
-                        subwf_name = "nuisance_with_despiking"
+                for regressors_selector in c.Regressors:
 
-                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
-                        nuisance = create_nuisance(False,
-                                                '{0}_{1}'.format(subwf_name,
-                                                                    num_strat))
-                    else:
-                        nuisance = create_nuisance(True,
-                                                '{0}_{1}'.format(subwf_name,
-                                                                    num_strat))
+                    new_strat = strat.fork()
 
-                    nuisance.get_node('residuals').iterables = ([
-                        ('selector', c.Regressors),
-                        ('compcor_ncomponents', c.nComponents)
-                    ])
+                    # to guarantee immutability
+                    regressors_selector = NuisanceRegressor(
+                        copy.deepcopy(regressors_selector),
+                        copy.deepcopy(c.Regressors)
+                    )
 
-                    workflow.connect(c.lateral_ventricles_mask, 'local_path',
-                                    nuisance, 'inputspec.lat_ventricles_mask')
+                    # remove tissue regressors when there is no segmentation
+                    # on the strategy
+                    if not has_segmentation:
+                        for reg in ['aCompCor',
+                                    'WhiteMatter',
+                                    'GreyMatter',
+                                    'CerebrospinalFluid']:
 
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.subject')
+                            if reg in regressors_selector:
+                                del regressors_selector[reg]
 
-                    node, out_file = strat['anatomical_gm_mask']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.gm_mask')
 
-                    node, out_file = strat['anatomical_wm_mask']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.wm_mask')
-
-                    node, out_file = strat['anatomical_csf_mask']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.csf_mask')
-
-                    node, out_file = strat['movement_parameters']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.motion_components')
-
-                    if "De-Spiking" in c.runMotionSpike:
-                        node, out_file = strat['despiking_frames_excluded']
-                        workflow.connect(node, out_file,
-                                        nuisance, 'inputspec.frames_ex')
-                    else:
-                        nuisance.inputs.inputspec.frames_ex = None
-
-                    node, out_file = strat['functional_to_anat_linear_xfm']
-                    workflow.connect(node, out_file,
-                                    nuisance,
-                                    'inputspec.func_to_anat_linear_xfm')
-
-                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
-                        node, out_file = strat['mni_to_anatomical_linear_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.mni_to_anat_linear_xfm')
-                    else:
-                        # pass the ants_affine_xfm to the input for the
-                        # INVERSE transform, but ants_affine_xfm gets inverted
-                        # within the workflow
-
-                        node, out_file = strat['ants_initial_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.anat_to_mni_initial_xfm')
-
-                        node, out_file = strat['ants_rigid_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.anat_to_mni_rigid_xfm')
-
-                        node, out_file = strat['ants_affine_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.anat_to_mni_affine_xfm')
-
-                    # TODO ASH normalize w schema val
-                    if 0 in c.runNuisance:
-                        strat = strat.fork()
-                        new_strat_list.append(strat)
-
-                    # TODO ASH normalize w schema val
-                    if 1 in c.runNuisance and \
-                    "De-Spiking" in c.runMotionSpike and \
-                    "Scrubbing" in c.runMotionSpike:
-
-                        # create a new fork that will run nuisance like above but
-                        # without the de-spiking
-                        strat = strat.fork()
-                        new_strat_list.append(strat)
-
-                    # TODO ASH normalize w schema val
-                    if 1 in c.runNuisance and \
-                    "De-Spiking" in c.runMotionSpike and \
-                    "None" in c.runMotionSpike:
-                    
-                        # create a new fork that will run nuisance like above but
-                        # without the de-spiking
-                        strat = strat.fork()
-                        new_strat_list.append(strat)
-
-                    strat.append_name(nuisance.name)
-
-                    strat.set_leaf_properties(nuisance, 'outputspec.subject')
-
-                    strat.update_resource_pool({
-                        'functional_nuisance_residuals': (nuisance, 'outputspec.subject'),
-                        'functional_nuisance_regressors': (nuisance, 'outputspec.regressors')
-                    })
-
-                    create_log_node(workflow, nuisance,
-                                    'outputspec.subject', num_strat)
-
-        strat_list += new_strat_list
-
-        # set a flag in case we're doing nuisance on/off
-        non_nuisance_strat = False
-
-        for num_strat, strat in enumerate(strat_list):
-
-            nodes = strat.get_nodes_names()
-
-            if 0 in c.runNuisance and \
-                    ("nuisance" not in nodes and "nuisance_with_despiking" not in nodes):
-
-                if not non_nuisance_strat:
-                    # save one of the strats so that it won't have any nuisance
-                    # at all - this only fires if nuisance is on/off
-                    non_nuisance_strat = True
-                    continue
-
-            # TODO ASH normalize w schema val
-            if 1 in c.runNuisance and \
-                "De-Spiking" in c.runMotionSpike and \
-                "nuisance_with_despiking" not in nodes and \
-                    ("Scrubbing" in c.runMotionSpike or "None" in c.runMotionSpike):
-                # run nuisance in the new fork (if created), without de-spiking,
-                # so that we can have nuisance and then scrubbing, or a nuisance
-                # strat without de-spiking if doing de-spiking on/off
-                #     this only runs if we have ["De-Spiking", "Scrubbing"] or
-                #     ["De-Spiking", "Scrubbing", "Off"] in c.runMotionSpike
-
-                # this is needed here in case tissue segmentation is set on/off
-                # and you have nuisance enabled- this will ensure nuisance will
-                # run for the strat that has segmentation but will not run (thus
-                # avoiding a crash) on the strat without segmentation
-                if 'seg_preproc' in nodes:
+                    sanitized_name = re.sub(r'[^\w]+', '_', str(regressors_selector))
 
                     use_ants = 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes
-                    nuisance = create_nuisance(use_ants=use_ants,
-                                            name='nuisance_no_despiking_%d' % num_strat)
 
-                    nuisance.get_node('residuals').iterables = ([
-                        ('selector', c.Regressors),
-                        ('compcor_ncomponents', c.nComponents)
+                    nuisance_regression_workflow = create_nuisance_workflow(
+                        regressors_selector,
+                        use_ants=use_ants,
+                        name=nuisance_wf_name.format(sanitized_name, num_strat)
+                    )
+
+                    node, out_file = new_strat['anatomical_brain']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow, 'inputspec.anatomical_file_path'
+                    )
+
+                    if has_segmentation:
+
+                        workflow.connect(
+                            c.lateral_ventricles_mask, 'local_path',
+                            nuisance_regression_workflow, 'inputspec.lat_ventricles_mask_file_path'
+                        )
+
+                        node, out_file = new_strat['anatomical_gm_mask']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow, 'inputspec.gm_mask_file_path'
+                        )
+
+                        node, out_file = new_strat['anatomical_wm_mask']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow, 'inputspec.wm_mask_file_path'
+                        )
+
+                        node, out_file = new_strat['anatomical_csf_mask']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow, 'inputspec.csf_mask_file_path'
+                        )
+
+                    node, out_file = new_strat['movement_parameters']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.motion_parameters_file_path'
+                    )
+
+                    node, out_file= new_strat['functional_to_anat_linear_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.func_to_anat_linear_xfm_file_path'
+                    )
+
+                    node, out_file = new_strat.get_leaf_properties()
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.functional_file_path'
+                    )
+
+                    node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.fd_file_path'
+                    )
+
+                    node, out_file = new_strat['dvars']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.dvars_file_path'
+                    )
+
+                    node, out_file = new_strat['functional_brain_mask']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.functional_brain_mask_file_path'
+                    )
+
+                    nuisance_regression_workflow.get_node('inputspec').iterables = ([
+                        ('selector', [regressors_selector]),
                     ])
 
-                    workflow.connect(c.lateral_ventricles_mask, 'local_path',
-                                    nuisance, 'inputspec.lat_ventricles_mask')
-
-                    # enforcing no de-spiking here!
-                    # TODO: when condensing these sub-wf builders, pass
-                    # TODO: something so that the check in the nuisance strat
-                    # TODO: above can be modified for this version down here
-                    nuisance.inputs.inputspec.frames_ex = None
-
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.subject')
-
-                    node, out_file = strat['anatomical_gm_mask']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.gm_mask')
-
-                    node, out_file = strat['anatomical_wm_mask']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.wm_mask')
-
-                    node, out_file = strat['anatomical_csf_mask']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.csf_mask')
-
-                    node, out_file = strat['movement_parameters']
-                    workflow.connect(node, out_file,
-                                    nuisance, 'inputspec.motion_components')
-
-                    node, out_file = strat['functional_to_anat_linear_xfm']
-                    workflow.connect(node, out_file,
-                                    nuisance,
-                                    'inputspec.func_to_anat_linear_xfm')
-
                     if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
-                        node, out_file = strat['mni_to_anatomical_linear_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.mni_to_anat_linear_xfm')
+
+                        node, out_file = new_strat['mni_to_anatomical_linear_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow,
+                            'inputspec.mni_to_anat_linear_xfm_file_path'
+                        )
                     else:
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
 
-                        node, out_file = strat['ants_initial_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.anat_to_mni_initial_xfm')
+                        node, out_file = new_strat['ants_initial_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow,
+                            'inputspec.anat_to_mni_initial_xfm_file_path'
+                        )
 
-                        node, out_file = strat['ants_rigid_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.anat_to_mni_rigid_xfm')
+                        node, out_file = new_strat['ants_rigid_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow,
+                            'inputspec.anat_to_mni_rigid_xfm_file_path'
+                        )
 
-                        node, out_file = strat['ants_affine_xfm']
-                        workflow.connect(node, out_file,
-                                        nuisance,
-                                        'inputspec.anat_to_mni_affine_xfm')
+                        node, out_file = new_strat['ants_affine_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow,
+                            'inputspec.anat_to_mni_affine_xfm_file_path'
+                        )
 
-                    strat.append_name(nuisance.name)
+                    new_strat.append_name(nuisance_regression_workflow.name)
 
-                    strat.set_leaf_properties(nuisance, 'outputspec.subject')
+                    new_strat.set_leaf_properties(
+                        nuisance_regression_workflow,
+                        'outputspec.residual_file_path'
+                    )
 
-                    strat.update_resource_pool({
-                        'functional_nuisance_residuals': (nuisance, 'outputspec.subject'),
-                        'functional_nuisance_regressors': (nuisance, 'outputspec.regressors')
+                    new_strat.update_resource_pool({
+                        'functional_nuisance_residuals': (
+                            nuisance_regression_workflow,
+                            'outputspec.residual_file_path')
+                        ,
+                        'functional_nuisance_regressors': (
+                            nuisance_regression_workflow,
+                            'outputspec.regressors_file_path'
+                        ),
+
+                        # Keep an non-bandpassed version of functional
+                        # to use on ALFF
+                        'alff_input_functional': (
+                            nuisance_regression_workflow,
+                            'outputspec.no_bandpass_residual_file_path'
+                        )
                     })
 
-                    create_log_node(workflow, nuisance,
-                                    'outputspec.subject', num_strat)
+                    new_strat_list.append(new_strat)
+
+        # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
+        # Each regressor forks the strategy, instead of reusing it, to keep the code simple
+        strat_list = new_strat_list
+
 
         # Inserting Median Angle Correction Workflow
-
         new_strat_list = []
         workflow_counter += 1
 
@@ -2220,134 +2092,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
-        # Drop the leaf node into the resource pool at this point, so it can be
-        # threaded into ALFF/fALFF further down
-        if 1 in c.runALFF:
-            for num_strat, strat in enumerate(strat_list):
-                node, out_file = strat.get_leaf_properties()
-                strat.update_resource_pool({
-                    'alff_input_functional': (node, out_file)
-                })
-
-        # Inserting Frequency Filtering Node
-
-        new_strat_list = []
-        workflow_counter += 1
-
-        # TODO ASH normalize w schema val
-        if 1 in c.runFrequencyFiltering:
-
-            workflow_bit_id['frequency_filter'] = workflow_counter
-
-            for num_strat, strat in enumerate(strat_list):
-
-                frequency_filter = pe.Node(
-                    function.Function(input_names=['realigned_file',
-                                                'bandpass_freqs',
-                                                'sample_period'],
-                                    output_names=['bandpassed_file'],
-                                    function=bandpass_voxels,
-                                    as_module=True),
-                    name='frequency_filter_%d' % num_strat)
-
-                frequency_filter.iterables = (
-                    'bandpass_freqs', c.nuisanceBandpassFreq
-                )
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file,
-                                frequency_filter, 'realigned_file')
-
-                # TODO ASH replace with create_fork
-                if 0 in c.runFrequencyFiltering:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(frequency_filter.name)
-                strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
-                strat.update_resource_pool({
-                    'functional_freq_filtered': (frequency_filter, 'bandpassed_file')
-                })
-
-                create_log_node(workflow,
-                                frequency_filter, 'bandpassed_file',
-                                num_strat)
-
-        strat_list += new_strat_list
-
-        # Inserting Scrubbing Workflow
-
-        new_strat_list = []
-        workflow_counter += 1
-
-        # TODO ASH normalize w schema val
-        if "Scrubbing" in c.runMotionSpike and \
-                1 in c.runNuisance:
-
-            workflow_bit_id['scrubbing'] = workflow_counter
-
-            # set a flag in case we're doing nuisance on/off
-            non_nuisance_strat = False
-
-            for num_strat, strat in enumerate(strat_list):
-
-                nodes = strat.get_nodes_names()
-
-                # TODO ASH normalize w schema val
-                if 0 in c.runNuisance and \
-                    "nuisance" not in nodes and \
-                    "nuisance_with_despiking" not in nodes and \
-                        "nuisance_no_despiking" not in nodes:
-
-                    if not non_nuisance_strat:
-                        # save one of the strats so that it won't have any
-                        # nuisance at all - this only fires if nuisance is on/off
-                        non_nuisance_strat = True
-                        continue
-
-                # skip if this strat had de-spiking (mutually exclusive)
-                if "nuisance_with_despiking" in nodes:
-                    continue
-
-                if 'gen_motion_stats' in nodes:
-
-                    scrubbing = \
-                        create_scrubbing_preproc('scrubbing_%d' % num_strat)
-
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file,
-                                    scrubbing, 'inputspec.preprocessed')
-
-                    node, out_file = strat['scrubbing_frames_included']
-                    workflow.connect(node, out_file,
-                                    scrubbing, 'inputspec.frames_in_1D')
-
-                    node, out_file = strat['movement_parameters']
-                    workflow.connect(node, out_file,
-                                    scrubbing, 'inputspec.movement_parameters')
-
-                    if "None" in c.runMotionSpike:
-                        strat = strat.fork()
-                        new_strat_list.append(strat)
-
-                    strat.append_name(scrubbing.name)
-
-                    strat.set_leaf_properties(scrubbing,
-                                            'outputspec.preprocessed')
-
-                    strat.update_resource_pool({
-                        'scrubbing_movement_parameters': (scrubbing, 'outputspec.scrubbed_movement_parameters'),
-                        'scrubbed_preprocessed': (scrubbing, 'outputspec.preprocessed')
-                    })
-
-                    create_log_node(workflow,
-                                    scrubbing, 'outputspec.preprocessed',
-                                    num_strat)
-
-        strat_list += new_strat_list
-
         # Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp
-
         new_strat_list = []
 
         if 1 in c.runRegisterFuncToMNI:
@@ -3434,7 +3180,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     if run == 1:
 
         try:
-            workflow.write_graph(graph2use='orig')
+            workflow.write_graph(graph2use='hierarchical')
         except:
             pass
 
@@ -3515,20 +3261,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = 'bbreg'
                 if 'frequency' in fork:
                     forklabel = 'freq-filter'
-                if 'nuisance_with_despiking' in fork:
-                    forklabel = 'nuisance_with_despiking'
-                elif 'nuisance_no_despiking' in fork:
-                    forklabel = 'nuisance_no_despiking'
                 elif 'nuisance' in fork:
                     forklabel = 'nuisance'
                 if 'median' in fork:
                     forklabel = 'median'
-                if 'friston' in fork:
-                    forklabel = 'friston'
                 if 'motion_stats' in fork:
                     forklabel = 'motion'
-                if 'scrubbing' in fork:
-                    forklabel = 'scrub'
                 if 'slice' in fork:
                     forklabel = 'slice'
                 if 'anat_preproc_afni' in fork:
@@ -3547,7 +3285,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             forkPointsDict[strat_list[x]] = forkNames[x]
 
         # DataSink
-        sink_idx = 0
         pip_ids = []
 
         wf_names = []
@@ -3566,34 +3303,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for num_strat, strat in enumerate(strat_list):
 
             rp = strat.get_resource_pool()
-
-            # Build helper dictionary to assist with
-            # a clean strategy label for symlinks
-            strategy_tag_helper_symlinks = {}
-
-            if any('scrubbing' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['_threshold'] = 1
-            else:
-                strategy_tag_helper_symlinks['_threshold'] = 0
-
-            if any('seg_preproc' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['_csf_threshold'] = 1
-                strategy_tag_helper_symlinks['_wm_threshold'] = 1
-                strategy_tag_helper_symlinks['_gm_threshold'] = 1
-            else:
-                strategy_tag_helper_symlinks['_csf_threshold'] = 0
-                strategy_tag_helper_symlinks['_wm_threshold'] = 0
-                strategy_tag_helper_symlinks['_gm_threshold'] = 0
-
-            if any('median_angle_corr' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['_target_angle_deg'] = 1
-            else:
-                strategy_tag_helper_symlinks['_target_angle_deg'] = 0
-
-            if any('nuisance' in name for name in strat.get_name()):
-                strategy_tag_helper_symlinks['nuisance'] = 1
-            else:
-                strategy_tag_helper_symlinks['nuisance'] = 0
 
             if p_name is None or p_name == 'None':
                 if forkPointsDict[strat]:
@@ -3614,6 +3323,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             pip_ids.append(pipeline_id)
             wf_names.append(strat.get_name())
+
 
             # TODO enforce value with schema validation
             # Extract credentials path for output if it exists
@@ -3646,24 +3356,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except Exception as exc:
                 encrypt_data = False
 
-            # TODO ASH verify with team
-            # TODO: remove this once forking for despiking/scrubbing is
-            # TODO: modified at the gen motion params level
-            # ensure X_frames_included/excluded only gets sent to output dir
-            # for appropriate strats
             nodes = strat.get_nodes_names()
-
-            if "nuisance_with_despiking" not in nodes:
-                if "despiking_frames_included" in rp.keys():
-                    del rp["despiking_frames_included"]
-                if "despiking_frames_excluded" in rp.keys():
-                    del rp["despiking_frames_excluded"]
-
-            if "scrubbing" not in nodes:
-                if "scrubbing_frames_included" in rp.keys():
-                    del rp["scrubbing_frames_included"]
-                if "scrubbing_frames_excluded" in rp.keys():
-                    del rp["scrubbing_frames_excluded"]
 
             ndmg_out = False
             try:
@@ -3749,71 +3442,74 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 with open(rp_pkl, 'wt') as f:
                     pickle.dump(rp, f)
 
-            for key in sorted(rp.keys()):
+            output_sink_nodes = []
 
-                if not key.startswith('qc___') and key not in Outputs.any:
+            for resource_i, resource in enumerate(sorted(rp.keys())):
+
+                if not resource.startswith('qc___') and resource not in Outputs.any:
                     continue
 
-                if key not in Outputs.override_optional and not ndmg_out:
+                if resource not in Outputs.override_optional and not ndmg_out:
 
                     if 1 not in c.write_func_outputs:
-                        if key in Outputs.extra_functional:
+                        if resource in Outputs.extra_functional:
                             continue
 
                     if 1 not in c.write_debugging_outputs:
-                        if key in Outputs.debugging:
+                        if resource in Outputs.debugging:
                             continue
 
                     if 0 not in c.runRegisterFuncToMNI:
-                        if key in Outputs.native_nonsmooth or \
-                            key in Outputs.native_nonsmooth_mult or \
-                                key in Outputs.native_smooth:
+                        if resource in Outputs.native_nonsmooth or \
+                            resource in Outputs.native_nonsmooth_mult or \
+                                resource in Outputs.native_smooth:
                             continue
 
                     if 0 not in c.runZScoring:
                         # write out only the z-scored outputs
-                        if key in Outputs.template_raw or \
-                                key in Outputs.template_raw_mult:
+                        if resource in Outputs.template_raw or \
+                                resource in Outputs.template_raw_mult:
                             continue
 
                     if 0 not in c.run_smoothing:
                         # write out only the smoothed outputs
-                        if key in Outputs.native_nonsmooth or \
-                            key in Outputs.template_nonsmooth or \
-                                key in Outputs.native_nonsmooth_mult or \
-                                key in Outputs.template_nonsmooth_mult:
+                        if resource in Outputs.native_nonsmooth or \
+                            resource in Outputs.template_nonsmooth or \
+                                resource in Outputs.native_nonsmooth_mult or \
+                                resource in Outputs.template_nonsmooth_mult:
                             continue
 
                 if ndmg_out:
                     ds = pe.Node(nio.DataSink(),
-                                    name='sinker_{0}'.format(sink_idx))
+                                 name='sinker_{}_{}'.format(num_strat,
+                                                              resource_i))
                     ds.inputs.base_directory = c.outputDirectory
                     ds.inputs.creds_path = creds_path
                     ds.inputs.encrypt_bucket_keys = encrypt_data
                     ds.inputs.parameterization = True
-                    ds.inputs.regexp_substitutions = [('_rename_(.)*/', ''),
-                                                        ('_scan_', 'scan-'),
-                                                        ('/_mask_', '/roi-'),
-                                                        ('file_s3(.)*/', ''),
-                                                        ('ndmg_atlases', ''),
-                                                        ('func_atlases', ''),
-                                                        ('label', ''),
-                                                        ('res-.+\/', ''),
-                                                        ('_mask_', 'roi-'),
-                                                        ('mask_sub-', 'sub-'),
-                                                        ('/_compcor_ncomponents_', '_nuis-'),
-                                                        ('_selector_pc', ''),
-                                                        ('.linear', ''),
-                                                        ('.wm', ''),
-                                                        ('.global', ''),
-                                                        ('.motion', ''),
-                                                        ('.quadratic', ''),
-                                                        ('.gm', ''),
-                                                        ('.compcor', ''),
-                                                        ('.csf', ''),
-                                                        ('/_bandpass_freqs_', ''),
-                                                        ('_sub-', '/sub-'),
-                                                        ('(\.\.)', '')]
+                    ds.inputs.regexp_substitutions = [
+                        (r'_rename_(.)*/', ''),
+                        (r'_scan_', 'scan-'),
+                        (r'/_mask_', '/roi-'),
+                        (r'file_s3(.)*/', ''),
+                        (r'ndmg_atlases', ''),
+                        (r'func_atlases', ''),
+                        (r'label', ''),
+                        (r'res-.+\/', ''),
+                        (r'_mask_.+\/', '_'),
+                        (r'mask_sub-', 'sub-'),
+                        (r'/_selector_', '_nuis-'),
+                        (r'_selector_pc', ''),
+                        (r'.linear', ''),
+                        (r'.wm', ''),
+                        (r'.global', ''),
+                        (r'.motion', ''),
+                        (r'.quadratic', ''),
+                        (r'.gm', ''),
+                        (r'.compcor', ''),
+                        (r'.csf', ''),
+                        (r'(\.\.)', '')
+                    ]
 
                     container = 'pipeline_{0}'.format(pipeline_id)
 
@@ -3824,10 +3520,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     else:
                         sub_tag = sub_ses_id[0]
 
-                    if 'ses-' not in sub_ses_id[1]:
-                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
-                    else:
-                        ses_tag = sub_ses_id[1]
+                    ses_tag = 'ses-1'
+                    if len(sub_ses_id) > 1:
+                        if 'ses-' not in sub_ses_id[1]:
+                            ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                        else:
+                            ses_tag = sub_ses_id[1]
 
                     id_tag = '_'.join([sub_tag, ses_tag])
 
@@ -3879,39 +3577,44 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                 id_tag, func_res_tag))
                                     }
 
-                    if key not in ndmg_key_dct.keys():
+                    if resource not in ndmg_key_dct.keys():
                         continue
 
                     ds.inputs.container = '{0}/{1}'.format(container,
-                                                            ndmg_key_dct[key][0])
-                    node, out_file = rp[key]
+                                                           ndmg_key_dct[key][0])
+                    node, out_file = rp[resource]
 
                     # rename the file
-                    if 'roi_' in key or 'ndmg_graph' in key:
-                        rename_file = pe.MapNode(interface=util.Rename(),
-                                                    name='rename_{0}'.format(sink_idx),
-                                                    iterfield=['in_file'])
+                    if 'roi_' in resource or 'ndmg_graph' in resource:
+                        rename_file = pe.MapNode(
+                            interface=util.Rename(),
+                            name='rename__{}_{}'.format(num_strat, resource_i),
+                                                 iterfield=['in_file'])
                     else:
-                        rename_file = pe.Node(interface=util.Rename(),
-                                                name='rename_{0}'.format(sink_idx))
+                        rename_file = pe.Node(
+                            interface=util.Rename(),
+                            name='rename_{}_{}'.format(num_strat, resource_i)
+                        )
                     rename_file.inputs.keep_ext = True
-                    rename_file.inputs.format_string = ndmg_key_dct[key][2]
+                    rename_file.inputs.format_string = ndmg_key_dct[resource][2]
 
                     workflow.connect(node, out_file,
-                                        rename_file, 'in_file')
+                                     rename_file, 'in_file')
                     workflow.connect(rename_file, 'out_file',
-                                        ds, ndmg_key_dct[key][1])
-
-                    sink_idx += 1
+                                     ds, ndmg_key_dct[resource][1])
 
                 else:
                     # regular datasink
-                    ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
+                    ds = pe.Node(
+                        nio.DataSink(),
+                        name='sinker_{}_{}'.format(num_strat, resource_i)
+                    )
                     ds.inputs.base_directory = c.outputDirectory
                     ds.inputs.creds_path = creds_path
                     ds.inputs.encrypt_bucket_keys = encrypt_data
                     ds.inputs.container = os.path.join(
-                        'pipeline_%s' % pipeline_id, subject_id)
+                        'pipeline_%s' % pipeline_id, subject_id
+                    )
                     ds.inputs.regexp_substitutions = [
                         (r"/_sca_roi(.)*[/]", '/'),
                         (r"/_smooth_centrality_(\d)+[/]", '/'),
@@ -3921,35 +3624,42 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         (r"/qc___", '/qc/')
                     ]
 
-                    node, out_file = rp[key]
-                    workflow.connect(node, out_file, ds, key)
+                    node, out_file = rp[resource]
+                    workflow.connect(node, out_file, ds, resource)
 
-                    link_node = pe.Node(
-                        interface=function.Function(
-                            input_names=['in_file', 'strategies',
-                                            'subject_id', 'pipeline_id',
-                                            'helper', 'create_sym_links'],
-                            output_names=[],
-                            function=process_outputs,
-                            as_module=True),
-                        name='process_outputs_%d' % sink_idx
-                    )
+                    output_sink_nodes += [(ds, 'out_file')]
 
-                    link_node.inputs.strategies = strategies
-                    link_node.inputs.subject_id = subject_id
-                    link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
-                    link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+            if 1 in c.runSymbolicLinks and not ndmg_out:
 
-                    # TODO ASH enforce boolean with schema validation
-                    if 1 in c.runSymbolicLinks:
-                        link_node.inputs.create_sym_links = True
-                    else:
-                        link_node.inputs.create_sym_links = False
+                merge_link_node = pe.Node(
+                    interface=Merge(len(output_sink_nodes)),
+                    name='create_symlinks_paths_{}'.format(num_strat)
+                )
+                merge_link_node.inputs.ravel_inputs = True
 
-                    workflow.connect(ds, 'out_file', link_node, 'in_file')
+                link_node = pe.Node(
+                    interface=function.Function(
+                        input_names=[
+                            'output_dir',
+                            'symlink_dir',
+                            'pipeline_id',
+                            'subject_id',
+                            'paths',
+                        ],
+                        output_names=[],
+                        function=create_symlinks,
+                        as_module=True
+                    ), name='create_symlinks_{}'.format(num_strat)
+                )
 
-                    sink_idx += 1
-                    logger.debug('sink index: %s' % sink_idx)
+                link_node.inputs.output_dir = c.outputDirectory
+                link_node.inputs.subject_id = subject_id
+                link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
+
+                for i, (node, node_input) in enumerate(output_sink_nodes):
+                    workflow.connect(node, node_input, merge_link_node, 'in{}'.format(i))
+
+                workflow.connect(merge_link_node, 'out', link_node, 'paths')
 
             try:
                 G = nx.DiGraph()
