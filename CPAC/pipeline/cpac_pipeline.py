@@ -274,7 +274,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     # absolute paths of the dirs
     c.workingDirectory = os.path.abspath(c.workingDirectory)
-    c.outputDirectory = os.path.abspath(c.outputDirectory)
+    if 's3://' not in c.outputDirectory:
+        c.outputDirectory = os.path.abspath(c.outputDirectory)
 
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)

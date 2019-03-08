@@ -476,7 +476,6 @@ CPAC/network_centrality/afni_centrality_interfaces.py
 CPAC/network_centrality/afni_network_centrality.py
 CPAC/network_centrality/core.py
 CPAC/network_centrality/resting_state_centrality.py
-CPAC/network_centrality/thresh_and_sum.pyx
 CPAC/network_centrality/utils.py
 CPAC/network_centrality/z_score.py
 CPAC/nuisance/__init__.py

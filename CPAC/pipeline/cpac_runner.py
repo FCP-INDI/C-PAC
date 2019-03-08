@@ -398,7 +398,8 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
     c.logDirectory = os.path.abspath(c.logDirectory)
     c.workingDirectory = os.path.abspath(c.workingDirectory)
-    c.outputDirectory = os.path.abspath(c.outputDirectory)
+    if 's3://' not in c.outputDirectory:
+        c.outputDirectory = os.path.abspath(c.outputDirectory)
     c.crashLogDirectory = os.path.abspath(c.crashLogDirectory)
 
     if num_subs_at_once:
