@@ -1901,7 +1901,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     sanitized_name = re.sub(r'[^\w]+', '_', str(regressors_selector))
 
-                    use_ants = 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes
+                    use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
                     nuisance_regression_workflow = create_nuisance_workflow(
                         regressors_selector,
@@ -3581,7 +3581,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         continue
 
                     ds.inputs.container = '{0}/{1}'.format(container,
-                                                           ndmg_key_dct[key][0])
+                                                           ndmg_key_dct[resource][0])
                     node, out_file = rp[resource]
 
                     # rename the file
