@@ -3503,7 +3503,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         (r'func_atlases', ''),
                         (r'label', ''),
                         (r'res-.+\/', ''),
-                        (r'_mask_.+\/', '_'),
+                        (r'_mask_', 'roi-'),
                         (r'mask_sub-', 'sub-'),
                         (r'/_selector_', '_nuis-'),
                         (r'_selector_pc', ''),
@@ -3515,6 +3515,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         (r'.gm', ''),
                         (r'.compcor', ''),
                         (r'.csf', ''),
+                        (r'_sub-', '/sub-'),
                         (r'(\.\.)', '')
                     ]
 
