@@ -238,6 +238,7 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                                                 'standard_for_func',
                                                 'mean_functional',
                                                 'brain',
+                                                'flirt_linear_aff',
                                                 'fnirt_nonlinear_warp',
                                                 'ants_symm_initial_xfm',
                                                 'ants_symm_rigid_xfm',
@@ -256,8 +257,8 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
 
     if use_ants == False:
         # Apply nonlinear registration (func to standard)
-        nonlinear_func_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                          name='nonlinear_func_to_standard')
+        func_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                   name='func_to_standard')
 
     elif use_ants == True:
         # ANTS warp image etc.
@@ -316,17 +317,21 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
         vmhc.connect(inputNode, 'rest_mask',
                      smooth, 'operand_files')
         vmhc.connect(smooth, 'out_file',
-                     nonlinear_func_to_standard, 'in_file')
+                     func_to_standard, 'in_file')
         vmhc.connect(inputNode, 'standard_for_func',
-                     nonlinear_func_to_standard, 'ref_file')
-        vmhc.connect(inputNode, 'fnirt_nonlinear_warp',
-                     nonlinear_func_to_standard, 'field_file')
+                     func_to_standard, 'ref_file')
+        try:
+            vmhc.connect(inputNode, 'fnirt_nonlinear_warp',
+                         func_to_standard, 'field_file')
+        except:
+            vmhc.connect(inputNode, 'flirt_linear_aff',
+                         func_to_standard, 'postmat')
         ## func->anat matrix (bbreg)
         vmhc.connect(inputNode, 'example_func2highres_mat',
-                     nonlinear_func_to_standard, 'premat')
-        vmhc.connect(nonlinear_func_to_standard, 'out_file',
+                     func_to_standard, 'premat')
+        vmhc.connect(func_to_standard, 'out_file',
                      copy_and_L_R_swap, 'in_file')
-        vmhc.connect(nonlinear_func_to_standard, 'out_file',
+        vmhc.connect(func_to_standard, 'out_file',
                      pearson_correlation, 'xset')
 
     elif use_ants == True:
@@ -395,7 +400,7 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                  z_stat, 'expr')
 
     if use_ants == False:
-        vmhc.connect(nonlinear_func_to_standard, 'out_file',
+        vmhc.connect(func_to_standard, 'out_file',
                      outputNode, 'rest_res_2symmstandard')
 
     elif use_ants == True:
