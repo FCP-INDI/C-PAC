@@ -1906,7 +1906,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     new_strat.update_resource_pool({
                         'functional_nuisance_residuals': (
                             nuisance_regression_workflow,
-                            'outputspec.bandpass_residual_file_path')
+                            'outputspec.residual_file_path')
                         ,
                         'functional_nuisance_regressors': (
                             nuisance_regression_workflow,
@@ -1917,7 +1917,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         # to use on ALFF
                         'alff_input_functional': (
                             nuisance_regression_workflow,
-                            'outputspec.regressors_file_path'
+                            'outputspec.no_bandpass_residual_file_path'
                         )
                     })
 
