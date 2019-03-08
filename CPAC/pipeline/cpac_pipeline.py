@@ -51,7 +51,8 @@ from CPAC.warp.pipeline import (
 )
 
 from CPAC.registration import (
-    create_nonlinear_register,
+    create_fsl_flirt_linear_reg,
+    create_fsl_fnirt_nonlinear_reg,
     create_register_func_to_anat,
     create_bbregister_func_to_anat,
     create_wf_calculate_ants_warp,
@@ -545,53 +546,101 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 logger.info(err_msg)
                 raise Exception
 
-            fnirt_reg_anat_mni = create_nonlinear_register(
-                'anat_mni_fnirt_register_%d' % num_strat
+            flirt_reg_anat_mni = create_fsl_flirt_linear_reg(
+                'anat_mni_flirt_register_%d' % num_strat
             )
 
             node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
-                             fnirt_reg_anat_mni, 'inputspec.input_brain')
-
-            node, out_file = strat['anatomical_reorient']
-            workflow.connect(node, out_file,
-                             fnirt_reg_anat_mni, 'inputspec.input_skull')
+                             flirt_reg_anat_mni, 'inputspec.input_brain')
 
             # pass the reference files
             workflow.connect(
                 c.template_brain_only_for_anat, 'local_path',
-                fnirt_reg_anat_mni, 'inputspec.reference_brain'
+                flirt_reg_anat_mni, 'inputspec.reference_brain'
             )
-            workflow.connect(
-                c.template_skull_for_anat, 'local_path',
-                fnirt_reg_anat_mni, 'inputspec.reference_skull'
-            )
-            workflow.connect(
-                c.ref_mask, 'local_path',
-                fnirt_reg_anat_mni, 'inputspec.ref_mask'
-            )
-
-            # assign the FSL FNIRT config file specified in pipeline
-            # config.yml
-            fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
 
             if 'ANTS' in c.regOption:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
-            strat.append_name(fnirt_reg_anat_mni.name)
-            strat.set_leaf_properties(fnirt_reg_anat_mni,
+            strat.append_name(flirt_reg_anat_mni.name)
+            strat.set_leaf_properties(flirt_reg_anat_mni,
                                       'outputspec.output_brain')
 
             strat.update_resource_pool({
-                'anatomical_to_mni_linear_xfm': (fnirt_reg_anat_mni, 'outputspec.linear_xfm'),
-                'anatomical_to_mni_nonlinear_xfm': (fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
-                'mni_to_anatomical_linear_xfm': (fnirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
-                'anatomical_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain')
+                'anatomical_to_mni_linear_xfm': (flirt_reg_anat_mni, 'outputspec.linear_xfm'),
+                'mni_to_anatomical_linear_xfm': (flirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
+                'anatomical_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain')
             })
 
-            create_log_node(workflow, fnirt_reg_anat_mni, 'outputspec.output_brain',
+            create_log_node(workflow, flirt_reg_anat_mni, 'outputspec.output_brain',
                             num_strat)
+
+    strat_list += new_strat_list
+
+    new_strat_list = []
+
+    try:
+        fsl_linear_reg_only = c.fsl_linear_reg_only
+    except AttributeError:
+        fsl_linear_reg_only = [0]
+
+    if 'FSL' in c.regOption and 0 in fsl_linear_reg_only:
+
+        for num_strat, strat in enumerate(strat_list):
+
+            nodes = strat.get_nodes_names()
+
+            if 'anat_mni_flirt_register' in nodes:
+
+                fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
+                    'anat_mni_fnirt_register_%d' % num_strat
+                )
+
+                node, out_file = strat['anatomical_brain']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_anat_mni, 'inputspec.input_brain')
+
+                # pass the reference files
+                workflow.connect(
+                    c.template_brain_only_for_anat, 'local_path',
+                    fnirt_reg_anat_mni, 'inputspec.reference_brain'
+                )
+
+                node, out_file = strat['anatomical_reorient']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_anat_mni, 'inputspec.input_skull')
+
+                node, out_file = strat['anatomical_to_mni_linear_xfm']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_anat_mni, 'inputspec.linear_aff')
+
+                workflow.connect(
+                    c.template_skull_for_anat, 'local_path',
+                    fnirt_reg_anat_mni, 'inputspec.reference_skull'
+                )
+
+                workflow.connect(
+                    c.ref_mask, 'local_path',
+                    fnirt_reg_anat_mni, 'inputspec.ref_mask'
+                )
+
+                if 1 in fsl_linear_reg_only:
+                    strat = strat.fork()
+                    new_strat_list.append(strat)
+
+                strat.append_name(fnirt_reg_anat_mni.name)
+                strat.set_leaf_properties(fnirt_reg_anat_mni,
+                                          'outputspec.output_brain')
+
+                strat.update_resource_pool({
+                    'anatomical_to_mni_nonlinear_xfm': (fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
+                    'anatomical_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain')
+                }, override=True)
+
+                create_log_node(workflow, fnirt_reg_anat_mni, 'outputspec.output_brain',
+                                num_strat)
 
     strat_list += new_strat_list
 
@@ -603,7 +652,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # or run ANTS anatomical-to-MNI registration instead
         if 'ANTS' in c.regOption and \
-           'anat_mni_fnirt_register' not in nodes:
+            'anat_mni_flirt_register' not in nodes and \
+                'anat_mni_fnirt_register' not in nodes:
 
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
@@ -756,47 +806,107 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     logger.info(err_msg)
                     raise Exception
 
-                fnirt_reg_anat_symm_mni = create_nonlinear_register(
-                    'anat_symmetric_mni_fnirt_register_%d' % num_strat
+                flirt_reg_anat_symm_mni = create_fsl_flirt_linear_reg(
+                    'anat_symmetric_mni_flirt_register_%d' % num_strat
                 )
 
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
-                                 fnirt_reg_anat_symm_mni,
+                                 flirt_reg_anat_symm_mni,
                                  'inputspec.input_brain')
 
-                node, out_file = strat['anatomical_reorient']
-                workflow.connect(node, out_file,
-                                 fnirt_reg_anat_symm_mni,
-                                 'inputspec.input_skull')
-                
-                workflow.connect(c.template_symmetric_brain_only, 'local_path',
-                                 fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
+                # pass the reference files
+                workflow.connect(
+                    c.template_symmetric_brain_only, 'local_path',
+                    flirt_reg_anat_symm_mni, 'inputspec.reference_brain'
+                )
 
-                workflow.connect(c.template_symmetric_skull, 'local_path',
-                                 fnirt_reg_anat_symm_mni, 'inputspec.reference_skull')
+                if 'ANTS' in c.regOption:
+                    strat = strat.fork()
+                    new_strat_list.append(strat)
 
-                workflow.connect(c.dilated_symmetric_brain_mask, 'local_path',
-                                 fnirt_reg_anat_symm_mni, 'inputspec.ref_mask')
-
-                workflow.connect(c.configFileTwomm, 'local_path',
-                                 fnirt_reg_anat_symm_mni, 'inputspec.fnirt_config')
-
-
-                strat.append_name(fnirt_reg_anat_symm_mni.name)
-                strat.set_leaf_properties(fnirt_reg_anat_symm_mni,
+                strat.append_name(flirt_reg_anat_symm_mni.name)
+                strat.set_leaf_properties(flirt_reg_anat_symm_mni,
                                           'outputspec.output_brain')
 
                 strat.update_resource_pool({
-                    'anatomical_to_symmetric_mni_linear_xfm': (fnirt_reg_anat_symm_mni, 'outputspec.linear_xfm'),
-                    'anatomical_to_symmetric_mni_nonlinear_xfm': (fnirt_reg_anat_symm_mni, 'outputspec.nonlinear_xfm'),
-                    'symmetric_mni_to_anatomical_linear_xfm': (fnirt_reg_anat_symm_mni, 'outputspec.invlinear_xfm'),
-                    'symmetric_anatomical_to_standard': (fnirt_reg_anat_symm_mni, 'outputspec.output_brain')
+                    'anatomical_to_symmetric_mni_linear_xfm': (
+                    flirt_reg_anat_symm_mni, 'outputspec.linear_xfm'),
+                    'symmetric_mni_to_anatomical_linear_xfm': (
+                    flirt_reg_anat_symm_mni, 'outputspec.invlinear_xfm'),
+                    'symmetric_anatomical_to_standard': (
+                    flirt_reg_anat_symm_mni, 'outputspec.output_brain')
                 })
 
-                create_log_node(workflow, fnirt_reg_anat_symm_mni,
-                                'outputspec.output_brain', num_strat)
+                create_log_node(workflow, flirt_reg_anat_symm_mni,
+                                'outputspec.output_brain',
+                                num_strat)
 
+        strat_list += new_strat_list
+
+        new_strat_list = []
+
+        try:
+            fsl_linear_reg_only = c.fsl_linear_reg_only
+        except AttributeError:
+            fsl_linear_reg_only = [0]
+
+        if 'FSL' in c.regOption and 0 in fsl_linear_reg_only:
+
+            for num_strat, strat in enumerate(strat_list):
+
+                nodes = strat.get_nodes_names()
+
+                if 'anat_mni_flirt_register' in nodes:
+                    fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
+                        'anat_symmetric_mni_fnirt_register_%d' % num_strat
+                    )
+
+                    node, out_file = strat['anatomical_brain']
+                    workflow.connect(node, out_file,
+                                     fnirt_reg_anat_symm_mni,
+                                     'inputspec.input_brain')
+
+                    # pass the reference files
+                    workflow.connect(
+                        c.template_brain_only_for_anat, 'local_path',
+                        fnirt_reg_anat_symm_mni, 'inputspec.reference_brain'
+                    )
+
+                    node, out_file = strat['anatomical_reorient']
+                    workflow.connect(node, out_file,
+                                     fnirt_reg_anat_symm_mni,
+                                     'inputspec.input_skull')
+
+                    node, out_file = strat['anatomical_to_mni_linear_xfm']
+                    workflow.connect(node, out_file,
+                                     fnirt_reg_anat_symm_mni,
+                                     'inputspec.linear_aff')
+
+                    workflow.connect(
+                        c.template_symmetric_skull, 'local_path',
+                        fnirt_reg_anat_symm_mni, 'inputspec.reference_skull'
+                    )
+
+                    workflow.connect(
+                        c.dilated_symmetric_brain_mask, 'local_path',
+                        fnirt_reg_anat_symm_mni, 'inputspec.ref_mask'
+                    )
+
+                    strat.append_name(fnirt_reg_anat_symm_mni.name)
+                    strat.set_leaf_properties(fnirt_reg_anat_symm_mni,
+                                              'outputspec.output_brain')
+
+                    strat.update_resource_pool({
+                        'anatomical_to_symmetric_mni_nonlinear_xfm': (
+                        fnirt_reg_anat_symm_mni, 'outputspec.nonlinear_xfm'),
+                        'symmetric_anatomical_to_standard': (
+                        fnirt_reg_anat_symm_mni, 'outputspec.output_brain')
+                    }, override=True)
+
+                    create_log_node(workflow, fnirt_reg_anat_symm_mni,
+                                    'outputspec.output_brain',
+                                    num_strat)
 
         strat_list += new_strat_list
 
@@ -808,7 +918,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # or run ANTS anatomical-to-MNI registration instead
             if 'ANTS' in c.regOption and \
+               'anat_mni_flirt_register' not in nodes and \
                'anat_mni_fnirt_register' not in nodes and \
+               'anat_symmetric_mni_flirt_register' not in nodes and \
                'anat_symmetric_mni_fnirt_register' not in nodes:
 
                 ants_reg_anat_symm_mni = \
@@ -935,7 +1047,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             seg_preproc = None
 
             # TODO ASH based on config, instead of nodes?
-            if 'anat_mni_fnirt_register' in nodes:
+            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=False,
                                                  wf_name='seg_preproc_%d' % num_strat)
             elif 'anat_mni_ants_register' in nodes:
@@ -950,7 +1062,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             workflow.connect(node, out_file,
                              seg_preproc, 'inputspec.brain')
 
-            if 'anat_mni_fnirt_register' in nodes:
+            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                 node, out_file = strat['mni_to_anatomical_linear_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
@@ -1744,8 +1856,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat.append_name(aroma_preproc.name)
 
                 elif 'ANTS' in c.regOption and \
-                        'anat_symmetric_mni_fnirt_register' not in nodes and \
-                            'anat_mni_fnirt_register' not in nodes:
+                    'anat_symmetric_mni_flirt_register' not in nodes and \
+                    'anat_symmetric_mni_fnirt_register' not in nodes and \
+                    'anat_mni_flirt_register' not in nodes and \
+                    'anat_mni_fnirt_register' not in nodes:
 
                     # we don't have the FNIRT warp file, so we need to calculate
                     # ICA-AROMA de-noising in template space
@@ -1839,7 +1953,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if "De-Spiking" in c.runMotionSpike:
                         subwf_name = "nuisance_with_despiking"
 
-                    if 'anat_mni_fnirt_register' in nodes:
+                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                         nuisance = create_nuisance(False,
                                                 '{0}_{1}'.format(subwf_name,
                                                                     num_strat))
@@ -1888,7 +2002,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                     nuisance,
                                     'inputspec.func_to_anat_linear_xfm')
 
-                    if 'anat_mni_fnirt_register' in nodes:
+                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                         node, out_file = strat['mni_to_anatomical_linear_xfm']
                         workflow.connect(node, out_file,
                                         nuisance,
@@ -1985,7 +2099,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # avoiding a crash) on the strat without segmentation
                 if 'seg_preproc' in nodes:
 
-                    use_ants = 'anat_mni_fnirt_register' in nodes
+                    use_ants = 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes
                     nuisance = create_nuisance(use_ants=use_ants,
                                             name='nuisance_no_despiking_%d' % num_strat)
 
@@ -2028,7 +2142,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                     nuisance,
                                     'inputspec.func_to_anat_linear_xfm')
 
-                    if 'anat_mni_fnirt_register' in nodes:
+                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                         node, out_file = strat['mni_to_anatomical_linear_xfm']
                         workflow.connect(node, out_file,
                                         nuisance,
@@ -2243,7 +2357,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 nodes = strat.get_nodes_names()
 
                 # Run FSL ApplyWarp
-                if 'anat_mni_fnirt_register' in nodes:
+                if 'anat_mni_flirt_register' in nodes or 'anat_mni_fnirt_register' in nodes:
 
                     func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                             name='func_mni_fsl_warp_%d' % num_strat)
@@ -2268,9 +2382,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     )
                     motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
 
-                    node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
-                    workflow.connect(node, out_file,
-                                    func_mni_warp, 'field_file')
+                    if 'anat_mni_fnirt_register' in nodes:
+                        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp, 'field_file')
 
                     node, out_file = strat['functional_to_anat_linear_xfm']
                     workflow.connect(node, out_file,
@@ -2278,35 +2393,36 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file,
-                                    func_mni_warp, 'in_file')
+                                     func_mni_warp, 'in_file')
 
-                    node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
-                    workflow.connect(node, out_file,
-                                    functional_brain_mask_to_standard, 'field_file')
-                    workflow.connect(node, out_file,
-                                    mean_functional_warp, 'field_file')
-                    workflow.connect(node, out_file,
-                                    motion_correct_warp, 'field_file')
+                    if 'anat_mni_fnirt_register' in nodes:
+                        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+                        workflow.connect(node, out_file,
+                                        functional_brain_mask_to_standard, 'field_file')
+                        workflow.connect(node, out_file,
+                                        mean_functional_warp, 'field_file')
+                        workflow.connect(node, out_file,
+                                        motion_correct_warp, 'field_file')
 
                     node, out_file = strat['functional_to_anat_linear_xfm']
                     workflow.connect(node, out_file,
-                                    functional_brain_mask_to_standard, 'premat')
+                                     functional_brain_mask_to_standard, 'premat')
                     workflow.connect(node, out_file,
-                                    mean_functional_warp, 'premat')
+                                     mean_functional_warp, 'premat')
                     workflow.connect(node, out_file,
-                                    motion_correct_warp, 'premat')
+                                     motion_correct_warp, 'premat')
 
                     node, out_file = strat['functional_brain_mask']
                     workflow.connect(node, out_file,
-                                    functional_brain_mask_to_standard, 'in_file')
+                                     functional_brain_mask_to_standard, 'in_file')
 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
-                                    mean_functional_warp, 'in_file')
+                                     mean_functional_warp, 'in_file')
 
                     node, out_file = strat['motion_correct']
                     workflow.connect(node, out_file,
-                                    motion_correct_warp, 'in_file')
+                                     motion_correct_warp, 'in_file')
 
                     strat.update_resource_pool({
                         'functional_to_standard': (func_mni_warp, 'out_file'),
@@ -2327,7 +2443,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 nodes = strat.get_nodes_names()
 
                 if 'ANTS' in c.regOption and \
-                'anat_mni_fnirt_register' not in nodes:
+                    'anat_mni_flirt_register' not in nodes and \
+                        'anat_mni_fnirt_register' not in nodes:
 
                     # ANTS warp application
 
@@ -2480,8 +2597,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # TODO ASH normalize w schema val
                 if 'ANTS' in c.regOption and \
+                    'anat_mni_flirt_register' not in nodes and \
                     'anat_mni_fnirt_register' not in nodes and \
-                        'anat_symmetric_mni_fnirt_register' not in nodes:
+                    'anat_symmetric_mni_flirt_register' not in nodes and \
+                    'anat_symmetric_mni_fnirt_register' not in nodes:
 
                     node, out_file = strat['ants_symmetric_initial_xfm']
                     workflow.connect(node, out_file,
@@ -3364,33 +3483,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # and if any node names in the new strat are not present in
                 # the 'original' one, then append to a list of 'fork points'
                 for renamedStratNodes in renamedStrats:
-
                     if nodeName not in renamedStratNodes and \
                         nodeName not in tmpForkPoint:
-
                         tmpForkPoint.append(nodeName)
 
             forkPoints.append(tmpForkPoint)
 
         # forkPoints is a list of lists, each list containing node names of
         # nodes run in that strat/fork that are unique to that strat/fork
-
         forkNames = []
 
         # here 'forkPoint' is an individual strat with its unique nodes
         for forkPoint in forkPoints:
-
             forkName = ''
-            forklabel = ''
-
             for fork in forkPoint:
-
                 forklabel = ''
 
                 if 'ants' in fork:
                     forklabel = 'ants'
                 if 'fnirt' in fork:
                     forklabel = 'fnirt'
+                elif 'flirt_register' in fork:
+                    forklabel = 'linear-only'
                 if 'automask' in fork:
                     forklabel = 'func-3dautomask'
                 if 'bet' in fork:

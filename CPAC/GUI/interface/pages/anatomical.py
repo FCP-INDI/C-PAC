@@ -116,8 +116,17 @@ class Registration(wx.ScrolledWindow):
                      name='regOption', 
                      type=dtype.LSTR, 
                      comment="Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.", 
-                     values=["ANTS","FSL","ANTS & FSL"],
+                     values=["ANTS", "FSL", "ANTS & FSL"],
                      wkf_switch = True)
+
+        self.page.add(label="Linear registration only (FSL only) ",
+                      control=control.CHOICE_BOX,
+                      name='fsl_linear_reg_only',
+                      type=dtype.LSTR,
+                      comment="Use only FLIRT, without FNIRT, for "
+                              "anatomical-to-template registration. ",
+                      values=["Off", "On"],
+                      wkf_switch = True)
 
         self.page.add(label="FSL FNIRT Configuration File (FSL only) ", 
                      control=control.COMBO_BOX, 

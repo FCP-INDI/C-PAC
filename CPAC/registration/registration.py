@@ -4,9 +4,52 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.c3 as c3
 
 
-def create_nonlinear_register(name='nonlinear_register'):
+def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
+
+    linear_register = pe.Workflow(name=name)
+
+    inputspec = pe.Node(util.IdentityInterface(fields=['input_brain',
+                                                       'reference_brain',
+                                                       'ref_mask']),
+                        name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
+                                                        'linear_xfm',
+                                                        'invlinear_xfm']),
+                         name='outputspec')
+
+    linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
+    linear_reg.inputs.cost = 'corratio'
+
+    inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(),
+                            name='inv_linear_reg0_xfm')
+    inv_flirt_xfm.inputs.invert_xfm = True
+
+    linear_register.connect(inputspec, 'input_brain',
+                               linear_reg, 'in_file')
+
+    linear_register.connect(inputspec, 'reference_brain',
+                               linear_reg, 'reference')
+
+    linear_register.connect(linear_reg, 'out_file',
+                               outputspec, 'output_brain')
+
+    linear_register.connect(linear_reg, 'out_matrix_file',
+                               inv_flirt_xfm, 'in_file')
+
+    linear_register.connect(inv_flirt_xfm, 'out_file',
+                               outputspec, 'invlinear_xfm')
+
+    linear_register.connect(linear_reg, 'out_matrix_file',
+                               outputspec, 'linear_xfm')
+
+    return linear_register
+
+
+def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
     """
-    Performs non-linear registration of an input file to a reference file.
+    Performs non-linear registration of an input file to a reference file
+    using FSL FNIRT.
 
     Parameters
     ----------
@@ -21,13 +64,9 @@ def create_nonlinear_register(name='nonlinear_register'):
     -----
     
     Workflow Inputs::
-    
-        inputspec.input_brain : string (nifti file)
-            File of brain to be normalized (registered)
+
         inputspec.input_skull : string (nifti file)
             File of input brain with skull
-        inputspec.reference_brain : string (nifti file)
-            Target brain file to normalize to
         inputspec.reference_skull : string (nifti file)
             Target brain with skull to normalize to
         inputspec.fnirt_config : string (fsl fnirt config file)
@@ -37,19 +76,14 @@ def create_nonlinear_register(name='nonlinear_register'):
     
         outputspec.output_brain : string (nifti file)
             Normalizion of input brain file
-        outputspec.linear_xfm : string (.mat file)
-            Affine matrix of linear transformation of brain file
-        outputspec.invlinear_xfm : string
-            Inverse of affine matrix of linear transformation of brain file
         outputspec.nonlinear_xfm : string
             Nonlinear field coefficients file of nonlinear transformation
             
     Registration Procedure:
-    
-    1. Perform a linear registration to get affine transformation matrix.
-    2. Perform a nonlinear registration on an input file to the reference file utilizing affine
+
+    1. Perform a nonlinear registration on an input file to the reference file utilizing affine
        transformation from the previous step as a starting point.
-    3. Invert the affine transformation to provide the user a transformation (affine only) from the
+    2. Invert the affine transformation to provide the user a transformation (affine only) from the
        space of the reference file to the input file.
        
     Workflow Graph:
@@ -70,17 +104,13 @@ def create_nonlinear_register(name='nonlinear_register'):
                                                        'reference_brain',
                                                        'reference_skull',
                                                        'ref_mask',
+                                                       'linear_aff',
                                                        'fnirt_config']),
                         name='inputspec')
     
     outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
-                                                        'linear_xfm',
-                                                        'invlinear_xfm',
                                                         'nonlinear_xfm']),
                          name='outputspec')
-
-    linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
-    linear_reg.inputs.cost = 'corratio'
 
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
@@ -89,17 +119,7 @@ def create_nonlinear_register(name='nonlinear_register'):
     nonlinear_reg.inputs.jacobian_file = True
 
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
-                         name='brain_warp')    
-    
-    inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(),
-                            name='inv_linear_reg0_xfm')
-    inv_flirt_xfm.inputs.invert_xfm = True
-
-    nonlinear_register.connect(inputspec, 'input_brain',
-                               linear_reg, 'in_file')
-
-    nonlinear_register.connect(inputspec, 'reference_brain',
-                               linear_reg, 'reference')
+                         name='brain_warp')
         
     nonlinear_register.connect(inputspec, 'input_skull',
                                nonlinear_reg, 'in_file')
@@ -114,9 +134,8 @@ def create_nonlinear_register(name='nonlinear_register'):
     # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)
     nonlinear_register.connect(inputspec, 'fnirt_config',
                                nonlinear_reg, 'config_file')
-    
 
-    nonlinear_register.connect(linear_reg, 'out_matrix_file',
+    nonlinear_register.connect(inputspec, 'linear_aff',
                                nonlinear_reg, 'affine_file')
 
     nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file',
@@ -133,15 +152,6 @@ def create_nonlinear_register(name='nonlinear_register'):
 
     nonlinear_register.connect(brain_warp, 'out_file',
                                outputspec, 'output_brain')
-
-    nonlinear_register.connect(linear_reg, 'out_matrix_file',
-                               inv_flirt_xfm, 'in_file')
-
-    nonlinear_register.connect(inv_flirt_xfm, 'out_file',
-                               outputspec, 'invlinear_xfm')
-
-    nonlinear_register.connect(linear_reg, 'out_matrix_file',
-                               outputspec, 'linear_xfm')
     
     return nonlinear_register
 
