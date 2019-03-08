@@ -3742,6 +3742,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 rp = strat.get_resource_pool()
 
+            if c.write_debugging_outputs:
+                import pickle
+                workdir = os.path.join(c.workingDirectory, workflow_name)
+                rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
+                with open(rp_pkl, 'wt') as f:
+                    pickle.dump(rp, f)
+
             for key in sorted(rp.keys()):
 
                 if not key.startswith('qc___') and key not in Outputs.any:
@@ -3792,7 +3799,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                         ('func_atlases', ''),
                                                         ('label', ''),
                                                         ('res-.+\/', ''),
-                                                        ('_mask_.+\/', '_'),
+                                                        ('_mask_', 'roi-'),
                                                         ('mask_sub-', 'sub-'),
                                                         ('/_compcor_ncomponents_', '_nuis-'),
                                                         ('_selector_pc', ''),
@@ -3804,6 +3811,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                         ('.gm', ''),
                                                         ('.compcor', ''),
                                                         ('.csf', ''),
+                                                        ('/_bandpass_freqs_', ''),
+                                                        ('_sub-', '/sub-'),
                                                         ('(\.\.)', '')]
 
                     container = 'pipeline_{0}'.format(pipeline_id)
