@@ -450,9 +450,6 @@ def generate_summarize_tissue_mask(nuisance_wf,
     # Mask CSF with Ventricles
     if full_mask_key.startswith('CerebrospinalFluid'):
 
-        print(pipeline_resource_pool.keys())
-        print('{}_Unmasked'.format(full_mask_key))
-
         if '{}_Unmasked'.format(full_mask_key) not in pipeline_resource_pool:
 
             # reduce CSF mask to the lateral ventricles
