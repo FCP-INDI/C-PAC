@@ -298,7 +298,7 @@ c['numParticipantsAtOnce'] = 1
 c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
 if args.aws_output_creds:
-    if args.aws_output_creds is "env":
+    if args.aws_output_creds == "env":
         import urllib2
         aws_creds_address = "169.254.170.2" + os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         aws_creds = urllib2.urlopen(aws_creds_address).read()

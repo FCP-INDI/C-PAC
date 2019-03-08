@@ -1,4 +1,5 @@
-from registration import create_nonlinear_register, \
+from registration import create_fsl_flirt_linear_reg, \
+                         create_fsl_fnirt_nonlinear_reg, \
                          create_register_func_to_mni, \
                          create_register_func_to_anat, \
                          create_bbregister_func_to_anat, \
@@ -7,7 +8,8 @@ from registration import create_nonlinear_register, \
                          create_wf_c3d_fsl_to_itk, \
                          create_wf_collect_transforms
 
-__all__ = ['create_nonlinear_register', \
+__all__ = ['create_fsl_flirt_linear_reg', \
+           'create_fsl_fnirt_nonlinear_reg', \
            'create_register_func_to_mni', \
            'create_register_func_to_anat', \
            'create_bbregister_func_to_anat', \
