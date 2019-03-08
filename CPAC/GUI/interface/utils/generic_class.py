@@ -13,9 +13,10 @@ class GenericClass(wx.ScrolledWindow):
     def __init__(self, parent, title="", static=True):
         self.parent = parent
         self.title = title
+        self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         self.flexSizer = wx.FlexGridSizer(cols=2, hgap=15, vgap=15)
         self.flexSizer.AddGrowableCol(1)
-        self.mainSizer = wx.BoxSizer(wx.VERTICAL)
+
         self.ctrl_list = []
 
         if static:
@@ -54,7 +55,7 @@ class GenericClass(wx.ScrolledWindow):
         self.flexSizer.Add(buffer)
         self.flexSizer.Add(sizer)
 
-    def add(self, label, control, name, type=0, 
+    def add(self, label, control, name="", type=0, 
             comment="", values="", style=0, size= wx.DefaultSize, 
             validator=wx.DefaultValidator, wkf_switch=False,
             validation_req=True, combo_type=None, selections=None):
@@ -76,62 +77,67 @@ class GenericClass(wx.ScrolledWindow):
         hbox.Add(button, flag=wx.CENTER | wx.ALL)
         self.flexSizer.Add(hbox)
         
-        ctrl = Control(self.parent, name=name, 
-                       type=control, datatype=type, 
-                       values=values, size=size, 
-                       validator=validator,
-                       wkf_switch=wkf_switch,
-                       help=comment, pretty_name=label,
-                       validation_req=validation_req,
-                       combo_type=combo_type,
-                       selections=selections)
-        
-        self.ctrl_list.append(ctrl)
-        
-        if wkf_switch:
-            self.switch = ctrl
+        if control not in [v for k, v in control_types.__dict__.items() if not k.startswith('__')]:
+            self.ctrl_list.append(control)
+            self.type = control.__class__.__name__
+            self.flexSizer.Add(control.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
 
-        if control == control_types.CHOICE_BOX:
-            self.parent.Bind(wx.EVT_CHOICE, lambda event: self.EvtChoice(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
-        elif control == control_types.TEXT_BOX:
-            self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterBox(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
-        elif control == control_types.COMBO_BOX:
-            self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
-        elif control == control_types.INT_CTRL:
-            self.parent.Bind(wx.lib.intctrl.EVT_INT, lambda event: self.TxtEnterBox(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
-        elif control == control_types.FLOAT_CTRL:
-            self.parent.Bind(masked.EVT_NUM, lambda event: self.TxtEnterBox(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
-        elif control == control_types.DIR_COMBO_BOX:
-            self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
-        elif control == control_types.CHECKLIST_BOX:
-            self.parent.Bind(wx.EVT_CHECKLISTBOX, lambda event: self.EvtCheckListBox(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
-        elif control == control_types.LISTBOX_COMBO:
-            self.parent.Bind(wx.EVT_CHECKLISTBOX, lambda event: self.EvtListBoxCombo(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
-        elif control == control_types.TEXTBOX_COMBO:
-            self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
-        elif control == control_types.CHECKBOX_GRID:
-            self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
-        elif control == control_types.GPA_CHECKBOX_GRID:
-            self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event, ctrl), id=ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+        else:
+            ctrl = Control(self.parent, name=name, 
+                           type=control, datatype=type, 
+                           values=values, size=size, 
+                           validator=validator,
+                           wkf_switch=wkf_switch,
+                           help=comment, pretty_name=label,
+                           validation_req=validation_req,
+                           combo_type=combo_type,
+                           selections=selections)
+            
+            self.ctrl_list.append(ctrl)
+        
+            if wkf_switch:
+                self.switch = ctrl
+
+            if control == control_types.CHOICE_BOX:
+                self.parent.Bind(wx.EVT_CHOICE, lambda event: self.EvtChoice(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            elif control == control_types.TEXT_BOX:
+                self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterBox(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            elif control == control_types.COMBO_BOX:
+                self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
+            elif control == control_types.INT_CTRL:
+                self.parent.Bind(wx.lib.intctrl.EVT_INT, lambda event: self.TxtEnterBox(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            elif control == control_types.FLOAT_CTRL:
+                self.parent.Bind(masked.EVT_NUM, lambda event: self.TxtEnterBox(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            elif control == control_types.DIR_COMBO_BOX:
+                self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
+            elif control == control_types.CHECKLIST_BOX:
+                self.parent.Bind(wx.EVT_CHECKLISTBOX, lambda event: self.EvtCheckListBox(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            elif control == control_types.LISTBOX_COMBO:
+                self.parent.Bind(wx.EVT_CHECKLISTBOX, lambda event: self.EvtListBoxCombo(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            elif control == control_types.TEXTBOX_COMBO:
+                self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.EXPAND | wx.ALL)
+            elif control == control_types.CHECKBOX_GRID:
+                self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            elif control == control_types.GPA_CHECKBOX_GRID:
+                self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event, ctrl), id=ctrl.get_id())
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
+            else:
+                self.flexSizer.Add(ctrl.get_ctrl(), flag=wx.CENTER | wx.ALL)
 
     def EvtChoice(self, event, ctrl):
-        
         if type(event.GetString()) == unicode:
             value = event.GetString().encode('ascii', 'ignore')
-        
         ctrl.set_selection(value)
-            
         self.parent.Refresh()
         
     def TxtEnterBox(self, event, ctrl):
@@ -174,14 +180,13 @@ class GenericClass(wx.ScrolledWindow):
             wx.TipWindow(self.parent, comment, 500)
 
     def set_sizer(self):
-        
-        self.mainSizer.Add(self.flexSizer,1,wx.EXPAND|wx.ALL,15)
+        self.mainSizer.Add(self.flexSizer, 1, wx.EXPAND | wx.ALL, 15)
         self.parent.SetSizer(self.mainSizer)
 
     def get_ctrl_list(self):
         return self.ctrl_list
 
-    def get_switch(self):    
+    def get_switch(self):
         return self.switch
         
 

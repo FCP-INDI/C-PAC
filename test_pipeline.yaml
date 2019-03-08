@@ -111,7 +111,7 @@ reGenerateOutputs :  False
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  AFNI
+skullstrip_option :  ['AFNI']
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
