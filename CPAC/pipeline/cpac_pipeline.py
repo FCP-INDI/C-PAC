@@ -415,6 +415,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if 'anatomical_brain_mask' in strat:
             continue
 
+        if "AFNI" not in c.skullstrip_option and "BET" not in c.skullstrip_option:
+            err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
+                  'setting does not include either \'AFNI\' or \'BET\'.\n\n' \
+                  'Options you provided:\nskullstrip_option: {0}' \
+                  '\n\n'.format(str(c.skullstrip_option))
+            raise Exception(err)
+
         if "AFNI" in c.skullstrip_option:
 
             anat_preproc = create_anat_preproc(method='afni',
