@@ -435,11 +435,7 @@ lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/Harvard
 
 # Select which nuisance signal corrections to apply
 Regressors :
- - Motion:
-     include_delayed: true
-     include_squared: true
-     include_delayed_squared: true
-   aCompCor:
+ - aCompCor:
      summary:
        method: PC
        components: 5
@@ -453,9 +449,6 @@ Regressors :
      extraction_resolution: 2
      erode_mask: true
      
-   GlobalSignal:
-     summary: Mean
-
    PolyOrt:
     degree: 2
 
