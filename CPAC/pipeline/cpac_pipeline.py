@@ -2038,13 +2038,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             nuisance_regression_workflow,
                             'outputspec.regressors_file_path'
                         ),
-
-                        # Keep an non-bandpassed version of functional
-                        # to use on ALFF
-                        'alff_input_functional': (
-                            nuisance_regression_workflow,
-                            'outputspec.no_bandpass_residual_file_path'
-                        )
                     })
 
                     new_strat_list.append(new_strat)
@@ -2064,6 +2057,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             workflow_bit_id['median_angle_corr'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
+
+                # for each strategy, create a new one without median angle
+                if 0 in c.runNuisance:
+                    new_strat_list.append(strat.fork())
+
                 median_angle_corr = create_median_angle_correction(
                     'median_angle_corr_%d' % num_strat
                 )
@@ -2074,11 +2072,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                 median_angle_corr, 'inputspec.subject')
-
-                # TODO ASH review forking
-                if 0 in c.runMedianAngleCorrection:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
 
                 strat.append_name(median_angle_corr.name)
 
@@ -2094,6 +2087,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
+        for num_strat, strat in enumerate(strat_list):
+            # Keep non-bandpassed version of the output for ALFF
+            strat.update_resource_pool({
+                'functional_freq_unfiltered': strat.get_leaf_properties()
+            })
 
         # Inserting Bandpassing Workflow
         for num_strat, strat in enumerate(strat_list):
@@ -2113,7 +2111,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                   output_names=['bandpassed_file'],
                                   function=bandpass_voxels,
                                   as_module=True),
-                name='frequency_filter_%d' % num_strat)
+                name='frequency_filter_%d' % num_strat
+            )
 
             frequency_filter.inputs.bandpass_freqs = [
                 bandpass_selector.get('bottom_frequency'),
@@ -2122,7 +2121,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file,
-                            frequency_filter, 'realigned_file')
+                             frequency_filter, 'realigned_file')
 
             strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
             strat.update_resource_pool({
@@ -2320,7 +2319,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 alff.get_node('lp_input').iterables = ('lp',
                                                     c.lowPassFreqALFF)
 
-                node, out_file = strat['alff_input_functional']
+                node, out_file = strat['functional_freq_unfiltered']
                 workflow.connect(node, out_file,
                                 alff, 'inputspec.rest_res')
                 node, out_file = strat['functional_brain_mask']
