@@ -972,8 +972,8 @@ def create_nuisance_workflow(nuisance_selectors,
         bottom_frequency = bandpass_selector.get('bottom_frequency', 0.0)
         top_frequency = bandpass_selector.get('top_frequency', 9999.9)
 
-        no_bandpass_nuisance_regression.inputs.bandpass = (float(bottom_frequency),
-                                                        float(top_frequency))
+        nuisance_regression.inputs.bandpass = (float(bottom_frequency),
+                                               float(top_frequency))
 
     nuisance_wf.connect([
         (inputspec, nuisance_regression, [
