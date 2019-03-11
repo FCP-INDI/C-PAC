@@ -60,7 +60,7 @@ from CPAC.registration import (
     create_wf_c3d_fsl_to_itk,
     create_wf_collect_transforms
 )
-from CPAC.nuisance import create_nuisance_workflow, NuisanceRegressor
+from CPAC.nuisance import create_nuisance_workflow, bandpass_voxels, NuisanceRegressor
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
@@ -2028,6 +2028,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     )
 
                     new_strat.update_resource_pool({
+                        'nuisance_regression_selector': regressors_selector,
+                        
                         'functional_nuisance_residuals': (
                             nuisance_regression_workflow,
                             'outputspec.residual_file_path')
@@ -2091,6 +2093,42 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 num_strat)
 
         strat_list += new_strat_list
+
+
+        # Inserting Bandpassing Workflow
+        for num_strat, strat in enumerate(strat_list):
+
+            if 'nuisance_regression_selector' not in strat:
+                continue
+
+            if not strat['nuisance_regression_selector'].get('Bandpass'):
+                continue
+
+            bandpass_selector = strat['nuisance_regression_selector']['Bandpass']
+
+            frequency_filter = pe.Node(
+                function.Function(input_names=['realigned_file',
+                                               'bandpass_freqs',
+                                               'sample_period'],
+                                  output_names=['bandpassed_file'],
+                                  function=bandpass_voxels,
+                                  as_module=True),
+                name='frequency_filter_%d' % num_strat)
+
+            frequency_filter.inputs.bandpass_freqs = [
+                bandpass_selector.get('bottom_frequency'),
+                bandpass_selector.get('top_frequency')
+            ]
+
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file,
+                            frequency_filter, 'realigned_file')
+
+            strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
+            strat.update_resource_pool({
+                'functional_freq_filtered': (frequency_filter, 'bandpassed_file')
+            })
+
 
         # Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp
