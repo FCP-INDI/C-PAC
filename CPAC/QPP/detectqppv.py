@@ -16,7 +16,9 @@ import time
 def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
 
     if img.endswith('.mat'):
+
         D_file = scipy.io.loadmat(img)
+
         for keys in D_file:
             D = D_file['D']
         D = np.array(D)
@@ -28,8 +30,12 @@ def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         D_file = nib.load(img)
         D_img = D_file.dataobj
         D_img=np.array(D_img)
-
+        if len(D_img.shape) == 3:
         ##shape of D_img is (61,73,61,7)
+            raise Exception("Warning!! The input image you have provided is not of the right shape for further analysis!"\
+                  "please provide the right data")
+
+
         D_img = D_img.reshape(D_img.shape[0]*D_img.shape[1],D_img.shape[2],D_img.shape[3])
 
         ##D_img is now (4453,61,7)
@@ -61,6 +67,7 @@ def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         m_voxels = np.prod(msk_img.shape[:-1])
         msk = msk_img.reshape(m_voxels,msk_img.shape[-1])
 
+
     nx = D[0][0].shape[0]
     nt = D[0][0].shape[1]
     nd = nsubj*nrn
@@ -71,6 +78,7 @@ def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         for irn in range(nrn):
                 B[:,(id-1)*nt:id*nt] = (stats.zscore(D[isbj][irn],axis=1))
                 id += 1
+
     B=np.around(B, decimals=4)
     msk = np.zeros((nx,1))
     msk[(np.sum(abs(B)) > 0)] = 1
@@ -94,7 +102,22 @@ def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
 
 if __name__ == "__main__":
 
-    qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn)
+    import argparse
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("img", type=str)
+    parser.add_argument("mask",type=str)
+    parser.add_argument("wl",type=int)
+    parser.add_argument("nrp",type=int)
+    parser.add_argument("cth",nargs='+',type=float)
+    parser.add_argument("n_itr_th",type=int)
+    parser.add_argument("mx_itr",type=int)
+    parser.add_argument("pfs",type=str)
+    parser.add_argument("nsubj",type=int)
+    parser.add_argument("nrn",type=int)
+    args = parser.parse_args()
+
+    qppv(args.img,args.mask,args.wl,args.nrp,args.cth,args.n_itr_th,args.mx_itr,args.pfs,args.nsubj,args.nrn)
 
 
 
