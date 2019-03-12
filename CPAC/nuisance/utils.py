@@ -534,14 +534,14 @@ def summarize_timeseries(functional_path, masks_path, summary):
 
     if summary['method'] == 'NormMean':
         masked_functional /= np.linalg.norm(masked_functional, 2)
-        regressors = masked_functional.mean(0)
+        regressors = np.nan_to_num(masked_functional).mean(0)
 
     if summary['method'] == 'DetrendNormMean':
         masked_functional = \
             signal.detrend(masked_functional, type='linear').T
 
         masked_functional /= np.linalg.norm(masked_functional, 2)
-        regressors = masked_functional.mean(0)
+        regressors = np.nan_to_num(masked_functional).mean(0)
 
     if summary['method'] in ['DetrendPC', 'PC']:
         if summary['method'] == 'DetrendPC':
@@ -550,7 +550,7 @@ def summarize_timeseries(functional_path, masks_path, summary):
             Y = masked_functional.T
 
         Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
-        Yc = Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1))
+        Yc = np.nan_to_num(Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1)))
         U, _, _ = np.linalg.svd(Yc)
 
         regressors = U[:, 0:summary['components']]
