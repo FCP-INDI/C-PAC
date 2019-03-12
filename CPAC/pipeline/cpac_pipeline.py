@@ -2464,15 +2464,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
+        ts_analysis_dict = {}
+        sca_analysis_dict = {}
+
         # TODO ASH normalize w schema val
         if c.tsa_roi_paths:
 
             tsa_roi_dict = c.tsa_roi_paths[0]
 
             # Timeseries and SCA config selections processing
-
-            ts_analysis_dict = {}
-            sca_analysis_dict = {}
 
             # flip the dictionary
             for roi_path in tsa_roi_dict.keys():
