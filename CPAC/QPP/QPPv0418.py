@@ -68,7 +68,7 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     msk[(np.sum(abs(B)) > 0)] = 1
     a = np.where(msk[:,0]==1)
     B=B[a[0],:]
-
+    np.save('B_file',B)
     #defining 3D arrayshere. Each array within the 2D array will finally be a nX*wl shape column vector, which will store the template values
     bchf = np.zeros((nT,nX*wl))
     bchfn = np.zeros((nT,nX*wl))
@@ -109,7 +109,7 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     #permute the numbers within ITP
     #itp = np.random.permutation(itp)
 
-    itp = np.random.permutation(itp)
+    #itp = np.random.permutation(itp)
     itp = itp[0:nrp]
 
     #Initialize the time course that will later on be saved
@@ -246,7 +246,9 @@ def BSTT(time_course,ftp,nd,B):
     T1 = isscmx[0]
     C_1 = time_course[T1,:]
     FTP1 = ftp[T1]
+    print(FTP1)
     Met1 = np.empty(3)
+
     FTP1 = [int(x) for x in FTP1]
     Met1[0] = np.median(C_1[FTP1])
     Met1[1] = np.median(np.diff(FTP1))
