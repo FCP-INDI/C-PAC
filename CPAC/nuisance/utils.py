@@ -524,6 +524,12 @@ def summarize_timeseries(functional_path, masks_path, summary):
         mask_img.get_data() for mask_img in masks_img
     ]), axis=0) > 0.0
 
+    if mask.sum() == 0:
+        raise Exception(
+            "The provided mask does not contains voxels. "
+            "Please check if mask is being eroded and if the segmentation worked correctly."
+        )
+
     functional_img = nb.load(functional_path)
     masked_functional = functional_img.get_data()[mask]
 
