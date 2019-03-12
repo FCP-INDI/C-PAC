@@ -619,6 +619,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     fnirt_reg_anat_mni, 'inputspec.ref_mask'
                 )
 
+                # assign the FSL FNIRT config file specified in pipeline
+                # config.yml
+                fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
+
                 if 1 in fsl_linear_reg_only:
                     strat = strat.fork()
                     new_strat_list.append(strat)
