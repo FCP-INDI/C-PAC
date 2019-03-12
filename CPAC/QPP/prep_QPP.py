@@ -378,6 +378,9 @@ def prep_inputs(group_config_file):
         merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
         merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
+
+
+
     return merge_file,merge_mask,inclusion_list,out_dir
 
 
