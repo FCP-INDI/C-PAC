@@ -108,7 +108,7 @@ reGenerateOutputs :  False
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  AFNI
+skullstrip_option :  ['AFNI']
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -425,48 +425,66 @@ runNuisance :  [1]
 
 
 # Standard Lateral Ventricles Binary Mask
-lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 
-# Select which nuisance signal corrections to apply:
-# compcor = CompCor
-# wm = White Matter
-# csf = CSF
-# gm = Gray Matter
-# global = Global Mean Signal
-# pc1 = First Principle Component
-# motion = Motion
-# linear = Linear Trend
-# quadratic = Quadratic Trend
+# Select which nuisance signal corrections to apply
 Regressors :
-  -  compcor :  1
-     wm :  0
-     csf :  1
-     global :  1
-     pc1 :  0
-     motion :  1
-     linear :  1
-     quadratic :  1
-     gm :  0
-  -  compcor :  1
-     wm :  0
-     csf :  1
-     global :  0
-     pc1 :  0
-     motion :  1
-     linear :  1
-     quadratic :  1
-     gm :  0
 
+ - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: true
 
-# Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.
-nComponents : [5]
+   aCompCor:
+     summary:
+       method: DetrendPC
+       components: 5
+     tissues:
+       - WhiteMatter
+       - CerebrospinalFluid
+     extraction_resolution: 2
 
+   CerebrospinalFluid:
+     summary: Mean
+     extraction_resolution: 2
+     erode_mask: true
+     
+   GlobalSignal:
+     summary: Mean
 
-# Use the Friston 24-Parameter Model during volume realignment.
-# If this option is turned off, only 6 parameters will be used.
-# These parameters will also be output as a spreadsheet.
-runFristonModel :  [1]
+   PolyOrt:
+    degree: 2
+
+   Bandpass:
+     bottom_frequency: 0.01
+     top_frequency: 0.1
+
+ - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: true
+ 
+   aCompCor:
+     summary:
+       method: DetrendPC
+       components: 5
+     tissues:
+       - WhiteMatter
+       - CerebrospinalFluid
+     extraction_resolution: 2
+
+   CerebrospinalFluid:
+     summary: Mean
+     extraction_resolution: 2
+     erode_mask: true
+
+   PolyOrt:
+    degree: 2
+
+   Bandpass:
+     bottom_frequency: 0.01
+     top_frequency: 0.1
 
 
 # Correct for the global signal using Median Angle Correction.
@@ -475,36 +493,6 @@ runMedianAngleCorrection :  [0]
 
 # Target angle used during Median Angle Correction.
 targetAngleDeg : [90]
-
-
-# Apply a temporal band-pass filter to functional data.
-runFrequencyFiltering :  [1, 0]
-
-
-# Define one or more band-pass filters by clicking the + button.
-nuisanceBandpassFreq : [[0.01, 0.1]]
-
-
-# Remove or regress out volumes exhibiting excessive motion.
-# Each of these options are mutually exclusive, and selecting more than one will create a new pipeline fork for each option. For example, de-spiking and scrubbing will not run within the same pipeline strategy.
-runMotionSpike :  ['None']
-
-
-# (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) calculation to apply the threshold to during de-spiking or scrubbing.
-fdCalc :  ['Jenkinson']
-
-
-# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
-# Any volume exhibiting FD greater than the value will be regressed out or scrubbed.
-spikeThreshold : [0.5]
-
-
-# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub preceding a volume with excessive FD.
-numRemovePrecedingFrames :  1
-
-
-# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub subsequent to a volume with excessive FD.
-numRemoveSubsequentFrames :  2
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
@@ -673,101 +661,3 @@ smoothing_order :  ['Before']
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.
 runZScoring :  [1]
-
-
-# Run FSL FEAT group-level analysis.
-run_fsl_feat :  [0]
-
-
-# This number depends on computing resources.
-numGPAModelsAtOnce :  1
-
-
-# Use the + to add FSL model configuration to be run.
-modelConfigs :  []
-
-
-# Run Bootstrap Analysis of Stable Clusters
-run_basc :  [0]
-
-
-basc_resolution :  4mm
-
-
-# Maximum amount of processors to use while performing BASC.
-basc_proc :  2
-
-
-# Maximum amount of RAM (in GB) to be used when running BASC.
-basc_memory :  4
-
-
-# Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
-# If you do not wish to use a mask, set this field to None.
-# Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
-basc_roi_mask_file :  None
-
-
-basc_cross_cluster_mask_file :  None
-
-
-basc_similarity_metric_list :  ['correlation']
-
-
-# Number of bootstraps to apply to individual time series.
-basc_timeseries_bootstrap_list :  100
-
-
-# Number of bootstraps to apply to the original dataset.
-basc_dataset_bootstrap_list :  30
-
-
-# Number of clusters to create during clustering at both the individual and group levels.
-basc_n_clusters_list :  2
-
-
-basc_affinity_thresh : [0.0]
-
-
-basc_output_sizes :  800
-
-
-basc_cross_cluster :  True
-
-
-basc_blocklength_list :  1
-
-
-basc_group_dim_reduce :  False
-
-
-# Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
-runMDMR :  [0]
-
-
-# Inclusion list text file listing the participant IDs you wish to include in the MDMR analysis. If left as None, will include all subjects.
-mdmr_inclusion : None
-
-
-# Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
-mdmr_roi_file :
-
-
-# Path to a CSV file containing the phenotypic regressor.
-mdmr_regressor_file :
-
-
-# Name of the participants column in your regressor file.
-mdmr_regressor_participant_column :
-
-
-# Columns from the CSV file indicating factor variables. Other columns will be handled as covariates. Separated by commas.
-mdmr_regressor_columns :
-
-
-# Number of permutation tests to run on the Pseudo-F statistics.
-mdmr_permutations :  500
-
-
-# Number of Nipype nodes created while computing MDMR. Dependent upon computing resources.
-mdmr_parallel_nodes :  1

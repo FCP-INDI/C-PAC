@@ -25,6 +25,7 @@ resolution_for_anat,Anatomical Template Resolution,Anatomical Registration
 template_brain_only_for_anat,Anatomical Template (Brain Only),Anatomical Registration
 template_skull_for_anat,Anatomical Template (With Skull),Anatomical Registration
 regOption,Anatomical to Template Registration Method,Anatomical Registration
+fsl_linear_reg_only,Linear registration only (FSL only),Anatomical Registration
 fnirtConfig,FSL FNIRT Configuration File (FSL only),Anatomical Registration
 ref_mask,FSL FNIRT Reference Mask (FSL only),Anatomical Registration
 regWithSkull,Use skull-on image to calculate transform? (ANTS only),Anatomical Registration

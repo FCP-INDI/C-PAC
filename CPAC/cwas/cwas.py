@@ -1,7 +1,16 @@
+import os
+
+import nibabel as nb
 import numpy as np
+import pandas as pd
+
+from CPAC.cwas.mdmr import mdmr
+from CPAC.isc.utils import correlation, zscore
+from CPAC.pipeline.cpac_ga_model_generator import (create_merge_mask,
+                                                   create_merged_copefile)
 
 
-def joint_mask(subjects, mask_file):
+def joint_mask(subjects, mask_file=None):
     """
     Creates a joint mask (intersection) common to all the subjects in a provided list
     and a provided mask
@@ -19,12 +28,6 @@ def joint_mask(subjects, mask_file):
         Path to joint mask file in nifti format
     
     """
-    import nibabel as nb
-    import numpy as np
-    import os
-    from CPAC.pipeline.cpac_ga_model_generator import (
-        create_merged_copefile, create_merge_mask)
-    
     if not mask_file:
         files = list(subjects.values())
         cope_file = os.path.join(os.getcwd(), 'joint_cope.nii.gz')
@@ -35,75 +38,32 @@ def joint_mask(subjects, mask_file):
     return mask_file
 
 
-def norm_cols(X):
-    Xc = X - X.mean(0)
-    return Xc / np.sqrt(Xc ** 2.).sum(axis=0)
-
-
-def norm_subjects(subjects_data):
-    return subjects_data.apply_along_axis(norm_cols, axis=0)
-
-
-def ncor(normed_data, vox_inds):
-    return normed_data[:, vox_inds].T.dot(normed_data)
-
-
-def ncor_subjects(subjects_normed_data, vox_ind):
-    nSubjects, _, nVoxels = subjects_normed_data.shape
-    S                     = np.zeros((nSubjects, nVoxels))
-
-    for i in range(nSubjects):
-        S[i] = ncor(subjects_normed_data[i], vox_ind)
-    
-    return S
-
-
-def fischers_transform(S):
-    return np.arctanh(S)
-
-
-def compute_distances(S0):
-    S0   = norm_cols(S0.T).T
-    dmat = 1 - S0.dot(S0.T)
-    return dmat
-
-
 def calc_mdmrs(D, regressor, cols, permutations):
-    from CPAC.cwas.mdmr import mdmr
-
-    voxels = D.shape[0]
-    subjects = D.shape[1]
-    
-    F_set = np.zeros(voxels)
-    p_set = np.zeros(voxels)
-
     cols = np.array(cols, dtype=np.int32)
-    
-    for i in range(voxels):
-        F_set[i], p_set[i] = mdmr(D[i].reshape(subjects ** 2, 1), regressor, cols, permutations)
-    
+    F_set, p_set = mdmr(D, regressor, cols, permutations)
     return F_set, p_set
 
 
 def calc_subdists(subjects_data, voxel_range):
-    subjects      = len(subjects_data)
-    voxels        = len(voxel_range)
+    subjects, voxels, _ = subjects_data.shape
+    D = np.zeros((len(voxel_range), subjects, subjects))
 
-    subjects_normed_data = np.apply_along_axis(norm_cols, axis=0, arr=subjects_data)
-    D = np.zeros((voxels, subjects, subjects))
-        
     for i, v in enumerate(voxel_range):
-        S    = ncor_subjects(subjects_normed_data, v)
-        S0   = np.delete(S, i, 1)  # remove autocorrelations
-        S0   = fischers_transform(S0)
-        D[i] = compute_distances(S0)
-    
+        profiles = np.zeros((subjects, voxels))
+        for si in range(subjects):
+            profiles[si] = correlation(subjects_data[si, v], subjects_data[si])
+        profiles = np.clip(np.nan_to_num(profiles), -0.9999, 0.9999)
+        profiles = np.arctanh(np.delete(profiles, v, 1))
+        D[i] = correlation(profiles, profiles)
+
+    D = np.sqrt(2.0 * (1.0 - D))
     return D
 
 
 def calc_cwas(subjects_data, regressor, regressor_selected_cols, permutations, voxel_range):
-    D            = calc_subdists(subjects_data, voxel_range)
-    F_set, p_set = calc_mdmrs(D, regressor, regressor_selected_cols, permutations)
+    D = calc_subdists(subjects_data, voxel_range)
+    F_set, p_set = calc_mdmrs(
+        D, regressor, regressor_selected_cols, permutations)
     return F_set, p_set
 
 
@@ -139,18 +99,14 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
         easier
         
     """
-    import pandas as pd
-    import nibabel as nb
-    import numpy as np
-    import os
-    from CPAC.cwas.cwas import calc_cwas
-
     try:
-        regressor_data = pd.read_table(regressor_file, sep=None, engine="python",
+        regressor_data = pd.read_table(regressor_file,
+                                       sep=None, engine="python",
                                        dtype={ participant_column: str })
     except:
-        regressor_data = pd.read_table(regressor_file, sep=None, engine="python")
-        regressor_data = regressor_data.astype({participant_column: str})
+        regressor_data = pd.read_table(regressor_file,
+                                       sep=None, engine="python")
+        regressor_data = regressor_data.astype({ participant_column: str })
 
     # drop duplicates
     regressor_data = regressor_data.drop_duplicates()
@@ -180,7 +136,9 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
     ordered_regressor_data = regressor_data.loc[subject_ids]
 
     columns = columns_string.split(',')
-    regressor_selected_cols = [i for i, c in enumerate(regressor_cols) if c in columns]
+    regressor_selected_cols = [
+        i for i, c in enumerate(regressor_cols) if c in columns
+    ]
 
     if len(regressor_selected_cols) == 0:
         regressor_selected_cols = [i for i, c in enumerate(regressor_cols)]
@@ -188,82 +146,82 @@ def nifti_cwas(subjects, mask_file, regressor_file, participant_column,
 
     # Remove participant id column from the dataframe and convert it to a numpy matrix
     regressor = ordered_regressor_data \
-                    .drop(columns=[participant_column]) \
-                    .reset_index(drop=True) \
-                    .as_matrix() \
-                    .astype(np.float64)
+        .drop(columns=[participant_column]) \
+        .reset_index(drop=True) \
+        .values \
+        .astype(np.float64)
 
     if len(regressor.shape) == 1:
         regressor = regressor[:, np.newaxis]
     elif len(regressor.shape) != 2:
         raise ValueError('Bad regressor shape: %s' % str(regressor.shape))
-    
+
     if len(subject_files) != regressor.shape[0]:
         raise ValueError('Number of subjects does not match regressor size')
-    
+
     mask = nb.load(mask_file).get_data().astype('bool')
     mask_indices = np.where(mask)
 
-    subjects_data = [
-        nb.load(subject_file).get_data().astype('float64')[mask_indices].T 
+    subjects_data = np.array([
+        nb.load(subject_file).get_data().astype('float64')[mask_indices].T
         for subject_file in subject_files
-    ]
-    
-    F_set, p_set = calc_cwas(subjects_data, regressor, regressor_selected_cols, \
+    ])
+
+    F_set, p_set = calc_cwas(subjects_data, regressor, regressor_selected_cols,
                              permutations, voxel_range)
-    
+
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F.npy')
     p_file = os.path.join(cwd, 'significance_p.npy')
 
     np.save(F_file, F_set)
     np.save(p_file, p_set)
-    
+
     return F_file, p_file, voxel_range
 
 
 def create_cwas_batches(mask_file, batches):
-    import nibabel as nb
-    import numpy as np
-
     mask = nb.load(mask_file).get_data().astype('bool')
     voxels = mask.sum(dtype=int)
-
     return np.array_split(np.arange(voxels), batches)
 
 
+def volumize(mask_image, data):
+    mask_data = mask_image.get_fdata().astype('bool')
+    volume = np.zeros_like(mask_data, dtype=data.dtype)
+    volume[np.where(mask_data == True)] = data
+    return nb.Nifti1Image(
+        volume,
+        header=mask_image.get_header(),
+        affine=mask_image.get_affine()
+    )
+
+
 def merge_cwas_batches(cwas_batches, mask_file):
-    import numpy as np
-    import nibabel as nb
-    import os
-    
-    def volumize(mask, data):
-        volume = np.zeros_like(mask, dtype=data.dtype)
-        volume[np.where(mask==True)] = data
-        return volume
-    
-    F_files, p_files, voxel_range = zip(*cwas_batches)
+    _, _, voxel_range = zip(*cwas_batches)
     voxels = np.array(np.concatenate(voxel_range))
 
-    nii = nb.load(mask_file)
-    mask = nii.get_data().astype('bool')
-    
-    F_set = np.zeros_like(voxels)
-    p_set = np.zeros_like(voxels)
+    mask_image = nb.load(mask_file)
+
+    F_set = np.zeros_like(voxels, dtype=np.float64)
+    p_set = np.zeros_like(voxels, dtype=np.float64)
     for F_file, p_file, voxel_range in cwas_batches:
         F_set[voxel_range] = np.load(F_file)
         p_set[voxel_range] = np.load(p_file)
-    
-    F_vol = volumize(mask, F_set)
-    p_vol = volumize(mask, p_set)
-    
+
+    log_p_set = -np.log10(p_set)
+
+    F_vol = volumize(mask_image, F_set)
+    p_vol = volumize(mask_image, p_set)
+    log_p_vol = volumize(mask_image, log_p_set)
+
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F_volume.nii.gz')
     p_file = os.path.join(cwd, 'p_significance_volume.nii.gz')
-    
-    img = nb.Nifti1Image(F_vol, header=nii.get_header(), affine=nii.get_affine())
-    img.to_filename(F_file)
-    img = nb.Nifti1Image(p_vol, header=nii.get_header(), affine=nii.get_affine())
-    img.to_filename(p_file)
-    
-    return F_file, p_file
+    log_p_file = os.path.join(cwd, 'neglog_p_significance_volume.nii.gz')
+
+    F_vol.to_filename(F_file)
+    p_vol.to_filename(p_file)
+    log_p_vol.to_filename(log_p_file)
+
+    return F_file, p_file, log_p_file

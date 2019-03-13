@@ -108,7 +108,7 @@ reGenerateOutputs :  False
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  AFNI
+skullstrip_option :  ['AFNI']
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -256,6 +256,10 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
 regOption :  ['FSL']
+
+
+# Use only FLIRT, without FNIRT, for anatomical-to-template registration.
+fsl_linear_reg_only :  [0]
 
 
 # Configuration file to be used by FSL to set FNIRT parameters.
@@ -429,36 +433,28 @@ runNuisance :  [1]
 lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 
-# Select which nuisance signal corrections to apply:
-# compcor = CompCor
-# wm = White Matter
-# csf = CSF
-# gm = Gray Matter
-# global = Global Mean Signal
-# pc1 = First Principle Component
-# motion = Motion
-# linear = Linear Trend
-# quadratic = Quadratic Trend
+# Select which nuisance signal corrections to apply
 Regressors :
-  -  compcor :  1
-     wm :  0
-     csf :  1
-     global :  0
-     pc1 :  0
-     motion :  0
-     linear :  0
-     quadratic :  1
-     gm :  0
+ - aCompCor:
+     summary:
+       method: PC
+       components: 5
+     tissues:
+       - WhiteMatter
+       - CerebrospinalFluid
+     extraction_resolution: 2
 
+   CerebrospinalFluid:
+     summary: Mean
+     extraction_resolution: 2
+     erode_mask: true
+     
+   PolyOrt:
+    degree: 2
 
-# Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.
-nComponents : [5]
-
-
-# Use the Friston 24-Parameter Model during volume realignment.
-# If this option is turned off, only 6 parameters will be used.
-# These parameters will also be output as a spreadsheet.
-runFristonModel :  [1]
+   Bandpass:
+     bottom_frequency: 0.01
+     top_frequency: 0.1
 
 
 # Correct for the global signal using Median Angle Correction.
@@ -467,36 +463,6 @@ runMedianAngleCorrection :  [0]
 
 # Target angle used during Median Angle Correction.
 targetAngleDeg : [90]
-
-
-# Apply a temporal band-pass filter to functional data.
-runFrequencyFiltering :  [1]
-
-
-# Define one or more band-pass filters by clicking the + button.
-nuisanceBandpassFreq : [[0.01, 0.1]]
-
-
-# Remove or regress out volumes exhibiting excessive motion.
-# Each of these options are mutually exclusive, and selecting more than one will create a new pipeline fork for each option. For example, de-spiking and scrubbing will not run within the same pipeline strategy.
-runMotionSpike :  ['None']
-
-
-# (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) calculation to apply the threshold to during de-spiking or scrubbing.
-fdCalc :  ['Jenkinson']
-
-
-# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
-# Any volume exhibiting FD greater than the value will be regressed out or scrubbed.
-spikeThreshold : [0.5]
-
-
-# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub preceding a volume with excessive FD.
-numRemovePrecedingFrames :  1
-
-
-# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub subsequent to a volume with excessive FD.
-numRemoveSubsequentFrames :  2
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.

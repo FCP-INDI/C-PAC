@@ -8,7 +8,6 @@ This module contains functions used to run a C-PAC pipeline
 # Import packages
 from multiprocessing import Process
 import os
-from CPAC.utils.utils import create_seeds_ #, create_group_log_template
 from CPAC.utils.ga import track_run
 from CPAC.utils import Configuration
 import yaml
@@ -22,141 +21,18 @@ def validate(config_obj):
     # check for path lengths
     working_dir = config_obj.workingDirectory
     
-    try:
-        if len(working_dir) > 70:
-            print "\n\n" + "WARNING: Path to working directory should NOT be more than 70 characters."
-            print "Please update your configuration. Working directory: ", working_dir, "\n\n"
-            raise Exception
-    except:
+    if not working_dir:
         print "\n\n" + "ERROR: Your directories in Output Settings are empty." + "\n" + \
         "Error name: cpac_runner_0002" + "\n\n"
         raise Exception
 
-
-def get_vectors(strat):
-
-    paths = []
-    def dfs(val_list, path):
-
-        if val_list == []:
-            paths.append(path)
-
-        else:
-            vals = []
-            vals.append(val_list.pop())
-
-            for val in vals:
-
-                # make this an if statement because it trips up when it gets a
-                # 'None' entry for one of the iterables
-                if val != None:
-                    ### check if val is float, correct it on some version of
-                    # python or ipython avoid auto change to double quote of
-                    # the path
-                    if isinstance(val[0], float):
-                        #val = '%.2f' % val[0]
-                        val = [str(val[0])]
-
-
-                if path == '':
-                    dfs(list(val_list), str(val))
-
-                else:
-                    dfs(list(val_list), str(val) + '#' + path)
-
-    val_list = []
-
-    for key in sorted(strat.keys()):
-        val_list.append(strat[key])
-
-    dfs(val_list, '')
-
-    return paths
-
-
-def make_entries(paths, path_iterables):
-
-    entries = []
-    for path in sorted(paths):
-
-        sub_entries = []
-        values = path.split('#')
-
-        for indx, value in enumerate(values):
-
-            if '[' or '(' in value:
-
-                value = value.strip('[]')
-                value = value.strip('()')
-
-            if ',' in value:
-                import re
-                value = re.sub(r',', '.', value)
-                value = re.sub(r' ', '', value)
-            sub_entries.append(path_iterables[indx] + '_' + value)
-
-        sub_entries = map(lambda x: x.replace("'", ""), sub_entries)
-      
-        entries.append(sub_entries)
-
-    return entries
-
-
-def build_strategies(configuration):
-
-    import collections
-
-    ### make paths shorter
-    path_iterables = ['_threshold', '_compcor', '_target_angle_deg']
-
-    config_iterables = {
-        '_threshold': configuration.spikeThreshold,
-        '_compcor': configuration.Regressors,
-        '_target_angle_deg': configuration.targetAngleDeg,
-    }
-
-    # This is really dirty code and ordering of corrections in
-    # in output directory is dependant on the nuisance workflow
-    # when the workflow is changed , change this section as well
-    corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion',
-                         'quadratic', 'gm', 'compcor', 'csf']
-
-    corrections_dict_list = config_iterables['_compcor']
-    main_all_options = []
-
-    if corrections_dict_list != None:
-
-        for corrections_dict in corrections_dict_list:
-            string = ""
-            for correction in corrections_order:
-                string += correction + str(corrections_dict[correction]) + '.'
-            string = string[0:len(string) -1]
-
-            cmpcor_components = configuration.nComponents
-
-            all_options = []
-            for comp in cmpcor_components:
-
-                comp = int(comp)
-                all_options.append('ncomponents_%d' %comp + '_selector_' + string)
-
-            main_all_options.append(str(str(all_options).strip('[]')).strip('\'\''))
-
-        config_iterables['_compcor'] = main_all_options
-
-    try:
-        paths = get_vectors(config_iterables)
-    except:
-        print "\n\n" + "ERROR: There are no strategies to build." + "\n" + \
-        "Error name: cpac_runner_0003" + "\n\n"
+    if len(working_dir) > 70:
+        print "\n\n" + "WARNING: Path to working directory should NOT be more than 70 characters."
+        print "Please update your configuration. Working directory: ", working_dir, "\n\n"
         raise Exception
 
-    strategy_entries = make_entries(paths, sorted(path_iterables))
-    return strategy_entries
-
-
 # Run condor jobs
-def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
+def run_condor_jobs(c, config_file, subject_list_file, p_name):
     '''
     '''
 
@@ -184,7 +60,7 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
         print >>f, "error = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
         print >>f, "output = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
 
-        print >>f, "arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'', ''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
+        print >>f, "arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
         print >>f, "queue"
 
     f.close()
@@ -194,7 +70,7 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
 # Create and run script for CPAC to run on cluster
-def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
+def run_cpac_on_cluster(config_file, subject_list_file,
                         cluster_files_dir):
     '''
     Function to build a SLURM batch job submission script and
@@ -240,9 +116,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Run CPAC via python -c command
     python_cpac_str = 'python -c "from CPAC.pipeline.cpac_pipeline import run; '\
                       'run(\'%(config_file)s\', \'%(subject_list_file)s\', '\
-                      '%(env_arr_idx)s, \'%(strategies_file)s\', '\
-                      '\'%(pipeline_name)s\', plugin=\'MultiProc\', '\
-                      'plugin_args=%(plugin_args)s)"'
+                      '%(env_arr_idx)s, \'%(pipeline_name)s\', '\
+                      'plugin=\'MultiProc\', plugin_args=%(plugin_args)s)"'
 
     # Init plugin arguments
     plugin_args = {'n_procs': pipeline_config.maxCoresPerParticipant,
@@ -251,7 +126,6 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Set up run command dictionary
     run_cmd_dict = {'config_file' : config_file,
                     'subject_list_file' : subject_list_file,
-                    'strategies_file' : strategies_file,
                     'pipeline_name' : pipeline_config.pipelineName,
                     'plugin_args' : plugin_args}
 
@@ -313,57 +187,9 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
         f.write(pid)
 
 
-def append_seeds_to_file(working_dir, seed_list, seed_file):
-
-    existing_seeds = []
-    filtered_list = []
-
-    try:
-        if os.path.isfile(seed_file):
-            existing_seeds += [line.rstrip('\r\n') for line in open(seed_file, 'r').readlines() if not (line.startswith('#') and line == '\n')]
-
-            for seed in seed_list:
-                if not seed in existing_seeds:
-                    filtered_list.append(seed)
-
-            if not len(filtered_list) == 0:
-                f = open(seed_file, 'a')
-                for seed in filtered_list:
-                    f.write("%s\n" % seed)
-                f.close()
-
-            return seed_file
-
-        else:
-            raise
-
-    except:
-        # make tempfile and add seeds to it
-        import tempfile
-
-        try:
-            if not os.path.exists(working_dir):
-                os.makedirs(working_dir)
-
-        except Exception, e:
-
-            print 'error encountered : ', e
-            raise
-
-        some_number, f_name = tempfile.mkstemp(suffix='.txt', prefix='temp_roi_seeds', dir=working_dir, text=True)
-
-        f_handle = open(f_name, 'w')
-
-        for seed in seed_list:
-            f_handle.write('%s\n' % seed)
-
-        f_handle.close()
-        return f_name
-
-
 # Run C-PAC subjects via job queue
 def run(config_file, subject_list_file, p_name=None, plugin=None,
-        plugin_args=None, tracking=True, num_subs_at_once=None):
+        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False):
     '''
     '''
 
@@ -398,8 +224,12 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
     c.logDirectory = os.path.abspath(c.logDirectory)
     c.workingDirectory = os.path.abspath(c.workingDirectory)
-    c.outputDirectory = os.path.abspath(c.outputDirectory)
+    if 's3://' not in c.outputDirectory:
+        c.outputDirectory = os.path.abspath(c.outputDirectory)
     c.crashLogDirectory = os.path.abspath(c.crashLogDirectory)
+
+    if debug:
+        c.write_debugging_outputs = "[1]"
 
     if num_subs_at_once:
         if not str(num_subs_at_once).isdigit():
@@ -420,10 +250,6 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
         print "Subject list is not in proper YAML format. Please check " \
               "your file"
         raise Exception
-
-    # NOTE: strategies list is only needed in cpac_pipeline prep_workflow for
-    # creating symlinks
-    strategies = sorted(build_strategies(c))
 
     # Populate subject scan map
     sub_scan_map = {}
@@ -466,19 +292,12 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
         if not os.path.exists(cluster_files_dir):
             os.makedirs(cluster_files_dir)
 
-        # Create strategies file
-        strategies_file = os.path.join(cluster_files_dir, 'strategies.pkl')
-        with open(strategies_file, 'w') as f:
-            pickle.dump(strategies, f)
-
         # Check if its a condor job, and run that
         if 'condor' in c.resourceManager.lower():
-            run_condor_jobs(c, config_file, strategies_file,
-                            subject_list_file, p_name)
+            run_condor_jobs(c, config_file, subject_list_file, p_name)
         # All other schedulers are supported
         else:
-            run_cpac_on_cluster(config_file, subject_list_file,
-                                strategies_file, cluster_files_dir)
+            run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir)
 
     # Run on one computer
     else:
@@ -495,7 +314,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
         # If it only allows one, run it linearly
         if c.numParticipantsAtOnce == 1:
             for sub in sublist:
-                prep_workflow(sub, c, strategies, 1, pipeline_timing_info,
+                prep_workflow(sub, c, True, pipeline_timing_info,
                               p_name, plugin, plugin_args)
             return
                 
@@ -506,7 +325,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
         # Allocate processes
         processes = [Process(target=prep_workflow,
-                          args=(sub, c, strategies, 1, pipeline_timing_info,
+                          args=(sub, c, True, pipeline_timing_info,
                                 p_name, plugin, plugin_args))
                   for sub in sublist]
 

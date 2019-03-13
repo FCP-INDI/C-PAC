@@ -37,12 +37,6 @@ def configuration(parent_package='', top_path=None):
     #                                         "NPY_1_7_API_VERSION")])
     numpy_nodepr_api = dict()
 
-    # cython
-    config.add_extension('CPAC.cwas.mdmr', 
-                         sources=['CPAC/cwas/mdmr.pyx'], 
-                         include_dirs=[get_numpy_include_dirs()],
-                         **numpy_nodepr_api)
-
     return config
 
 
