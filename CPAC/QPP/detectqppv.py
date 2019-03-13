@@ -13,7 +13,7 @@ import time
 
 
 
-def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
+def qppv(img,mask,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
 
     if img.endswith('.mat'):
 
@@ -71,6 +71,7 @@ def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
     nx = D[0][0].shape[0]
     nt = D[0][0].shape[1]
     nd = nsubj*nrn
+    nrp=nd
     nt_new = nt * nd
     B = np.zeros((nx,nt_new))
     id =1
@@ -108,7 +109,6 @@ if __name__ == "__main__":
     parser.add_argument("img", type=str)
     parser.add_argument("mask",type=str)
     parser.add_argument("wl",type=int)
-    parser.add_argument("nrp",type=int)
     parser.add_argument("cth",nargs='+',type=float)
     parser.add_argument("n_itr_th",type=int)
     parser.add_argument("mx_itr",type=int)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     parser.add_argument("nrn",type=int)
     args = parser.parse_args()
 
-    qppv(args.img,args.mask,args.wl,args.nrp,args.cth,args.n_itr_th,args.mx_itr,args.pfs,args.nsubj,args.nrn)
+    qppv(args.img,args.mask,args.wl,args.cth,args.n_itr_th,args.mx_itr,args.pfs,args.nsubj,args.nrn)
 
 
 
