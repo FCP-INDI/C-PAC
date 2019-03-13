@@ -724,15 +724,15 @@ class QPPSettings(wx.ScrolledWindow):
                       values=30,
                       comment="provide the length of window you would like to search for the template in")
 
-        self.page.add(label="Number of Repetitions ",
-                      control=control.INT_CTRL,
-                      name='qpp_nrp',
-                      type=dtype.NUM,
-                      comment="Number of random repetitions to use while "
-                              "performing QPP. It is set initially as equal to the number" \
-                              "of number of subjects*number of runs per subject, but can be varied if that," \
-                              "does not work",
-                      values=20)
+        #self.page.add(label="Number of Repetitions ",
+        #              control=control.INT_CTRL,
+        #              name='qpp_nrp',
+        #              type=dtype.NUM,
+        #              comment="Number of random repetitions to use while "
+        #                      "performing QPP. It is set initially as equal to the number" \
+        #                      "of number  of subjects*number of runs per subject, but can be varied if that," \
+        #                      "does not work",
+        #              values=20)
 
         self.page.add(label="Correlation Threshold ",
                       control=control.COMBO_BOX,
