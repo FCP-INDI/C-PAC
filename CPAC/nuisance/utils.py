@@ -573,6 +573,14 @@ class NuisanceRegressor(object):
         self.selector = selector
         self.selectors = selectors
 
+        if 'Bandpass' in self.selector:
+            s = self.selector['Bandpass']
+            if type(s) is not dict or \
+               (not s.get('bottom_frequency') and \
+                not s.get('top_frequency')):
+                
+                del self.selector['Bandpass']
+
     def get(self, key, default=None):
         return self.selector.get(key, default)
 
@@ -629,7 +637,7 @@ class NuisanceRegressor(object):
             'GlobalSignal': 'G',
             'Motion': 'M',
             'PolyOrt': 'P',
-            'Bandpass': 'B',
+            'Bandpass': 'BP',
             'Censor': 'C',
         }
 
@@ -720,8 +728,10 @@ class NuisanceRegressor(object):
                 pieces += ['%d' % s['degree']]
 
             elif r == 'Bandpass':
-                pieces += ['B%.2g' % s['bottom_frequency']]
-                pieces += ['T%.2g' % s['top_frequency']]
+                if s.get('bottom_frequency'):
+                    pieces += ['B%.2g' % s['bottom_frequency']]
+                if s.get('top_frequency'):
+                    pieces += ['T%.2g' % s['top_frequency']]
 
             elif r == 'Censor':
                 censoring = {
