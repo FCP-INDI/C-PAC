@@ -93,6 +93,7 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
             #removing nan values and making them 0 to prevent further issues in calculations
             A = np.isnan(bchfn)
             bchfn[A] = 0
+    print(bchfn)
         #todo: have to make args.nd and other args.something as just the variable name
 
     #array initialized to later be deleted from the random ITP array
@@ -200,17 +201,17 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     plt.plot(template,'b')
     plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
     plt.xlabel('avg of func.data of length WL(30)')
-    plt.show()
+    plt.savefig("{0}/Temple_QPP.png".format(pfs))
     mdict = {}
     mdict["C"] = time_course
     mdict["FTP"] = ftp
     mdict["ITER"] = iter
     mdict["ITP"] = itp
 
-    np.save('time_course_file',time_course)
-    np.save('ftp_file',ftp)
-    np.save('iter_file',iter)
-    np.save('itp_file',itp)
+    np.save('{0}/time_course_file'.format(pfs),time_course)
+    np.save('{0}/ftp_file'.format(pfs),ftp)
+    np.save('{0}/iter_file'.format(pfs),iter)
+    np.save('{0}/itp_file'.format(pfs),itp)
 
     return time_course,ftp,itp,iter
 
@@ -225,7 +226,7 @@ def z(x,y):
         z = (x_trans*y)/norm(x)/norm(y)
     return z
 
-def BSTT(time_course,ftp,nd,B):
+def BSTT(time_course,ftp,nd,B,pfs):
     #load the important files into this
 
     nT = B.shape[1]  # smaller value
@@ -246,7 +247,7 @@ def BSTT(time_course,ftp,nd,B):
     T1 = isscmx[0]
     C_1 = time_course[T1,:]
     FTP1 = ftp[T1]
-    print(FTP1)
+
     Met1 = np.empty(3)
 
     FTP1 = [int(x) for x in FTP1]
@@ -263,11 +264,11 @@ def BSTT(time_course,ftp,nd,B):
     plt.yticks(np.arange(-1,1,step=0.2))
     plt.xlabel('Time points of functional data,TR(s)')
     plt.title('QPP 2D array')
-    plt.show()
+    plt.savefig("{0}/QPP_2D_array.png".format(pfs))
 
     return C_1,FTP1,Met1
 
-def TBLD2WL(B,wl,FTP1):
+def TBLD2WL(B,wl,FTP1,pfs):
     nT = B.shape[1]  # smaller value
     nX = B.shape[0]
     nFTP = len(FTP1)
@@ -303,14 +304,13 @@ def TBLD2WL(B,wl,FTP1):
             conct_array2 = np.concatenate((conct_array,ze),axis=1)
         else:
             conct_array2 = conct_array
-        print(T.shape)
-        print(conct_array2.shape)
+
         T = T+conct_array2
     T=T/nFTP
 
     return T
 
-def regressqpp(B,nd,T1,C_1):
+def regressqpp(B,nd,T1,C_1,pfs):
     #to do: check shape of c in loop
     wl = np.round(T1.shape[1]/2)
     wlhs = np.round(wl/2)
@@ -325,14 +325,16 @@ def regressqpp(B,nd,T1,C_1):
     for i in range(nd):
         ts=(i)*nt
         c = C_1[ts:ts+nt]
-
-
         for ix in range(nd):
             x = np.convolve(c,T1c,mode='valid')
             y = B[ix,ts+wl-1:ts+nt]
             x_dot = np.dot(x,x)
             y_dot = np.dot(x,y)
-
+            #adding a small value to prevent zero division error
+            if x_dot == 0:
+                x_dot = x_dot + 1e-25
+            if y_dot == 0:
+                y_dot = y_dot + 1e-25
             beta=y_dot/x_dot
             Br[ix,ts+wl-1:ts+nt]=y-x*beta
 
@@ -350,18 +352,20 @@ def regressqpp(B,nd,T1,C_1):
             T = Br[:,ts+ich:ts+ich+wl]
             T=T.flatten()
             T=T-np.sum(T)/ntf
+            if np.any(T==0):
+                T=T+1e-25
             bch = T/np.sqrt(np.dot(T,T))
             C1r[:,ts+ich]=np.dot(T1n,bch)
 
     C1r_plt = C1r.flatten()
-    np.save('regressor file',C1r)
+    np.save('{0}/regressor file'.format(pfs),C1r)
     plt.plot(C_1,'b')
     plt.plot(C1r_plt,'r')
     plt.axis([0,nd*nt,-1,1])
     plt.xticks(np.arange(nt,nT,step=nt))
     plt.yticks(np.arange(-1,1,step=0.2))
     plt.title('Time course overlapped with regressor')
-    plt.show()
+    plt.savefig("{0}/Time_course_and_regressor.png".format(pfs))
 #    if glassr_360:
 #        indu=np.nonzero(np.triu(np.ones(nX),1))
 
