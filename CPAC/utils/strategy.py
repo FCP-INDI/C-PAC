@@ -71,3 +71,23 @@ class Strategy(object):
         fork.leaf_out_file = str(self.leaf_out_file)
         fork.name = list(self.name)
         return fork
+
+    @staticmethod
+    def get_forking_points(strategies):
+
+        forking_points = []
+
+        for strat in strategies:
+
+            strat_node_names = set(strat.get_nodes_names())
+
+            strat_forking = []
+            for counter_strat in strategies:
+                counter_strat_node_names = set(counter_strat.get_nodes_names())
+
+                strat_forking += list(strat_node_names - counter_strat_node_names)
+
+            strat_forking = list(set(strat_forking))
+            forking_points += [strat_forking]
+
+        return forking_points

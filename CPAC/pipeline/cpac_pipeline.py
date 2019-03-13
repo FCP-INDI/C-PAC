@@ -1879,9 +1879,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 nodes = strat.get_nodes_names()
 
                 has_segmentation = 'seg_preproc' in nodes
-                nuisance_wf_name = 'nuisance_{0}_{1}'
+                use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
-                for regressors_selector in c.Regressors:
+                for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
 
                     new_strat = strat.fork()
 
@@ -1902,15 +1902,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             if reg in regressors_selector:
                                 del regressors_selector[reg]
 
-
-                    sanitized_name = re.sub(r'[^\w]+', '_', str(regressors_selector))
-
-                    use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
-
                     nuisance_regression_workflow = create_nuisance_workflow(
                         regressors_selector,
                         use_ants=use_ants,
-                        name=nuisance_wf_name.format(sanitized_name, num_strat)
+                        name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 
                     node, out_file = new_strat['anatomical_brain']
@@ -1990,15 +1985,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         ('selector', [regressors_selector]),
                     ])
 
-                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
+                    if use_ants:
 
-                        node, out_file = new_strat['mni_to_anatomical_linear_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.mni_to_anat_linear_xfm_file_path'
-                        )
-                    else:
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
@@ -2023,6 +2011,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             nuisance_regression_workflow,
                             'inputspec.anat_to_mni_affine_xfm_file_path'
                         )
+                    else:
+                        node, out_file = new_strat['mni_to_anatomical_linear_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow,
+                            'inputspec.mni_to_anat_linear_xfm_file_path'
+                        )
+
 
                     new_strat.append_name(nuisance_regression_workflow.name)
 
@@ -2063,7 +2059,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             for num_strat, strat in enumerate(strat_list):
 
                 # for each strategy, create a new one without median angle
-                if 0 in c.runNuisance:
+                if 0 in c.runMedianAngleCorrection:
                     new_strat_list.append(strat.fork())
 
                 median_angle_corr = create_median_angle_correction(
@@ -2126,6 +2122,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file,
                              frequency_filter, 'realigned_file')
+
+            strat.append_name(frequency_filter.name)
 
             strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
             strat.update_resource_pool({
@@ -3311,144 +3309,82 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # this section creates names for the different branched strategies.
         # it identifies where the pipeline has forked and then appends the
         # name of the forked nodes to the branch name in the output directory
-        renamedStrats = []
-        forkPoints = []
-        forkPointsDict = {}
 
-        def is_number(s):
-            # function which returns boolean checking if a character
-            # is a number or not
-            try:
-                int(s)
-                return True
-            except ValueError:
-                return False
-
-        for strat in strat_list:
-
-            # load list of nodes in this one particular
-            # strat into the list "nodeList"
-            renamedNodesList = []
-
-            # strip the _n (n being the strat number) from
-            # each node name and return to a list
-            for node in strat.name:
-                pieces = node.split('_')
-                if is_number(pieces[-1]):
-                    pieces = pieces[:-1]
-                renamedNode = "_".join(pieces)
-                renamedNodesList.append(renamedNode)
-
-            renamedStrats.append(renamedNodesList)
-
-        # here, renamedStrats is a list containing each strat (forks)
-        for strat in renamedStrats:
-
-            tmpForkPoint = []
-
-            # here, 'strat' is a list of node names within one of the forks
-            for nodeName in strat:
-
-                # compare each strat against the first one in the strat list,
-                # and if any node names in the new strat are not present in
-                # the 'original' one, then append to a list of 'fork points'
-                for renamedStratNodes in renamedStrats:
-                    if nodeName not in renamedStratNodes and \
-                        nodeName not in tmpForkPoint:
-                        tmpForkPoint.append(nodeName)
-
-            forkPoints.append(tmpForkPoint)
-
-        # forkPoints is a list of lists, each list containing node names of
+        # fork_points is a list of lists, each list containing node names of
         # nodes run in that strat/fork that are unique to that strat/fork
-        forkNames = []
+        fork_points = Strategy.get_forking_points(strat_list)
+        fork_names = []
 
-        # here 'forkPoint' is an individual strat with its unique nodes
-        filtering = False
-        for forkPoint in forkPoints:
-            forkName = ''
-            for fork in forkPoint:
-                forklabel = ''
+        # here 'fork_point' is an individual strat with its unique nodes
+        for fork_point in fork_points:
+            fork_name = []
+
+            for fork in fork_point:
+                fork_label = ''
 
                 if 'ants' in fork:
-                    forklabel = 'ants'
+                    fork_label = 'ants'
                 if 'fnirt' in fork:
-                    forklabel = 'fnirt'
+                    fork_label = 'fnirt'
                 elif 'flirt_register' in fork:
-                    forklabel = 'linear-only'
+                    fork_label = 'linear-only'
                 if 'automask' in fork:
-                    forklabel = 'func-3dautomask'
+                    fork_label = 'func-3dautomask'
                 if 'bet' in fork:
-                    forklabel = 'func-bet'
+                    fork_label = 'func-bet'
                 if 'epi_distcorr' in fork:
-                    forklabel = 'dist_corr'
+                    fork_label = 'dist-corr'
                 if 'bbreg' in fork:
-                    forklabel = 'bbreg'
-                if 'B_B0_' in fork:
-                    forklabel = 'freq-filter'
-                    filtering = True
-                elif 'nuisance' in fork and not filtering:
-                    forklabel = 'nuisance'
+                    fork_label = 'bbreg'
+                
+                if 'nuisance' in fork:
+                    fork_label = 'nuisance'
+                if 'frequency_filter' in fork:
+                    fork_label = 'freq-filter'
+                
                 if 'median' in fork:
-                    forklabel = 'median'
+                    fork_label = 'median'
                 if 'motion_stats' in fork:
-                    forklabel = 'motion'
+                    fork_label = 'motion'
                 if 'slice' in fork:
-                    forklabel = 'slice'
+                    fork_label = 'slice'
                 if 'anat_preproc_afni' in fork:
-                    forklabel = 'anat-afni'
+                    fork_label = 'anat-afni'
                 if 'anat_preproc_bet' in fork:
-                    forklabel = 'anat-bet'
+                    fork_label = 'anat-bet'
 
-                if forklabel not in forkName:
-                    forkName = forkName + '__' + forklabel
+                fork_name += [fork_label]
 
-            forkNames.append(forkName)
+            fork_names.append('_'.join(fork_name))
 
         # match each strat_list with fork point list
-        # this is for the datasink
-        for x in range(len(strat_list)):
-            forkPointsDict[strat_list[x]] = forkNames[x]
+        fork_points_labels = dict(zip(strat_list, fork_names))
 
         # DataSink
-        pip_ids = []
+        pipeline_ids = []
 
-        wf_names = []
         scan_ids = ['scan_anat']
 
         if 'func' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
-                            for scan_id in sub_dict['func']]
+                         for scan_id in sub_dict['func']]
 
         if 'rest' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
-                            for scan_id in sub_dict['rest']]
+                         for scan_id in sub_dict['rest']]
 
-        pipes = []
 
         for num_strat, strat in enumerate(strat_list):
 
-            rp = strat.get_resource_pool()
-
             if p_name is None or p_name == 'None':
-                if forkPointsDict[strat]:
-                    pipeline_id = c.pipelineName + forkPointsDict[strat]
-                else:
-                    pipeline_id = c.pipelineName
-                    # if running multiple pipelines with gui, need to change
-                    # this in future
-                    p_name = None
+                pipeline_id = c.pipelineName
             else:
-                if forkPointsDict[strat]:
-                    pipeline_id = c.pipelineName + forkPointsDict[strat]
-                else:
-                    pipeline_id = p_name
-                    # if running multiple pipelines with gui, need to change
-                    # this in future
-                    p_name = None
+                pipeline_id = p_name
 
-            pip_ids.append(pipeline_id)
-            wf_names.append(strat.get_name())
+            if fork_points_labels[strat]:
+                pipeline_id += '_' + fork_points_labels[strat]
+
+            pipeline_ids.append(pipeline_id)
 
 
             # TODO enforce value with schema validation
@@ -3469,20 +3405,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     if not s3_write_access:
                         raise Exception('Not able to write to bucket!')
 
-            except Exception as exc:
+            except Exception as e:
                 if c.outputDirectory.lower().startswith('s3://'):
                     err_msg = 'There was an error processing credentials or ' \
                                 'accessing the S3 bucket. Check and try again.\n' \
-                                'Error: %s' % exc
+                                'Error: %s' % e
                     raise Exception(err_msg)
+
 
             # TODO enforce value with schema validation
             try:
                 encrypt_data = bool(c.s3Encryption[0])
-            except Exception as exc:
+            except:
                 encrypt_data = False
 
-            nodes = strat.get_nodes_names()
 
             ndmg_out = False
             try:
@@ -3559,7 +3495,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'ndmg_graph': (ndmg_graph, 'out_file')
                 })
 
-                rp = strat.get_resource_pool()
+
+            rp = strat.get_resource_pool()
 
             if c.write_debugging_outputs:
                 import pickle
@@ -3756,7 +3693,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     output_sink_nodes += [(ds, 'out_file')]
 
-            if 1 in c.runSymbolicLinks and not ndmg_out:
+
+            if 1 in c.runSymbolicLinks and not ndmg_out and \
+                not c.outputDirectory.lower().startswith('s3://'):
 
                 merge_link_node = pe.Node(
                     interface=Merge(len(output_sink_nodes)),
@@ -3788,6 +3727,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 workflow.connect(merge_link_node, 'out', link_node, 'paths')
 
+
             try:
                 G = nx.DiGraph()
                 strat_name = strat.get_name()
@@ -3803,13 +3743,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 logger.warn('Cannot Create the strategy and pipeline '
                             'graph, dot or/and pygraphviz is not installed')
 
-            pipes.append(pipeline_id)
 
         forks = "\n\nStrategy forks:\n" + \
-                "\n".join(["- " + pipe for pipe in pipes]) + \
+                "\n".join(["- " + pipe for pipe in sorted(set(pipeline_ids))]) + \
                 "\n\n"
 
         logger.info(forks)
+
 
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
@@ -3873,12 +3813,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         with open(subject_info_file, 'wb') as info:
             pickle.dump(subject_info, info)
 
-        for i, _ in enumerate(pip_ids):
+        for i, _ in enumerate(pipeline_ids):
             for scan in scan_ids:
                 create_log_node(workflow, None, None, i, scan).run()
 
         if 1 in c.generateQualityControlImages and not ndmg_out:
-            for pip_id in pip_ids:
+            for pip_id in pipeline_ids:
                 pipeline_base = os.path.join(c.outputDirectory,
                                                 'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,
