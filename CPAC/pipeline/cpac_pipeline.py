@@ -1508,18 +1508,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # Input functional image (mean functional)
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.func')
+                                     func_to_anat, 'inputspec.func')
 
                 elif 'Selected Functional Volume' in c.func_reg_input:
                     # Input functional image (specific volume)
                     node, out_file = strat['selected_func_volume']
                     workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.func')
+                                     func_to_anat, 'inputspec.func')
 
                 # Input skull-stripped anatomical (anat.nii.gz)
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
-                                func_to_anat, 'inputspec.anat')
+                                 func_to_anat, 'inputspec.anat')
 
                 if dist_corr:
                     # apply field map distortion correction outputs to
@@ -2173,17 +2173,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                         workflow.connect(node, out_file,
                                          func_mni_warp, 'field_file')
-
-                    node, out_file = strat['functional_to_anat_linear_xfm']
-                    workflow.connect(node, out_file,
-                                     func_mni_warp, 'premat')
-
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file,
-                                     func_mni_warp, 'in_file')
-
-                    if 'anat_mni_fnirt_register' in nodes:
-                        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                         workflow.connect(node, out_file,
                                          functional_brain_mask_to_standard, 'field_file')
                         workflow.connect(node, out_file,
@@ -2191,25 +2180,109 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          motion_correct_warp, 'field_file')
 
-                    node, out_file = strat['functional_to_anat_linear_xfm']
-                    workflow.connect(node, out_file,
-                                     functional_brain_mask_to_standard, 'premat')
-                    workflow.connect(node, out_file,
-                                     mean_functional_warp, 'premat')
-                    workflow.connect(node, out_file,
-                                     motion_correct_warp, 'premat')
+                        node, out_file = strat['functional_to_anat_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp, 'premat')
 
-                    node, out_file = strat['functional_brain_mask']
-                    workflow.connect(node, out_file,
-                                     functional_brain_mask_to_standard, 'in_file')
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file,
+                                         func_mni_warp, 'in_file')
 
-                    node, out_file = strat['mean_functional']
-                    workflow.connect(node, out_file,
-                                     mean_functional_warp, 'in_file')
+                        node, out_file = strat['functional_brain_mask']
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard, 'in_file')
 
-                    node, out_file = strat['motion_correct']
-                    workflow.connect(node, out_file,
-                                     motion_correct_warp, 'in_file')
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp, 'in_file')
+
+                        node, out_file = strat['motion_correct']
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp, 'in_file')
+
+                    elif 'anat_mni_flirt_register' in nodes:
+                        func_anat_warp = pe.Node(interface=fsl.ApplyWarp(),
+	                                             name='func_anat_fsl_warp_%d' % num_strat)
+                        functional_brain_mask_to_anat = pe.Node(
+	                        interface=fsl.ApplyWarp(),
+	                        name='func_anat_fsl_warp_mask_%d' % num_strat
+	                    )
+                        functional_brain_mask_to_anat.inputs.interp = 'nn'
+
+                        mean_functional_to_anat = pe.Node(
+                            interface=fsl.ApplyWarp(),
+	                        name='mean_func_to_anat_fsl_warp_%d' % num_strat
+	                    )
+
+                        motion_correct_to_anat_warp = pe.Node(
+	                        interface=fsl.ApplyWarp(),
+	                        name="motion_correct_to_anat_fsl_warp_%d" % num_strat
+	                    )
+
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file,
+                                         func_anat_warp, 'in_file')
+
+                        node, out_file = strat['functional_brain_mask']
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat, 'in_file')
+
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat, 'in_file')
+
+                        node, out_file = strat['motion_correct']
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp, 'in_file')
+
+                        node, out_file = strat['anatomical_brain']
+                        workflow.connect(node, out_file,
+                                         func_anat_warp, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp, 'ref_file') 
+
+                        node, out_file = strat['functional_to_anat_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_anat_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp, 'premat')
+
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(func_anat_warp, 'out_file',
+                                         func_mni_warp, 'in_file')
+
+                        workflow.connect(functional_brain_mask_to_anat, 'out_file',
+                                         functional_brain_mask_to_standard, 'in_file')
+
+                        workflow.connect(mean_functional_to_anat, 'out_file',
+                                         mean_functional_warp, 'in_file')
+
+                        workflow.connect(motion_correct_to_anat_warp, 'out_file',
+                                         motion_correct_warp, 'in_file')
+
+                        node, out_file = strat['anatomical_to_mni_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp, 'premat')
 
                     strat.update_resource_pool({
                         'functional_to_standard': (func_mni_warp, 'out_file'),
