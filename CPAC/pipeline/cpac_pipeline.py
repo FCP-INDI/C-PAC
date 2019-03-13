@@ -2431,8 +2431,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     elif 'anat_mni_fnirt_register' in nodes:
                         vmhc = create_vmhc(False, False, 'vmhc_%d' % num_strat)
                 else:
-                    vmhc = create_vmhc(True, 'vmhc_%d' % num_strat,
-                                    int(num_ants_cores))
+                    vmhc = create_vmhc(True, False, 'vmhc_%d' % num_strat,
+                                       int(num_ants_cores))
 
                 vmhc.inputs.inputspec.standard_for_func = c.template_skull_for_func
                 vmhc.inputs.fwhm_input.fwhm = c.fwhm
@@ -3364,6 +3364,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         forkNames = []
 
         # here 'forkPoint' is an individual strat with its unique nodes
+        filtering = False
         for forkPoint in forkPoints:
             forkName = ''
             for fork in forkPoint:
@@ -3383,9 +3384,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     forklabel = 'dist_corr'
                 if 'bbreg' in fork:
                     forklabel = 'bbreg'
-                if 'frequency' in fork:
+                if 'B_B0_' in fork:
                     forklabel = 'freq-filter'
-                elif 'nuisance' in fork:
+                    filtering = True
+                elif 'nuisance' in fork and not filtering:
                     forklabel = 'nuisance'
                 if 'median' in fork:
                     forklabel = 'median'
