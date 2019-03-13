@@ -94,10 +94,10 @@ def qppv(img,mask,wl,nrp,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
     #generate qpp
     time_course, ftp, itp, iter = qpp_wf(B, msk, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs)
     #choose best template
-    C_1,FTP1,Met1 = BSTT(time_course,ftp,nd,B)
+    C_1,FTP1,Met1 = BSTT(time_course,ftp,nd,B,pfs)
     #regress QPP
-    T =TBLD2WL(B,wl,FTP1)
-    Br, C1r=regressqpp(B, nd, T, C_1)
+    T =TBLD2WL(B,wl,FTP1,pfs)
+    Br, C1r=regressqpp(B, nd, T, C_1,pfs)
     print("-----%s seconds ----"%(time.time() - start_time))
 
 if __name__ == "__main__":
