@@ -14,7 +14,7 @@ from CPAC.registration import create_wf_calculate_ants_warp, \
                               create_wf_collect_transforms, \
                               create_wf_apply_ants_warp
 
-def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
+def create_vmhc(use_ants, flirt_only=False, name='vmhc_workflow', ants_threads=1):
 
     """
     Compute the map of brain functional homotopy, the high degree of synchrony in spontaneous activity between geometrically corresponding interhemispheric (i.e., homotopic) regions.
@@ -316,19 +316,26 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                      smooth, 'op_string')
         vmhc.connect(inputNode, 'rest_mask',
                      smooth, 'operand_files')
-        vmhc.connect(smooth, 'out_file',
-                     func_to_standard, 'in_file')
         vmhc.connect(inputNode, 'standard_for_func',
                      func_to_standard, 'ref_file')
-        try:
+        if not flirt_only:
             vmhc.connect(inputNode, 'fnirt_nonlinear_warp',
                          func_to_standard, 'field_file')
-        except:
-            vmhc.connect(inputNode, 'flirt_linear_aff',
-                         func_to_standard, 'postmat')
-        ## func->anat matrix (bbreg)
-        vmhc.connect(inputNode, 'example_func2highres_mat',
-                     func_to_standard, 'premat')
+            vmhc.connect(smooth, 'out_file',
+                         func_to_standard, 'in_file')
+            vmhc.connect(inputNode, 'example_func2highres_mat',
+                         func_to_standard, 'premat')
+        else:
+            func_to_anat = pe.Node(interface=fsl.ApplyWarp(),
+                                   name='func_to_anat')
+            vmhc.connect(smooth, 'out_file', func_to_anat, 'in_file')
+            vmhc.connect(inputNode, 'brain', func_to_anat, 'ref_file')
+            vmhc.connect(inputNode, 'example_func2highres_mat', 
+                         func_to_anat, 'premat')
+            vmhc.connect(func_to_anat, 'out_file', func_to_standard, 'in_file')
+            vmhc.connect(inputNode, 'flirt_linear_aff', 
+                         func_to_standard, 'premat')
+
         vmhc.connect(func_to_standard, 'out_file',
                      copy_and_L_R_swap, 'in_file')
         vmhc.connect(func_to_standard, 'out_file',

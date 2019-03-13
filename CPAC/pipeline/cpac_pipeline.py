@@ -2426,7 +2426,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 nodes = strat.get_nodes_names()
 
                 if 'func_mni_fsl_warp' in nodes:
-                    vmhc = create_vmhc(False, 'vmhc_%d' % num_strat)
+                    if 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' in nodes:
+                        vmhc = create_vmhc(False, True, 'vmhc_%d' % num_strat)
+                    elif 'anat_mni_fnirt_register' in nodes:
+                        vmhc = create_vmhc(False, False, 'vmhc_%d' % num_strat)
                 else:
                     vmhc = create_vmhc(True, 'vmhc_%d' % num_strat,
                                     int(num_ants_cores))
