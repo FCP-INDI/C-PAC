@@ -486,10 +486,6 @@ Regressors :
    PolyOrt:
     degree: 2
 
-   Bandpass:
-     bottom_frequency: 0.01
-     top_frequency: 0.1
-
 
 # Correct for the global signal using Median Angle Correction.
 runMedianAngleCorrection :  [0]
