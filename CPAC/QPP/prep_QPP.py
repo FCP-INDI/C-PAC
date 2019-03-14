@@ -195,6 +195,7 @@ def gather_outputs(pipeline_folder,resource_list,inclusion_list):
 def prep_inputs(group_config_file):
 
     import os
+    import shutil
     import pandas as pd
     import pkg_resources as p
     from CPAC.pipeline.cpac_group_runner import load_text_file
@@ -351,6 +352,8 @@ def prep_inputs(group_config_file):
 
 
         pipeline_ID = group_model.pipeline_dir.rstrip('/').split('/')[-1]
+        merge_file = create_merged_copefile(new_output_df["Filepath_x"].tolist(), 'merged.nii.gz')
+        merge_mask = create_merge_mask(merge_file, 'merged_mask.nii.gz')
 
 
         model_dir = os.path.join(group_model.output_dir,
@@ -359,20 +362,16 @@ def prep_inputs(group_config_file):
         out_dir = os.path.join(model_dir,
                                resource_id,  # nuisance strat to initialize
                                strat_info,'model_files')
-        old_dir = os.getcwd()
+
         # series or repeated label == same as qpp scan or sessions list)
-        merge_outfile_string="CPAC_QPP" + "_"+ resource_id
-        merge_outfile = os.path.join(out_dir,merge_outfile_string)
-        os.makedirs(merge_outfile)
-        os.chdir(merge_outfile)
-        merge_file = create_merged_copefile(new_output_df["Filepath_x"].tolist(), "_merged.nii")
+        merge_outdir_string="CPAC_QPP" + "_"+ resource_id
+        merge_outdir = os.path.join(out_dir,merge_outdir_string)
+        if not os.path.exists(merge_outdir):
+            os.makedirs(merge_outdir)
+        shutil.move(merge_file,merge_outdir)
+        shutil.move(merge_mask,merge_outdir)
 
-        merge_mask = create_merge_mask(merge_file, "_merged_mask.nii")
-        os.chdir(old_dir)
-
-
-
-    return merge_file,merge_mask,inclusion_list,merge_outfile
+    return merge_file,merge_mask,inclusion_list,merge_outdir
 
 
 def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
