@@ -1955,27 +1955,29 @@ def run_qpp(group_config_file):
     group_config_file = os.path.abspath(group_config_file)
     img, mask, inclusion_list,out_dir = run_qpp_group(group_config_file)
 
-    group_config_obj = load_yaml(group_config_file)
+    group_config_obj = load_config_yml(group_config_file)
 
-    working_dir = group_config_obj["work_dir"]
-    crash_dir = group_config_obj["log_dir"]
-
-
+    working_dir = group_config_obj.work_dir
+    crash_dir = group_config_obj.log_dir
 
 
-    wl  = group_config_obj.wl
+
+
+    wl  = group_config_obj.qpp_wl
 
     #nrp = group_config_obj.nrp
 
-    cth = group_config_obj.cth
+    cth = group_config_obj.qpp_cth
     cth = cth.split(',')
 
-    n_itr_th = group_config_obj.n_itr_th
+    n_itr_th = group_config_obj.qpp_n_iter_th
 
-    mx_itr = group_config_obj.mx_itr
+    mx_itr = group_config_obj.qpp_mx_iter
 
     nsubj = len(inclusion_list)
-    nrn =  len(group_config_obj.qpp_scan_inclusion) #How many runs have you run each subject by. Please note that this is different from
+
+    nrn =  group_config_obj.qpp_scan_list
+    #How many runs have you run each subject by. Please note that this is different from
     #the number of scans or sessions you want to include in the qpp analysis
 
     qppv(img,mask,wl,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
