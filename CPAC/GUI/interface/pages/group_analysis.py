@@ -691,7 +691,7 @@ class QPPSettings(wx.ScrolledWindow):
 
         self.page.add(label="Scan Inclusion (Optional) ",
                       control=control.COMBO_BOX,
-                      name='qpp_scan_list',
+                      name='qpp_scan_inclusion',
                       type=dtype.STR,
                       values="None",
                       comment="If there are multiple scans in any "
@@ -705,7 +705,7 @@ class QPPSettings(wx.ScrolledWindow):
 
         self.page.add(label="Session Inclusion (Optional) ",
                       control=control.COMBO_BOX,
-                      name='qpp_sess_list',
+                      name='qpp_sess_inclusion',
                       type=dtype.STR,
                       values="None",
                       comment="If there are multiple sessions in any "
@@ -724,15 +724,14 @@ class QPPSettings(wx.ScrolledWindow):
                       values=30,
                       comment="provide the length of window you would like to search for the template in")
 
-        #self.page.add(label="Number of Repetitions ",
-        #              control=control.INT_CTRL,
-        #              name='qpp_nrp',
-        #              type=dtype.NUM,
-        #              comment="Number of random repetitions to use while "
-        #                      "performing QPP. It is set initially as equal to the number" \
-        #                      "of number  of subjects*number of runs per subject, but can be varied if that," \
-        #                      "does not work",
-        #              values=20)
+        self.page.add(label="Scan List (Optional) ",
+                      control=control.INT_CTRL,
+                      name='qpp_scan_list',
+                      type=dtype.INT,
+                      values=1,
+                      comment="This represents the number of scans for each subject. For "
+                              " example, if you have 2 scans, for each subject, please fill "
+                              "the box with 2.")
 
         self.page.add(label="Correlation Threshold ",
                       control=control.COMBO_BOX,
