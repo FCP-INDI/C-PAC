@@ -49,7 +49,7 @@ def qppv(img,mask,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         ##copy D_img to D
 
 
-    if  mask.endswith('.nii'):
+    if  mask.endswith('.nii.gz'):
         data1 = nib.load(mask)
         msk_img = np.array(data1.dataobj)
         #import msk
