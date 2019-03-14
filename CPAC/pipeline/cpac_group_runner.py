@@ -1942,10 +1942,10 @@ def run_qpp_group(group_config_file):
     from CPAC.QPP.prep_QPP import prep_inputs
     #creating output directory paths
 
-    merge_file,merge_mask,inclusion_list,out_dir = prep_inputs(group_config_file)
+    merge_file,merge_mask,inclusion_list,merge_outdir = prep_inputs(group_config_file)
 
 
-    return merge_file,merge_mask,inclusion_list,out_dir
+    return merge_file,merge_mask,inclusion_list,merge_outdir
 
 
 def run_qpp(group_config_file):
@@ -1953,32 +1953,23 @@ def run_qpp(group_config_file):
     from CPAC.QPP.detectqppv import qppv
 
     group_config_file = os.path.abspath(group_config_file)
-    img, mask, inclusion_list,out_dir = run_qpp_group(group_config_file)
+    merge_file,merge_mask,inclusion_list,merge_outdir = run_qpp_group(group_config_file)
 
     group_config_obj = load_config_yml(group_config_file)
 
     working_dir = group_config_obj.work_dir
     crash_dir = group_config_obj.log_dir
+    out_dir=merge_outdir
 
-
-
-
+    img=merge_file
+    mask=merge_mask
     wl  = group_config_obj.qpp_wl
-
-    #nrp = group_config_obj.nrp
-
     cth = group_config_obj.qpp_cth
     cth = cth.split(',')
-
     n_itr_th = group_config_obj.qpp_n_iter_th
-
     mx_itr = group_config_obj.qpp_mx_iter
-
     nsubj = len(inclusion_list)
-
-    nrn =  group_config_obj.qpp_scan_list
-    #How many runs have you run each subject by. Please note that this is different from
-    #the number of scans or sessions you want to include in the qpp analysis
+    nrn =  group_config_obj.qpp_nrn
 
     qppv(img,mask,wl,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
 
