@@ -214,7 +214,7 @@ def prep_inputs(group_config_file):
     pipeline_folder = group_model.pipeline_dir
     #inclusion list function
     if not group_model.participant_list:
-        inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
+        inclusion_list_ = grab_pipeline_dir_subs(pipeline_folder)
     elif '.' in group_model.participant_list:
 
         if not os.path.isfile(group_model.participant_list):
@@ -262,6 +262,7 @@ def prep_inputs(group_config_file):
             else:
                 raise Exception('\nCannot read group-level analysis participant ' \
                         'list.\n')
+
         if len(output_df) == 0:
             err = "\n\n[!]The output data frame has not been compiled correctly. Please " \
                   "recheck the participants in the participant inclusion list and the " \
@@ -276,13 +277,13 @@ def prep_inputs(group_config_file):
         grp_by_scans = False
         grp_by_both = False
         repeated_measures=False
-        if group_model.qpp_sess_list:
+        if group_model.qpp_sess_inclusion:
         #multiple sessions, so you're going group by scans
-            if len(group_model.qpp_sess_list) > 0:
+            if len(group_model.qpp_sess_inclusion) > 0:
                 grp_by_scans = True
         #Multiple scans so you're going to group by sessions
-        if group_model.qpp_scan_list:
-            if len(group_model.qpp_scan_list) > 0:
+        if group_model.qpp_scan_inclusion:
+            if len(group_model.qpp_scan_inclusion) > 0:
                 grp_by_sessions = True
 
         if grp_by_scans or grp_by_sessions:
@@ -297,20 +298,20 @@ def prep_inputs(group_config_file):
                 #setting up the output_df for grouping by scans
                 #output directory will be scan_1
                 #                         scan_2
-                new_output_df = op_grp_by_scans(output_df,group_model.qpp_sess_list)
+                new_output_df = op_grp_by_scans(output_df,group_model.qpp_sess_inclusion)
                 # drop all the sessions that are not in the sessions list
-                new_output_df = new_output_df[new_output_df["Session"].isin(group_model.qpp_sess_list)]
+                new_output_df = new_output_df[new_output_df["Session"].isin(group_model.qpp_sess_inclusion)]
                 join_colums.append("Session")
                 # balance the DF
-                new_output_df, dropped_parts = balance_df(new_output_df, group_model.qpp_sess_list, scan_list=None)
+                new_output_df, dropped_parts = balance_df(new_output_df, group_model.qpp_sess_inclusion, scan_list=None)
 
             if grp_by_sessions:
                 #multilple scans
                 #setting up the output_df for grouping by sessions
-                new_output_df = op_grp_by_sessions(output_df,group_model.qpp_scan_list,grp_by_scans)
+                new_output_df = op_grp_by_sessions(output_df,group_model.qpp_scan_inclusion,grp_by_scans)
 
                 # drop all the scans that are not in the scan list
-                new_output_df = new_output_df[new_output_df["Scan"].isin(group_model.qpp_scan_list)]
+                new_output_df = new_output_df[new_output_df["Scan"].isin(group_model.qpp_scan_inclusion)]
                 #print(new_output_df)
                 join_columns.append("Scan")
 
@@ -321,7 +322,7 @@ def prep_inputs(group_config_file):
 
 
             if grp_by_both:
-                new_output_df = new_output_df(new_output_df,group_model.qpp_sess_list,group_model.qpp_scan_list)
+                new_output_df = new_output_df(new_output_df,group_model.qpp_sess_inclusion,group_model.qpp_scan_inclusion)
 
         else:
             for scan_df_tuple in output_df.groupby("Scan"):
@@ -354,34 +355,24 @@ def prep_inputs(group_config_file):
 
         model_dir = os.path.join(group_model.output_dir,
                                'cpac_group_analysis',
-                               'CPAC_QPP_{0}'.format(pipeline_ID))
-
+                               'CPAC_QPP')
         out_dir = os.path.join(model_dir,
                                resource_id,  # nuisance strat to initialize
-                               strat_info)  # series or repeated label == same as qpp scan or sessions list)
-        model_path = os.path.join(out_dir, "CPAC_QPP_model_files")
+                               strat_info,'model_files')
+        old_dir = os.getcwd()
+        # series or repeated label == same as qpp scan or sessions list)
+        merge_outfile_string="CPAC_QPP" + "_"+ resource_id
+        merge_outfile = os.path.join(out_dir,merge_outfile_string)
+        os.makedirs(merge_outfile)
+        os.chdir(merge_outfile)
+        merge_file = create_merged_copefile(new_output_df["Filepath_x"].tolist(), "_merged.nii")
 
-        print(new_output_df)
-
-        merge_outfile = "CPAC_QPP_model" + "_" + resource_id + "_merged.nii.gz"
-
-        merge_outfile = os.path.join(model_path, merge_outfile)
-
-
-
-        merge_file = create_merged_copefile(new_output_df["Filepath_x"].tolist(),merge_outfile)
-
-
-        merge_mask_outfile = '_'.join(["CPAC_QPP_model", resource_id,
-                                       "merged_mask.nii.gz"])
-
-        merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
-        merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+        merge_mask = create_merge_mask(merge_file, "_merged_mask.nii")
+        os.chdir(old_dir)
 
 
 
-
-    return merge_file,merge_mask,inclusion_list,out_dir
+    return merge_file,merge_mask,inclusion_list,merge_outfile
 
 
 def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
