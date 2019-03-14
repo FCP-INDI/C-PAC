@@ -215,7 +215,7 @@ def prep_inputs(group_config_file):
     pipeline_folder = group_model.pipeline_dir
     #inclusion list function
     if not group_model.participant_list:
-        inclusion_list_ = grab_pipeline_dir_subs(pipeline_folder)
+        inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
     elif '.' in group_model.participant_list:
 
         if not os.path.isfile(group_model.participant_list):
