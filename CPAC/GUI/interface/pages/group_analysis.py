@@ -727,7 +727,7 @@ class QPPSettings(wx.ScrolledWindow):
         self.page.add(label="Scan List (Optional) ",
                       control=control.INT_CTRL,
                       name='qpp_scan_list',
-                      type=dtype.INT,
+                      type=dtype.NUM,
                       values=1,
                       comment="This represents the number of scans for each subject. For "
                               " example, if you have 2 scans, for each subject, please fill "
