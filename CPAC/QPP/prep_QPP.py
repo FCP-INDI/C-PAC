@@ -368,8 +368,10 @@ def prep_inputs(group_config_file):
         merge_outdir = os.path.join(out_dir,merge_outdir_string)
         if not os.path.exists(merge_outdir):
             os.makedirs(merge_outdir)
-        shutil.move(merge_file,merge_outdir)
-        shutil.move(merge_mask,merge_outdir)
+        if not os.path.exists(os.path.join(merge_outdir,'merged.nii.gz')):
+            shutil.move(merge_file,merge_outdir)
+        if not os.path.exists(os.path.join(merge_outdir,'merged_mask.nii.gz')):
+            shutil.move(merge_mask,merge_outdir)
 
     return merge_file,merge_mask,inclusion_list,merge_outdir
 
