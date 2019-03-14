@@ -724,9 +724,9 @@ class QPPSettings(wx.ScrolledWindow):
                       values=30,
                       comment="provide the length of window you would like to search for the template in")
 
-        self.page.add(label="Scan List (Optional) ",
+        self.page.add(label="Number of scans per subject ",
                       control=control.INT_CTRL,
-                      name='qpp_scan_list',
+                      name='qpp_nrn',
                       type=dtype.NUM,
                       values=1,
                       comment="This represents the number of scans for each subject. For "
