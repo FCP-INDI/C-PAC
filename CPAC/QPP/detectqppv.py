@@ -102,22 +102,22 @@ def qppv(img,mask,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
     print("-----%s seconds ----"%(time.time() - start_time))
 
 if __name__ == "__main__":
+    #Just for testing, remove this##"
+    #import argparse
+    #parser = argparse.ArgumentParser()
 
-    import argparse
-    parser = argparse.ArgumentParser()
+    #parser.add_argument("img", type=str)
+    ##parser.add_argument("mask",type=str)
+    #parser.add_argument("wl",type=int)
+    #parser.add_argument("cth",nargs='+',type=float)
+    #parser.add_argument("n_itr_th",type=int)
+    #parser.add_argument("mx_itr",type=int)
+    #parser.add_argument("pfs",type=str)
+    #parser.add_argument("nsubj",type=int)
+    #parser.add_argument("nrn",type=int)
+    #args = parser.parse_args()
 
-    parser.add_argument("img", type=str)
-    parser.add_argument("mask",type=str)
-    parser.add_argument("wl",type=int)
-    parser.add_argument("cth",nargs='+',type=float)
-    parser.add_argument("n_itr_th",type=int)
-    parser.add_argument("mx_itr",type=int)
-    parser.add_argument("pfs",type=str)
-    parser.add_argument("nsubj",type=int)
-    parser.add_argument("nrn",type=int)
-    args = parser.parse_args()
-
-    qppv(args.img,args.mask,args.wl,args.cth,args.n_itr_th,args.mx_itr,args.pfs,args.nsubj,args.nrn)
+    qppv(img,mask,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn)
 
 
 
