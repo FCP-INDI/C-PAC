@@ -153,8 +153,6 @@ class Mybook(wx.Treebook):
             self.AddSubPage(page17, "Nuisance Regression", wx.ID_ANY)
             self.AddSubPage(page18, "Median Angle Correction", wx.ID_ANY)
 
-            self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
-
             self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
             self.AddSubPage(page22, "Region-of-Interest TSE Options",
                             wx.ID_ANY)

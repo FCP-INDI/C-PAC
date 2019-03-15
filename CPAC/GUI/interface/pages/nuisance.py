@@ -9,50 +9,10 @@ from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 from ..utils.generic_class import GenericClass, Control
 from ..utils.constants import control, dtype
 from ..utils.validator import CharValidator
+
+import re
 import pkg_resources as p
 from collections import defaultdict
-
-
-regressor_selectors = [
-    {
-        'CerebrospinalFluid': {'erode_mask': True,
-                               'extraction_resolution': 2,
-                               'summary': {'components': 5, 'method': 'PC'}},
-        'GlobalSignal': {'include_delayed': True,
-                         'include_delayed_squared': True,
-                         'include_squared': True,
-                         'summary': 'Mean'},
-        'Motion': {'include_delayed': True,
-                   'include_delayed_squared': True,
-                   'include_squared': True},
-        'WhiteMatter': {'extraction_resolution': 2,
-                        'summary': {'components': 5, 'method': 'PC'}},
-        'aCompCor': {'extraction_resolution': 2,
-                     'summary': {'components': 5, 'method': 'PC'},
-                     'tissues': ['WhiteMatter', 'CerebrospinalFluid']},
-        'tCompCor': {'by_slice': True,
-                     'summary': {'components': 5, 'method': 'PC'},
-                     'threshold': '1.5SD'},
-        'PolyOrt': {'degree': 2},
-        'Bandpass': {
-            'bottom_frequency': 0.01,
-            'top_frequency': 0.1,
-        },
-        'Censor': {'method': 'Interpolate',
-                   'thresholds': [
-                       # {'type': 'FD', 'value': 0.5},
-                       {'type': 'DVARS', 'value': 17}
-                   ]},
-    },
-    {
-        'Motion': {'include_delayed': True,
-                   'include_delayed_squared': True,
-                   'include_squared': True},
-        'Censor': {'method': 'Interpolate',
-                   'thresholds': [{'type': 'FD', 'value': 0.5},
-                                  {'type': 'DVARS', 'value': 17}]},
-    },
-]
 
 def find(lst, lmbd):
     return next((t for t in lst if lmbd(t)), None)
@@ -649,31 +609,57 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         self.add_to_new_row(censoring_subs_tr_label, censoring_subs_tr_control)
         self.data_controls['Censor']['number_of_subsequent_trs_to_censor'] = censoring_subs_tr_control
 
-        # Framewise displacement control
-        censoring_thresholds_fd = find(censoring_thresholds, lambda t:  t.get('type') == 'FD') or {}
-        has_censoring_thresholds_fd = bool(censoring_thresholds_fd)
+        # Framewise displacement J control
+        censoring_thresholds_fdj = find(censoring_thresholds, lambda t:  t.get('type') == 'FD_J') or {}
+        has_censoring_thresholds_fdj = bool(censoring_thresholds_fdj)
 
-        censoring_thresholds_fd_label = wx.StaticText(self.editor, label='Framewise Displacement')
-        censoring_thresholds_fd_control = wx.CheckBox(self.editor)
-        censoring_thresholds_fd_control.SetValue(has_censoring_thresholds_fd)
-        self.add_to_new_row(censoring_thresholds_fd_label, censoring_thresholds_fd_control)
-        self.data_controls['Censor']['threshold']['fd']['enabled'] = censoring_thresholds_fd_control
+        censoring_thresholds_fdj_label = wx.StaticText(self.editor, label='Framewise Displacement (Jenkinson)')
+        censoring_thresholds_fdj_control = wx.CheckBox(self.editor)
+        censoring_thresholds_fdj_control.SetValue(has_censoring_thresholds_fdj)
+        self.add_to_new_row(censoring_thresholds_fdj_label, censoring_thresholds_fdj_control)
+        self.data_controls['Censor']['threshold']['fdj']['enabled'] = censoring_thresholds_fdj_control
 
-        censoring_thresholds_fd_value_label = wx.StaticText(self.editor, label='Threshold')
-        censoring_thresholds_fd_value_control = wx.TextCtrl(self.editor)
-        censoring_thresholds_fd_value_control.SetValue(str(censoring_thresholds_fd.get('value', 0.0)))
-        self.add_to_new_row(censoring_thresholds_fd_value_label, censoring_thresholds_fd_value_control)
-        self.data_controls['Censor']['threshold']['fd']['value'] = censoring_thresholds_fd_value_control
+        censoring_thresholds_fdj_value_label = wx.StaticText(self.editor, label='Threshold')
+        censoring_thresholds_fdj_value_control = wx.TextCtrl(self.editor)
+        censoring_thresholds_fdj_value_control.SetValue(str(censoring_thresholds_fdj.get('value', 0.0)))
+        self.add_to_new_row(censoring_thresholds_fdj_value_label, censoring_thresholds_fdj_value_control)
+        self.data_controls['Censor']['threshold']['fdj']['value'] = censoring_thresholds_fdj_value_control
 
-        def censoring_thresholds_fd_update(event=None):
-            if censoring_thresholds_fd_control.GetValue():
-                ctrl_enable(censoring_thresholds_fd_value_control)
+        def censoring_thresholds_fdj_update(event=None):
+            if censoring_thresholds_fdj_control.GetValue():
+                ctrl_enable(censoring_thresholds_fdj_value_control)
             else:
-                ctrl_disable(censoring_thresholds_fd_value_control)
+                ctrl_disable(censoring_thresholds_fdj_value_control)
 
-        censoring_thresholds_fd_control.Bind(wx.EVT_CHECKBOX, censoring_thresholds_fd_update)
-        censoring_thresholds_fd_control.Bind(EVT_ENABLE, censoring_thresholds_fd_update)
-        censoring_thresholds_fd_update()
+        censoring_thresholds_fdj_control.Bind(wx.EVT_CHECKBOX, censoring_thresholds_fdj_update)
+        censoring_thresholds_fdj_control.Bind(EVT_ENABLE, censoring_thresholds_fdj_update)
+        censoring_thresholds_fdj_update()
+
+        # Framewise displacement P control
+        censoring_thresholds_fdp = find(censoring_thresholds, lambda t:  t.get('type') == 'FD_P') or {}
+        has_censoring_thresholds_fdp = bool(censoring_thresholds_fdp)
+
+        censoring_thresholds_fdp_label = wx.StaticText(self.editor, label='Framewise Displacement (Power)')
+        censoring_thresholds_fdp_control = wx.CheckBox(self.editor)
+        censoring_thresholds_fdp_control.SetValue(has_censoring_thresholds_fdp)
+        self.add_to_new_row(censoring_thresholds_fdp_label, censoring_thresholds_fdp_control)
+        self.data_controls['Censor']['threshold']['fdp']['enabled'] = censoring_thresholds_fdp_control
+
+        censoring_thresholds_fdp_value_label = wx.StaticText(self.editor, label='Threshold')
+        censoring_thresholds_fdp_value_control = wx.TextCtrl(self.editor)
+        censoring_thresholds_fdp_value_control.SetValue(str(censoring_thresholds_fdp.get('value', 0.0)))
+        self.add_to_new_row(censoring_thresholds_fdp_value_label, censoring_thresholds_fdp_value_control)
+        self.data_controls['Censor']['threshold']['fdp']['value'] = censoring_thresholds_fdp_value_control
+
+        def censoring_thresholds_fdp_update(event=None):
+            if censoring_thresholds_fdp_control.GetValue():
+                ctrl_enable(censoring_thresholds_fdp_value_control)
+            else:
+                ctrl_disable(censoring_thresholds_fdp_value_control)
+
+        censoring_thresholds_fdp_control.Bind(wx.EVT_CHECKBOX, censoring_thresholds_fdp_update)
+        censoring_thresholds_fdp_control.Bind(EVT_ENABLE, censoring_thresholds_fdp_update)
+        censoring_thresholds_fdp_update()
 
         # DVARS control
         censoring_thresholds_dvars = find(censoring_thresholds, lambda t:  t.get('type') == 'DVARS') or {}
@@ -745,21 +731,21 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
 
     def compile_selector_derivatives(self, selector):
         return {
-            'include_delayed': selector['include_delayed'].GetValue(),
-            'include_delayed_squared': selector['include_delayed_squared'].GetValue(),
-            'include_squared': selector['include_squared'].GetValue(),
+            'include_delayed': bool(selector['include_delayed'].GetValue()),
+            'include_delayed_squared': bool(selector['include_delayed_squared'].GetValue()),
+            'include_squared': bool(selector['include_squared'].GetValue()),
         }
 
     def compile_selector_tissue_parameters(self, selector):
         return {
             'extraction_resolution': float(selector['extraction'].GetValue().replace('mm', '')),
-            'erode_mask': selector['erode'].GetValue(),
+            'erode_mask': bool(selector['erode'].GetValue()),
         }
 
     def compile_selector_summary(self, selector):
         method = 'PC'
         if 'method' in selector['summary']:
-            method = selector['summary']['method'].GetValue()
+            method = str(selector['summary']['method'].GetValue())
         params = {
             'summary': {
                 'method': method
@@ -768,6 +754,13 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         if method in ['DetrendPC', 'PC']:
             params['summary']['components'] = int(selector['summary']['components'].GetValue())
         return params
+
+    def parse_threshold(self, threshold):
+        threshold_sd = \
+            re.match(r"([0-9]*\.*[0-9]*)\s*SD", str(threshold))
+        if not threshold_sd:
+            threshold = float(threshold)
+        return threshold
 
     def compile_selector(self):
         selector = {}
@@ -802,6 +795,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         if self.data_controls['aCompCor']['enabled'].GetValue():
             selector['aCompCor'] = {}
             selector['aCompCor'].update(self.compile_selector_summary(self.data_controls['aCompCor']))
+            selector['aCompCor']['summary']['method'] = 'DetrendPC'
             selector['aCompCor'].update(self.compile_selector_tissue_parameters(self.data_controls['aCompCor']))
             selector['aCompCor'].update(self.compile_selector_derivatives(self.data_controls['aCompCor']))
 
@@ -819,37 +813,42 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             
         if self.data_controls['PolyOrt']['enabled'].GetValue():
             selector['PolyOrt'] = {
-                'degree': float(self.data_controls['PolyOrt']['degree'].GetValue()),
+                'degree': int(self.data_controls['PolyOrt']['degree'].GetValue()),
             }
         
         if self.data_controls['Bandpass']['enabled'].GetValue():
             selector['Bandpass'] = {}
 
-            bottom_frequency = self.data_controls['PolyOrt']['bottom_frequency'].GetValue()
+            bottom_frequency = self.data_controls['Bandpass']['bottom_frequency'].GetValue()
             if bottom_frequency:
-                selector['Bandpass']['bottom_frequency'] = float(self.data_controls['PolyOrt']['bottom_frequency'].GetValue())
+                selector['Bandpass']['bottom_frequency'] = float(self.data_controls['Bandpass']['bottom_frequency'].GetValue())
 
-            top_frequency = self.data_controls['PolyOrt']['top_frequency'].GetValue()
+            top_frequency = self.data_controls['Bandpass']['top_frequency'].GetValue()
             if top_frequency:
-                selector['Bandpass']['top_frequency'] = float(self.data_controls['PolyOrt']['top_frequency'].GetValue())
+                selector['Bandpass']['top_frequency'] = float(self.data_controls['Bandpass']['top_frequency'].GetValue())
 
         if self.data_controls['Censor']['enabled'].GetValue():
             selector['Censor'] = {
-                'method': self.data_controls['Censor']['method'].GetValue(),
-                'number_of_previous_trs_to_censor': self.data_controls['Censor']['number_of_previous_trs_to_censor'].GetValue() or 0,
-                'number_of_subsequent_trs_to_censor': self.data_controls['Censor']['number_of_subsequent_trs_to_censor'].GetValue() or 0,
+                'method': str(self.data_controls['Censor']['method'].GetValue()),
+                'number_of_previous_trs_to_censor': int(self.data_controls['Censor']['number_of_previous_trs_to_censor'].GetValue()) or 0,
+                'number_of_subsequent_trs_to_censor': int(self.data_controls['Censor']['number_of_subsequent_trs_to_censor'].GetValue()) or 0,
                 'thresholds': [],
             }
 
-            if self.data_controls['Censor']['threshold']['fd']['enabled'].GetValue():
+            if self.data_controls['Censor']['threshold']['fdj']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
-                    'type': 'FD',
-                    'value': self.data_controls['Censor']['threshold']['fd']['value'],
+                    'type': 'FD_J',
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdj']['value']),
+                })
+            if self.data_controls['Censor']['threshold']['fdp']['enabled'].GetValue():
+                selector['Censor']['thresholds'].append({
+                    'type': 'FD_P',
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdp']['value']),
                 })
             if self.data_controls['Censor']['threshold']['dvars']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
                     'type': 'DVARS',
-                    'value': self.data_controls['Censor']['threshold']['dvars']['value'],
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['dvars']['value']),
                 })
 
         return selector
@@ -871,7 +870,7 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
 
         wx.Panel.__init__(self, parent, id=id, size=size)
 
-        self.regressor_selectors = regressor_selectors
+        self.regressor_selectors = []
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
@@ -925,7 +924,7 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
         editor = NuisanceRegressionRegressorEditor(self, regressor_i)
 
         def save_regressor(event):
-            self.regressor_selectors.append(editor.compile_selector())
+            self.regressor_selectors[regressor_i] = editor.compile_selector()
             self.render()
 
         editor.Bind(EVT_EDITOR_OK, save_regressor)
@@ -933,6 +932,14 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
 
     def edit_regressor(self, event, regressor_i):
         editor = NuisanceRegressionRegressorEditor(self, regressor_i)
+
+        def save_regressor(event):
+            sel = editor.compile_selector()
+            if sel:
+                self.regressor_selectors[regressor_i] = sel
+                self.render()
+
+        editor.Bind(EVT_EDITOR_OK, save_regressor)
         editor.Show()
 
     def remove_regressor(self, event, regressor_i):
@@ -1004,7 +1011,7 @@ class NuisanceRegressionRegressors(Control):
 
         self.ctrl = NuisanceRegressionRegressorsGrid(
             parent,
-            value=regressor_selectors
+            value={}
         )
 
     def set_value(self, value):

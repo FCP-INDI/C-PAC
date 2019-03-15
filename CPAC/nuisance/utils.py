@@ -14,19 +14,24 @@ from CPAC.utils.function import Function
 import scipy.signal as signal
 
 
-def find_offending_time_points(fd_file_path=None, dvars_file_path=None,
-                               fd_threshold=None, dvars_threshold=None,
+def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
+                               fd_j_threshold=None, fd_p_threshold=None, dvars_threshold=None,
                                number_of_previous_trs_to_censor=0,
                                number_of_subsequent_trs_to_censor=0):
     """
     Applies criterion in method to find time points whose FD or DVARS (or both)
     are above threshold. 
 
-    :param fd_file_path: path to TSV containing framewise displacement as a
+    :param fd_j_file_path: path to TSV containing framewise displacement as a
+        single column. If not specified, it will not be used.
+    :param fd_p_file_path: path to TSV containing framewise displacement as a
         single column. If not specified, it will not be used.
     :param dvars_file_path: path to TSV containing DVARS as a single column.
         If not specified, it will not be used.
-    :param fd_threshold: threshold to apply to framewise displacement,
+    :param fd_j_threshold: threshold to apply to framewise displacement (Jenkinson),
+        it can be a value such as 0.2 or a floating point multiple of the
+        standard deviation specified as, e.g. '1.5SD'.
+    :param fd_p_threshold: threshold to apply to framewise displacement (Power),
         it can be a value such as 0.2 or a floating point multiple of the
         standard deviation specified as, e.g. '1.5SD'.
     :param dvars_threshold: threshold to apply to DVARS, can be a value such
@@ -43,76 +48,52 @@ def find_offending_time_points(fd_file_path=None, dvars_file_path=None,
     import os
     import re
 
-    offending_time_points = []
+    offending_time_points = set()
     time_course_len = 0
 
-    if fd_file_path:
+    types = ['FDJ', 'FDP', 'DVARS']
+    file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
+    thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
 
-        if not os.path.isfile(fd_file_path):
+    for type, file_path, threshold in zip(types, file_paths, thresholds):
+
+        if not file_path:
+            continue
+
+        if not os.path.isfile(file_path):
             raise ValueError(
-                "Framewise displacement file {0} could not be found."
-                .format(fd_file_path)
+                "File {0} could not be found."
+                .format(file_path)
             )
 
-        if not fd_threshold:
-            raise ValueError("Method FD requires the specification of a "
-                             "framewise displacement threshold, none received")
+        if not threshold:
+            raise ValueError("Method requires the specification of a threshold, none received")
 
-        framewise_displacement = np.loadtxt(fd_file_path)
+        metric = np.loadtxt(file_path)
+        if type == 'DVARS':
+            metric = np.array([0.0] + metric.tolist())
 
-        time_course_len = framewise_displacement.shape[0]
-
-        try:
-            fd_threshold_sd = \
-                re.match(r"([0-9]*\.*[0-9]*)\s*SD", str(fd_threshold))
-
-            if fd_threshold_sd:
-                fd_threshold_sd = float(fd_threshold_sd.groups()[0])
-                fd_threshold = framewise_displacement.mean() + \
-                    fd_threshold_sd * framewise_displacement.std()
-            else:
-                fd_threshold = float(fd_threshold)
-        except:
-            raise ValueError("Could not translate fd_threshold {0} into a "
-                             "meaningful value".format(fd_threshold))
-
-        offending_time_points = \
-            np.where(framewise_displacement > fd_threshold)[0].tolist()
-
-    if dvars_file_path:
-
-        if not os.path.isfile(dvars_file_path):
-            raise ValueError(
-                "DVARS file {0} could not be found.".format(dvars_file_path))
-
-        if not dvars_threshold:
-            raise ValueError("Method DVARS requires the specification of a "
-                             "DVARS threshold, none received")
-
-        dvars = np.array([0.0] + np.loadtxt(dvars_file_path).tolist())
-
-        time_course_len = dvars.shape[0]
-
-        try:
-            dvars_threshold_sd = \
-                re.match(r"([0-9]*\.*[0-9]*)\s*SD", str(dvars_threshold))
-
-            if dvars_threshold_sd:
-                dvars_threshold_sd = float(dvars_threshold_sd.groups()[0])
-                dvars_threshold = dvars.mean() + \
-                    dvars_threshold_sd * dvars.std()
-            else:
-                dvars_threshold = float(dvars_threshold)
-        except:
-            raise ValueError("Could not translate dvars_threshold {0} into a "
-                             "meaningful value".format(dvars_threshold))
-
-        if not offending_time_points:
-            offending_time_points = \
-                np.where(dvars > dvars_threshold)[0].tolist()
+        if not time_course_len:
+            time_course_len = metric.shape[0]
         else:
-            offending_time_points = list(set(offending_time_points).intersection(
-                np.where(dvars > dvars_threshold)[0].tolist()))
+            assert time_course_len == metric.shape[0], "Threshold metric files does not have same size."
+
+        try:
+            threshold_sd = \
+                re.match(r"([0-9]*\.*[0-9]*)\s*SD", str(threshold))
+
+            if threshold_sd:
+                threshold_sd = float(threshold_sd.groups()[0])
+                threshold = metric.mean() + \
+                    threshold_sd * metric.std()
+            else:
+                threshold = float(threshold)
+        except:
+            raise ValueError("Could not translate threshold {0} into a "
+                             "meaningful value".format(threshold))
+
+        offending_time_points |= \
+            set(np.where(metric > threshold)[0].tolist())
 
     extended_censors = []
     for censor in offending_time_points:
@@ -742,7 +723,8 @@ class NuisanceRegressor(object):
                 }
 
                 thresholds = {
-                    'FD': 'FD',
+                    'FD_J': 'FD-J',
+                    'FD_P': 'FD-P',
                     'DVARS': 'DV',
                 }
 

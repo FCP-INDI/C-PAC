@@ -486,7 +486,6 @@ Regressors :
    PolyOrt:
     degree: 2
 
-
 # Correct for the global signal using Median Angle Correction.
 runMedianAngleCorrection :  [0]
 

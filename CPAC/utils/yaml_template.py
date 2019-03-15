@@ -21,16 +21,22 @@ def create_yaml_from_template(d, template):
     with open(template, 'r') as dtf:
         d_default = yaml.load(dtf)
 
+    empty_lines = 0
     with open(template, 'r') as f:
         for line in f:
 
             # keep empty lines
             if re.match(r'^$', line.strip()):
-                output += "\n"
+                if empty_lines < 2:
+                    output += "\n"
+                empty_lines += 1
+                continue
 
             # keep comments
             if re.match(r'^#', line):
                 output += line
+                empty_lines = 0
+                continue
 
             # keep fields and add values
             # not robust for any YAML, focusing on C-PAC config files
@@ -45,6 +51,7 @@ def create_yaml_from_template(d, template):
                     output += key + ":\n"
                     continue
                     
+                empty_lines = 0
                 default_flow_style = False
 
                 # Flow style for non-dict list or empty list
