@@ -76,7 +76,7 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
         if not time_course_len:
             time_course_len = metric.shape[0]
         else:
-            assert time_course_len == metric.shape[0]
+            assert time_course_len == metric.shape[0], "Threshold metric files does not have same size."
 
         try:
             threshold_sd = \
