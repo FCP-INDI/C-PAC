@@ -518,7 +518,7 @@ Regressors :
      number_of_previous_trs_to_censor: 1
      number_of_subsequent_trs_to_censor: 2
      thresholds:
-       - type: FD
+       - type: FD_J
          value: 0.2
 
  - Motion:
@@ -565,7 +565,7 @@ Regressors :
      number_of_previous_trs_to_censor: 1
      number_of_subsequent_trs_to_censor: 2
      thresholds:
-       - type: FD
+       - type: FD_J
          value: 0.2
 
 
