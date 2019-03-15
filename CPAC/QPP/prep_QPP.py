@@ -227,6 +227,7 @@ def prep_inputs(group_config_file):
                   "recheck the participants in the participant inclusion list and the " \
                   "pipeline output directory to troubleshoot.\n\n"
             raise Exception(err)
+
         join_columns = ["participant_id"]
         col_names = output_df.columns.tolist()
         # We're then going to reduce the Output directory to contain only those scans and or the sessions which are expressed by the user.
@@ -245,50 +246,34 @@ def prep_inputs(group_config_file):
         if group_config_obj.qpp_scan_inclusion:
             if len(group_config_obj.qpp_scan_inclusion) > 0:
                 grp_by_sessions = True
-
         if grp_by_scans or grp_by_sessions:
             repeated_measures=True
         if grp_by_scans and grp_by_sessions:
             grp_by_both=True
+
+        session_list = []
+        scan_list = []
+        if group_config_obj.qpp_sess_inclusion:
+            session_list.append(group_config_obj.qpp_sess_inclusion)
+        if group_config_obj.qpp_scan_inclusion:
+            scan_list.append(group_config_obj.qpp_scan_inclusion)
         #PSA #both multiple sessions and scans, youre going to do nothing
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
             if grp_by_scans:
-                print("grouping by scans")
-                #setting up the output_df for grouping by scans
-                #output directory will be scan_1
-                #                         scan_2
-                new_output_df = op_grp_by_scans(output_df,group_config_obj.qpp_sess_inclusion)
-                # drop all the sessions that are not in the sessions list
-                new_output_df = new_output_df[new_output_df["Session"].isin(group_config_obj.qpp_sess_inclusion)]
-                join_colums.append("Session")
-                # balance the DF
-                new_output_df, dropped_parts = balance_df(new_output_df, group_config_obj.qpp_sess_inclusion, scan_list=None)
-                qpp_dict['output_df'] = new_output_df
+                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
+                join_columns.append("Sessions")
             if grp_by_sessions:
-                print("grouping by sessions")
-                #multilple scans
-                #setting up the output_df for grouping by sessions
-                new_output_df = op_grp_by_sessions(output_df,group_config_obj.qpp_scan_inclusion,grp_by_scans)
-
-                # drop all the scans that are not in the scan list
-                new_output_df = new_output_df[new_output_df["Scan"].isin(group_config_obj.qpp_scan_inclusion)]
-
+                #drop all the scans that are not in the scan list
+                new_output_df = output_df[output_df["Scan"].isin(group_config_obj.qpp_scan_inclusion)]
                 join_columns.append("Scan")
-
-                # balance the DF
-                sessions_list = None
-                scan_list = group_config_obj.qpp_scan_list
-                new_output_df, dropped_parts = balance_df(new_output_df,sessions_list,scan_list)
-                qpp_dict['output_df'] = new_output_df
-
-            if grp_by_both:
-                print("grouping by both")
-                new_output_df = new_output_df(new_output_df,group_config_obj.qpp_sess_inclusion,group_config_obj.qpp_scan_inclusion)
-                qpp_dict['output_df']=new_output_df
-        else:
+            new_output_df, dropped_parts = balance_df(new_output_df, session_list,scan_list)
+            #if grp_by_both:
+            #    print("grouping by both")
+            #    new_output_df = new_output_df(new_output_df,group_config_obj.qpp_sess_inclusion,group_config_obj.qpp_scan_inclusion)
+            #    qpp_dict['output_df']=new_output_df
             pre_qpp_dict={}
-            for scan_df_tuple in output_df.groupby("Scan"):
+            for scan_df_tuple in new_output_df.groupby("Scan"):
                 scans = scan_df_tuple[0]
                 scan_df=scan_df_tuple[1]
                 #print("scan_df:{0}".format(scan_df))
@@ -404,12 +389,13 @@ def op_grp_by_scans(output_df,sessions_list):
     import pandas as pd
 
     num_partic_cols = 0
-    for col_names in output_df.columns:
-        if "participant_" in output_df.columns:
+    col_names=output_df.columns.tolist()
+    for columns in col_names:
+        if "participant_id" in columns or "participant_session_id" in columns:
             num_partic_cols += 1
     if num_partic_cols > 1 and ("Sessions" in output_df.columns or "Sessions_column_one" in pheno_df.columns):
         for part_id in output_df["participant_id"]:
-            if "participant_{0}".format(part_id) in output_df.columns:
+            if "participant_{0}".format(part_id) in output_df['participant_id']:
                 continue
             break
         else:
@@ -420,7 +406,7 @@ def op_grp_by_scans(output_df,sessions_list):
         # if not an FSL model preset, continue as normal
         new_rows = []
         another_new_row = []
-            # grab the ordered sublist before we double the rows
+        # grab the ordered sublist before we double the rows
         sublist = output_df['participant_id']
         for session in sessions_list:
             sub_op_df = output_df.copy()
@@ -440,13 +426,14 @@ def op_grp_by_scans(output_df,sessions_list):
 
     for participant_unique_id in output_df["participant_session_id"]:
         part_col = [0] * len(output_df["participant_session_id"])
-        for session in sessions_list:
-            session=str(session)
+
+        session_list.append(sessions_list)
+        for session in session_list:
             if session in participant_unique_id.split("_")[1]:
                 # print(participant_unique_id)# generate/update sessions categorical column
                 part_id = participant_unique_id.split("_")[0]
-                part_ids_col.append(str(part_id))
-                sessions_col.append(str(session))
+                part_ids_col.append(part_id)
+                sessions_col.append(session)
                 header_title = "participant_%s" % part_id
                 # generate/update participant ID column (1's or 0's)
                 if header_title not in participant_id_cols.keys():
@@ -455,8 +442,9 @@ def op_grp_by_scans(output_df,sessions_list):
                 else:
                     participant_id_cols[header_title][i] = 1
         i += 1
-    output_df["Sessions"] = sessions_col
-    output_df["participant"] = part_ids_col
+
+    output_df['Sessions'].update(sessions_col)
+    output_df["participant"].update(part_ids_col)
     # add new participant ID columns
     for sub_id in sublist:
         new_col = 'participant_{0}'.format(sub_id)
@@ -466,11 +454,11 @@ def op_grp_by_scans(output_df,sessions_list):
     return output_df
 
 
-def balance_df(output_df,sessions_list,scan_list):
+def balance_df(new_output_df,sessions_list,scan_list):
     import pandas as pd
     from collections import Counter
 
-    part_ID_count = Counter(output_df["participant_id"])
+    part_ID_count = Counter(new_output_df["participant_id"])
 
     if scan_list and sessions_list:
         sessions_x_scans= len(sessions_list)*len(scan_list)
@@ -481,10 +469,11 @@ def balance_df(output_df,sessions_list,scan_list):
     dropped_parts = []
     for part_ID in part_ID_count.keys():
         if part_ID_count[part_ID] != sessions_x_scans:
-            output_df=putput_df[output_df.participant_id != part_ID]
-            del output_df["participant_%s" %part_ID]
+            new_output_df=new_output_df[new_output_df.participant_id != part_ID]
+            print(new_output_df)
+            del new_output_df[part_ID]
             dropped_parts.append(part_ID)
-    return output_df, dropped_parts
+    return new_output_df, dropped_parts
 
 
 
