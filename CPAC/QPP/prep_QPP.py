@@ -234,6 +234,7 @@ def prep_inputs(group_config_file):
         # If the user answers all to the option, then we're obviously not going to do any repeated measures.
         #add a qpp dict so that you don't make stupid af errors again!
         qpp_dict={}
+
         grp_by_sessions = False
         grp_by_scans = False
         grp_by_both = False
@@ -265,14 +266,18 @@ def prep_inputs(group_config_file):
                 join_columns.append("Sessions")
             if grp_by_sessions:
                 #drop all the scans that are not in the scan list
-                new_output_df = output_df[output_df["Scan"].isin(group_config_obj.qpp_scan_inclusion)]
+                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
-            new_output_df, dropped_parts = balance_df(new_output_df, session_list,scan_list)
-            #if grp_by_both:
-            #    print("grouping by both")
-            #    new_output_df = new_output_df(new_output_df,group_config_obj.qpp_sess_inclusion,group_config_obj.qpp_scan_inclusion)
-            #    qpp_dict['output_df']=new_output_df
+            if grp_by_both:
+                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
+                join_columns.append("Scan")
+                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
+                join_columns.append("Sessions")
+            #Make sure it is balanced
+            new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
             pre_qpp_dict={}
+
+            
             for scan_df_tuple in new_output_df.groupby("Scan"):
                 scans = scan_df_tuple[0]
                 scan_df=scan_df_tuple[1]
@@ -341,117 +346,6 @@ def use_inputs(group_config_file):
             shutil.move(merge_mask,merge_outdir)
 
     return merge_file,merge_mask,inclusion_list,merge_outdir
-
-def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
-    import pandas as pd
-
-    #check whether there is an extra sessions column in
-    num_partic_cols = 0
-    for col_names in output_df.columns:
-        if "participant_" in col_names:
-            num_partic_cols += 1
-    if num_partic_cols > 1 and "Scan" in output_df.columns:
-        for part_id in output_df["participant_id"]:
-            if "participant_{0}".format(part_id) in output_df.columns:
-                continue
-            break
-        else:
-            # if it's already set up properly, then just send the output_df
-            # back and bypass all the machinery below
-            return output_df
-
-    new_rows = []
-    for scan in scan_list:
-        sub_op_df = output_df.copy()
-        sub_op_df["Scan"] = scan
-        new_rows.append(sub_op_df)
-    output_df = pd.concat(new_rows)
-
-    if not grp_by_scans:
-        # participant IDs new columns
-        participant_id_cols = {}
-        i = 0
-        for participant_unique_id in output_df["participant_id"]:
-            part_col = [0] * len(output_df["participant_id"])
-            header_title = "participant_%s" % participant_unique_id
-            if header_title not in participant_id_cols.keys():
-                part_col[i] = 1
-                participant_id_cols[header_title] = part_col
-            else:
-                participant_id_cols[header_title][i] = 1
-            i += 1
-        for new_col in participant_id_cols.keys():
-            output_df[new_col] = participant_id_cols[new_col]
-    new_output_df = output_df.astype('object')
-    return new_output_df
-
-def op_grp_by_scans(output_df,sessions_list):
-    import pandas as pd
-
-    num_partic_cols = 0
-    col_names=output_df.columns.tolist()
-    for columns in col_names:
-        if "participant_id" in columns or "participant_session_id" in columns:
-            num_partic_cols += 1
-    if num_partic_cols > 1 and ("Sessions" in output_df.columns or "Sessions_column_one" in pheno_df.columns):
-        for part_id in output_df["participant_id"]:
-            if "participant_{0}".format(part_id) in output_df['participant_id']:
-                continue
-            break
-        else:
-            # if it's already set up properly, then just send the pheno_df
-            # back and bypass all the machinery below
-            return output_df
-    else:
-        # if not an FSL model preset, continue as normal
-        new_rows = []
-        another_new_row = []
-        # grab the ordered sublist before we double the rows
-        sublist = output_df['participant_id']
-        for session in sessions_list:
-            sub_op_df = output_df.copy()
-            sub_op_df["Sessions"] = session
-            sub_op_df["participant_session_id"] = output_df.participant_id + '_ses-%s' % session
-            new_rows.append(sub_op_df)
-            another_new_row.append(sub_op_df)
-            output_df = pd.concat(new_rows)
-            output_df = pd.concat(another_new_row)
-
-    sessions_col = []
-    part_ids_col = []
-
-    # participant IDs new columns
-    participant_id_cols = {}
-    i = 0
-
-    for participant_unique_id in output_df["participant_session_id"]:
-        part_col = [0] * len(output_df["participant_session_id"])
-
-        session_list.append(sessions_list)
-        for session in session_list:
-            if session in participant_unique_id.split("_")[1]:
-                # print(participant_unique_id)# generate/update sessions categorical column
-                part_id = participant_unique_id.split("_")[0]
-                part_ids_col.append(part_id)
-                sessions_col.append(session)
-                header_title = "participant_%s" % part_id
-                # generate/update participant ID column (1's or 0's)
-                if header_title not in participant_id_cols.keys():
-                    part_col[i] = 1
-                    participant_id_cols[header_title] = part_col
-                else:
-                    participant_id_cols[header_title][i] = 1
-        i += 1
-
-    output_df['Sessions'].update(sessions_col)
-    output_df["participant"].update(part_ids_col)
-    # add new participant ID columns
-    for sub_id in sublist:
-        new_col = 'participant_{0}'.format(sub_id)
-        output_df[new_col] = participant_id_cols[new_col]
-    output_df = output_df.astype('object')
-
-    return output_df
 
 
 def balance_df(new_output_df,sessions_list,scan_list):

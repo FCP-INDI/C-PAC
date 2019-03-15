@@ -724,6 +724,23 @@ class QPPSettings(wx.ScrolledWindow):
                       values=30,
                       comment="provide the length of window you would like to search for the template in")
 
+
+        self.page.add(label="Scan/Sessions Inclusion in one qpp run(Optional) ",
+                      control=control.CHOICE_BOX,
+                      name='qpp_grpby_strat',
+                      type=dtype.LSTR,
+                      values=["Session","Scan","None"],
+                      comment="If you have multiple sessions or scans for a subject"
+                              "and would like to group them by a particular stratergy,"
+                              "i.e., group by sessions, QPP will be run for each session"
+                              "(which may include more than one scan), by concatenating"
+                              "subjects along each session.\n"
+                              "If you choose group by scan, it will concatenate across"
+                              "the scans for each subject, and QPP will be run for each scan for each subject"
+                              ").\n\nIf None is listed, QPP "
+                              "will run once for each scan, and each sessions for all "
+                              "available scans and sessions.")
+
         self.page.add(label="Number of scans per subject ",
                       control=control.INT_CTRL,
                       name='qpp_nrn',
