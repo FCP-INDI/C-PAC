@@ -1939,12 +1939,9 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
 
 def run_qpp_group(group_config_file):
-    from CPAC.QPP.prep_QPP import prep_inputs
+    from CPAC.QPP.prep_QPP import use_inputs
     #creating output directory paths
-
-    merge_file,merge_mask,inclusion_list,merge_outdir = prep_inputs(group_config_file)
-
-
+    merge_file,merge_mask,inclusion_list,merge_outdir = use_inputs(group_config_file)
     return merge_file,merge_mask,inclusion_list,merge_outdir
 
 
