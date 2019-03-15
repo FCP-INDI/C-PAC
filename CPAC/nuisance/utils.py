@@ -723,7 +723,8 @@ class NuisanceRegressor(object):
                 }
 
                 thresholds = {
-                    'FD': 'FD',
+                    'FD_J': 'FD-J',
+                    'FD_P': 'FD-P',
                     'DVARS': 'DV',
                 }
 

@@ -36,8 +36,6 @@ def gather_nuisance(functional_file_path,
                     tcompcor_file_path=None,
                     global_summary_file_path=None,
                     motion_parameters_file_path=None,
-                    dvars_file_path=None,
-                    framewise_displacement_file_path=None,
                     censor_file_path=None):
     """
     Gathers the various nuisance regressors together into a single tab separated values file that is an appropriate for
@@ -59,8 +57,6 @@ def gather_nuisance(functional_file_path,
     :param global_summary_file_path: path to TSV that includes summary of global time courses, e.g. output 
         of mask_summarize_time_course 
     :param motion_parameters_file_path: path to TSV that includes motion parameters
-    :param dvars_file_path: path to TSV that includes DVARS as a single column
-    :param framewise_displacement_file_path: path to TSV that includes framewise displacement as a single column
     :param censor_file_path: path to TSV with a single column with 1's for indices that should be retained and 0's
               for indices that should be censored
     :return: 
@@ -345,7 +341,9 @@ def create_nuisance_workflow(nuisance_selectors,
         inputspec.motion_parameter_file_path : string (text file)
             Corresponding rigid-body motion parameters. Matrix in the file should be of shape 
             (`T`, `R`), `T` time points and `R` motion parameters.
-        inputspec.fd_file_path : string (text file)
+        inputspec.fd_j_file_path : string (text file)
+            Framewise displacement calculated from the volume alignment.
+        inputspec.fd_p_file_path : string (text file)
             Framewise displacement calculated from the motion parameters.
         inputspec.dvars_file_path : string (text file)
             DVARS calculated from the functional data.
@@ -444,7 +442,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 Censor: {
                     method: 'Kill', 'Zero', 'Interpolate', 'SpikeRegression',
                     thresholds: list of dictionary, {
-                        type: 'FD', 'DVARS',
+                        type: 'FD_J', 'FD_P', 'DVARS',
                         value: threshold value to be applied to metric
                     },
                     number_of_previous_trs_to_censor: integer, number of previous
@@ -515,8 +513,9 @@ def create_nuisance_workflow(nuisance_selectors,
         'anat_to_mni_affine_xfm_file_path',
 
         'motion_parameters_file_path',
+        'fd_j_file_path',
+        'fd_p_file_path',
         'dvars_file_path',
-        'fd_file_path',
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
@@ -551,7 +550,8 @@ def create_nuisance_workflow(nuisance_selectors,
         'tCompCor': ['tcompcor_file_path', ()],
         'GlobalSignal': ['global_summary_file_path', ()],
         'DVARS': ['dvars_file_path', (inputspec, 'dvars_file_path')],
-        'FD': ['framewise_displacement_file_path', (inputspec, 'framewise_displacement_file_path')],
+        'FD_J': ['framewise_displacement_j_file_path', (inputspec, 'framewise_displacement_j_file_path')],
+        'FD_P': ['framewise_displacement_p_file_path', (inputspec, 'framewise_displacement_p_file_path')],
         'Motion': ['motion_parameters_file_path', (inputspec, 'motion_parameters_file_path')]
     }
 
@@ -828,8 +828,6 @@ def create_nuisance_workflow(nuisance_selectors,
                      'tcompcor_file_path',
                      'global_summary_file_path',
                      'motion_parameters_file_path',
-                     'dvars_file_path',
-                     'framewise_displacement_file_path',
                      'censor_file_path'],
         output_names=['out_file'],
         function=gather_nuisance,
@@ -873,8 +871,10 @@ def create_nuisance_workflow(nuisance_selectors,
                                      censor_methods))
 
         find_censors = pe.Node(Function(
-            input_names=['fd_file_path',
-                         'fd_threshold',
+            input_names=['fd_j_file_path',
+                         'fd_j_threshold',
+                         'fd_p_file_path',
+                         'fd_p_threshold',
                          'dvars_file_path',
                          'dvars_threshold',
                          'number_of_previous_trs_to_censor',
@@ -891,7 +891,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
         for threshold in censor_selector['thresholds']:
 
-            if 'type' not in threshold or threshold['type'] not in ['DVARS', 'FD']:
+            if 'type' not in threshold or threshold['type'] not in ['DVARS', 'FD_J', 'FD_P']:
                 raise ValueError(
                     'Censoring requested, but with invalid threshold type.'
                 )
@@ -901,10 +901,15 @@ def create_nuisance_workflow(nuisance_selectors,
                     'Censoring requested, but threshold not provided.'
                 )
 
-            if threshold['type'] == 'FD':
-                find_censors.inputs.fd_threshold = threshold['value']
-                nuisance_wf.connect(inputspec, "fd_file_path",
-                                    find_censors, "fd_file_path")
+            if threshold['type'] == 'FD_J':
+                find_censors.inputs.fd_j_threshold = threshold['value']
+                nuisance_wf.connect(inputspec, "fd_j_file_path",
+                                    find_censors, "fd_j_file_path")
+
+            if threshold['type'] == 'FD_P':
+                find_censors.inputs.fd_p_threshold = threshold['value']
+                nuisance_wf.connect(inputspec, "fd_p_file_path",
+                                    find_censors, "fd_p_file_path")
 
             if threshold['type'] == 'DVARS':
                 find_censors.inputs.dvars_threshold = threshold['value']

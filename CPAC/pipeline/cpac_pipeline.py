@@ -1964,7 +1964,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(
                         node, out_file,
                         nuisance_regression_workflow,
-                        'inputspec.fd_file_path'
+                        'inputspec.fd_j_file_path'
+                    )
+
+                    node, out_file = new_strat['frame_wise_displacement_power']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_workflow,
+                        'inputspec.fd_p_file_path'
                     )
 
                     node, out_file = new_strat['dvars']
