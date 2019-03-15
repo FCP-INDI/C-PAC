@@ -10,9 +10,6 @@ import matplotlib.pyplot as plt
 from detect_peaks import detect_peaks
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
-
-
-
 def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     # TODOconsolidate this to one function as Behnaz suggested
     """This code is adapted from the paper
@@ -59,7 +56,6 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     nX = B.shape[0] #larger value
     #print(nT,nX)
     nt = int(nT/nd) #to prevent floating point errors during initializations
-
     nch = nt-wl+1
     nTf = (nX*wl)
     #make it a boolean mask - all valies with entries greater than zeros will become 1 the rest will be zero
@@ -93,26 +89,20 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
             #removing nan values and making them 0 to prevent further issues in calculations
             A = np.isnan(bchfn)
             bchfn[A] = 0
-    print(bchfn)
         #todo: have to make args.nd and other args.something as just the variable name
-
     #array initialized to later be deleted from the random ITP array
     i2x=np.zeros((nd,wl-1))
     #filling the sequence with range of numbers from wl+2 to nt
     for i in range(1,nd+1):
         i2x[i-1,:] = range(i*nt-wl+2,i*nt+1)
-
     #delete instances of ITP from i2x
     itp=np.arange(1,nT+1)
     i2x = ndarray.flatten(i2x)
-
     itp = np.delete(itp,i2x-1,0)
     #permute the numbers within ITP
     #itp = np.random.permutation(itp)
-
     #itp = np.random.permutation(itp)
     itp = itp[0:nrp]
-
     #Initialize the time course that will later on be saved
     time_course=np.zeros((nrp,nT))
     ftp = [[None]]*nrp
@@ -131,10 +121,7 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
         #switching off show true until it is necessary, in order to test code.
         peaks= detect_peaks(c,mph=cth[0],mpd=wl)
                             #show=True)
-
-
-
-#indexes = pu.indexes(c, thresh=c[0])
+        #indexes = pu.indexes(c, thresh=c[0])
         #You're deleting the first and last instances of the peaks that are now in the 'peaks' array
         for i in range(nd):
             if i*nt in peaks:
@@ -152,7 +139,6 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
         #print(peaks.size)
         while itr<=mx_itr:
             c = gaussian_filter(c,0.5)
-
             if itr<=n_itr_th:
                 ith=0
             else:
@@ -160,15 +146,12 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
             th=cth[ith]
             tpsgth=peaks
             n_tpsgth=np.size(tpsgth)
-
             if n_tpsgth<=1:
                 break
-
             template = bchf[tpsgth[0]]
             for i in range(1,n_tpsgth):
                 template=template+bchf[tpsgth[i]]
             template=template/n_tpsgth
-
             #perform a repeate of the operations in order to find peaks in the template
             #template_trans2=np.transpose(template)
             template=template-np.sum(template)/nTf
@@ -186,18 +169,17 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
             #use the correlation coefficient. It returns a matrix and therefore, the first entry of that matrix will be the correlation coefficient value
             if (np.corrcoef(c_0,c)[0,1]>0.9999) or (np.corrcoef(c_00,c)[0,1]>0.9999) or (np.corrcoef(c_000,c)[0,1]>0.9999):
                 break
-
+            else:
+                raise Exception("We could not find good signal correlation with the data you provided. You might want to try with more data!")
             c_000=c_00
             c_00=c_0
             c_0=c
             itr=itr+1
-
         if n_tpsgth>1:
             time_course[irp,:]=c
             ftp[irp] = tpsgth.tolist()
             iter[irp]=itr
     #save everything!!
-
     plt.plot(template,'b')
     plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
     plt.xlabel('avg of func.data of length WL(30)')
@@ -246,8 +228,11 @@ def BSTT(time_course,ftp,nd,B,pfs):
     isscmx = np.argsort(scmx)[::-1]
     T1 = isscmx[0]
     C_1 = time_course[T1,:]
-    FTP1 = ftp[T1]
-
+    if ftp:
+        FTP1 = ftp[T1]
+    else:
+        raise Exception("The program will end now, because we could not find any signal correlation and the Final Time Point "
+                        " was not found with QPP. Please try running with more data.")
     Met1 = np.empty(3)
 
     FTP1 = [int(x) for x in FTP1]
