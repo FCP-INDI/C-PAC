@@ -254,6 +254,7 @@ def prep_inputs(group_config_file):
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
             if grp_by_scans:
+                print("grouping by scans")
                 #setting up the output_df for grouping by scans
                 #output directory will be scan_1
                 #                         scan_2
@@ -265,13 +266,14 @@ def prep_inputs(group_config_file):
                 new_output_df, dropped_parts = balance_df(new_output_df, group_config_obj.qpp_sess_inclusion, scan_list=None)
                 qpp_dict['output_df'] = new_output_df
             if grp_by_sessions:
+                print("grouping by sessions")
                 #multilple scans
                 #setting up the output_df for grouping by sessions
                 new_output_df = op_grp_by_sessions(output_df,group_config_obj.qpp_scan_inclusion,grp_by_scans)
 
                 # drop all the scans that are not in the scan list
                 new_output_df = new_output_df[new_output_df["Scan"].isin(group_config_obj.qpp_scan_inclusion)]
-                #print(new_output_df)
+
                 join_columns.append("Scan")
 
                 # balance the DF
@@ -281,49 +283,56 @@ def prep_inputs(group_config_file):
                 qpp_dict['output_df'] = new_output_df
 
             if grp_by_both:
+                print("grouping by both")
                 new_output_df = new_output_df(new_output_df,group_config_obj.qpp_sess_inclusion,group_config_obj.qpp_scan_inclusion)
                 qpp_dict['output_df']=new_output_df
         else:
+            pre_qpp_dict={}
             for scan_df_tuple in output_df.groupby("Scan"):
                 scans = scan_df_tuple[0]
                 scan_df=scan_df_tuple[1]
+                #print("scan_df:{0}".format(scan_df))
                 #if you have multiple sessions
-                if 'Sessions' in scan_df:
+                if 'Sessions' in scan_df.columns:
                     for ses_df_tuple in scan_df.groupby('Sessions'):
                         session = 'ses-{0}'.format(ses_df_tuple[0])
                         ses_df = ses_df_tuple[1]
-                        new_output_df=pd.merge(scan_df,ses_df,how='inner',on=['participant_id'])
-                        qpp_dict['output_df'] = new_output_df
+                        if not ses_df_tuple[0] in qpp_dict:
+                            pre_qpp_dict[ses_df_tuple[0]] = []
+                        pre_qpp_dict[ses_df_tuple[0]].append(ses_df)
+                    for key in pre_qpp_dict:
+                        list_df=pre_qpp_dict[key]
+                        concat_df = list_df[0]
+                        for df in list_df[1:]:
+                            concat_df=pd.concat(concat_df,df)
+                        qpp_dict[key]=concat_df
                 #if you don't
                 else:
                     session='ses-1'
-                    new_output_df = pd.merge(new_output_df,scan_df,how="inner",on=["participant_id"])
-                    qpp_dict['output_df'] = new_output_df
+                    qpp_dict['ses-1'] = scan_df
         if len(qpp_dict) == 0:
             err = '\n\n[!]C-PAC says:Could not find match betterrn the ' \
               'particpants in your pipeline output directory that were ' \
               'included in your analysis, and the particpants in the phenotype ' \
                     'phenotype file provided.\n\n'
             raise Exception(err)
-    print(qpp_dict)
+
 
     return qpp_dict,inclusion_list
 
 def use_inputs(group_config_file):
     import os
     import shutil
-    from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
     from CPAC.pipeline.cpac_group_runner import load_config_yml
     from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile, create_merge_mask
 
 
     qpp_dict,inclusion_list = prep_inputs(group_config_file)
     group_config_obj=load_config_yml(group_config_file)
-    for keys in qpp_dict:
-
-        newer_output_df = qpp_dict['output_df']
+    for key in qpp_dict:
+        newer_output_df = qpp_dict[key]
         pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
-        merge_file = create_merged_copefile(newer_output_df["Filepath_x"].tolist(), 'merged.nii.gz')
+        merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), 'merged.nii.gz')
         merge_mask = create_merge_mask(merge_file, 'merged_mask.nii.gz')
 
         model_dir = os.path.join(group_config_obj.output_dir,
