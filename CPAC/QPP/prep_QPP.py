@@ -277,29 +277,32 @@ def prep_inputs(group_config_file):
             new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
             pre_qpp_dict={}
 
-            
-            for scan_df_tuple in new_output_df.groupby("Scan"):
-                scans = scan_df_tuple[0]
-                scan_df=scan_df_tuple[1]
-                #print("scan_df:{0}".format(scan_df))
-                #if you have multiple sessions
-                if 'Sessions' in scan_df.columns:
-                    for ses_df_tuple in scan_df.groupby('Sessions'):
-                        session = 'ses-{0}'.format(ses_df_tuple[0])
-                        ses_df = ses_df_tuple[1]
-                        if not ses_df_tuple[0] in qpp_dict:
-                            pre_qpp_dict[ses_df_tuple[0]] = []
-                        pre_qpp_dict[ses_df_tuple[0]].append(ses_df)
-                    for key in pre_qpp_dict:
-                        list_df=pre_qpp_dict[key]
-                        concat_df = list_df[0]
-                        for df in list_df[1:]:
-                            concat_df=pd.concat(concat_df,df)
-                        qpp_dict[key]=concat_df
-                #if you don't
+            if group_config_obj.qpp_grpby_strat:
+                if group_config_obj.qpp_grpby_strat == "Scan":
+                    for scan_df_tuple in new_output_df.groupby("Scan"):
+                        scans = scan_df_tuple[0]
+                        scan_df=scan_df_tuple[1]
+                        #print("scan_df:{0}".format(scan_df))
+                        #if you have multiple sessions
+                        if 'Sessions' in scan_df.columns:
+                            for ses_df_tuple in scan_df.groupby('Sessions'):
+                                session = 'ses-{0}'.format(ses_df_tuple[0])
+                                ses_df = ses_df_tuple[1]
+                                if not ses_df_tuple[0] in qpp_dict:
+                                    pre_qpp_dict[ses_df_tuple[0]] = []
+                                pre_qpp_dict[ses_df_tuple[0]].append(ses_df)
+                            for key in pre_qpp_dict:
+                                list_df=pre_qpp_dict[key]
+                                concat_df = list_df[0]
+                                for df in list_df[1:]:
+                                    concat_df=pd.concat(concat_df,df)
+                                qpp_dict[key]=concat_df
+
+                elif group_config_obj.qpp_grpby_strat == "Session":
+                     session='ses-1'
+                     qpp_dict['ses-1'] = scan_df
                 else:
-                    session='ses-1'
-                    qpp_dict['ses-1'] = scan_df
+                     qpp_dict['output_df'] = new_output_df
         if len(qpp_dict) == 0:
             err = '\n\n[!]C-PAC says:Could not find match betterrn the ' \
               'particpants in your pipeline output directory that were ' \
