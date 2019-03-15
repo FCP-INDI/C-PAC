@@ -295,27 +295,25 @@ def calculate_FD_P(in_file):
 
     """
 
-    lines = open(in_file, 'r').readlines()
-    rows = [[float(x) for x in line.split()] for line in lines]
-    cols = np.array([list(col) for col in zip(*rows)])
+    motion_params = np.genfromtxt(in_file).T
 
-    translations = np.transpose(np.abs(np.diff(cols[3:6, :])))
-    rotations = np.transpose(np.abs(np.diff(cols[0:3, :])))
+    rotations = np.transpose(np.abs(np.diff(motion_params[0:3, :])))
+    translations = np.transpose(np.abs(np.diff(motion_params[3:6, :])))
 
     fd = np.sum(translations, axis=1) + \
         (50 * np.pi / 180) * np.sum(rotations, axis=1)
 
-    #FD is zero for the first time point
     fd = np.insert(fd, 0, 0)
 
     out_file = os.path.join(os.getcwd(), 'FD.1D')
     np.savetxt(out_file, fd)
+
     return out_file
 
 
 def calculate_FD_J(in_file):
     """
-    Method to calculate framewise displacement as per Jenkinson et al. 20012
+    Method to calculate framewise displacement as per Jenkinson et al. 2002
 
     Parameters
     ----------
