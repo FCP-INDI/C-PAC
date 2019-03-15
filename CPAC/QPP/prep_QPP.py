@@ -7,10 +7,7 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
     if len(resource_list) == 0:
         err = "\n\n[!] please choose atleast one nusiance stratergy!\n\n"
         raise Exception(err)
-
-
     if derivatives is None:
-
         keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
         try:
             keys=pd.read_csv(keys_csv)
@@ -18,49 +15,29 @@ def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
             err = "\n[!] Could not access or read the cpac_outputs.csv " \
                   "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
             raise Exception(err)
-        #derivatives = resource_list
-        #derivatives = list(
-        #    keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-        #        keys['Values'] == 'z-score']['Resource'])
-        #derivatives = derivatives + list(
-        #    keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
-        #        keys['Values'] == 'z-stat']['Resource'])
         derivatives =list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
-
     #choose which nuisance residual method you want to apply
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
     print "\n\nGathering the output file paths from %s..." \
     % pipeline_output_folder
-
     search_dir = []
     for derivative_name in derivatives:
         for resource_name in resource_list:
             if resource_name in derivative_name:
                 search_dir.append(derivative_name)
-
     nifti_globs=[]
-
     for resource_name in search_dir:
-
         glob_pieces = [pipeline_output_folder, "*", resource_name, "*"]
-
         glob_query = os.path.join(*glob_pieces)
-
         found_files = glob.iglob(glob_query)
-
         exts=['nii','nii.gz']
-
         still_looking = True
         while still_looking:
             still_looking = False
             for found_file in found_files:
-
                 still_looking = True
-
                 if os.path.isfile(found_file) and any(found_file.endswith('.' + ext) for ext in exts):
-
                     nifti_globs.append(glob_query)
-
                     break
             if still_looking:
                 glob_query = os.path.join(glob_query, "*")
@@ -137,39 +114,26 @@ def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,sea
             print('{0} - {1} - {2}'.format(unique_id, scan_id,
                                            resource_id))
             output_dict_list[unique_resource_id].append(new_row_dict)
-
         #analysis, grouped either by sessions or scans.
-
     return output_dict_list
 
 
 def create_output_df_dict(output_dict_list,inclusion_list):
-
     import pandas as pd
-
     output_df_dict={}
-
-
     for unique_resource_id in output_dict_list.keys():
-
         ##This dataframe will give you what is in the C-PAC output directory for individual level analysis outputs##
         new_df = pd.DataFrame(output_dict_list[unique_resource_id])
-
         col_names = new_df.columns.tolist()
-
         if inclusion_list:
             #this is for participants only, not scans/sessions/etc
-
             new_df=new_df[new_df.participant_id.isin(inclusion_list)]
-
         if new_df.empty:
-
                 print("No outputs found for {0} the participants "\
                       "listed in the group manalysis participant list you "\
                       "used. Skipping generating model for this "\
                       "output.".format(unique_resource_id))
                 continue
-
         if unique_resource_id not in output_df_dict.keys():
                 output_df_dict[unique_resource_id] = new_df
 
@@ -186,7 +150,6 @@ def gather_outputs(pipeline_folder,resource_list,inclusion_list):
     # 3. From the list of included participants, we're going to further prune the output dataframe to only contain the
     # scans included, and/or the sessions included
     # 4. Our final output df will contain, file paths for the .nii files of all the participants that are included in the
-
     output_df_dict=create_output_df_dict(output_dict_list,inclusion_list)
 
     return output_df_dict
@@ -211,21 +174,21 @@ def prep_inputs(group_config_file):
               "resource file:\n{0}\n\nError details {1}\n".format(keys_csv,e)
         raise Exception(err)
 
-    group_model=load_config_yml(group_config_file)
-    pipeline_folder = group_model.pipeline_dir
+    group_config_obj=load_config_yml(group_config_file)
+    pipeline_folder = group_config_obj.pipeline_dir
     #inclusion list function
-    if not group_model.participant_list:
+    if not group_config_obj.participant_list:
         inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
-    elif '.' in group_model.participant_list:
+    elif '.' in group_config_obj.participant_list:
 
-        if not os.path.isfile(group_model.participant_list):
+        if not os.path.isfile(group_config_obj.participant_list):
 
             raise Exception('\n[!] C-PAC says: Your participant '
                             'inclusion list is not a valid file!\n\n'
                             'File path: {0}'
-                            '\n'.format(group_model.participant_list))
+                            '\n'.format(group_config_obj.participant_list))
         else:
-            inclusion_list = load_text_file(group_model.participant_list,"group-level analysis participant list")
+            inclusion_list = load_text_file(group_config_obj.participant_list,"group-level analysis participant list")
 
     else:
         inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
@@ -241,22 +204,17 @@ def prep_inputs(group_config_file):
         raise Exception(err)
 
     for unique_resource in output_df_dict.keys():
-
-
         resource_id = unique_resource[0]
-
         strat_info=unique_resource[1]
-
         output_df=output_df_dict[unique_resource]
-
         #We're going to reduce the size of the output df based on nuisance strat and the
         #participant list that actually is included.
-        if not group_model.participant_list:
+        if not group_config_obj.participant_list:
             inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
             output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
-        elif '.' in group_model.participant_list:
-            if os.path.isfile(group_model.participant_list):
-                inclusion_list = load_text_file(group_model.participant_list,
+        elif '.' in group_config_obj.participant_list:
+            if os.path.isfile(group_config_obj.participant_list):
+                inclusion_list = load_text_file(group_config_obj.participant_list,
                                         "group-level analysis "
                                         "participant list")
                 output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
@@ -270,28 +228,28 @@ def prep_inputs(group_config_file):
                   "pipeline output directory to troubleshoot.\n\n"
             raise Exception(err)
         join_columns = ["participant_id"]
-
+        col_names = output_df.columns.tolist()
         # We're then going to reduce the Output directory to contain only those scans and or the sessions which are expressed by the user.
         # If the user answers all to the option, then we're obviously not going to do any repeated measures.
-
+        #add a qpp dict so that you don't make stupid af errors again!
+        qpp_dict={}
         grp_by_sessions = False
         grp_by_scans = False
         grp_by_both = False
         repeated_measures=False
-        if group_model.qpp_sess_inclusion:
+        if group_config_obj.qpp_sess_inclusion:
         #multiple sessions, so you're going group by scans
-            if len(group_model.qpp_sess_inclusion) > 0:
+            if len(group_config_obj.qpp_sess_inclusion) > 0:
                 grp_by_scans = True
         #Multiple scans so you're going to group by sessions
-        if group_model.qpp_scan_inclusion:
-            if len(group_model.qpp_scan_inclusion) > 0:
+        if group_config_obj.qpp_scan_inclusion:
+            if len(group_config_obj.qpp_scan_inclusion) > 0:
                 grp_by_sessions = True
 
         if grp_by_scans or grp_by_sessions:
             repeated_measures=True
         if grp_by_scans and grp_by_sessions:
             grp_by_both=True
-
         #PSA #both multiple sessions and scans, youre going to do nothing
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
@@ -299,32 +257,32 @@ def prep_inputs(group_config_file):
                 #setting up the output_df for grouping by scans
                 #output directory will be scan_1
                 #                         scan_2
-                new_output_df = op_grp_by_scans(output_df,group_model.qpp_sess_inclusion)
+                new_output_df = op_grp_by_scans(output_df,group_config_obj.qpp_sess_inclusion)
                 # drop all the sessions that are not in the sessions list
-                new_output_df = new_output_df[new_output_df["Session"].isin(group_model.qpp_sess_inclusion)]
+                new_output_df = new_output_df[new_output_df["Session"].isin(group_config_obj.qpp_sess_inclusion)]
                 join_colums.append("Session")
                 # balance the DF
-                new_output_df, dropped_parts = balance_df(new_output_df, group_model.qpp_sess_inclusion, scan_list=None)
-
+                new_output_df, dropped_parts = balance_df(new_output_df, group_config_obj.qpp_sess_inclusion, scan_list=None)
+                qpp_dict['output_df'] = new_output_df
             if grp_by_sessions:
                 #multilple scans
                 #setting up the output_df for grouping by sessions
-                new_output_df = op_grp_by_sessions(output_df,group_model.qpp_scan_inclusion,grp_by_scans)
+                new_output_df = op_grp_by_sessions(output_df,group_config_obj.qpp_scan_inclusion,grp_by_scans)
 
                 # drop all the scans that are not in the scan list
-                new_output_df = new_output_df[new_output_df["Scan"].isin(group_model.qpp_scan_inclusion)]
+                new_output_df = new_output_df[new_output_df["Scan"].isin(group_config_obj.qpp_scan_inclusion)]
                 #print(new_output_df)
                 join_columns.append("Scan")
 
                 # balance the DF
                 sessions_list = None
-                scan_list = group_model.qpp_scan_list
+                scan_list = group_config_obj.qpp_scan_list
                 new_output_df, dropped_parts = balance_df(new_output_df,sessions_list,scan_list)
-
+                qpp_dict['output_df'] = new_output_df
 
             if grp_by_both:
-                new_output_df = new_output_df(new_output_df,group_model.qpp_sess_inclusion,group_model.qpp_scan_inclusion)
-
+                new_output_df = new_output_df(new_output_df,group_config_obj.qpp_sess_inclusion,group_config_obj.qpp_scan_inclusion)
+                qpp_dict['output_df']=new_output_df
         else:
             for scan_df_tuple in output_df.groupby("Scan"):
                 scans = scan_df_tuple[0]
@@ -335,28 +293,40 @@ def prep_inputs(group_config_file):
                         session = 'ses-{0}'.format(ses_df_tuple[0])
                         ses_df = ses_df_tuple[1]
                         new_output_df=pd.merge(scan_df,ses_df,how='inner',on=['participant_id'])
+                        qpp_dict['output_df'] = new_output_df
                 #if you don't
                 else:
                     session='ses-1'
                     new_output_df = pd.merge(new_output_df,scan_df,how="inner",on=["participant_id"])
-
-        if len(new_output_df) == 0:
+                    qpp_dict['output_df'] = new_output_df
+        if len(qpp_dict) == 0:
             err = '\n\n[!]C-PAC says:Could not find match betterrn the ' \
               'particpants in your pipeline output directory that were ' \
               'included in your analysis, and the particpants in the phenotype ' \
                     'phenotype file provided.\n\n'
             raise Exception(err)
+    print(qpp_dict)
+
+    return qpp_dict,inclusion_list
+
+def use_inputs(group_config_file):
+    import os
+    import shutil
+    from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
+    from CPAC.pipeline.cpac_group_runner import load_config_yml
+    from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile, create_merge_mask
 
 
+    qpp_dict,inclusion_list = prep_inputs(group_config_file)
+    group_config_obj=load_config_yml(group_config_file)
+    for keys in qpp_dict:
 
-
-
-        pipeline_ID = group_model.pipeline_dir.rstrip('/').split('/')[-1]
-        merge_file = create_merged_copefile(new_output_df["Filepath_x"].tolist(), 'merged.nii.gz')
+        newer_output_df = qpp_dict['output_df']
+        pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
+        merge_file = create_merged_copefile(newer_output_df["Filepath_x"].tolist(), 'merged.nii.gz')
         merge_mask = create_merge_mask(merge_file, 'merged_mask.nii.gz')
 
-
-        model_dir = os.path.join(group_model.output_dir,
+        model_dir = os.path.join(group_config_obj.output_dir,
                                'cpac_group_analysis',
                                'CPAC_QPP')
         out_dir = os.path.join(model_dir,
@@ -366,15 +336,17 @@ def prep_inputs(group_config_file):
         # series or repeated label == same as qpp scan or sessions list)
         merge_outdir_string="CPAC_QPP" + "_"+ resource_id
         merge_outdir = os.path.join(out_dir,merge_outdir_string)
+
         if not os.path.exists(merge_outdir):
             os.makedirs(merge_outdir)
+
         if not os.path.exists(os.path.join(merge_outdir,'merged.nii.gz')):
             shutil.move(merge_file,merge_outdir)
+
         if not os.path.exists(os.path.join(merge_outdir,'merged_mask.nii.gz')):
             shutil.move(merge_mask,merge_outdir)
 
     return merge_file,merge_mask,inclusion_list,merge_outdir
-
 
 def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
     import pandas as pd
@@ -405,25 +377,18 @@ def op_grp_by_sessions(output_df,scan_list,grp_by_scans=False):
         # participant IDs new columns
         participant_id_cols = {}
         i = 0
-
         for participant_unique_id in output_df["participant_id"]:
-
             part_col = [0] * len(output_df["participant_id"])
             header_title = "participant_%s" % participant_unique_id
-
             if header_title not in participant_id_cols.keys():
                 part_col[i] = 1
                 participant_id_cols[header_title] = part_col
             else:
                 participant_id_cols[header_title][i] = 1
-
             i += 1
-
         for new_col in participant_id_cols.keys():
             output_df[new_col] = participant_id_cols[new_col]
-
     new_output_df = output_df.astype('object')
-
     return new_output_df
 
 def op_grp_by_scans(output_df,sessions_list):
@@ -431,14 +396,10 @@ def op_grp_by_scans(output_df,sessions_list):
 
     num_partic_cols = 0
     for col_names in output_df.columns:
-
         if "participant_" in output_df.columns:
             num_partic_cols += 1
-
-
     if num_partic_cols > 1 and ("Sessions" in output_df.columns or "Sessions_column_one" in pheno_df.columns):
         for part_id in output_df["participant_id"]:
-
             if "participant_{0}".format(part_id) in output_df.columns:
                 continue
             break
@@ -450,10 +411,8 @@ def op_grp_by_scans(output_df,sessions_list):
         # if not an FSL model preset, continue as normal
         new_rows = []
         another_new_row = []
-
             # grab the ordered sublist before we double the rows
         sublist = output_df['participant_id']
-
         for session in sessions_list:
             sub_op_df = output_df.copy()
             sub_op_df["Sessions"] = session
@@ -472,18 +431,14 @@ def op_grp_by_scans(output_df,sessions_list):
 
     for participant_unique_id in output_df["participant_session_id"]:
         part_col = [0] * len(output_df["participant_session_id"])
-
         for session in sessions_list:
             session=str(session)
             if session in participant_unique_id.split("_")[1]:
                 # print(participant_unique_id)# generate/update sessions categorical column
                 part_id = participant_unique_id.split("_")[0]
-
                 part_ids_col.append(str(part_id))
                 sessions_col.append(str(session))
-
                 header_title = "participant_%s" % part_id
-
                 # generate/update participant ID column (1's or 0's)
                 if header_title not in participant_id_cols.keys():
                     part_col[i] = 1
@@ -491,15 +446,12 @@ def op_grp_by_scans(output_df,sessions_list):
                 else:
                     participant_id_cols[header_title][i] = 1
         i += 1
-
     output_df["Sessions"] = sessions_col
     output_df["participant"] = part_ids_col
-
     # add new participant ID columns
     for sub_id in sublist:
         new_col = 'participant_{0}'.format(sub_id)
         output_df[new_col] = participant_id_cols[new_col]
-
     output_df = output_df.astype('object')
 
     return output_df
