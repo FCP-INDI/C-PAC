@@ -741,14 +741,6 @@ class QPPSettings(wx.ScrolledWindow):
                               "will run once for each scan, and each sessions for all "
                               "available scans and sessions.")
 
-        self.page.add(label="Number of scans per subject ",
-                      control=control.INT_CTRL,
-                      name='qpp_nrn',
-                      type=dtype.NUM,
-                      values=1,
-                      comment="This represents the number of scans for each subject. For "
-                              " example, if you have 2 scans, for each subject, please fill "
-                              "the box with 2.")
 
         self.page.add(label="Correlation Threshold ",
                       control=control.COMBO_BOX,
