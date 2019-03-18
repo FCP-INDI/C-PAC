@@ -480,15 +480,34 @@ def create_nuisance_workflow(nuisance_selectors,
     2. Calculate residuals with respect to these nuisance regressors in a
        single model for every voxel.
 
-    Workflow Graph:
+    High Level Workflow Graph:
 
-    .. image:: ../images/nuisance.dot.png
-        :width: 500
+    .. exec::
+        from CPAC.nuisance import create_nuisance_workflow
+        wf = create_nuisance_workflow({
+            'PolyOrt': {'degree': 2},
+            'tCompCor': {'summary': {'method': 'PC', 'components': 5}, 'threshold': '1.5SD', 'by_slice': True},
+            'aCompCor': {'summary': {'method': 'PC', 'components': 5}, 'tissues': ['WhiteMatter', 'CerebrospinalFluid'], 'extraction_resolution': 2},
+            'WhiteMatter': {'summary': {'method': 'PC', 'components': 5}, 'extraction_resolution': 2},
+            'CerebrospinalFluid': {'summary': {'method': 'PC', 'components': 5}, 'extraction_resolution': 2, 'erode_mask': True},
+            'GreyMatter': {'summary': {'method': 'PC', 'components': 5}, 'extraction_resolution': 2, 'erode_mask': True},
+            'GlobalSignal': {'summary': 'Mean', 'include_delayed': True, 'include_squared': True, 'include_delayed_squared': True},
+            'Motion': {'include_delayed': True, 'include_squared': True, 'include_delayed_squared': True},
+            'Censor': {'method': 'Interpolate', 'thresholds': [{'type': 'FD_J', 'value': 0.5}, {'type': 'DVARS', 'value': 0.7}]}
+        }, use_ants=False)
+
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/nuisance.dot'
+        )
+
+    .. image:: ../images/nuisance.png
+       :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/nuisance_detailed.dot.png
-        :width: 500    
+    .. image:: ../images/nuisance_detailed.png
+       :width: 1000
 
     """
 
