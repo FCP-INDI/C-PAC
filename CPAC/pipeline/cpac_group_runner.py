@@ -197,7 +197,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
               % (pipeline_output_folder, resource_list)
         raise Exception(err)
 
-    return nifti_globs
+    return nifti_globs,search_dir
 
 
 def grab_raw_score_filepath(filepath, resource_id):
@@ -486,7 +486,7 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
                    get_motion, get_raw_score, get_func=False, derivatives=None,
                    exts=['nii', 'nii.gz']):
 
-    nifti_globs = gather_nifti_globs(
+    nifti_globs,search_dir = gather_nifti_globs(
         pipeline_folder,
         resource_list,
         get_func,
