@@ -252,6 +252,7 @@ def prep_inputs(group_config_file):
         if grp_by_scans and grp_by_sessions:
             grp_by_both=True
 
+
         session_list = []
         scan_list = []
         if group_config_obj.qpp_sess_inclusion:
@@ -311,7 +312,7 @@ def prep_inputs(group_config_file):
             raise Exception(err)
 
 
-    return qpp_dict,inclusion_list
+    return qpp_dict,inclusion_list,resource_id,strat_info
 
 def use_inputs(group_config_file):
     import os
@@ -320,13 +321,13 @@ def use_inputs(group_config_file):
     from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile, create_merge_mask
 
 
-    qpp_dict,inclusion_list = prep_inputs(group_config_file)
+
+    qpp_dict,inclusion_list,resource_id,strat_info = prep_inputs(group_config_file)
     group_config_obj=load_config_yml(group_config_file)
     for key in qpp_dict:
         newer_output_df = qpp_dict[key]
+
         pipeline_ID = group_config_obj.pipeline_dir.rstrip('/').split('/')[-1]
-        merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), 'merged.nii.gz')
-        merge_mask = create_merge_mask(merge_file, 'merged_mask.nii.gz')
 
         model_dir = os.path.join(group_config_obj.output_dir,
                                'cpac_group_analysis',
@@ -335,20 +336,22 @@ def use_inputs(group_config_file):
                                resource_id,  # nuisance strat to initialize
                                strat_info,'model_files')
 
-        # series or repeated label == same as qpp scan or sessions list)
-        merge_outdir_string="CPAC_QPP" + "_"+ resource_id
-        merge_outdir = os.path.join(out_dir,merge_outdir_string)
+        participant_id = newer_output_df['participant_id'].tolist()
+        for element in participant_id:
+            scan = newer_output_df["Scan"].tolist()
+            for x in scan:
+                scan_number=x.split("-")[1]
+                nrn=max(scan_number)
 
-        if not os.path.exists(merge_outdir):
-            os.makedirs(merge_outdir)
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+        merge_outfile = os.path.join(out_dir,'_merged.nii.gz')
+        merge_mask_outfile =os.path.join(out_dir,'_merged_mask.nii.gz')
 
-        if not os.path.exists(os.path.join(merge_outdir,'merged.nii.gz')):
-            shutil.move(merge_file,merge_outdir)
+        merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
+        merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
-        if not os.path.exists(os.path.join(merge_outdir,'merged_mask.nii.gz')):
-            shutil.move(merge_mask,merge_outdir)
-
-    return merge_file,merge_mask,inclusion_list,merge_outdir
+    return merge_file,merge_mask,inclusion_list,out_dir,nrn
 
 
 def balance_df(new_output_df,sessions_list,scan_list):
