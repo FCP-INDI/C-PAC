@@ -1,58 +1,3 @@
-def gather_nifti_globs(pipeline_output_folder,resource_list,derivatives=None):
-    import os
-    import glob
-    import pandas as pd
-    import pkg_resources as p
-
-    if len(resource_list) == 0:
-        err = "\n\n[!] please choose atleast one nusiance stratergy!\n\n"
-        raise Exception(err)
-    if derivatives is None:
-        keys_csv = p.resource_filename('CPAC','resources/cpac_outputs.csv')
-        try:
-            keys=pd.read_csv(keys_csv)
-        except Exception as e:
-            err = "\n[!] Could not access or read the cpac_outputs.csv " \
-                  "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
-            raise Exception(err)
-        derivatives =list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
-    #choose which nuisance residual method you want to apply
-    pipeline_output_folder = pipeline_output_folder.rstrip("/")
-    print "\n\nGathering the output file paths from %s..." \
-    % pipeline_output_folder
-    search_dir = []
-    for derivative_name in derivatives:
-        for resource_name in resource_list:
-            if resource_name in derivative_name:
-                search_dir.append(derivative_name)
-    nifti_globs=[]
-    for resource_name in search_dir:
-        glob_pieces = [pipeline_output_folder, "*", resource_name, "*"]
-        glob_query = os.path.join(*glob_pieces)
-        found_files = glob.iglob(glob_query)
-        exts=['nii','nii.gz']
-        still_looking = True
-        while still_looking:
-            still_looking = False
-            for found_file in found_files:
-                still_looking = True
-                if os.path.isfile(found_file) and any(found_file.endswith('.' + ext) for ext in exts):
-                    nifti_globs.append(glob_query)
-                    break
-            if still_looking:
-                glob_query = os.path.join(glob_query, "*")
-                found_files = glob.iglob(glob_query)
-
-    if len(nifti_globs) == 0:
-        err = "\n\n[!] No output filepaths found in the pipeline output " \
-             "directory provided for the derivatives selected!\n\nPipeline " \
-             "output directory provided: %s\nDerivatives selected:%s\n\n" \
-              % (pipeline_output_folder, resource_list)
-        raise Exception(err)
-
-    return nifti_globs,search_dir
-
-
 def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,search_dir,derivatives=None):
     import os
     import glob
@@ -141,6 +86,10 @@ def create_output_df_dict(output_dict_list,inclusion_list):
 
 
 def gather_outputs(pipeline_folder,resource_list,inclusion_list):
+
+    from cpac_group_runner import gather_nifti_globs
+
+    derivatives =list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
     nifti_globs,search_dir = gather_nifti_globs(pipeline_folder,resource_list,derivatives=None)
 
     output_dict_list = create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir,derivatives=None)
