@@ -757,7 +757,7 @@ class QPPSettings(wx.ScrolledWindow):
                       values=2,
                       comment="Set the number of early iterations with lower thresholds")
 
-        self.page.add(label="mx_iter",
+        self.page.add(label="Maximum number of iterations",
                       control=control.INT_CTRL,
                       name='qpp_mx_iter',
                       type=dtype.NUM,
