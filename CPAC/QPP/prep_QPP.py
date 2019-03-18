@@ -63,31 +63,10 @@ def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,sea
     return output_dict_list
 
 
-def create_output_df_dict(output_dict_list,inclusion_list):
-    import pandas as pd
-    output_df_dict={}
-    for unique_resource_id in output_dict_list.keys():
-        ##This dataframe will give you what is in the C-PAC output directory for individual level analysis outputs##
-        new_df = pd.DataFrame(output_dict_list[unique_resource_id])
-        col_names = new_df.columns.tolist()
-        if inclusion_list:
-            #this is for participants only, not scans/sessions/etc
-            new_df=new_df[new_df.participant_id.isin(inclusion_list)]
-        if new_df.empty:
-                print("No outputs found for {0} the participants "\
-                      "listed in the group manalysis participant list you "\
-                      "used. Skipping generating model for this "\
-                      "output.".format(unique_resource_id))
-                continue
-        if unique_resource_id not in output_df_dict.keys():
-                output_df_dict[unique_resource_id] = new_df
-
-    return output_df_dict
-
-
 def gather_outputs(pipeline_folder,resource_list,inclusion_list):
 
-    from cpac_group_runner import gather_nifti_globs
+    from CPAC.pipeline.cpac_group_runner import gather_nifti_globs
+    from CPAC.pipeline.cpac_group_runner import create_output_df_dict
 
     derivatives =list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
     nifti_globs,search_dir = gather_nifti_globs(pipeline_folder,resource_list,derivatives=None)
