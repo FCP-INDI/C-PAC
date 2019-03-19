@@ -443,6 +443,7 @@ Regressors :
      include_delayed: true
      include_squared: true
      include_delayed_squared: true
+     
    aCompCor:
      summary:
        method: PC
@@ -455,11 +456,7 @@ Regressors :
    CerebrospinalFluid:
      summary: Mean
      extraction_resolution: 2
-     erode_mask: true
      
-   GlobalSignal:
-     summary: Mean
-
    PolyOrt:
     degree: 1
 

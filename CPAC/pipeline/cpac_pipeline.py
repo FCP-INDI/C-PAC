@@ -61,7 +61,7 @@ from CPAC.registration import (
     create_wf_c3d_fsl_to_itk,
     create_wf_collect_transforms
 )
-from CPAC.nuisance import create_nuisance_workflow, NuisanceRegressor
+from CPAC.nuisance import create_nuisance_workflow, bandpass_voxels, NuisanceRegressor
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
@@ -633,6 +633,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     c.ref_mask, 'local_path',
                     fnirt_reg_anat_mni, 'inputspec.ref_mask'
                 )
+
+                # assign the FSL FNIRT config file specified in pipeline
+                # config.yml
+                fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
 
                 if 1 in fsl_linear_reg_only:
                     strat = strat.fork()
@@ -1601,18 +1605,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # Input functional image (mean functional)
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.func')
+                                     func_to_anat, 'inputspec.func')
 
                 elif 'Selected Functional Volume' in c.func_reg_input:
                     # Input functional image (specific volume)
                     node, out_file = strat['selected_func_volume']
                     workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.func')
+                                     func_to_anat, 'inputspec.func')
 
                 # Input skull-stripped anatomical (anat.nii.gz)
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
-                                func_to_anat, 'inputspec.anat')
+                                 func_to_anat, 'inputspec.anat')
 
                 if dist_corr:
                     # apply field map distortion correction outputs to
@@ -1972,9 +1976,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 nodes = strat.get_nodes_names()
 
                 has_segmentation = 'seg_preproc' in nodes
-                nuisance_wf_name = 'nuisance_{0}_{1}'
+                use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
-                for regressors_selector in c.Regressors:
+                for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
 
                     new_strat = strat.fork()
 
@@ -1995,15 +1999,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             if reg in regressors_selector:
                                 del regressors_selector[reg]
 
-
-                    sanitized_name = re.sub(r'[^\w]+', '_', str(regressors_selector))
-
-                    use_ants = 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes
-
                     nuisance_regression_workflow = create_nuisance_workflow(
                         regressors_selector,
                         use_ants=use_ants,
-                        name=nuisance_wf_name.format(sanitized_name, num_strat)
+                        name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 
                     node, out_file = new_strat['anatomical_brain']
@@ -2083,15 +2082,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         ('selector', [regressors_selector]),
                     ])
 
-                    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
+                    if use_ants:
 
-                        node, out_file = new_strat['mni_to_anatomical_linear_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.mni_to_anat_linear_xfm_file_path'
-                        )
-                    else:
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
@@ -2116,6 +2108,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             nuisance_regression_workflow,
                             'inputspec.anat_to_mni_affine_xfm_file_path'
                         )
+                    else:
+                        node, out_file = new_strat['mni_to_anatomical_linear_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow,
+                            'inputspec.mni_to_anat_linear_xfm_file_path'
+                        )
+
 
                     new_strat.append_name(nuisance_regression_workflow.name)
 
@@ -2125,6 +2125,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     )
 
                     new_strat.update_resource_pool({
+                        'nuisance_regression_selector': regressors_selector,
+                        
                         'functional_nuisance_residuals': (
                             nuisance_regression_workflow,
                             'outputspec.residual_file_path')
@@ -2133,13 +2135,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             nuisance_regression_workflow,
                             'outputspec.regressors_file_path'
                         ),
-
-                        # Keep an non-bandpassed version of functional
-                        # to use on ALFF
-                        'alff_input_functional': (
-                            nuisance_regression_workflow,
-                            'outputspec.no_bandpass_residual_file_path'
-                        )
                     })
 
                     new_strat_list.append(new_strat)
@@ -2159,6 +2154,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             workflow_bit_id['median_angle_corr'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
+
+                # for each strategy, create a new one without median angle
+                if 0 in c.runMedianAngleCorrection:
+                    new_strat_list.append(strat.fork())
+
                 median_angle_corr = create_median_angle_correction(
                     'median_angle_corr_%d' % num_strat
                 )
@@ -2169,11 +2169,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                 median_angle_corr, 'inputspec.subject')
-
-                # TODO ASH review forking
-                if 0 in c.runMedianAngleCorrection:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
 
                 strat.append_name(median_angle_corr.name)
 
@@ -2188,6 +2183,50 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 num_strat)
 
         strat_list += new_strat_list
+
+        for num_strat, strat in enumerate(strat_list):
+            # Keep non-bandpassed version of the output for ALFF
+            strat.update_resource_pool({
+                'functional_freq_unfiltered': strat.get_leaf_properties()
+            })
+
+        # Inserting Bandpassing Workflow
+        for num_strat, strat in enumerate(strat_list):
+
+            if 'nuisance_regression_selector' not in strat:
+                continue
+
+            if not strat['nuisance_regression_selector'].get('Bandpass'):
+                continue
+
+            bandpass_selector = strat['nuisance_regression_selector']['Bandpass']
+
+            frequency_filter = pe.Node(
+                function.Function(input_names=['realigned_file',
+                                               'bandpass_freqs',
+                                               'sample_period'],
+                                  output_names=['bandpassed_file'],
+                                  function=bandpass_voxels,
+                                  as_module=True),
+                name='frequency_filter_%d' % num_strat
+            )
+
+            frequency_filter.inputs.bandpass_freqs = [
+                bandpass_selector.get('bottom_frequency'),
+                bandpass_selector.get('top_frequency')
+            ]
+
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file,
+                             frequency_filter, 'realigned_file')
+
+            strat.append_name(frequency_filter.name)
+
+            strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
+            strat.update_resource_pool({
+                'functional_freq_filtered': (frequency_filter, 'bandpassed_file')
+            })
+
 
         # Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp
@@ -2229,43 +2268,116 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                         workflow.connect(node, out_file,
                                          func_mni_warp, 'field_file')
-
-                    node, out_file = strat['functional_to_anat_linear_xfm']
-                    workflow.connect(node, out_file,
-                                    func_mni_warp, 'premat')
-
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file,
-                                     func_mni_warp, 'in_file')
-
-                    if 'anat_mni_fnirt_register' in nodes:
-                        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                         workflow.connect(node, out_file,
-                                        functional_brain_mask_to_standard, 'field_file')
+                                         functional_brain_mask_to_standard, 'field_file')
                         workflow.connect(node, out_file,
-                                        mean_functional_warp, 'field_file')
+                                         mean_functional_warp, 'field_file')
                         workflow.connect(node, out_file,
-                                        motion_correct_warp, 'field_file')
+                                         motion_correct_warp, 'field_file')
 
-                    node, out_file = strat['functional_to_anat_linear_xfm']
-                    workflow.connect(node, out_file,
-                                     functional_brain_mask_to_standard, 'premat')
-                    workflow.connect(node, out_file,
-                                     mean_functional_warp, 'premat')
-                    workflow.connect(node, out_file,
-                                     motion_correct_warp, 'premat')
+                        node, out_file = strat['functional_to_anat_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp, 'premat')
 
-                    node, out_file = strat['functional_brain_mask']
-                    workflow.connect(node, out_file,
-                                     functional_brain_mask_to_standard, 'in_file')
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file,
+                                         func_mni_warp, 'in_file')
 
-                    node, out_file = strat['mean_functional']
-                    workflow.connect(node, out_file,
-                                     mean_functional_warp, 'in_file')
+                        node, out_file = strat['functional_brain_mask']
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard, 'in_file')
 
-                    node, out_file = strat['motion_correct']
-                    workflow.connect(node, out_file,
-                                     motion_correct_warp, 'in_file')
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp, 'in_file')
+
+                        node, out_file = strat['motion_correct']
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp, 'in_file')
+
+                    elif 'anat_mni_flirt_register' in nodes:
+                        func_anat_warp = pe.Node(interface=fsl.ApplyWarp(),
+	                                             name='func_anat_fsl_warp_%d' % num_strat)
+                        functional_brain_mask_to_anat = pe.Node(
+	                        interface=fsl.ApplyWarp(),
+	                        name='func_anat_fsl_warp_mask_%d' % num_strat
+	                    )
+                        functional_brain_mask_to_anat.inputs.interp = 'nn'
+
+                        mean_functional_to_anat = pe.Node(
+                            interface=fsl.ApplyWarp(),
+	                        name='mean_func_to_anat_fsl_warp_%d' % num_strat
+	                    )
+
+                        motion_correct_to_anat_warp = pe.Node(
+	                        interface=fsl.ApplyWarp(),
+	                        name="motion_correct_to_anat_fsl_warp_%d" % num_strat
+	                    )
+
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file,
+                                         func_anat_warp, 'in_file')
+
+                        node, out_file = strat['functional_brain_mask']
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat, 'in_file')
+
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat, 'in_file')
+
+                        node, out_file = strat['motion_correct']
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp, 'in_file')
+
+                        node, out_file = strat['anatomical_brain']
+                        workflow.connect(node, out_file,
+                                         func_anat_warp, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp, 'ref_file') 
+
+                        node, out_file = strat['functional_to_anat_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_anat_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp, 'premat')
+
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(func_anat_warp, 'out_file',
+                                         func_mni_warp, 'in_file')
+
+                        workflow.connect(functional_brain_mask_to_anat, 'out_file',
+                                         functional_brain_mask_to_standard, 'in_file')
+
+                        workflow.connect(mean_functional_to_anat, 'out_file',
+                                         mean_functional_warp, 'in_file')
+
+                        workflow.connect(motion_correct_to_anat_warp, 'out_file',
+                                         motion_correct_warp, 'in_file')
+
+                        node, out_file = strat['anatomical_to_mni_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp, 'premat')
 
                     strat.update_resource_pool({
                         'functional_to_standard': (func_mni_warp, 'out_file'),
@@ -2379,7 +2491,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 alff.get_node('lp_input').iterables = ('lp',
                                                     c.lowPassFreqALFF)
 
-                node, out_file = strat['alff_input_functional']
+                node, out_file = strat['functional_freq_unfiltered']
                 workflow.connect(node, out_file,
                                 alff, 'inputspec.rest_res')
                 node, out_file = strat['functional_brain_mask']
@@ -2409,10 +2521,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 nodes = strat.get_nodes_names()
 
                 if 'func_mni_fsl_warp' in nodes:
-                    vmhc = create_vmhc(False, 'vmhc_%d' % num_strat)
+                    if 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' in nodes:
+                        vmhc = create_vmhc(False, True, 'vmhc_%d' % num_strat)
+                    elif 'anat_mni_fnirt_register' in nodes:
+                        vmhc = create_vmhc(False, False, 'vmhc_%d' % num_strat)
                 else:
-                    vmhc = create_vmhc(True, 'vmhc_%d' % num_strat,
-                                    int(num_ants_cores))
+                    vmhc = create_vmhc(True, False, 'vmhc_%d' % num_strat,
+                                       int(num_ants_cores))
 
                 vmhc.inputs.inputspec.standard_for_func = c.template_skull_for_func
                 vmhc.inputs.fwhm_input.fwhm = c.fwhm
@@ -2462,9 +2577,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     vmhc, 'inputspec.ants_symm_warp_field')
 
                 else:
-                    node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
-                    workflow.connect(node, out_file,
-                                    vmhc, 'inputspec.fnirt_nonlinear_warp')
+                    if 'anat_mni_fnirt_register' in nodes:
+                        node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
+                        workflow.connect(node, out_file,
+                                         vmhc, 'inputspec.fnirt_nonlinear_warp')
+                    elif 'anat_mni_flirt_register' in nodes:
+                        node, out_file = strat[
+                            'anatomical_to_symmetric_mni_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         vmhc,
+                                         'inputspec.flirt_linear_aff')
 
                 strat.update_resource_pool({
                     'vmhc_raw_score': (vmhc, 'outputspec.VMHC_FWHM_img'),
@@ -2513,15 +2635,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
+        ts_analysis_dict = {}
+        sca_analysis_dict = {}
+
         # TODO ASH normalize w schema val
         if c.tsa_roi_paths:
 
             tsa_roi_dict = c.tsa_roi_paths[0]
 
             # Timeseries and SCA config selections processing
-
-            ts_analysis_dict = {}
-            sca_analysis_dict = {}
 
             # flip the dictionary
             for roi_path in tsa_roi_dict.keys():
@@ -3284,142 +3406,82 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # this section creates names for the different branched strategies.
         # it identifies where the pipeline has forked and then appends the
         # name of the forked nodes to the branch name in the output directory
-        renamedStrats = []
-        forkPoints = []
-        forkPointsDict = {}
 
-        def is_number(s):
-            # function which returns boolean checking if a character
-            # is a number or not
-            try:
-                int(s)
-                return True
-            except ValueError:
-                return False
-
-        for strat in strat_list:
-
-            # load list of nodes in this one particular
-            # strat into the list "nodeList"
-            renamedNodesList = []
-
-            # strip the _n (n being the strat number) from
-            # each node name and return to a list
-            for node in strat.name:
-                pieces = node.split('_')
-                if is_number(pieces[-1]):
-                    pieces = pieces[:-1]
-                renamedNode = "_".join(pieces)
-                renamedNodesList.append(renamedNode)
-
-            renamedStrats.append(renamedNodesList)
-
-        # here, renamedStrats is a list containing each strat (forks)
-        for strat in renamedStrats:
-
-            tmpForkPoint = []
-
-            # here, 'strat' is a list of node names within one of the forks
-            for nodeName in strat:
-
-                # compare each strat against the first one in the strat list,
-                # and if any node names in the new strat are not present in
-                # the 'original' one, then append to a list of 'fork points'
-                for renamedStratNodes in renamedStrats:
-                    if nodeName not in renamedStratNodes and \
-                        nodeName not in tmpForkPoint:
-                        tmpForkPoint.append(nodeName)
-
-            forkPoints.append(tmpForkPoint)
-
-        # forkPoints is a list of lists, each list containing node names of
+        # fork_points is a list of lists, each list containing node names of
         # nodes run in that strat/fork that are unique to that strat/fork
-        forkNames = []
+        fork_points = Strategy.get_forking_points(strat_list)
+        fork_names = []
 
-        # here 'forkPoint' is an individual strat with its unique nodes
-        for forkPoint in forkPoints:
-            forkName = ''
-            for fork in forkPoint:
-                forklabel = ''
+        # here 'fork_point' is an individual strat with its unique nodes
+        for fork_point in fork_points:
+            fork_name = []
+
+            for fork in fork_point:
+                fork_label = ''
 
                 if 'ants' in fork:
-                    forklabel = 'ants'
+                    fork_label = 'ants'
                 if 'fnirt' in fork:
-                    forklabel = 'fnirt'
+                    fork_label = 'fnirt'
                 elif 'flirt_register' in fork:
-                    forklabel = 'linear-only'
+                    fork_label = 'linear-only'
                 if 'automask' in fork:
-                    forklabel = 'func-3dautomask'
+                    fork_label = 'func-3dautomask'
                 if 'bet' in fork:
-                    forklabel = 'func-bet'
+                    fork_label = 'func-bet'
                 if 'epi_distcorr' in fork:
-                    forklabel = 'dist_corr'
+                    fork_label = 'dist-corr'
                 if 'bbreg' in fork:
-                    forklabel = 'bbreg'
-                if 'frequency' in fork:
-                    forklabel = 'freq-filter'
-                elif 'nuisance' in fork:
-                    forklabel = 'nuisance'
+                    fork_label = 'bbreg'
+                
+                if 'nuisance' in fork:
+                    fork_label = 'nuisance'
+                if 'frequency_filter' in fork:
+                    fork_label = 'freq-filter'
+                
                 if 'median' in fork:
-                    forklabel = 'median'
+                    fork_label = 'median'
                 if 'motion_stats' in fork:
-                    forklabel = 'motion'
+                    fork_label = 'motion'
                 if 'slice' in fork:
-                    forklabel = 'slice'
+                    fork_label = 'slice'
                 if 'anat_preproc_afni' in fork:
-                    forklabel = 'anat-afni'
+                    fork_label = 'anat-afni'
                 if 'anat_preproc_bet' in fork:
-                    forklabel = 'anat-bet'
+                    fork_label = 'anat-bet'
 
-                if forklabel not in forkName:
-                    forkName = forkName + '__' + forklabel
+                fork_name += [fork_label]
 
-            forkNames.append(forkName)
+            fork_names.append('_'.join(fork_name))
 
         # match each strat_list with fork point list
-        # this is for the datasink
-        for x in range(len(strat_list)):
-            forkPointsDict[strat_list[x]] = forkNames[x]
+        fork_points_labels = dict(zip(strat_list, fork_names))
 
         # DataSink
-        pip_ids = []
+        pipeline_ids = []
 
-        wf_names = []
         scan_ids = ['scan_anat']
 
         if 'func' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
-                            for scan_id in sub_dict['func']]
+                         for scan_id in sub_dict['func']]
 
         if 'rest' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
-                            for scan_id in sub_dict['rest']]
+                         for scan_id in sub_dict['rest']]
 
-        pipes = []
 
         for num_strat, strat in enumerate(strat_list):
 
-            rp = strat.get_resource_pool()
-
             if p_name is None or p_name == 'None':
-                if forkPointsDict[strat]:
-                    pipeline_id = c.pipelineName + forkPointsDict[strat]
-                else:
-                    pipeline_id = c.pipelineName
-                    # if running multiple pipelines with gui, need to change
-                    # this in future
-                    p_name = None
+                pipeline_id = c.pipelineName
             else:
-                if forkPointsDict[strat]:
-                    pipeline_id = c.pipelineName + forkPointsDict[strat]
-                else:
-                    pipeline_id = p_name
-                    # if running multiple pipelines with gui, need to change
-                    # this in future
-                    p_name = None
+                pipeline_id = p_name
 
-            pip_ids.append(pipeline_id)
-            wf_names.append(strat.get_name())
+            if fork_points_labels[strat]:
+                pipeline_id += '_' + fork_points_labels[strat]
+
+            pipeline_ids.append(pipeline_id)
 
 
             # TODO enforce value with schema validation
@@ -3440,20 +3502,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     if not s3_write_access:
                         raise Exception('Not able to write to bucket!')
 
-            except Exception as exc:
+            except Exception as e:
                 if c.outputDirectory.lower().startswith('s3://'):
                     err_msg = 'There was an error processing credentials or ' \
                                 'accessing the S3 bucket. Check and try again.\n' \
-                                'Error: %s' % exc
+                                'Error: %s' % e
                     raise Exception(err_msg)
+
 
             # TODO enforce value with schema validation
             try:
                 encrypt_data = bool(c.s3Encryption[0])
-            except Exception as exc:
+            except:
                 encrypt_data = False
 
-            nodes = strat.get_nodes_names()
 
             ndmg_out = False
             try:
@@ -3530,7 +3592,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'ndmg_graph': (ndmg_graph, 'out_file')
                 })
 
-                rp = strat.get_resource_pool()
+
+            rp = strat.get_resource_pool()
 
             if c.write_debugging_outputs:
                 import pickle
@@ -3593,7 +3656,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         (r'func_atlases', ''),
                         (r'label', ''),
                         (r'res-.+\/', ''),
-                        (r'_mask_.+\/', '_'),
+                        (r'_mask_', 'roi-'),
                         (r'mask_sub-', 'sub-'),
                         (r'/_selector_', '_nuis-'),
                         (r'_selector_pc', ''),
@@ -3605,6 +3668,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         (r'.gm', ''),
                         (r'.compcor', ''),
                         (r'.csf', ''),
+                        (r'_sub-', '/sub-'),
                         (r'(\.\.)', '')
                     ]
 
@@ -3678,7 +3742,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         continue
 
                     ds.inputs.container = '{0}/{1}'.format(container,
-                                                           ndmg_key_dct[key][0])
+                                                           ndmg_key_dct[resource][0])
                     node, out_file = rp[resource]
 
                     # rename the file
@@ -3726,7 +3790,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     output_sink_nodes += [(ds, 'out_file')]
 
-            if 1 in c.runSymbolicLinks and not ndmg_out:
+
+            if 1 in c.runSymbolicLinks and not ndmg_out and \
+                not c.outputDirectory.lower().startswith('s3://'):
 
                 merge_link_node = pe.Node(
                     interface=Merge(len(output_sink_nodes)),
@@ -3758,6 +3824,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 workflow.connect(merge_link_node, 'out', link_node, 'paths')
 
+
             try:
                 G = nx.DiGraph()
                 strat_name = strat.get_name()
@@ -3773,13 +3840,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 logger.warn('Cannot Create the strategy and pipeline '
                             'graph, dot or/and pygraphviz is not installed')
 
-            pipes.append(pipeline_id)
 
         forks = "\n\nStrategy forks:\n" + \
-                "\n".join(["- " + pipe for pipe in pipes]) + \
+                "\n".join(["- " + pipe for pipe in sorted(set(pipeline_ids))]) + \
                 "\n\n"
 
         logger.info(forks)
+
 
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
@@ -3843,12 +3910,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         with open(subject_info_file, 'wb') as info:
             pickle.dump(subject_info, info)
 
-        for i, _ in enumerate(pip_ids):
+        for i, _ in enumerate(pipeline_ids):
             for scan in scan_ids:
                 create_log_node(workflow, None, None, i, scan).run()
 
         if 1 in c.generateQualityControlImages and not ndmg_out:
-            for pip_id in pip_ids:
+            for pip_id in pipeline_ids:
                 pipeline_base = os.path.join(c.outputDirectory,
                                                 'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,

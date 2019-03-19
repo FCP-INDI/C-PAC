@@ -81,6 +81,15 @@ def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False,
                                              "configs",
                                              "pipeline_config_benchmark-FNIRT.yml"))
 
+    if pipe_config == 'anat-only':
+        import os
+        import pkg_resources as p
+        pipe_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_anat-only.yml"))
+
     if data_config == 'benchmark-data':
         import os
         import pkg_resources as p

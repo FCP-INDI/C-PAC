@@ -1,4 +1,5 @@
 import os
+import errno
 from collections import defaultdict
 
 output_renamings = {
@@ -84,7 +85,6 @@ output_renamings = {
     'vmhc_fisher_zstd': 'vmhc',
     'vmhc_fisher_zstd_zstat_map': 'vmhc',
     'alff': 'alff',
-    'alff_input_functional': 'alff',
     'falff': 'alff',
     'alff_smooth': 'alff',
     'falff_smooth': 'alff',
@@ -98,7 +98,6 @@ output_renamings = {
     'falff_to_standard_smooth_zstd': 'alff',
     'alff_to_standard_zstd_smooth': 'alff',
     'falff_to_standard_zstd_smooth': 'alff',
-    'alff_input_functional': 'alff',
     'reho': 'reho',
     'reho_smooth': 'reho',
     'reho_to_standard': 'reho',
@@ -323,16 +322,21 @@ def create_paths_to_symlinks(
 
             symlinks[original_path] = sym_path
 
+    values = list(symlinks.values())
+    duplicates = set([x for x in values if values.count(x) > 1])
+    if duplicates:
+        raise Exception("Found duplicates: " + str(duplicates))
+
     return symlinks
 
 
 def create_symlinks(
     output_dir,
-    symlink_dir,
     pipeline_id,
     subject_id,
     paths,
-    relative=True
+    relative=True,
+    symlink_dir='sym_links'
 ):
 
     original_cwd = os.getcwd()
@@ -366,10 +370,14 @@ def create_symlinks(
                 ))
                 path = os.path.join(backtrack, relpath)
 
-            os.symlink(
-                path,
-                symlink
-            )
+            try:
+                os.symlink(path, symlink)
+            except OSError, e:
+                if e.errno == errno.EEXIST:
+                    os.remove(symlink)
+                    os.symlink(path, symlink)
+                else:
+                    raise e
 
     finally:
         os.chdir(original_cwd)

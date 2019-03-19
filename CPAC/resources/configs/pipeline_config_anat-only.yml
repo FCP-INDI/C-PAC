@@ -13,7 +13,7 @@ runOnGrid :  False
 
 # Full path to the FSL version to be used by CPAC.
 # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-FSLDIR :  /usr/share/fsl/5.0
+FSLDIR :  FSLDIR
 
 
 # Sun Grid Engine (SGE), Portable Batch System (PBS), or Simple Linux Utility for Resource Management (SLURM).
@@ -36,35 +36,35 @@ maximumMemoryPerParticipant :  3
 
 
 # The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid) to allocate per participant. Setting this above 1 will parallelize each participant's workflow where possible. If you wish to dedicate multiple cores to ANTS-based anatomical registration (below), this value must be equal or higher than the amount of cores provided to ANTS. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of participants set to run in parallel (the 'Number ofParticipants to Run Simultaneously' setting).
-maxCoresPerParticipant :  3
+maxCoresPerParticipant :  1
 
 
 # The number of participant workflows to run at the same time. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
-numParticipantsAtOnce :  15
+numParticipantsAtOnce :  1
 
 
 # The number of cores to allocate to ANTS-based anatomical registration per participant. Multiple cores can greatly speed up this preprocessing step. This number cannot be greater than the number of cores per participant.
-num_ants_threads :  3
+num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  benchmark-FNIRT
+pipelineName :  cpac_anat
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  ./cpac_runs/benchmark-FNIRT/w
+workingDirectory :  ./cpac_runs/anat/working
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  ./cpac_runs/benchmark-FNIRT/c
+crashLogDirectory :  ./cpac_runs/anat/crash
 
 
 # Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/benchmark-FNIRT/l
+logDirectory :  ./cpac_runs/anat/log
 
 
 # Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/benchmark-FNIRT/o
+outputDirectory :  ./cpac_runs/anat/output
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -72,15 +72,15 @@ awsOutputBucketCredentials :
 
 
 # Enable server-side 256-AES encryption on data to the S3 bucket
-s3Encryption :  [0]
+s3Encryption :  [1]
 
 
 # Include extra versions and intermediate steps of functional preprocessing in the output directory.
-write_func_outputs :  [1]
+write_func_outputs :  [0]
 
 
 # Include extra outputs in the output directory that may be of interest when more information is needed.
-write_debugging_outputs :  [1]
+write_debugging_outputs :  [0]
 
 
 # Generate quality control pages containing preprocessing and derivative outputs.
@@ -110,7 +110,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  ['AFNI']
+skullstrip_option :  AFNI
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -166,7 +166,7 @@ skullstrip_exp_frac :  0.1
 
 
 # Perform aggressive push to edge. This might cause leakage. Default is Off.
-skullstrip_push_to_edge :  Off
+skullstrip_push_to_edge :  False
 
 
 # Use outer skull to limit expansion of surface into the skull in case of very strong shading artifacts. Use this only if you have leakage into the skull.
@@ -189,7 +189,7 @@ skullstrip_fac :  1
 skullstrip_blur_fwhm :  0
 
 
-# Set the threshold value controling the brain vs non-brain voxels                              default is 0.5
+# Set the threshold value controling the brain vs non-brain voxels, default is 0.5
 bet_frac :  0.5
 
 
@@ -248,20 +248,16 @@ resolution_for_anat :  2mm
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
-regOption :  ['FSL']
-
-
-# Use only FLIRT, without FNIRT, for anatomical-to-template registration.
-fsl_linear_reg_only :  [0]
+regOption :  ['ANTS']
 
 
 # Configuration file to be used by FSL to set FNIRT parameters.
@@ -271,7 +267,7 @@ fnirtConfig :  T1_2_MNI152_2mm
 
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
 
 # Register skull-on anatomical image to a template.
@@ -285,7 +281,7 @@ runSegmentationPreprocessing :  [1]
 # Full path to a directory containing binarized prior probability maps.
 # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use non-standard priors.
-priors_path :  /usr/share/fsl/5.0/data/standard/tissuepriors/2mm
+priors_path :  $FSLDIR/data/standard/tissuepriors/2mm
 
 
 # Full path to a binarized White Matter prior probability map.
@@ -304,10 +300,10 @@ PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
 
 # Run functional preproceessing
-runFunctional: [1]
+runFunctional: [0]
 
 # Interpolate voxel time courses so they are sampled at the same time points.
-slice_timing_correction :  [1]
+slice_timing_correction :  [0]
 
 
 # Specify the TR (in seconds) at which images were acquired.
@@ -367,7 +363,7 @@ fmap_distcorr_dwell_asym_ratio : [0.93902439]
 
 
 # Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir :  x
+fmap_distcorr_pedir :  -y
 
 
 # Run Functional to Anatomical Registration
@@ -375,12 +371,12 @@ runRegisterFuncToAnat :  [1]
 
 
 # Run Functional to Anatomical Registration with BB Register
-runBBReg :  [1]
+runBBReg :  [0]
 
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
 
 
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
@@ -397,7 +393,7 @@ functionalMasking :  ['3dAutoMask']
 
 # Register functional images to a standard MNI152 template.
 # This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
-runRegisterFuncToMNI :  [1, 0]
+runRegisterFuncToMNI :  [1]
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
@@ -405,20 +401,20 @@ resolution_for_func_preproc :  3mm
 
 
 # The resolution (in mm) to which the registered derivative outputs are written into.
-resolution_for_func_derivative :  2mm
+resolution_for_func_derivative :  3mm
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
@@ -430,60 +426,82 @@ aroma_denoise_type :  nonaggr
 
 
 # Run Nuisance Signal Regression
-runNuisance :  [1]
+runNuisance :  [0]
 
 
 # Standard Lateral Ventricles Binary Mask
-lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 
-# Select which nuisance signal corrections to apply
-Regressors :
+# Select which nuisance signal corrections to apply:
+# compcor = CompCor
+# wm = White Matter
+# csf = CSF
+# gm = Gray Matter
+# global = Global Mean Signal
+# pc1 = First Principle Component
+# motion = Motion
+# linear = Linear Trend
+# quadratic = Quadratic Trend
+Regressors : None
 
- - Motion:
-     include_delayed: true
-     include_squared: true
-     include_delayed_squared: true
 
-   aCompCor:
-     summary:
-       method: PC
-       components: 5
-     tissues:
-       - WhiteMatter
-       - CerebrospinalFluid
-     extraction_resolution: 2
+# Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.
+nComponents : [5]
 
-   CerebrospinalFluid:
-     summary: Mean
-     extraction_resolution: 2
 
-   PolyOrt:
-    degree: 1
+# Use the Friston 24-Parameter Model during volume realignment.
+# If this option is turned off, only 6 parameters will be used.
+# These parameters will also be output as a spreadsheet.
+runFristonModel :  [1]
 
-   Bandpass:
-     bottom_frequency: 0.01
-     top_frequency: 0.1
-     
+
+# Remove or regress out volumes exhibiting excessive motion.
+# Each of these options are mutually exclusive, and selecting more than one will create a new pipeline fork for each option. For example, de-spiking and scrubbing will not run within the same pipeline strategy.
+runMotionSpike :  ['None']
+
+
+# (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) calculation to apply the threshold to during de-spiking or scrubbing.
+fdCalc :  ['Jenkinson']
+
+
+# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
+# Any volume exhibiting FD greater than the value will be regressed out or scrubbed.
+spikeThreshold : [0.5]
+
+
+# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub preceding a volume with excessive FD.
+numRemovePrecedingFrames :  1
+
+
+# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub subsequent to a volume with excessive FD.
+numRemoveSubsequentFrames :  2
+
 
 # Correct for the global signal using Median Angle Correction.
-runMedianAngleCorrection :  [1]
+runMedianAngleCorrection :  [0]
 
 
 # Target angle used during Median Angle Correction.
 targetAngleDeg : [90]
 
 
+# Apply a temporal band-pass filter to functional data.
+runFrequencyFiltering :  [1, 0]
+
+
+# Define one or more band-pass filters by clicking the + button.
+nuisanceBandpassFreq : [[0.01, 0.1]]
+
+
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [1]
+runROITimeseries :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
-tsa_roi_paths:
-  - s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, Voxel, SpatialReg
-
+tsa_roi_paths: None
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
@@ -492,15 +510,13 @@ roiTSOutputs :  [True, True]
 
 # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
 # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-runSCA :  [1]
+runSCA :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'DualReg', 'MultReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
-sca_roi_paths:
-  - s3://fcp-indi/resources/cpac/resources/rois_2mm.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
+sca_roi_paths: None
 
 
 # Normalize each time series before running Dual Regression SCA.
@@ -508,7 +524,7 @@ mrsNorm :  True
 
 
 # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-runVMHC :  [1]
+runVMHC :  [0]
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
@@ -532,7 +548,7 @@ configFileTwomm :  $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
 
 
 # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-runALFF :  [1]
+runALFF :  [0]
 
 
 # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
@@ -544,7 +560,7 @@ lowPassFreqALFF : [0.1]
 
 
 # Calculate Regional Homogeneity (ReHo) for all voxels.
-runReHo :  [1]
+runReHo :  [0]
 
 
 # Number of neighboring voxels used when calculating ReHo
@@ -555,7 +571,7 @@ clusterSize :  27
 
 
 # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-runNetworkCentrality :  [1]
+runNetworkCentrality :  [0]
 
 
 # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
@@ -616,7 +632,7 @@ memoryAllocatedForDegreeCentrality :  3.0
 # On - Run smoothing and output only the smoothed outputs.
 # On/Off - Run smoothing and output both the smoothed and non-smoothed outputs.
 # Off - Don't run smoothing.
-run_smoothing :  [1, 0]
+run_smoothing :  [1]
 
 
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
@@ -633,118 +649,5 @@ smoothing_order :  ['Before']
 # On - Run z-scoring and output only the z-scored outputs.
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.
-runZScoring :  [1, 0]
-
-
-# Run FSL FEAT group-level analysis.
-run_fsl_feat :  [1]
-
-
-# This number depends on computing resources.
-numGPAModelsAtOnce :  1
-
-
-# Use the + to add FSL model configuration to be run.
-modelConfigs :  []
-
-
-# Run Bootstrap Analysis of Stable Clusters
-run_basc :  [0]
-
-
-basc_resolution :  4mm
-
-
-# Maximum amount of processors to use while performing BASC.
-basc_proc :  2
-
-
-# Maximum amount of RAM (in GB) to be used when running BASC.
-basc_memory :  4
-
-
-# Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.
-# If you do not wish to use a mask, set this field to None.
-# Note: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.
-basc_roi_mask_file :  None
-
-
-basc_cross_cluster_mask_file :  None
-
-
-basc_similarity_metric_list :  ['correlation']
-
-
-# Number of bootstraps to apply to individual time series.
-basc_timeseries_bootstrap_list :  100
-
-
-# Number of bootstraps to apply to the original dataset.
-basc_dataset_bootstrap_list :  30
-
-
-# Number of clusters to create during clustering at both the individual and group levels.
-basc_n_clusters_list :  2
-
-
-basc_affinity_thresh : [0.0]
-
-
-basc_output_sizes :  800
-
-
-basc_cross_cluster :  True
-
-
-basc_blocklength_list :  1
-
-
-basc_group_dim_reduce :  False
-
-
-# Full path to a text file listing which participant IDs you want included in the analysis, with one ID on each line.
-# Tip: A sample group-level participant inclusion text file is generated when you first create your data configuration.
-basc_inclusion :  None
-
-
-# If there are multiple pipeline output directories, and you only want to run BASC on one or some of them, you can list them here - pipeline names separated by commas (check the output directory of your individual-level analysis run to see which pipeline directories are available).
-# If nothing is listed, all available pipelines will be run.
-basc_pipeline :  None
-
-
-# If there are multiple series or scans in any of the pipeline outputs for which PyBASC is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').
-# If nothing is listed, all available pipelines will be run.
-basc_scan_inclusion :  None
-
-
-# Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
-runMDMR :  [0]
-
-
-mdmr_inclusion: None
-
-
-# Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
-mdmr_roi_file : 
-
-
-# Path to a CSV file containing the phenotypic regressor.
-mdmr_regressor_file : 
-
-
-# Name of the participants column in your regressor file.
-mdmr_regressor_participant_column :  
-
-
-# Columns from the CSV file indicating factor variables. Other columns will be handled as covariates. Separated by commas.
-mdmr_regressor_columns : 
-
-
-# Number of permutation tests to run on the Pseudo-F statistics.
-mdmr_permutations :  500
-
-
-# Number of Nipype nodes created while computing MDMR. Dependent upon computing resources.
-mdmr_parallel_nodes :  1
-
+runZScoring :  [1]
 

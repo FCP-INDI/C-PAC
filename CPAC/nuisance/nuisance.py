@@ -520,7 +520,6 @@ def create_nuisance_workflow(nuisance_selectors,
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
-                                                        'no_bandpass_residual_file_path',
                                                         'regressors_file_path']),
                          name='outputspec')
 
@@ -963,18 +962,6 @@ def create_nuisance_workflow(nuisance_selectors,
     else:
         nuisance_regression.inputs.polort = 0
 
-    no_bandpass_nuisance_regression = None
-    if nuisance_selectors.get('Bandpass'):
-
-        no_bandpass_nuisance_regression = nuisance_regression.clone('no_bandpass_nuisance_regression')
-
-        bandpass_selector = nuisance_selectors['Bandpass']
-        bottom_frequency = bandpass_selector.get('bottom_frequency', 0.0)
-        top_frequency = bandpass_selector.get('top_frequency', 9999.9)
-
-        no_bandpass_nuisance_regression.inputs.bandpass = (float(bottom_frequency),
-                                                        float(top_frequency))
-
     nuisance_wf.connect([
         (inputspec, nuisance_regression, [
             ('functional_file_path', 'in_file'),
@@ -988,24 +975,6 @@ def create_nuisance_workflow(nuisance_selectors,
 
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
-
-    if nuisance_selectors.get('Bandpass'):
-        nuisance_wf.connect([
-            (inputspec, no_bandpass_nuisance_regression, [
-                ('functional_file_path', 'in_file'),
-                ('functional_brain_mask_file_path', 'mask'),
-            ]),
-        ])
-
-        nuisance_wf.connect(build_nuisance_regressors, 'out_file',
-                            no_bandpass_nuisance_regression, 'ort')
-
-        nuisance_wf.connect(no_bandpass_nuisance_regression, 'out_file',
-                            outputspec, 'no_bandpass_residual_file_path')
-    else:
-        nuisance_wf.connect(nuisance_regression, 'out_file',
-                            outputspec, 'no_bandpass_residual_file_path')
-
 
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')

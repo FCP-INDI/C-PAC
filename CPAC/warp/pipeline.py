@@ -117,7 +117,7 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
 
         num_strat += 1
 
-    else:
+    elif 'anat_mni_fnirt_register' in nodes:
         # FSL WARP APPLICATION
         if map_node:
             apply_fsl_warp = pe.MapNode(interface=fsl.ApplyWarp(),
@@ -139,12 +139,49 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
         node, out_file = strat['functional_to_anat_linear_xfm']
         workflow.connect(node, out_file, apply_fsl_warp, 'premat')
 
-        try:
-            # nonlinear warp from anatomical->template FNIRT registration
-            node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
-            workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
-        except KeyError:
-            pass
+        # nonlinear warp from anatomical->template FNIRT registration
+        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+        workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
+
+        strat.update_resource_pool({'{0}_to_standard'.format(output_name): (apply_fsl_warp, 'out_file')})
+        strat.append_name(apply_fsl_warp.name)
+
+    elif 'anat_mni_flirt_register' in nodes:
+        # FSL WARP APPLICATION
+        if map_node:
+            apply_anat_warp = pe.MapNode(interface=fsl.ApplyWarp(),
+                                         name='{0}_to_anat_{1}'.format(output_name, num_strat),
+                                        iterfield=['in_file'])
+            apply_fsl_warp = pe.MapNode(interface=fsl.ApplyWarp(),
+                                        name='{0}_to_standard_{1}'.format(output_name, num_strat),
+                                        iterfield=['in_file'])
+        else:
+            apply_anat_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                        name='{0}_to_anat_{1}'.format(output_name,
+                                                                        num_strat))
+            apply_fsl_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                        name='{0}_to_standard_{1}'.format(output_name,
+                                                                        num_strat))
+
+        node, out_file = strat['anatomical_brain']
+        workflow.connect(node, out_file, apply_anat_warp, 'ref_file')
+        apply_fsl_warp.inputs.ref_file = \
+            pipeline_config_obj.template_skull_for_func
+
+        # output file to be warped
+        node, out_file = strat[output_name]
+        workflow.connect(node, out_file, apply_anat_warp, 'in_file')
+
+        # linear affine from func->anat linear FLIRT registration
+        node, out_file = strat['functional_to_anat_linear_xfm']
+        workflow.connect(node, out_file, apply_anat_warp, 'premat')
+
+        # output file to be warped
+        workflow.connect(apply_anat_warp, 'out_file', apply_fsl_warp, 'in_file')
+
+        # nonlinear warp from anatomical->template FNIRT registration
+        node, out_file = strat['anatomical_to_mni_linear_xfm']
+        workflow.connect(node, out_file, apply_fsl_warp, 'premat')
 
         strat.update_resource_pool({'{0}_to_standard'.format(output_name): (apply_fsl_warp, 'out_file')})
         strat.append_name(apply_fsl_warp.name)

@@ -458,13 +458,16 @@ Regressors :
      summary: Mean
 
    PolyOrt:
-    degree: 1
+    degree: 2
 
    Bandpass:
      bottom_frequency: 0.01
      top_frequency: 0.1
 
  - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: true
  
    aCompCor:
      summary:
@@ -481,7 +484,7 @@ Regressors :
      erode_mask: true
 
    PolyOrt:
-    degree: 1
+    degree: 2
 
    Bandpass:
      bottom_frequency: 0.01

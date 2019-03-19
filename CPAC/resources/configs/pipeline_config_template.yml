@@ -467,7 +467,7 @@ Regressors :
      summary: Mean
 
    PolyOrt:
-    degree: 1
+    degree: 2
 
    Bandpass:
      bottom_frequency: 0.01
@@ -494,7 +494,7 @@ Regressors :
      erode_mask: true
 
    PolyOrt:
-    degree: 1
+    degree: 2
 
    Bandpass:
      bottom_frequency: 0.01
