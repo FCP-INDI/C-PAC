@@ -3,23 +3,8 @@
 set -e
 
 apt-get update
-apt-get install -y x2goserver lubuntu-desktop lxde-icon-theme
+apt-get install -y x2goserver lubuntu-desktop lxde-icon-theme xvfb
 apt-get remove -y lxlock xscreensaver xscreensaver-data gnome-screensaver
-
-
-# Disable screen lock
-mkdir -p /home/ubuntu/.config/xfce4/xfconf/xfce-perchannel-xml
-cat <<EOT > /home/ubuntu/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-power-manager.xml
-<?xml version="1.0" encoding="UTF-8"?>
-
-<channel name="xfce4-power-manager" version="1.0">
-  <property name="xfce4-power-manager" type="empty">
-    <property name="power-button-action" type="empty"/>
-    <property name="dpms-enabled" type="bool" value="false"/>
-  </property>
-</channel>
-EOT
-
 
 # Disable asking for user password
 groupadd -r autologin
@@ -38,7 +23,26 @@ rm -f /etc/xdg/autostart/gnome-screensaver.desktop
 rm -f /etc/xdg/autostart/org.gnome.SettingsDaemon.ScreensaverProxy.desktop
 rm -f /etc/xdg/autostart/light-locker.desktop
 
+chown -R ubuntu: /home/ubuntu/.config
+
+Xvfb :99 & export DISPLAY=:99
+su -c 'lxsession' ubuntu &  # to create configs
+
+sleep 10
+
 sed -z 's/\s*Button\s*{\s*id=lxde-screenlock.desktop\s*}//g' /home/ubuntu/.config/lxpanel/LXDE/panels/panel
+
+# Disable screen lock
+cat <<EOT > /home/ubuntu/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-power-manager.xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<channel name="xfce4-power-manager" version="1.0">
+  <property name="xfce4-power-manager" type="empty">
+    <property name="power-button-action" type="empty"/>
+    <property name="dpms-enabled" type="bool" value="false"/>
+  </property>
+</channel>
+EOT
 
 chown -R ubuntu: /home/ubuntu/.config
 
