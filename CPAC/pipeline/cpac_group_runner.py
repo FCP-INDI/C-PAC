@@ -1941,8 +1941,8 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 def run_qpp_group(group_config_file):
     from CPAC.QPP.prep_QPP import use_inputs
     #creating output directory paths
-    merge_file,merge_mask,inclusion_list,out_dir = use_inputs(group_config_file)
-    return merge_file,merge_mask,inclusion_list,merge_outdir
+    use_other_function,inclusion_list,out_dir,nrn = use_inputs(group_config_file)
+    return use_other_function,subject_list,inclusion_list,out_dir,nrn
 
 
 def run_qpp(group_config_file):
@@ -1950,16 +1950,15 @@ def run_qpp(group_config_file):
     from CPAC.QPP.detectqppv import qppv
 
     group_config_file = os.path.abspath(group_config_file)
-    merge_file,merge_mask,inclusion_list,out_dir,nrn = run_qpp_group(group_config_file)
+    use_other_function,subject_list,inclusion_list,out_dir,nrn = run_qpp_group(group_config_file)
 
     group_config_obj = load_config_yml(group_config_file)
 
     working_dir = group_config_obj.work_dir
     crash_dir = group_config_obj.log_dir
 
-
-    img=merge_file
-    mask=merge_mask
+    flag_3d_4d=use_other_function
+    img_list=subject_list
     wl  = group_config_obj.qpp_wl
     cth = group_config_obj.qpp_cth
     cth = cth.split(',')
@@ -1968,7 +1967,7 @@ def run_qpp(group_config_file):
     nsubj = len(inclusion_list)
 
 
-    qppv(img,mask,wl,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
+    qppv(img_list,flag_3d_4d,wl,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
