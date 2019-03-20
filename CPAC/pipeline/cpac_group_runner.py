@@ -197,7 +197,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
               % (pipeline_output_folder, resource_list)
         raise Exception(err)
 
-    return nifti_globs,search_dir
+    return nifti_globs,search_dirs
 
 
 def grab_raw_score_filepath(filepath, resource_id):
@@ -1941,7 +1941,8 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 def run_qpp_group(group_config_file):
     from CPAC.QPP.prep_QPP import use_inputs
     #creating output directory paths
-    use_other_function,inclusion_list,out_dir,nrn = use_inputs(group_config_file)
+    use_other_function,subject_list,inclusion_list,out_dir,nrn = use_inputs(group_config_file)
+
     return use_other_function,subject_list,inclusion_list,out_dir,nrn
 
 
@@ -1964,7 +1965,7 @@ def run_qpp(group_config_file):
     cth = cth.split(',')
     n_itr_th = group_config_obj.qpp_n_iter_th
     mx_itr = group_config_obj.qpp_mx_iter
-    nsubj = len(inclusion_list)
+    nsubj = len(img_list)
 
 
     qppv(img_list,flag_3d_4d,wl,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
