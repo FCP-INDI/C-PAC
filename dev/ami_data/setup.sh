@@ -6,7 +6,7 @@ function cleanup {
 
 trap cleanup EXIT
 
-apt-get update && apt-get install awscli git
+apt-get update && apt-get install -y awscli git
 
 INSTANCE_ID="`wget -qO- http://instance-data/latest/meta-data/instance-id`"
 REGION="`wget -qO- http://instance-data/latest/meta-data/placement/availability-zone | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"

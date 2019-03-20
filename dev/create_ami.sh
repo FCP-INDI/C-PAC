@@ -60,7 +60,7 @@ aws iam attach-role-policy --role-name ${INSTANCE_RANDOM_NAME} --policy-arn arn:
 aws iam create-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
 aws iam add-role-to-instance-profile --role-name ${INSTANCE_RANDOM_NAME} --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
 
-# aws --region "${REGION}" ec2 create-key-pair --key-name ${INSTANCE_RANDOM_NAME}
+aws --region "${REGION}" ec2 create-key-pair --key-name ${INSTANCE_RANDOM_NAME}
 
 INSTANCE_GROUP=`
     aws --region "${REGION}" ec2 describe-security-groups --group-names default --output json | \
@@ -76,8 +76,7 @@ aws --region "${REGION}" ec2 run-instances \
     --count 1 \
     --security-group-ids ${INSTANCE_GROUP} \
     --instance-type t2.medium  \
-    # --key-name ${INSTANCE_RANDOM_NAME} \
-    --key-name cpac \
+    --key-name ${INSTANCE_RANDOM_NAME} \
     --user-data file://dev/ami_data/setup.sh \
     --block-device-mappings file://${IMAGE_TEMP}.storage \
     --tag-specifications "ResourceType=instance,Tags=[{Key=ami_name,Value=${AMI_NAME}}, {Key=ami_description,Value='${AMI_DESCRIPTION}'}]" \
@@ -99,6 +98,7 @@ while (( ELAPSED < 120 )); do
     if [ "${TAG}" = "hou" ]; then
         break
     fi
+    echo "Waiting for running tag"
     NOW=`date +%s`
     ELAPSED=`expr ${NOW} - ${STARTED_AT}`
     sleep 2

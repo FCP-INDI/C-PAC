@@ -28,7 +28,7 @@ su -c 'lxsession' ubuntu &  # to create configs
 
 sleep 10
 
-sed -z 's/\s*Button\s*{\s*id=lxde-screenlock.desktop\s*}//g' /home/ubuntu/.config/lxpanel/LXDE/panels/panel
+# sed -z 's/\s*Button\s*{\s*id=lxde-screenlock.desktop\s*}//g' /home/ubuntu/.config/lxpanel/LXDE/panels/panel
 
 # Disable screen lock
 cat <<EOT > /home/ubuntu/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-power-manager.xml
