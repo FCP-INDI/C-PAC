@@ -23,8 +23,6 @@ rm -f /etc/xdg/autostart/gnome-screensaver.desktop
 rm -f /etc/xdg/autostart/org.gnome.SettingsDaemon.ScreensaverProxy.desktop
 rm -f /etc/xdg/autostart/light-locker.desktop
 
-chown -R ubuntu: /home/ubuntu/.config
-
 Xvfb :99 & export DISPLAY=:99
 su -c 'lxsession' ubuntu &  # to create configs
 
