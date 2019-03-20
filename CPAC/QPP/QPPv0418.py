@@ -64,7 +64,6 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     msk[(np.sum(abs(B)) > 0)] = 1
     a = np.where(msk[:,0]==1)
     B=B[a[0],:]
-    np.save('B_file',B)
     #defining 3D arrayshere. Each array within the 2D array will finally be a nX*wl shape column vector, which will store the template values
     bchf = np.zeros((nT,nX*wl))
     bchfn = np.zeros((nT,nX*wl))
@@ -169,8 +168,7 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
             #use the correlation coefficient. It returns a matrix and therefore, the first entry of that matrix will be the correlation coefficient value
             if (np.corrcoef(c_0,c)[0,1]>0.9999) or (np.corrcoef(c_00,c)[0,1]>0.9999) or (np.corrcoef(c_000,c)[0,1]>0.9999):
                 break
-            else:
-                raise Exception("We could not find good signal correlation with the data you provided. You might want to try with more data!")
+
             c_000=c_00
             c_00=c_0
             c_0=c
@@ -189,7 +187,7 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     mdict["FTP"] = ftp
     mdict["ITER"] = iter
     mdict["ITP"] = itp
-
+    np.save('{0}/template_file'.format(pfs),template)
     np.save('{0}/time_course_file'.format(pfs),time_course)
     np.save('{0}/ftp_file'.format(pfs),ftp)
     np.save('{0}/iter_file'.format(pfs),iter)
