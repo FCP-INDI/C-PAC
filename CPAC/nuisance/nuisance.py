@@ -254,6 +254,8 @@ def gather_nuisance(functional_file_path,
             subsequent_trs_to_censor = \
                 selector.get('number_of_subsequent_trs_to_censor', 0)
 
+            spike_regressors = np.zeros(regressor_length)
+
             for censor_index in censor_indices:
 
                 censor_begin_index = censor_index - previous_trs_to_censor
@@ -264,11 +266,14 @@ def gather_nuisance(functional_file_path,
                 if censor_end_index >= regressor_length:
                     censor_end_index = regressor_length - 1
 
-                spike_regressor = np.zeros((regressor_length, 1))
-                spike_regressor[censor_begin_index:censor_end_index + 1, 0] = 1
+                spike_regressors[censor_begin_index:censor_end_index + 1] = 1
+
+            for censor_index in np.where(spike_regressors == 1)[0]:
 
                 column_names.append("SpikeRegression{0}".format(censor_index))
-                nuisance_regressors.append(spike_regressor.flatten())
+                spike_regressor_index = np.zeros(regressor_length)
+                spike_regressor_index[censor_index] = 1
+                nuisance_regressors.append(spike_regressor_index.flatten())
 
     # Compile columns into regressor file
     output_file_path = os.path.join(os.getcwd(), "nuisance_regressors.1D")
