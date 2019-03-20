@@ -1,4 +1,4 @@
-def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,search_dir,derivatives=None):
+def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,search_dirs):
     import os
     import glob
     import fnmatch
@@ -9,15 +9,6 @@ def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,sea
     if len(resource_list) == 0:
         err= "\n\n[!] No derivatives selected!\n\n"
         raise Exception(err)
-    if derivatives is None:
-        keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
-        try:
-            keys=pd.read_csv(keys_csv)
-
-        except Exception as e:
-            err= "\n[!] Could not access or read the cpac_outputs.csv " \
-                "resource file:\n{0}\n\nError details {1}\n".format(keys_csv,e)
-            raise Exception(err)
     exts=['nii','nii.gz']
     exts = ['.'+ ext.lstrip('.')for ext in exts]
     output_dict_list={}
@@ -33,7 +24,7 @@ def create_output_dict_list(nifti_globs,pipeline_output_folder,resource_list,sea
             filepath_pieces=filter(None, relative_filepath.split("/"))
             resource_id = filepath_pieces[1]
 
-            if resource_id not in search_dir:
+            if resource_id not in search_dirs:
                 continue
 
             scan_id_string = filepath_pieces[2]
@@ -67,11 +58,23 @@ def gather_outputs(pipeline_folder,resource_list,inclusion_list):
 
     from CPAC.pipeline.cpac_group_runner import gather_nifti_globs
     from CPAC.pipeline.cpac_group_runner import create_output_df_dict
+    import pandas as pd
+    import pkg_resources as p
 
+    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
+    try:
+        keys=pd.read_csv(keys_csv)
+
+    except Exception as e:
+        err= "\n[!] Could not access or read the cpac_outputs.csv " \
+                "resource file:\n{0}\n\nError details {1}\n".format(keys_csv,e)
+        raise Exception(err)
+    resource_list = ['functional_nuisance_residuals']
     derivatives =list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
-    nifti_globs,search_dir = gather_nifti_globs(pipeline_folder,resource_list,derivatives=None)
 
-    output_dict_list = create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dir,derivatives=None)
+    nifti_globs, search_dirs = gather_nifti_globs(pipeline_folder, resource_list, derivatives)
+
+    output_dict_list = create_output_dict_list(nifti_globs,pipeline_folder,resource_list,search_dirs)
     # now we have a good dictionary which contains all the filepaths of the files we need to merge later on.
     # Steps after this: 1. This is only a dictionary so let's convert it to a data frame.
     # 2. In the data frame, we're going to only include whatever is in the participant list
@@ -247,7 +250,8 @@ def use_inputs(group_config_file):
     import shutil
     from CPAC.pipeline.cpac_group_runner import load_config_yml
     from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile, create_merge_mask
-
+    import nibabel as nib
+    import numpy as np
 
 
     qpp_dict,inclusion_list,resource_id,strat_info = prep_inputs(group_config_file)
