@@ -273,14 +273,22 @@ def use_inputs(group_config_file):
 
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
-        merge_outfile = os.path.join(out_dir,'_merged.nii.gz')
-        merge_mask_outfile =os.path.join(out_dir,'_merged_mask.nii.gz')
+        use_other_function=False
+        subject_list=newer_output_df["Filepath"].tolist()
+        for subject in subject_list:
+            sub_img=nib.load(subject)
+            if sub_img.shape==3:
+                use_other_function=False
+                #merge_outfile = os.path.join(out_dir,'_merged.nii.gz')
+                #merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
+                #merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+                #return merge_file, merge_mask
+            else:
+                use_other_function=True
 
-        merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
-        merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+                #nsubj =len(subject_list)
 
-    return merge_file,merge_mask,inclusion_list,out_dir,nrn
-
+    return use_other_function,subject_list,inclusion_list,out_dir,nrn
 
 def balance_df(new_output_df,sessions_list,scan_list):
     import pandas as pd
