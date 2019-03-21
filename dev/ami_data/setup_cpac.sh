@@ -2,6 +2,9 @@
 
 set -e
 
+wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+sudo apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9
+
 apt-get update
 apt-get install -y x2goserver lubuntu-desktop lxde-icon-theme xvfb
 apt-get remove -y lxlock xscreensaver xscreensaver-data gnome-screensaver
@@ -103,8 +106,8 @@ mkdir -p /opt/c3d && \
     curl -sSL "http://downloads.sourceforge.net/project/c3d/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz" \
     | tar -xzC /opt/c3d --strip-components 1
 
-export C3DPATH=/opt/c3d/
-export PATH=$C3DPATH/bin:$PATH
+echo 'C3DPATH=/opt/c3d/' >> /etc/bash.bashrc
+echo 'PATH=$C3DPATH/bin:$PATH' >> /etc/bash.bashrc
 
 libs_path=/usr/lib/x86_64-linux-gnu && \
     if [ -f $libs_path/libgsl.so.19 ]; then \
@@ -115,23 +118,14 @@ libs_path=/usr/lib/x86_64-linux-gnu && \
     tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz && \
     rm -rf linux_openmp_64.tgz
 
-export PATH=/opt/afni:$PATH
-
+echo 'PATH=/opt/afni:$PATH' >> /etc/bash.bashrc
 
 apt-get install -y --no-install-recommends \
     fsl-core \
     fsl-atlases \
     fsl-mni152-templates
 
-export FSLDIR=/usr/share/fsl/5.0
-export FSLOUTPUTTYPE=NIFTI_GZ
-export FSLMULTIFILEQUIT=TRUE
-export POSSUMDIR=/usr/share/fsl/5.0
-export LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH
-export FSLTCLSH=/usr/bin/tclsh
-export FSLWISH=/usr/bin/wish
-export PATH=/usr/lib/fsl/5.0:$PATH
-
+source /etc/fsl/5.0/fsl.sh
 
 cd /tmp && \
 curl -sO http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
@@ -144,23 +138,18 @@ cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
 cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
 cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
 
-
 apt-get install -y ants
-
 
 mkdir -p /opt/ICA-AROMA
 curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
 chmod +x /opt/ICA-AROMA/ICA_AROMA.py
-export PATH=/opt/ICA-AROMA:$PATH
-
+echo 'PATH=/opt/ICA-AROMA:$PATH' >> /etc/bash.bashrc
 
 curl -sO https://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
 bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
 rm Miniconda-3.8.3-Linux-x86_64.sh
 
-
-export PATH=/usr/local/miniconda/bin:$PATH
-
+echo 'PATH=/usr/local/miniconda/bin:$PATH' >> /etc/bash.bashrc
 
 conda install -y \
         blas
