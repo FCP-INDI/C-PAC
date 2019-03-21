@@ -79,7 +79,7 @@ aws --region "${REGION}" ec2 run-instances \
     --key-name ${INSTANCE_RANDOM_NAME} \
     --user-data file://dev/ami_data/setup.sh \
     --block-device-mappings file://${IMAGE_TEMP}.storage \
-    --tag-specifications "ResourceType=instance,Tags=[{Key=ami_name,Value=${AMI_NAME}}, {Key=ami_description,Value='${AMI_DESCRIPTION}'}]" \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=cpac-ami}, {Key=ami_name,Value=${AMI_NAME}}, {Key=ami_description,Value='${AMI_DESCRIPTION}'}]" \
     --instance-initiated-shutdown-behavior terminate \
     --output json
 `
