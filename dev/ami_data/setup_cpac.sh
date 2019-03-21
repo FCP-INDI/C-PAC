@@ -126,16 +126,14 @@ apt-get install -y --no-install-recommends \
 
 source /etc/fsl/5.0/fsl.sh
 
-cd /tmp && \
-curl -sO http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
-tar xfz cpac_resources.tar.gz && \
-cd cpac_image_resources && \
-cp -n MNI_3mm/* $FSLDIR/data/standard && \
-cp -n MNI_4mm/* $FSLDIR/data/standard && \
-cp -n symmetric/* $FSLDIR/data/standard && \
-cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
+curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
+tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
+cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
+cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
+cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
+cp -nr /tmp/cpac_image_resource/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
+cp -nr /tmp/cpac_image_resource/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
+cp -n /tmp/cpac_image_resource/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
 
 apt-get install -y ants
 
@@ -172,10 +170,9 @@ pip install --upgrade pip==9.0.1
 pip install -r /opt/C-PAC/requirements.txt
 pip install xvfbwrapper
 
-mkdir /ndmg_atlases && \
-curl https://github.com/neurodata/neuroparc/archive/master.zip -o /ndmg_atlases/neuroparc.zip && \
-unzip /ndmg_atlases/ndmg_atlases.zip -d /tmp/neuroparc 'neuroparc-master/atlases/*' && \
-cp -r /tmp/neuroparc/neuroparc-master/atlases /ndmg_atlases && rm /ndmg_atlases/neuroparc.zip
+curl -L https://github.com/neurodata/neuroparc/archive/master.zip -o /tmp/neuroparc.zip && \
+unzip /tmp/neuroparc.zip -d /tmp/neuroparc 'neuroparc-master/atlases/*' && \
+cp -r /tmp/neuroparc/neuroparc-master/atlases /ndmg_atlases && rm /tmp/neuroparc.zip
 
 apt-get clean && \
 apt-get autoremove -y && \
