@@ -26,10 +26,10 @@ rm -f /etc/xdg/autostart/gnome-screensaver.desktop
 rm -f /etc/xdg/autostart/org.gnome.SettingsDaemon.ScreensaverProxy.desktop
 rm -f /etc/xdg/autostart/light-locker.desktop
 
-# Xvfb :99 & export DISPLAY=:99
-# su -c 'lxsession' ubuntu &  # to create configs
+Xvfb :99 & export DISPLAY=:99
+su -c 'lxsession' ubuntu &  # to create configs
 
-# sleep 10
+sleep 5
 
 # sed -z 's/\s*Button\s*{\s*id=lxde-screenlock.desktop\s*}//g' /home/ubuntu/.config/lxpanel/LXDE/panels/panel
 
