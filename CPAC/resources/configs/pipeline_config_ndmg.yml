@@ -473,26 +473,26 @@ runROITimeseries :  [0]
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
 tsa_roi_paths:
-  - /ndmg_atlases/func_atlases/label/aal_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/brodmann_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/CPAC200_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/desikan_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DK_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00071_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00096_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00108_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00140_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00195_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00278_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00350_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00446_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00583_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS00833_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/DS01216_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/HarvardOxfordcort-maxprob-thr25_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/HarvardOxfordsub-maxprob-thr25_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/JHU_res-2x2x2.nii.gz: Avg
-    /ndmg_atlases/func_atlases/label/pp264_res-2x2x2.nii.gz: Avg
+  - /ndmg_atlases/label/aal_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/brodmann_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/CPAC200_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/desikan_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DKT_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00071_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00096_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00108_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00140_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00195_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00278_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00350_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00446_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00583_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS00833_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/DS01216_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/JHU_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
+    /ndmg_atlases/label/princetonvisual-top_space-MNI152NLin6_res-2x2x2.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
