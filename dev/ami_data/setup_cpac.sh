@@ -103,8 +103,7 @@ git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
     rm -rf /tmp/libXp
 
 mkdir -p /opt/c3d
-curl -sSL "http://downloads.sourceforge.net/project/c3d/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz"
-tar -xzC /opt/c3d --strip-components 1
+curl -sSL "http://downloads.sourceforge.net/project/c3d/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz" | tar -xzC /opt/c3d --strip-components 1
 
 echo 'C3DPATH=/opt/c3d/' >> /etc/bash.bashrc
 echo 'PATH=$C3DPATH/bin:$PATH' >> /etc/bash.bashrc
@@ -174,9 +173,9 @@ pip install -r /opt/C-PAC/requirements.txt
 pip install xvfbwrapper
 
 mkdir /ndmg_atlases && \
-curl https://s3.amazonaws.com/mrneurodata/data/resources/ndmg_atlases.zip -o /ndmg_atlases/ndmg_atlases.zip && \
-cd /ndmg_atlases && unzip /ndmg_atlases/ndmg_atlases.zip && \
-rm /ndmg_atlases/ndmg_atlases.zip
+curl https://github.com/neurodata/neuroparc/archive/master.zip -o /ndmg_atlases/neuroparc.zip && \
+unzip /ndmg_atlases/ndmg_atlases.zip -d /tmp/neuroparc 'neuroparc-master/atlases/*' && \
+cp -r /tmp/neuroparc/neuroparc-master/atlases /ndmg_atlases && rm /ndmg_atlases/neuroparc.zip
 
 apt-get clean && \
 apt-get autoremove -y && \
