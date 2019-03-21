@@ -68,12 +68,12 @@ RUN apt-get update && \
 # Compiles libxp- this is necessary for some newer versions of Ubuntu
 # where the is no Debian package available.
 RUN git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
-    cd /tmp/libXp && \
+    pushd /tmp/libXp && \
     ./autogen.sh && \
     ./configure && \
     make && \
     make install && \
-    cd / && \
+    popd && \
     rm -rf /tmp/libXp
 
 # Installing and setting up c3d
@@ -115,16 +115,14 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     PATH=/usr/lib/fsl/5.0:$PATH
 
 # install CPAC resources into FSL
-RUN cd /tmp && \
-    curl -sO http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
-    tar xfz cpac_resources.tar.gz && \
-    cd cpac_image_resources && \
-    cp -n MNI_3mm/* $FSLDIR/data/standard && \
-    cp -n MNI_4mm/* $FSLDIR/data/standard && \
-    cp -n symmetric/* $FSLDIR/data/standard && \
-    cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-    cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-    cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
+RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
+    tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
+    cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
+    cp -nr /tmp/cpac_image_resource/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
+    cp -nr /tmp/cpac_image_resource/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
+    cp -n /tmp/cpac_image_resource/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
 
 # install ANTs
 RUN apt-get update && \
