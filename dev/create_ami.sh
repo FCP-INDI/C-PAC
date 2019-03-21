@@ -5,7 +5,6 @@ REGION=$1
 REGION="us-east-1"
 
 VERSION=`cat ./version`
-VERSION='TESTING'
 
 AMI_NAME="C-PAC ${VERSION}"
 AMI_DESCRIPTION="Configurable Pipeline for the Analysis of Connectomes - Version ${VERSION}"
