@@ -175,9 +175,9 @@ RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
 
 # Get atlases
 RUN mkdir /ndmg_atlases && \
-    curl https://s3.amazonaws.com/mrneurodata/data/resources/ndmg_atlases.zip -o /ndmg_atlases/ndmg_atlases.zip && \
-    cd /ndmg_atlases && unzip /ndmg_atlases/ndmg_atlases.zip && \
-    rm /ndmg_atlases/ndmg_atlases.zip
+    curl https://github.com/neurodata/neuroparc/archive/master.zip -o /ndmg_atlases/neuroparc.zip && \
+    unzip /ndmg_atlases/ndmg_atlases.zip -d /tmp/neuroparc 'neuroparc-master/atlases/*' && \
+    cp -r /tmp/neuroparc/neuroparc-master/atlases /ndmg_atlases && rm /ndmg_atlases/neuroparc.zip
 
 # clean up
 RUN apt-get clean && \
