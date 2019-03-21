@@ -2,8 +2,8 @@
 
 set -e
 
-wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
-sudo apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9
+wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | tee /etc/apt/sources.list.d/neurodebian.sources.list
+apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9
 
 apt-get update
 apt-get install -y x2goserver lubuntu-desktop lxde-icon-theme xvfb
@@ -26,10 +26,10 @@ rm -f /etc/xdg/autostart/gnome-screensaver.desktop
 rm -f /etc/xdg/autostart/org.gnome.SettingsDaemon.ScreensaverProxy.desktop
 rm -f /etc/xdg/autostart/light-locker.desktop
 
-Xvfb :99 & export DISPLAY=:99
-su -c 'lxsession' ubuntu &  # to create configs
+# Xvfb :99 & export DISPLAY=:99
+# su -c 'lxsession' ubuntu &  # to create configs
 
-sleep 10
+# sleep 10
 
 # sed -z 's/\s*Button\s*{\s*id=lxde-screenlock.desktop\s*}//g' /home/ubuntu/.config/lxpanel/LXDE/panels/panel
 
@@ -102,21 +102,21 @@ git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
     cd / && \
     rm -rf /tmp/libXp
 
-mkdir -p /opt/c3d && \
-    curl -sSL "http://downloads.sourceforge.net/project/c3d/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz" \
-    | tar -xzC /opt/c3d --strip-components 1
+mkdir -p /opt/c3d
+curl -sSL "http://downloads.sourceforge.net/project/c3d/c3d/1.0.0/c3d-1.0.0-Linux-x86_64.tar.gz"
+tar -xzC /opt/c3d --strip-components 1
 
 echo 'C3DPATH=/opt/c3d/' >> /etc/bash.bashrc
 echo 'PATH=$C3DPATH/bin:$PATH' >> /etc/bash.bashrc
 
-libs_path=/usr/lib/x86_64-linux-gnu && \
-    if [ -f $libs_path/libgsl.so.19 ]; then \
-        ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
-    fi && \
-    mkdir -p /opt/afni && \
-    curl -sO https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
-    tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz && \
-    rm -rf linux_openmp_64.tgz
+libs_path=/usr/lib/x86_64-linux-gnu 
+if [ -f $libs_path/libgsl.so.19 ]; then \
+    ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
+fi
+mkdir -p /opt/afni
+curl -sO https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz
+tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz
+rm -rf linux_openmp_64.tgz
 
 echo 'PATH=/opt/afni:$PATH' >> /etc/bash.bashrc
 
@@ -150,6 +150,8 @@ bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
 rm Miniconda-3.8.3-Linux-x86_64.sh
 
 echo 'PATH=/usr/local/miniconda/bin:$PATH' >> /etc/bash.bashrc
+
+export PATH=/usr/local/miniconda/bin:$PATH
 
 conda install -y \
         blas
