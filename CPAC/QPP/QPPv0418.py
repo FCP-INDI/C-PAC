@@ -89,7 +89,7 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
             template_sqrt = np.sqrt(temp_dot)
             template=template/template_sqrt
             #add said template into bchfn
-            flattened_segment_array[(i)*n_tempDim+ich] = template
+            flattened_segment_array_2[(i)*n_tempDim+ich] = template
             #removing nan values and making them 0 to prevent further issues in calculations
             A = np.isnan(flattened_segment_array_2)
             flattened_segment_array_2[A] = 0
