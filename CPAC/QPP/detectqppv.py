@@ -7,10 +7,29 @@ import os
 import nibabel as nib
 from scipy import stats
 import scipy.io
-from CPAC.QPP.QPPv0418 import qpp_wf,BSTT,TBLD2WL,regressqpp
+from CPAC.QPP.QPPv0418 import qpp_wf,regressqpp
 import time
+import sys
+
+def check_merge_list(merge_list):
+
+    char_1=merge_list[0]
+    equality_flag=True
+    for chars in merge_list[1:]:
+        if chars.shape != char_1.shape:
+            equality_flag = False
+            break
+    if equality_flag == True:
+        return True
+    else:
+        return False
+    #merged_empty = np.empty((nsubj, nrn, r_subject.shape[0], r_subject.shape[1]))
+
 
 def qppv(img_list,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
+
+    nrn = int(nrn)
+    nsubj=int(nsubj)
 
     if flag_3d_4d == False:
         ##This is the function to import the img into an array object
@@ -52,28 +71,37 @@ def qppv(img_list,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         A = np.isnan(B)
         B[A] = 0
     else:
+        merge_list = []
         for subject in img_list:
             sub_img=nib.load(subject)
-            sub_img = np.array(sub_img)
-            r_subject = sub_img.reshape(sub_img.shape[0] * sub_img.shape[1] * sub_img.shape[2],sub_img.shape[3])
+            sub_img = sub_img.dataobj
+            sub_img=np.array(sub_img)
+            r_subject = sub_img.reshape(sub_img.shape[0]*sub_img.shape[1]*sub_img.shape[2],sub_img.shape[3])
+            print(r_subject.shape)
             merged_empty = np.empty((nsubj, nrn, r_subject.shape[0], r_subject.shape[1]))
-            merge_list = []
             merge_list.append(r_subject)
+            print(len(merge_list))
 
-            nx = merged_empty.shape[3]
-            nt = merged_empty.shape[2]
+        bool_result = check_merge_list(merge_list)
+        if bool_result == False:
+            raise Exception("The data you have provided does not have consistent dimensions..QPP cannot continue, so please use another dataset")
+        else:
+            nx = merged_empty.shape[2]
+            nt = merged_empty.shape[3]
             nsubj = merged_empty.shape[0]
             nrn = merged_empty.shape[1]
+            nd = nsubj*nrn
+            nrp=nd
+            nt_new = nt*nd
 
-            nd = nsubj * nrn
-            nt_new = nt * nd
             B = np.zeros((nx, nt_new))
             id = 1
             for isbj in range(nsubj):
                 for irn in range(nrn):
-                    merged_empty[isbj, irn] = merge_list[id - 1]
-                    B[:, (id - 1) * nt:id * nt] = np.transpose(stats.zscore(merged_empty[isbj, irn]),axis=1)
-                    id += 1
+                    if id < len(merge_list):
+                        merged_empty[isbj,irn] = merge_list[id-1]
+                        B[:,(id-1)*nt:id*nt] = stats.zscore(merged_empty[isbj,irn],axis=1)
+                        id = id+1
             msk = np.zeros((nx, 1))
             msk[(np.sum(abs(B)) > 0)] = 1
             A = np.isnan(B)
@@ -81,23 +109,27 @@ def qppv(img_list,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
 
     start_time = time.time()
     #generate qpp
-    time_course, ftp, itp, iter = qpp_wf(B, msk, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs)
+    img,nd,best_template,time_course_sum_correlation,path_for_saving = qpp_wf(B,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs)
     #choose best template
-    C_1,FTP1,Met1 = BSTT(time_course,ftp,nd,B,pfs)
+    #C_1,FTP1,Met1 = BSTT(time_course,ftp,nd,B,pfs)
     #regress QPP
-    T =TBLD2WL(B,wl,FTP1,pfs)
-    Br, C1r=regressqpp(B, nd, T, C_1,pfs)
+    #T =TBLD2WL(B,wl,FTP1,pfs)
+    Br, C1r=regressqpp(img, nd, best_template, time_course_sum_correlation,path_for_saving)
     print("-----%s seconds ----"%(time.time() - start_time))
 if __name__ == "__main__":
 
-    img='/home/nrajamani/Documents/Project_QPP/QPPvNov18_python/Data/Data.mat'
-    mask='/home/nrajamani/Documents/Project_QPP/QPPvNov18_python/Data/mask.nii.gz'
+    img_list=['/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025864_1/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
+              '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025864_2/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
+              '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025865_1/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
+              '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025865_2/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz']
+    #mask='/home/nrajamani/Documents/Project_QPP/QPPvNov18_python/Data/mask.nii.gz'
+    flag_3d_4d=True
     wl=30
     cth=[0.2,0.3]
     n_itr_th=6
     mx_itr=20
     pfs='/home/nrajamani/Documents/Project_QPP/QPPvNov18_python/new_result1'
-    nsubj=3
+    nsubj=4
     nrn=2
     qppv(img_list, flag_3d_4d, wl, cth, n_itr_th, mx_itr, pfs, nsubj, nrn)
 
