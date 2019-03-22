@@ -298,8 +298,8 @@ def group_isc(group_config):
 @group.command()
 @click.argument('group_config')
 def qpp(group_config):
-    from CPAC.QPP.prep_QPP import prep_inputs
-    prep_inputs(group_config)
+    from CPAC.pipeline.cpac_group_runner import run_qpp
+    run_qpp(group_config)
 
 
 # Utilities
