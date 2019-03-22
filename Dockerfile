@@ -68,12 +68,12 @@ RUN apt-get update && \
 # Compiles libxp- this is necessary for some newer versions of Ubuntu
 # where the is no Debian package available.
 RUN git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
-    pushd /tmp/libXp && \
+    cd /tmp/libXp && \
     ./autogen.sh && \
     ./configure && \
     make && \
     make install && \
-    popd && \
+    cd - && \
     rm -rf /tmp/libXp
 
 # Installing and setting up c3d
