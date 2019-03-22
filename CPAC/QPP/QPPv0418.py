@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from detect_peaks import detect_peaks
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
-def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
+def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,max_itr,path_for_saving):
     # TODOconsolidate this to one function as Behnaz suggested
     """This code is adapted from the paper
        "Quasi-periodic patterns(QP):Large-scale dynamics in resting state fMRI that correlate"\
@@ -51,14 +51,10 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
        'path/to/mask/file/' 30 6 0.2 0.3 1 15 'path/to/save/results/' 6 1
     """
     #define these variables so they make more sense --> didn't change it in the detectqppv function because laziness
-    B=img
-    wl=window_length
-    nrp=number_randomPermutation
-    n_itr_th=n_iter_threshold
-    mx_itr=max_itr
-    pfs=path_for_saving
 
-    n_timePoints = img.shape[1] #shape of time dimension
+
+    n_timePoints = img.shape[1]
+    #shape of time dimension
     n_xaxis = img.shape[0] #shape of x dimensions
     n_tempDim = int(n_timePoints/nd) #number of temporal dimensions
     #use int to prevent floating point errors during initializations
@@ -66,14 +62,14 @@ def qpp_wf(B,msk,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs):
     nTf = (n_xaxis*window_length)
     #make it a boolean mask - all values with entries greater than zeros will become 1 the rest will be zero
     #no real use of mask anywhere else?
-    msk = np.zeros((n_xaxis,1))
-    msk[(np.sum(abs(img)) > 0)] = 1
-    a = np.where(msk[:,0]==1)
-    img=img[a[0],:]
+    #msk = np.zeros((n_xaxis,1))
+    #msk[(np.sum(abs(img)) > 0)] = 1
+    #a = np.where(msk[:,0]==1)
+    #img=img[a[0],:]
     #defining 3D arrays here. Each array within the 2D array will finally be a nX*wl shape column vector, which will store the flattened template segment values
 
-    flattened_segment_array = np.zeros((n_timepoints,n_xaxis*window_length))
-    flattened_segment_array_2 = np.zeros((n_timepoints,n_xaxis*window_length))
+    flattened_segment_array = np.empty((n_timePoints,n_xaxis*window_length))
+    flattened_segment_array_2 = np.empty((n_timePoints,n_xaxis*window_length))
 
     #for each subject*run store the template into the flattened_segment_array array. Instead of using transpose and multiplication, just us dot product of the template square to be stored in bchfn,
     #This step. Presumably is done to maximize the peaks that are found within the arrays(eplained below)
