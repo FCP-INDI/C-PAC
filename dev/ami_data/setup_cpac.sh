@@ -3,8 +3,8 @@
 set -e
 
 wget -O /etc/apt/sources.list.d/neurodebian.sources.list http://neuro.debian.net/lists/bionic.us-ca.full
-for i in {1..3}; do 
-  apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 && break || sleep 5;
+for i in {1..5}; do 
+    apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 && break || sleep 5;
 done
 
 apt-get update
