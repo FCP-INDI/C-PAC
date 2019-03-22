@@ -120,9 +120,9 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
     cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
     cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
-    cp -nr /tmp/cpac_image_resource/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-    cp -nr /tmp/cpac_image_resource/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-    cp -n /tmp/cpac_image_resource/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
+    cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
+    cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
+    cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
 # install ANTs
 RUN apt-get update && \
