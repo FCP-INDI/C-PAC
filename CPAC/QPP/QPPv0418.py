@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from detect_peaks import detect_peaks
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
-def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,max_itr,path_for_saving):
+def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_itr,path_for_saving):
     # TODOconsolidate this to one function as Behnaz suggested
     """This code is adapted from the paper
        "Quasi-periodic patterns(QP):Large-scale dynamics in resting state fMRI that correlate"\
@@ -102,7 +102,7 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
     #delete instances of ITP from i2x
     initial_timePoints=np.arange(1,n_timePoints+1)
     random_selection_array = ndarray.flatten(random_selection_array)
-    initial_timePoints = np.delete(initial_timePoints,i2x-1,0)
+    initial_timePoints = np.delete(initial_timePoints,random_selection_array-1,0)
 
     #permute the numbers within ITP
 
@@ -193,17 +193,17 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
     plt.plot(template,'b')
     plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
     plt.xlabel('avg of func.data of length WL(30)')
-    plt.savefig("{0}/Temple_QPP.png".format(pfs))
+    plt.savefig("{0}/Temple_QPP.png".format(path_for_saving))
     mdict = {}
     mdict["C"] = time_course
     mdict["FTP"] = final_timePoints
     mdict["ITER"] = iteration
     mdict["ITP"] = initial_timePoints
-    np.save('{0}/template_file'.format(pfs),template)
-    np.save('{0}/time_course_file'.format(pfs),time_course)
-    np.save('{0}/ftp_file'.format(pfs),final_timePoints)
-    np.save('{0}/iter_file'.format(pfs),iteration)
-    np.save('{0}/itp_file'.format(pfs),initial_timePoints)
+    np.save('{0}/template_file'.format(path_for_saving),template)
+    np.save('{0}/time_course_file'.format(path_for_saving),time_course)
+    np.save('{0}/ftp_file'.format(path_for_saving),final_timePoints)
+    np.save('{0}/iter_file'.format(path_for_saving),iteration)
+    np.save('{0}/itp_file'.format(path_for_saving),initial_timePoints)
     #finding the best template, T1 or the  QPP, out of nRP templates the template with the maximum sum of correlation at the supra-threshold local
     #maxima is selected as T1, hence T1 would have higher correlation and more  occurance compared to  other templates
 
@@ -221,7 +221,7 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
     is_sum_correlation = np.argsort(sum_correlation)[::-1]
     T1 = is_sum_correlation[0]
     time_course_sum_correlation = time_course[T1,:] #time course sum correlation is an array that contains
-    if ftp:
+    if final_timePoints:
         final_timePoints_1 = final_timePoints[T1]
     else:
         raise Exception("The program will end now, because we could not find any signal correlation and the Final Time Point "
@@ -238,11 +238,11 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
     plt.plot(time_course_sum_correlation,'b')
     plt.plot(final_timePoints_1,time_course_sum_correlation[final_timePoints_1],'g^')
     plt.axis([0,nd*n_tempDim,-1,1])
-    plt.xticks(np.arange(n_tempDim,n_temPoints,step=n_tempDim))
+    plt.xticks(np.arange(n_tempDim,n_timePoints,step=n_tempDim))
     plt.yticks(np.arange(-1,1,step=0.2))
     plt.xlabel('Time points of functional data,TR(s)')
     plt.title('QPP 2D array')
-    plt.savefig("{0}/QPP_2D_array.png".format(pfs))
+    plt.savefig("{0}/QPP_2D_array.png".format(path_for_saving))
 
     #% building T1, by averaging segments of B with length 2*WL starting at FTP-WL/2; extra WL/2 at each end is primarily to have die-off effect; it
     #is also used in fine-phase-matching two QPPs when comparing them
@@ -282,7 +282,7 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
             conct_array2 = conct_array
 
         best_template = best_template+conct_array2
-    best_template=best_template/nFTP
+    best_template=best_template/final_timePoints_1
 
     return img,nd,best_template,time_course_sum_correlation,path_for_saving
 
