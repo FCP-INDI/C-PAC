@@ -5,22 +5,30 @@ REGION=$1
 REGION="us-east-1"
 
 VERSION=`cat ./version`
-VERSION='TESTING'
 
 AMI_NAME="C-PAC ${VERSION}"
 AMI_DESCRIPTION="Configurable Pipeline for the Analysis of Connectomes - Version ${VERSION}"
 
 function cleanup {
-    if [ -n "$INSTANCE_KEYPAIR_NAME" ]; then
-        aws --region "${REGION}" ec2 create-key-pair --key-name "${INSTANCE_KEYPAIR_NAME}"
-    fi
+    echo "Cleaning up..."
 
     if [ -n "$INSTANCE" ]; then
         aws --region "${REGION}" ec2 terminate-instances "${INSTANCE_ID}"
     fi
 
+    if [ -n "$INSTANCE_KEYPAIR_NAME" ]; then
+        aws --region "${REGION}" ec2 delete-key-pair --key-name "${INSTANCE_KEYPAIR_NAME}"
+    fi
+
     if [ -n "$IMAGE_STORAGE" ]; then
         rm -rf "${IMAGE_STORAGE}"
+    fi
+
+    if [ -n "$INSTANCE_RANDOM_NAME" ]; then
+        aws --region "${REGION}" iam remove-role-from-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile --role-name ${INSTANCE_RANDOM_NAME}
+        aws --region "${REGION}" iam delete-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
+        aws --region "${REGION}" iam detach-role-policy --role-name ${INSTANCE_RANDOM_NAME} --policy-arn arn:aws:iam::aws:policy/job-function/SystemAdministrator
+        aws --region "${REGION}" iam delete-role --role-name ${INSTANCE_RANDOM_NAME}
     fi
 }
 
@@ -55,12 +63,14 @@ cat <<EOT > ${IMAGE_TEMP}.role
 EOT
 
 echo "Creating roles"
-aws iam create-role --role-name ${INSTANCE_RANDOM_NAME} --assume-role-policy-document file://${IMAGE_TEMP}.role
-aws iam attach-role-policy --role-name ${INSTANCE_RANDOM_NAME} --policy-arn arn:aws:iam::aws:policy/job-function/SystemAdministrator
-aws iam create-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
-aws iam add-role-to-instance-profile --role-name ${INSTANCE_RANDOM_NAME} --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
+aws --region "${REGION}" iam create-role --role-name ${INSTANCE_RANDOM_NAME} --assume-role-policy-document file://${IMAGE_TEMP}.role
+aws --region "${REGION}" iam attach-role-policy --role-name ${INSTANCE_RANDOM_NAME} --policy-arn arn:aws:iam::aws:policy/job-function/SystemAdministrator
+aws --region "${REGION}" iam create-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
+aws --region "${REGION}" iam add-role-to-instance-profile --role-name ${INSTANCE_RANDOM_NAME} --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
 
-aws --region "${REGION}" ec2 create-key-pair --key-name ${INSTANCE_RANDOM_NAME}
+KEYPAIR=`aws --region "${REGION}" ec2 create-key-pair --key-name ${INSTANCE_RANDOM_NAME}`
+echo ${KEYPAIR} | jq -r '.KeyMaterial' > ${IMAGE_TEMP}.pem
+chmod 600 ${IMAGE_TEMP}.pem
 
 INSTANCE_GROUP=`
     aws --region "${REGION}" ec2 describe-security-groups --group-names default --output json | \
@@ -85,27 +95,50 @@ aws --region "${REGION}" ec2 run-instances \
 `
 INSTANCE_ID=`echo ${INSTANCE_DATA} | jq -r '.Instances | .[].InstanceId'`
 
-until aws ec2 associate-iam-instance-profile --iam-instance-profile Name=${INSTANCE_RANDOM_NAME}.profile --instance-id ${INSTANCE_ID} > /dev/null 2>&1
+echo "Waiting for roles"
+until aws --region "${REGION}" ec2 associate-iam-instance-profile --iam-instance-profile Name=${INSTANCE_RANDOM_NAME}.profile --instance-id ${INSTANCE_ID} > /dev/null 2>&1
 do
     sleep 2
-    echo "Waiting for roles"
 done
 
 STARTED_AT=`date +%s`
 ELAPSED=0
+
+echo "Waiting for running tag"
 while (( ELAPSED < 120 )); do
-    TAG=`aws ec2 describe-tags --filters "Name=resource-id,Values=${INSTANCE_ID}" "Name=key,Values=hey" --output json | jq -r '.Tags | .[].Value'`
+    TAG=`aws  --region "${REGION}" ec2 describe-tags --filters "Name=resource-id,Values=${INSTANCE_ID}" "Name=key,Values=hey" --output json | jq -r '.Tags | .[].Value'`
     if [ "${TAG}" = "hou" ]; then
         break
     fi
-    echo "Waiting for running tag"
     NOW=`date +%s`
     ELAPSED=`expr ${NOW} - ${STARTED_AT}`
     sleep 2
 done
 
 if (( ELAPSED >= 120 )); then
-    echo "Instance timeout"
+    echo "Instance timeout. Try again later."
+    exit
 else
-    echo "Instance will create the image by itself! Bye."
+    echo "Instance will create the image by itself! Waiting (it may take a while)."
+
+    INSTANCE_IP=`aws --region "${REGION}" ec2 describe-instances --instance-ids ${INSTANCE_ID} \
+                  --query "Reservations[*].Instances[*].PublicIpAddress" \
+                  --output=text`
+
+    ssh -o StrictHostKeyChecking=no -i ${IMAGE_TEMP}.pem ubuntu@${INSTANCE_IP} tail -f /var/log/cloud-init-output.log || echo "ssh -o StrictHostKeyChecking=no -i ${IMAGE_TEMP}.pem ubuntu@${INSTANCE_IP} tail -f /var/log/cloud-init-output.log"
+
+    while true
+    do
+        ELAPSED=`expr ${NOW} - ${STARTED_AT}`
+        STATUS=`aws --region "${REGION}" ec2 describe-instance-status --instance-ids ${INSTANCE_ID} | jq -r '.InstanceStatuses | .[].InstanceState.Name'`
+        if [ "${STATUS}" != "running" ]; then
+            echo "The image creation process stopped."
+            exit
+        fi
+        if (( $ELAPSED > 14400 )); then  # 4 hours
+            echo "It should not take that much (more then 4h). Please take a look."
+            read 
+        fi
+        sleep 5
+    done
 fi
