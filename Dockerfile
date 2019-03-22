@@ -171,10 +171,17 @@ COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
 RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
     rm -f /cpac_resources/cpac_templates.tar.gz
 
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+RUN apt-get install git-lfs
+RUN git lfs install
+
 # Get atlases
-RUN curl -L https://github.com/neurodata/neuroparc/archive/master.zip -o /tmp/neuroparc.zip && \
-    unzip /tmp/neuroparc.zip -d /tmp/neuroparc 'neuroparc-master/atlases/*' && \
-    cp -r /tmp/neuroparc/neuroparc-master/atlases /ndmg_atlases && rm /tmp/neuroparc.zip
+RUN mkdir /ndmg_atlases && \
+    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
+    cd /tmp/neuroparc && \
+    git lfs pull -I "atlases/label/*" && \
+    cp -r /tmp/neuroparc/atlases/label /ndmg_atlases/label && \
+    cd -
 
 # clean up
 RUN apt-get clean && \
