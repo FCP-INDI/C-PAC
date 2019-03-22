@@ -3,7 +3,7 @@ import numpy as np
 import nibabel as nib
 import os
 from scipy import signal
-from scipy.signal import find_peaks
+from scipy.sparse import lil_matrix
 from scipy.ndimage.filters import gaussian_filter
 from numpy import ndarray
 import matplotlib.pyplot as plt
@@ -56,6 +56,7 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
     n_timePoints = img.shape[1]
     #shape of time dimension
     n_xaxis = img.shape[0] #shape of x dimensions
+    print(img.shape)
     n_tempDim = int(n_timePoints/nd) #number of temporal dimensions
     #use int to prevent floating point errors during initializations
     n_inspect_segment = n_tempDim-window_length+1 #no.of inspectable segments
@@ -68,8 +69,8 @@ def qpp_wf(img,nd,window_length,number_randomPermutations,cth,n_itr_threshold,ma
     #img=img[a[0],:]
     #defining 3D arrays here. Each array within the 2D array will finally be a nX*wl shape column vector, which will store the flattened template segment values
 
-    flattened_segment_array = np.empty((n_timePoints,n_xaxis*window_length))
-    flattened_segment_array_2 = np.empty((n_timePoints,n_xaxis*window_length))
+    flattened_segment_array = lil_matrix((n_timePoints,n_xaxis*window_length))
+    flattened_segment_array_2 = lil_matrix((n_timePoints,n_xaxis*window_length))
 
     #for each subject*run store the template into the flattened_segment_array array. Instead of using transpose and multiplication, just us dot product of the template square to be stored in bchfn,
     #This step. Presumably is done to maximize the peaks that are found within the arrays(eplained below)
