@@ -166,55 +166,58 @@ def prep_inputs(group_config_file):
         #add a qpp dict so that you don't make stupid af errors again!
         qpp_dict={}
 
+        for value in group_config_obj.qpp_grpby_strat:
+            if value == 'Session':
+                grby_strat="session"
+            if value == 'Scan':
+                grpby_strat="scan"
+            if value == 'None':
+                grpby_strat="None"
+
+
         grp_by_sessions = False
         grp_by_scans = False
         grp_by_both = False
         repeated_measures=False
-        if group_config_obj.qpp_sess_inclusion:
-        #multiple sessions, so you're going group by scans
-            if len(group_config_obj.qpp_sess_inclusion) > 0:
-                grp_by_scans = True
-        #Multiple scans so you're going to group by sessions
-        if group_config_obj.qpp_scan_inclusion:
-            if len(group_config_obj.qpp_scan_inclusion) > 0:
-                grp_by_sessions = True
+
+        if len(group_config_obj.qpp_sess_inclusion) > 0:
+            grp_by_scans = True
+        if len(group_config_obj.qpp_scan_inclusion) > 0:
+            grp_by_sessions = True
         if grp_by_scans or grp_by_sessions:
             repeated_measures=True
         if grp_by_scans and grp_by_sessions:
             grp_by_both=True
-
-        session_list = []
-        scan_list = []
-        if group_config_obj.qpp_sess_inclusion:
-            session_list.append(group_config_obj.qpp_sess_inclusion)
-        if group_config_obj.qpp_scan_inclusion:
-            scan_list.append(group_config_obj.qpp_scan_inclusion)
+        session_list=group_config_obj.qpp_sess_inclusion
+        scan_list=group_config_obj.qpp_scan_inclusion
         #PSA #both multiple sessions and scans, youre going to do nothing
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
             if grp_by_scans:
+
                 new_output_df = output_df[output_df["Sessions"].isin(session_list)]
                 join_columns.append("Sessions")
-
+                print(new_output_df)
             if grp_by_sessions:
                 #drop all the scans that are not in the scan list
                 new_output_df = output_df[output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
-
             if grp_by_both:
                 new_output_df = output_df[output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
                 new_output_df = output_df[output_df["Sessions"].isin(session_list)]
                 join_columns.append("Sessions")
+            new_output_df, dropped_parts = balance_df(new_output_df, session_list,scan_list)
 
-            new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
             pre_qpp_dict={}
-            if group_config_obj.grp_by_strat == "Scan":
+
+            if grpby_strat == "session":
                 for scan_df_tuple in new_output_df.groupby("Scan"):
+                    print("grouping by scan")
                     scans = scan_df_tuple[0]
                     scan_df=scan_df_tuple[1]
-                #print("scan_df:{0}".format(scan_df))
-                #if you have multiple sessions
+                    #print("scan_df:{0}".format(scan_df))
+                    #if you have multiple sessions
                     if 'Sessions' in scan_df.columns:
                         for ses_df_tuple in scan_df.groupby('Sessions'):
                             session = 'ses-{0}'.format(ses_df_tuple[0])
@@ -228,21 +231,27 @@ def prep_inputs(group_config_file):
                             for df in list_df[1:]:
                                 concat_df=pd.concat(concat_df,df)
                             qpp_dict[key]=concat_df
-            elif group_config_obj.grp_by_strat == "Session":
+            if grpby_strat == "scan":
+                print("grouping by session")
                 session='ses-1'
                 qpp_dict['ses-1'] = scan_df
+            if grpby_strat == "None":
+                print("no grouping stratergy")
+                qpp_dict['output_df'] = new_output_df
+
+
         else:
-            qpp_dict['output_df'] = output_df
+            new_output_df, dropped_parts = balance_df(new_output_df, session_list,scan_list)
+            qpp_dict['output_df'] = new_output_df
 
                 #qpp_dict['output_df'] = new_output_df
 
-            if len(qpp_dict) == 0:
-                err = '\n\n[!]C-PAC says:Could not find the ' \
+        if len(qpp_dict) == 0:
+            err = '\n\n[!]C-PAC says:Could not find the ' \
                       'particpants in your pipeline output directory that were ' \
                       'included in your analysis, and the particpants in the phenotype ' \
                       'phenotype file provided.\n\n'
-                raise Exception(err)
-
+            raise Exception(err)
 
 
     return qpp_dict,inclusion_list,resource_id,strat_info
@@ -282,23 +291,21 @@ def use_inputs(group_config_file):
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         subject_list=newer_output_df["Filepath"].tolist()
-        print(subject_list)
-    print(subject_list)
-    for subject in subject_list:
-        sub_img=nib.load(subject)
-        if sub_img.shape==3:
-           use_other_function=False
-           merge_outfile = os.path.join(out_dir,'_merged.nii.gz')
-           merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
-           merge_mask_outfile=os.path.join(out_dir,'_merged_mask.nii.gz')
-           merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+        for subject in subject_list:
+            sub_img=nib.load(subject)
+            if sub_img.shape==3:
+               use_other_function=False
+               merge_outfile = os.path.join(out_dir,'_merged.nii.gz')
+               merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
+               merge_mask_outfile=os.path.join(out_dir,'_merged_mask.nii.gz')
+               merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
                 #return merge_file, merge_mask
-        else:
-            use_other_function=True
-            merge_outfile = os.path.join(out_dir, '_merged.nii.gz')
-            merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
-            merge_mask_outfile = os.path.join(out_dir, '_merged_mask.nii.gz')
-            merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+            else:
+               use_other_function=True
+               merge_outfile = os.path.join(out_dir, '_merged.nii.gz')
+               merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
+               merge_mask_outfile = os.path.join(out_dir, '_merged_mask.nii.gz')
+               merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
 
 

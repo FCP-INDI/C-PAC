@@ -81,7 +81,6 @@ def qppv(img_list,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
             sub_img=nib.load(subject)
             sub_img = sub_img.dataobj
             sub_img=np.array(sub_img)
-            print(sub_img.shape)
             r_subject = sub_img.reshape(sub_img.shape[0]*sub_img.shape[1]*sub_img.shape[2],sub_img.shape[3])
             merged_empty = np.empty((nsubj, nrn, r_subject.shape[0], r_subject.shape[1]))
             merge_list.append(r_subject)
@@ -94,7 +93,6 @@ def qppv(img_list,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
             nt = merged_empty.shape[3]
             nsubj = merged_empty.shape[0]
             nrn = merged_empty.shape[1]
-            print(merged_empty.shape)
             nd = nsubj*nrn
             nrp=nd
             nt_new = nt*nd

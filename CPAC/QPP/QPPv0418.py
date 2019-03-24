@@ -144,7 +144,7 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
                 flattened_segment_array_2_1=flattened_segment_array_2(initial_timePoints[irp])
                 flattened_segment_array_2_2=flattened_segment_array_2(i*n_tempDim+ich)
                 template_holder[(i)*n_tempDim+ich]= np.dot(flattened_segment_array_2_1,flattened_segment_array_2_2)
-                print(template_holder)
+
         #using MARCUS DEUTRE'S awesome detect_peaks.py function which is a replica of the matlab find peaks function
         #switching off show true until it is necessary, in order to test code.
         peaks= detect_peaks(template_holder,mph=cth[0],mpd=window_length,show=True)
@@ -212,12 +212,12 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
         plt.xlabel('avg of func.data of length WL(30)')
         plt.savefig("{0}/Temple_QPP.png".format(path_for_saving))
     mdict = {}
-    mdict["C"] = time_course
+    mdict["C"] = template_holder
     mdict["FTP"] = final_timePoints
     mdict["ITER"] = iteration
     mdict["ITP"] = initial_timePoints
     np.save('{0}/template_file'.format(path_for_saving),template)
-    np.save('{0}/time_course_file'.format(path_for_saving),time_course)
+    np.save('{0}/time_course_file'.format(path_for_saving),template_holder)
     np.save('{0}/ftp_file'.format(path_for_saving),final_timePoints)
     np.save('{0}/iter_file'.format(path_for_saving),iteration)
     np.save('{0}/itp_file'.format(path_for_saving),initial_timePoints)
