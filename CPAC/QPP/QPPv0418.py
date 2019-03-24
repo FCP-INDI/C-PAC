@@ -2,12 +2,12 @@ import scipy.io
 import numpy as np
 import nibabel as nib
 import os
-from scipy import signal
 from scipy.sparse import lil_matrix
 from scipy.ndimage.filters import gaussian_filter
 from numpy import ndarray
 import matplotlib.pyplot as plt
 from detect_peaks import detect_peaks
+
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
 def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_itr,path_for_saving):
@@ -175,7 +175,8 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             n_signals=np.size(peaks)
             if n_signals<1:
                 break
-            print("we could not find peaks in your data,please lower your correlation threshold and retry to check it's functionality.")
+            raise Exception("we could not find peaks in your data,"
+                            "please lower your correlation threshold and retry to check it's functionality.QPP will exit now..")
             template = [peaks[0]]
             for i in range(1,n_signals):
                 template=template+flattened_segment_array(peaks[i])
