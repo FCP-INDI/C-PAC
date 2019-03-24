@@ -194,10 +194,8 @@ def prep_inputs(group_config_file):
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
             if grp_by_scans:
-
                 new_output_df = output_df[output_df["Sessions"].isin(session_list)]
                 join_columns.append("Sessions")
-                print(new_output_df)
             if grp_by_sessions:
                 #drop all the scans that are not in the scan list
                 new_output_df = output_df[output_df["Scan"].isin(scan_list)]
@@ -210,15 +208,14 @@ def prep_inputs(group_config_file):
             new_output_df, dropped_parts = balance_df(new_output_df, session_list,scan_list)
 
             pre_qpp_dict={}
-
-            if grpby_strat == "session":
-                for scan_df_tuple in new_output_df.groupby("Scan"):
-                    print("grouping by scan")
-                    scans = scan_df_tuple[0]
-                    scan_df=scan_df_tuple[1]
+            for scan_df_tuple in new_output_df.groupby("Scan"):
+                scans = scan_df_tuple[0]
+                scan_df=scan_df_tuple[1]
                     #print("scan_df:{0}".format(scan_df))
                     #if you have multiple sessions
+                if grpby_strat == "session":
                     if 'Sessions' in scan_df.columns:
+                        print("grouping by session")
                         for ses_df_tuple in scan_df.groupby('Sessions'):
                             session = 'ses-{0}'.format(ses_df_tuple[0])
                             ses_df = ses_df_tuple[1]
@@ -231,13 +228,13 @@ def prep_inputs(group_config_file):
                             for df in list_df[1:]:
                                 concat_df=pd.concat(concat_df,df)
                             qpp_dict[key]=concat_df
-            if grpby_strat == "scan":
-                print("grouping by session")
-                session='ses-1'
-                qpp_dict['ses-1'] = scan_df
-            if grpby_strat == "None":
-                print("no grouping stratergy")
-                qpp_dict['output_df'] = new_output_df
+                if grpby_strat == "scan":
+                    print("grouping by scan")
+                    session='ses-1'
+                    qpp_dict['ses-1'] = scan_df
+                if grpby_strat == "None":
+                    print("no grouping stratergy")
+                    qpp_dict['output_df'] = new_output_df
 
 
         else:
