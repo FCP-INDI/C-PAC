@@ -165,10 +165,10 @@ def prep_inputs(group_config_file):
         # If the user answers all to the option, then we're obviously not going to do any repeated measures.
         #add a qpp dict so that you don't make stupid af errors again!
         qpp_dict={}
-
+        grpby_strat = "None"
         for value in group_config_obj.qpp_grpby_strat:
             if value == 'Session':
-                grby_strat="session"
+                grpby_strat="session"
             if value == 'Scan':
                 grpby_strat="scan"
             if value == 'None':
