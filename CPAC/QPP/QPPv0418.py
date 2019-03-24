@@ -69,18 +69,18 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
     #img=img[a[0],:]
     #defining 3D arrays here. Each array within the 2D array will finally be a nX*wl shape column vector, which will store the flattened template segment values
 
-    flattened_segment_array = lil_matrix((n_timePoints,n_xaxis*window_length))
-    flattened_segment_array_2 = lil_matrix((n_timePoints,n_xaxis*window_length))
+    #flattened_segment_array = np.zeros((n_timePoints,n_xaxis*window_length),dtype=float)
+    #flattened_segment_array_2 = np.zeros((n_timePoints,n_xaxis*window_length),dtype=float)
 
     #for each subject*run store the template into the flattened_segment_array array. Instead of using transpose and multiplication, just us dot product of the template square to be stored in bchfn,
     #This step. Presumably is done to maximize the peaks that are found within the arrays(eplained below)
-    for i in range(nd):
-        for ich in range(n_inspect_segment):
+    '''for i in range(nd):
+      for ich in range(n_inspect_segment):
             template=img[:,(i)*n_tempDim+ich:(i)*n_tempDim+window_length+ich]
             #change template from a row vector to a column vector
             template = ndarray.flatten(template)
             # insert the template into the bchfn array (this template will be a 1D array)
-            flattened_segment_array[i*n_tempDim+ich] = template
+            flattened_segment_array[i*n_tempDim+ich]=template
             #normalize
             template=template-np.sum(template)/nTf
             #get dot product
@@ -89,10 +89,29 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             template_sqrt = np.sqrt(temp_dot)
             template=template/template_sqrt
             #add said template into bchfn
-            flattened_segment_array_2[(i)*n_tempDim+ich] = template
+            flattened_segment_array_2[(i)*n_tempDim+ich]=template
             #removing nan values and making them 0 to prevent further issues in calculations
-            A = np.isnan(flattened_segment_array_2)
-            flattened_segment_array_2[A] = 0
+            #A = np.isnan(flattened_segment_array_2)
+            #flattened_segment_array_2[A] = 0
+    '''
+
+
+    def flattened_segment_array(k):
+        template = img[:, k:k + window_length]
+        template = ndarray.flatten(template)
+        return template
+
+    def flattened_segment_array_2(k):
+        template = img[:, k:k + window_length]
+        template = ndarray.flatten(template)
+        # normalize
+        template = template - np.sum(template) / nTf
+        # get dot product
+        # template_trans = np.transpose(template)
+        temp_dot = np.dot(template, template)
+        template_sqrt = np.sqrt(temp_dot)
+        template = template / template_sqrt
+        return template
 
     #array initialized to later be deleted from the random ITP array
     random_selection_array=np.zeros((nd,window_length-1))
@@ -119,26 +138,24 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
     for irp in range(n_randomPermutations):
         #initialize a matrix template_holder which will hold the templates
         template_holder=np.zeros(n_timePoints)
-
         for i in range(nd):
             for ich in range(n_inspect_segment):
                 #this confusing flattened_segment_array_2_1 is only so we can finally do dot product
-                flattened_segment_array_2_1 =flattened_segment_array_2[initial_timePoints[irp]]
-                flattened_segment_array_2_2 =flattened_segment_array_2[i*n_tempDim+ich]
+                flattened_segment_array_2_1=flattened_segment_array_2(initial_timePoints[irp])
+                flattened_segment_array_2_2=flattened_segment_array_2(i*n_tempDim+ich)
                 template_holder[(i)*n_tempDim+ich]= np.dot(flattened_segment_array_2_1,flattened_segment_array_2_2)
-
+                print(template_holder)
         #using MARCUS DEUTRE'S awesome detect_peaks.py function which is a replica of the matlab find peaks function
         #switching off show true until it is necessary, in order to test code.
-        peaks= detect_peaks(template_holder,mph=cth[0],mpd=window_length)
-                            #show=True)
+        peaks= detect_peaks(template_holder,mph=cth[0],mpd=window_length,show=True)
         #indexes = pu.indexes(c, thresh=c[0])
         #You're deleting the first and last instances of the peaks that are now in the 'peaks' array
+
         for i in range(nd):
             if i*n_tempDim in peaks:
                 peaks = np.delete(peaks,np.where(peaks==(i)*n_tempDim))
             if i*n_tempDim+n_inspect_segment in peaks:
                 peaks = np.delete(peaks,np.where(peaks==i*n_tempDim+n_inspect_segment))
-
         #house three copies of templates (inefficient) which is then used to decide between the correlation coefficient in the next loop
         template_holder_0 = template_holder
         template_holder_00 = template_holder
@@ -155,13 +172,13 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
                 initial_threshold=1
             #you can now set the threshold for the local maxima
             threshold=cth[initial_threshold]
-
             n_signals=np.size(peaks)
-            if n_signals<=1:
+            if n_signals<1:
                 break
+            print("we could not find peaks in your data,please lower your correlation threshold and retry to check it's functionality.")
             template = [peaks[0]]
             for i in range(1,n_signals):
-                template=template+flattened_segment_array[peaks[i]]
+                template=template+flattened_segment_array(peaks[i])
             template=template/n_signals
             #perform a repeate of the operations in order to find peaks in the template
             #template_trans2=np.transpose(template)
@@ -169,7 +186,7 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             template=template/np.sqrt(np.dot(template,template))
             for i in range(nd):
                 for ich in range(n_inspect_segment):
-                    template_holder[i*n_tempDim+ich]=np.dot(template,flattened_segment_array[(i)*n_tempDim+ich])
+                    template_holder[i*n_tempDim+ich]=np.dot(template,flattened_segment_array(i*n_tempDim+ich))
             peaks=detect_peaks(template_holder,mph=cth[1],mpd=window_length)
             for i in range(nd):
                 if i * n_tempDim in peaks:
@@ -180,7 +197,6 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             #use the correlation coefficient. It returns a matrix and therefore, the first entry of that matrix will be the correlation coefficient value
             if (np.corrcoef(template_holder_0,template_holder)[0,1]>0.9999) or (np.corrcoef(template_holder_00,template_holder)[0,1]>0.9999) or (np.corrcoef(template_holder_000,template_holder)[0,1]>0.9999):
                 break
-
             template_holder_000=template_holder_00
             template_holder_00=template_holder_0
             template_holder_0=template_holder
@@ -189,11 +205,11 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             time_course[irp,:]=template_holder
             final_timePoints[irp] = signals.tolist()
             iteration[irp]=itr
-    #save everything!!
-    plt.plot(template,'b')
-    plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
-    plt.xlabel('avg of func.data of length WL(30)')
-    plt.savefig("{0}/Temple_QPP.png".format(path_for_saving))
+    if not template == None:
+        plt.plot(template,'b')
+        plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
+        plt.xlabel('avg of func.data of length WL(30)')
+        plt.savefig("{0}/Temple_QPP.png".format(path_for_saving))
     mdict = {}
     mdict["C"] = time_course
     mdict["FTP"] = final_timePoints
