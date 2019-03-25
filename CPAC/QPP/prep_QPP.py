@@ -286,6 +286,9 @@ def use_inputs(group_config_file):
             if "Scan" in newer_output_df.columns:
                 scan_list=newer_output_df["Scan"].tolist()
                 nrn=len(set(scan_list))
+            elif "Session" in newer_output_df.columns:
+                session_list=newer_output_df["Session"].tolist()
+                nrn=len(set(session_list))
             else:
                 nrn=1
         if not os.path.exists(out_dir):
