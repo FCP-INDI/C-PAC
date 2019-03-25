@@ -179,33 +179,37 @@ def prep_inputs(group_config_file):
         grp_by_scans = False
         grp_by_both = False
         repeated_measures=False
-
-        if len(group_config_obj.qpp_sess_inclusion) > 0:
-            grp_by_scans = True
-        if len(group_config_obj.qpp_scan_inclusion) > 0:
-            grp_by_sessions = True
+        if group_config_obj.qpp_sess_inclusion:
+            if len(group_config_obj.qpp_sess_inclusion) > 0:
+                grp_by_scans = True
+        if group_config_obj.qpp_scan_inclusion:
+            if len(group_config_obj.qpp_scan_inclusion) > 0:
+                grp_by_sessions = True
         if grp_by_scans or grp_by_sessions:
             repeated_measures=True
         if grp_by_scans and grp_by_sessions:
             grp_by_both=True
         session_list=group_config_obj.qpp_sess_inclusion
         scan_list=group_config_obj.qpp_scan_inclusion
+
         #PSA #both multiple sessions and scans, youre going to do nothing
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
             if grp_by_scans:
-                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
+                new_output_df, dropped_parts = balance_df(output_df, session_list, scan_list)
+                new_output_df = new_output_df[new_output_df["Sessions"].isin(session_list)]
                 join_columns.append("Sessions")
             if grp_by_sessions:
+                new_output_df, dropped_parts = balance_df(output_df, session_list, scan_list)
                 #drop all the scans that are not in the scan list
-                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
+                new_output_df = new_output_df[new_output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
             if grp_by_both:
-                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
+                new_output_df, dropped_parts = balance_df(output_df, session_list, scan_list)
+                new_output_df = new_output_df[new_output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
-                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
+                new_output_df = new_output_df[new_output_df["Sessions"].isin(session_list)]
                 join_columns.append("Sessions")
-            new_output_df, dropped_parts = balance_df(new_output_df, session_list,scan_list)
 
             pre_qpp_dict={}
             for scan_df_tuple in new_output_df.groupby("Scan"):
@@ -236,9 +240,8 @@ def prep_inputs(group_config_file):
                     print("no grouping stratergy")
                     qpp_dict['output_df'] = new_output_df
 
-
-        else:
-            new_output_df, dropped_parts = balance_df(new_output_df, session_list,scan_list)
+        if repeated_measures == False:
+            new_output_df, dropped_parts = balance_df(output_df, session_list,scan_list)
             qpp_dict['output_df'] = new_output_df
 
                 #qpp_dict['output_df'] = new_output_df
@@ -250,7 +253,7 @@ def prep_inputs(group_config_file):
                       'phenotype file provided.\n\n'
             raise Exception(err)
 
-
+    print(qpp_dict)
     return qpp_dict,inclusion_list,resource_id,strat_info
 
 def use_inputs(group_config_file):
@@ -308,25 +311,27 @@ def use_inputs(group_config_file):
 
     return use_other_function,merge_mask,subject_list,inclusion_list,out_dir,nrn
 
-def balance_df(new_output_df,sessions_list,scan_list):
+def balance_df(new_output_df,session_list,scan_list):
     import pandas as pd
     from collections import Counter
 
     part_ID_count = Counter(new_output_df["participant_id"])
-
-    if scan_list and sessions_list:
-        sessions_x_scans= len(sessions_list)*len(scan_list)
-    elif sessions_list:
-        sessions_x_scans = len(sessions_list)
-    else:
-        sessions_x_scans = len(scan_list)
+    print(part_ID_count)
+    if scan_list and session_list:
+        sessions_x_scans= len(session_list)*len(scan_list)
+    if session_list:
+            sessions_x_scans = len(session_list)
+    if scan_list:
+            sessions_x_scans = len(scan_list)
     dropped_parts = []
     for part_ID in part_ID_count.keys():
-        if part_ID_count[part_ID] != sessions_x_scans:
-            new_output_df=new_output_df[new_output_df.participant_id != part_ID]
-            print(new_output_df)
-            del new_output_df[part_ID]
-            dropped_parts.append(part_ID)
+        if part_ID_count[part_ID] > 1:
+            if part_ID_count[part_ID] % 2 != 0:
+                new_output_df = new_output_df[new_output_df.participant_id != part_ID]
+                print(new_output_df)
+                dropped_parts.append(part_ID)
+
+
     return new_output_df, dropped_parts
 
 
