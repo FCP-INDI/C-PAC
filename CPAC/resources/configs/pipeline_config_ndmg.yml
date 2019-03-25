@@ -447,7 +447,6 @@ Regressors :
    CerebrospinalFluid:
      summary: Mean
      extraction_resolution: 2
-     erode_mask: true
      
    PolyOrt:
     degree: 2
