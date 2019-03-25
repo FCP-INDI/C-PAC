@@ -692,7 +692,7 @@ class QPPSettings(wx.ScrolledWindow):
         self.page.add(label="Scan Inclusion (Optional) ",
                       control=control.COMBO_BOX,
                       name='qpp_scan_inclusion',
-                      type=dtype.STR,
+                      type=dtype.LSTR,
                       values="None",
                       comment="If there are multiple scans in any "
                               "of the pipeline outputs for which QPP is "
@@ -706,7 +706,7 @@ class QPPSettings(wx.ScrolledWindow):
         self.page.add(label="Session Inclusion (Optional) ",
                       control=control.COMBO_BOX,
                       name='qpp_sess_inclusion',
-                      type=dtype.STR,
+                      type=dtype.LSTR,
                       values="None",
                       comment="If there are multiple sessions in any "
                               "of the pipeline outputs for which QPP is "
