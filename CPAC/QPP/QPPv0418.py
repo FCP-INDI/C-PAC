@@ -174,9 +174,11 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             threshold=cth[initial_threshold]
             n_signals=np.size(peaks)
             if n_signals<1:
+                print("we could not find peaks in your data,"
+                                "please lower your correlation threshold and retry to check it's functionality.QPP will exit now..")
+                template = None
                 break
-            raise Exception("we could not find peaks in your data,"
-                            "please lower your correlation threshold and retry to check it's functionality.QPP will exit now..")
+
             template = [peaks[0]]
             for i in range(1,n_signals):
                 template=template+flattened_segment_array(peaks[i])
@@ -206,7 +208,7 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             time_course[irp,:]=template_holder
             final_timePoints[irp] = signals.tolist()
             iteration[irp]=itr
-    if not template == None:
+    if template != None:
         plt.plot(template,'b')
         plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
         plt.xlabel('avg of func.data of length WL(30)')
