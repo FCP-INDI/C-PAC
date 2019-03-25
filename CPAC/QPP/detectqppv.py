@@ -120,20 +120,20 @@ def qppv(img_list,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
     print("-----%s seconds ----"%(time.time() - start_time))
 if __name__ == "__main__":
 
-    img_list=['/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025864_1/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global1.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
-              '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025864_2/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
-              '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025865_1/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
-              '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025865_2/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz']
+    #img_list=['/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025864_1/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global1.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
+    #          '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025864_2/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
+    #          '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025865_1/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz',
+    #          '/home/nrajamani/Documents/output/pipeline_QPP_BNU1_test/0025865_2/functional_nuisance_residuals/_scan_rest_run-1/_compcor_ncomponents_5_selector_pc10.linear1.wm0.global0.motion1.quadratic1.gm0.compcor1.csf1/residual.nii.gz']
 
-    mask='/home/nrajamani/Documents/mask_outfile.nii.gz'
-    flag_3d_4d=True
-    wl=30
-    cth=[0.2,0.3]
-    n_itr_th=6
-    mx_itr=20
-    pfs='/home/nrajamani/Documents/Project_QPP/QPPvNov18_python/new_result1'
-    nsubj=4
-    nrn=2
+    #mask='/home/nrajamani/Documents/mask_outfile.nii.gz'
+    #flag_3d_4d=True
+    #wl=30
+    #cth=[0.2,0.3]
+    #n_itr_th=6
+    #mx_itr=20
+    #pfs='/home/nrajamani/Documents/Project_QPP/QPPvNov18_python/new_result1'
+    #nsubj=4
+    #nrn=2
     qppv(img_list,mask,flag_3d_4d, wl, cth, n_itr_th, mx_itr, pfs, nsubj, nrn)
 
 
