@@ -86,6 +86,109 @@ def gather_outputs(pipeline_folder,resource_list,inclusion_list):
     return output_df_dict
 
 
+def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
+                 grp_by_strat=None):
+
+    for unique_resource in output_df_dict.keys():
+
+        resource_id = unique_resource[0]
+        strat_info = unique_resource[1]
+        output_df = output_df_dict[unique_resource]
+
+        if "Series" in output_df:
+            output_df.rename(columns={"Series":"Scan"},
+                             inplace=True)
+
+        join_columns = ["participant_id"]
+        col_names = output_df.columns.tolist()
+
+        # We're then going to reduce the Output directory to contain only those scans and or the sessions which are expressed by the user.
+        # If the user answers all to the option, then we're obviously not going to do any repeated measures.
+        #add a qpp dict so that you don't make stupid af errors again!
+        qpp_dict={}
+
+        grp_by_sessions = False
+        grp_by_scans = False
+        grp_by_both = False
+        repeated_measures=False
+
+        if sess_inclusion:
+        #multiple sessions, so you're going group by scans
+            if len(sess_inclusion) > 0:
+                grp_by_scans = True
+
+        #Multiple scans so you're going to group by sessions
+        if scan_inclusion:
+            if len(scan_inclusion) > 0:
+                grp_by_sessions = True
+
+        if grp_by_scans or grp_by_sessions:
+            repeated_measures = True
+
+        if grp_by_scans and grp_by_sessions:
+            grp_by_both = True
+
+        #PSA #both multiple sessions and scans, youre going to do nothing
+             #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
+        if repeated_measures:
+            if grp_by_scans:
+                new_output_df = output_df[output_df["Sessions"].isin(sess_inclusion)]
+                join_columns.append("Sessions")
+            elif grp_by_sessions:
+                #drop all the scans that are not in the scan list
+                new_output_df = output_df[output_df["Scan"].isin(scan_inclusion)]
+                join_columns.append("Scan")
+            elif grp_by_both:
+                new_output_df = output_df[output_df["Scan"].isin(scan_inclusion)]
+                join_columns.append("Scan")
+                new_output_df = output_df[output_df["Sessions"].isin(sess_inclusion)]
+                join_columns.append("Sessions")
+        else:
+            new_output_df = output_df
+
+        #Make sure it is balanced
+        new_output_df, dropped_parts = balance_df(new_output_df,
+                                                  sess_inclusion, 
+                                                  scan_inclusion)
+
+        pre_qpp_dict={}
+
+        if grp_by_strat:
+            if grp_by_strat == "Scan":
+                for scan_df_tuple in new_output_df.groupby("Scan"):
+                    scans = scan_df_tuple[0]
+                    scan_df=scan_df_tuple[1]
+
+                    if 'Sessions' in scan_df.columns:
+                        for ses_df_tuple in scan_df.groupby('Sessions'):
+                            session = 'ses-{0}'.format(ses_df_tuple[0])
+                            ses_df = ses_df_tuple[1]
+                            if not ses_df_tuple[0] in qpp_dict:
+                                pre_qpp_dict[ses_df_tuple[0]] = []
+                            pre_qpp_dict[ses_df_tuple[0]].append(ses_df)
+                        for key in pre_qpp_dict:
+                            list_df=pre_qpp_dict[key]
+                            concat_df = list_df[0]
+                            for df in list_df[1:]:
+                                concat_df=pd.concat(concat_df,df)
+                            qpp_dict[key]=concat_df
+
+            elif grp_by_strat == "Session":
+                 session='ses-1'
+                 qpp_dict['ses-1'] = scan_df
+        else:
+             qpp_dict['output_df'] = new_output_df
+
+        if len(qpp_dict) == 0:
+            err = '\n\n[!]C-PAC says:Could not find match betterrn the ' \
+              'particpants in your pipeline output directory that were ' \
+              'included in your analysis, and the particpants in the phenotype ' \
+                    'phenotype file provided.\n\n'
+            raise Exception(err)
+
+    return qpp_dict
+
+
 def prep_inputs(group_config_file):
 
     import os
@@ -107,7 +210,12 @@ def prep_inputs(group_config_file):
 
     group_config_obj=load_config_yml(group_config_file)
     pipeline_folder = group_config_obj.pipeline_dir
-    #inclusion list function
+
+    try:
+        grp_by_strat = group_config_obj.qpp_grpby_strat
+    except AttributeError:
+        grp_by_strat = False
+
     if not group_config_obj.participant_list:
         inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
     elif '.' in group_config_obj.participant_list:
@@ -127,123 +235,17 @@ def prep_inputs(group_config_file):
     resource_list = ['functional_nuisance_residuals']
     output_df_dict=gather_outputs(pipeline_folder,resource_list,inclusion_list)
 
-
     if not output_df_dict:
         err = '\n\n[!] For QPP, C-PAC requires the \'functional_nuisance_residuals\' outputs '\
               'in the individual-level analysis pipeline output directory! But none were '\
               'found.\n\nPipeline directory:\n{0}\n\n'.format(pipeline_folder)
         raise Exception(err)
 
-    for unique_resource in output_df_dict.keys():
-        resource_id = unique_resource[0]
-        strat_info=unique_resource[1]
-        output_df=output_df_dict[unique_resource]
-        #We're going to reduce the size of the output df based on nuisance strat and the
-        #participant list that actually is included.
-        if not group_config_obj.participant_list:
-            inclusion_list = grab_pipeline_dir_subs(pipeline_folder)
-            output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
-        elif '.' in group_config_obj.participant_list:
-            if os.path.isfile(group_config_obj.participant_list):
-                inclusion_list = load_text_file(group_config_obj.participant_list,
-                                        "group-level analysis "
-                                        "participant list")
-                output_df = output_df[output_df["participant_id"].isin(inclusion_list)]
-            else:
-                raise Exception('\nCannot read group-level analysis participant ' \
-                        'list.\n')
-
-        if len(output_df) == 0:
-            err = "\n\n[!]The output data frame has not been compiled correctly. Please " \
-                  "recheck the participants in the participant inclusion list and the " \
-                  "pipeline output directory to troubleshoot.\n\n"
-            raise Exception(err)
-
-        join_columns = ["participant_id"]
-        col_names = output_df.columns.tolist()
-        # We're then going to reduce the Output directory to contain only those scans and or the sessions which are expressed by the user.
-        # If the user answers all to the option, then we're obviously not going to do any repeated measures.
-        #add a qpp dict so that you don't make stupid af errors again!
-        qpp_dict={}
-
-        grp_by_sessions = False
-        grp_by_scans = False
-        grp_by_both = False
-        repeated_measures=False
-        if group_config_obj.qpp_sess_inclusion:
-        #multiple sessions, so you're going group by scans
-            if len(group_config_obj.qpp_sess_inclusion) > 0:
-                grp_by_scans = True
-        #Multiple scans so you're going to group by sessions
-        if group_config_obj.qpp_scan_inclusion:
-            if len(group_config_obj.qpp_scan_inclusion) > 0:
-                grp_by_sessions = True
-        if grp_by_scans or grp_by_sessions:
-            repeated_measures=True
-        if grp_by_scans and grp_by_sessions:
-            grp_by_both=True
-
-
-        session_list = []
-        scan_list = []
-        if group_config_obj.qpp_sess_inclusion:
-            session_list.append(group_config_obj.qpp_sess_inclusion)
-        if group_config_obj.qpp_scan_inclusion:
-            scan_list.append(group_config_obj.qpp_scan_inclusion)
-        #PSA #both multiple sessions and scans, youre going to do nothing
-             #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
-        if repeated_measures:
-            if grp_by_scans:
-                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
-                join_columns.append("Sessions")
-            if grp_by_sessions:
-                #drop all the scans that are not in the scan list
-                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
-                join_columns.append("Scan")
-            if grp_by_both:
-                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
-                join_columns.append("Scan")
-                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
-                join_columns.append("Sessions")
-            #Make sure it is balanced
-            new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
-            pre_qpp_dict={}
-
-            if group_config_obj.qpp_grpby_strat:
-                if group_config_obj.qpp_grpby_strat == "Scan":
-                    for scan_df_tuple in new_output_df.groupby("Scan"):
-                        scans = scan_df_tuple[0]
-                        scan_df=scan_df_tuple[1]
-                        #print("scan_df:{0}".format(scan_df))
-                        #if you have multiple sessions
-                        if 'Sessions' in scan_df.columns:
-                            for ses_df_tuple in scan_df.groupby('Sessions'):
-                                session = 'ses-{0}'.format(ses_df_tuple[0])
-                                ses_df = ses_df_tuple[1]
-                                if not ses_df_tuple[0] in qpp_dict:
-                                    pre_qpp_dict[ses_df_tuple[0]] = []
-                                pre_qpp_dict[ses_df_tuple[0]].append(ses_df)
-                            for key in pre_qpp_dict:
-                                list_df=pre_qpp_dict[key]
-                                concat_df = list_df[0]
-                                for df in list_df[1:]:
-                                    concat_df=pd.concat(concat_df,df)
-                                qpp_dict[key]=concat_df
-
-                elif group_config_obj.qpp_grpby_strat == "Session":
-                     session='ses-1'
-                     qpp_dict['ses-1'] = scan_df
-                else:
-                     qpp_dict['output_df'] = new_output_df
-        if len(qpp_dict) == 0:
-            err = '\n\n[!]C-PAC says:Could not find match betterrn the ' \
-              'particpants in your pipeline output directory that were ' \
-              'included in your analysis, and the particpants in the phenotype ' \
-                    'phenotype file provided.\n\n'
-            raise Exception(err)
-
+    qpp_dict = split_subdfs(output_df_dict, group_config_obj.qpp_sess_inclusion, 
+                            group_config_obj.qpp_scan_inclusion, grp_by_strat)
 
     return qpp_dict,inclusion_list,resource_id,strat_info
+
 
 def use_inputs(group_config_file):
     import os
@@ -294,37 +296,27 @@ def use_inputs(group_config_file):
 
     return use_other_function,subject_list,inclusion_list,out_dir,nrn
 
-def balance_df(new_output_df,sessions_list,scan_list):
+
+def balance_df(new_output_df, sessions_list, scan_list):
     import pandas as pd
     from collections import Counter
 
     part_ID_count = Counter(new_output_df["participant_id"])
 
     if scan_list and sessions_list:
-        sessions_x_scans= len(sessions_list)*len(scan_list)
+        sessions_x_scans = len(sessions_list)*len(scan_list)
     elif sessions_list:
         sessions_x_scans = len(sessions_list)
-    else:
+    elif scan_list:
         sessions_x_scans = len(scan_list)
+
     dropped_parts = []
     for part_ID in part_ID_count.keys():
         if part_ID_count[part_ID] != sessions_x_scans:
             new_output_df=new_output_df[new_output_df.participant_id != part_ID]
-            print(new_output_df)
             del new_output_df[part_ID]
             dropped_parts.append(part_ID)
+
     return new_output_df, dropped_parts
-
-
-
-
-
-
-
-
-
-
-
-
 
 
