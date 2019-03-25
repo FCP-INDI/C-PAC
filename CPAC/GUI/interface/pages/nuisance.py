@@ -789,7 +789,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             
         if self.data_controls['GlobalSignal']['enabled'].GetValue():
             selector['GlobalSignal'] = {}
-            selector['GreyMatter'].update(self.compile_selector_summary(self.data_controls['GreyMatter']))
+            selector['GlobalSignal'].update(self.compile_selector_summary(self.data_controls['GlobalSignal']))
             selector['GlobalSignal'].update(self.compile_selector_derivatives(self.data_controls['GlobalSignal']))
 
         if self.data_controls['aCompCor']['enabled'].GetValue():
