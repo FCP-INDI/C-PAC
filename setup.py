@@ -33,9 +33,6 @@ def configuration(parent_package='', top_path=None):
     config.get_version('CPAC/__init__.py')
     config.add_subpackage('CPAC')
 
-    # numpy_nodepr_api = dict(define_macros=[("NPY_NO_DEPRECATED_API",
-    #                                         "NPY_1_7_API_VERSION")])
-    numpy_nodepr_api = dict()
 
     return config
 
@@ -64,15 +61,15 @@ def main(**extra_args):
     from numpy.distutils.core import setup
     from glob import glob
 
-    # monkey-patch numpy distutils to use Cython instead of Pyrex
-    from numpy.distutils.command.build_ext import build_ext
-    from numpy.distutils.command.build_src import build_src
-    from build_helpers import generate_a_pyrex_source
-    build_src.generate_a_pyrex_source = generate_a_pyrex_source
-    cmdclass = {
-        'build_src': build_src,
-        'build_ext': build_ext
-    }
+    # # monkey-patch numpy distutils to use Cython instead of Pyrex
+    # from numpy.distutils.command.build_ext import build_ext
+    # from numpy.distutils.command.build_src import build_src
+    # from build_helpers import generate_a_pyrex_source
+    # build_src.generate_a_pyrex_source = generate_a_pyrex_source
+    # cmdclass = {
+    #     'build_src': build_src,
+    #     'build_ext': build_ext
+    # }
 
     setup(name=INFO_VARS['NAME'],
           maintainer=INFO_VARS['MAINTAINER'],
@@ -89,7 +86,7 @@ def main(**extra_args):
           version=INFO_VARS['VERSION'],
           install_requires=INFO_VARS['REQUIREMENTS'],
           configuration=configuration,
-          cmdclass=cmdclass,
+        #   cmdclass=cmdclass,
           scripts=glob('scripts/*'),
           entry_points={
               'console_scripts': [
