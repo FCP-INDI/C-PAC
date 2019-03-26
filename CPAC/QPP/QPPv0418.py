@@ -10,7 +10,7 @@ from detect_peaks import detect_peaks
 
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
-def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_itr,path_for_saving):
+def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_itr,path_for_saving):
     # TODOconsolidate this to one function as Behnaz suggested
     """This code is adapted from the paper
        "Quasi-periodic patterns(QP):Large-scale dynamics in resting state fMRI that correlate"\
@@ -56,7 +56,6 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
     n_timePoints = img.shape[1]
     #shape of time dimension
     n_xaxis = img.shape[0] #shape of x dimensions
-    print(img.shape)
     n_tempDim = int(n_timePoints/nd) #number of temporal dimensions
     #use int to prevent floating point errors during initializations
     n_inspect_segment = n_tempDim-window_length+1 #no.of inspectable segments
@@ -180,6 +179,7 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
                 break
 
             template = [peaks[0]]
+            template=np.array(template)
             for i in range(1,n_signals):
                 template=template+flattened_segment_array(peaks[i])
             template=template/n_signals
@@ -206,9 +206,11 @@ def qpp_wf(img,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_it
             itr=itr+1
         if n_signals>1:
             time_course[irp,:]=template_holder
-            final_timePoints[irp] = signals.tolist()
+            final_timePoints[irp] = peaks.tolist()
             iteration[irp]=itr
-    if template != None:
+    if template.size != 0:
+        template_nifti=nib.Nifti1Image(template,mask)
+        nib.save(template,'template.nii.gz')
         plt.plot(template,'b')
         plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
         plt.xlabel('avg of func.data of length WL(30)')
