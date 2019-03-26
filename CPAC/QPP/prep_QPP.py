@@ -196,21 +196,19 @@ def prep_inputs(group_config_file):
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
             if grp_by_scans:
-                new_output_df, dropped_parts = balance_df(output_df, session_list, scan_list)
-                new_output_df = new_output_df[new_output_df["Sessions"].isin(session_list)]
+                new_output_df = new_output_df[output_df["Sessions"].isin(session_list)]
                 join_columns.append("Sessions")
             if grp_by_sessions:
-                new_output_df, dropped_parts = balance_df(output_df, session_list, scan_list)
                 #drop all the scans that are not in the scan list
-                new_output_df = new_output_df[new_output_df["Scan"].isin(scan_list)]
+                new_output_df = new_output_df[output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
             if grp_by_both:
-                new_output_df, dropped_parts = balance_df(output_df, session_list, scan_list)
-                new_output_df = new_output_df[new_output_df["Scan"].isin(scan_list)]
+                new_output_df = new_output_df[output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
-                new_output_df = new_output_df[new_output_df["Sessions"].isin(session_list)]
+                new_output_df = new_output_df[output_df["Sessions"].isin(session_list)]
                 join_columns.append("Sessions")
 
+            new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
             pre_qpp_dict={}
             for scan_df_tuple in new_output_df.groupby("Scan"):
                 scans = scan_df_tuple[0]
@@ -241,8 +239,8 @@ def prep_inputs(group_config_file):
                     qpp_dict['output_df'] = new_output_df
 
         if repeated_measures == False:
-            new_output_df, dropped_parts = balance_df(output_df, session_list,scan_list)
-            qpp_dict['output_df'] = new_output_df
+            #new_output_df, dropped_parts = balance_df(output_df, session_list,scan_list)
+            qpp_dict['output_df'] = output_df
 
                 #qpp_dict['output_df'] = new_output_df
 
@@ -322,19 +320,18 @@ def balance_df(new_output_df,session_list,scan_list):
     print(part_ID_count)
     if scan_list and session_list:
         sessions_x_scans= len(session_list)*len(scan_list)
-    if session_list:
+    elif session_list:
             sessions_x_scans = len(session_list)
-    if scan_list:
+    elif scan_list:
             sessions_x_scans = len(scan_list)
+    else:
+        raise Exception("Please provide either scan list or session list")
     dropped_parts = []
     for part_ID in part_ID_count.keys():
-        if part_ID_count[part_ID] > 1:
-            if part_ID_count[part_ID] % 2 != 0:
-                new_output_df = new_output_df[new_output_df.participant_id != part_ID]
-                print(new_output_df)
-                dropped_parts.append(part_ID)
-
-
+        if part_ID_count[part_ID] != sessions_x_scans:
+            new_output_df = new_output_df[new_output_df.participant_id != part_ID]
+            print(new_output_df)
+            dropped_parts.append(part_ID)
     return new_output_df, dropped_parts
 
 
