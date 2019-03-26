@@ -2,6 +2,9 @@ Bootstrap: docker
 From: fcpindi/c-pac
 IncludeCmd: yes
 
+%environment
+FREESURFER_HOME=
+
 %post
 
 ln -s /usr/lib/x86_64-linux-gnu/libgsl.so.19.0.0 \
