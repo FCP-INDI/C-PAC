@@ -196,19 +196,21 @@ def prep_inputs(group_config_file):
              #if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
             if grp_by_scans:
-                new_output_df = new_output_df[output_df["Sessions"].isin(session_list)]
+                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
+                new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
                 join_columns.append("Sessions")
             if grp_by_sessions:
                 #drop all the scans that are not in the scan list
-                new_output_df = new_output_df[output_df["Scan"].isin(scan_list)]
+                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
+                new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
                 join_columns.append("Scan")
             if grp_by_both:
-                new_output_df = new_output_df[output_df["Scan"].isin(scan_list)]
+                new_output_df = output_df[output_df["Scan"].isin(scan_list)]
                 join_columns.append("Scan")
-                new_output_df = new_output_df[output_df["Sessions"].isin(session_list)]
+                new_output_df = output_df[output_df["Sessions"].isin(session_list)]
+                new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
                 join_columns.append("Sessions")
 
-            new_output_df, dropped_parts = balance_df(new_output_df, session_list, scan_list)
             pre_qpp_dict={}
             for scan_df_tuple in new_output_df.groupby("Scan"):
                 scans = scan_df_tuple[0]
@@ -310,7 +312,7 @@ def use_inputs(group_config_file):
 
 
 
-    return use_other_function,merge_mask,subject_list,inclusion_list,out_dir,nrn
+    return use_other_function,merge_file, merge_mask,subject_list,inclusion_list,out_dir,nrn
 
 def balance_df(new_output_df,session_list,scan_list):
     import pandas as pd
@@ -324,14 +326,12 @@ def balance_df(new_output_df,session_list,scan_list):
             sessions_x_scans = len(session_list)
     elif scan_list:
             sessions_x_scans = len(scan_list)
-    else:
-        raise Exception("Please provide either scan list or session list")
     dropped_parts = []
     for part_ID in part_ID_count.keys():
         if part_ID_count[part_ID] != sessions_x_scans:
             new_output_df = new_output_df[new_output_df.participant_id != part_ID]
-            print(new_output_df)
             dropped_parts.append(part_ID)
+    print(new_output_df)
     return new_output_df, dropped_parts
 
 
