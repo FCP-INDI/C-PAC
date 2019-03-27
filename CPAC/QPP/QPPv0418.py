@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from detect_peaks import detect_peaks
 from nilearn.masking import apply_mask
 from nilearn.masking import compute_epi_mask
+import numpy.matlib
 
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
@@ -70,12 +71,12 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
     #img=img[a[0],:]
     #defining 3D arrays here. Each array within the 2D array will finally be a nX*wl shape column vector, which will store the flattened template segment values
 
-    #flattened_segment_array = np.zeros((n_timePoints,n_xaxis*window_length),dtype=float)
-    #flattened_segment_array_2 = np.zeros((n_timePoints,n_xaxis*window_length),dtype=float)
-
+   # flattened_segment_array = np.zeros((n_timePoints,n_xaxis*window_length),dtype=float)
+   # flattened_segment_array_2 = np.zeros((n_timePoints,n_xaxis*window_length),dtype=float)
+    '''
     #for each subject*run store the template into the flattened_segment_array array. Instead of using transpose and multiplication, just us dot product of the template square to be stored in bchfn,
     #This step. Presumably is done to maximize the peaks that are found within the arrays(eplained below)
-    '''for i in range(nd):
+    for i in range(nd):
       for ich in range(n_inspect_segment):
             template=img[:,(i)*n_tempDim+ich:(i)*n_tempDim+window_length+ich]
             #change template from a row vector to a column vector
@@ -98,21 +99,21 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
 
 
     def flattened_segment_array(k):
-        template = img[:, k:k + window_length]
-        template = ndarray.flatten(template)
-        return template
+        T1_template = img[:, k:k + window_length]
+        T1_template = ndarray.flatten(T1_template)
+        return T1_template
 
     def flattened_segment_array_2(k):
-        template = img[:, k:k + window_length]
-        template = ndarray.flatten(template)
+        T2 = img[:, k:k + window_length]
+        T2 = ndarray.flatten(T2)
         # normalize
-        template = template - np.sum(template) / nTf
+        T2 = T2 - np.sum(T2) / nTf
         # get dot product
         # template_trans = np.transpose(template)
-        temp_dot = np.dot(template, template)
+        temp_dot = np.dot(T2,T2)
         template_sqrt = np.sqrt(temp_dot)
-        template = template / template_sqrt
-        return template
+        T2 = T2 / template_sqrt
+        return T2
 
     #array initialized to later be deleted from the random ITP array
     random_selection_array=np.zeros((nd,window_length-1))
@@ -218,7 +219,7 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
         plt.xlabel('avg of func.data of length WL(30)')
         plt.savefig("{0}/Temple_QPP.png".format(path_for_saving))
     mdict = {}
-    mdict["C"] = template_holder
+    mdict["C"] = time_course
     mdict["FTP"] = final_timePoints
     mdict["ITER"] = iteration
     mdict["ITP"] = initial_timePoints
@@ -227,6 +228,7 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
     np.save('{0}/ftp_file'.format(path_for_saving),final_timePoints)
     np.save('{0}/iter_file'.format(path_for_saving),iteration)
     np.save('{0}/itp_file'.format(path_for_saving),initial_timePoints)
+
     #finding the best template, T1 or the  QPP, out of nRP templates the template with the maximum sum of correlation at the supra-threshold local
     #maxima is selected as T1, hence T1 would have higher correlation and more  occurance compared to  other templates
 
@@ -266,7 +268,7 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
     plt.xlabel('Time points of functional data,TR(s)')
     plt.title('QPP 2D array')
     plt.savefig("{0}/QPP_2D_array.png".format(path_for_saving))
-
+    print(template.shape)
     #% building T1, by averaging segments of B with length 2*WL starting at FTP-WL/2; extra WL/2 at each end is primarily to have die-off effect; it
     #is also used in fine-phase-matching two QPPs when comparing them
 
@@ -305,21 +307,42 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
             conct_array2 = conct_array
 
         best_template = best_template+conct_array2
-    best_template=best_template/final_timePoints_1
-    best_template_nifti = np.reshape(best_template,(img.shape[0],img.shape[1],img.shape[2],wl))
-    mask_img=nib.load(mask_file)
-    mask_affine=mask_img.affine
-    nifti_save_template=nib.Nifti1Image(best_template_nifti,mask_affine)
-    nib.save(nifti_save_template,'/home/nrajamani/nifti_template.nii.gz')
+
+    best_template=best_template/n_final_timePoints
+    best_template=ndarray.flatten(best_template)
+    nx_sqrt=np.round(np.sqrt(n_xaxis))
+    best_template_nifti = np.reshape(template, (260, 311, 30))
+    nifti_save_template_2 = nib.Nifti1Image(best_template_nifti, np.eye(4))
+    nifti_save_template = nib.Nifti1Image(best_template_nifti, mask_affine)
+    nib.save(nifti_save_template_2, '/home/nrajamani/nifti_template_2.nii.gz')
+    nib.save(nifti_save_template, '/home/nrajamani/nifti_template.nii.gz')
+    mask_affine=mask.affine
+
+    WLhs = np.round(window_length / 2) + 1
+    WLhe = np.round(window_length/2)+window_length
+    print(WLhs,(WLhs+WLhe)/2)
+    #plt.imshow(best_template_nifti)
+    plt.imshow(best_template_nifti,cmap='jet',aspect='auto',vmin=-1,vmax=1)
+    plt.colorbar()
+    plt.axis([-WLhs,(WLhs+WLhe)/2,30,360])
+    #plt.xticks(np.arange(WLhs,WLhs+WLhe/2,step=WLhe), [1,round(window_length/2),window_length])
+    plt.title('QPP')
+    plt.xlabel('timepoint')
+    plt.ylabel('spatial dimension')
+    plt.savefig("{0}/QPP_new.png".format(path_for_saving))
+
+
+
+
     return img,nd,best_template,time_course_sum_correlation,path_for_saving
 
 def regressqpp(img,nd,best_template,time_course_sum_correlation,path_for_saving):
     #to do: check shape of c in loop
-    window_length = np.round(best_template.shape[1]/2)
+    window_length = np.round(best_template.shape[0]/2)
     window_length_starting = np.round(window_length/2)
     window_length_ending=np.round(window_length/2)+window_length
-    best_template_c=best_template_1[0,window_length_starting:window_length_ending]
-    best_template_c_new =best_template[:,window_length_starting:window_length_ending]
+    best_template_c=best_template[window_length_starting:window_length_ending]
+    best_template_c_new =best_template[window_length_starting:window_length_ending]
     n_xaxis = img.shape[0]
     n_timePoints = img.shape[1]
     n_tempDim = n_timePoints/nd
@@ -330,7 +353,8 @@ def regressqpp(img,nd,best_template,time_course_sum_correlation,path_for_saving)
         template_holder = time_course_sum_correlation[start_time:start_time+n_tempDim]
         for ix in range(nd):
             x = np.convolve(template_holder,best_template_c,mode='valid')
-            y = img[ix,start_time+window_length-1:start_time+n_tempDims]
+            print(x.shape)
+            y = img[ix,start_time+window_length-1:start_time+n_tempDim]
             x_dot = np.dot(x,x)
             y_dot = np.dot(x,y)
             #adding a small value to prevent zero division error
