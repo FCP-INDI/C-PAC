@@ -7,9 +7,10 @@ import os
 import nibabel as nib
 from scipy import stats
 import scipy.io
-from CPAC.QPP.QPPv0418 import qpp_wf,regressqpp
+from CPAC.QPP.QPPv0418 import qpp_wf
 import time
 import sys
+from nilearn.masking import compute_epi_mask
 
 def check_merge_list(merge_list):
 
@@ -30,6 +31,7 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
 
     nrn = int(nrn)
     nsubj=int(nsubj)
+
     if flag_3d_4d == False:
         mask=nib.load(mask)
         mask_array=mask.dataobj
@@ -69,37 +71,51 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
                 B[:, (id - 1) * nt:id * nt] = stats.zscore(D[isbj][irn], axis=1)
                 id += 1
         B = np.around(B, decimals=4)
-        mask_file[(np.sum(abs(B)) > 0)] = 1
+        mask[(np.sum(abs(B)) > 0)] = 1
         A = np.isnan(B)
         B[A] = 0
     else:
+        if img.endswith('.mat'):
+            D_file = scipy.io.loadmat(img)
+            for keys in D_file:
+                D = D_file['D']
+            nx = D[0][0].shape[0]
+            nt = D[0][0].shape[1]
+            nd = nsubj * nrn
+            nt_new = nt * nd
+            nrp=nd
+            B = np.zeros((nx, nt_new))
+            id = 1
+            for isbj in range(nsubj):
+                for irn in range(nrn):
+                    B[:, (id - 1) * nt:id * nt] = (stats.zscore(D[isbj][irn], axis=1))
+                    id += 1
+            B = np.around(B, decimals=4)
+            A = np.isnan(B)
+            mask = np.zeros((nx, nt))
+            mask[(np.sum(abs(B)) > 0)] = 1
 
-        mask = nib.load(mask)
-        mask_array = mask.dataobj
-        mask = np.array(mask_array)
-        print(mask.shape)
-        mask = mask.reshape(mask.shape[0] * mask.shape[1],mask.shape[2])
+        else:
+            sub_img=nib.load(img)
+            sub_img = sub_img.dataobj
+            sub_img=np.array(sub_img)
+            sub_img = sub_img.reshape(sub_img.shape[0] * sub_img.shape[1] * sub_img.shape[2], sub_img.shape[3])
 
-        sub_img=nib.load(img)
-        sub_img = sub_img.dataobj
-        sub_img=np.array(sub_img)
-        sub_img = sub_img.reshape(sub_img.shape[0] * sub_img.shape[1] * sub_img.shape[2], sub_img.shape[3])
-        print(sub_img.shape)
-        sub_img=stats.zscore(sub_img,axis=1)
-        print(type(sub_img))
-        nx = sub_img.shape[0]
-        nt = sub_img.shape[1]
-        nd = nsubj*nrn
-        nrp=nd
-
-        #print(sub_img.shape,mask.shape)
-
-        #print(mask.shape)
-        #B=np.dot(mask,sub_img)
+            sub_img=stats.zscore(sub_img,axis=1)
+            print(type(sub_img))
+            nx = sub_img.shape[0]
+            nt = sub_img.shape[1]
+            nd = nsubj*nrn
+            nrp=nd
+            mask = nib.load(mask)
+            mask_array = mask.dataobj
+            mask = np.array(mask_array)
+            print(mask.shape)
 
     start_time = time.time()
     #generate qpp
-    img,nd,best_template,time_course_sum_correlation,path_for_saving = qpp_wf(sub_img,mask,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs)
+    time_course, ftp, itp, iter=qpp_wf(sub_img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs)
+    #img,nd,best_template,time_course_sum_correlation,path_for_saving = qpp_wf(B,mask,nd,wl,nrp,cth,n_itr_th,mx_itr,pfs)
     #choose best template
     #C_1,FTP1,Met1 = BSTT(time_course,ftp,nd,B,pfs)
     #regress QPP
@@ -111,11 +127,11 @@ if __name__ == "__main__":
     mask = '/home/nrajamani/mask_outfile_test1.nii.gz'
     flag_3d_4d=True
     wl=30
-    cth=[0.2,0.3]
-    n_itr_th=30
+    cth=[0.05,0.1]
+    n_itr_th=14
     mx_itr=15
     pfs='/home/nrajamani/results'
-    nsubj=15
+    nsubj=7
     nrn=2
 
     qppv(img,mask,flag_3d_4d, wl, cth, n_itr_th, mx_itr, pfs, nsubj, nrn)
