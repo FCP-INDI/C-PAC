@@ -1,4 +1,4 @@
-import scipy.io  
+import scipy.io
 import numpy as np
 import nibabel as nib
 import os
@@ -7,6 +7,8 @@ from scipy.ndimage.filters import gaussian_filter
 from numpy import ndarray
 import matplotlib.pyplot as plt
 from detect_peaks import detect_peaks
+from nilearn.masking import apply_mask
+from nilearn.masking import compute_epi_mask
 
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
@@ -19,32 +21,32 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
        This project is an attempt to adopt the algorithm in python, and to integrate into C-PAC.
        Input:
        ------
-       B: 2D nifti image 
+       B: 2D nifti image
        msk: mask of the 2D nifti image
        nd: number of subjects*number of runs per subject
        wl: window length
-       nrp: number of repetitions 
+       nrp: number of repetitions
        cth: threshold
        n_itr_th: number of iterations
-       mx_itr: maximum number of repetitions 
+       mx_itr: maximum number of repetitions
        pfs: path to save the template, FTP, ITP and iter files
-       
-       
+
+
        Returns:
        -------
        time_course_file: 2D array of time points where QPP is detected in .npy format
        ftp_file: 1D array of Final Time Points in .npy format
        itp_file: 1D array of Final Time points in .npy format
-       iter_file: 1D array of iterations in .npy format 
-       
+       iter_file: 1D array of iterations in .npy format
+
        Notes:
        -----
        i) If using a .mat file as an input, save only the image with flag 'v7.0' to make it scipy.io loadmat compatible
        (This functionality will soon be replaced by importing with NifTi format only)
-       
+
        ii) To show the peaks found in the signal, add a show=True boolean values in the "find peaks" command.
        A "True" value plots the peaks that are found in the signal.
-       
+
        Examples:
        --------
        >> python detectqppv.py '/path/to/Data/file.mat'
@@ -146,7 +148,7 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
 
         #using MARCUS DEUTRE'S awesome detect_peaks.py function which is a replica of the matlab find peaks function
         #switching off show true until it is necessary, in order to test code.
-        peaks= detect_peaks(template_holder,mph=cth[0],mpd=window_length,show=True)
+        peaks= detect_peaks(template_holder,mph=cth[0],mpd=window_length)
         #indexes = pu.indexes(c, thresh=c[0])
         #You're deleting the first and last instances of the peaks that are now in the 'peaks' array
 
@@ -178,7 +180,7 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
                 template = None
                 break
 
-            template = [peaks[0]]
+            template = flattened_segment_array(peaks[0])
             template=np.array(template)
             for i in range(1,n_signals):
                 template=template+flattened_segment_array(peaks[i])
@@ -209,8 +211,8 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
             final_timePoints[irp] = peaks.tolist()
             iteration[irp]=itr
     if template.size != 0:
-        template_nifti=nib.Nifti1Image(template,mask)
-        nib.save(template,'template.nii.gz')
+       # template_in_brain=nib.Nifti1Image(template,)
+       # template_in_brain=nib.save(template_in_brain,'template.nii.gz')
         plt.plot(template,'b')
         plt.title('Template of QPP(nd=6,wl=30,subjects=7)')
         plt.xlabel('avg of func.data of length WL(30)')
@@ -304,7 +306,11 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
 
         best_template = best_template+conct_array2
     best_template=best_template/final_timePoints_1
-
+    best_template_nifti = np.reshape(best_template,(img.shape[0],img.shape[1],img.shape[2],wl))
+    mask_img=nib.load(mask_file)
+    mask_affine=mask_img.affine
+    nifti_save_template=nib.Nifti1Image(best_template_nifti,mask_affine)
+    nib.save(nifti_save_template,'/home/nrajamani/nifti_template.nii.gz')
     return img,nd,best_template,time_course_sum_correlation,path_for_saving
 
 def regressqpp(img,nd,best_template,time_course_sum_correlation,path_for_saving):
