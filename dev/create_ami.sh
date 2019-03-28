@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 STORAGE=30
 REGION=$1
 REGION="us-east-1"
@@ -12,19 +14,23 @@ AMI_DESCRIPTION="Configurable Pipeline for the Analysis of Connectomes - Version
 function cleanup {
     echo "Cleaning up..."
 
-    if [ -n "$INSTANCE" ]; then
-        aws --region "${REGION}" ec2 terminate-instances "${INSTANCE_ID}"
-    fi
-
-    if [ -n "$INSTANCE_KEYPAIR_NAME" ]; then
-        aws --region "${REGION}" ec2 delete-key-pair --key-name "${INSTANCE_KEYPAIR_NAME}"
+    if [ -n "$INSTANCE_ID" ]; then
+        echo "Cleaning up instance"
+        aws --region "${REGION}" ec2 terminate-instances --instance-ids "${INSTANCE_ID}" > /dev/null
+        aws ec2 wait instance-terminated --instance-ids "${INSTANCE_ID}"
     fi
 
     if [ -n "$IMAGE_STORAGE" ]; then
+        echo "Cleaning up local storage"
         rm -rf "${IMAGE_STORAGE}"
     fi
 
     if [ -n "$INSTANCE_RANDOM_NAME" ]; then
+        echo "Cleaning up security"
+        aws --region "${REGION}" ec2 delete-key-pair --key-name "${INSTANCE_RANDOM_NAME}"
+        aws ec2 delete-security-group --group-name ${INSTANCE_RANDOM_NAME}
+
+        echo "Cleaning up roles"
         aws --region "${REGION}" iam remove-role-from-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile --role-name ${INSTANCE_RANDOM_NAME}
         aws --region "${REGION}" iam delete-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
         aws --region "${REGION}" iam detach-role-policy --role-name ${INSTANCE_RANDOM_NAME} --policy-arn arn:aws:iam::aws:policy/job-function/SystemAdministrator
@@ -63,19 +69,18 @@ cat <<EOT > ${IMAGE_TEMP}.role
 EOT
 
 echo "Creating roles"
-aws --region "${REGION}" iam create-role --role-name ${INSTANCE_RANDOM_NAME} --assume-role-policy-document file://${IMAGE_TEMP}.role
-aws --region "${REGION}" iam attach-role-policy --role-name ${INSTANCE_RANDOM_NAME} --policy-arn arn:aws:iam::aws:policy/job-function/SystemAdministrator
-aws --region "${REGION}" iam create-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
-aws --region "${REGION}" iam add-role-to-instance-profile --role-name ${INSTANCE_RANDOM_NAME} --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile
+aws --region "${REGION}" iam create-role --role-name ${INSTANCE_RANDOM_NAME} --assume-role-policy-document file://${IMAGE_TEMP}.role > /dev/null
+aws --region "${REGION}" iam attach-role-policy --role-name ${INSTANCE_RANDOM_NAME} --policy-arn arn:aws:iam::aws:policy/job-function/SystemAdministrator > /dev/null
+aws --region "${REGION}" iam create-instance-profile --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile > /dev/null
+aws --region "${REGION}" iam add-role-to-instance-profile --role-name ${INSTANCE_RANDOM_NAME} --instance-profile-name ${INSTANCE_RANDOM_NAME}.profile > /dev/null
 
+echo "Creating security"
 KEYPAIR=`aws --region "${REGION}" ec2 create-key-pair --key-name ${INSTANCE_RANDOM_NAME}`
 echo ${KEYPAIR} | jq -r '.KeyMaterial' > ${IMAGE_TEMP}.pem
 chmod 600 ${IMAGE_TEMP}.pem
 
-INSTANCE_GROUP=`
-    aws --region "${REGION}" ec2 describe-security-groups --group-names default --output json | \
-    jq -r '.SecurityGroups | last(.[]).GroupId'
-`
+INSTANCE_GROUP=`aws ec2 create-security-group --group-name ${INSTANCE_RANDOM_NAME} --description ${INSTANCE_RANDOM_NAME} | jq -r '.GroupId'`
+aws ec2 authorize-security-group-ingress --group-name ${INSTANCE_RANDOM_NAME} --protocol tcp --port 22 --cidr 0.0.0.0/0
 
 echo ${IMAGE_DATA} | jq -r ".BlockDeviceMappings | map(select(.Ebs)) | .[].Ebs.VolumeSize = ${STORAGE}" > ${IMAGE_TEMP}.storage
 
@@ -105,7 +110,7 @@ STARTED_AT=`date +%s`
 ELAPSED=0
 
 echo "Waiting for running tag"
-while (( ELAPSED < 120 )); do
+while [ "$ELAPSED" -lt "120" ]; do
     TAG=`aws  --region "${REGION}" ec2 describe-tags --filters "Name=resource-id,Values=${INSTANCE_ID}" "Name=key,Values=hey" --output json | jq -r '.Tags | .[].Value'`
     if [ "${TAG}" = "hou" ]; then
         break
@@ -115,7 +120,7 @@ while (( ELAPSED < 120 )); do
     sleep 2
 done
 
-if (( ELAPSED >= 120 )); then
+if [ "$ELAPSED" -gt "120" ]; then
     echo "Instance timeout. Try again later."
     exit
 else
@@ -125,8 +130,17 @@ else
                   --query "Reservations[*].Instances[*].PublicIpAddress" \
                   --output=text`
 
-    ssh -o StrictHostKeyChecking=no -i ${IMAGE_TEMP}.pem ubuntu@${INSTANCE_IP} tail -f /var/log/cloud-init-output.log || echo "ssh -o StrictHostKeyChecking=no -i ${IMAGE_TEMP}.pem ubuntu@${INSTANCE_IP} tail -f /var/log/cloud-init-output.log"
 
+    function get_instance_logs {
+        echo "ssh -o ConnectTimeout=3 -o ConnectionAttempts=1 -o StrictHostKeyChecking=no -i ${IMAGE_TEMP}.pem ubuntu@${INSTANCE_IP} tail -f /var/log/cloud-init-output.log"
+        while true; do
+            ssh -o ConnectTimeout=3 -o ConnectionAttempts=1 -o StrictHostKeyChecking=no -i ${IMAGE_TEMP}.pem ubuntu@${INSTANCE_IP} tail -f /var/log/cloud-init-output.log
+        done
+    }
+
+    get_instance_logs &
+
+    echo "Waiting for image setup"
     while true
     do
         ELAPSED=`expr ${NOW} - ${STARTED_AT}`
