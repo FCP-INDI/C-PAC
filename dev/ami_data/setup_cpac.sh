@@ -28,14 +28,14 @@ rm -f /etc/xdg/autostart/gnome-screensaver.desktop
 rm -f /etc/xdg/autostart/org.gnome.SettingsDaemon.ScreensaverProxy.desktop
 rm -f /etc/xdg/autostart/light-locker.desktop
 
-Xvfb :99 & export DISPLAY=:99
-su -c 'lxsession' ubuntu &  # to create configs
-
-sleep 5
+# Xvfb :99 & export DISPLAY=:99
+# su -c 'lxsession' ubuntu &  # to create configs
+# sleep 5
 
 # sed -z 's/\s*Button\s*{\s*id=lxde-screenlock.desktop\s*}//g' /home/ubuntu/.config/lxpanel/LXDE/panels/panel
 
 # Disable screen lock
+mkdir -p /home/ubuntu/.config/xfce4/xfconf/xfce-perchannel-xml/
 cat <<EOT > /home/ubuntu/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-power-manager.xml
 <?xml version="1.0" encoding="UTF-8"?>
 

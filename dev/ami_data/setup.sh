@@ -44,3 +44,4 @@ until [ `aws ec2 --region=${REGION} describe-images --filters "Name=image-id,Val
 done
 
 aws ec2 --region=${REGION} create-tags --resources ${INSTANCE_ID} --tags Key=ami,Value=done --output json
+echo "Image build!"
