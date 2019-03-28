@@ -44,6 +44,8 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         D_file = nib.load(img)
         D_img = D_file.dataobj
         D_img = np.array(D_img)
+        template_axis_1 = D_img.shape[0]
+        template_axis_2 = D_img.shape[1]
 
         ##shape of D_img is (61,73,61,7)
         D_img = D_img.reshape(D_img.shape[0] * D_img.shape[1], D_img.shape[2], D_img.shape[3])
@@ -62,17 +64,18 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         nd = nsubj * nrn
         nrp = nd
         nt_new = nt * nd
-        B = np.zeros((nx, nt_new))
+        img = np.zeros((nx, nt_new))
         id = 1
         for isbj in range(nsubj):
             for irn in range(nrn):
-                B[:, (id - 1) * nt:id * nt] = stats.zscore(D[isbj][irn], axis=1)
+                img[:, (id - 1) * nt:id * nt] = stats.zscore(D[isbj][irn], axis=1)
                 id += 1
-        B = np.around(B, decimals=4)
-        A = np.isnan(B)
-        B[A] = 0
+        img = np.around(img, decimals=4)
+        A = np.isnan(img)
+        img[A] = 0
     else:
         if img.endswith('.mat'):
+
             D_file = scipy.io.loadmat(img)
             for keys in D_file:
                 D = D_file['D']
@@ -81,24 +84,26 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
             nd = nsubj * nrn
             nt_new = nt * nd
             nrp=nd
-            B = np.zeros((nx, nt_new))
+            img = np.zeros((nx, nt_new))
             id = 1
             for isbj in range(nsubj):
                 for irn in range(nrn):
-                    B[:, (id - 1) * nt:id * nt] = (stats.zscore(D[isbj][irn], axis=1))
+                    img[:, (id - 1) * nt:id * nt] = (stats.zscore(D[isbj][irn], axis=1))
                     id += 1
-            B = np.around(B, decimals=4)
-            A = np.isnan(B)
-            mask = np.zeros((nx, nt))
-            mask[(np.sum(abs(B)) > 0)] = 1
+            img = np.around(img, decimals=4)
+            A = np.isnan(img)
+            mask=nib.load(mask)
+
 
         else:
             sub_img=nib.load(img)
             sub_img = sub_img.dataobj
             sub_img=np.array(sub_img)
+            template_axis_1 = sub_img.shape[0]
+            template_axis_2 = sub_img.shape[1]
             sub_img = sub_img.reshape(sub_img.shape[0] * sub_img.shape[1] * sub_img.shape[2], sub_img.shape[3])
 
-            sub_img=stats.zscore(sub_img,axis=1)
+            img=stats.zscore(sub_img,axis=1)
             print(type(sub_img))
             nx = sub_img.shape[0]
             nt = sub_img.shape[1]
@@ -110,12 +115,24 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
             print(mask.shape)
 
     start_time = time.time()
+    print(template_axis_1)
+    print(template_axis_2)
     #generate qpp
-    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs)
- 
+    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs,template_axis_1,template_axis_2)
+
     print("-----%s seconds ----"%(time.time() - start_time))
 if __name__ == "__main__":
-
+    img = '/home/nrajamani/PyPEER/data/merged_peer.nii.gz'
+    # 'mermerged_test1.nii.gz'
+    mask = '/home/nrajamani/PyPEER/data/merged_mask_peer.nii.gz'
+    flag_3d_4d = False
+    wl = 30
+    cth = [0.2, 0.3]
+    n_itr_th = 6
+    mx_itr = 15
+    pfs = '/home/nrajamani/results'
+    nsubj = 3
+    nrn = 2
 
     qppv(img,mask,flag_3d_4d, wl, cth, n_itr_th, mx_itr, pfs, nsubj, nrn)
 
