@@ -58,7 +58,7 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list):
     from CPAC.pipeline.cpac_group_runner import create_output_df_dict
     import pandas as pd
     import pkg_resources as p
-
+    import pickle
     keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
     try:
         keys = pd.read_csv(keys_csv)
@@ -80,7 +80,9 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list):
     # scans included, and/or the sessions included
     # 4. Our final output df will contain, file paths for the .nii files of all the participants that are included in the
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
-
+    f= open("/home/nrajamani/C-PAC/CPAC/QPP/op_dict.pkl",'wb')
+    pickle.dump(output_df_dict,f)
+    f.close()
     return output_df_dict
 
 
@@ -91,7 +93,7 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
         resource_id = unique_resource[0]
         strat_info = unique_resource[1]
         output_df = output_df_dict[unique_resource]
-
+        output_df.to_pickle("/home/nrajamani/C-PAC/CPAC/QPP/op_df.pkl")
         if "Series" in output_df:
             output_df.rename(columns={"Series": "Scan"},
                              inplace=True)
@@ -147,8 +149,8 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
             #    join_columns.append("Sessions")
 
                 # Make sure it is balanced
-            newer_output_df, dropped_parts = balance_df(new_output_df,sess_inclusion,scan_inclusion)
 
+            newer_output_df, dropped_parts = balance_df(new_output_df,sess_inclusion,scan_inclusion)
 
         pre_qpp_dict = {}
 
@@ -157,7 +159,6 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                 for scan_df_tuple in newer_output_df.groupby("Scan"):
                     scans = scan_df_tuple[0]
                     scan_df = scan_df_tuple[1]
-
                     if 'Sessions' in scan_df.columns:
                         for ses_df_tuple in scan_df.groupby('Sessions'):
                             session = 'ses-{0}'.format(ses_df_tuple[0])
@@ -176,6 +177,8 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                 session = 'ses-1'
                 qpp_dict['ses-1'] = scan_df
             else:
+                
+                print(newer_output_df)
                 qpp_dict['output_df'] = newer_output_df
 
         if repeated_measures == False and grp_by_strat == None:
@@ -188,7 +191,7 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                   'included in your analysis, and the particpants in the phenotype ' \
                   'phenotype file provided.\n\n'
             raise Exception(err)
-
+    print(qpp_dict)
     return qpp_dict,resource_id,strat_info
 
 
@@ -319,15 +322,13 @@ def balance_df(new_output_df, session_list, scan_list):
     elif scan_list:
         sessions_x_scans = len(scan_list)
     dropped_parts = []
-
     for part_ID in part_ID_count.keys():
-
         if part_ID_count[part_ID] != sessions_x_scans:
             newer_output_df = new_output_df[new_output_df.participant_id != part_ID]
             dropped_parts.append(part_ID)
         else:
             newer_output_df=new_output_df
 
-    print(newer_output_df)
+
 
     return newer_output_df, dropped_parts
