@@ -154,8 +154,9 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
 
         pre_qpp_dict = {}
 
-        if grp_by_strat:
-            if grp_by_strat == "Scan":
+        if grp_by_strat and repeated_measures == True:
+
+            if grp_by_strat == ["Scan"]:
                 for scan_df_tuple in newer_output_df.groupby("Scan"):
                     scans = scan_df_tuple[0]
                     scan_df = scan_df_tuple[1]
@@ -173,17 +174,17 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                                 concat_df = pd.concat(concat_df, df)
                             qpp_dict[key] = concat_df
 
-            elif grp_by_strat == "Session":
+            elif grp_by_strat == ["Session"]:
                 session = 'ses-1'
                 qpp_dict['ses-1'] = scan_df
-            else:
-                
+            elif grp_by_strat == None:
                 print(newer_output_df)
                 qpp_dict['output_df'] = newer_output_df
-
-        if repeated_measures == False and grp_by_strat == None:
+        
+        if repeated_measures == False and grp_by_strat == ['None']:
+            
+            print(output_df)
             qpp_dict['output_df'] = output_df
-
 
         if len(qpp_dict) == 0:
             err = '\n\n[!]C-PAC says:Could not find match betterrn the ' \
