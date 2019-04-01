@@ -3,13 +3,14 @@ from nipype import logging
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 
-from CPAC.utils import function
-from CPAC.network_centrality.utils import merge_lists
+from CPAC.utils.function import Function
+from CPAC.network_centrality.network_centrality import create_centrality_wf
+from CPAC.network_centrality.utils import merge_lists, check_centrality_params
 
 logger = logging.getLogger('workflow')
 
 
-def create_network_centrality_workflow(workflow, c, strategies, s3_config):
+def create_network_centrality_workflow(workflow, c, strategies):
 
     if not any((
         True in c.degWeightOptions,
@@ -35,29 +36,25 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
 
         node, out_file = strat['functional_to_standard']
 
-        # Resample the input functional file to template(roi/mask)
         workflow.connect(node, out_file,
                          resample_functional_to_template, 'in_file')
 
         workflow.connect(c.templateSpecificationFile, 'local_path',
                          resample_functional_to_template, 'reference')
 
-        # Init merge node for appending method output lists to one another
-        merge_node = pe.Node(function.Function(input_names=['deg_list',
-                                                            'eig_list',
-                                                            'lfcd_list'],
-                                               output_names=['merged_list'],
-                                               function=merge_lists,
-                                               as_module=True),
+        merge_node = pe.Node(Function(input_names=['deg_list',
+                                                   'eig_list',
+                                                   'lfcd_list'],
+                                      output_names=['merged_list'],
+                                      function=merge_lists,
+                                      as_module=True),
                              name='merge_node_%d' % num_strat)
-
-        # Function to connect the CPAC centrality python workflow
-        # into pipeline
 
         if True in c.degWeightOptions:
             connect_centrality_workflow(
                 workflow, c, strat, num_strat,
-                resample_functional_to_template, c.templateSpecificationFile, merge_node,
+                resample_functional_to_template,
+                c.templateSpecificationFile, merge_node,
                 'degree',
                 c.degCorrelationThresholdOption,
                 c.degCorrelationThreshold
@@ -66,7 +63,8 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
         if True in c.eigWeightOptions:
             connect_centrality_workflow(
                 workflow, c, strat, num_strat,
-                resample_functional_to_template, c.templateSpecificationFile, merge_node,
+                resample_functional_to_template,
+                c.templateSpecificationFile, merge_node,
                 'eigenvector',
                 c.eigCorrelationThresholdOption,
                 c.eigCorrelationThreshold
@@ -75,15 +73,15 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
         if True in c.lfcdWeightOptions:
             connect_centrality_workflow(
                 workflow, c, strat, num_strat,
-                resample_functional_to_template, c.templateSpecificationFile, merge_node,
+                resample_functional_to_template,
+                c.templateSpecificationFile, merge_node,
                 'lfcd',
                 c.lfcdCorrelationThresholdOption,
                 c.lfcdCorrelationThreshold
             )
 
         if 0 in c.runNetworkCentrality:
-            strat = strat.fork()
-            strategies += [strat]
+            strategies += [strat.fork()]
 
         strat.update_resource_pool({
             'centrality': (merge_node, 'merged_list')
@@ -94,16 +92,11 @@ def create_network_centrality_workflow(workflow, c, strategies, s3_config):
 
 # Function to connect the into pipeline
 def connect_centrality_workflow(workflow, c, strat, num_strat,
-
                                 resample_functional_to_template,
                                 template,
                                 merge_node,
-
                                 method_option, threshold_option,
                                 threshold):
-
-    from CPAC.network_centrality.network_centrality import create_centrality_wf
-    import CPAC.network_centrality.utils as cent_utils
 
     # Set method_options variables
     if method_option == 'degree':
@@ -121,9 +114,9 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
     # Format method and threshold options properly and check for
     # errors
     method_option, threshold_option = \
-        cent_utils.check_centrality_params(method_option,
-                                           threshold_option,
-                                           threshold)
+        check_centrality_params(method_option,
+                                threshold_option,
+                                threshold)
 
     # Change sparsity thresholding to % to work with afni
     if threshold_option == 'sparsity':
