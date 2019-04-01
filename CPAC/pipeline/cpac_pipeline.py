@@ -72,10 +72,6 @@ from CPAC.timeseries import (
     get_vertices_timeseries,
     get_spatial_map_timeseries
 )
-from CPAC.network_centrality import (
-    create_resting_state_graphs,
-    get_cent_zscore
-)
 from CPAC.warp.pipeline import (
     ants_apply_warps_func_mni,
     ants_apply_inverse_warps_template_to_func
@@ -262,9 +258,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
 
+    check_centrality_degree = 1 in c.runNetworkCentrality and \
+                              (True in c.degWeightOptions or \
+                               True in c.eigWeightOptions)
+
+    check_centrality_lfcd = 1 in c.runNetworkCentrality and \
+                            True in c.lfcdWeightOptions
+
     # Check system dependencies
     check_system_deps(check_ants='ANTS' in c.regOption,
-                      check_ica_aroma='1' in str(c.runICA[0]))
+                      check_ica_aroma='1' in str(c.runICA[0]),
+                      check_centrality_degree=check_centrality_degree,
+                      check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
     c.workingDirectory = os.path.abspath(c.workingDirectory)
