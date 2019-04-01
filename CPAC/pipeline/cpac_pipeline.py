@@ -3141,11 +3141,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             #     raise Exception(err)
 
             strat_list = create_network_centrality_workflow(
-                workflow, c, strat_list, {
-                    "creds_path": input_creds_path,
-                    "dl_dir": c.workingDirectory
-                }
-            )
+                workflow, c, strat_list)
 
         '''
         Loop through the resource pool and connect the nodes for:
