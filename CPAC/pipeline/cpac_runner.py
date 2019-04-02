@@ -218,9 +218,24 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     except IOError:
         print "config file %s doesn't exist" % config_file
         raise
+    except yaml.parser.ParserError as e:
+        error_detail = "\"%s\" at line %d" % (
+            e.problem,
+            e.problem_mark.line
+        )
+        raise Exception(
+            "Error parsing config file: {0}\n\n"
+            "Error details:\n"
+            "    {1}"
+            "\n\n".format(config_file, error_detail)
+        )
     except Exception as e:
-        raise Exception("Error reading config file - {0}\n\nError details:"
-                        "\n{1}\n\n".format(config_file, e))
+        raise Exception(
+            "Error parsing config file: {0}\n\n"
+            "Error details:\n"
+            "    {1}"
+            "\n\n".format(config_file, e)
+        )
 
     c.logDirectory = os.path.abspath(c.logDirectory)
     c.workingDirectory = os.path.abspath(c.workingDirectory)
