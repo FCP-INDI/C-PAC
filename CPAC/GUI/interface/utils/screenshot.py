@@ -1,3 +1,4 @@
+import os
 import wx
 import sys
 import pkg_resources as p
@@ -36,6 +37,12 @@ class Screenshot(object):
             memDC.Blit(0, 0, rect.width, rect.height, dcScreen, rect.x, rect.y)
             memDC.SelectObject(wx.NullBitmap)
             img = bmp.ConvertToImage()
+
+            try:
+                os.makedirs(os.path.dirname(self.output))
+            except:
+                pass
+
             img.SaveFile(self.output, wx.BITMAP_TYPE_PNG)
 
         wx.FutureCall(self.wait, _screenshot)

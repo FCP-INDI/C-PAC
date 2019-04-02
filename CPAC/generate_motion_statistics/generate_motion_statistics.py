@@ -134,15 +134,15 @@ def motion_power_statistics(name='motion_stats'):
         wf = motion_power_statistics()
         wf.write_graph(
             graph2use='orig',
-            dotfilename='./images/parameters.dot'
+            dotfilename='./images/generated/parameters.dot'
         )
 
-    .. image:: ../images/parameters.png
+    .. image:: ../images/generated/parameters.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/parameters_detailed.png
+    .. image:: ../images/generated/parameters_detailed.png
        :width: 1000
 
     Examples

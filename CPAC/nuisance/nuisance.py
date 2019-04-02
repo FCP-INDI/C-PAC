@@ -503,15 +503,15 @@ def create_nuisance_workflow(nuisance_selectors,
 
         wf.write_graph(
             graph2use='orig',
-            dotfilename='./images/nuisance.dot'
+            dotfilename='./images/generated/nuisance.dot'
         )
 
-    .. image:: ../images/nuisance.png
+    .. image:: ../images/generated/nuisance.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/nuisance_detailed.png
+    .. image:: ../images/generated/nuisance_detailed.png
        :width: 1000
 
     """
