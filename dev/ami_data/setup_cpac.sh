@@ -11,6 +11,11 @@ apt-get update
 apt-get install -y x2goserver lubuntu-desktop lxde-icon-theme xvfb
 apt-get remove -y lxlock xscreensaver xscreensaver-data gnome-screensaver
 
+# Cleaning up NetworkManager, use netplan
+systemctl stop NetworkManager.service
+systemctl disable NetworkManager.service
+rm -Rf /etc/NetworkManager
+
 # Disable asking for user password
 groupadd -r autologin
 gpasswd -a ubuntu autologin
