@@ -38,9 +38,10 @@ aws ec2 --region=${REGION} create-tags --resources ${INSTANCE_ID} --tags Key=ami
 
 IMAGE_ID=`aws ec2 --region=${REGION} create-image --instance-id ${INSTANCE_ID} --name "${AMI_NAME}" --description "${AMI_DESCRIPTION}" --no-reboot --output json | jq -r '.ImageId'`
 
+echo "Waiting image building"
 until [ `aws ec2 --region=${REGION} describe-images --filters "Name=image-id,Values=${IMAGE_ID}" --output json | jq -r '.Images | .[].State'` = 'available' ]; do
-    echo "Waiting image building"
     sleep 2
 done
 
 aws ec2 --region=${REGION} create-tags --resources ${INSTANCE_ID} --tags Key=ami,Value=done --output json
+echo "Image build!"
