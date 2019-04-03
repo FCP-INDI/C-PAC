@@ -10,7 +10,7 @@ import scipy.io
 from CPAC.QPP.QPPv0418 import qpp_wf,regressqpp
 import time
 import sys
-from nilearn.masking import compute_epi_mask
+from sklearn.decomposition import PCA
 
 def check_merge_list(merge_list):
 
@@ -90,23 +90,27 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
                 for irn in range(nrn):
                     img[:, (id - 1) * nt:id * nt] = (stats.zscore(D[isbj][irn], axis=1))
                     id += 1
+
             img = np.around(img, decimals=4)
+            template_axis_1 = img.shape[0]
+            template_axis_2 = img.shape[1]
             A = np.isnan(img)
             mask=nib.load(mask)
-
-
         else:
-            sub_img=nib.load(img)
-            sub_img = sub_img.dataobj
-            sub_img=np.array(sub_img)
-            template_axis_1 = sub_img.shape[0]
-            template_axis_2 = sub_img.shape[1]
-            sub_img = sub_img.reshape(sub_img.shape[0] * sub_img.shape[1] * sub_img.shape[2], sub_img.shape[3])
-
-            img=stats.zscore(sub_img,axis=1)
-            print(type(sub_img))
-            nx = sub_img.shape[0]
-            nt = sub_img.shape[1]
+            sub_img = nib.load(img)
+            print(sub_img.shape[3])
+            #for i in range(sub_img.shape[3]):
+            #    temp_arr=np.array(sub_img.dataobj[:,:,:,i])
+            #    mean_arr = np.mean(temp_arr)
+            #    std_arr = np.std(temp_arr)
+            #    zscore_arr = (temp_arr - mean_arr) / std_arr
+            #    temp_arr = zscore_arr
+            #print(temp_arr.shape)
+            x=sub_img.shape[0]
+            y=sub_img.shape[1]
+            z=sub_img.shape[2]
+            nx = sub_img.shape[0]*sub_img.shape[1]*sub_img.shape[2]
+            nt = sub_img.shape[3]
             nd = nsubj*nrn
             nrp=nd
             mask = nib.load(mask)
@@ -115,17 +119,15 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
             print(mask.shape)
 
     start_time = time.time()
-    print(template_axis_1)
-    print(template_axis_2)
+
     #generate qpp
-    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs,template_axis_1,template_axis_2)
+    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(sub_img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs,x,y)
 
     print("-----%s seconds ----"%(time.time() - start_time))
 if __name__ == "__main__":
-    img = '/home/nrajamani/PyPEER/data/merged_peer.nii.gz'
-    # 'mermerged_test1.nii.gz'
-    mask = '/home/nrajamani/PyPEER/data/merged_mask_peer.nii.gz'
-    flag_3d_4d = False
+    img = '/home/nrajamani/C-PAC/CPAC/QPP/merged_1.nii.gz'
+    mask = '/home/nrajamani/C-PAC/CPAC/QPP/merged_mask_1.nii.gz'
+    flag_3d_4d = True
     wl = 30
     cth = [0.2, 0.3]
     n_itr_th = 6

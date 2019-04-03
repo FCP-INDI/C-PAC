@@ -13,7 +13,7 @@ import numpy.matlib
 
 #Loading the data file, which is now a matfile. this returns a matlab dictionary with variables names as keys and loaded matrices as values.
 
-def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_itr,path_for_saving):
+def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,max_itr,path_for_saving,x,y):
     # TODOconsolidate this to one function as Behnaz suggested
     """This code is adapted from the paper
        "Quasi-periodic patterns(QP):Large-scale dynamics in resting state fMRI that correlate"\
@@ -56,9 +56,9 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
     #define these variables so they make more sense --> didn't change it in the detectqppv function because laziness
 
 
-    n_timePoints = img.shape[1]
+    n_timePoints = img.shape[3]
     #shape of time dimension
-    n_xaxis = img.shape[0] #shape of x dimensions
+    n_xaxis = img.shape[0]*img.shape[1]*img.shape[2] #shape of x dimensions
     n_tempDim = int(n_timePoints/nd) #number of temporal dimensions
     #use int to prevent floating point errors during initializations
     n_inspect_segment = n_tempDim-window_length+1 #no.of inspectable segments
@@ -99,12 +99,13 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
 
 
     def flattened_segment_array(k):
-        T1_template = img[:, k:k + window_length]
+        img_arr = img.dataobj[:,:,:, k:k + window_length]
+        T1_template = img_arr
         T1_template = ndarray.flatten(T1_template)
         return T1_template
 
     def flattened_segment_array_2(k):
-        T2 = img[:, k:k + window_length]
+        T2 = img.dataobj[:,:,:, k:k + window_length]
         T2 = ndarray.flatten(T2)
         # normalize
         T2 = T2 - np.sum(T2) / nTf
@@ -211,7 +212,7 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
             time_course[irp,:]=template_holder
             final_timePoints[irp] = peaks.tolist()
             iteration[irp]=itr
-    if template.size != 0:
+    if template.size:
        # template_in_brain=nib.Nifti1Image(template,)
        # template_in_brain=nib.save(template_in_brain,'template.nii.gz')
         plt.plot(template,'b')
@@ -268,7 +269,7 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
     plt.xlabel('Time points of functional data,TR(s)')
     plt.title('QPP 2D array')
     plt.savefig("{0}/QPP_2D_array.png".format(path_for_saving))
-    print(template.shape)
+
     #% building T1, by averaging segments of B with length 2*WL starting at FTP-WL/2; extra WL/2 at each end is primarily to have die-off effect; it
     #is also used in fine-phase-matching two QPPs when comparing them
 
@@ -298,7 +299,8 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
             end_time=n_timePoints
             ze_flag=True
         if zs_flag:
-            conct_array = np.concatenate((z_starting,img[:,start_time-1:end_time]),axis=1)
+            img_arr_for_conct=np.array(img.dataobj[:,:,:,start_time-1:end_time])
+            conct_array = np.concatenate((z_starting,img_arr_for_conct),axis=1)
         else:
             conct_array = img[:,start_time-1:end_time]
         if ze_flag:
@@ -311,18 +313,19 @@ def qpp_wf(img,mask,nd,window_length,n_randomPermutations,cth,n_iter_threshold,m
     best_template=best_template/n_final_timePoints
     best_template=ndarray.flatten(best_template)
     nx_sqrt=np.round(np.sqrt(n_xaxis))
-    best_template_nifti = np.reshape(template, (260, 311, 30))
-    nifti_save_template_2 = nib.Nifti1Image(best_template_nifti, np.eye(4))
-    nifti_save_template = nib.Nifti1Image(best_template_nifti, mask_affine)
+    mask_affine = mask.affine
+    best_template_nifti = np.reshape(best_template, (x,y, window_length*2))
+
+    nifti_save_template_2 = nib.Nifti1Image(best_template_nifti, mask_affine)
     nib.save(nifti_save_template_2, '/home/nrajamani/nifti_template_2.nii.gz')
-    nib.save(nifti_save_template, '/home/nrajamani/nifti_template.nii.gz')
-    mask_affine=mask.affine
+
 
     WLhs = np.round(window_length / 2) + 1
     WLhe = np.round(window_length/2)+window_length
     print(WLhs,(WLhs+WLhe)/2)
     #plt.imshow(best_template_nifti)
-    plt.imshow(best_template_nifti,cmap='jet',aspect='auto',vmin=-1,vmax=1)
+    best_template_for_plot = np.reshape(best_template, (template_axis_1 * template_axis_2, window_length * 2))
+    plt.imshow(best_template_for_plot,cmap='jet',aspect='auto',vmin=-1,vmax=1)
     plt.colorbar()
     plt.axis([-WLhs,(WLhs+WLhe)/2,30,360])
     #plt.xticks(np.arange(WLhs,WLhs+WLhe/2,step=WLhe), [1,round(window_length/2),window_length])
