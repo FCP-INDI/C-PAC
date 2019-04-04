@@ -60,15 +60,15 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         ##initializing D, which is a list of lists
         nx = D[0][0].shape[0]
         nt = D[0][0].shape[1]
-        print(nx,nt)
+
         nd = nsubj * nrn
         nrp = nd
         nt_new = nt * nd
-        img = np.zeros((nx, nt_new))
+        sub_img = np.zeros((nx, nt_new))
         id = 1
         for isbj in range(nsubj):
             for irn in range(nrn):
-                img[:, (id - 1) * nt:id * nt] = stats.zscore(D[isbj][irn], axis=1)
+                sub_img[:, (id - 1) * nt:id * nt] = stats.zscore(D[isbj][irn], axis=1)
                 id += 1
         img = np.around(img, decimals=4)
         A = np.isnan(img)
@@ -99,18 +99,16 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         else:
             sub_img = nib.load(img)
             print(sub_img.shape[3])
-            #for i in range(sub_img.shape[3]):
-            #    temp_arr=np.array(sub_img.dataobj[:,:,:,i])
-            #    mean_arr = np.mean(temp_arr)
-            #    std_arr = np.std(temp_arr)
-            #    zscore_arr = (temp_arr - mean_arr) / std_arr
-            #    temp_arr = zscore_arr
-            #print(temp_arr.shape)
-            x=sub_img.shape[0]
-            y=sub_img.shape[1]
-            z=sub_img.shape[2]
-            nx = sub_img.shape[0]*sub_img.shape[1]*sub_img.shape[2]
-            nt = sub_img.shape[3]
+            sub_img=np.array(sub_img.dataobj)
+            sub_img=sub_img.reshape(sub_img.shape[0]*sub_img.shape[1]*sub_img[2],sub_img.shape[3])
+            for i in range(sub_img.shape[2]):
+                temp_arr=np.array(sub_img[i,:])
+                mean_arr = np.mean(temp_arr)
+                std_arr = np.std(temp_arr)
+                zscore_arr = (temp_arr - mean_arr) / std_arr
+                sub_img[i,:] = zscore_arr
+            nx = sub_img.shape[0]
+            nt = sub_img.shape[1]
             nd = nsubj*nrn
             nrp=nd
             mask = nib.load(mask)
@@ -121,7 +119,7 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
     start_time = time.time()
 
     #generate qpp
-    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(sub_img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs,x,y)
+    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(sub_img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs,nx,nt)
 
     print("-----%s seconds ----"%(time.time() - start_time))
 if __name__ == "__main__":

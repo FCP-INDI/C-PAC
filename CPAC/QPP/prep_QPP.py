@@ -128,28 +128,18 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
         if grp_by_scans and grp_by_sessions:
             grp_by_both = True
 
-
+        print(repeated_measures)
         # PSA #both multiple sessions and scans, youre going to do nothing
         # if neither, the output directory will not have any level of grouping, it will be ses1_scan1 --> nuisance strat, etc
         if repeated_measures:
-            if grp_by_scans:
 
+            if grp_by_scans:
                 new_output_df = output_df[output_df["Sessions"].isin(sess_inclusion)]
                 join_columns.append("Sessions")
             if grp_by_sessions:
-
                 # drop all the scans that are not in the scan list
                 new_output_df = output_df[output_df["Scan"].isin(scan_inclusion)]
                 join_columns.append("Scan")
-            #elif grp_by_both:
-
-            #    new_output_df = output_df[output_df["Scan"].isin(scan_inclusion)]
-            #    join_columns.append("Scan")
-            #    new_output_df = output_df[output_df["Sessions"].isin(sess_inclusion)]
-            #    join_columns.append("Sessions")
-
-                # Make sure it is balanced
-
             newer_output_df, dropped_parts = balance_df(new_output_df,sess_inclusion,scan_inclusion)
 
         pre_qpp_dict = {}
@@ -182,7 +172,7 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                 qpp_dict['output_df'] = newer_output_df
         
         if repeated_measures == False and grp_by_strat == ['None']:
-            
+            print("hello")
             print(output_df)
             qpp_dict['output_df'] = output_df
 
