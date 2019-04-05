@@ -142,6 +142,7 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                 join_columns.append("Scan")
             newer_output_df, dropped_parts = balance_df(new_output_df,sess_inclusion,scan_inclusion)
 
+
         pre_qpp_dict = {}
 
         if grp_by_strat and repeated_measures == True:
@@ -170,9 +171,12 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
             elif grp_by_strat == None:
                 print(newer_output_df)
                 qpp_dict['output_df'] = newer_output_df
+
+        if repeated_measures == True and grp_by_strat == ['None']:
+            print(output_df)
+            qpp_dict['output_df'] = newer_output_df
         
         if repeated_measures == False and grp_by_strat == ['None']:
-            print("hello")
             print(output_df)
             qpp_dict['output_df'] = output_df
 
