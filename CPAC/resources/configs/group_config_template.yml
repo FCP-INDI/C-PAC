@@ -309,12 +309,12 @@ isc_permutations :  1000
 run_qpp :  [1]
 
 
-# If there are multiple scans in any of the pipeline outputs for which QPP is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').
+# If there are multiple scans in any of the pipeline outputs for which QPP is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').If you want to include all scans, please enter the parameter as None, as a string, without any quotes. 
 # If nothing is listed, QPP will run once for each scan, for all available scans.
 qpp_scan_inclusion :  ['rest_run-1']
 
 
-# If there are multiple sessions in any of the pipeline outputs for which QPP is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').
+# If there are multiple sessions in any of the pipeline outputs for which QPP is being run, and you only want to run for some of them, you can list them here - scan labels separated by commas (ex. 'rest_run-1, rest_run-3').If you want to include all sessions, please enter the parameter as None, as a string, without any quotes. 
 # If nothing is listed, QPP will run once for each scan, for all available scans.
 qpp_sess_inclusion :  None
 
