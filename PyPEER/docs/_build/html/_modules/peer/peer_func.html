@@ -1,0 +1,663 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>peer.peer_func &#8212; peer  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for peer.peer_func</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions to predict eye movements</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">    - Jake Son, 2017-2018  (jake.son@childmind.org)  http://jakeson.me</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">nibabel</span> <span class="k">as</span> <span class="nn">nib</span>
+<span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="k">import</span> <span class="n">SVR</span>
+<span class="kn">from</span> <span class="nn">sklearn.externals</span> <span class="k">import</span> <span class="n">joblib</span>
+
+
+<div class="viewcode-block" id="scaffolding"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.scaffolding">[docs]</a><span class="k">def</span> <span class="nf">scaffolding</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates the project folder and file hierarchy and returns pathnames</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _project_dir : string</span>
+<span class="sd">        Pathname of the highest-level project directory</span>
+<span class="sd">    _data_dir : string</span>
+<span class="sd">        Pathname of the directory containing data</span>
+<span class="sd">    _output_dir : string</span>
+<span class="sd">        Pathname of the output directory</span>
+<span class="sd">    _stimulus_path : string</span>
+<span class="sd">        Pathname of the PEER calibration scan stimuli</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_project_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="n">os</span><span class="o">.</span><span class="n">pardir</span><span class="p">))</span>
+
+    <span class="n">_data_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_project_dir</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">))</span>
+
+    <span class="n">_stimulus_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_project_dir</span><span class="p">,</span> <span class="s1">&#39;peer/stim_vals.csv&#39;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">):</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">The &quot;data&quot; directory needs to contain at least one subdirectory that contains data before proceeding. Each &#39;</span>
+              <span class="s1">&#39;subdirectory should contain at least one PEER file &#39;</span>
+              <span class="s1">&#39;and one file used to estimate eye movements, such as an fMRI scan acquired during movie viewing or rest.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">):</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">The &quot;data&quot; directory is empty. The &quot;data&quot; directory needs to contain at least one subdirectory that &#39;</span>
+              <span class="s1">&#39;contains data. Each subdirectory should contain at least two PEER files.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)]:</span>
+
+            <span class="n">dataset_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">,</span> <span class="n">dataset</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="s1">&#39;outputs&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">):</span>
+
+                <span class="n">_dataset_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">,</span> <span class="n">dataset</span><span class="p">))</span>
+
+                <span class="n">_output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_dataset_dir</span><span class="p">,</span> <span class="s1">&#39;outputs&#39;</span><span class="p">))</span>
+
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="n">_dataset_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">,</span> <span class="n">dataset</span><span class="p">))</span>
+
+                <span class="n">_output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_dataset_dir</span><span class="p">,</span> <span class="s1">&#39;outputs&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">_project_dir</span><span class="p">,</span> <span class="n">_data_dir</span><span class="p">,</span> <span class="n">_output_dir</span><span class="p">,</span> <span class="n">_stimulus_path</span></div>
+
+
+<div class="viewcode-block" id="set_parameters"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.set_parameters">[docs]</a><span class="k">def</span> <span class="nf">set_parameters</span><span class="p">(</span><span class="n">_configs</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets configuration parameters</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _configs :</span>
+<span class="sd">        Dictionary containing configuration options from the config file (config.json)</span>
+<span class="sd">    new : bool</span>
+<span class="sd">        Do you want to start from a new file?</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _configs :</span>
+<span class="sd">        Updated dictionary containing configuration options from the config file (config.json)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">new</span><span class="p">:</span>
+        <span class="n">_configs</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="s2">&quot;NA&quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">_configs</span><span class="p">}</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;*Do not include single or double quotes*</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;eye_mask_path&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span><span class="p">:</span>
+        <span class="n">_eye_mask_path</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Add the full eye mask filepath: &#39;</span><span class="p">)</span>
+        <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;eye_mask_path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_eye_mask_path</span>
+
+    <span class="k">if</span> <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;train_file&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span><span class="p">:</span>
+        <span class="n">_train_file</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Add the name of the file used for training [peer1.nii.gz]: &#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_train_file</span><span class="p">:</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;train_file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;peer1.nii.gz&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;train_file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_train_file</span>
+
+    <span class="k">if</span> <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;test_file&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span><span class="p">:</span>
+        <span class="n">_test_file</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Which file would you like to predict eye movements from? [movie.nii.gz]: &#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_test_file</span><span class="p">:</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;test_file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;movie.nii.gz&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;test_file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_test_file</span>
+
+    <span class="k">if</span> <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;use_gsr&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span><span class="p">:</span>
+
+        <span class="n">_use_gsr</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Use global signal regression? (y/n) [n]: &#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">_use_gsr</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">_use_gsr</span> <span class="o">==</span> <span class="s1">&#39;n&#39;</span><span class="p">):</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;use_gsr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;use_gsr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+
+    <span class="k">if</span> <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;motion_scrub&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span><span class="p">:</span>
+        <span class="n">_use_ms</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Use motion scrubbing? (y/n) [n]: &#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">_use_ms</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">_use_ms</span> <span class="o">==</span> <span class="s1">&#39;n&#39;</span><span class="p">):</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;use_ms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;motion_threshold&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;motion_scrub&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Not implemented&quot;</span>
+        <span class="k">elif</span> <span class="n">_use_ms</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+            <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;use_ms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+            <span class="n">_motion_scrub_filename</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Add the filename of the CSV that contains the framewise displacement </span><span class="se">\</span>
+<span class="s1">                                            time series [motion_ts.csv]: &#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_motion_scrub_filename</span><span class="p">:</span>
+                <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;motion_scrub&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;motion_ts.csv&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;motion_scrub&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_motion_scrub_filename</span>
+            <span class="n">_motion_threshold</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s1">&#39;Add a motion threshold for motion scrubbing [.2]: &#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_motion_threshold</span><span class="p">:</span>
+                <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;motion_threshold&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;.2&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_configs</span><span class="p">[</span><span class="s1">&#39;motion_threshold&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_motion_threshold</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;peer/config.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">_configs</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_configs</span></div>
+
+
+<div class="viewcode-block" id="load_config"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.load_config">[docs]</a><span class="k">def</span> <span class="nf">load_config</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads configuration parameters as a dictionary from config.json</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _configs :</span>
+<span class="sd">        Dictionary containing configuration options from the config file (config.json)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;peer/config.json&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">_configs</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="s1">&#39;NA&#39;</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_configs</span><span class="o">.</span><span class="n">values</span><span class="p">())):</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">One or more of the necessary parameters are missing. You can either:</span><span class="se">\n</span><span class="s1">&#39;</span>
+              <span class="s1">&#39;     1) add the content using the command line, or</span><span class="se">\n</span><span class="s1">&#39;</span>
+              <span class="s1">&#39;     2) exit and manually edit the config.json file</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">_configs</span> <span class="o">=</span> <span class="n">set_parameters</span><span class="p">(</span><span class="n">_configs</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_configs</span></div>
+
+
+<div class="viewcode-block" id="load_data"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.load_data">[docs]</a><span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="n">_filepath</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads fMRI data</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _filepath : string</span>
+<span class="sd">        Pathname of the NIfTI file used to train a model or predict eye movements</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _data : float</span>
+<span class="sd">        4D numpy array containing fMRI data</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nib_format</span> <span class="o">=</span> <span class="n">nib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">_filepath</span><span class="p">)</span>
+    <span class="n">_data</span> <span class="o">=</span> <span class="n">nib_format</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Training data Loaded&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_data</span></div>
+
+
+<div class="viewcode-block" id="global_signal_regression"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.global_signal_regression">[docs]</a><span class="k">def</span> <span class="nf">global_signal_regression</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">_eye_mask_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs global signal regression</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _data : float</span>
+<span class="sd">        Data from an fMRI scan as a 4D numpy array</span>
+<span class="sd">    _eye_mask_path :</span>
+<span class="sd">        Pathname for the eye mask NIfTI file (the standard MNI152 2mm FSL template is used for the linked preprint)</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _data :</span>
+<span class="sd">        4D numpy array containing fMRI data after global signal regression</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">eye_mask</span> <span class="o">=</span> <span class="n">nib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">_eye_mask_path</span><span class="p">)</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+
+    <span class="n">global_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">eye_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="n">regressor_map</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;constant&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="mi">1</span><span class="p">))}</span>
+    <span class="n">regressor_map</span><span class="p">[</span><span class="s1">&#39;global&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="n">global_mask</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">csv_filename</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">for</span> <span class="n">rname</span><span class="p">,</span> <span class="n">rval</span> <span class="ow">in</span> <span class="n">regressor_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">X</span><span class="p">,</span> <span class="n">rval</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rval</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="n">csv_filename</span> <span class="o">+=</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">rname</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">_data</span><span class="p">[</span><span class="n">global_mask</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">Y_res</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">-</span> <span class="n">X</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+
+    <span class="n">_data</span><span class="p">[</span><span class="n">global_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y_res</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;GSR completed.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_data</span></div>
+
+
+<div class="viewcode-block" id="motion_scrub"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.motion_scrub">[docs]</a><span class="k">def</span> <span class="nf">motion_scrub</span><span class="p">(</span><span class="n">_ms_filename</span><span class="p">,</span> <span class="n">_data_dir</span><span class="p">,</span> <span class="n">_motion_threshold</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines volumes with high motion artifact</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _ms_filename : string</span>
+<span class="sd">        Pathname of the CSV file containing the framewise displacement per time point for a given fMRI scan</span>
+<span class="sd">    _data_dir : string</span>
+<span class="sd">        Pathname of the directory containing data</span>
+<span class="sd">    _motion_threshold  : float</span>
+<span class="sd">        Threshold for high motion (framewise displacement, defined by Power et al. 2012)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _removed_indices : int</span>
+<span class="sd">        List of volumes to remove for motion scrubbing</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_data_dir</span><span class="p">,</span> <span class="n">_ms_filename</span><span class="p">))</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">censor_pre</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">]</span>
+
+    <span class="n">nuissance_vector</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">censor_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+    <span class="n">_removed_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nuissance_vector</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="n">_motion_threshold</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">_removed_indices</span></div>
+
+
+<div class="viewcode-block" id="prepare_data_for_svr"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.prepare_data_for_svr">[docs]</a><span class="k">def</span> <span class="nf">prepare_data_for_svr</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">_removed_time_points</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Preprocess fMRI data prior to SVR model generation</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _data : float</span>
+<span class="sd">        4D numpy array containing fMRI data after global signal regression</span>
+<span class="sd">    _removed_time_points : int</span>
+<span class="sd">        List of volumes to remove for motion scrubbing</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _processed_data : float</span>
+<span class="sd">        List of numpy arrays, where each array contains the averaged intensity values for each calibration point</span>
+<span class="sd">    _calibration_points_removed : int</span>
+<span class="sd">        List of calibration points removed if all volumes for a given calibration point were high motion</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">_removed_time_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;The </span><span class="si">{}</span><span class="s1">th volume(s) were removed.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_removed_time_points</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_removed_time_points</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">_processed_data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">_calibration_points_removed</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">/</span><span class="mi">5</span><span class="p">)):</span>
+
+        <span class="n">vol_set</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span> <span class="p">(</span><span class="n">num</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">5</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_removed_time_points</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vol_set</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+
+            <span class="n">_processed_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">_data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">vol_set</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="n">_calibration_points_removed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+
+    <span class="k">if</span>  <span class="p">(</span><span class="n">_calibration_points_removed</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">_removed_time_points</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;The </span><span class="si">{}</span><span class="s1">th calibration point(s) were removed.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_calibration_points_removed</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="ow">not</span> <span class="n">_calibration_points_removed</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">_removed_time_points</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;No calibration points were removed.&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">_processed_data</span><span class="p">,</span> <span class="n">_calibration_points_removed</span></div>
+
+
+<div class="viewcode-block" id="train_model"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.train_model">[docs]</a><span class="k">def</span> <span class="nf">train_model</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">_calibration_points_removed</span><span class="p">,</span> <span class="n">_stimulus_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Trains the SVR model used in the PEER method</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _data : float</span>
+<span class="sd">        List of numpy arrays, where each array contains the averaged intensity values for each calibration point</span>
+<span class="sd">    _calibration_points_removed : int</span>
+<span class="sd">        List of calibration points removed if all volumes for a given calibration point were high motion</span>
+<span class="sd">    _stimulus_path : string</span>
+<span class="sd">        Pathname of the PEER calibration scan stimuli</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _xmodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the x-direction</span>
+<span class="sd">    _ymodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the y-direction</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">monitor_width</span> <span class="o">=</span> <span class="mi">1680</span>
+    <span class="n">monitor_height</span> <span class="o">=</span> <span class="mi">1050</span>
+
+    <span class="n">fixations</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">_stimulus_path</span><span class="p">)</span>
+    <span class="n">x_targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fixations</span><span class="p">[</span><span class="s1">&#39;pos_x&#39;</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">monitor_width</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">y_targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fixations</span><span class="p">[</span><span class="s1">&#39;pos_y&#39;</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">monitor_height</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="n">x_targets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_targets</span><span class="p">),</span> <span class="n">_calibration_points_removed</span><span class="p">))</span>
+    <span class="n">y_targets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_targets</span><span class="p">),</span> <span class="n">_calibration_points_removed</span><span class="p">))</span>
+
+    <span class="n">_xmodel</span> <span class="o">=</span> <span class="n">SVR</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=.</span><span class="mi">01</span><span class="p">)</span>
+    <span class="n">_xmodel</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">x_targets</span><span class="p">)</span>
+
+    <span class="n">_ymodel</span> <span class="o">=</span> <span class="n">SVR</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=.</span><span class="mi">01</span><span class="p">)</span>
+    <span class="n">_ymodel</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">y_targets</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_xmodel</span><span class="p">,</span> <span class="n">_ymodel</span></div>
+
+
+<div class="viewcode-block" id="save_model"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.save_model">[docs]</a><span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="n">_xmodel</span><span class="p">,</span> <span class="n">_ymodel</span><span class="p">,</span> <span class="n">_train_file</span><span class="p">,</span> <span class="n">_ms</span><span class="p">,</span> <span class="n">_gsr</span><span class="p">,</span> <span class="n">_output_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Saves the SVR models used in the PEER method</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _xmodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the x-direction</span>
+<span class="sd">    _ymodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the y-direction</span>
+<span class="sd">    _train_file : string</span>
+<span class="sd">        Pathname of the NIfTI file used to train the SVR model</span>
+<span class="sd">    _ms : bool</span>
+<span class="sd">        Whether or not to use motion scrubbing</span>
+<span class="sd">    _gsr : bool</span>
+<span class="sd">        Whether or not to use global signal regression</span>
+<span class="sd">    _output_dir :</span>
+<span class="sd">        Pathname of the output directory</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">x_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span>
+                                          <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;xmodel_&#39;</span> <span class="o">+</span> <span class="n">_train_file</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;.nii.gz&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_ms&#39;</span> <span class="o">+</span> <span class="n">_ms</span> <span class="o">+</span> <span class="s1">&#39;_gsr&#39;</span> <span class="o">+</span> <span class="n">_gsr</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span><span class="p">)))</span>
+    <span class="n">y_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span>
+                                          <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;ymodel_&#39;</span> <span class="o">+</span> <span class="n">_train_file</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;.nii.gz&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_ms&#39;</span> <span class="o">+</span> <span class="n">_ms</span> <span class="o">+</span> <span class="s1">&#39;_gsr&#39;</span> <span class="o">+</span> <span class="n">_gsr</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span><span class="p">)))</span>
+
+    <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">_xmodel</span><span class="p">,</span> <span class="n">x_name</span><span class="p">)</span>
+    <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">_ymodel</span><span class="p">,</span> <span class="n">y_name</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SVR Models saved. PEER can now be applied to new data.&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load_model"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.load_model">[docs]</a><span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads the SVR models used to estimate eye movements</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _output_dir : string</span>
+<span class="sd">        Pathname of the output directory</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _xmodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the x-direction</span>
+<span class="sd">    _ymodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the y-direction</span>
+<span class="sd">    _xname : string</span>
+<span class="sd">        Filename of the model used to estimate eye movements in the x-direction</span>
+<span class="sd">    _yname : stringf</span>
+<span class="sd">        Filename of the model used to estimate eye movements in the y-direction</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_selection</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;pkl&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xmodel&#39;</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_selection</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">options_index</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">model_selection</span><span class="p">)))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;List of available models:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model_selection</span><span class="p">):</span>
+
+            <span class="n">model_option</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;    </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">model</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;xmodel_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;xmodel&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">model_option</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">selected_model_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;Which model type? (</span><span class="si">{}</span><span class="s1">): &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">options_index</span><span class="p">)))</span>
+        <span class="n">selected_model</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;xmodel&#39;</span> <span class="o">+</span> <span class="n">options</span><span class="p">[</span><span class="n">selected_model_index</span><span class="p">])</span>
+        <span class="n">selected_model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">selected_model</span><span class="p">))</span>
+
+        <span class="n">_xname</span> <span class="o">=</span> <span class="n">selected_model</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+        <span class="n">_yname</span> <span class="o">=</span> <span class="n">selected_model</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+
+        <span class="n">_xmodel</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">selected_model_path</span><span class="p">)</span>
+        <span class="n">_ymodel</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">selected_model_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="n">_xname</span> <span class="o">=</span> <span class="n">model_selection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">_yname</span> <span class="o">=</span> <span class="n">model_selection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
+
+        <span class="n">x_selected_model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">_xname</span><span class="p">))</span>
+        <span class="n">y_selected_model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">_yname</span><span class="p">))</span>
+
+        <span class="n">_xmodel</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">x_selected_model_path</span><span class="p">)</span>
+        <span class="n">_ymodel</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">y_selected_model_path</span><span class="p">)</span>
+
+        <span class="n">_xname</span> <span class="o">=</span> <span class="n">model_selection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+        <span class="n">_yname</span> <span class="o">=</span> <span class="n">model_selection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_xmodel</span><span class="p">,</span> <span class="n">_ymodel</span><span class="p">,</span> <span class="n">_xname</span><span class="p">,</span> <span class="n">_yname</span></div>
+
+
+<div class="viewcode-block" id="predict_fixations"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.predict_fixations">[docs]</a><span class="k">def</span> <span class="nf">predict_fixations</span><span class="p">(</span><span class="n">_xmodel</span><span class="p">,</span> <span class="n">_ymodel</span><span class="p">,</span> <span class="n">_data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Predict fixations</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _xmodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the x-direction</span>
+<span class="sd">    _ymodel :</span>
+<span class="sd">        SVR model to estimate eye movements in the y-direction</span>
+<span class="sd">    _data :</span>
+<span class="sd">        4D numpy array containing fMRI data used to predict eye movements (e.g., movie data)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _x_fix : float</span>
+<span class="sd">        List of predicted fixations in the x-direction</span>
+<span class="sd">    _y_fix : float</span>
+<span class="sd">        List of predicted fixations in the y-direction</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_x_fix</span> <span class="o">=</span> <span class="n">_xmodel</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">_data</span><span class="p">)</span>
+    <span class="n">_y_fix</span> <span class="o">=</span> <span class="n">_ymodel</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">_data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_x_fix</span><span class="p">,</span> <span class="n">_y_fix</span></div>
+
+
+<div class="viewcode-block" id="save_fixations"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.save_fixations">[docs]</a><span class="k">def</span> <span class="nf">save_fixations</span><span class="p">(</span><span class="n">_x_fix</span><span class="p">,</span> <span class="n">_y_fix</span><span class="p">,</span> <span class="n">_xname</span><span class="p">,</span> <span class="n">_yname</span><span class="p">,</span> <span class="n">_output_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save predicted fixations</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _x_fix : float</span>
+<span class="sd">        List of predicted fixations in the x-direction</span>
+<span class="sd">    _y_fix : float</span>
+<span class="sd">        List of predicted fixations in the y-direction</span>
+<span class="sd">    _xname : string</span>
+<span class="sd">        Filename of the model used to estimate eye movements in the x-direction</span>
+<span class="sd">    _yname : string</span>
+<span class="sd">        Filename of the model used to estimate eye movements in the y-direction</span>
+<span class="sd">    _output_dir : string</span>
+<span class="sd">        Pathname of the output directory</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    _fix_xname : string</span>
+<span class="sd">        Filename of the CSV containing fixation predictions in the x-direction</span>
+<span class="sd">    _fix_yname : string</span>
+<span class="sd">        Filename of the CSV containing fixation predictions in the y-direction</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_fix_xname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;xfixations_&#39;</span> <span class="o">+</span> <span class="n">_xname</span><span class="p">)</span>
+    <span class="n">_fix_yname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;yfixations_&#39;</span> <span class="o">+</span> <span class="n">_yname</span><span class="p">)</span>
+
+    <span class="n">x_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">_fix_xname</span><span class="p">))</span>
+    <span class="n">y_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">_fix_yname</span><span class="p">))</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">x_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fix</span> <span class="ow">in</span> <span class="n">_x_fix</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:.5f}</span><span class="s2">,&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">fix</span><span class="p">,</span> <span class="mi">5</span><span class="p">)))</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">y</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">y_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fix</span> <span class="ow">in</span> <span class="n">_y_fix</span><span class="p">:</span>
+        <span class="n">y</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:.5f}</span><span class="s2">,&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">fix</span><span class="p">,</span> <span class="mi">5</span><span class="p">)))</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">_fix_xname</span><span class="p">,</span> <span class="n">_fix_yname</span></div>
+
+<div class="viewcode-block" id="estimate_em"><a class="viewcode-back" href="../../source/peer.html#peer.peer_func.estimate_em">[docs]</a><span class="k">def</span> <span class="nf">estimate_em</span><span class="p">(</span><span class="n">_x_fix</span><span class="p">,</span> <span class="n">_y_fix</span><span class="p">,</span> <span class="n">_fix_xname</span><span class="p">,</span> <span class="n">_fix_yname</span><span class="p">,</span> <span class="n">_output_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _x_fix : float</span>
+<span class="sd">        List of predicted fixations in the x-direction</span>
+<span class="sd">    _y_fix : float</span>
+<span class="sd">        List of predicted fixations in the y-direction</span>
+<span class="sd">    _fix_xname : string</span>
+<span class="sd">        Filename of the CSV containing fixation predictions in the x-direction</span>
+<span class="sd">    _fix_yname : string</span>
+<span class="sd">        Filename of the CSV containing fixation predictions in the y-direction</span>
+<span class="sd">    _output_dir : string</span>
+<span class="sd">        Pathname of the output directory</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_em_xname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;x_eyemove&#39;</span> <span class="o">+</span> <span class="n">_fix_xname</span><span class="p">)</span>
+    <span class="n">_em_yname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;y_eyemove&#39;</span> <span class="o">+</span> <span class="n">_fix_yname</span><span class="p">)</span>
+
+    <span class="n">x_em</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">y_em</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">_x_fix</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+
+        <span class="n">x_em</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">_x_fix</span><span class="p">[</span><span class="n">num</span><span class="p">]</span> <span class="o">-</span> <span class="n">_x_fix</span><span class="p">[</span><span class="n">num</span><span class="o">+</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">y_em</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">_y_fix</span><span class="p">[</span><span class="n">num</span><span class="p">]</span> <span class="o">-</span> <span class="n">_y_fix</span><span class="p">[</span><span class="n">num</span><span class="o">+</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="n">x_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">_em_xname</span><span class="p">))</span>
+    <span class="n">y_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">_em_yname</span><span class="p">))</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">x_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fix</span> <span class="ow">in</span> <span class="n">x_em</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:.5f}</span><span class="s2">,&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">fix</span><span class="p">,</span> <span class="mi">5</span><span class="p">)))</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">y</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">y_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fix</span> <span class="ow">in</span> <span class="n">y_em</span><span class="p">:</span>
+        <span class="n">y</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:.5f}</span><span class="s2">,&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">fix</span><span class="p">,</span> <span class="mi">5</span><span class="p">)))</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Jake Jungwoo Son.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

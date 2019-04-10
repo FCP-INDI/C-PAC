@@ -1,0 +1,422 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>peer package &#8212; peer  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="peer-package">
+<h1>peer package<a class="headerlink" href="#peer-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="peer-create-peer-module">
+<h2>peer.create_peer module<a class="headerlink" href="#peer-create-peer-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="peer-estimate-eyemove-module">
+<h2>peer.estimate_eyemove module<a class="headerlink" href="#peer-estimate-eyemove-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-peer.peer_func">
+<span id="peer-peer-func-module"></span><h2>peer.peer_func module<a class="headerlink" href="#module-peer.peer_func" title="Permalink to this headline">¶</a></h2>
+<p>Functions to predict eye movements</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd><ul class="first last simple">
+<li>Jake Son, 2017-2018  (<a class="reference external" href="mailto:jake&#46;son&#37;&#52;&#48;childmind&#46;org">jake<span>&#46;</span>son<span>&#64;</span>childmind<span>&#46;</span>org</a>)  <a class="reference external" href="http://jakeson.me">http://jakeson.me</a></li>
+</ul>
+</dd>
+</dl>
+<dl class="function">
+<dt id="peer.peer_func.estimate_em">
+<code class="descclassname">peer.peer_func.</code><code class="descname">estimate_em</code><span class="sig-paren">(</span><em>_x_fix</em>, <em>_y_fix</em>, <em>_fix_xname</em>, <em>_fix_yname</em>, <em>_output_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#estimate_em"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.estimate_em" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>_x_fix</strong> (<em>float</em>) – List of predicted fixations in the x-direction</li>
+<li><strong>_y_fix</strong> (<em>float</em>) – List of predicted fixations in the y-direction</li>
+<li><strong>_fix_xname</strong> (<em>string</em>) – Filename of the CSV containing fixation predictions in the x-direction</li>
+<li><strong>_fix_yname</strong> (<em>string</em>) – Filename of the CSV containing fixation predictions in the y-direction</li>
+<li><strong>_output_dir</strong> (<em>string</em>) – Pathname of the output directory</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.global_signal_regression">
+<code class="descclassname">peer.peer_func.</code><code class="descname">global_signal_regression</code><span class="sig-paren">(</span><em>_data</em>, <em>_eye_mask_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#global_signal_regression"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.global_signal_regression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs global signal regression</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_data</strong> (<em>float</em>) – Data from an fMRI scan as a 4D numpy array</li>
+<li><strong>_eye_mask_path</strong> – Pathname for the eye mask NIfTI file (the standard MNI152 2mm FSL template is used for the linked preprint)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">4D numpy array containing fMRI data after global signal regression</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">_data</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.load_config">
+<code class="descclassname">peer.peer_func.</code><code class="descname">load_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#load_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.load_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads configuration parameters as a dictionary from config.json</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Dictionary containing configuration options from the config file (config.json)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">_configs</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.load_data">
+<code class="descclassname">peer.peer_func.</code><code class="descname">load_data</code><span class="sig-paren">(</span><em>_filepath</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads fMRI data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_filepath</strong> (<em>string</em>) – Pathname of the NIfTI file used to train a model or predict eye movements</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>_data</strong> – 4D numpy array containing fMRI data</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">float</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.load_model">
+<code class="descclassname">peer.peer_func.</code><code class="descname">load_model</code><span class="sig-paren">(</span><em>_output_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the SVR models used to estimate eye movements</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_output_dir</strong> (<em>string</em>) – Pathname of the output directory</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><em>_xmodel</em> – SVR model to estimate eye movements in the x-direction</li>
+<li><em>_ymodel</em> – SVR model to estimate eye movements in the y-direction</li>
+<li><strong>_xname</strong> (<em>string</em>) – Filename of the model used to estimate eye movements in the x-direction</li>
+<li><strong>_yname</strong> (<em>stringf</em>) – Filename of the model used to estimate eye movements in the y-direction</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.motion_scrub">
+<code class="descclassname">peer.peer_func.</code><code class="descname">motion_scrub</code><span class="sig-paren">(</span><em>_ms_filename</em>, <em>_data_dir</em>, <em>_motion_threshold</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#motion_scrub"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.motion_scrub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines volumes with high motion artifact</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_ms_filename</strong> (<em>string</em>) – Pathname of the CSV file containing the framewise displacement per time point for a given fMRI scan</li>
+<li><strong>_data_dir</strong> (<em>string</em>) – Pathname of the directory containing data</li>
+<li><strong>_motion_threshold</strong> (<em>float</em>) – Threshold for high motion (framewise displacement, defined by Power et al. 2012)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>_removed_indices</strong> – List of volumes to remove for motion scrubbing</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.predict_fixations">
+<code class="descclassname">peer.peer_func.</code><code class="descname">predict_fixations</code><span class="sig-paren">(</span><em>_xmodel</em>, <em>_ymodel</em>, <em>_data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#predict_fixations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.predict_fixations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict fixations</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_xmodel</strong> – SVR model to estimate eye movements in the x-direction</li>
+<li><strong>_ymodel</strong> – SVR model to estimate eye movements in the y-direction</li>
+<li><strong>_data</strong> – 4D numpy array containing fMRI data used to predict eye movements (e.g., movie data)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>_x_fix</strong> (<em>float</em>) – List of predicted fixations in the x-direction</li>
+<li><strong>_y_fix</strong> (<em>float</em>) – List of predicted fixations in the y-direction</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.prepare_data_for_svr">
+<code class="descclassname">peer.peer_func.</code><code class="descname">prepare_data_for_svr</code><span class="sig-paren">(</span><em>_data</em>, <em>_removed_time_points</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#prepare_data_for_svr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.prepare_data_for_svr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preprocess fMRI data prior to SVR model generation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_data</strong> (<em>float</em>) – 4D numpy array containing fMRI data after global signal regression</li>
+<li><strong>_removed_time_points</strong> (<em>int</em>) – List of volumes to remove for motion scrubbing</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>_processed_data</strong> (<em>float</em>) – List of numpy arrays, where each array contains the averaged intensity values for each calibration point</li>
+<li><strong>_calibration_points_removed</strong> (<em>int</em>) – List of calibration points removed if all volumes for a given calibration point were high motion</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.save_fixations">
+<code class="descclassname">peer.peer_func.</code><code class="descname">save_fixations</code><span class="sig-paren">(</span><em>_x_fix</em>, <em>_y_fix</em>, <em>_xname</em>, <em>_yname</em>, <em>_output_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#save_fixations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.save_fixations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save predicted fixations</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_x_fix</strong> (<em>float</em>) – List of predicted fixations in the x-direction</li>
+<li><strong>_y_fix</strong> (<em>float</em>) – List of predicted fixations in the y-direction</li>
+<li><strong>_xname</strong> (<em>string</em>) – Filename of the model used to estimate eye movements in the x-direction</li>
+<li><strong>_yname</strong> (<em>string</em>) – Filename of the model used to estimate eye movements in the y-direction</li>
+<li><strong>_output_dir</strong> (<em>string</em>) – Pathname of the output directory</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>_fix_xname</strong> (<em>string</em>) – Filename of the CSV containing fixation predictions in the x-direction</li>
+<li><strong>_fix_yname</strong> (<em>string</em>) – Filename of the CSV containing fixation predictions in the y-direction</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.save_model">
+<code class="descclassname">peer.peer_func.</code><code class="descname">save_model</code><span class="sig-paren">(</span><em>_xmodel</em>, <em>_ymodel</em>, <em>_train_file</em>, <em>_ms</em>, <em>_gsr</em>, <em>_output_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#save_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.save_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the SVR models used in the PEER method</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>_xmodel</strong> – SVR model to estimate eye movements in the x-direction</li>
+<li><strong>_ymodel</strong> – SVR model to estimate eye movements in the y-direction</li>
+<li><strong>_train_file</strong> (<em>string</em>) – Pathname of the NIfTI file used to train the SVR model</li>
+<li><strong>_ms</strong> (<em>bool</em>) – Whether or not to use motion scrubbing</li>
+<li><strong>_gsr</strong> (<em>bool</em>) – Whether or not to use global signal regression</li>
+<li><strong>_output_dir</strong> – Pathname of the output directory</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.scaffolding">
+<code class="descclassname">peer.peer_func.</code><code class="descname">scaffolding</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#scaffolding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.scaffolding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the project folder and file hierarchy and returns pathnames</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>_project_dir</strong> (<em>string</em>) – Pathname of the highest-level project directory</li>
+<li><strong>_data_dir</strong> (<em>string</em>) – Pathname of the directory containing data</li>
+<li><strong>_output_dir</strong> (<em>string</em>) – Pathname of the output directory</li>
+<li><strong>_stimulus_path</strong> (<em>string</em>) – Pathname of the PEER calibration scan stimuli</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.set_parameters">
+<code class="descclassname">peer.peer_func.</code><code class="descname">set_parameters</code><span class="sig-paren">(</span><em>_configs</em>, <em>new=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#set_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.set_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets configuration parameters</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_configs</strong> – Dictionary containing configuration options from the config file (config.json)</li>
+<li><strong>new</strong> (<em>bool</em>) – Do you want to start from a new file?</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Updated dictionary containing configuration options from the config file (config.json)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">_configs</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="peer.peer_func.train_model">
+<code class="descclassname">peer.peer_func.</code><code class="descname">train_model</code><span class="sig-paren">(</span><em>_data</em>, <em>_calibration_points_removed</em>, <em>_stimulus_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/peer/peer_func.html#train_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#peer.peer_func.train_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trains the SVR model used in the PEER method</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_data</strong> (<em>float</em>) – List of numpy arrays, where each array contains the averaged intensity values for each calibration point</li>
+<li><strong>_calibration_points_removed</strong> (<em>int</em>) – List of calibration points removed if all volumes for a given calibration point were high motion</li>
+<li><strong>_stimulus_path</strong> (<em>string</em>) – Pathname of the PEER calibration scan stimuli</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><em>_xmodel</em> – SVR model to estimate eye movements in the x-direction</li>
+<li><em>_ymodel</em> – SVR model to estimate eye movements in the y-direction</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="peer-reset-config-module">
+<h2>peer.reset_config module<a class="headerlink" href="#peer-reset-config-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-peer">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-peer" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">peer package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#peer-create-peer-module">peer.create_peer module</a></li>
+<li><a class="reference internal" href="#peer-estimate-eyemove-module">peer.estimate_eyemove module</a></li>
+<li><a class="reference internal" href="#module-peer.peer_func">peer.peer_func module</a></li>
+<li><a class="reference internal" href="#peer-reset-config-module">peer.reset_config module</a></li>
+<li><a class="reference internal" href="#module-peer">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/source/peer.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Jake Jungwoo Son.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/source/peer.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
