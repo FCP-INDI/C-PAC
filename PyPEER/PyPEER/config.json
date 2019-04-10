@@ -1,1 +1,0 @@
-{"eye_mask_path": "/home/nrajamani/Downloads/MNI152_T1_2mm_eye_mask.nii.gz", "train_file": "/home/nrajamani/PyPEER/data/sub-5171285/func/sub-5171285_task-movieTP_bold.nii.gz", "motion_scrub": "Not implemented", "test_file": "/home/nrajamani/PyPEER/data/sub-5171285/func/sub-5171285_task-movieDM_bold.nii.gz", "motion_threshold": "0", "use_gsr": "0", "use_ms": "0"}
