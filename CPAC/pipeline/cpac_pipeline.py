@@ -39,6 +39,7 @@ from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
     create_wf_edit_func
+
 )
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
@@ -72,6 +73,7 @@ from CPAC.timeseries import (
     get_vertices_timeseries,
     get_spatial_map_timeseries
 )
+from CPAC.PyPEER import create_peer
 from CPAC.network_centrality import (
     create_resting_state_graphs,
     get_cent_zscore
@@ -2052,7 +2054,47 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
         # Each regressor forks the strategy, instead of reusing it, to keep the code simple
         strat_list = new_strat_list
+        
+        
+        #inserting peer workflow
+        new_strat_list=[]
+        workflow_counter += 1
+        if 1 in c.runPyPEER:
+            workflow_bit_id['create_peer'] = workflow_counter
+            for num_strat, strat in enumerate(strat_list):
+                if not 'model_xdirection' or 'model_ydirection' in resource_pool.values():
+                    calibration_flag = True
+                    peer_estimation = create_peer(clibration_flag = True,wf_name='peer_estimation_%d' %num_strat)
+                    
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, peer_estimation,'inputspec.calibration_data')
 
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, peer_estimation, 'eyemask')
+
+                    strat.update_resource_pool({'model_xdirection': (peer_estimation,'outputspec.model_xdirection')})
+                    strat.update_resource_pool({'model_ydirection': (peer_estimation,'outputspec.model_ydirection')})
+
+
+                else:
+                    calibration_flag = False
+                    peer_estimation = create_peer(calibration_flag=True, wf_name='peer_estimation_%d' % num_strat)
+
+                    node,out_file = strat.get_leaf_properties()
+                    workflow.connect(node,out_file,peer_estimation,'inputspec.test_data')
+
+                    node,out_file = strat.get_leaf_properties()
+                    workflow.connect(node,out_file,peer_estimation,'eyemask')
+
+                strat.update_resource_pool({'fixations_in_xdirection':(peer_estimation,'outputspec.fixations_xdirection')})
+                strat.update_resource_pool({'fixations_in_ydirection':(peer_estimation,'outputspec.fixations_ydirection')})
+
+                strat.update_resource_pool({'eye_movements_xdir':(peer_estimation,'outputspec.eye_movements_x')})
+                strat.update_resource_pool({'eye_movements_ydir':(peer_estimation,'outputspec.eye_movements_y')})
+
+                strat.append_name(peer_estimation.name)
+
+        strat_list += new_strat_list
 
         # Inserting Median Angle Correction Workflow
         new_strat_list = []
