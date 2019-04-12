@@ -114,7 +114,7 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
     peer_wf.connect(inputspec, 'eyemask', format_data, 'eyemask')
 
 
-    while calibration_flag == False:
+    if calibration_flag == True:
 
         prepare_data_svr = Function(input_names=['preprocessed_data','eyemask'],removed_indices=None,
                                     output_names=['extracted_data','calibration_points_removed'],function=prepare_data_svr)
@@ -136,7 +136,7 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
         peer_wf.connect(train_model,'model_xdirection',outputspec,'model_xdirection')
         peer_wf.connect(train_model,'model_ydirection',outputspec,'model_ydirection')
         
-        return (train_model.model_xdirection,train_model.model_ydirection)
+        return peer_wf,train_model.model_xdirection,train_model.model_ydirection
 
     
     predict_fixations = Function(input_names=['model_xdirection','model_ydirection','test_data'],
@@ -155,7 +155,9 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
     peer_wf.connect(estimate_eyemovements,'eye_movements_x',outputspec,'eye_movements_x')
     peer_wf.connect(estimate_eyemovements,'eye_movements_y',outputspec,'eye_movements_y')
 
-    return peer_wf
+
+    return peer_wf,predict_fixations.fixations_xdirection,predict_fixations.fixations_ydirection
+
 
 
 
