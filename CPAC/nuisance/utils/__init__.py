@@ -11,6 +11,8 @@ from nipype.interfaces import afni
 
 from CPAC.utils.function import Function
 
+from CPAC.nuisance.utils.crc import encode as crc_encode
+
 import scipy.signal as signal
 
 
@@ -617,6 +619,7 @@ class NuisanceRegressor(object):
             'aCompCor': 'aC',
             'GlobalSignal': 'G',
             'Motion': 'M',
+            'Custom': 'T',
             'PolyOrt': 'P',
             'Bandpass': 'BP',
             'Censor': 'C',
@@ -630,6 +633,7 @@ class NuisanceRegressor(object):
             'aCompCor',
             'GlobalSignal',
             'Motion',
+            'Custom',
             'PolyOrt',
             'Bandpass',
             'Censor',
@@ -697,6 +701,13 @@ class NuisanceRegressor(object):
 
                 pieces += [NuisanceRegressor._summary_params(s)]
                 pieces += [NuisanceRegressor._derivative_params(s)]
+
+            elif r == 'Custom':
+                for ss in s:
+                    pieces += [
+                        os.path.basename(ss['file'])[0:5] +
+                        crc_encode(ss['file'])
+                    ]
 
             elif r == 'GlobalSignal':
                 pieces += [NuisanceRegressor._summary_params(s)]
