@@ -9,6 +9,7 @@ from sklearn.svm import SVR
 from sklearn.externals import joblib
 from nipype.interfaces.utility import Function
 from CPAC.nuisance import create_nuisance_workflow
+from CPAC.PyPEER.utils import *
 
 
 def format_data(calibrated_data, eyemask):
@@ -103,13 +104,15 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
 
     peer_wf = pe.Workflow(name=wf_name)
 
-    inputspec = pe.Node(utils.IdentityInterface(fields=['calibrated_data','test_data,','eyemask','ms_filename','thresh']),name='inputspec')
+    inputspec = pe.Node(utils.IdentityInterface(fields=['calibrated_data','test_data,','calibrated_residuals','test_residuals','eyemask']),name='inputspec')
 
     outputspec = pe.Node(utils.IdentityInterface(fields=['global_signal_regressed_data','removed_indices','calibration_points_removed','model_xdirection','model_ydirection','fixations_xdirection','fixations_ydirection']),name='outputspec')
 
     format_calibration_data = Function(input_names=['in_file', 'eyemask'],
                                        output_names=['formatted_data'],
                                        function=format_data)
+    if 1 in run_nuisance == True:
+        peer_wf.connect(inputspec,'calibrated_residuals',format_data,'in_file')
     peer_wf.connect(inputspec, 'calibrated_data', format_data, 'in_file')
     peer_wf.connect(inputspec, 'eyemask', format_data, 'eyemask')
 
@@ -119,13 +122,9 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
         prepare_data_svr = Function(input_names=['preprocessed_data','eyemask'],removed_indices=None,
                                     output_names=['extracted_data','calibration_points_removed'],function=prepare_data_svr)
 
-        if run_gsr == True:
-            peer_wf.connect(global_signal,'global_signal_regressed_data',prepare_data_for_svr,'preprocessed_data')
-        else:
-            peer_wf.connect(format_data,'cal_data',prepare_data_for_svr,'preprocessed_data')
+        ##to do figure out motion scrubbing paramss
+        peer_wf.connect(format_data,formatted_data,prepare_data_for_svr,'preprocessed_data')
         peer_wf.connect(inputspec,'eyemask',prepare_data_for_svr,'eyemask')
-        if run_motion_scrub == True:
-            peer_wf.connect(run_motion_scrub,'removed_indices',prepare_data_for_svr,'removed_indices')
         peer_wf.connect(prepare_data_for_svr,'extracted_data',outputspec,'extracted_data')
         peer_wf.connect(prepare_data_for_svr,'calibration_points_removed',outputspec,'calibration_points_removed')
 
@@ -138,7 +137,15 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
         
         return peer_wf,train_model.model_xdirection,train_model.model_ydirection
 
-    
+    format_test_data = Function(input_names=['in_file', 'eyemask'],
+                                       output_names=['formatted_data'],
+                                       function=format_data)
+    if 1 in run_nuisance == True:
+        peer_wf.connect(inputspec, 'test_residuals', format_data, 'in_file')
+    peer_wf.connect(inputspec, 'test_data', format_data, 'in_file')
+    peer_wf.connect(inputspec, 'eyemask', format_data, 'eyemask')
+
+
     predict_fixations = Function(input_names=['model_xdirection','model_ydirection','test_data'],
                                  output_names=['fixations_xdirection','fixations_ydirection'],
                                  function=predict_fixations)
