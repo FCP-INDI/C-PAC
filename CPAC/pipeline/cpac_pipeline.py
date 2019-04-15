@@ -1885,9 +1885,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
                 for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-                    new_strat = connect_nuisance(workflow,strat, c, regressors_selector, has_segmentation, use_ants,num_strat)
+                    new_strat = connect_nuisance(workflow,strat, c, regressors_selector, regressors_selector_i,has_segmentation, use_ants,num_strat)
                     new_strat_list.append(new_strat)
-
         # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
         # Each regressor forks the strategy, instead of reusing it, to keep the code simple
         strat_list = new_strat_list
@@ -1901,13 +1900,35 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             for num_strat, strat in enumerate(strat_list):
                 if not 'model_xdirection' or 'model_ydirection' in resource_pool.values():
                     calibration_flag = True
-                    peer_estimation = create_peer(clibration_flag = True,wf_name='peer_estimation_%d' %num_strat)
-                    
+                    if 1 in c.runNuisance:
+
+                        workflow_bit_id['nuisance'] = workflow_counter
+
+                        for num_strat, strat in enumerate(strat_list):
+
+                            # for each strategy, create a new one without nuisance
+                            if 0 in c.runNuisance:
+                                new_strat_list.append(strat.fork())
+
+                            nodes = strat.get_nodes_names()
+
+                            has_segmentation = 'seg_preproc' in nodes
+                            use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
+
+                            for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
+                                new_strat = connect_nuisance(workflow, strat, c, regressors_selector,
+                                                             regressors_selector_i, has_segmentation, use_ants,
+                                                             num_strat)
+                            workflow.connect(new_strat,'functional_nuisance_residuals', peer_estimation,
+                                             'inputspec.calibrated_residuals')
+
+                    peer_estimation = create_peer(calibration_flag = True,wf_name='peer_estimation_%d' %num_strat)
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, peer_estimation,'inputspec.calibration_data')
 
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file, peer_estimation, 'eyemask')
+                    node, out_file = strat['eye_mask']
+                    workflow.connect(node, out_file, peer_estimation,'inputspec.eye_mask')
+
 
                     strat.update_resource_pool({'model_xdirection': (peer_estimation,'outputspec.model_xdirection')})
                     strat.update_resource_pool({'model_ydirection': (peer_estimation,'outputspec.model_ydirection')})
@@ -1915,6 +1936,28 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 else:
                     calibration_flag = False
+                    if 1 in c.runNuisance:
+
+                        workflow_bit_id['nuisance'] = workflow_counter
+
+                        for num_strat, strat in enumerate(strat_list):
+
+                            # for each strategy, create a new one without nuisance
+                            if 0 in c.runNuisance:
+                                new_strat_list.append(strat.fork())
+
+                            nodes = strat.get_nodes_names()
+
+                            has_segmentation = 'seg_preproc' in nodes
+                            use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
+
+                            for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
+                                new_strat = connect_nuisance(workflow, strat, c, regressors_selector,
+                                                             regressors_selector_i, has_segmentation, use_ants,
+                                                             num_strat)
+
+                                workflow.connect(new_strat,'functional_nuisance_residuals',peer_estimation,'inputspec.test_residuals')
+
                     peer_estimation = create_peer(calibration_flag=True, wf_name='peer_estimation_%d' % num_strat)
 
                     node,out_file = strat.get_leaf_properties()
