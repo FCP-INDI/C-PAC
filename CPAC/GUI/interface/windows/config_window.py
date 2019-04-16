@@ -1135,20 +1135,8 @@ class MainFrame(wx.Frame):
                 # this runs if you hit 'Save' from within the pipeline config
                 # editor AND the editor was opened from the main window by
                 # clicking 'New' instead of 'Edit'
-
-                ### this is the old code for generating random city names
-                ### to name pipeline configs. remove at some point?
-                #for counter in wf_counter:
-                #    if counter != 0:
-                #        hash_val += 2 ** counter
-                #print "wf_counter -- ", wf_counter
-                #print "hashval --> ", hash_val
-                #pipeline_id = linecache.getline(p.resource_filename('CPAC', \
-                #       'GUI/resources/pipeline_names.py'), hash_val)
-
                 if os.path.exists(self.path):
                     self.update_listbox(pipeline_name)
-
             else:
 
                 # this runs if you hit 'Save' from within the pipeline config
