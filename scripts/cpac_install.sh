@@ -80,7 +80,6 @@ ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 
 conda_packages=(
     "cython==0.26"
-    "jinja2==2.7.2"
     "matplotlib=2.0.2"
     "networkx==1.11"
     "nose==1.3.7"

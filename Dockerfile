@@ -151,7 +151,6 @@ RUN conda install -y \
 # install conda dependencies
 RUN conda install -y  \
         cython==0.26 \
-        jinja2==2.7.2 \
         matplotlib=2.0.2 \
         networkx==1.11 \
         nose==1.3.7 \

@@ -36,7 +36,6 @@ CPAC/GUI/interface/windows/config_window.py
 CPAC/GUI/interface/windows/dataconfig_window.py
 CPAC/GUI/interface/windows/main_window.py
 CPAC/GUI/resources/config_parameters.txt
-CPAC/GUI/resources/pipeline_names.py
 CPAC/GUI/resources/html/after_warp.html
 CPAC/GUI/resources/html/alff.html
 CPAC/GUI/resources/html/anat.html
@@ -545,7 +544,6 @@ CPAC/utils/datasource.py
 CPAC/utils/extract_data.py
 CPAC/utils/extract_data_multiscan.py
 CPAC/utils/extract_parameters.py
-CPAC/utils/pipeline_names.py
 CPAC/utils/test_init.py
 CPAC/utils/utils.py
 CPAC/vmhc/__init__.py
