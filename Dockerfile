@@ -7,8 +7,7 @@ RUN apt-get update
 # Install the validator
 RUN apt-get install -y curl && \
      curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
-     apt-get install -y nodejs && \
-     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+     apt-get install -y nodejs
 RUN npm install -g bids-validator
 
 # Install Ubuntu dependencies
@@ -171,22 +170,21 @@ RUN mkdir /ndmg_atlases && \
     cd /ndmg_atlases && unzip /ndmg_atlases/ndmg_atlases.zip && \
     rm /ndmg_atlases/ndmg_atlases.zip
 
-# clean up
-RUN apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# install cpac
-COPY . /code
-RUN pip install -e /code
-
-# make the run.py executable
-RUN chmod +x /code/run.py
-
-# copy useful pipeline scripts
 COPY dev/docker_data/default_pipeline.yaml /cpac_resources/default_pipeline.yaml
 COPY dev/docker_data/test_pipeline.yaml /cpac_resources/test_pipeline.yaml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
+
+COPY . /code
+RUN pip install -e /code
+
 COPY dev/docker_data/run.py /code/run.py
+RUN chmod +x /code/run.py
+
 ENTRYPOINT ["/code/run.py"]
+
+
+RUN apt-get clean && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
