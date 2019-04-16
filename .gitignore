@@ -41,4 +41,4 @@ pip-log.txt
 *.c
 *.so
 
-cpac_runs
+cpac_runs/
