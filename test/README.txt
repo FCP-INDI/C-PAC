@@ -1,1 +1,0 @@
-These will automatically run each night. each test_*.py file runs tests for each node within a workflow.  each test is a function that simply ends with an assert_*, such that when ‘nose’ automatically runs the tests after each build, we just find out whether they all passed, and if any failed, we see which and where.
