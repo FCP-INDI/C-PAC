@@ -53,18 +53,19 @@ def format_data(calibrated_data, eyemask):
                         cal_data[x, y, z, time] = (float(cal_data[x, y, z, time]) - float(vmean)) / vstdv
                     else:
                         cal_data[x, y, z, time] = float(cal_data[x, y, z, time]) - float(vmean)
-    return formatted_data
+    return cal_data
     
-def prepare_data_svr(preproceesed_data,eye_mask_path,removed_indices=None):
+def prepare_data_for_svr(preproceesed_data,eye_mask_path,removed_indices=None):
 
     try:
         from CPAC.PyPEER.utils import prepare_data_for_svr
     except:
         raise ImportError("We cannot import this function from CPAC, please reinstall and try again")
+
     extracted_data,calibration_points_removed = prepare_data_for_svr(preprocessed_data, eye_mask_path,removed_indices=None)
 
     return extracted_data,calibration_points_removed
-    ##training and testing mulitple models using joblib
+
 
 def train_model(extracted_data,calibration_points_removed,peer_calibration_stimuli_path):
 
@@ -87,7 +88,7 @@ def predict_fixations(model_xdirection,model_ydirection,test_data):
 
     return fixations_xdirection,fixations_ydirection
 
-def estimate_eyemovement(fixations_xdirection,fixations_ydirection):
+def estimate_eyemovements(fixations_xdirection,fixations_ydirection):
     eye_movements_x = []
     eye_movements_y = []
 
@@ -98,7 +99,7 @@ def estimate_eyemovement(fixations_xdirection,fixations_ydirection):
 
     return eye_movements_x,eye_movements_y
 
-def create_peer(run_peer_nuisance = True,calibration_flag=True,wf_name='peer_wf'):
+def create_peer(peer_run_nuisance,calibration_flag=True,wf_name='peer_wf'):
     
     from nipype.interfaces.utility import Function
     import nipype.pipeline.engine as pe
@@ -108,68 +109,65 @@ def create_peer(run_peer_nuisance = True,calibration_flag=True,wf_name='peer_wf'
 
     inputspec = pe.Node(utils.IdentityInterface(fields=['calibrated_data','test_data,','calibrated_residuals','test_residuals','eyemask']),name='inputspec')
 
-    input_nuisance = pe.Node(utils.IdentityInterface(fields=['runPeerNuisance']),name='peer_nuisance_bool')
-
-    outputspec = pe.Node(utils.IdentityInterface(fields=['global_signal_regressed_data','removed_indices','calibration_points_removed','model_xdirection','model_ydirection','fixations_xdirection','fixations_ydirection']),name='outputspec')
-
-    format_calibration_data = Function(input_names=['in_file', 'eyemask'],
-                                       output_names=['formatted_data'],
-                                       function=format_data)
+    outputspec = pe.Node(utils.IdentityInterface(fields=['cal_data','removed_indices','calibration_points_removed','model_xdirection','model_ydirection','fixations_xdirection','fixations_ydirection']),name='outputspec')
 
 
+    format_calibration_data = pe.Node(name='format_calibration_data',interface=Function(input_names=['in_file', 'eyemask'],
+                                       output_names=['cal_data'],
+                                       function=format_data))
+    if peer_run_nuisance == True:
+        peer_wf.connect(inputspec,'calibrated_residuals',format_calibration_data,'in_file')
+    else:
+        peer_wf.connect(inputspec, 'calibrated_data', format_calibration_data, 'in_file')
 
-
-
-
-    peer_wf.connect(inputspec,'calibrated_residuals',format_data,'in_file')
-    peer_wf.connect(inputspec, 'calibrated_data', format_data, 'in_file')
-    peer_wf.connect(inputspec, 'eyemask', format_data, 'eyemask')
-
+    peer_wf.connect(inputspec, 'eyemask', format_calibration_data, 'eyemask')
 
     if calibration_flag == True:
+        removed_indices = None
+        svr_prep = pe.Node(name='svr_prep',interface=Function(input_names=['preprocessed_data','eyemask','removed_indices'],
+                                    output_names=['extracted_data','calibration_points_removed'],
+                                    function=prepare_data_for_svr))
 
-        prepare_data_svr = Function(input_names=['preprocessed_data','eyemask'],removed_indices=None,
-                                    output_names=['extracted_data','calibration_points_removed'],function=prepare_data_svr)
+         ##to do figure out motion scrubbing paramss
+        peer_wf.connect(format_calibration_data,cal_data,svr_prep,'preprocessed_data')
+        peer_wf.connect(inputspec,'eyemask',svr_prep,'eyemask')
+        peer_wf.connect(svr_prep,'extracted_data',outputspec,'extracted_data')
+        peer_wf.connect(svr_prep,'calibration_points_removed',outputspec,'calibration_points_removed')
 
-        ##to do figure out motion scrubbing paramss
-        peer_wf.connect(format_data,formatted_data,prepare_data_for_svr,'preprocessed_data')
-        peer_wf.connect(inputspec,'eyemask',prepare_data_for_svr,'eyemask')
-        peer_wf.connect(prepare_data_for_svr,'extracted_data',outputspec,'extracted_data')
-        peer_wf.connect(prepare_data_for_svr,'calibration_points_removed',outputspec,'calibration_points_removed')
-
-        train_model = Function(input_names=['extracted_data','calibration_points_removed','peer_calibration_stimuli_path'],
-                           output_names=['model_xdirection,model_ydirection'],function=train_model)
-        peer_wf.connect(prepare_data_for_svr,'extracted_data',train_model,'extracted_data')
-        peer_wf.connect(prepare_data_for_svr,'calibration_points_removed',train_model,'calibration_points_removed')
+        model_training = pe.Node(name='model_training',interface=Function(input_names=['extracted_data','calibration_points_removed','peer_calibration_stimuli_path'],
+                           output_names=['model_xdirection,model_ydirection'],function=train_model))
+        peer_wf.connect(prepare_data_svr,'extracted_data',train_model,'extracted_data')
+        peer_wf.connect(prepare_data_svr,'calibration_points_removed',train_model,'calibration_points_removed')
         peer_wf.connect(train_model,'model_xdirection',outputspec,'model_xdirection')
         peer_wf.connect(train_model,'model_ydirection',outputspec,'model_ydirection')
         
-        return peer_wf,train_model.model_xdirection,train_model.model_ydirection
+    return peer_wf,train_model.model_xdirection,train_model.model_ydirection
 
-    format_test_data = Function(input_names=['in_file', 'eyemask'],
+    format_test_data = pe.Node(name='format_test_data',interface=Function(input_names=['in_file', 'eyemask'],
                                        output_names=['formatted_data'],
-                                       function=format_data)
-    if input_nuisance.per_nuisance_bool == True:
-        peer_wf.connect(inputspec, 'test_residuals', format_data, 'in_file')
-    peer_wf.connect(inputspec, 'test_data', format_data, 'in_file')
-    peer_wf.connect(inputspec, 'eyemask', format_data, 'eyemask')
+                                       function=format_data))
+    if peer_run_nuisance == True:
+        peer_wf.connect(inputspec, 'test_residuals', format_test_data, 'in_file')
+    else:
+       peer_wf.connect(inputspec, 'test_data', format_test_data, 'in_file')
+    peer_wf.connect(inputspec, 'eyemask', format_test_data, 'eyemask')
 
 
-    predict_fixations = Function(input_names=['model_xdirection','model_ydirection','test_data'],
+    pred_fix = pe.Node(name='pred_fix',interface=Function(input_names=['model_xdirection','model_ydirection','test_data'],
                                  output_names=['fixations_xdirection','fixations_ydirection'],
-                                 function=predict_fixations)
-    peer_wf.connect(train_model,'model_xdirection',predict_fixations,'model_xdirection')
-    peer_wf.connect(train_model,'model_ydirection',predict_fixations,'model_ydirection')
-    peer_wf.connect(format_data,'cal_data',predict_fixation,'test_data')
-    peer_wf.connect(predict_fixation,'fixations_xdirection',outputspec,'fixations_xdirection')
-    peer_wf.connect(predict_fixation,'fixations_ydirection',outputspec,'fixations_ydirection')
+                                 function=predict_fixations))
+    peer_wf.connect(train_model,'model_xdirection',pred_fix,'model_xdirection')
+    peer_wf.connect(train_model,'model_ydirection',pred_fix,'model_ydirection')
+    peer_wf.connect(format_test_data,'cal_data',pred_fix,'test_data')
+    peer_wf.connect(pred_fix,'fixations_xdirection',outputspec,'fixations_xdirection')
+    peer_wf.connect(pred_fix,'fixations_ydirection',outputspec,'fixations_ydirection')
 
-    estimate_eyemovement= Function(input_names=['fixations_xdirection', 'fixations_ydirection'],
-                                   output_names=['eye_movements_x','eye_movements_y'],function=estimate_eyemovements)
-    peer_wf.connect(predict_fixations,'fixations_xdirection',estimate_eyemovements,'fixations_xdirection')
-    peer_wf.connect(predict_fixations,'fixations_ydirection',estimate_eyemovements,'fixations_ydirection')
-    peer_wf.connect(estimate_eyemovements,'eye_movements_x',outputspec,'eye_movements_x')
-    peer_wf.connect(estimate_eyemovements,'eye_movements_y',outputspec,'eye_movements_y')
+    est_eye= pe.Node(name='est_eye',interface=Function(input_names=['fixations_xdirection', 'fixations_ydirection'],
+                                   output_names=['eye_movements_x','eye_movements_y'],function=estimate_eyemovements))
+    peer_wf.connect(pred_fix,'fixations_xdirection',est_eye,'fixations_xdirection')
+    peer_wf.connect(pred_fix,'fixations_ydirection',est_eye,'fixations_ydirection')
+    peer_wf.connect(est_eye,'eye_movements_x',outputspec,'eye_movements_x')
+    peer_wf.connect(est_eye,'eye_movements_y',outputspec,'eye_movements_y')
 
 
     return peer_wf,predict_fixations.fixations_xdirection,predict_fixations.fixations_ydirection
