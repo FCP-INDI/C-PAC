@@ -3317,65 +3317,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # it identifies where the pipeline has forked and then appends the
         # name of the forked nodes to the branch name in the output directory
 
-        # fork_points is a list of lists, each list containing node names of
-        # nodes run in that strat/fork that are unique to that strat/fork
         fork_points = Strategy.get_forking_points(strat_list)
-        fork_names = []
-
-        # here 'fork_point' is an individual strat with its unique nodes
-        for fork_point in fork_points:
-            fork_name = []
-
-            for fork in fork_point:
-                fork_label = ''
-
-                if 'ants' in fork:
-                    fork_label = 'ants'
-                if 'fnirt' in fork:
-                    fork_label = 'fnirt'
-                elif 'flirt_register' in fork:
-                    fork_label = 'linear-only'
-                if 'automask' in fork:
-                    fork_label = 'func-3dautomask'
-                if 'bet' in fork:
-                    fork_label = 'func-bet'
-                if 'epi_distcorr' in fork:
-                    fork_label = 'dist-corr'
-                if 'bbreg' in fork:
-                    fork_label = 'bbreg'
-                
-                if 'nuisance' in fork:
-                    fork_label = 'nuisance'
-                if 'frequency_filter' in fork:
-                    fork_label = 'freq-filter'
-                
-                if 'median' in fork:
-                    fork_label = 'median'
-                if 'motion_stats' in fork:
-                    fork_label = 'motion'
-                if 'slice' in fork:
-                    fork_label = 'slice'
-                if 'anat_preproc_afni' in fork:
-                    fork_label = 'anat-afni'
-                if 'anat_preproc_bet' in fork:
-                    fork_label = 'anat-bet'
-
-                fork_name += [fork_label]
-
-            fork_names.append('_'.join(fork_name))
-
-        # match each strat_list with fork point list
-        fork_points_labels = dict(zip(strat_list, fork_names))
+        fork_points_labels = Strategy.get_forking_labels(strat_list)
 
         # DataSink
         pipeline_ids = []
 
         scan_ids = ['scan_anat']
-
         if 'func' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
                          for scan_id in sub_dict['func']]
-
         if 'rest' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
                          for scan_id in sub_dict['rest']]
@@ -3441,8 +3392,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if ndmg_out:
                 # create the graphs
-                from CPAC.utils.ndmg_utils import ndmg_roi_timeseries, \
+                from CPAC.utils.ndmg_utils import (
+                    ndmg_roi_timeseries,
                     ndmg_create_graphs
+                )
 
                 atlases = []
                 if 'Avg' in ts_analysis_dict.keys():
@@ -3453,7 +3406,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 )
 
                 resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                                                        name='resample_functional_to_roi_ndmg_%d' % num_strat)
+                                                     name='resample_functional_to_roi_ndmg_%d' % num_strat)
                 resample_functional_to_roi.inputs.set(
                     interp='trilinear',
                     apply_xfm=True,
@@ -3462,40 +3415,34 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
                                     resample_functional_to_roi, 'reference')
 
-                ndmg_ts_imports = ['import os',
-                                    'import nibabel as nb',
-                                    'import numpy as np']
-                ndmg_ts = pe.Node(util.Function(input_names=['func_file',
-                                                                'label_file'],
-                                                    output_names=['roi_ts',
-                                                                    'rois',
-                                                                    'roits_file'],
-                                                    function=ndmg_roi_timeseries,
-                                                    imports=ndmg_ts_imports),
-                                        name='ndmg_ts_%d' % num_strat)
+                ndmg_ts = pe.Node(function.Function(
+                    input_names=['func_file',
+                                 'label_file'],
+                    output_names=['roi_ts',
+                                  'rois',
+                                  'roits_file'],
+                    function=ndmg_roi_timeseries,
+                    as_module=True
+                ), name='ndmg_ts_%d' % num_strat)
 
                 node, out_file = strat['functional_to_standard']
-                workflow.connect(node, out_file, resample_functional_to_roi,
-                                    'in_file')
+                workflow.connect(node, out_file,
+                                 resample_functional_to_roi, 'in_file')
                 workflow.connect(resample_functional_to_roi, 'out_file',
                                     ndmg_ts, 'func_file')
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
                                     ndmg_ts, 'label_file')
 
-                ndmg_graph_imports = ['import os',
-                                        'from CPAC.utils.ndmg_utils import graph']
-                ndmg_graph = pe.MapNode(util.Function(input_names=['ts',
-                                                                    'labels'],
-                                                        output_names=[
-                                                            'out_file'],
-                                                        function=ndmg_create_graphs,
-                                                        imports=ndmg_graph_imports),
-                                        name='ndmg_graphs_%d' % num_strat,
-                                        iterfield=['labels'])
+                ndmg_graph = pe.MapNode(function.Function(
+                    input_names=['ts', 'labels'],
+                    output_names=['out_file'],
+                    function=ndmg_create_graphs,
+                    as_module=True
+                ), name='ndmg_graphs_%d' % num_strat, iterfield=['labels'])
 
                 workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                    ndmg_graph, 'labels')
+                                 ndmg_graph, 'labels')
 
                 strat.update_resource_pool({
                     'ndmg_ts': (ndmg_ts, 'roits_file'),
@@ -3506,7 +3453,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             rp = strat.get_resource_pool()
 
             if c.write_debugging_outputs:
-                import pickle
                 workdir = os.path.join(c.workingDirectory, workflow_name)
                 rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
                 with open(rp_pkl, 'wt') as f:
@@ -3552,7 +3498,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if ndmg_out:
                     ds = pe.Node(nio.DataSink(),
                                  name='sinker_{}_{}'.format(num_strat,
-                                                              resource_i))
+                                                            resource_i))
                     ds.inputs.base_directory = c.outputDirectory
                     ds.inputs.creds_path = creds_path
                     ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -3611,42 +3557,58 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     except:
                         pass
 
-                    anat_res_tag = c.resolution_for_anat
-                    anat_res_tag = anat_res_tag.replace('mm', '')
-                    func_res_tag = c.resolution_for_func_preproc
-                    func_res_tag = func_res_tag.replace('mm', '')
+                    anat_res_tag = c.resolution_for_anat.replace('mm', '')
+                    func_res_tag = c.resolution_for_func_preproc.replace('mm', '')
 
-                    ndmg_key_dct = {'anatomical_brain':
-                                        ('anat', 'preproc',
-                                            '{0}_T1w_preproc_brain'.format(id_tag)),
-                                    'anatomical_to_standard':
-                                        ('anat', 'registered',
-                                            '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, anat_template_tag, anat_res_tag)),
-                                    'functional_preprocessed':
-                                        ('func', 'preproc',
-                                            '{0}_bold_preproc'.format(id_tag)),
-                                    'functional_nuisance_residuals':
-                                        ('func', 'clean',
-                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, func_template_tag, func_res_tag)),
-                                    'functional_to_standard':
-                                        ('func', 'registered',
-                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'.format(
-                                                id_tag, func_template_tag,
-                                                func_res_tag)),
-                                    'functional_mask_to_standard':
-                                        ('func', 'registered',
-                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'.format(
-                                                id_tag, func_template_tag,
-                                                func_res_tag)),
-                                    'ndmg_ts':
-                                        ('func', 'roi-timeseries',
-                                            '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
-                                                id_tag, func_res_tag)),
-                                    'ndmg_graph':
-                                        ('func', 'roi-connectomes',
-                                            '{0}_bold_res-{1}x{1}x{1}_measure-correlation'.format(
-                                                id_tag, func_res_tag))
-                                    }
+                    ndmg_key_dct = {
+                        'anatomical_brain': (
+                            'anat',
+                            'preproc',
+                            '{0}_T1w_preproc_brain'.format(id_tag)
+                        ),
+                        'anatomical_to_standard': (
+                            'anat',
+                            'registered',
+                            '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'
+                            .format(id_tag, anat_template_tag, anat_res_tag)
+                        ),
+                        'functional_preprocessed': (
+                            'func',
+                            'preproc',
+                            '{0}_bold_preproc'
+                            .format(id_tag)
+                        ),
+                        'functional_nuisance_residuals': (
+                            'func',
+                            'clean',
+                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'
+                            .format(id_tag, func_template_tag, func_res_tag)
+                        ),
+                        'functional_to_standard': (
+                            'func',
+                            'registered',
+                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'
+                            .format(id_tag, func_template_tag, func_res_tag)
+                        ),
+                        'functional_mask_to_standard': (
+                            'func',
+                            'registered',
+                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'
+                            .format(id_tag, func_template_tag, func_res_tag)
+                        ),
+                        'ndmg_ts': (
+                            'func',
+                            'roi-timeseries',
+                            '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'
+                            .format(id_tag, func_res_tag)
+                        ),
+                        'ndmg_graph': (
+                            'func',
+                            'roi-connectomes',
+                            '{0}_bold_res-{1}x{1}x{1}_measure-correlation'
+                            .format(id_tag, func_res_tag)
+                        )
+                    }
 
                     if resource not in ndmg_key_dct.keys():
                         continue
@@ -3660,7 +3622,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         rename_file = pe.MapNode(
                             interface=util.Rename(),
                             name='rename__{}_{}'.format(num_strat, resource_i),
-                                                 iterfield=['in_file'])
+                            iterfield=['in_file']
+                        )
                     else:
                         rename_file = pe.Node(
                             interface=util.Rename(),
@@ -3734,7 +3697,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 workflow.connect(merge_link_node, 'out', link_node, 'paths')
 
-
             try:
                 G = nx.DiGraph()
                 strat_name = strat.get_name()
@@ -3769,12 +3731,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         subject_info['status'] = 'Running'
 
-        # TODO:set memory and num_threads of critical nodes if running
-        # MultiProcPlugin
-
         # Create callback logger
         cb_log_filename = os.path.join(log_dir,
-                                        'callback.log')
+                                       'callback.log')
 
         try:
             if not os.path.exists(os.path.dirname(cb_log_filename)):
@@ -3827,19 +3786,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if 1 in c.generateQualityControlImages and not ndmg_out:
             for pip_id in pipeline_ids:
                 pipeline_base = os.path.join(c.outputDirectory,
-                                                'pipeline_%s' % pip_id)
+                                             'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,
                                                 'qc_html')
                 sub_output_dir = os.path.join(c.outputDirectory,
-                                                'pipeline_{0}'.format(pip_id),
-                                                subject_id)
+                                              'pipeline_{0}'.format(pip_id),
+                                              subject_id)
 
                 generate_qc_pages(qc_output_folder,
-                                    sub_output_dir,
-                                    qc_montage_id_a,
-                                    qc_montage_id_s,
-                                    qc_plot_id,
-                                    qc_hist_id)
+                                  sub_output_dir,
+                                  qc_montage_id_a,
+                                  qc_montage_id_s,
+                                  qc_plot_id,
+                                  qc_hist_id)
 
         # have this check in case the user runs cpac_runner from terminal and
         # the timing parameter list is not supplied as usual by the GUI
@@ -3871,7 +3830,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # code to delete .tmp file
 
             timing_temp_file_path = os.path.join(c.logDirectory,
-                                                    '%s_pipeline_timing.tmp' % unique_pipeline_id)
+                                                 '%s_pipeline_timing.tmp' % unique_pipeline_id)
 
             if not os.path.isfile(timing_temp_file_path):
                 elapsedTimeBin = []
@@ -3939,8 +3898,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             try:
                 # Store logs in s3 output director/logs/...
-                s3_log_dir = c.outputDirectory + '/logs/' + \
+                s3_log_dir = os.path.join(
+                    c.outputDirectory,
+                    'logs',
                     os.path.basename(log_dir)
+                )
                 bucket_name = c.outputDirectory.split('/')[2]
                 bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
