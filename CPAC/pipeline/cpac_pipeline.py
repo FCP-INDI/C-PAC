@@ -74,7 +74,8 @@ from CPAC.timeseries import (
     get_vertices_timeseries,
     get_spatial_map_timeseries
 )
-from CPAC.PyPEER import (create_peer,utils)
+from CPAC.PyPEER.create_peer import create_peer
+from CPAC.PyPEER import utils
 from CPAC.network_centrality import (
     create_resting_state_graphs,
     get_cent_zscore
@@ -1246,22 +1247,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # workflow
             strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
         ## Inserting peer data config options
-            for num_strat, strat in enumerate(strat_list):
 
-                if 'peer' in sub_dict:
-                    peer_paths_dict = sub_dict['peer']
-                print(peer_paths_dict)
-                peer_wf = create_peer_datasource(peer_paths_dict,'peer_gather_%d' % num_strat)
-                peer_wf.inputs.inputnode.set(
-                    subject=subject_id,
+        for num_strat, strat in enumerate(strat_list):
+            if 'peer' in sub_dict:
+                peer_paths_dict = sub_dict['peer']
+
+            peer_wf = create_peer_datasource(peer_paths_dict,'peer_gather_%d' % num_strat)
+            peer_wf.inputs.inputnode.set(subject=subject_id,
                     creds_path=input_creds_path,
                     dl_dir=c.workingDirectory)
                 # Add in nodes to get parameters from configuration file
                 # a node which checks if scan_parameters are present for each scan
-                scan_params = \
-                    pe.Node(function.Function(input_names=['data_config_scan_params',
+            scan_params = \
+                    pe.Node(function.Function(input_names=['data_config_peer_scan_params',
                                                            'subject_id',
-                                                           'scan',
+                                                           'peer_scan',
                                                            'pipeconfig_tr',
                                                            'pipeconfig_tpattern',
                                                            'pipeconfig_start_indx',
@@ -1277,47 +1277,42 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 
                 # wire in the scan parameter workflow
-                workflow.connect(peer_wf, 'outputspec.scan_params',
-                                 scan_params, 'data_config_scan_params')
 
-                workflow.connect(peer_wf, 'outputspec.subject',
-                                 scan_params, 'subject_id')
+            workflow.connect(peer_wf, 'outputspec.scan_peer_file_path',scan_params, 'data_config_peer_scan_params')
 
-                workflow.connect(peer_wf, 'outputspec.peer_scan',
-                                 scan_params, 'peer_scan')
+
+            workflow.connect(peer_wf, 'outputspec.peer_scan_file_path',scan_params, 'peer_scan')
 
                 # connect in constants
-                scan_params.inputs.set(
-                    pipeconfig_tr=c.TR,
-                    pipeconfig_tpattern=c.slice_timing_pattern,
-                    pipeconfig_start_indx=c.startIdx,
-                    pipeconfig_stop_indx=c.stopIdx
+            scan_params.inputs.set(
+                pipeconfig_tr=c.TR,
+                pipeconfig_tpattern=c.slice_timing_pattern,
+                pipeconfig_start_indx=c.startIdx,
+                pipeconfig_stop_indx=c.stopIdx
                 )
 
                 # node to convert TR between seconds and milliseconds
-                convert_tr = pe.Node(function.Function(input_names=['tr'],
+            convert_tr = pe.Node(function.Function(input_names=['tr'],
                                                        output_names=['tr'],
                                                        function=get_tr,
                                                        as_module=True),
                                      name='convert_tr_%d' % num_strat)
 
-                strat.update_resource_pool({
-                    'calibrated_data': (peer_wf, 'outputspec.peer_scan'),
+            strat.update_resource_pool({
+                    'calibrated_data': (peer_wf, 'outputspec.peer_scan_file_path'),
                 })
 
-                strat.set_leaf_properties(peer_wf, 'outputspec.peer_scan')
+            strat.set_leaf_properties(peer_wf, 'outputspec.peer_scan_file_path')
 
-                if 1 in c.runPyPEER:
-                    try:
-                        strat.update_resource_pool({
-                            "eyemask": (peer_wf, 'outputspec.eye_mask')
-                            })
-                    except:
-                        err = "\n\n[!] You have selected to run PEER " \
+            if 1 in c.runPyPEER:
+                try:
+                    strat.update_resource_pool({"eyemask": (peer_wf, 'outputspec.eye_mask')})
+                except:
+                    err = "\n\n[!] You have selected to run PEER " \
                               "but have not provided a file path of the " \
                               "eye mask file. Get your shit together." \
                               ".\n\n"
-                        raise Exception(err)
+                    raise Exception(err)
         # EPI Field-Map based Distortion Correction
 
         new_strat_list = []
@@ -2125,26 +2120,34 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         new_strat_list=[]
         workflow_counter += 1
         if 1 in c.runPyPEER:
-            workflow_bit_id['create_peer'] = workflow_counter
-            for num_strat, strat in enumerate(strat_list):
-                if not 'model_xdirection' or 'model_ydirection' in strat.resource_pool.values():
-                    peer_estimation = create_peer(calibration_flag=True, wf_name='peer_estimation_%d' % num_strat)
-                    #node, out_file = strat.get_leaf_properties()
-                    #workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
 
-                    ### ONLY FOR TESTING!!! WITH A PREPARED DATA CONFIG YOU WILL HAVE TO CONNECT IT FROM THERE#####
-                    calibration_data = '/home/nrajamani/PyPEER_DATA/data/sub-5000820/func/sub-5000820_task-peer_run-2_bold.nii.gz'
-                        #peer_estimation.inputspec.calibration_data
-                    if 1 in c.runNuisance:
+            workflow_bit_id['peer'] = workflow_counter
+
+            for num_strat, strat in enumerate(strat_list):
+
+                if 'outputspec.model_xdirection' or 'outputspec.model_ydirection' not in strat.resource_pool.values():
+                    calibration_flag = True
+
+                    if 1 in c.peer_run_nuisance:
+                        peer_estimation = create_peer(calibration_flag=True, wf_name='peer_estimation_%d' % num_strat)
                         nodes = strat.get_nodes_names()
                         has_segmentation = 'seg_preproc' in nodes
                         use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
                         for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-                            nuisance_peer = connect_nuisance(workflow,strat,calibration_data,c, regressors_selector,
-                                                             regressors_selector_i, has_segmentation, use_ants,
-                                                             num_strat)
+                            nuisance_peer = Function(input_names=[workflow,strat,calibration_data,c,
+                                                                  regressors_selector,regressors_selector_i,
+                                                                  has_segmentation, use_ants,
+                                                                  num_strat],
+                                                        output_names=['functional_nuisance_residuals','functional_nuisance_regressors'],
+                                                        function=connect_nuisance)
+                            node, out_file = strat.get_leaf_properties()
+                            workflow.connect(node, out_file, nuisance_peer, 'inputspec.calibration_data')
+
                             workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,
                                              'inputspec.calibrated_residuals')
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
+
 
                     node, out_file = strat['eye_mask']
                     workflow.connect(node, out_file, peer_estimation,'inputspec.eye_mask')
@@ -2152,27 +2155,33 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     strat.update_resource_pool({'model_xdirection': (peer_estimation,'outputspec.model_xdirection')})
                     strat.update_resource_pool({'model_ydirection': (peer_estimation,'outputspec.model_ydirection')})
 
-                else:
+
+                if 'model_xdirection' and 'model_ydirection' in strat.resource_pool.values():
+
                     calibration_flag = False
-                    ### ONLY FOR TESTING!!! WITH A PREPARED DATA CONFIG YOU WILL HAVE TO CONNECT IT FROM THERE#####
-                    test_data = '/home/nrajamani/PyPEER_DATA/data/sub-5000820/func/sub-5000820_task-movieTP_bold.nii.gz'
-                    if 1 in c.runNuisance:
+                    peer_estimation = create_peer(calibration_flag=False, wf_name='peer_estimation_%d' % num_strat)
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, peer_estimation, 'inputspec.test_data')
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
+                    if 1 in c.peer_run_nuisance:
                         nodes = strat.get_nodes_names()
                         has_segmentation = 'seg_preproc' in nodes
                         use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
                         for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-                            nuisance_peer = connect_nuisance(workflow, strat, test_data, c, regressors_selector,
-                                                             regressors_selector_i, has_segmentation, use_ants,
-                                                             num_strat)
+                             nuisance_peer = Function(input_names=[workflow, strat, test_data, c,
+                                                                  regressors_selector, regressors_selector_i,
+                                                                  has_segmentation, use_ants,
+                                                                  num_strat],
+                                                     output_names=['functional_nuisance_residuals',
+                                                                   'functional_nuisance_regressors'],
+                                                     function=connect_nuisance)
 
-                    peer_estimation = create_peer(calibration_flag=True, wf_name='peer_estimation_%d' % num_strat)
-                    if 1 in c.runNuisance:
+                             node, out_file = strat.get_leaf_properties()
+                             workflow.connect(node, out_file, nuisance_peer, 'inputspec.test_data')
+
                         workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,
                                      'inputspec.test_residuals')
-
-                    else:
-                        node,out_file = strat.get_leaf_properties()
-                        workflow.connect(node,out_file,peer_estimation,'inputspec.test_data')
 
                     node,out_file = strat.get_leaf_properties()
                     workflow.connect(node,out_file,peer_estimation,'eyemask')
@@ -2183,7 +2192,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 strat.update_resource_pool({'eye_movements_xdir':(peer_estimation,'outputspec.eye_movements_x')})
                 strat.update_resource_pool({'eye_movements_ydir':(peer_estimation,'outputspec.eye_movements_y')})
 
-                strat.append_name(peer_estimation.name)
+            strat.append_name(peer_estimation.name)
 
         strat_list += new_strat_list
 
