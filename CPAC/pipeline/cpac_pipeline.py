@@ -2121,7 +2121,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         workflow_counter += 1
         if 1 in c.runPyPEER:
 
-            workflow_bit_id['peer'] = workflow_counter
+            workflow_bit_id['peer_wf'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2129,7 +2129,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     calibration_flag = True
 
                     if 1 in c.peer_run_nuisance:
-                        peer_estimation = create_peer(calibration_flag=True, wf_name='peer_estimation_%d' % num_strat)
+                        peer_estimation = create_peer(peer_run_nuisance=True,calibration_flag=True, wf_name='peer_wf_%d' % num_strat)
                         nodes = strat.get_nodes_names()
                         has_segmentation = 'seg_preproc' in nodes
                         use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
@@ -2142,15 +2142,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                         function=connect_nuisance)
                             node, out_file = strat.get_leaf_properties()
                             workflow.connect(node, out_file, nuisance_peer, 'inputspec.calibration_data')
+                            if 'scrubbing' in :
 
-                            workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,
-                                             'inputspec.calibrated_residuals')
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
+                        workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,'inputspec.calibrated_residuals')
 
 
-                    node, out_file = strat['eye_mask']
-                    workflow.connect(node, out_file, peer_estimation,'inputspec.eye_mask')
+
+                    else:
+                        peer_estimation = create_peer(peer_run_nuisance=False,calibration_flag=True,wf_name='peer_estimation')
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
+
+
+                    node, out_file = strat['eyemask']
+                    workflow.connect(node, out_file, peer_estimation,'inputspec.eyemask')
 
                     strat.update_resource_pool({'model_xdirection': (peer_estimation,'outputspec.model_xdirection')})
                     strat.update_resource_pool({'model_ydirection': (peer_estimation,'outputspec.model_ydirection')})
@@ -2159,12 +2164,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if 'model_xdirection' and 'model_ydirection' in strat.resource_pool.values():
 
                     calibration_flag = False
-                    peer_estimation = create_peer(calibration_flag=False, wf_name='peer_estimation_%d' % num_strat)
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file, peer_estimation, 'inputspec.test_data')
+
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
                     if 1 in c.peer_run_nuisance:
+
+                        peer_estimation = create_peer(peer_run_nuisance=True,calibration_flag=False, wf_name='peer_estimation_%d' % num_strat)
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file, peer_estimation, 'inputspec.test_data')
+
                         nodes = strat.get_nodes_names()
                         has_segmentation = 'seg_preproc' in nodes
                         use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
@@ -2182,6 +2190,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                         workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,
                                      'inputspec.test_residuals')
+                    else:
+                        peer_estimation = create_peer(peer_run_nuisance=False, calibration_flag=False,
+                                                      wf_name='peer_estimation_%d' % num_strat)
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file, peer_estimation, 'inputspec.test_data')
 
                     node,out_file = strat.get_leaf_properties()
                     workflow.connect(node,out_file,peer_estimation,'eyemask')
