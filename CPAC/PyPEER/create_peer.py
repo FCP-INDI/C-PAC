@@ -8,6 +8,8 @@ import nibabel as nib
 from sklearn.svm import SVR
 from sklearn.externals import joblib
 from nipype.interfaces.utility import Function
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as utils
 from CPAC.nuisance import create_nuisance_workflow
 from CPAC.PyPEER.utils import *
 
@@ -96,7 +98,7 @@ def estimate_eyemovement(fixations_xdirection,fixations_ydirection):
 
     return eye_movements_x,eye_movements_y
 
-def create_peer(calibration_flag=True,wf_name='peer_wf'):
+def create_peer(run_peer_nuisance = True,calibration_flag=True,wf_name='peer_wf'):
     
     from nipype.interfaces.utility import Function
     import nipype.pipeline.engine as pe
@@ -106,13 +108,20 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
 
     inputspec = pe.Node(utils.IdentityInterface(fields=['calibrated_data','test_data,','calibrated_residuals','test_residuals','eyemask']),name='inputspec')
 
+    input_nuisance = pe.Node(utils.IdentityInterface(fields=['runPeerNuisance']),name='peer_nuisance_bool')
+
     outputspec = pe.Node(utils.IdentityInterface(fields=['global_signal_regressed_data','removed_indices','calibration_points_removed','model_xdirection','model_ydirection','fixations_xdirection','fixations_ydirection']),name='outputspec')
 
     format_calibration_data = Function(input_names=['in_file', 'eyemask'],
                                        output_names=['formatted_data'],
                                        function=format_data)
-    if 1 in run_nuisance == True:
-        peer_wf.connect(inputspec,'calibrated_residuals',format_data,'in_file')
+
+
+
+
+
+
+    peer_wf.connect(inputspec,'calibrated_residuals',format_data,'in_file')
     peer_wf.connect(inputspec, 'calibrated_data', format_data, 'in_file')
     peer_wf.connect(inputspec, 'eyemask', format_data, 'eyemask')
 
@@ -140,7 +149,7 @@ def create_peer(calibration_flag=True,wf_name='peer_wf'):
     format_test_data = Function(input_names=['in_file', 'eyemask'],
                                        output_names=['formatted_data'],
                                        function=format_data)
-    if 1 in run_nuisance == True:
+    if input_nuisance.per_nuisance_bool == True:
         peer_wf.connect(inputspec, 'test_residuals', format_data, 'in_file')
     peer_wf.connect(inputspec, 'test_data', format_data, 'in_file')
     peer_wf.connect(inputspec, 'eyemask', format_data, 'eyemask')
