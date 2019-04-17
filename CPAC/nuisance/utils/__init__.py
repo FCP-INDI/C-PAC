@@ -497,7 +497,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
     return pipeline_resource_pool, full_mask_key
 
 
-def summarize_timeseries(functional_path, masks_path, summary):
+def summarize_timeseries(regressor_type, functional_path, masks_path, summary):
 
     if type(summary) is not dict:
         summary = {'method': summary}
@@ -508,9 +508,23 @@ def summarize_timeseries(functional_path, masks_path, summary):
     ]), axis=0) > 0.0
 
     if mask.sum() == 0:
+
+        if regressor_type in ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid', 'aCompCor']:
+            raise Exception((
+                    "The provided mask for %s does not contains voxels. "
+                    "Please check if mask is being eroded and if the segmentation worked correctly. "
+                    "Segmentation is a data-dependent process, that might be too strict on thresholding "
+                    "the tissues to make sure there is no overlap between tissues."
+                ) % (
+                    regressor_type,
+                )
+            )
+
         raise Exception(
-            "The provided mask does not contains voxels. "
-            "Please check if mask is being eroded and if the segmentation worked correctly."
+            "The provided mask of %s does not contains voxels." % (
+                regressor_type,
+
+            )
         )
 
     functional_img = nb.load(functional_path)
@@ -665,7 +679,7 @@ class NuisanceRegressor(object):
             pieces = [regs[r]]
 
             if r in tissues:
-                if s.get('extraction_resolution'):
+                if s.get('extraction_resolution') and s['extraction_resolution'] != 'Functional':
                     res = "%.2gmm" % s['extraction_resolution']
                     if s.get('erode_mask'):
                         res += 'E'

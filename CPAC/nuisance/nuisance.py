@@ -388,7 +388,7 @@ def create_nuisance_workflow(nuisance_selectors,
             To not run a type of nuisance regression, it may be ommited from the dictionary.
             selector = {
                 aCompCor: {
-                    symmary: {
+                    summary: {
                         method: 'DetrendPC', aCompCor will always extract the principal components from
                             detrended tissues signal,
                         components: number of components to retain,
@@ -412,7 +412,7 @@ def create_nuisance_workflow(nuisance_selectors,
                         delay regressor, default to False,
                 },
                 tCompCor: {
-                    symmary: {
+                    summary: {
                         method: 'PC', tCompCor will always extract the principal components from
                             BOLD signal,
                         components: number of components to retain,
@@ -429,7 +429,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False,
                 },
                 WhiteMatter: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -440,7 +440,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False (same as for aCompCor),
                 },
                 CerebrospinalFluid: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -451,7 +451,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False (same as for aCompCor),
                 },
                 GreyMatter: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -462,7 +462,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False (same as for aCompCor),
                 },
                 GlobalSignal: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -943,6 +943,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 summarize_timeseries_node = pe.Node(
                     Function(
                         input_names=[
+                            'regressor_type',
                             'functional_path',
                             'masks_path',
                             'summary'
@@ -953,6 +954,9 @@ def create_nuisance_workflow(nuisance_selectors,
                     ),
                     name='{}_summarization'.format(regressor_type)
                 )
+
+                summarize_timeseries_node.inputs.regressor_type = \
+                    regressor_type
 
                 summarize_timeseries_node.inputs.summary = \
                     regressor_selector['summary']
