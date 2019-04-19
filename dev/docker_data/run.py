@@ -327,9 +327,6 @@ if args.save_working_dir is True:
         print('Cannot write working directory to S3 bucket.'
                ' Either change the output directory to something'
                ' local or turn off the --save_working_dir flag')
-else:
-    c['removeWorkingDir'] = True
-    c['workingDirectory'] = os.path.join('/scratch', "working")
 
 if args.participant_label:
     print("#### Running C-PAC on {0}".format(args.participant_label))
