@@ -235,7 +235,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
         raise Exception('Working directory not specified')
 
     if len(c.workingDirectory) > 70:
-        warnings.warn("We recomment that the working directory full path "
+        warnings.warn("We recommend that the working directory full path "
                       "should have less then 70 characters. "
                       "Long paths might not work in your operational system.")
         warnings.warn("Current working directory: %s" % c.workingDirectory)
