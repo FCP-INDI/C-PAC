@@ -582,6 +582,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
             fixed image) at each level
         inputspec.smoothing_sigmas : list of lists of floats
             Specify the sigma of gaussian smoothing at each level
+        inputspec.fixed_image_mask: (an existing file name)
+            Mask used to limit metric sampling region of the fixed imagein all
+            stages
 
     Workflow Outputs::
     
@@ -637,7 +640,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                 'smoothing_sigmas',
                 'write_composite_transform',
                 'anatomical_skull',
-                'reference_skull']), name='inputspec')
+                'reference_skull',
+                'fixed_image_mask']), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(
         fields=['ants_initial_xfm',
@@ -662,7 +666,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
         pe.Node(interface=util.Function(input_names=['anatomical_brain',
                                                      'reference_brain',
                                                      'anatomical_skull',
-                                                     'reference_skull'],
+                                                     'reference_skull',
+                                                     'fixed_image_mask'],
                                         output_names=['warp_list',
                                                       'warped_image'],
                                         function=hardcoded_reg,
@@ -770,6 +775,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     calc_ants_warp_wf.connect(inputspec, 'write_composite_transform',
             calculate_ants_warp, 'write_composite_transform')
+
+    calc_ants_warp_wf.connect(inputspec, 'fixed_image_mask',
+            calculate_ants_warp, 'fixed_image_mask')
 
     # inter-workflow connections
 

@@ -5,7 +5,6 @@ from inspect import currentframe, getframeinfo , stack
 
 global_lock = threading.Lock()
 
-
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
     """
     Workflow to calculate z-scores

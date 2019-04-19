@@ -35,6 +35,7 @@ from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
+from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
@@ -115,7 +116,7 @@ from CPAC.utils.utils import (
 )
 
 logger = logging.getLogger('nipype.workflow')
-
+# config.enable_debug_mode()
 
 # TODO ASH move to somewhere else
 def pick_wm(seg_prob_list):
@@ -339,6 +340,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
     strat_initial = Strategy()
+    # The list of strategies that will be shared all along the pipeline creation
     strat_list = []
 
     num_strat = 0
@@ -368,6 +370,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
             })
 
+    if 'lesion_mask' in sub_dict.keys():
+        lesion_datasource = create_anat_datasource(
+            'lesion_gather_%d' % num_strat)
+        lesion_datasource.inputs.inputnode.subject = subject_id
+        lesion_datasource.inputs.inputnode.anat = sub_dict['lesion_mask']
+        lesion_datasource.inputs.inputnode.creds_path = input_creds_path
+        lesion_datasource.inputs.inputnode.dl_dir = c.workingDirectory
+
+        strat_initial.update_resource_pool({
+            'lesion_mask': (lesion_datasource, 'outputspec.anat')
+        })
+
+    num_strat += 1
     strat_list.append(strat_initial)
 
     workflow_bit_id['anat_preproc'] = workflow_counter
@@ -749,6 +764,45 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     [3, 2, 1, 0]
                 ]
             )
+            # Test if a lesion mask is found for the anatomical image
+            if 'lesion_mask' in sub_dict and c.use_lesion_mask \
+                    and 'lesion_preproc' not in nodes:
+                # Create lesion preproc node to apply afni Refit and Resample
+                lesion_preproc = create_lesion_preproc(
+                    wf_name='lesion_preproc_%d' % num_strat
+                )
+                # Add the name of the node in the strat object
+                strat.append_name(lesion_preproc.name)
+                # I think I don't need to set this node as leaf but not sure
+                # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
+
+                # Add the lesion preprocessed to the resource pool
+                strat.update_resource_pool({
+                    'lesion_reorient': (lesion_preproc, 'outputspec.reorient')
+                })
+                # The Refit lesion is not added to the resource pool because
+                # it is not used afterward
+
+                # Not sure to understand how log nodes work yet
+                create_log_node(workflow, lesion_preproc,
+                                'inputspec.lesion', num_strat)
+
+                # Retieve the lesion mask from the resource pool
+                node, out_file = strat['lesion_mask']
+                # Set the lesion mask as input of lesion_preproc
+                workflow.connect(
+                    node, out_file,
+                    lesion_preproc, 'inputspec.lesion'
+                )
+
+                # Set the output of lesion preproc as parameter of ANTs
+                # fixed_image_mask option
+                workflow.connect(
+                    lesion_preproc, 'outputspec.reorient',
+                    ants_reg_anat_mni, 'inputspec.fixed_image_mask'
+                )
+            else:
+                ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = None
 
             strat.append_name(ants_reg_anat_mni.name)
 
@@ -1005,6 +1059,49 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                       [3, 2, 1, 0],
                                       [3, 2, 1, 0]]
                 )
+
+                if 'lesion_mask' in sub_dict and c.use_lesion_mask\
+                        and 'lesion_preproc' not in nodes:
+                    # Create lesion preproc node to apply afni Refit & Resample
+                    lesion_preproc = create_lesion_preproc(
+                        wf_name='lesion_preproc_%d' % num_strat
+                    )
+                    # Add the name of the node in the strat object
+                    strat.append_name(lesion_preproc.name)
+
+                    # I think I don't need to set this node as leaf but not sure
+                    # strat.set_leaf_properties(lesion_preproc,
+                    # 'inputspec.lesion')
+
+                    # Add the lesion preprocessed to the resource pool
+                    strat.update_resource_pool({
+                        'lesion_reorient': (
+                            lesion_preproc, 'outputspec.reorient')
+                    })
+                    # The Refit lesion is not added to the resource pool because
+                    # it is not used afterward
+
+                    # Not sure to understand how log nodes work yet
+                    create_log_node(workflow, lesion_preproc,
+                                    'inputspec.lesion', num_strat)
+
+                    # Retieve the lesion mask from the resource pool
+                    node, out_file = strat['lesion_mask']
+                    # Set the lesion mask as input of lesion_preproc
+                    workflow.connect(
+                        node, out_file,
+                        lesion_preproc, 'inputspec.lesion'
+                    )
+
+                    # Set the output of lesion preproc as parameter of ANTs
+                    # fixed_image_mask option
+                    workflow.connect(
+                        lesion_preproc, 'outputspec.reorient',
+                        ants_reg_anat_symm_mni, 'inputspec.fixed_image_mask'
+                    )
+                else:
+                    ants_reg_anat_symm_mni.inputs.inputspec.fixed_image_mask = \
+                        None
 
                 strat.append_name(ants_reg_anat_symm_mni.name)
                 strat.set_leaf_properties(ants_reg_anat_symm_mni,
