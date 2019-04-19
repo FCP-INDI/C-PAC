@@ -274,7 +274,7 @@ if args.aws_input_creds:
     else:
         raise IOError("Could not find aws credentials {0}".format(args.aws_input_creds))
 
-# set the parameters using the command line arguements
+# set the parameters using the command line arguments
 # TODO: we will need to check that the directories exist, and
 # make them if they do not
 c['outputDirectory'] = os.path.join(args.output_dir, "output")

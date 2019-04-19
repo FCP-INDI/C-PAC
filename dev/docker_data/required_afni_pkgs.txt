@@ -4,6 +4,7 @@ linux_openmp_64/3dcalc
 linux_openmp_64/3dDegreeCentrality
 linux_openmp_64/3dECM
 linux_openmp_64/3dedge3
+linux_openmp_64/3dinfo
 linux_openmp_64/3dLFCD
 linux_openmp_64/3dmaskave
 linux_openmp_64/3drefit

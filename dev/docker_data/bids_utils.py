@@ -12,11 +12,11 @@ def bids_decode_fname(file_path, dbg=False):
 
     # first lets make sure that we know how to handle the file
     if 'nii' not in fname.lower() and 'json' not in fname.lower():
-        raise IOError("File (%s) does not appear to be" % (fname) +
+        raise IOError("File (%s) does not appear to be" % fname +
                       "a nifti or json file")
 
     if dbg:
-        print "parsing %s" % (file_path)
+        print "parsing %s" % file_path
 
     # first figure out if there is a site directory level, this isn't
     # specified in BIDS currently, but hopefully will be in the future
@@ -27,8 +27,8 @@ def bids_decode_fname(file_path, dbg=False):
 
     if len(sub) > 1:
         print ("Odd that there is more than one subject directory" +
-              "in (%s), does the filename conform to" % (file_path) +
-            " BIDS format?")
+               "in (%s), does the filename conform to" % file_path +
+               " BIDS format?")
     if sub:
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
@@ -51,6 +51,7 @@ def bids_decode_fname(file_path, dbg=False):
     # convert the filename string into a dictionary to pull out the other
     # key value pairs
     for key_val_pair in fname.split("_"):
+        # if the chunk has the shape key-val store key: val in f_dict
         if "-" in key_val_pair:
             chunks = key_val_pair.split("-")
             f_dict[chunks[0]] = "-".join(chunks[1:])
@@ -388,8 +389,19 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
             if "T1w" in f_dict["scantype"]:
+                if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
+                    if "lesion_mask" not in \
+                            subdict[f_dict["sub"]][f_dict["ses"]]:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"] = \
+                            task_info["scan"]
+                    else:
+                        print("Lesion mask file (%s) already found" %
+                              (subdict[f_dict["sub"]]
+                               [f_dict["ses"]]
+                               ["lesion_mask"]) + " for (%s:%s) discarding %s" %
+                              (f_dict["sub"], f_dict["ses"], p))
                 # TODO deal with scan parameters anatomical
-                if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
+                elif "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = \
                         task_info["scan"] if config_dict else task_info
                 else:
@@ -398,7 +410,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                           " for (%s:%s) discarding %s" % (f_dict["sub"],
                                                           f_dict["ses"],
                                                           p))
-
             if "bold" in f_dict["scantype"]:
                 task_key = f_dict["task"]
                 if "run" in f_dict:
@@ -423,7 +434,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                f_dict["ses"],
                                task_key,
                                p))
-
+                    
     sublist = []
     for ksub, sub in subdict.iteritems():
         for kses, ses in sub.iteritems():
@@ -444,6 +455,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     ))
 
     return sublist
+
 
 def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     """

@@ -258,6 +258,10 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 regOption :  ['ANTS']
 
 
+# If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
+use_lesion_mask : [1]
+
+
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
 fnirtConfig :  T1_2_MNI152_2mm

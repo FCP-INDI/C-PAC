@@ -260,6 +260,10 @@ template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat
 regOption :  ['ANTS']
 
 
+# If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
+use_lesion_mask : [1]
+
+
 # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
 fsl_linear_reg_only :  [0]
 

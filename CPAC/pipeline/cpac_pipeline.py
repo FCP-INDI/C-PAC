@@ -35,6 +35,7 @@ from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
+from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
@@ -71,10 +72,6 @@ from CPAC.timeseries import (
     get_voxel_timeseries,
     get_vertices_timeseries,
     get_spatial_map_timeseries
-)
-from CPAC.network_centrality import (
-    create_resting_state_graphs,
-    get_cent_zscore
 )
 from CPAC.warp.pipeline import (
     ants_apply_warps_func_mni,
@@ -115,7 +112,7 @@ from CPAC.utils.utils import (
 )
 
 logger = logging.getLogger('nipype.workflow')
-
+# config.enable_debug_mode()
 
 # TODO ASH move to somewhere else
 def pick_wm(seg_prob_list):
@@ -262,9 +259,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
 
+    check_centrality_degree = 1 in c.runNetworkCentrality and \
+                              (True in c.degWeightOptions or \
+                               True in c.eigWeightOptions)
+
+    check_centrality_lfcd = 1 in c.runNetworkCentrality and \
+                            True in c.lfcdWeightOptions
+
     # Check system dependencies
     check_system_deps(check_ants='ANTS' in c.regOption,
-                      check_ica_aroma='1' in str(c.runICA[0]))
+                      check_ica_aroma='1' in str(c.runICA[0]),
+                      check_centrality_degree=check_centrality_degree,
+                      check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
     c.workingDirectory = os.path.abspath(c.workingDirectory)
@@ -339,6 +345,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
     strat_initial = Strategy()
+    # The list of strategies that will be shared all along the pipeline creation
     strat_list = []
 
     num_strat = 0
@@ -368,6 +375,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
             })
 
+    if 'lesion_mask' in sub_dict.keys():
+        lesion_datasource = create_anat_datasource(
+            'lesion_gather_%d' % num_strat)
+        lesion_datasource.inputs.inputnode.subject = subject_id
+        lesion_datasource.inputs.inputnode.anat = sub_dict['lesion_mask']
+        lesion_datasource.inputs.inputnode.creds_path = input_creds_path
+        lesion_datasource.inputs.inputnode.dl_dir = c.workingDirectory
+
+        strat_initial.update_resource_pool({
+            'lesion_mask': (lesion_datasource, 'outputspec.anat')
+        })
+
+    num_strat += 1
     strat_list.append(strat_initial)
 
     workflow_bit_id['anat_preproc'] = workflow_counter
@@ -749,6 +769,45 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     [3, 2, 1, 0]
                 ]
             )
+            # Test if a lesion mask is found for the anatomical image
+            if 'lesion_mask' in sub_dict and c.use_lesion_mask \
+                    and 'lesion_preproc' not in nodes:
+                # Create lesion preproc node to apply afni Refit and Resample
+                lesion_preproc = create_lesion_preproc(
+                    wf_name='lesion_preproc_%d' % num_strat
+                )
+                # Add the name of the node in the strat object
+                strat.append_name(lesion_preproc.name)
+                # I think I don't need to set this node as leaf but not sure
+                # strat.set_leaf_properties(lesion_preproc, 'inputspec.lesion')
+
+                # Add the lesion preprocessed to the resource pool
+                strat.update_resource_pool({
+                    'lesion_reorient': (lesion_preproc, 'outputspec.reorient')
+                })
+                # The Refit lesion is not added to the resource pool because
+                # it is not used afterward
+
+                # Not sure to understand how log nodes work yet
+                create_log_node(workflow, lesion_preproc,
+                                'inputspec.lesion', num_strat)
+
+                # Retieve the lesion mask from the resource pool
+                node, out_file = strat['lesion_mask']
+                # Set the lesion mask as input of lesion_preproc
+                workflow.connect(
+                    node, out_file,
+                    lesion_preproc, 'inputspec.lesion'
+                )
+
+                # Set the output of lesion preproc as parameter of ANTs
+                # fixed_image_mask option
+                workflow.connect(
+                    lesion_preproc, 'outputspec.reorient',
+                    ants_reg_anat_mni, 'inputspec.fixed_image_mask'
+                )
+            else:
+                ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = None
 
             strat.append_name(ants_reg_anat_mni.name)
 
@@ -1005,6 +1064,49 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                       [3, 2, 1, 0],
                                       [3, 2, 1, 0]]
                 )
+
+                if 'lesion_mask' in sub_dict and c.use_lesion_mask\
+                        and 'lesion_preproc' not in nodes:
+                    # Create lesion preproc node to apply afni Refit & Resample
+                    lesion_preproc = create_lesion_preproc(
+                        wf_name='lesion_preproc_%d' % num_strat
+                    )
+                    # Add the name of the node in the strat object
+                    strat.append_name(lesion_preproc.name)
+
+                    # I think I don't need to set this node as leaf but not sure
+                    # strat.set_leaf_properties(lesion_preproc,
+                    # 'inputspec.lesion')
+
+                    # Add the lesion preprocessed to the resource pool
+                    strat.update_resource_pool({
+                        'lesion_reorient': (
+                            lesion_preproc, 'outputspec.reorient')
+                    })
+                    # The Refit lesion is not added to the resource pool because
+                    # it is not used afterward
+
+                    # Not sure to understand how log nodes work yet
+                    create_log_node(workflow, lesion_preproc,
+                                    'inputspec.lesion', num_strat)
+
+                    # Retieve the lesion mask from the resource pool
+                    node, out_file = strat['lesion_mask']
+                    # Set the lesion mask as input of lesion_preproc
+                    workflow.connect(
+                        node, out_file,
+                        lesion_preproc, 'inputspec.lesion'
+                    )
+
+                    # Set the output of lesion preproc as parameter of ANTs
+                    # fixed_image_mask option
+                    workflow.connect(
+                        lesion_preproc, 'outputspec.reorient',
+                        ants_reg_anat_symm_mni, 'inputspec.fixed_image_mask'
+                    )
+                else:
+                    ants_reg_anat_symm_mni.inputs.inputspec.fixed_image_mask = \
+                        None
 
                 strat.append_name(ants_reg_anat_symm_mni.name)
                 strat.set_leaf_properties(ants_reg_anat_symm_mni,
@@ -3136,11 +3238,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             #     raise Exception(err)
 
             strat_list = create_network_centrality_workflow(
-                workflow, c, strat_list, {
-                    "creds_path": input_creds_path,
-                    "dl_dir": c.workingDirectory
-                }
-            )
+                workflow, c, strat_list)
 
         '''
         Loop through the resource pool and connect the nodes for:
@@ -3317,65 +3415,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # it identifies where the pipeline has forked and then appends the
         # name of the forked nodes to the branch name in the output directory
 
-        # fork_points is a list of lists, each list containing node names of
-        # nodes run in that strat/fork that are unique to that strat/fork
-        fork_points = Strategy.get_forking_points(strat_list)
-        fork_names = []
-
-        # here 'fork_point' is an individual strat with its unique nodes
-        for fork_point in fork_points:
-            fork_name = []
-
-            for fork in fork_point:
-                fork_label = ''
-
-                if 'ants' in fork:
-                    fork_label = 'ants'
-                if 'fnirt' in fork:
-                    fork_label = 'fnirt'
-                elif 'flirt_register' in fork:
-                    fork_label = 'linear-only'
-                if 'automask' in fork:
-                    fork_label = 'func-3dautomask'
-                if 'bet' in fork:
-                    fork_label = 'func-bet'
-                if 'epi_distcorr' in fork:
-                    fork_label = 'dist-corr'
-                if 'bbreg' in fork:
-                    fork_label = 'bbreg'
-                
-                if 'nuisance' in fork:
-                    fork_label = 'nuisance'
-                if 'frequency_filter' in fork:
-                    fork_label = 'freq-filter'
-                
-                if 'median' in fork:
-                    fork_label = 'median'
-                if 'motion_stats' in fork:
-                    fork_label = 'motion'
-                if 'slice' in fork:
-                    fork_label = 'slice'
-                if 'anat_preproc_afni' in fork:
-                    fork_label = 'anat-afni'
-                if 'anat_preproc_bet' in fork:
-                    fork_label = 'anat-bet'
-
-                fork_name += [fork_label]
-
-            fork_names.append('_'.join(fork_name))
-
-        # match each strat_list with fork point list
-        fork_points_labels = dict(zip(strat_list, fork_names))
+        fork_points_labels = Strategy.get_forking_labels(strat_list)
 
         # DataSink
         pipeline_ids = []
 
         scan_ids = ['scan_anat']
-
         if 'func' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
                          for scan_id in sub_dict['func']]
-
         if 'rest' in sub_dict:
             scan_ids += ['scan_' + str(scan_id)
                          for scan_id in sub_dict['rest']]
@@ -3407,7 +3455,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # Test for s3 write access
                     s3_write_access = \
                         aws_utils.test_bucket_access(creds_path,
-                                                        c.outputDirectory)
+                                                     c.outputDirectory)
 
                     if not s3_write_access:
                         raise Exception('Not able to write to bucket!')
@@ -3426,7 +3474,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             except:
                 encrypt_data = False
 
-
             ndmg_out = False
             try:
                 # let's encapsulate this inside a Try..Except block so if
@@ -3441,8 +3488,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if ndmg_out:
                 # create the graphs
-                from CPAC.utils.ndmg_utils import ndmg_roi_timeseries, \
+                from CPAC.utils.ndmg_utils import (
+                    ndmg_roi_timeseries,
                     ndmg_create_graphs
+                )
 
                 atlases = []
                 if 'Avg' in ts_analysis_dict.keys():
@@ -3453,7 +3502,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 )
 
                 resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                                                        name='resample_functional_to_roi_ndmg_%d' % num_strat)
+                                                     name='resample_functional_to_roi_ndmg_%d' % num_strat)
                 resample_functional_to_roi.inputs.set(
                     interp='trilinear',
                     apply_xfm=True,
@@ -3462,40 +3511,34 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
                                     resample_functional_to_roi, 'reference')
 
-                ndmg_ts_imports = ['import os',
-                                    'import nibabel as nb',
-                                    'import numpy as np']
-                ndmg_ts = pe.Node(util.Function(input_names=['func_file',
-                                                                'label_file'],
-                                                    output_names=['roi_ts',
-                                                                    'rois',
-                                                                    'roits_file'],
-                                                    function=ndmg_roi_timeseries,
-                                                    imports=ndmg_ts_imports),
-                                        name='ndmg_ts_%d' % num_strat)
+                ndmg_ts = pe.Node(function.Function(
+                    input_names=['func_file',
+                                 'label_file'],
+                    output_names=['roi_ts',
+                                  'rois',
+                                  'roits_file'],
+                    function=ndmg_roi_timeseries,
+                    as_module=True
+                ), name='ndmg_ts_%d' % num_strat)
 
                 node, out_file = strat['functional_to_standard']
-                workflow.connect(node, out_file, resample_functional_to_roi,
-                                    'in_file')
+                workflow.connect(node, out_file,
+                                 resample_functional_to_roi, 'in_file')
                 workflow.connect(resample_functional_to_roi, 'out_file',
-                                    ndmg_ts, 'func_file')
+                                 ndmg_ts, 'func_file')
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                    ndmg_ts, 'label_file')
+                                 ndmg_ts, 'label_file')
 
-                ndmg_graph_imports = ['import os',
-                                        'from CPAC.utils.ndmg_utils import graph']
-                ndmg_graph = pe.MapNode(util.Function(input_names=['ts',
-                                                                    'labels'],
-                                                        output_names=[
-                                                            'out_file'],
-                                                        function=ndmg_create_graphs,
-                                                        imports=ndmg_graph_imports),
-                                        name='ndmg_graphs_%d' % num_strat,
-                                        iterfield=['labels'])
+                ndmg_graph = pe.MapNode(function.Function(
+                    input_names=['ts', 'labels'],
+                    output_names=['out_file'],
+                    function=ndmg_create_graphs,
+                    as_module=True
+                ), name='ndmg_graphs_%d' % num_strat, iterfield=['labels'])
 
                 workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                    ndmg_graph, 'labels')
+                                 ndmg_graph, 'labels')
 
                 strat.update_resource_pool({
                     'ndmg_ts': (ndmg_ts, 'roits_file'),
@@ -3506,7 +3549,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             rp = strat.get_resource_pool()
 
             if c.write_debugging_outputs:
-                import pickle
                 workdir = os.path.join(c.workingDirectory, workflow_name)
                 rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
                 with open(rp_pkl, 'wt') as f:
@@ -3552,7 +3594,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if ndmg_out:
                     ds = pe.Node(nio.DataSink(),
                                  name='sinker_{}_{}'.format(num_strat,
-                                                              resource_i))
+                                                            resource_i))
                     ds.inputs.base_directory = c.outputDirectory
                     ds.inputs.creds_path = creds_path
                     ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -3611,42 +3653,58 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     except:
                         pass
 
-                    anat_res_tag = c.resolution_for_anat
-                    anat_res_tag = anat_res_tag.replace('mm', '')
-                    func_res_tag = c.resolution_for_func_preproc
-                    func_res_tag = func_res_tag.replace('mm', '')
+                    anat_res_tag = c.resolution_for_anat.replace('mm', '')
+                    func_res_tag = c.resolution_for_func_preproc.replace('mm', '')
 
-                    ndmg_key_dct = {'anatomical_brain':
-                                        ('anat', 'preproc',
-                                            '{0}_T1w_preproc_brain'.format(id_tag)),
-                                    'anatomical_to_standard':
-                                        ('anat', 'registered',
-                                            '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'.format(id_tag, anat_template_tag, anat_res_tag)),
-                                    'functional_preprocessed':
-                                        ('func', 'preproc',
-                                            '{0}_bold_preproc'.format(id_tag)),
-                                    'functional_nuisance_residuals':
-                                        ('func', 'clean',
-                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'.format(id_tag, func_template_tag, func_res_tag)),
-                                    'functional_to_standard':
-                                        ('func', 'registered',
-                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'.format(
-                                                id_tag, func_template_tag,
-                                                func_res_tag)),
-                                    'functional_mask_to_standard':
-                                        ('func', 'registered',
-                                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'.format(
-                                                id_tag, func_template_tag,
-                                                func_res_tag)),
-                                    'ndmg_ts':
-                                        ('func', 'roi-timeseries',
-                                            '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'.format(
-                                                id_tag, func_res_tag)),
-                                    'ndmg_graph':
-                                        ('func', 'roi-connectomes',
-                                            '{0}_bold_res-{1}x{1}x{1}_measure-correlation'.format(
-                                                id_tag, func_res_tag))
-                                    }
+                    ndmg_key_dct = {
+                        'anatomical_brain': (
+                            'anat',
+                            'preproc',
+                            '{0}_T1w_preproc_brain'.format(id_tag)
+                        ),
+                        'anatomical_to_standard': (
+                            'anat',
+                            'registered',
+                            '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'
+                            .format(id_tag, anat_template_tag, anat_res_tag)
+                        ),
+                        'functional_preprocessed': (
+                            'func',
+                            'preproc',
+                            '{0}_bold_preproc'
+                            .format(id_tag)
+                        ),
+                        'functional_nuisance_residuals': (
+                            'func',
+                            'clean',
+                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'
+                            .format(id_tag, func_template_tag, func_res_tag)
+                        ),
+                        'functional_to_standard': (
+                            'func',
+                            'registered',
+                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'
+                            .format(id_tag, func_template_tag, func_res_tag)
+                        ),
+                        'functional_mask_to_standard': (
+                            'func',
+                            'registered',
+                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'
+                            .format(id_tag, func_template_tag, func_res_tag)
+                        ),
+                        'ndmg_ts': (
+                            'func',
+                            'roi-timeseries',
+                            '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'
+                            .format(id_tag, func_res_tag)
+                        ),
+                        'ndmg_graph': (
+                            'func',
+                            'roi-connectomes',
+                            '{0}_bold_res-{1}x{1}x{1}_measure-correlation'
+                            .format(id_tag, func_res_tag)
+                        )
+                    }
 
                     if resource not in ndmg_key_dct.keys():
                         continue
@@ -3660,7 +3718,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         rename_file = pe.MapNode(
                             interface=util.Rename(),
                             name='rename__{}_{}'.format(num_strat, resource_i),
-                                                 iterfield=['in_file'])
+                            iterfield=['in_file']
+                        )
                     else:
                         rename_file = pe.Node(
                             interface=util.Rename(),
@@ -3730,10 +3789,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
 
                 for i, (node, node_input) in enumerate(output_sink_nodes):
-                    workflow.connect(node, node_input, merge_link_node, 'in{}'.format(i))
+                    workflow.connect(node, node_input,
+                                     merge_link_node, 'in{}'.format(i))
 
                 workflow.connect(merge_link_node, 'out', link_node, 'paths')
-
 
             try:
                 G = nx.DiGraph()
@@ -3758,224 +3817,229 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         logger.info(forks)
 
 
-        pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+        try:
 
-        subject_info['resource_pool'] = []
+            pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
-        for strat_no, strat in enumerate(strat_list):
-            strat_label = 'strat_%d' % strat_no
-            subject_info[strat_label] = strat.get_name()
-            subject_info['resource_pool'].append(strat.get_resource_pool())
+            subject_info['resource_pool'] = []
 
-        subject_info['status'] = 'Running'
+            for strat_no, strat in enumerate(strat_list):
+                strat_label = 'strat_%d' % strat_no
+                subject_info[strat_label] = strat.get_name()
+                subject_info['resource_pool'].append(strat.get_resource_pool())
 
-        # TODO:set memory and num_threads of critical nodes if running
-        # MultiProcPlugin
+            subject_info['status'] = 'Running'
 
-        # Create callback logger
-        cb_log_filename = os.path.join(log_dir,
+            # Create callback logger
+            cb_log_filename = os.path.join(log_dir,
                                         'callback.log')
 
-        try:
-            if not os.path.exists(os.path.dirname(cb_log_filename)):
-                os.makedirs(os.path.dirname(cb_log_filename))
-        except IOError:
-            pass
+            try:
+                if not os.path.exists(os.path.dirname(cb_log_filename)):
+                    os.makedirs(os.path.dirname(cb_log_filename))
+            except IOError:
+                pass
 
-        # Add handler to callback log file
-        cb_logger = cb_logging.getLogger('callback')
-        cb_logger.setLevel(cb_logging.DEBUG)
-        handler = cb_logging.FileHandler(cb_log_filename)
-        cb_logger.addHandler(handler)
+            # Add handler to callback log file
+            cb_logger = cb_logging.getLogger('callback')
+            cb_logger.setLevel(cb_logging.DEBUG)
+            handler = cb_logging.FileHandler(cb_log_filename)
+            cb_logger.addHandler(handler)
 
-        # Log initial information from all the nodes
-        for node_name in workflow.list_node_names():
-            node = workflow.get_node(node_name)
-            cb_logger.debug(json.dumps({
-                "id": str(node),
-                "hash": node.inputs.get_hashval()[1],
-            }))
+            # Log initial information from all the nodes
+            for node_name in workflow.list_node_names():
+                node = workflow.get_node(node_name)
+                cb_logger.debug(json.dumps({
+                    "id": str(node),
+                    "hash": node.inputs.get_hashval()[1],
+                }))
 
-        # Add status callback function that writes in callback log
-        if nipype.__version__ not in ('1.1.2'):
-            err_msg = "This version of Nipype may not be compatible with " \
-                        "CPAC v%s, please install Nipype version 1.1.2\n" \
-                        % (CPAC.__version__)
-            logger.error(err_msg)
-        else:
-            from CPAC.utils.monitoring import log_nodes_cb
-            plugin_args['status_callback'] = log_nodes_cb
+            # Add status callback function that writes in callback log
+            if nipype.__version__ not in ('1.1.2'):
+                err_msg = "This version of Nipype may not be compatible with " \
+                            "CPAC v%s, please install Nipype version 1.1.2\n" \
+                            % (CPAC.__version__)
+                logger.error(err_msg)
+            else:
+                from CPAC.utils.monitoring import log_nodes_cb
+                plugin_args['status_callback'] = log_nodes_cb
+
+                
+            # Actually run the pipeline now, for the current subject
+            workflow.run(plugin=plugin, plugin_args=plugin_args)
 
 
-        # Actually run the pipeline now, for the current subject
-        workflow.run(plugin=plugin, plugin_args=plugin_args)
+            # Dump subject info pickle file to subject log dir
+            subject_info['status'] = 'Completed'
 
+            subject_info_file = os.path.join(
+                log_dir, 'subject_info_%s.pkl' % subject_id
+            )
+            with open(subject_info_file, 'wb') as info:
+                pickle.dump(subject_info, info)
 
-        # Dump subject info pickle file to subject log dir
-        subject_info['status'] = 'Completed'
+            for i, _ in enumerate(pipeline_ids):
+                for scan in scan_ids:
+                    create_log_node(workflow, None, None, i, scan).run()
 
-        subject_info_file = os.path.join(
-            log_dir, 'subject_info_%s.pkl' % subject_id
-        )
-        with open(subject_info_file, 'wb') as info:
-            pickle.dump(subject_info, info)
-
-        for i, _ in enumerate(pipeline_ids):
-            for scan in scan_ids:
-                create_log_node(workflow, None, None, i, scan).run()
-
-        if 1 in c.generateQualityControlImages and not ndmg_out:
-            for pip_id in pipeline_ids:
-                pipeline_base = os.path.join(c.outputDirectory,
+            if 1 in c.generateQualityControlImages and not ndmg_out:
+                for pip_id in pipeline_ids:
+                    pipeline_base = os.path.join(c.outputDirectory,
                                                 'pipeline_%s' % pip_id)
-                qc_output_folder = os.path.join(pipeline_base, subject_id,
-                                                'qc_html')
-                sub_output_dir = os.path.join(c.outputDirectory,
-                                                'pipeline_{0}'.format(pip_id),
-                                                subject_id)
 
-                generate_qc_pages(qc_output_folder,
+                    sub_output_dir = os.path.join(pipeline_base, subject_id)
+                    qc_output_folder = os.path.join(sub_output_dir, 'qc_html')
+
+                    generate_qc_pages(qc_output_folder,
                                     sub_output_dir,
                                     qc_montage_id_a,
                                     qc_montage_id_s,
                                     qc_plot_id,
                                     qc_hist_id)
 
-        # have this check in case the user runs cpac_runner from terminal and
-        # the timing parameter list is not supplied as usual by the GUI
-        if pipeline_timing_info != None:
+            # have this check in case the user runs cpac_runner from terminal and
+            # the timing parameter list is not supplied as usual by the GUI
+            if pipeline_timing_info != None:
 
-            # pipeline_timing_info list:
-            #  [0] - unique pipeline ID
-            #  [1] - pipeline start time stamp (first click of 'run' from GUI)
-            #  [2] - number of subjects in subject list
-            unique_pipeline_id = pipeline_timing_info[0]
-            pipeline_start_stamp = pipeline_timing_info[1]
-            num_subjects = pipeline_timing_info[2]
+                # pipeline_timing_info list:
+                #  [0] - unique pipeline ID
+                #  [1] - pipeline start time stamp (first click of 'run' from GUI)
+                #  [2] - number of subjects in subject list
+                unique_pipeline_id = pipeline_timing_info[0]
+                pipeline_start_stamp = pipeline_timing_info[1]
+                num_subjects = pipeline_timing_info[2]
 
-            # elapsed time data list:
-            #  [0] - elapsed time in minutes
-            elapsed_time_data = []
+                # elapsed time data list:
+                #  [0] - elapsed time in minutes
+                elapsed_time_data = []
 
-            elapsed_time_data.append(
-                int(((time.time() - pipeline_start_time) / 60)))
+                elapsed_time_data.append(
+                    int(((time.time() - pipeline_start_time) / 60)))
 
-            # elapsedTimeBin list:
-            #  [0] - cumulative elapsed time (minutes) across all subjects
-            #  [1] - number of times the elapsed time has been appended
-            #        (effectively a measure of how many subjects have run)
+                # elapsedTimeBin list:
+                #  [0] - cumulative elapsed time (minutes) across all subjects
+                #  [1] - number of times the elapsed time has been appended
+                #        (effectively a measure of how many subjects have run)
 
-            # TODO
-            # write more doc for all this
-            # warning in .csv that some runs may be partial
-            # code to delete .tmp file
+                # TODO
+                # write more doc for all this
+                # warning in .csv that some runs may be partial
+                # code to delete .tmp file
 
-            timing_temp_file_path = os.path.join(c.logDirectory,
+                timing_temp_file_path = os.path.join(c.logDirectory,
                                                     '%s_pipeline_timing.tmp' % unique_pipeline_id)
 
-            if not os.path.isfile(timing_temp_file_path):
-                elapsedTimeBin = []
-                elapsedTimeBin.append(0)
-                elapsedTimeBin.append(0)
+                if not os.path.isfile(timing_temp_file_path):
+                    elapsedTimeBin = []
+                    elapsedTimeBin.append(0)
+                    elapsedTimeBin.append(0)
+
+                    with open(timing_temp_file_path, 'wb') as handle:
+                        pickle.dump(elapsedTimeBin, handle)
+
+                with open(timing_temp_file_path, 'rb') as handle:
+                    elapsedTimeBin = pickle.loads(handle.read())
+
+                elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
+                elapsedTimeBin[1] = elapsedTimeBin[1] + 1
 
                 with open(timing_temp_file_path, 'wb') as handle:
                     pickle.dump(elapsedTimeBin, handle)
 
-            with open(timing_temp_file_path, 'rb') as handle:
-                elapsedTimeBin = pickle.loads(handle.read())
+                # this happens once the last subject has finished running!
+                if elapsedTimeBin[1] == num_subjects:
 
-            elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
-            elapsedTimeBin[1] = elapsedTimeBin[1] + 1
+                    pipelineTimeDict = {}
+                    pipelineTimeDict['Pipeline'] = c.pipelineName
+                    pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
+                    pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
+                    pipelineTimeDict['Number_of_Subjects'] = num_subjects
+                    pipelineTimeDict['Start_Time'] = pipeline_start_stamp
+                    pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+                    pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
+                    pipelineTimeDict['Status'] = 'Complete'
 
-            with open(timing_temp_file_path, 'wb') as handle:
-                pickle.dump(elapsedTimeBin, handle)
+                    gpaTimeFields = [
+                        'Pipeline', 'Cores_Per_Subject',
+                        'Simultaneous_Subjects',
+                        'Number_of_Subjects', 'Start_Time',
+                        'End_Time', 'Elapsed_Time_(minutes)',
+                        'Status'
+                    ]
+                    timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
 
-            # this happens once the last subject has finished running!
-            if elapsedTimeBin[1] == num_subjects:
+                    with open(os.path.join(
+                        c.logDirectory,
+                        'cpac_individual_timing_%s.csv' % c.pipelineName
+                    ), 'a') as timeCSV, open(os.path.join(
+                        c.logDirectory,
+                        'cpac_individual_timing_%s.csv' % c.pipelineName
+                    ), 'rb') as readTimeCSV:
 
-                pipelineTimeDict = {}
-                pipelineTimeDict['Pipeline'] = c.pipelineName
-                pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
-                pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
-                pipelineTimeDict['Number_of_Subjects'] = num_subjects
-                pipelineTimeDict['Start_Time'] = pipeline_start_stamp
-                pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
-                pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
-                pipelineTimeDict['Status'] = 'Complete'
+                        timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                        timeReader = csv.DictReader(readTimeCSV)
 
-                gpaTimeFields = ['Pipeline', 'Cores_Per_Subject',
-                                    'Simultaneous_Subjects',
-                                    'Number_of_Subjects', 'Start_Time',
-                                    'End_Time', 'Elapsed_Time_(minutes)',
-                                    'Status']
-                timeHeader = dict((n, n) for n in gpaTimeFields)
+                        headerExists = False
+                        for line in timeReader:
+                            if 'Start_Time' in line:
+                                headerExists = True
 
-                with open(os.path.join(
-                    c.logDirectory,
-                    'cpac_individual_timing_%s.csv' % c.pipelineName
-                ), 'a') as timeCSV, open(os.path.join(
-                    c.logDirectory,
-                    'cpac_individual_timing_%s.csv' % c.pipelineName
-                ), 'rb') as readTimeCSV:
+                        if headerExists == False:
+                            timeWriter.writerow(timeHeader)
 
-                    timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-                    timeReader = csv.DictReader(readTimeCSV)
+                        timeWriter.writerow(pipelineTimeDict)
 
-                    headerExists = False
-                    for line in timeReader:
-                        if 'Start_Time' in line:
-                            headerExists = True
+                    # remove the temp timing file now that it is no longer needed
+                    os.remove(timing_temp_file_path)
 
-                    if headerExists == False:
-                        timeWriter.writerow(timeHeader)
+            # Upload logs to s3 if s3_str in output directory
+            if c.outputDirectory.lower().startswith('s3://'):
 
-                    timeWriter.writerow(pipelineTimeDict)
+                try:
+                    # Store logs in s3 output director/logs/...
+                    s3_log_dir = os.path.join(
+                        c.outputDirectory,
+                        'logs',
+                        os.path.basename(log_dir)
+                    )
+                    bucket_name = c.outputDirectory.split('/')[2]
+                    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
-                # remove the temp timing file now that it is no longer needed
-                os.remove(timing_temp_file_path)
+                    # Collect local log files
+                    local_log_files = []
+                    for root, _, files in os.walk(log_dir):
+                        local_log_files.extend([os.path.join(root, fil)
+                                                for fil in files])
+                    # Form destination keys
+                    s3_log_files = [loc.replace(log_dir, s3_log_dir)
+                                    for loc in local_log_files]
+                    # Upload logs
+                    aws_utils.s3_upload(bucket,
+                                        (local_log_files, s3_log_files),
+                                        encrypt=encrypt_data)
+                    # Delete local log files
+                    for log_f in local_log_files:
+                        os.remove(log_f)
 
-        # Upload logs to s3 if s3_str in output directory
-        if c.outputDirectory.lower().startswith('s3://'):
+                except Exception as exc:
+                    err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
+                    logger.error(err_msg, log_dir, exc)
 
-            try:
-                # Store logs in s3 output director/logs/...
-                s3_log_dir = c.outputDirectory + '/logs/' + \
-                    os.path.basename(log_dir)
-                bucket_name = c.outputDirectory.split('/')[2]
-                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+        finally:
 
-                # Collect local log files
-                local_log_files = []
-                for root, _, files in os.walk(log_dir):
-                    local_log_files.extend([os.path.join(root, fil)
-                                            for fil in files])
-                # Form destination keys
-                s3_log_files = [loc.replace(log_dir, s3_log_dir)
-                                for loc in local_log_files]
-                # Upload logs
-                aws_utils.s3_upload(bucket,
-                                    (local_log_files, s3_log_files),
-                                    encrypt=encrypt_data)
-                # Delete local log files
-                for log_f in local_log_files:
-                    os.remove(log_f)
+            # Remove working directory when done
+            if c.removeWorkingDir:
+                try:
+                    subject_wd = os.path.join(c.workingDirectory, workflow_name)
+                    if os.path.exists(subject_wd):
+                        logger.info("Removing working dir: %s" % subject_wd)
+                        shutil.rmtree(subject_wd)
+                except:
+                    logger.warn('Could not remove subjects %s working directory',
+                                workflow_name)
 
-            except Exception as exc:
-                err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
-                logger.error(err_msg, log_dir, exc)
 
-        # Remove working directory when done
-        if c.removeWorkingDir:
-            try:
-                subject_wd = os.path.join(c.workingDirectory, workflow_name)
-                if os.path.exists(subject_wd):
-                    logger.info("Removing working dir: %s" % subject_wd)
-                    shutil.rmtree(subject_wd)
-            except:
-                logger.warn('Could not remove subjects %s working directory',
-                            workflow_name)
-
-        execution_info = """
+            execution_info = """
 
     End of subject workflow {workflow}
 
@@ -3989,13 +4053,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         System time of completion: {run_finish}
 
     """
-        logger.info(execution_info.format(
-            workflow=workflow_name,
-            pipeline=c.pipelineName,
-            log_dir=c.logDirectory,
-            elapsed=(time.time() - pipeline_start_time) / 60,
-            run_start=pipeline_start_datetime,
-            run_finish=strftime("%Y-%m-%d %H:%M:%S")
-        ))
+            logger.info(execution_info.format(
+                workflow=workflow_name,
+                pipeline=c.pipelineName,
+                log_dir=c.logDirectory,
+                elapsed=(time.time() - pipeline_start_time) / 60,
+                run_start=pipeline_start_datetime,
+                run_finish=strftime("%Y-%m-%d %H:%M:%S")
+            ))
 
     return workflow
