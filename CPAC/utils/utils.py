@@ -1084,33 +1084,47 @@ def setup_logger(logger_name, file_path, level, to_screen=False):
     return logger
 
 
-def check_system_deps(check_ants=False, check_ica_aroma=False):
+def check_command_path(path):
+    import os
+    return os.system("%s >/dev/null 2>&1" % path) != 32512
+
+
+def check_system_deps(check_ants=False,
+                      check_ica_aroma=False,
+                      check_centrality_degree=False,
+                      check_centrality_lfcd=False):
     '''
     Function to check system for neuroimaging tools AFNI, C3D, FSL,
     and (optionally) ANTs
     '''
 
-    # Import packages
-    import os
-
-    # Init variables
     missing_install = []
 
     # Check AFNI
-    if os.system("3dcalc >/dev/null 2>&1") == 32512:
+    if not check_command_path("3dcalc"):
         missing_install.append("AFNI")
+
     # Check FSL
-    if os.system("fslmaths >/dev/null 2>&1") == 32512:
+    if not check_command_path("fslmaths"):
         missing_install.append("FSL")
+
     # Check ANTs/C3D
     if check_ants:
-        if os.system("c3d_affine_tool >/dev/null 2>&1") == 32512:
+        if not check_command_path("c3d_affine_tool"):
             missing_install.append("C3D")
-        if os.system("antsRegistration >/dev/null 2>&1") == 32512:
+        if not check_command_path("antsRegistration"):
             missing_install.append("ANTS")
+
+    if check_centrality_degree:
+        if not check_command_path("3dDegreeCentrality"):
+            missing_install.append("3dDegreeCentrality")
+    if check_centrality_lfcd:
+        if not check_command_path("3dLFCD"):
+            missing_install.append("3dLFCD")
+        
     # Check ICA-AROMA
     if check_ica_aroma:
-        if os.system("ICA_AROMA.py >/dev/null 2>&1") == 32512:
+        if not check_command_path("ICA_AROMA.py"):
             missing_install.append("ICA-AROMA")
 
     # If we're missing deps, raise Exception
