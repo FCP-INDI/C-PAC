@@ -95,7 +95,6 @@ conda_packages=(
 pip_packages=(
     "boto3==1.7.37"
     "configparser==3.7.4"
-    "fs==0.5.4"
     "future==0.16.0"
     "INDI-Tools==0.0.6"
     "lockfile==0.12.2"
