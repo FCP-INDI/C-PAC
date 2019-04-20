@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 SETUP_SCRIPT=""
 
 function cleanup {

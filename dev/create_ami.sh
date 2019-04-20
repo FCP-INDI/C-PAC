@@ -9,7 +9,11 @@ then
     REGION="us-east-1"
 fi
 
-VERSION=`cat ./version`
+VERSION=$2
+if [ -z "$VERSION" ]
+then
+    VERSION=`cat ./version`
+fi
 
 AMI_NAME="C-PAC ${VERSION}"
 AMI_DESCRIPTION="Configurable Pipeline for the Analysis of Connectomes - Version ${VERSION}"
