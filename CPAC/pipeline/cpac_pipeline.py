@@ -1499,7 +1499,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file, func_preproc,
                                 'inputspec.func')
 
-                func_preproc.inputs.inputspec.twopass = c.funcional_volreg_twopass == 'On'
+                func_preproc.inputs.inputspec.twopass = \
+                    getattr(c, 'funcional_volreg_twopass', 'On') == 'On'
 
                 # TODO ASH review forking
                 if 'BET' in c.functionalMasking:
@@ -1542,7 +1543,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file, func_preproc,
                                 'inputspec.func')
 
-                func_preproc.inputs.inputspec.twopass = c.funcional_volreg_twopass == 'On'
+                func_preproc.inputs.inputspec.twopass = \
+                    getattr(c, 'funcional_volreg_twopass', 'On') == 'On'
 
                 strat.append_name(func_preproc.name)
 

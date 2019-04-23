@@ -109,7 +109,7 @@ class TimeSeriesOptions(wx.ScrolledWindow):
         self.page.add(label="Volume Registration Two-pass", 
                       control=control.CHOICE_BOX,
                       name='funcional_volreg_twopass',
-                      type=dtype.LSTR,
+                      type=dtype.BOOL,
                       comment="This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.",
                       values=["On", "Off"])
 
