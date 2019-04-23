@@ -461,7 +461,14 @@ class Control(wx.Control):
                 if self.get_type() == control_types.CHOICE_BOX:
                     if isinstance(val, list):
                         val = val[0]
-                    self.ctrl.SetStringSelection(val)
+                    
+                    if self.get_datatype() == data_types.BOOL:
+                        if val in ['True', 'False']:
+                            self.ctrl.SetSelection(['True', 'False'].index(val))
+                        else:
+                            self.ctrl.SetStringSelection(val)
+                    else:
+                        self.ctrl.SetStringSelection(val)
                 elif self.get_type() in [control_types.INT_CTRL,
                                          control_types.FLOAT_CTRL]:
                     if str(val) != 'None':
