@@ -67,8 +67,8 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list):
         err = "\n[!] Could not access or read the cpac_outputs.csv " \
               "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
         raise Exception(err)
-    resource_list = ['functional_nuisance_residuals']
-    derivatives = list(keys[keys['Space'] == 'functional'][keys['Functional timeseries'] == 'yes']['Resource'])
+    resource_list = ['functional_to_standard']
+    derivatives = list(keys[keys['Space'] == 'template'][keys['Functional timeseries'] == 'yes']['Resource'])
 
     nifti_globs, search_dirs = gather_nifti_globs(pipeline_folder, resource_list, derivatives)
 
@@ -80,20 +80,20 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list):
     # scans included, and/or the sessions included
     # 4. Our final output df will contain, file paths for the .nii files of all the participants that are included in the
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
-    f= open("/home/nrajamani/C-PAC/CPAC/QPP/op_dict.pkl",'wb')
-    pickle.dump(output_df_dict,f)
-    f.close()
+
     return output_df_dict
 
 
 def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                  grp_by_strat=None):
+
     for unique_resource in output_df_dict.keys():
 
         resource_id = unique_resource[0]
         strat_info = unique_resource[1]
+
         output_df = output_df_dict[unique_resource]
-        output_df.to_pickle("/home/nrajamani/C-PAC/CPAC/QPP/op_df.pkl")
+
         if "Series" in output_df:
             output_df.rename(columns={"Series": "Scan"},
                              inplace=True)
@@ -286,7 +286,7 @@ def use_inputs(group_config_file):
         subject_list = newer_output_df["Filepath"].tolist()
         for subject in subject_list:
             sub_img = nib.load(subject)
-            if sub_img.shape == 3:
+            if len(sub_img.shape) == 3:
                 use_other_function = False
                 merge_outfile = os.path.join(out_dir, '_merged.nii.gz')
                 merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)

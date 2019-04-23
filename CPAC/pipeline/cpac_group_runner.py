@@ -1938,37 +1938,35 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                 isfc_wf.run()
 
 
-def run_qpp_group(group_config_file):
-    from CPAC.QPP.prep_QPP import use_inputs
-    #creating output directory paths
-    use_other_function,merge_mask,subject_list,inclusion_list,out_dir,nrn = use_inputs(group_config_file)
-
-    return use_other_function,merge_mask,subject_list,inclusion_list,out_dir,nrn
-
-
 def run_qpp(group_config_file):
     import os
+    from CPAC.QPP.prep_QPP import use_inputs
     from CPAC.QPP.detectqppv import qppv
 
     group_config_file = os.path.abspath(group_config_file)
-    use_other_function,merge_mask,subject_list,inclusion_list,out_dir,nrn = run_qpp_group(group_config_file)
-
     group_config_obj = load_config_yml(group_config_file)
 
     working_dir = group_config_obj.work_dir
     crash_dir = group_config_obj.log_dir
 
-    flag_3d_4d=use_other_function
-    img_list=subject_list
-    wl  = group_config_obj.qpp_wl
+    use_other_function, merge_file, merge_mask, subject_list, inclusion_list, out_dir, nrn = use_inputs(group_config_file)
+
+    flag_3d_4d = use_other_function
+    img_list = subject_list
+    wl = group_config_obj.qpp_wl
     cth = group_config_obj.qpp_cth
-    cth = cth.split(',')
+
+    try:
+        cth = cth.split(',')
+    except AttributeError:
+        pass
+
     n_itr_th = group_config_obj.qpp_n_iter_th
     mx_itr = group_config_obj.qpp_mx_iter
     nsubj = len(img_list)
 
-
-    qppv(img_list,merge_mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,out_dir,nsubj,nrn)
+    qppv(merge_file, merge_mask, flag_3d_4d, wl, cth, n_itr_th, mx_itr, nsubj, 
+         nrn, out_dir)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

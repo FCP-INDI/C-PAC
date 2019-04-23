@@ -12,27 +12,57 @@ import time
 import sys
 from sklearn.decomposition import PCA
 
+
 def check_merge_list(merge_list):
 
     char_1=merge_list[0]
     equality_flag=True
+
     for chars in merge_list[1:]:
         if chars.shape != char_1.shape:
             equality_flag = False
             break
+
     if equality_flag == True:
         return True
     else:
         return False
-    #merged_empty = np.empty((nsubj, nrn, r_subject.shape[0], r_subject.shape[1]))
 
 
-def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
+def qppv(img, mask, data_is_4d, wl, cth, n_itr_th, mx_itr, nsubj, nrn, out_dir):
+    """Calculate the QPP template.
+
+    Inputs::
+        img: string
+            file path to NIFTI file of concatenated time series
+        mask: string
+            file path to NIFTI file of the binary mask of the time series
+        data_is_4d: boolean
+            False if input data is 3D instead of 4D
+        wl: integer
+            window length. default: 50
+        cth: float
+            c threshold. default: 0.2
+        n_itr_th: integer
+            number of early iterations. default: 2
+        mx_itr: integer
+            maximum number of iterations. default: 50
+        nsubj: integer
+            number of different participant time series in the concatenated
+            time series
+        nrn: integer
+            number of runs or scans per participant
+        out_dir: string
+            path of the output directory to write outputs into
+
+    Outputs::
+        None
+    """
 
     nrn = int(nrn)
     nsubj=int(nsubj)
 
-    if flag_3d_4d == False:
+    if not data_is_4d:
         mask=nib.load(mask)
 
         ##This is the function to import the img into an array object
@@ -73,7 +103,8 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
         img = np.around(img, decimals=4)
         A = np.isnan(img)
         img[A] = 0
-    else:
+
+    elif data_is_4d:
         if img.endswith('.mat'):
 
             D_file = scipy.io.loadmat(img)
@@ -96,17 +127,21 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
             template_axis_2 = img.shape[1]
             A = np.isnan(img)
             mask=nib.load(mask)
+
         else:
             sub_img = nib.load(img)
-            print(sub_img.shape[3])
             sub_img=np.array(sub_img.dataobj)
-            sub_img=sub_img.reshape(sub_img.shape[0]*sub_img.shape[1]*sub_img[2],sub_img.shape[3])
-            for i in range(sub_img.shape[2]):
-                temp_arr=np.array(sub_img[i,:])
+
+            new_xyz_shape = sub_img.shape[0] * sub_img.shape[1] * sub_img.shape[2]
+            flat_sub_img = sub_img.reshape(new_xyz_shape, sub_img.shape[3])
+
+            for i in range(flat_sub_img.shape[1]):
+                temp_arr = np.array(flat_sub_img[i,:])
                 mean_arr = np.mean(temp_arr)
                 std_arr = np.std(temp_arr)
                 zscore_arr = (temp_arr - mean_arr) / std_arr
-                sub_img[i,:] = zscore_arr
+                flat_sub_img[i,:] = zscore_arr
+
             nx = sub_img.shape[0]
             nt = sub_img.shape[1]
             nd = nsubj*nrn
@@ -114,14 +149,15 @@ def qppv(img,mask,flag_3d_4d,wl,cth,n_itr_th,mx_itr,pfs,nsubj,nrn):
             mask = nib.load(mask)
             mask_array = mask.dataobj
             mask = np.array(mask_array)
-            print(mask.shape)
 
     start_time = time.time()
 
     #generate qpp
-    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(sub_img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, pfs,nx,nt)
+    img,nd,best_template,time_course_sum_correlation,path_for_saving=qpp_wf(sub_img, mask, nd, wl, nrp, cth, n_itr_th, mx_itr, out_dir,nx,nt)
 
     print("-----%s seconds ----"%(time.time() - start_time))
+
+
 if __name__ == "__main__":
     img = '/home/nrajamani/C-PAC/CPAC/QPP/merged_1.nii.gz'
     mask = '/home/nrajamani/C-PAC/CPAC/QPP/merged_mask_1.nii.gz'
