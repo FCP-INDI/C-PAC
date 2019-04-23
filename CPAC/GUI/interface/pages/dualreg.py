@@ -37,7 +37,7 @@ class DualRegressionOptions(wx.ScrolledWindow):
                      control=control.CHOICE_BOX, 
                      name='drNorm', 
                      type=dtype.BOOL, 
-                     values = ["True", "False"],
+                     values = ["On", "Off"],
                      comment="Normalize time series before running Dual Regression.")
                 
 

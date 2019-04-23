@@ -63,7 +63,7 @@ class SCASettings(wx.ScrolledWindow):
                      control=control.CHOICE_BOX, 
                      name='mrsNorm', 
                      type=dtype.BOOL, 
-                     values = ["True", "False"],
+                     values = ["On", "Off"],
                      comment="Normalize each time series before running " \
                              "Dual Regression SCA.")
 
@@ -98,14 +98,14 @@ class MultipleRegressionSCA(wx.ScrolledWindow):
                      control=control.CHOICE_BOX, 
                      name='mrsDemean', 
                      type=dtype.BOOL, 
-                     values = ["True", "False"],
+                     values = ["On", "Off"],
                      comment="Demean each time series before running Multiple Regression SCA.")
                 
         self.page.add(label="Normalize Time Series ", 
                      control=control.CHOICE_BOX, 
                      name='mrsNorm', 
                      type=dtype.BOOL, 
-                     values = ["True", "False"],
+                     values = ["On", "Off"],
                      comment="Normalize each time series before running Multiple Regression SCA.")
         
         self.page.set_sizer()

@@ -629,7 +629,7 @@ class BASCSettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='basc_cross_cluster',
                       type=dtype.BOOL,
-                      values=["True", "False"],
+                      values=["On", "Off"],
                       comment="")
 
         self.page.add(label="Blocklength List ",
@@ -643,7 +643,7 @@ class BASCSettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='basc_group_dim_reduce',
                       type=dtype.BOOL,
-                      values=["False", "True"],
+                      values=["On", "Off"],
                       comment="")
 
         self.page.set_sizer()
