@@ -17,7 +17,7 @@ from CPAC.GUI.interface.pages import (
     FilteringSettings,
     TimeSeries, EPI_DistCorr, ROITimeseries,
     GroupAnalysis, GeneralGA, GPASettings, MDMRSettings, ISCSettings, RandomiseSettings,
-    TimeSeriesOptions, BASCSettings,
+    TimeSeriesOptions, BASCSettings,QPPSettings,
     AROMA_ICA, AromaSettings
 )
 
@@ -185,6 +185,7 @@ class Mybook(wx.Treebook):
             page49 = BASCSettings(self)
             page50 = MDMRSettings(self)
             page51 = ISCSettings(self)
+            page52 = QPPSettings(self)
 
             self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
             self.AddSubPage(page46, "General Settings", wx.ID_ANY)
@@ -193,7 +194,7 @@ class Mybook(wx.Treebook):
             self.AddSubPage(page49, "PyBASC Settings", wx.ID_ANY)
             self.AddSubPage(page50, "MDMR Settings", wx.ID_ANY)
             self.AddSubPage(page51, "ISC Settings", wx.ID_ANY)
-
+            self.AddSubPage(page52, "QPP Settings", wx.ID_ANY)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
 
