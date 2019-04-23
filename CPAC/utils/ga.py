@@ -28,7 +28,7 @@ def get_or_create_config():
 
 def get_uid():
     if os.environ.get('CPAC_TRACKING', '').lower() not in ['', '0', 'false', 'off']:
-        return  os.environ.get('CPAC_TRACKING')
+        return os.environ.get('CPAC_TRACKING')
 
     parser = get_or_create_config()
     if parser['user'].getboolean('track'):
@@ -39,7 +39,7 @@ def get_uid():
 
 def do_it(data, timeout):
     try:
-        headers = { 'User-Agent': 'C-PAC/1.4.0 (https://fcp-indi.github.io)' }
+        headers = { 'User-Agent': 'C-PAC/{} (https://fcp-indi.github.io)'.format(__version__) }
         response = requests.post('https://www.google-analytics.com/collect', data=data, timeout=timeout, headers=headers)
         return response
     except:

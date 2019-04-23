@@ -50,7 +50,10 @@ def gui():
 @click.argument('data_config')
 @click.option('--pipe_config')
 @click.option('--num_cores')
-def run(data_config, pipe_config=None, num_cores=None):
+@click.option('--ndmg_mode', is_flag=True)
+@click.option('--debug', is_flag=True)
+def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False, 
+        debug=False):
     if not pipe_config:
         import os
         import pkg_resources as p
@@ -77,6 +80,15 @@ def run(data_config, pipe_config=None, num_cores=None):
                                 os.path.join("resources",
                                              "configs",
                                              "pipeline_config_benchmark-FNIRT.yml"))
+
+    if pipe_config == 'anat-only':
+        import os
+        import pkg_resources as p
+        pipe_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_anat-only.yml"))
 
     if data_config == 'benchmark-data':
         import os
@@ -120,8 +132,18 @@ def run(data_config, pipe_config=None, num_cores=None):
                                              "configs",
                                              "data_config_S3-BIDS-NKI-RocklandSample.yml"))
 
+    if ndmg_mode:
+        import os
+        import pkg_resources as p
+        pipe_config = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_ndmg.yml"))
+
     import CPAC.pipeline.cpac_runner as cpac_runner
-    cpac_runner.run(pipe_config, data_config, num_subs_at_once=num_cores)
+    cpac_runner.run(pipe_config, data_config, num_subs_at_once=num_cores,
+                    debug=debug)
 
 
 # Group analysis

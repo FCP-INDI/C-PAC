@@ -73,7 +73,7 @@ RUN git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
     ./configure && \
     make && \
     make install && \
-    cd / && \
+    cd - && \
     rm -rf /tmp/libXp
 
 # Installing and setting up c3d
@@ -115,16 +115,14 @@ ENV FSLDIR=/usr/share/fsl/5.0 \
     PATH=/usr/lib/fsl/5.0:$PATH
 
 # install CPAC resources into FSL
-RUN cd /tmp && \
-    curl -sO http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz && \
-    tar xfz cpac_resources.tar.gz && \
-    cd cpac_image_resources && \
-    cp -n MNI_3mm/* $FSLDIR/data/standard && \
-    cp -n MNI_4mm/* $FSLDIR/data/standard && \
-    cp -n symmetric/* $FSLDIR/data/standard && \
-    cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-    cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-    cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
+RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
+    tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
+    cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
+    cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford && \
+    cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
+    cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
 # install ANTs
 RUN apt-get update && \
@@ -173,11 +171,17 @@ COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
 RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
     rm -f /cpac_resources/cpac_templates.tar.gz
 
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+RUN apt-get install git-lfs
+RUN git lfs install
+
 # Get atlases
 RUN mkdir /ndmg_atlases && \
-    curl https://s3.amazonaws.com/mrneurodata/data/resources/ndmg_atlases.zip -o /ndmg_atlases/ndmg_atlases.zip && \
-    cd /ndmg_atlases && unzip /ndmg_atlases/ndmg_atlases.zip && \
-    rm /ndmg_atlases/ndmg_atlases.zip
+    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
+    cd /tmp/neuroparc && \
+    git lfs pull -I "atlases/label/*" && \
+    cp -r /tmp/neuroparc/atlases/label /ndmg_atlases/label && \
+    cd -
 
 # clean up
 RUN apt-get clean && \
@@ -193,7 +197,6 @@ RUN chmod +x /code/run.py
 
 # copy useful pipeline scripts
 COPY default_pipeline.yaml /cpac_resources/default_pipeline.yaml
-COPY test_pipeline.yaml /cpac_resources/test_pipeline.yaml
 COPY pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
 ENTRYPOINT ["/code/run.py"]

@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.3.0
+# Version 1.4.2
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -13,7 +13,7 @@ runOnGrid :  False
 
 # Full path to the FSL version to be used by CPAC.
 # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-FSLDIR :  /usr/share/fsl/5.0
+FSLDIR :  FSLDIR
 
 
 # Sun Grid Engine (SGE), Portable Batch System (PBS), or Simple Linux Utility for Resource Management (SLURM).
@@ -23,7 +23,7 @@ resourceManager :  SGE
 
 # SGE Parallel Environment to use when running CPAC.
 # Only applies when you are running on a grid or compute cluster using SGE.
-parallelEnvironment :  mpi_smp
+parallelEnvironment :  cpac
 
 
 # SGE Queue to use when running CPAC.
@@ -31,48 +31,48 @@ parallelEnvironment :  mpi_smp
 queue :  all.q
 
 
-# Memory to allocate per subject.
-# IMPORTANT: 'Memory Per Subject' multiplied by 'Number of Subjects to Run Simultaneously' must not be more than the total amount of RAM
-memoryAllocatedPerSubject :  1
+# The maximum amount of memory each participant's workflow can allocate. Use this to place an upper bound of memory usage. Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously' must not be more than the total amount of RAM. Conversely, using too little RAM can impede the speed of a pipeline run. It is recommended that you set this to a value that when multiplied by 'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
+maximumMemoryPerParticipant :  3
 
 
-# Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.
-# IMPORTANT: 'Number of Cores Per Subject' multiplied by 'Number of Subjects to Run Simultaneously' multiplied by 'Number of Cores for Anatomical Registration (ANTS only)' must not be greater than the total number of cores.
-numCoresPerSubject :  1
+# The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid) to allocate per participant. Setting this above 1 will parallelize each participant's workflow where possible. If you wish to dedicate multiple cores to ANTS-based anatomical registration (below), this value must be equal or higher than the amount of cores provided to ANTS. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of participants set to run in parallel (the 'Number ofParticipants to Run Simultaneously' setting).
+maxCoresPerParticipant :  1
 
 
-# This number depends on computing resources.
-# IMPORTANT: 'Number of Cores Per Subject' multiplied by 'Number of Subjects to Run Simultaneously' multiplied by 'Number of Cores for Anatomical Registration (ANTS only)' must not be greater than the total number of cores.
-numSubjectsAtOnce :  1
+# The number of participant workflows to run at the same time. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
+numParticipantsAtOnce :  1
 
 
-# This number depends on computing resources.
-# IMPORTANT: 'Number of Cores Per Subject' multiplied by 'Number of Subjects to Run Simultaneously' multiplied by 'Number of Cores for Anatomical Registration (ANTS only)' must not be greater than the total number of cores.
-num_ants_threads :  2
+# The number of cores to allocate to ANTS-based anatomical registration per participant. Multiple cores can greatly speed up this preprocessing step. This number cannot be greater than the number of cores per participant.
+num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  analysis
+pipelineName :  cpac_anat
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  /tmp
+workingDirectory :  ./cpac_runs/anat/working
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  /tmp
+crashLogDirectory :  ./cpac_runs/anat/crash
 
 
 # Directory where CPAC should place run logs.
-logDirectory :  /tmp
+logDirectory :  ./cpac_runs/anat/log
 
 
 # Directory where CPAC should place processed data.
-outputDirectory : /output
+outputDirectory :  ./cpac_runs/anat/output
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
-awsOutputBucketCredentials :
+awsOutputBucketCredentials :  
+
+
+# Enable server-side 256-AES encryption on data to the S3 bucket
+s3Encryption :  [1]
 
 
 # Include extra versions and intermediate steps of functional preprocessing in the output directory.
@@ -87,27 +87,26 @@ write_debugging_outputs :  [0]
 generateQualityControlImages :  [1]
 
 
-# Enable server-side 256-AES encryption on data to the S3 bucket
-s3Encryption :  [0]
-
-
-# Create a user-friendly, well organized version of the output directory.
-# We recommend all users enable this option.
-runSymbolicLinks :  [0]
-
-
-# Generate quality control pages containing preprocessing and derivative outputs.
-generateQualityControlImages :  [0]
-
-
 # Deletes the contents of the Working Directory after running.
 # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
-removeWorkingDir :  True
+removeWorkingDir :  False
+
+
+# Whether to write log details of the pipeline. run to the logging files.
+run_logging :  True
 
 
 # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
 # Requires an intact Working Directory from a previous CPAC run.
 reGenerateOutputs :  False
+
+
+# Create a user-friendly, well organized version of the output directory.
+runSymbolicLinks :  [1]
+
+
+# Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.
+already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
@@ -249,16 +248,16 @@ resolution_for_anat :  2mm
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
-regOption :  ['FSL']
+regOption :  ['ANTS']
 
 
 # Configuration file to be used by FSL to set FNIRT parameters.
@@ -268,72 +267,69 @@ fnirtConfig :  T1_2_MNI152_2mm
 
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
 
 # Register skull-on anatomical image to a template.
-regWithSkull :  [1]
+regWithSkull :  [0]
 
 
-# Disables skull-stripping on the anatomical inputs if they are already skull-stripped
-# outside of C-PAC. Set this to On if your input images are already skull-stripped.
-already_skullstripped :  [0]
-
-
-# Automatically segment anatomical images into white matter, gray matter, and
-# CSF based on prior probability maps.
+# Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
 runSegmentationPreprocessing :  [1]
 
 
 # Full path to a directory containing binarized prior probability maps.
-# These maps are included as part of the 'Image Resource Files' package
-# available on the Install page of the User Guide. It is not necessary
-# to change this path unless you intend to use non-standard priors.
-priors_path :  /usr/share/fsl/5.0/data/standard/tissuepriors/2mm
+# These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+# It is not necessary to change this path unless you intend to use non-standard priors.
+priors_path :  $FSLDIR/data/standard/tissuepriors/2mm
 
 
 # Full path to a binarized White Matter prior probability map.
-# It is not necessary to change this path unless you intend to use
-# non-standard priors.
+# It is not necessary to change this path unless you intend to use non-standard priors.
 PRIORS_WHITE :  $priors_path/avg152T1_white_bin.nii.gz
 
 
 # Full path to a binarized Gray Matter prior probability map.
-# It is not necessary to change this path unless you intend to use
-# non-standard priors.
+# It is not necessary to change this path unless you intend to use non-standard priors.
 PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 
 
 # Full path to a binarized CSF prior probability map.
-# It is not necessary to change this path unless you intend to
-# use non-standard priors.
+# It is not necessary to change this path unless you intend to use non-standard priors.
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
+
+
+# Run functional preproceessing
+runFunctional: [0]
+
+# Interpolate voxel time courses so they are sampled at the same time points.
+slice_timing_correction :  [0]
+
+
+# Specify the TR (in seconds) at which images were acquired.
+# Default is None- TR information is then read from scan parameters in the data configuration file, or the image file header if there is no scan information in the data configuration.
+# Note: the selection chosen here applies to all scans of all participants.
+TR :  None
+
+
+# Acquisition strategy for acquiring image slices.
+# Slice acquisition information is read from scan parameters in the data configuration file- if this is not provided, then this option will apply.
+# Note: the selection here applies to all scans of all participants.
+slice_timing_pattern :  Use NIFTI Header
 
 
 # First timepoint to include in analysis.
 # Default is 0 (beginning of timeseries).
-startIdx :  4
+# First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
+# Note: the selection here applies to all scans of all participants.
+startIdx :  0
 
 
 # Last timepoint to include in analysis.
 # Default is None or End (end of timeseries).
+# Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
+# Note: the selection here applies to all scans of all participants.
 stopIdx :  None
-
-
-# Specify the TR at which images were acquired.
-# Default is None (TR information is read from image file header)
-TR :  None
-
-
-# Run functional preproceessing
-runFunctional: [1]
-
-# Interpolate voxel time courses so they are sampled at the same time points.
-slice_timing_correction :  [1]
-
-
-# Acquisition strategy for acquiring image slices.
-slice_timing_pattern :  ['Use NIFTI Header']
 
 
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
@@ -367,30 +363,27 @@ fmap_distcorr_dwell_asym_ratio : [0.93902439]
 
 
 # Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir :  x
+fmap_distcorr_pedir :  -y
 
 
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
+
 # Run Functional to Anatomical Registration with BB Register
-runBBReg :  [1]
+runBBReg :  [0]
+
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
 
 
-# Choose whether to use the mean of the functional/EPI as the input to
-# functional-to-anatomical registration or one of the volumes from the
-# functional 4D timeseries that you choose.
+# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
 func_reg_input :  ['Mean Functional']
 
 
-# Only for when 'Use as Functional-to-Anatomical Registration Input' is
-# set to 'Selected Functional Volume'. Input the index of which volume
-# from the functional 4D timeseries input file you wish to use as the
-# input for functional-to-anatomical registration.
+# Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0
 
 
@@ -399,44 +392,45 @@ functionalMasking :  ['3dAutoMask']
 
 
 # Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives.
+# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
 runRegisterFuncToMNI :  [1]
 
 
-# The resolution (in mm) to which functional images are transformed during registration
+# The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
 resolution_for_func_preproc :  3mm
 
-# The resolutions to resample the normalized functional timeseries to
+
+# The resolution (in mm) to which the registered derivative outputs are written into.
 resolution_for_func_derivative :  3mm
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
 
 
-# Resample the normalized functional timeseries to a resolution of your choice.
-resample_ts :  [1]
+# Run ICA-AROMA de-noising.
+runICA :  [0]
 
 
-# The resolutions to resample the normalized functional timeseries to, if you have selected to do so. Click the green + to input resolutions (in mm).
-resample_ts_resolution : [3.0]
+# Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
+aroma_denoise_type :  nonaggr
 
 
 # Run Nuisance Signal Regression
-runNuisance :  [1]
+runNuisance :  [0]
 
 
 # Standard Lateral Ventricles Binary Mask
-lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 
 # Select which nuisance signal corrections to apply:
@@ -449,16 +443,7 @@ lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/Harvard
 # motion = Motion
 # linear = Linear Trend
 # quadratic = Quadratic Trend
-Regressors :
-  -  compcor :  1
-     wm :  0
-     csf :  1
-     global :  0
-     pc1 :  0
-     motion :  1
-     linear :  1
-     quadratic :  1
-     gm :  0
+Regressors : None
 
 
 # Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.
@@ -469,22 +454,6 @@ nComponents : [5]
 # If this option is turned off, only 6 parameters will be used.
 # These parameters will also be output as a spreadsheet.
 runFristonModel :  [1]
-
-
-# Correct for the global signal using Median Angle Correction.
-runMedianAngleCorrection :  [0]
-
-
-# Target angle used during Median Angle Correction.
-targetAngleDeg : [90]
-
-
-# Apply a temporal band-pass filter to functional data.
-runFrequencyFiltering :  [1]
-
-
-# Define one or more band-pass filters by clicking the + button.
-nuisanceBandpassFreq : [[0.01, 0.1]]
 
 
 # Remove or regress out volumes exhibiting excessive motion.
@@ -509,22 +478,30 @@ numRemovePrecedingFrames :  1
 numRemoveSubsequentFrames :  2
 
 
+# Correct for the global signal using Median Angle Correction.
+runMedianAngleCorrection :  [0]
+
+
+# Target angle used during Median Angle Correction.
+targetAngleDeg : [90]
+
+
+# Apply a temporal band-pass filter to functional data.
+runFrequencyFiltering :  [1, 0]
+
+
+# Define one or more band-pass filters by clicking the + button.
+nuisanceBandpassFreq : [[0.01, 0.1]]
+
+
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [1]
+runROITimeseries :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
-tsa_roi_paths:
-  - /cpac_templates/ez_mask_pad.nii.gz: Avg
-    /cpac_templates/rois_3mm.nii.gz: Avg
-    /cpac_templates/aal_mask_pad.nii.gz: Avg
-    /cpac_templates/tt_mask_pad.nii.gz: Avg
-    /cpac_templates/PNAS_Smith09_rsn10.nii.gz: SpatialReg
-    /cpac_templates/CC200.nii.gz: Avg
-    /cpac_templates/CC400.nii.gz: Avg
-    /cpac_templates/ho_mask_pad.nii.gz: Avg
+tsa_roi_paths: None
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
@@ -539,10 +516,7 @@ runSCA :  [0]
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'DualReg', 'MultReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
-sca_roi_paths:
-  - /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
-    /cpac_templates/rois_3mm.nii.gz: Avg, MultReg
-
+sca_roi_paths: None
 
 
 # Normalize each time series before running Dual Regression SCA.
@@ -601,7 +575,7 @@ runNetworkCentrality :  [0]
 
 
 # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
-templateSpecificationFile :  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
+templateSpecificationFile :  s3://fcp-indi/resources/cpac/resources/mask-thr50-3mm.nii.gz
 
 
 # Enable/Disable degree centrality by selecting the connectivity weights
@@ -620,7 +594,7 @@ degCorrelationThreshold :  0.001
 
 
 # Enable/Disable eigenvector centrality by selecting the connectivity weights
-eigWeightOptions :  [False, True]
+eigWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
@@ -639,19 +613,19 @@ lfcdWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the lFCD adjacency matrix.
-lfcdCorrelationThresholdOption :  ['Correlation threshold']
+lfcdCorrelationThresholdOption :  ['Significance threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
 # P-value for Significance Threshold
 # Sparsity value for Sparsity Threshold
 # Pearson's r value for Correlation Threshold
-lfcdCorrelationThreshold :  0.6
+lfcdCorrelationThreshold :  0.001
 
 
 # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
 # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
-memoryAllocatedForDegreeCentrality :  1.0
+memoryAllocatedForDegreeCentrality :  3.0
 
 
 # Smooth the derivative outputs.
@@ -677,46 +651,3 @@ smoothing_order :  ['Before']
 # Off - Don't run z-scoring.
 runZScoring :  [1]
 
-
-# Run FSL FEAT group-level analysis.
-run_fsl_feat :  [0]
-
-
-# This number depends on computing resources.
-numGPAModelsAtOnce :  1
-
-
-# Use the + to add FSL model configuration to be run.
-modelConfigs :  []
-
-
-# Used to determine if Multivariate Distance Matrix Regression (MDMR) will be added to the pipeline or not.
-runMDMR :  [0]
-
-
-# Inclusion list text file listing the participant IDs you wish to include in the MDMR analysis. If left as None, will include all subjects.
-mdmr_inclusion : None
-
-
-# Path to a mask file. Voxels outside of the mask will be excluded from MDMR.
-mdmr_roi_file :
-
-
-# Path to a CSV file containing the phenotypic regressor.
-mdmr_regressor_file :
-
-
-# Name of the participants column in your regressor file.
-mdmr_regressor_participant_column :
-
-
-# Columns from the CSV file indicating factor variables. Other columns will be handled as covariates. Separated by commas.
-mdmr_regressor_columns :
-
-
-# Number of permutation tests to run on the Pseudo-F statistics.
-mdmr_permutations :  500
-
-
-# Number of Nipype nodes created while computing MDMR. Dependent upon computing resources.
-mdmr_parallel_nodes :  1

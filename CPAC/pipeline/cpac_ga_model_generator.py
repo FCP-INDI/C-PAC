@@ -5,7 +5,6 @@ import glob
 
 from CPAC.utils.datasource import create_grp_analysis_dataflow
 from CPAC.utils import Configuration
-from CPAC.utils.utils import prepare_gp_links
 
 
 def write_new_sub_file(current_mod_path, subject_list, new_participant_list):

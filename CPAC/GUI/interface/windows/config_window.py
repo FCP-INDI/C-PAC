@@ -21,6 +21,8 @@ from CPAC.GUI.interface.pages import (
     AROMA_ICA, AromaSettings
 )
 
+from ..utils.constants import dtype as data_types
+
 ID_SUBMIT = 6
 
 
@@ -151,8 +153,6 @@ class Mybook(wx.Treebook):
             self.AddSubPage(page17, "Nuisance Regression", wx.ID_ANY)
             self.AddSubPage(page18, "Median Angle Correction", wx.ID_ANY)
 
-            self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
-
             self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
             self.AddSubPage(page22, "Region-of-Interest TSE Options",
                             wx.ID_ANY)
@@ -231,10 +231,10 @@ class Mybook(wx.Treebook):
 class MainFrame(wx.Frame):
 
     def __init__(self, parent, option='save', path="", pipeline_id="",
-                 ind=True):
+                 ind=True, size=(1200, 520)):
         wx.Frame.__init__(
             self, parent=parent, title="CPAC Pipeline Configuration",
-            size=(1200, 520))
+            size=size)
 
         self.ind = ind
 
@@ -311,6 +311,28 @@ class MainFrame(wx.Frame):
             errSubID.Destroy()
             raise Exception
 
+    def OpenPage(self, page):
+
+        tree = self.nb.GetTreeCtrl()
+
+        def GetItemByName(tree_ctrl_instance, search_text):
+            retval = None
+            root_list = [tree_ctrl_instance.GetRootItem()]
+            for root_child in root_list:
+                item, cookie = tree_ctrl_instance.GetFirstChild(root_child)
+                while item.IsOk():
+                    if tree_ctrl_instance.GetItemText(item) == search_text:
+                        retval = item
+                        break
+                    if tree_ctrl_instance.ItemHasChildren(item):
+                        root_list.append(item)
+                    item, cookie = tree_ctrl_instance.GetNextChild(root_child, cookie)
+            return retval
+            
+        page_item = GetItemByName(tree, page)
+        tree.SelectItem(page_item)
+        return page_item
+
     def load(self):
         import os
         import yaml
@@ -343,6 +365,10 @@ class MainFrame(wx.Frame):
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
 
+                if name == 'Regressors':
+                    ctrl.set_value(val)
+                    continue
+
                 if name == 'model_setup':
                     # update the 'Model Setup' box and populate it with the 
                     # EVs and their associated checkboxes for categorical 
@@ -351,7 +377,7 @@ class MainFrame(wx.Frame):
                         ctrl.set_value(self.phenoHeaderItems)
                         ctrl.set_selection(config_file_map['ev_selections'])
 
-                if val:
+                if val is not None:
                     if ("list" in name) and (name != "participant_list") and ('basc' not in name):
                         try:
                             mapped_vals = [s_map.get(item) for item in val if s_map.get(item) != None]
@@ -1329,26 +1355,37 @@ class MainFrame(wx.Frame):
                 #     ALSO: the Nuisance Corrections lists                
                 elif dtype == 8:
 
-                    print>>f, label,":"
+                    if type(value) == list:
 
-                    value = ast.literal_eval(str(value))
+                        import yaml
+                        yml = yaml.dump({
+                            label: value
+                        }, default_flow_style=False)
 
-                    for val in value:
-                        val = val.split(',')
-                        f.write("  - ")
-                        flag = 0
-                        for sample in sample_list:
-                            if flag == 0:
-                                space = ""
-                                flag = 1
-                            else:
-                                space = "    "
-                            if sample in val:
-                                print>>f, space, sample, ": ", 1
-                            else:
-                                print>>f, space, sample, ": ", 0
+                        print>>f, yml
 
-                    print >>f, "\n"
+                    else:
+
+                        print>>f, label,":"
+
+                        value = ast.literal_eval(str(value))
+
+                        for val in value:
+                            val = val.split(',')
+                            f.write("  - ")
+                            flag = 0
+                            for sample in sample_list:
+                                if flag == 0:
+                                    space = ""
+                                    flag = 1
+                                else:
+                                    space = "    "
+                                if sample in val:
+                                    print>>f, space, sample, ": ", 1
+                                else:
+                                    print>>f, space, sample, ": ", 0
+
+                        print >>f, "\n"
 
                 elif dtype == 9:
 

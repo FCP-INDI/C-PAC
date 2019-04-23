@@ -23,6 +23,10 @@
 # Can be found here:
 #   https://github.com/neurodata/ndmg/blob/merge-dmri-fmri/
 
+import os
+import nibabel as nb
+import numpy as np
+
 
 def ndmg_roi_timeseries(func_file, label_file):
     """
