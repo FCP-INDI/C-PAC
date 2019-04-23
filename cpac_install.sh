@@ -80,7 +80,6 @@ ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 
 conda_packages=(
     "cython==0.26"
-    "jinja2==2.7.2"
     "matplotlib=2.0.2"
     "networkx==1.11"
     "nose==1.3.7"
@@ -96,7 +95,6 @@ conda_packages=(
 pip_packages=(
     "boto3==1.7.37"
     "configparser==3.7.4"
-    "fs==0.5.4"
     "future==0.16.0"
     "INDI-Tools==0.0.6"
     "lockfile==0.12.2"
