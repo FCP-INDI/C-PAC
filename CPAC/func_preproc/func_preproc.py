@@ -373,6 +373,16 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
     func_motion_correct_A.inputs.md1d_file = 'max_displacement.1D'
 
+    preproc.connect([
+        (
+            input_node, func_motion_correct_A, [
+                (
+                    ('twopass', collect_arguments, '-twopass', '-Fourier'),
+                    'args'
+                )]
+        ),
+    ])
+
     preproc.connect(func_reorient, 'out_file',
                     func_motion_correct_A, 'in_file')
     preproc.connect(func_get_mean_motion, 'out_file',
