@@ -649,3 +649,126 @@ class BASCSettings(wx.ScrolledWindow):
         self.page.set_sizer()
         parent.get_page_list().append(self)
 
+
+class QPP(wx.html.HtmlWindow):
+    def __init__(self, parent, counter=0):
+        wx.html.HtmlWindow.__init__(self, parent,
+                                    style=wx.html.HW_SCROLLBAR_AUTO)
+        self.SetStandardFonts()
+
+        self.counter = counter
+
+        self.LoadFile(p.resource_filename('CPAC',
+                                          'GUI/resources/html/basc.html'))
+
+    def get_counter(self):
+        return self.counter
+
+
+class QPPSettings(wx.ScrolledWindow):
+
+    def __init__(self, parent, counter=0):
+        wx.ScrolledWindow.__init__(self, parent)
+
+        import os
+
+        self.counter = counter
+
+        self.page = GenericClass(self, " QPP - Quasi Periodic Patterns"
+                                       "(QPP)")
+
+        fsl = os.environ.get('FSLDIR')
+        if fsl == None:
+            fsl = "$FSLDIR"
+
+        self.page.add(label="Run QPP ",
+                      control=control.CHOICE_BOX,
+                      name='run_qpp',
+                      type=dtype.LSTR,
+                      comment="Run Quasi Periodic Pattern Analysis",
+                      values=["Off", "On"],
+                      wkf_switch=True)
+
+        self.page.add(label="Scan Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='qpp_scan_inclusion',
+                      type=dtype.LSTR,
+                      values="None",
+                      comment="If there are multiple scans in any "
+                              "of the pipeline outputs for which QPP is "
+                              "being run, and you only want to run for some "
+                              "of them, you can list them here - scan labels "
+                              "separated by commas (ex. 'rest_run-1, "
+                              "rest_run-3').\n\nIf nothing is listed, QPP "
+                              "will run once for each scan, for all "
+                              "available scans.")
+
+        self.page.add(label="Session Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='qpp_sess_inclusion',
+                      type=dtype.LSTR,
+                      values="None",
+                      comment="If there are multiple sessions in any "
+                              "of the pipeline outputs for which QPP is "
+                              "being run, and you only want to run for some "
+                              "of them, you can list them here - scan labels "
+                              "separated by commas (ex. 'rest_run-1, "
+                              "rest_run-3').\n\nIf nothing is listed, QPP "
+                              "will run once for each scan, for all "
+                              "available scans.")
+
+        self.page.add(label="Window Length(WL)",
+                      control=control.INT_CTRL,
+                      name='qpp_wl',
+                      type=dtype.NUM,
+                      values=30,
+                      comment="provide the length of window you would like to search for the template in")
+
+
+        self.page.add(label="Scan/Sessions Inclusion in one qpp run(Optional) ",
+                      control=control.CHOICE_BOX,
+                      name='qpp_grpby_strat',
+                      type=dtype.LSTR,
+                      values=["Session","Scan","None"],
+                      comment="If you have multiple sessions or scans for a subject"
+                              "and would like to group them by a particular stratergy,"
+                              "i.e., group by sessions, QPP will be run for each session"
+                              "(which may include more than one scan), by concatenating"
+                              "subjects along each session.\n"
+                              "If you choose group by scan, it will concatenate across"
+                              "the scans for each subject, and QPP will be run for each scan for each subject"
+                              ").\n\nIf None is listed, QPP "
+                              "will run once for each scan, and each sessions for all "
+                              "available scans and sessions.")
+
+
+        self.page.add(label="Correlation Threshold ",
+                      control=control.COMBO_BOX,
+                      name='qpp_cth',
+                      type=dtype.STR,
+                      values='0.2, 0.3',
+                      comment="Correlation threshold for early and late iterations."
+                      )
+
+        self.page.add(label="Number of early iterations with lower threshold ",
+                      control=control.INT_CTRL,
+                      name='qpp_n_iter_th',
+                      type=dtype.NUM,
+                      values=2,
+                      comment="Set the number of early iterations with lower thresholds")
+
+        self.page.add(label="Maximum number of iterations",
+                      control=control.INT_CTRL,
+                      name='qpp_mx_iter',
+                      type=dtype.NUM,
+                      values=15,
+                      comment="Maximum number of iterations. ")
+
+
+
+
+        self.page.set_sizer()
+        parent.get_page_list().append(self)
+
+    def get_counter(self):
+            return self.counter

@@ -13,7 +13,7 @@ from .centrality import CentralitySettings, Centrality
 from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
 from .timeseries import TimeSeries, ROITimeseries
-from .group_analysis import GroupAnalysis, GeneralGA, GPASettings, BASCSettings
+from .group_analysis import GroupAnalysis, GeneralGA, GPASettings, BASCSettings, QPPSettings
 from .mdmr import MDMRSettings
 from .isc import ISCSettings
 from .randomise import RandomiseSettings

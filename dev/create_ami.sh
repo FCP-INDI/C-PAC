@@ -4,9 +4,16 @@ set -e
 
 STORAGE=30
 REGION=$1
-REGION="us-east-1"
+if [ -z "$REGION" ]
+then
+    REGION="us-east-1"
+fi
 
-VERSION=`cat ./version`
+VERSION=$2
+if [ -z "$VERSION" ]
+then
+    VERSION=`cat ./version`
+fi
 
 AMI_NAME="C-PAC ${VERSION}"
 AMI_DESCRIPTION="Configurable Pipeline for the Analysis of Connectomes - Version ${VERSION}"
@@ -84,6 +91,8 @@ aws ec2 authorize-security-group-ingress --group-name ${INSTANCE_RANDOM_NAME} --
 
 echo ${IMAGE_DATA} | jq -r ".BlockDeviceMappings | map(select(.Ebs)) | .[].Ebs.VolumeSize = ${STORAGE}" > ${IMAGE_TEMP}.storage
 
+sed -e "s|SETUP_SCRIPT=\"\"|SETUP_SCRIPT=\"$(base64 -w 0 dev/ami_data/setup_cpac.sh)\"|g" dev/ami_data/setup.sh > ${IMAGE_TEMP}_setup.sh
+
 echo "Running instance"
 INSTANCE_DATA=`
 aws --region "${REGION}" ec2 run-instances \
@@ -92,7 +101,7 @@ aws --region "${REGION}" ec2 run-instances \
     --security-group-ids ${INSTANCE_GROUP} \
     --instance-type t2.medium  \
     --key-name ${INSTANCE_RANDOM_NAME} \
-    --user-data file://dev/ami_data/setup.sh \
+    --user-data file://${IMAGE_TEMP}_setup.sh \
     --block-device-mappings file://${IMAGE_TEMP}.storage \
     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=cpac-ami}, {Key=ami_name,Value=${AMI_NAME}}, {Key=ami_description,Value='${AMI_DESCRIPTION}'}]" \
     --instance-initiated-shutdown-behavior terminate \
@@ -113,6 +122,7 @@ echo "Waiting for running tag"
 while [ "$ELAPSED" -lt "120" ]; do
     TAG=`aws  --region "${REGION}" ec2 describe-tags --filters "Name=resource-id,Values=${INSTANCE_ID}" "Name=key,Values=hey" --output json | jq -r '.Tags | .[].Value'`
     if [ "${TAG}" = "hou" ]; then
+        echo "Instance tagged"
         break
     fi
     NOW=`date +%s`

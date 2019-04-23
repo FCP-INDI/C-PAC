@@ -2,19 +2,16 @@
 FROM neurodebian:xenial-non-free
 MAINTAINER The C-PAC Team <cnl@childmind.org>
 
-RUN mkdir -p /code 
+RUN apt-get update
 
 # Install the validator
-RUN apt-get update && \
-     apt-get install -y curl && \
+RUN apt-get install -y curl && \
      curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
-     apt-get install -y nodejs && \
-     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+     apt-get install -y nodejs
 RUN npm install -g bids-validator
 
 # Install Ubuntu dependencies
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get install -y \
       build-essential \
       cmake \
       git \
@@ -53,8 +50,7 @@ RUN apt-get update && \
       zlib1g-dev
 
 # Install 16.04 dependencies
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get install -y \
       dh-autoreconf \
       libgsl-dev \
       libmotif-dev \
@@ -84,10 +80,10 @@ ENV C3DPATH /opt/c3d/
 ENV PATH $C3DPATH/bin:$PATH
 
 # install AFNI
-COPY required_afni_pkgs.txt /opt/required_afni_pkgs.txt
+COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 RUN libs_path=/usr/lib/x86_64-linux-gnu && \
     if [ -f $libs_path/libgsl.so.19 ]; then \
-           ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
+        ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
     fi && \
     mkdir -p /opt/afni && \
     curl -sO https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
@@ -98,11 +94,10 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
 ENV PATH=/opt/afni:$PATH
 
 # install FSL
-RUN apt-get update  && \
-    apt-get install -y --no-install-recommends \
-                    fsl-core \
-                    fsl-atlases \
-                    fsl-mni152-templates
+RUN apt-get install -y --no-install-recommends \
+      fsl-core \
+      fsl-atlases \
+      fsl-mni152-templates
 
 # setup FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0 \
@@ -125,8 +120,7 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
 # install ANTs
-RUN apt-get update && \
-    apt-get install -y ants
+RUN apt-get install -y ants
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
@@ -149,7 +143,6 @@ RUN conda install -y \
 # install conda dependencies
 RUN conda install -y  \
         cython==0.26 \
-        jinja2==2.7.2 \
         matplotlib=2.0.2 \
         networkx==1.11 \
         nose==1.3.7 \
@@ -167,9 +160,7 @@ RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
 
 # install cpac templates
-COPY cpac_templates.tar.gz /cpac_resources/cpac_templates.tar.gz
-RUN tar xzvf /cpac_resources/cpac_templates.tar.gz && \
-    rm -f /cpac_resources/cpac_templates.tar.gz
+ADD dev/docker_data/cpac_templates.tar.gz /
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs
@@ -183,20 +174,20 @@ RUN mkdir /ndmg_atlases && \
     cp -r /tmp/neuroparc/atlases/label /ndmg_atlases/label && \
     cd -
 
-# clean up
-RUN apt-get clean && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# install cpac
+COPY dev/docker_data/default_pipeline.yaml /cpac_resources/default_pipeline.yaml
+COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
+
+
 COPY . /code
 RUN pip install -e /code
 
-# make the run.py executable
+COPY dev/docker_data/run.py /code/run.py
 RUN chmod +x /code/run.py
 
-# copy useful pipeline scripts
-COPY default_pipeline.yaml /cpac_resources/default_pipeline.yaml
-COPY pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
-
 ENTRYPOINT ["/code/run.py"]
+
+
+RUN apt-get clean && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

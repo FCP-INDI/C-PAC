@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -e
+
+SETUP_SCRIPT=""
+
 function cleanup {
     shutdown -h now
 }
@@ -23,7 +27,14 @@ done
 
 git clone https://github.com/FCP-INDI/C-PAC.git /opt/C-PAC
 
-bash /opt/C-PAC/dev/ami_data/setup_cpac.sh
+if [ -z "${SETUP_SCRIPT}" ]
+then
+    bash /opt/C-PAC/dev/ami_data/setup_cpac.sh
+else
+    echo ${SETUP_SCRIPT} | base64 --decode > /tmp/setup_cpac.sh
+    bash /tmp/setup_cpac.sh
+    rm /tmp/setup_cpac.sh
+fi
 
 if [ $? != 0 ]; then
     until aws ec2 --region=${REGION} create-tags --resources ${INSTANCE_ID} --tags "Key=ami,Value=error" --output json

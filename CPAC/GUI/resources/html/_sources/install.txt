@@ -122,7 +122,6 @@ Please ensure that you are using Python 2.7 and above, but not Python 3 (since i
 * Matplotlib  *
 * wxPython 
 * PyYAML  * 
-* Jinja2  *
 * PyLockfile  *
 * Cython  (version 12.1 or greater)  *
 * iPython  (optional)
@@ -150,7 +149,7 @@ The following commands will install all the Python dependencies within a Minicon
    echo 'export PATH=~/miniconda/bin:${PATH}' >> ~/.bashrc
    conda create -y -n cpac python
    source activate cpac
-   conda install -y cython numpy scipy matplotlib networkx traits pyyaml jinja2 nose ipython pip wxpython pandas
+   conda install -y cython numpy scipy matplotlib networkx traits pyyaml nose ipython pip wxpython pandas
    pip install lockfile pygraphviz nibabel nipype patsy psutil boto3 INDI-tools future prov simplejson
    source deactivate
  

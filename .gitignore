@@ -15,7 +15,7 @@ var
 sdist
 develop-eggs
 .installed.cfg
-.env
+.env*
 
 # Installer logs
 pip-log.txt
@@ -41,4 +41,4 @@ pip-log.txt
 *.c
 *.so
 
-cpac_runs
+cpac_runs/
