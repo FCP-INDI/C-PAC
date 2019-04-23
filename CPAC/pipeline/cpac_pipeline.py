@@ -1490,12 +1490,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             for num_strat, strat in enumerate(strat_list):
 
-                func_preproc = create_func_preproc(use_bet=False,
-                                                wf_name='func_preproc_automask_%d' % num_strat)
+                func_preproc = create_func_preproc(
+                    use_bet=False,
+                    wf_name='func_preproc_automask_%d' % num_strat
+                )
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_preproc,
                                 'inputspec.func')
+
+                func_preproc.inputs.inputspec.twopass = c.funcional_volreg_twopass == 'On'
 
                 # TODO ASH review forking
                 if 'BET' in c.functionalMasking:
@@ -1537,6 +1541,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_preproc,
                                 'inputspec.func')
+
+                func_preproc.inputs.inputspec.twopass = c.funcional_volreg_twopass == 'On'
 
                 strat.append_name(func_preproc.name)
 
