@@ -206,6 +206,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     sub_mem_gb, num_cores_per_sub, num_ants_cores = \
         check_config_resources(c)
 
+    if not plugin:
+        plugin = 'MultiProc'
+
     if plugin_args:
         plugin_args['memory_gb'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
