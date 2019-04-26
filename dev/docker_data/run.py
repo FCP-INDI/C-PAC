@@ -409,7 +409,7 @@ if args.analysis_level == "group":
 # otherwise we move on to conforming the data configuration
 if not args.data_config_file:
 
-    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
+    from .bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
     (file_paths, config) = collect_bids_files_configs(args.bids_dir, args.aws_input_creds)
 
