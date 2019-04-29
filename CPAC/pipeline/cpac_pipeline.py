@@ -1747,12 +1747,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                 wf_name='create_aroma_%d' % num_strat)
 
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
-                    #aroma_preproc.inputs.params.dim = c.aroma_dim
-
-                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                        c.workingDirectory, workflow_name,
-                        'create_aroma_%d' % num_strat
-                    )
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, aroma_preproc,
@@ -1817,11 +1811,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                          % num_strat)
 
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
-                    #aroma_preproc.inputs.params.dim = c.aroma_dim
-
-                    aroma_preproc.inputs.inputspec.out_dir = os.path.join(
-                        c.workingDirectory, workflow_name,
-                        'create_aroma_%d' % num_strat)
 
                     node, out_file = strat['ica_aroma_functional_to_standard']
                     workflow.connect(node, out_file, aroma_preproc,
