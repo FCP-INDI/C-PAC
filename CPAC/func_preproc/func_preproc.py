@@ -264,15 +264,22 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                -Tmin -bin rest_3dc_RPI_3dv_3dc_maths_maths.nii.gz
                -odt char
 
+    .. exec::
+        from CPAC.func_preproc import create_func_preproc
+        wf = create_func_preproc()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/func_preproc.dot'
+        )
+
     High Level Workflow Graph:
 
-    .. image:: ../images/func_preproc.dot.png
+    .. image:: ../images/generated/func_preproc.png
        :width: 1000
-
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/func_preproc_detailed.dot.png
+    .. image:: ../images/generated/func_preproc_detailed.png
        :width: 1000
 
     Examples
