@@ -10,7 +10,6 @@ import scipy.io
 from CPAC.QPP.QPPv0418 import qpp_wf,regressqpp
 import time
 import sys
-from sklearn.decomposition import PCA
 
 
 def check_merge_list(merge_list):

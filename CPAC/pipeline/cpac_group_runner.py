@@ -1,4 +1,4 @@
-
+import os
 import fnmatch
 import pandas
 
@@ -486,7 +486,7 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
                    get_motion, get_raw_score, get_func=False, derivatives=None,
                    exts=['nii', 'nii.gz']):
 
-    nifti_globs,search_dir = gather_nifti_globs(
+    nifti_globs, search_dir = gather_nifti_globs(
         pipeline_folder,
         resource_list,
         get_func,
@@ -1939,34 +1939,38 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
 
 def run_qpp(group_config_file):
-    import os
-    from CPAC.QPP.prep_QPP import use_inputs
-    from CPAC.QPP.detectqppv import qppv
+
+    from CPAC.qpp.detectqppv import qppv
 
     group_config_file = os.path.abspath(group_config_file)
-    group_config_obj = load_config_yml(group_config_file)
+    group_config = load_config_yml(group_config_file)
 
-    working_dir = group_config_obj.work_dir
-    crash_dir = group_config_obj.log_dir
+    working_dir = group_config.work_dir
+    crash_dir = group_config.log_dir
 
-    use_other_function, merge_file, merge_mask, subject_list, inclusion_list, out_dir, nrn = use_inputs(group_config_file)
+    (
+        use_other_function,
+        merge_file,
+        merge_mask,
+        subject_list,
+        inclusion_list,
+        out_dir,
+        nrn,
+     ) = use_inputs(group_config_file)
 
-    flag_3d_4d = use_other_function
-    img_list = subject_list
-    wl = group_config_obj.qpp_wl
-    cth = group_config_obj.qpp_cth
+    window_length = group_config.qpp_window
 
-    try:
-        cth = cth.split(',')
-    except AttributeError:
-        pass
+    thresholds = [
+        group_config.qpp_initial_threshold,
+        group_config.qpp_final_threshold,
+    ]
 
-    n_itr_th = group_config_obj.qpp_n_iter_th
-    mx_itr = group_config_obj.qpp_mx_iter
-    nsubj = len(img_list)
+    initial_threshold_iterations = group_config.qpp_initial_threshold_iterations
+    iterations = group_config.qpp_iterations
 
-    qppv(merge_file, merge_mask, flag_3d_4d, wl, cth, n_itr_th, mx_itr, nsubj, 
-         nrn, out_dir)
+    qppv(merge_file, merge_mask, flag_3d_4d,
+         window_length, thresholds, initial_threshold_iterations,
+         iterations, nsubj, nrn, out_dir)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

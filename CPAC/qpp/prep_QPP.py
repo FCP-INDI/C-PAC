@@ -1,88 +1,23 @@
-def create_output_dict_list(nifti_globs, pipeline_output_folder, resource_list, search_dirs):
-    import os
-    import glob
-    import fnmatch
-    import itertools
-    import pandas as pd
-    import pkg_resources as p
+import os
+import glob
+import shutil
+import fnmatch
+import itertools
+import pandas as pd
+import pkg_resources as p
+import numpy as np
+import nibabel as nib
 
-    if len(resource_list) == 0:
-        err = "\n\n[!] No derivatives selected!\n\n"
-        raise Exception(err)
-    exts = ['nii', 'nii.gz']
-    exts = ['.' + ext.lstrip('.') for ext in exts]
-    output_dict_list = {}
-    for root, _, files in os.walk(pipeline_output_folder):
-        for filename in files:
-            filepath = os.path.join(root, filename)
-
-            if not any(fnmatch.fnmatch(filepath, pattern) for pattern in nifti_globs):
-                continue
-            if not any(filepath.endswith(ext) for ext in exts):
-                continue
-            relative_filepath = filepath.split(pipeline_output_folder)[1]
-            filepath_pieces = filter(None, relative_filepath.split("/"))
-            resource_id = filepath_pieces[1]
-
-            if resource_id not in search_dirs:
-                continue
-
-            scan_id_string = filepath_pieces[2]
-            strat_info = "_".join(filepath_pieces[3:])[:-len(ext)]
-            unique_resource_id = (resource_id, strat_info)
-            if unique_resource_id not in output_dict_list.keys():
-                output_dict_list[unique_resource_id] = []
-
-            unique_id = filepath_pieces[0]
-
-            scan_id = scan_id_string.replace("_scan_", "")
-            scan_id = scan_id.replace("_rest", "")
-
-            new_row_dict = {}
-            new_row_dict["participant_session_id"] = unique_id
-            new_row_dict["participant_id"], new_row_dict["Sessions"] = \
-                unique_id.split('_')
-
-            new_row_dict["Scan"] = scan_id
-            new_row_dict["Filepath"] = filepath
-
-            print('{0} - {1} - {2}'.format(unique_id, scan_id,
-                                           resource_id))
-            output_dict_list[unique_resource_id].append(new_row_dict)
-        # analysis, grouped either by sessions or scans.
-    return output_dict_list
-
-
-def gather_outputs(pipeline_folder, resource_list, inclusion_list):
-    from CPAC.pipeline.cpac_group_runner import gather_nifti_globs
-    from CPAC.pipeline.cpac_group_runner import create_output_df_dict
-    import pandas as pd
-    import pkg_resources as p
-    import pickle
-    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
-    try:
-        keys = pd.read_csv(keys_csv)
-
-    except Exception as e:
-        err = "\n[!] Could not access or read the cpac_outputs.csv " \
-              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
-        raise Exception(err)
-    resource_list = ['functional_to_standard']
-    derivatives = list(keys[keys['Space'] == 'template'][keys['Functional timeseries'] == 'yes']['Resource'])
-
-    nifti_globs, search_dirs = gather_nifti_globs(pipeline_folder, resource_list, derivatives)
-
-    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder, resource_list, search_dirs)
-    # now we have a good dictionary which contains all the filepaths of the files we need to merge later on.
-    # Steps after this: 1. This is only a dictionary so let's convert it to a data frame.
-    # 2. In the data frame, we're going to only include whatever is in the participant list
-    # 3. From the list of included participants, we're going to further prune the output dataframe to only contain the
-    # scans included, and/or the sessions included
-    # 4. Our final output df will contain, file paths for the .nii files of all the participants that are included in the
-    output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
-
-    return output_df_dict
-
+from CPAC.pipeline.cpac_group_runner import (
+    load_text_file,
+    grab_pipeline_dir_subs,
+    load_config_yml,
+    gather_nifti_globs,
+    create_output_df_dict,
+    gather_outputs
+)
+from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile, create_merge_mask
+from CPAC.utils import Outputs
 
 def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
                  grp_by_strat=None):
@@ -191,15 +126,6 @@ def split_subdfs(output_df_dict, sess_inclusion=None, scan_inclusion=None,
 
 
 def prep_inputs(group_config_file):
-    import os
-    import shutil
-    import pandas as pd
-    import pkg_resources as p
-    from CPAC.pipeline.cpac_group_runner import load_text_file
-    from CPAC.pipeline.cpac_group_runner import grab_pipeline_dir_subs
-    from CPAC.pipeline.cpac_group_runner import load_config_yml
-    from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile, create_merge_mask
-
     keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
     try:
         keys = pd.read_csv(keys_csv)
@@ -248,16 +174,11 @@ def prep_inputs(group_config_file):
 
 
 def use_inputs(group_config_file):
-    import os
-    import shutil
-    from CPAC.pipeline.cpac_group_runner import load_config_yml
-    from CPAC.pipeline.cpac_ga_model_generator import create_merged_copefile, create_merge_mask
-    import nibabel as nib
-    import numpy as np
+
 
     qpp_dict, inclusion_list, resource_id, strat_info = prep_inputs(group_config_file)
     group_config_obj = load_config_yml(group_config_file)
-    use_other_function = False
+
     for key in qpp_dict:
 
         newer_output_df = qpp_dict[key]
@@ -281,26 +202,17 @@ def use_inputs(group_config_file):
                 nrn = len(set(session_list))
             else:
                 nrn = 1
+
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
-        subject_list = newer_output_df["Filepath"].tolist()
-        for subject in subject_list:
-            sub_img = nib.load(subject)
-            if len(sub_img.shape) == 3:
-                use_other_function = False
-                merge_outfile = os.path.join(out_dir, '_merged.nii.gz')
-                merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
-                merge_mask_outfile = os.path.join(out_dir, '_merged_mask.nii.gz')
-                merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
-                # return merge_file, merge_mask
-            else:
-                use_other_function = True
-                merge_outfile = os.path.join(out_dir, '_merged.nii.gz')
-                merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
-                merge_mask_outfile = os.path.join(out_dir, '_merged_mask.nii.gz')
-                merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
-    return use_other_function, merge_file, merge_mask, subject_list, inclusion_list, out_dir, nrn
+        subject_list = newer_output_df["Filepath"].tolist()
+        merge_outfile = os.path.join(out_dir, '_merged.nii.gz')
+        merge_file = create_merged_copefile(newer_output_df["Filepath"].tolist(), merge_outfile)
+        merge_mask_outfile = os.path.join(out_dir, '_merged_mask.nii.gz')
+        merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+
+    return merge_file, merge_mask, subject_list, inclusion_list, out_dir, nrn
 
 
 def balance_df(new_output_df, session_list, scan_list):
@@ -323,7 +235,5 @@ def balance_df(new_output_df, session_list, scan_list):
             dropped_parts.append(part_ID)
         else:
             newer_output_df=new_output_df
-
-
 
     return newer_output_df, dropped_parts
