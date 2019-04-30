@@ -1940,37 +1940,42 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
 def run_qpp(group_config_file):
 
-    from CPAC.qpp.detectqppv import qppv
+    c = load_config_yml(group_config_file)
 
-    group_config_file = os.path.abspath(group_config_file)
-    group_config = load_config_yml(group_config_file)
+    pipeline_dir = os.path.abspath(c.pipeline_dir)
+    out_dir = os.path.join(c.output_dir, 'cpac_group_analysis', 'QPP',
+                           os.path.basename(pipeline_dir))
+    working_dir = os.path.join(c.work_dir, 'cpac_group_analysis', 'QPP',
+                               os.path.basename(pipeline_dir))
+    crash_dir = os.path.join(c.log_dir, 'cpac_group_analysis', 'QPP',
+                             os.path.basename(pipeline_dir))
 
-    working_dir = group_config.work_dir
-    crash_dir = group_config.log_dir
+    try:
+        os.makedirs(out_dir)
+        os.makedirs(working_dir)
+        os.makedirs(crash_dir)
+    except:
+        raise Exception("couldn't make the dirs!")
 
-    (
-        use_other_function,
-        merge_file,
-        merge_mask,
-        subject_list,
-        inclusion_list,
-        out_dir,
-        nrn,
-     ) = use_inputs(group_config_file)
+    output_df_dct = gather_outputs(
+        pipeline_dir,
+        ["functional_to_standard"],
+        inclusion_list=None,
+        get_motion=False, get_raw_score=False, get_func=True,
+        derivatives=["functional_to_standard"],
+        exts=['nii', 'nii.gz']
+    )
 
-    window_length = group_config.qpp_window
-
-    thresholds = [
-        group_config.qpp_initial_threshold,
-        group_config.qpp_final_threshold,
-    ]
-
-    initial_threshold_iterations = group_config.qpp_initial_threshold_iterations
-    iterations = group_config.qpp_iterations
-
-    qppv(merge_file, merge_mask, flag_3d_4d,
-         window_length, thresholds, initial_threshold_iterations,
-         iterations, nsubj, nrn, out_dir)
+    wf = create_qpp(name="QPP", working_dir=working_dir, crash_dir=crash_dir)
+    wf.inputs.inputspec.datasets = 
+    wf.inputs.inputspec.window_length = group_config.qpp_window
+    wf.inputs.inputspec.permutations = group_config.qpp_permutations
+    wf.inputs.inputspec.lower_correlation_threshold = group_config.qpp_initial_threshold
+    wf.inputs.inputspec.higher_correlation_threshold = group_config.qpp_final_threshold
+    wf.inputs.inputspec.max_iterations = group_config.qpp_iterations
+    wf.inputs.inputspec.initial_threshold_iterations = group_config.qpp_initial_threshold_iterations
+    wf.inputs.inputspec.convergence_iterations = 1
+    wf.run()
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
