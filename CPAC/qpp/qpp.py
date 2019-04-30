@@ -34,14 +34,7 @@ def detect_qpp(data, num_scans, window_length,
 
     voxels, trs = data.shape
 
-    trs_per_scan = int(trs / num_scans)
-    inpectable_trs = np.arange(trs) % trs_per_scan
-    inpectable_trs = np.where(inpectable_trs < trs_per_scan - window_length + 1)[0]
-
-    inpectable_windows = trs_per_scan - window_length + 1
-
-    df = voxels * window_length
-
+    max_iterations = int(max(1, max_iterations))
     convergence_iterations = int(max(1, convergence_iterations))
 
     if callable(correlation_threshold):
@@ -49,17 +42,14 @@ def detect_qpp(data, num_scans, window_length,
     else:
         correlation_thresholds = [correlation_threshold for _ in range(max_iterations)]
 
-    random_selections = np.zeros((num_scans, window_length - 1))
 
-    for i in range(1, num_scans + 1):
-        random_selections[i - 1, :] = range(i * trs_per_scan - window_length + 2, i * trs_per_scan + 1)
+    trs_per_scan = int(trs / num_scans)
+    inpectable_trs = np.arange(trs) % trs_per_scan
+    inpectable_trs = np.where(inpectable_trs < trs_per_scan - window_length + 1)[0]
 
-    initial_trs = np.arange(1, trs + 1)
-    random_selections = random_selections.flatten()
-    initial_trs = np.delete(initial_trs, random_selections - 1, 0)
+    df = voxels * window_length
 
-    initial_trs = np.random.permutation(initial_trs)
-    initial_trs = initial_trs[0:permutations]
+    initial_trs = np.random.choice(inpectable_trs, permutations)
 
     permutation_result = [{} for _ in range(permutations)]
     for perm in range(permutations):
@@ -70,7 +60,6 @@ def detect_qpp(data, num_scans, window_length,
             scan_window = normalized_flattened_segment(data, window_length, tr, df)
             template_holder[tr] = np.dot(random_initial_window, scan_window)
 
-
         template_holder_convergence = np.array([
             template_holder,
             template_holder,
@@ -79,13 +68,12 @@ def detect_qpp(data, num_scans, window_length,
 
         for iteration in range(max_iterations):
 
-            peaks, _ = find_peaks(template_holder, height=correlation_thresholds[0], distance=window_length)
+            peak_threshold = correlation_thresholds[iteration]
+
+            peaks, _ = find_peaks(template_holder, height=peak_threshold, distance=window_length)
             peaks = np.delete(peaks, np.where(~np.isin(peaks, inpectable_trs))[0])
 
-            # Smoothing
             template_holder = gaussian_filter(template_holder, 0.5)
-
-            peak_threshold = correlation_thresholds[iteration]
 
             found_peaks = np.size(peaks)
             if found_peaks < 1:
@@ -154,7 +142,7 @@ def detect_qpp(data, num_scans, window_length,
             end_segment = np.zeros((voxels, end_tr - trs))
             end_tr = trs
 
-        data_segment = np.array(data[:, start_tr:end_tr])
+        data_segment = data[:, start_tr:end_tr]
 
         best_template_segment += np.concatenate([
             start_segment,
