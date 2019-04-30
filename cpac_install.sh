@@ -86,7 +86,7 @@ conda_packages=(
     "numpy==1.13.0"
     "pandas==0.23.4"
     "pyyaml==3.12"
-    "scipy==0.19.1"
+    "scipy==1.2.1"
     "traits==4.6.0"
     "wxpython==3.0.0.0"
     "pip==18.0"

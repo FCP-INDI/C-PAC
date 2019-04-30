@@ -148,7 +148,7 @@ RUN conda install -y  \
         nose==1.3.7 \
         numpy==1.13.0 \
         pandas==0.23.4 \
-        scipy==0.19.1 \
+        scipy==1.2.1 \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
         pip

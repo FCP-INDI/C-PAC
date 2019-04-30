@@ -154,7 +154,7 @@ REQUIREMENTS        = [
     "python-dateutil==2.7.3",
     "pyyaml==4.2b1",
     "scikit-learn==0.19.1",
-    "scipy==0.19.1",
+    "scipy==1.2.1",
     "simplejson==3.15.0",
     "traits==4.6.0",
     "PyBASC==0.4.5",
