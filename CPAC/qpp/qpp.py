@@ -4,7 +4,6 @@ import os
 from numpy import ndarray
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
-from scipy.ndimage.filters import gaussian_filter
 from nilearn.masking import apply_mask
 from nilearn.masking import compute_epi_mask
 import numpy.matlib
@@ -15,6 +14,17 @@ from CPAC.isc.utils import correlation
 def flattened_segment(data, window_length, pos):
     return data[:, pos:pos + window_length].flatten()
 
+def smooth(x):
+    """
+    Temporary moving average
+    """
+    return np.array(
+        [x[0]] +
+        [np.mean(x[0:3])] +
+        (np.convolve(x, np.ones(5), 'valid') / 5).tolist() +
+        [np.mean(x[-3:])] +
+        [x[-1]]
+    )
 
 def normalized_flattened_segment(data, window_length, pos, df):
     segment = flattened_segment(data, window_length, pos)
@@ -73,7 +83,7 @@ def detect_qpp(data, num_scans, window_length,
             peaks, _ = find_peaks(template_holder, height=peak_threshold, distance=window_length)
             peaks = np.delete(peaks, np.where(~np.isin(peaks, inpectable_trs))[0])
 
-            template_holder = gaussian_filter(template_holder, 0.5)
+            template_holder = smooth(template_holder)
 
             found_peaks = np.size(peaks)
             if found_peaks < 1:
