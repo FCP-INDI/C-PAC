@@ -11,10 +11,8 @@ from base64 import b64decode
 import shutil
 import yaml
 
+from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
-
-__version__ = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                'version')).read()
 
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yaml"
 if not os.path.exists(DEFAULT_PIPELINE):
@@ -409,7 +407,7 @@ if args.analysis_level == "group":
 # otherwise we move on to conforming the data configuration
 if not args.data_config_file:
 
-    from .bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
+    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
     (file_paths, config) = collect_bids_files_configs(args.bids_dir, args.aws_input_creds)
 
