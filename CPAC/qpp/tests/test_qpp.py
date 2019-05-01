@@ -2,33 +2,49 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-np.random.seed(2)
+from CPAC.qpp.qpp import detect_qpp
+
+np.random.seed(10)
 
 def test_qpp():
-    x1 = np.sin(2 * np.pi * 10 * np.linspace(0, 1, 200))
-    x1 -= x1.mean()
-    x1 /= x1.std()
-    x = np.tile(x1, (10, 1))
+
+    voxels, trs = 600, 200
+    window_length = 15
+
+    x1 = np.sin(2 * np.pi * 10 * np.linspace(0, 1, trs))
+    x = np.tile(x1, (voxels, 1)) + np.random.uniform(0, 1, (voxels, trs))
+    x -= x.mean()
+    x /= x.std()
 
     best_template_segment, best_selected_peaks, best_template_metrics = detect_qpp(
         data=x,
-        num_scans=1,
-        window_length=15,
+        num_scans=4,
+        window_length=window_length,
         permutations=20,
         correlation_threshold=.1,
-        max_iterations=100,
+        iterations=100,
         convergence_iterations=1
     )
 
     plt.figure()
-    plt.plot(x[0], label="Data")
-    plt.plot(np.convolve(x[0], best_template_segment[0], mode='same'), label="Template")
+    plt.fill_between(range(trs), x.mean(axis=0) - x.std(axis=0), x.mean(axis=0) + x.std(axis=0), facecolor='blue', alpha=0.2)
+    plt.plot(range(trs), x.mean(axis=0), label="Data", color='blue')
+
+    convolved = np.zeros((voxels, trs))
+    for i in range(trs):
+        convolved[i] = (np.convolve(x[i], best_template_segment[i], mode='full') / window_length)[:trs]
+
+    plt.fill_between(range(trs), convolved.mean(axis=0) - convolved.std(axis=0), convolved.mean(axis=0) + convolved.std(axis=0), facecolor='red', alpha=0.2)
+    plt.plot(range(trs), convolved.mean(axis=0), label="QPP", color='red')
+
     plt.legend()
     plt.show()
 
     plt.figure()
-    plt.plot(x[0], label="Data")
+    plt.fill_between(range(trs), x.mean(axis=0) - x.std(axis=0), x.mean(axis=0) + x.std(axis=0), facecolor='blue', alpha=0.2)
+    plt.plot(range(trs), x.mean(axis=0), label="Data", color='blue')
     for xc in best_selected_peaks:
         plt.axvline(x=xc, color='r')
     plt.legend()
     plt.show()
+    
