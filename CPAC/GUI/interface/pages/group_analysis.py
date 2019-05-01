@@ -702,19 +702,26 @@ class QPPSettings(wx.ScrolledWindow):
                       values="",
                       comment="")
 
-        self.page.add(label="QPP Length",
-                      control=control.INT_CTRL,
-                      name='qpp_window',
-                      type=dtype.NUM,
-                      values=30,
-                      comment="")
-
         self.page.add(label="Scan/Sessions Stratification",
                       control=control.CHOICE_BOX,
                       name='qpp_stratification',
                       type=dtype.STR,
                       values=["Session and Scan", "Session", "Scan", "None"],
                       comment="")
+
+        self.page.add(label="QPP Window Length",
+                      control=control.INT_CTRL,
+                      name='qpp_window',
+                      type=dtype.NUM,
+                      values=30,
+                      comment="")
+
+        self.page.add(label="Permutations",
+                      control=control.INT_CTRL,
+                      name='qpp_permutations',
+                      type=dtype.NUM,
+                      values=100,
+                      comment="Number of permutations.")
 
         self.page.add(label="Initial correlation threshold",
                       control=control.TEXT_BOX, 
