@@ -25,7 +25,7 @@ def normalized_flattened_segment(data, window_length, pos, df):
 
 def detect_qpp(data, num_scans, window_length,
                permutations, correlation_threshold, 
-               max_iterations, convergence_iterations):
+               iterations, convergence_iterations=1):
     """
     This code is adapted from the paper "Quasi-periodic patterns (QP): Large-
     scale dynamics in resting state fMRI that correlate with local infraslow
@@ -34,13 +34,13 @@ def detect_qpp(data, num_scans, window_length,
 
     voxels, trs = data.shape
 
-    max_iterations = int(max(1, max_iterations))
+    iterations = int(max(1, iterations))
     convergence_iterations = int(max(1, convergence_iterations))
 
     if callable(correlation_threshold):
-        correlation_thresholds = [correlation_threshold(i) for i in range(max_iterations)]
+        correlation_thresholds = [correlation_threshold(i) for i in range(iterations)]
     else:
-        correlation_thresholds = [correlation_threshold for _ in range(max_iterations)]
+        correlation_thresholds = [correlation_threshold for _ in range(iterations)]
 
 
     trs_per_scan = int(trs / num_scans)
@@ -66,7 +66,7 @@ def detect_qpp(data, num_scans, window_length,
             template_holder,
         ])
 
-        for iteration in range(max_iterations):
+        for iteration in range(iterations):
 
             peak_threshold = correlation_thresholds[iteration]
 

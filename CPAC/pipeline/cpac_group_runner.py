@@ -1851,94 +1851,10 @@ def run_isc(pipeline_config):
                       permutations=permutations,
                       std_filter=std_filter)
 
-def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
-                  isc, isfc, levels=[], permutations=1000,
-                  std_filter=None):
-
-    import os
-    from CPAC.isc.pipeline import create_isc, create_isfc
-
-    pipeline_dir = os.path.abspath(pipeline_dir)
-
-    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'ISC',
-                           os.path.basename(pipeline_dir))
-
-    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'ISC',
-                               os.path.basename(pipeline_dir))
-
-    crash_dir = os.path.join(crash_dir, 'cpac_group_analysis', 'ISC',
-                             os.path.basename(pipeline_dir))
-
-    output_df_dct = gather_outputs(
-        pipeline_dir,
-        ["functional_to_standard", "roi_timeseries"],
-        inclusion_list=None,
-        get_motion=False, get_raw_score=False, get_func=True,
-        derivatives=["functional_to_standard", "roi_timeseries"],
-        exts=['nii', 'nii.gz', 'csv']
-    )
-
-    for preproc_strat in output_df_dct.keys():
-        # go over each preprocessing strategy
-
-        derivative, _ = preproc_strat
-
-        if "voxel" not in levels and derivative == "functional_to_standard":
-            continue
-
-        if "roi" not in levels and derivative == "roi_timeseries":
-            continue
-
-        df_dct = {}
-        strat_df = output_df_dct[preproc_strat]
-
-        if len(set(strat_df["Series"])) > 1:
-            # more than one scan/series ID
-            for strat_scan in list(set(strat_df["Series"])):
-                # make a list of sub-dataframes, each one with only file paths
-                # from one scan ID each
-                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
-        else:
-            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
-
-        if isc:
-            for df_scan in df_dct.keys():
-                func_paths = {
-                    p.split("_")[0]: f
-                    for p, f in
-                    zip(
-                        df_dct[df_scan].participant_id,
-                        df_dct[df_scan].Filepath
-                    )
-                }
-
-                isc_wf = create_isc(name="ISC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
-                isc_wf.inputs.inputspec.subjects = func_paths
-                isc_wf.inputs.inputspec.permutations = permutations
-                isc_wf.inputs.inputspec.std = std_filter
-                isc_wf.inputs.inputspec.collapse_subj = False
-                isc_wf.run()
-
-        if isfc:
-            for df_scan in df_dct.keys():
-                func_paths = {
-                    p.split("_")[0]: f
-                    for p, f in
-                    zip(
-                        df_dct[df_scan].participant_id,
-                        df_dct[df_scan].Filepath
-                    )
-                }
-
-                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
-                isfc_wf.inputs.inputspec.subjects = func_paths
-                isfc_wf.inputs.inputspec.permutations = permutations
-                isfc_wf.inputs.inputspec.std = std_filter
-                isfc_wf.inputs.inputspec.collapse_subj = False
-                isfc_wf.run()
-
 
 def run_qpp(group_config_file):
+
+    from CPAC.qpp.pipeline import create_qpp
 
     c = load_config_yml(group_config_file)
 
@@ -1955,27 +1871,61 @@ def run_qpp(group_config_file):
         os.makedirs(working_dir)
         os.makedirs(crash_dir)
     except:
-        raise Exception("couldn't make the dirs!")
+        pass
 
-    output_df_dct = gather_outputs(
+    outputs = gather_outputs(
         pipeline_dir,
         ["functional_to_standard"],
-        inclusion_list=None,
+        inclusion_list=c.participant_list,
         get_motion=False, get_raw_score=False, get_func=True,
         derivatives=["functional_to_standard"],
         exts=['nii', 'nii.gz']
     )
 
-    wf = create_qpp(name="QPP", working_dir=working_dir, crash_dir=crash_dir)
-    wf.inputs.inputspec.datasets = 
-    wf.inputs.inputspec.window_length = group_config.qpp_window
-    wf.inputs.inputspec.permutations = group_config.qpp_permutations
-    wf.inputs.inputspec.lower_correlation_threshold = group_config.qpp_initial_threshold
-    wf.inputs.inputspec.higher_correlation_threshold = group_config.qpp_final_threshold
-    wf.inputs.inputspec.max_iterations = group_config.qpp_iterations
-    wf.inputs.inputspec.initial_threshold_iterations = group_config.qpp_initial_threshold_iterations
-    wf.inputs.inputspec.convergence_iterations = 1
-    wf.run()
+    if c.qpp_stratification == 'Scan':
+        qpp_stratification = 'Series'
+    elif c.qpp_stratification == 'Session':
+        qpp_stratification = 'Sessions'
+    elif c.qpp_stratification == 'Session and Scan':
+        qpp_stratification = ['Sessions', 'Series']
+    else:
+        qpp_stratification = None
+        
+    for (resource_id, strat_info), output_df in outputs.items():
+
+        if c.qpp_session_inclusion:
+            output_df = output_df[output_df["Sessions"].isin(c.qpp_session_inclusion)]
+        if c.qpp_scan_inclusion:
+            output_df = output_df[output_df["Series"].isin(c.qpp_scan_inclusion)]
+
+        if qpp_stratification and qpp_stratification != 'None':
+            output_df_groups = output_df.groupby(by=qpp_stratification)
+        else:
+            output_df_groups = [(None, output_df)]
+
+        for group_id, output_df_group in output_df_groups:
+
+            output_df_group, _ = balance_repeated_measures(
+                output_df_group,
+                output_df_group.Sessions.unique(),
+                output_df_group.Series.unique()
+            )
+
+            output_df_group = output_df_group.sort_values(by='participant_session_id')
+
+            wf = create_qpp(name="QPP", working_dir=working_dir, crash_dir=crash_dir)
+
+            wf.inputs.inputspec.window_length = c.qpp_window
+            wf.inputs.inputspec.permutations = c.qpp_permutations
+            wf.inputs.inputspec.lower_correlation_threshold = c.qpp_initial_threshold
+            wf.inputs.inputspec.higher_correlation_threshold = c.qpp_final_threshold
+            wf.inputs.inputspec.iterations = c.qpp_iterations
+            wf.inputs.inputspec.correlation_threshold_iteration = c.qpp_initial_threshold_iterations
+            wf.inputs.inputspec.convergence_iterations = 1
+
+            wf.inputs.inputspec.datasets = output_df_group.Filepath.tolist()
+
+            wf.run()
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
