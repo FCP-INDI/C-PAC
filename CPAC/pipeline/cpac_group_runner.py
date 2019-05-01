@@ -686,17 +686,19 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     part_ID_count = Counter(pheno_df["participant_id"])
 
-    if series_list:
-        sessions_x_series = len(sessions_list) * len(series_list)
-    else:
-        sessions_x_series = len(sessions_list)
+    sessions_x_series = len(sessions_list)
+    if series_list is not None:
+        sessions_x_series *= len(series_list)
        
     dropped_parts = []
 
     for part_ID in part_ID_count.keys():
         if part_ID_count[part_ID] != sessions_x_series:
             pheno_df = pheno_df[pheno_df.participant_id != part_ID]
-            del pheno_df["participant_%s" % part_ID]
+            try:
+                del pheno_df["participant_%s" % part_ID]
+            except:
+                pass
             dropped_parts.append(part_ID)
 
     return pheno_df, dropped_parts
