@@ -1,10 +1,11 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import scipy.io
 from CPAC.qpp.qpp import detect_qpp
 
 np.random.seed(10)
+
 
 def test_qpp():
 
@@ -16,13 +17,18 @@ def test_qpp():
     x -= x.mean()
     x /= x.std()
 
+    scipy.io.savemat('CPAC/qpp/tests/matlab/qpp.mat', mdict={
+        'B': x,
+        'msk': np.ones((voxels))
+    })
+
     best_template_segment, best_selected_peaks, best_template_metrics = detect_qpp(
         data=x,
         num_scans=4,
         window_length=window_length,
-        permutations=20,
-        correlation_threshold=.1,
-        iterations=100,
+        permutations=1,
+        correlation_threshold=0.3,
+        iterations=1,
         convergence_iterations=1
     )
 
@@ -35,7 +41,10 @@ def test_qpp():
         convolved[i] = (np.convolve(x[i], best_template_segment[i], mode='full') / window_length)[:trs]
 
     plt.fill_between(range(trs), convolved.mean(axis=0) - convolved.std(axis=0), convolved.mean(axis=0) + convolved.std(axis=0), facecolor='red', alpha=0.2)
-    plt.plot(range(trs), convolved.mean(axis=0), label="QPP", color='red')
+    plt.plot(range(trs), convolved.mean(axis=0), label="Convolved QPP", color='red')
+
+    plt.plot(range(-window_length, 0), best_template_segment.mean(axis=0), '--', label="QPP", color='green')
+    plt.axvline(x=0, color='black')
 
     plt.legend()
     plt.show()
@@ -47,4 +56,3 @@ def test_qpp():
         plt.axvline(x=xc, color='r')
     plt.legend()
     plt.show()
-    
