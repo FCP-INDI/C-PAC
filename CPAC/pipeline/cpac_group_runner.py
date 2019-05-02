@@ -1885,13 +1885,13 @@ def run_qpp(group_config_file):
     )
 
     if c.qpp_stratification == 'Scan':
-        qpp_stratification = 'Series'
+        qpp_stratification = ['Series']
     elif c.qpp_stratification == 'Session':
-        qpp_stratification = 'Sessions'
-    elif c.qpp_stratification == 'Session and Scan':
+        qpp_stratification = ['Sessions']
+    elif c.qpp_stratification in ['Session and Scan', 'Scan and Session']:
         qpp_stratification = ['Sessions', 'Series']
     else:
-        qpp_stratification = None
+        qpp_stratification = []
         
     for (resource_id, strat_info), output_df in outputs.items():
 
@@ -1900,12 +1900,22 @@ def run_qpp(group_config_file):
         if c.qpp_scan_inclusion:
             output_df = output_df[output_df["Series"].isin(c.qpp_scan_inclusion)]
 
-        if qpp_stratification and qpp_stratification != 'None':
+        if qpp_stratification:
             output_df_groups = output_df.groupby(by=qpp_stratification)
         else:
-            output_df_groups = [(None, output_df)]
+            output_df_groups = [([], output_df)]
 
         for group_id, output_df_group in output_df_groups:
+
+            group = zip(qpp_stratification, group_id)
+
+            group_id = "_".join(["%s-%s" % ({
+                "Sessions": "ses",
+                "Series": "scan",
+            }[k], v) for k, v in group])
+
+            group_working_dir = os.path.join(working_dir, group_id)
+            group_crash_dir = os.path.join(crash_dir, group_id)
 
             output_df_group, _ = balance_repeated_measures(
                 output_df_group,
@@ -1915,7 +1925,7 @@ def run_qpp(group_config_file):
 
             output_df_group = output_df_group.sort_values(by='participant_session_id')
 
-            wf = create_qpp(name="QPP", working_dir=working_dir, crash_dir=crash_dir)
+            wf = create_qpp(name="QPP", working_dir=group_working_dir, crash_dir=group_crash_dir)
 
             wf.inputs.inputspec.window_length = c.qpp_window
             wf.inputs.inputspec.permutations = c.qpp_permutations
