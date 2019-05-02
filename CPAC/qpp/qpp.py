@@ -11,9 +11,6 @@ import numpy.matlib
 from CPAC.isc.utils import correlation
 
 
-def flattened_segment(data, window_length, pos):
-    return data[:, pos:pos + window_length].flatten()
-
 def smooth(x):
     """
     Temporary moving average
@@ -26,8 +23,12 @@ def smooth(x):
         [x[-1]]
     )
 
-def normalized_flattened_segment(data, window_length, pos, df):
-    segment = flattened_segment(data, window_length, pos)
+
+def flattened_segment(data, window_length, pos):
+    return data[:, pos:pos + window_length].flatten(order='F')
+
+
+def normalize_segment(segment, df):
     segment -= np.sum(segment) / df
     segment = segment / np.sqrt(np.dot(segment, segment))
     return segment
@@ -52,7 +53,6 @@ def detect_qpp(data, num_scans, window_length,
     else:
         correlation_thresholds = [correlation_threshold for _ in range(iterations)]
 
-
     trs_per_scan = int(trs / num_scans)
     inpectable_trs = np.arange(trs) % trs_per_scan
     inpectable_trs = np.where(inpectable_trs < trs_per_scan - window_length + 1)[0]
@@ -65,16 +65,12 @@ def detect_qpp(data, num_scans, window_length,
     for perm in range(permutations):
 
         template_holder = np.zeros(trs)
-        random_initial_window = normalized_flattened_segment(data, window_length, initial_trs[perm], df)
+        random_initial_window = normalize_segment(flattened_segment(data, window_length, initial_trs[perm]), df)
         for tr in inpectable_trs:
-            scan_window = normalized_flattened_segment(data, window_length, tr, df)
+            scan_window = normalize_segment(flattened_segment(data, window_length, tr), df)
             template_holder[tr] = np.dot(random_initial_window, scan_window)
 
-        template_holder_convergence = np.array([
-            template_holder,
-            template_holder,
-            template_holder,
-        ])
+        template_holder_convergence = np.tile(template_holder, (convergence_iterations, 1))
 
         for iteration in range(iterations):
 
@@ -94,18 +90,18 @@ def detect_qpp(data, num_scans, window_length,
                 peaks_segments = peaks_segments + flattened_segment(data, window_length, peak)
 
             peaks_segments = peaks_segments / found_peaks
-            peaks_segments = peaks_segments - np.sum(peaks_segments) / df
-            peaks_segments = peaks_segments / np.sqrt(np.dot(peaks_segments, peaks_segments))
+            peaks_segments = normalize_segment(peaks_segments, df)
 
             for tr in inpectable_trs:
-                scan_window = flattened_segment(data, window_length, tr)
+                scan_window = normalize_segment(flattened_segment(data, window_length, tr), df)
                 template_holder[tr] = np.dot(peaks_segments, scan_window)
 
             if np.all(correlation(template_holder, template_holder_convergence) > 0.9999):
                 break
 
-            template_holder_convergence[0:2, :] = template_holder_convergence[1:, :]
-            template_holder_convergence[2, :] = template_holder
+            if convergence_iterations > 1:
+                template_holder_convergence[1:] = template_holder_convergence[0:-1]
+            template_holder_convergence[0] = template_holder
 
         if found_peaks > 1:
             permutation_result[perm] = {
