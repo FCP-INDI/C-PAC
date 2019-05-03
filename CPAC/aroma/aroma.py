@@ -75,7 +75,6 @@ def create_aroma(tr=None, wf_name='create_aroma'):
     preproc.connect(bet_aroma,'mask_file', aroma,'mask')
     preproc.connect(inputNode_params,'denoise_type', aroma,'denoise_type')
     preproc.connect(inputNode_params,'dim', aroma,'dim')
-
     preproc.connect(aroma,'nonaggr_denoised_file', outputNode,'nonaggr_denoised_file')
     preproc.connect(aroma,'aggr_denoised_file', outputNode,'aggr_denoised_file')
 	

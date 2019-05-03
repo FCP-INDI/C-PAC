@@ -17,6 +17,11 @@ systemctl stop NetworkManager.service
 systemctl disable NetworkManager.service
 rm -Rf /etc/NetworkManager
 
+# Cleaning up NetworkManager, use netplan
+systemctl stop NetworkManager.service
+systemctl disable NetworkManager.service
+rm -Rf /etc/NetworkManager
+
 # Disable asking for user password
 groupadd -r autologin
 gpasswd -a ubuntu autologin
