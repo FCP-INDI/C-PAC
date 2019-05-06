@@ -8,7 +8,7 @@ from nilearn.masking import apply_mask
 from nilearn.masking import compute_epi_mask
 import numpy.matlib
 
-from CPAC.isc.utils import correlation
+from CPAC.utils import check_random_state, correlation
 
 
 def smooth(x):
@@ -36,12 +36,15 @@ def normalize_segment(segment, df):
 
 def detect_qpp(data, num_scans, window_length,
                permutations, correlation_threshold, 
-               iterations, convergence_iterations=1):
+               iterations, convergence_iterations=1,
+               random_state=None):
     """
     This code is adapted from the paper "Quasi-periodic patterns (QP): Large-
     scale dynamics in resting state fMRI that correlate with local infraslow
     electrical activity", Shella Keilholz et al. NeuroImage, 2014.
     """
+
+    random_state = check_random_state(random_state)
 
     voxels, trs = data.shape
 
@@ -59,7 +62,7 @@ def detect_qpp(data, num_scans, window_length,
 
     df = voxels * window_length
 
-    initial_trs = np.random.choice(inpectable_trs, permutations)
+    initial_trs = random_state.choice(inpectable_trs, permutations)
 
     permutation_result = [{} for _ in range(permutations)]
     for perm in range(permutations):
@@ -70,7 +73,7 @@ def detect_qpp(data, num_scans, window_length,
             scan_window = normalize_segment(flattened_segment(data, window_length, tr), df)
             template_holder[tr] = np.dot(random_initial_window, scan_window)
 
-        template_holder_convergence = np.tile(template_holder, (convergence_iterations, 1))
+        template_holder_convergence = np.zeros((convergence_iterations, trs))
 
         for iteration in range(iterations):
 
