@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 
 from CPAC.cwas.mdmr import mdmr
-from CPAC.isc.utils import correlation, zscore
+from CPAC.utils import correlation
+
 from CPAC.pipeline.cpac_ga_model_generator import (create_merge_mask,
                                                    create_merged_copefile)
 

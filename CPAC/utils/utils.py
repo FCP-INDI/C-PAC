@@ -3,7 +3,6 @@ import fnmatch
 import threading
 from inspect import currentframe, getframeinfo , stack
 
-global_lock = threading.Lock()
 
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
     """
@@ -363,6 +362,47 @@ def set_gauss(fwhm):
     return op_string
 
 
+def zscore(data, axis):
+    data = data.copy()
+    data -= data.mean(axis=axis, keepdims=True)
+    data /= data.std(axis=axis, keepdims=True)
+    np.copyto(data, 0.0, where=np.isnan(data))
+    return data
+
+
+def correlation(matrix1, matrix2,
+                match_rows=False, z_scored=False, symmetric=False):
+    d1 = matrix1.shape[-1]
+    d2 = matrix2.shape[-1]
+
+    assert d1 == d2
+    assert matrix1.ndim <= 2
+    assert matrix2.ndim <= 2
+    if match_rows:
+        assert matrix1.shape == matrix2.shape
+
+    var = np.sqrt(d1 * d2)
+    
+    if not z_scored:
+        matrix1 = zscore(matrix1, matrix1.ndim - 1)
+        matrix2 = zscore(matrix2, matrix2.ndim - 1)
+
+    if match_rows:
+        return np.einsum('...i,...i', matrix1, matrix2) / var
+    
+    if matrix1.ndim >= matrix2.ndim:
+        r = np.dot(matrix1, matrix2.T) / var
+    else:
+        r = np.dot(matrix2, matrix1.T) / var
+
+    r = np.clip(r, -1.0, 1.0)
+
+    if symmetric:
+        return (r + r.T) / 2
+    
+    return r
+    
+
 def check(params_dct, subject, scan, val, throw_exception):
 
     if val not in params_dct:
@@ -390,6 +430,29 @@ def check(params_dct, subject, scan, val, throw_exception):
                         "{1}".format(val, subject))
 
     return ret_val
+
+
+def check_random_state(seed):
+    """
+    Turn seed into a np.random.RandomState instance
+    Code from scikit-learn (https://github.com/scikit-learn/scikit-learn)
+
+    Parameters
+    ----------
+    seed : None | int | instance of RandomState
+        If seed is None, return the RandomState singleton used by np.random.
+        If seed is an int, return a new RandomState instance seeded with seed.
+        If seed is already a RandomState instance, return it.
+        Otherwise raise ValueError.
+    """
+    if seed is None or seed is np.random:
+        return np.random.mtrand._rand
+    if isinstance(seed, (numbers.Integral, np.integer)):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
+                     ' instance' % seed)
 
 
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
