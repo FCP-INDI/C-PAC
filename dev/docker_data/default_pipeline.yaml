@@ -60,8 +60,8 @@ crashLogDirectory :  /tmp
 
 
 # Directory where CPAC should place run logs.
-log_to_file : True
 logDirectory :  /tmp
+run_logging : True
 
 
 # Directory where CPAC should place processed data.
@@ -262,6 +262,10 @@ regOption :  ['ANTS']
 use_lesion_mask : [1]
 
 
+# Use only FLIRT, without FNIRT, for anatomical-to-template registration. 
+fsl_linear_reg_only :  [0]
+
+
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
 fnirtConfig :  T1_2_MNI152_2mm
@@ -331,6 +335,9 @@ slice_timing_correction :  [1]
 slice_timing_pattern :  ['Use NIFTI Header']
 
 
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+funcional_volreg_twopass :  On
+
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
 runEPI_DistCorr :  [0]
 
@@ -391,7 +398,7 @@ functionalMasking :  ['3dAutoMask']
 
 
 # Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives.
+# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
 runRegisterFuncToMNI :  [1]
 
 
@@ -420,7 +427,7 @@ identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 runICA :  [0]
 
 
-# Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
+# Types of denoising strategy:i)nonaggr-patial component regression,ii)aggr-aggressive denoising
 aroma_denoise_type :  nonaggr
 
 
@@ -504,7 +511,7 @@ runROITimeseries :  [1]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
-# Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
+# Available analyses: ['Avg', 'Voxel', 'SpatialReg', 'PearsonCorr', 'PartialCorr'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
 tsa_roi_paths:
   - /cpac_templates/CC400.nii.gz: Avg
