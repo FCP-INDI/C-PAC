@@ -5,7 +5,7 @@ import nibabel as nb
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 
 
 def motion_power_statistics(name='motion_stats'):

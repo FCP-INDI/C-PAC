@@ -3,7 +3,7 @@ import pkg_resources as p
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 
 from CPAC.qc.qc import (
     create_montage,

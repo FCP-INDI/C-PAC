@@ -4,7 +4,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.c3 as c3
 import nipype.interfaces.ants as ants
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import seperate_warps_list, \
                                     combine_inputs_into_list, \
                                     hardcoded_reg

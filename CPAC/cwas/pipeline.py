@@ -3,7 +3,7 @@ import os
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 
 
 from .cwas import (

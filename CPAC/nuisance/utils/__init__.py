@@ -9,7 +9,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
 from nipype.interfaces import afni
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 
 from CPAC.nuisance.utils.crc import encode as crc_encode
 

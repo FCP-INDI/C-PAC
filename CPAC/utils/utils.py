@@ -909,7 +909,7 @@ def create_log(wf_name="log", scan_id=None):
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
-    import CPAC.utils.function as function
+    import CPAC.utils.interfaces.function as function
 
     wf = pe.Workflow(name=wf_name)
 
