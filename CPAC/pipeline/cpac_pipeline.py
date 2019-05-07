@@ -3396,6 +3396,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     qc_plot_id = {}
     qc_hist_id = {}
 
+    raising = None
+
     if 1 in c.generateQualityControlImages:
         qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
             create_qc_workflow(workflow, c, strat_list, Outputs.qc)
@@ -4025,20 +4027,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
                     logger.error(err_msg, log_dir, exc)
 
-        finally:
-
-            # Remove working directory when done
-            if c.removeWorkingDir:
-                try:
-                    subject_wd = os.path.join(c.workingDirectory, workflow_name)
-                    if os.path.exists(subject_wd):
-                        logger.info("Removing working dir: %s" % subject_wd)
-                        shutil.rmtree(subject_wd)
-                except:
-                    logger.warn('Could not remove subjects %s working directory',
-                                workflow_name)
-
-
             execution_info = """
 
     End of subject workflow {workflow}
@@ -4052,7 +4040,43 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         System time of start:      {run_start}
         System time of completion: {run_finish}
 
-    """
+"""
+
+        except KeyboardInterrupt as e:
+
+            raising = e
+
+            execution_info = """
+
+    Stopped of subject workflow {workflow}
+
+    CPAC run stopped:
+
+        Pipeline configuration: {pipeline}
+        Subject workflow: {workflow}
+        Elapsed run time (minutes): {elapsed}
+        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
+        System time of start:      {run_start}
+
+"""
+        except:
+
+            execution_info = """
+
+    Error of subject workflow {workflow}
+
+    CPAC run error:
+
+        Pipeline configuration: {pipeline}
+        Subject workflow: {workflow}
+        Elapsed run time (minutes): {elapsed}
+        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
+        System time of start:      {run_start}
+
+"""
+
+        finally:
+
             logger.info(execution_info.format(
                 workflow=workflow_name,
                 pipeline=c.pipelineName,
@@ -4061,5 +4085,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 run_start=pipeline_start_datetime,
                 run_finish=strftime("%Y-%m-%d %H:%M:%S")
             ))
+
+            # Remove working directory when done
+            if c.removeWorkingDir:
+                try:
+                    subject_wd = os.path.join(c.workingDirectory, workflow_name)
+                    if os.path.exists(subject_wd):
+                        logger.info("Removing working dir: %s" % subject_wd)
+                        shutil.rmtree(subject_wd)
+                except:
+                    logger.warn('Could not remove subjects %s working directory',
+                                workflow_name)
+
+            if raising:
+                raise raising
 
     return workflow
