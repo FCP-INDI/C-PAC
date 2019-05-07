@@ -4,8 +4,7 @@ import yaml
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from CPAC.utils.function import Function
-from CPAC.nuisance import create_nuisance_workflow
+from CPAC.utils.interfaces.function import Function
 
 '''
 tC-1.5PCT-PC5S-SDB
@@ -69,7 +68,7 @@ Regressors:
    Censor:
      method: Interpolate
      thresholds:
-       - type: FD
+       - type: FD_J
          value: 0.5
        - type: DVARS
          value: 17
