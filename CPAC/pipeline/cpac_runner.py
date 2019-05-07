@@ -283,7 +283,10 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     pipeline_timing_info.append(len(sublist))
 
     if tracking:
-        track_run(level='participant', participants=len(sublist))
+        try:
+            track_run(level='participant', participants=len(sublist))
+        except:
+            pass
 
     # If we're running on cluster, execute job scheduler
     if c.runOnGrid:
