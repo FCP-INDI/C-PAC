@@ -355,8 +355,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                         function=create_temporal_variance_mask,
                         as_module=True,
                     ),
-                    name='create_temporal_variance_mask_{}'
-                         .format(node_mask_key)
+                    name=node_mask_key
                 )
 
                 nuisance_wf.connect(*(
@@ -495,73 +494,6 @@ def generate_summarize_tissue_mask(nuisance_wf,
             pipeline_resource_pool[full_mask_key] = (mask_csf_with_lat_ven, 'out_file')
 
     return pipeline_resource_pool, full_mask_key
-
-
-def summarize_timeseries(regressor_type, functional_path, masks_path, summary):
-
-    if type(summary) is not dict:
-        summary = {'method': summary}
-
-    masks_img = [nb.load(mask_path) for mask_path in masks_path]
-    mask = np.sum(np.array([
-        mask_img.get_data() for mask_img in masks_img
-    ]), axis=0) > 0.0
-
-    if mask.sum() == 0:
-
-        if regressor_type in ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid', 'aCompCor']:
-            raise Exception((
-                    "The provided mask for %s does not contains voxels. "
-                    "Please check if mask is being eroded and if the segmentation worked correctly. "
-                    "Segmentation is a data-dependent process, that might be too strict on thresholding "
-                    "the tissues to make sure there is no overlap between tissues."
-                ) % (
-                    regressor_type,
-                )
-            )
-
-        raise Exception(
-            "The provided mask of %s does not contains voxels." % (
-                regressor_type,
-
-            )
-        )
-
-    functional_img = nb.load(functional_path)
-    masked_functional = functional_img.get_data()[mask]
-
-    regressors = np.zeros(masked_functional.shape[-1])
-
-    if summary['method'] == 'Mean':
-        regressors = masked_functional.mean(0)
-
-    if summary['method'] == 'NormMean':
-        masked_functional /= np.linalg.norm(masked_functional, 2)
-        regressors = np.nan_to_num(masked_functional).mean(0)
-
-    if summary['method'] == 'DetrendNormMean':
-        masked_functional = \
-            signal.detrend(masked_functional, type='linear').T
-
-        masked_functional /= np.linalg.norm(masked_functional, 2)
-        regressors = np.nan_to_num(masked_functional).mean(0)
-
-    if summary['method'] in ['DetrendPC', 'PC']:
-        if summary['method'] == 'DetrendPC':
-            Y = signal.detrend(masked_functional, type='linear').T
-        else:
-            Y = masked_functional.T
-
-        Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
-        Yc = np.nan_to_num(Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1)))
-        U, _, _ = np.linalg.svd(Yc)
-
-        regressors = U[:, 0:summary['components']]
-
-    output_file_path = os.path.join(os.getcwd(), 'summary_regressors.1D')
-    np.savetxt(output_file_path, regressors, fmt='%.18f')
-
-    return output_file_path
 
 
 class NuisanceRegressor(object):
