@@ -18,7 +18,6 @@ from CPAC.utils.interfaces.pc import PC
 from CPAC.nuisance import (
     find_offending_time_points,
     create_temporal_variance_mask,
-    summarize_timeseries,
     generate_summarize_tissue_mask,
 )
 
