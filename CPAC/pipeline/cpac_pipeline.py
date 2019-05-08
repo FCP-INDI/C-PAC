@@ -118,7 +118,7 @@ from CPAC.utils.utils import (
     get_fisher_zscore,
     add_afni_prefix
 )
-
+from nipype.interfaces.utility import Function
 logger = logging.getLogger('nipype.workflow')
 
 
@@ -1954,7 +1954,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
                 for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-
                     new_strat = strat.fork()
                     # to guarantee immutability
                     regressors_selector = NuisanceRegressor(
@@ -2121,9 +2120,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         workflow_counter += 1
         if 1 in c.runPyPEER:
 
-            workflow_bit_id['peer_wf'] = workflow_counter
+           workflow_bit_id['peer_wf'] = workflow_counter
 
-            for num_strat, strat in enumerate(strat_list):
+           for num_strat, strat in enumerate(strat_list):
 
                 if 'outputspec.model_xdirection' or 'outputspec.model_ydirection' not in strat.resource_pool.values():
                     calibration_flag = True
@@ -2134,19 +2133,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         has_segmentation = 'seg_preproc' in nodes
                         use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
                         for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-                            nuisance_peer = Function(input_names=[workflow,strat,calibration_data,c,
+                            node, out_file = strat.get_leaf_properties()
+                            calibration_data = peer_wf.outputs.outputspec.peer_scan_file_path
+
+                            nuisance_peer = pe.Node(name='nuisance_peer',interface=Function(input_names=[workflow,strat,calibration_data,c,
                                                                   regressors_selector,regressors_selector_i,
                                                                   has_segmentation, use_ants,
                                                                   num_strat],
                                                         output_names=['functional_nuisance_residuals','functional_nuisance_regressors'],
-                                                        function=connect_nuisance)
-                            node, out_file = strat.get_leaf_properties()
-                            workflow.connect(node, out_file, nuisance_peer, 'inputspec.calibration_data')
-                            if 'scrubbing' in :
+                                                        function=connect_nuisance))
+                            #workflow.connect(peer_wf, 'outputspec.peer_scan_file_path', nuisance_peer,
+                            #                 'inputspec.calibration_data')
 
                         workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,'inputspec.calibrated_residuals')
-
-
 
                     else:
                         peer_estimation = create_peer(peer_run_nuisance=False,calibration_flag=True,wf_name='peer_estimation')
@@ -2183,7 +2182,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                                   num_strat],
                                                      output_names=['functional_nuisance_residuals',
                                                                    'functional_nuisance_regressors'],
-                                                     function=connect_nuisance)
+                                                    function=connect_nuisance)
 
                              node, out_file = strat.get_leaf_properties()
                              workflow.connect(node, out_file, nuisance_peer, 'inputspec.test_data')
@@ -2191,8 +2190,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,
                                      'inputspec.test_residuals')
                     else:
-                        peer_estimation = create_peer(peer_run_nuisance=False, calibration_flag=False,
-                                                      wf_name='peer_estimation_%d' % num_strat)
+                       peer_estimation = create_peer(peer_run_nuisance=False, calibration_flag=False,
+                                                     wf_name='peer_estimation_%d' % num_strat)
                         node, out_file = strat.get_leaf_properties()
                         workflow.connect(node, out_file, peer_estimation, 'inputspec.test_data')
 
