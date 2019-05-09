@@ -10,6 +10,8 @@ import nipype.interfaces.ants as ants
 from nipype.interfaces import afni
 
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.interfaces.masktool import MaskTool
+from CPAC.utils.interfaces.brickstat import BrickStat
 
 from CPAC.nuisance.utils.crc import encode as crc_encode
 
@@ -119,57 +121,36 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
     return out_file_path
 
 
-def create_temporal_variance_mask(functional_file_path, mask_file_path,
-                                  threshold, by_slice=False):
-    """
-    Create a mask by applying threshold to the temporal variance of 4D nifti
-    file in functional_file_path. Only non-zero voxels in mask will be
-    considered for inclusion.
+def compute_threshold(in_file, mask, threshold):
+    return threshold
 
-    :param functional_file_path: 4D nifti file containing functional data.
-    :param mask_file_path: name of 3D nifti file containing mask to use to
-        restrict the voxels considered by the masking operation.
-    :param threshold: only voxels whose temporal variance meet the threshold
-        criterion will be included in the created mask. Appropriate values are:
 
-        - a floating point value, values whose temporal variance is greater than
-          this value will be included in mask
-        - a floating point value followed by SD, (1.5SD), values whose temporal
-          variance is greater that 1.5 standard deviations of voxels will be
-          included in the mask
-        - a floating point value followed by PCT, (2PCT), values whose temporal
-          variance is in the specified percentile from the top will be included
-          in the mask. E.g.: 2PCT results in the top 2% voxels being included.
+def compute_pct_threshold(in_file, mask, threshold_pct):
+    import nibabel as nb
+    import numpy as np
+    m = nb.load(mask).get_data().astype(bool)
+    if not np.any(m):
+        return 0.0
+    d = nb.load(in_file).get_data()[m]
+    return np.percentile(
+        d,
+        100.0 - threshold_pct
+    )
 
-    :param by_slice: indicates whether threshold criterion should be applied by
-        slice, or to all data, only changes result for thresholds expressed in
-        terms of SD or PCT.
 
-    :return: the full path of the 3D nifti file containing the mask created by
-        this operation.
-    """
+def compute_sd_threshold(in_file, mask, threshold_sd):
+    import nibabel as nb
+    import numpy as np
+    m = nb.load(mask).get_data().astype(bool)
+    if not np.any(m):
+        return 0.0
+    d = nb.load(in_file).get_data()[m]
+    return d.mean() + threshold_sd * d.std()
 
-    # begin by verifying the input parameters
-    if not (functional_file_path and (
-        functional_file_path.endswith(".nii") or
-        functional_file_path.endswith(".nii.gz")
-    )):
-        raise ValueError("Improper functional file specified ({0}), "
-                         "should be a 4D nifti file."
-                         .format(functional_file_path))
 
-    if not (mask_file_path and (
-        mask_file_path.endswith(".nii") or
-        mask_file_path.endswith(".nii.gz")
-    )):
-        raise ValueError("Improper mask file specified ({0}), "
-                         "should be a 3D nifti file.".format(mask_file_path))
-
-    if not threshold:
-        raise ValueError("Threshold must be specified. Received None")
+def temporal_variance_mask(threshold, by_slice=False):
 
     threshold_method = "VAR"
-    threshold_value = threshold
 
     if isinstance(threshold, str):
         regex_match = {
@@ -187,110 +168,102 @@ def create_temporal_variance_mask(functional_file_path, mask_file_path,
         threshold_value = float(threshold_value)
     except:
         raise ValueError("Error converting threshold value {0} from {1} to a "
-                         "floating point number. The threshold value can "
-                         "contain SD or PCT for selecting a threshold based on "
-                         "the variance distribution, otherwise it should be a "
-                         "floating point number.".format(threshold_value,
-                                                         threshold))
+                        "floating point number. The threshold value can "
+                        "contain SD or PCT for selecting a threshold based on "
+                        "the variance distribution, otherwise it should be a "
+                        "floating point number.".format(threshold_value,
+                                                        threshold))
 
     if threshold_value < 0:
         raise ValueError("Threshold value should be positive, instead of {0}."
-                         .format(threshold_value))
+                        .format(threshold_value))
 
     if threshold_method is "PCT" and threshold_value >= 100.0:
         raise ValueError("Percentile should be less than 100, received {0}."
-                         .format(threshold_value))
+                        .format(threshold_value))
 
-    if not isinstance(by_slice, bool):
-        raise ValueError("Parameter by_slice should be a boolean.")
+    threshold = threshold_value
 
-    functional_data_img = nb.load(functional_file_path)
+    wf = pe.Workflow(name='tcompcor')
 
-    if len(functional_data_img.shape) != 4 or functional_data_img.shape[3] < 3:
-        raise ValueError("Functional data used to create mask ({0}) should be "
-                         "4D and should contain 3 or more time points."
-                         .format(functional_file_path))
+    input_node = pe.Node(util.IdentityInterface(fields=['functional_file_path', 'mask_file_path']), name='inputspec')
+    output_node = pe.Node(util.IdentityInterface(fields=['mask']), name='outputspec')
 
+    detrend = pe.Node(afni.Detrend(args='-polort 1', outputtype='NIFTI'), name='detrend')
+    wf.connect(input_node, 'functional_file_path', detrend, 'in_file')
 
-    functional_data_variance = \
-        signal.detrend(functional_data_img.get_data(), type='linear').var(axis=-1)
+    std = pe.Node(afni.TStat(args='-nzstdev', outputtype='NIFTI'), name='std')
+    wf.connect(input_node, 'mask_file_path', std, 'mask')
+    wf.connect(detrend, 'out_file', std, 'in_file')
 
-    if mask_file_path:
-        mask_image = nb.load(mask_file_path)
+    var = pe.Node(afni.Calc(expr='a*a', outputtype='NIFTI'), name='var')
+    wf.connect(std, 'out_file', var, 'in_file_a')
 
-        if not(np.all(mask_image.shape == functional_data_img.shape[0:3]) and
-               np.all(mask_image.affine == functional_data_img.affine)):
+    if by_slice:
+        slices = pe.Node(fsl.Slice(), name='slicer')
+        wf.connect(var, 'out_file', slices, 'in_file')
 
-            raise ValueError("Shape and affine of mask image {0} ({1} {2}) "
-                             "should match those of the functional data "
-                             "{3} ({4} {5})".format(mask_file_path,
-                                                    mask_image.shape,
-                                                    mask_image.affine,
-                                                    functional_file_path,
-                                                    functional_data_img.shape,
-                                                    functional_data_img.affine))
+        mask_slices = pe.Node(fsl.Slice(), name='mask_slicer')
+        wf.connect(input_node, 'mask_file_path', mask_slices, 'in_file')
 
-        mask_data = mask_image.get_data().astype(bool)
+        mapper = pe.MapNode(util.IdentityInterface(fields=['out_file', 'mask_file']), name='slice_mapper', iterfield=['out_file', 'mask_file'])
+        wf.connect(slices, 'out_files', mapper, 'out_file')
+        wf.connect(mask_slices, 'out_files', mapper, 'mask_file')
+
     else:
-        mask_data = functional_data_variance > 0
+        mapper_list = pe.Node(util.Merge(1), name='slice_mapper_list')
+        wf.connect(var, 'out_file', mapper_list, 'in1')
 
-    if by_slice is True:
-        functional_data_variance_shape = (
-            np.prod(functional_data_variance.shape[0:2]),
-            functional_data_variance.shape[2]
-        )
+        mask_mapper_list = pe.Node(util.Merge(1), name='slice_mask_mapper_list')
+        wf.connect(input_node, 'mask_file_path', mask_mapper_list, 'in1')
+
+        mapper = pe.Node(util.IdentityInterface(fields=['out_file', 'mask_file']), name='slice_mapper')
+        wf.connect(mapper_list, 'out', mapper, 'out_file')
+        wf.connect(mask_mapper_list, 'out', mapper, 'mask_file')
+
+
+    if threshold_method is "PCT":
+        threshold_node = pe.MapNode(Function(input_names=['in_file', 'mask', 'threshold_pct'],
+                                             output_names=['threshold'],
+                                             function=compute_pct_threshold, as_module=True),
+                                    name='threshold_value', iterfield=['in_file', 'mask'])
+        threshold_node.inputs.threshold_pct = threshold_value
+        wf.connect(mapper, 'out_file', threshold_node, 'in_file')
+        wf.connect(mapper, 'mask_file', threshold_node, 'mask')
+
+    elif threshold_method is "SD":
+        threshold_node = pe.MapNode(Function(input_names=['in_file', 'mask', 'threshold_sd'],
+                                             output_names=['threshold'],
+                                             function=compute_sd_threshold, as_module=True),
+                                    name='threshold_value', iterfield=['in_file', 'mask'])
+        threshold_node.inputs.threshold_sd = threshold_value
+        wf.connect(mapper, 'out_file', threshold_node, 'in_file')
+        wf.connect(mapper, 'mask_file', threshold_node, 'mask')
+
     else:
-        functional_data_variance_shape = (
-            np.prod(functional_data_variance.shape[0:3]),
-            1,
-        )
+        threshold_node = pe.MapNode(Function(input_names=['in_file', 'mask', 'threshold'],
+                                             output_names=['threshold'],
+                                             function=compute_threshold, as_module=True),
+                                    name='threshold_value', iterfield=['in_file', 'mask'])
+        threshold_node.inputs.threshold = threshold_value
+        wf.connect(mapper, 'out_file', threshold_node, 'in_file')
+        wf.connect(mapper, 'mask_file', threshold_node, 'mask')
 
-    functional_data_variance = \
-        functional_data_variance.reshape(functional_data_variance_shape)
+    threshold_mask = pe.MapNode(interface=fsl.maths.Threshold(), name='threshold', iterfield=['in_file', 'thresh'])
+    threshold_mask.inputs.args = '-bin'
+    wf.connect(mapper, 'out_file', threshold_mask, 'in_file')
+    wf.connect(threshold_node, 'threshold', threshold_mask, 'thresh')
 
-    # Conform output file and mask to functional data shape
-    output_variance_mask = np.zeros(functional_data_variance.shape, dtype=bool)
-    mask_data = mask_data.reshape(functional_data_variance.shape)
+    merge_slice_masks = pe.Node(interface=fsl.Merge(), name='merge_slice_masks')
+    merge_slice_masks.inputs.dimension = 'z'
+    wf.connect(
+        threshold_mask, 'out_file',
+        merge_slice_masks, 'in_files'
+    )
 
-    for slice_number in range(functional_data_variance.shape[1]):
+    wf.connect(merge_slice_masks, 'merged_file', output_node, 'mask')
 
-        # Make sure that there are some voxels at this slice
-        if not np.any(mask_data[:, slice_number]):
-            continue
-
-        functional_data_variance_slice = \
-            functional_data_variance[
-                mask_data[:, slice_number],
-                slice_number
-            ]
-
-        if threshold_method is "PCT":
-            slice_threshold_value = np.percentile(
-                functional_data_variance_slice,
-                100.0 - threshold_value
-            )
-
-        elif threshold_method is "SD":
-            slice_threshold_value = \
-                functional_data_variance_slice.mean() + \
-                threshold_value * functional_data_variance_slice.std()
-
-        else:
-            slice_threshold_value = threshold_value
-
-        output_variance_mask[:, slice_number] = \
-            mask_data[:, slice_number] & \
-            (functional_data_variance[:, slice_number] > slice_threshold_value)
-
-    # Make sure that the output mask is the correct shape and format
-    output_variance_mask = np.uint8(output_variance_mask) \
-                             .reshape(mask_image.shape)
-
-    output_file_path = os.path.join(os.getcwd(), 'variance_mask.nii.gz')
-    output_img = nb.Nifti1Image(output_variance_mask, mask_image.affine)
-    output_img.to_filename(output_file_path)
-
-    return output_file_path
+    return wf
 
 
 def generate_summarize_tissue_mask(nuisance_wf,
@@ -413,17 +386,14 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
         elif step == 'erosion':
 
-            erode_mask_node = pe.Node(interface=afni.Calc(),
-                                      name='{}'.format(node_mask_key))
-            erode_mask_node.inputs.args = "-b a+i -c a-i -d a+j " + \
-                                          "-e a-j -f a+k -g a-k"
-            erode_mask_node.inputs.expr = 'a*(1-amongst(0,b,c,d,e,f,g))'
-            erode_mask_node.inputs.outputtype = 'NIFTI_GZ'
-            erode_mask_node.inputs.out_file = 'erode_mask_node.nii.gz'
+            erode_mask_node = pe.Node(
+                MaskTool(outputtype='NIFTI', args='-dilate_result -1'),
+                name='{}'.format(node_mask_key)
+            )
 
             nuisance_wf.connect(*(
                 pipeline_resource_pool[prev_mask_key] +
-                (erode_mask_node, 'in_file_a')
+                (erode_mask_node, 'in_files')
             ))
 
             pipeline_resource_pool[mask_key] = \

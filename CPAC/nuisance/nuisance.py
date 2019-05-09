@@ -15,10 +15,10 @@ from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
 
-from CPAC.nuisance import (
+from CPAC.nuisance.utils import (
     find_offending_time_points,
-    create_temporal_variance_mask,
     generate_summarize_tissue_mask,
+    temporal_variance_mask
 )
 
 
@@ -799,6 +799,15 @@ def create_nuisance_workflow(nuisance_selectors,
                     regressor_descriptor['tissue'] += '-BySlice'
                 else:
                     regressor_selector['by_slice'] = False
+
+                temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
+                                                     by_slice=regressor_selector['by_slice'])
+
+                nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
+                nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
+
+                pipeline_resource_pool[regressor_descriptor['tissue']] = \
+                    (temporal_wf, 'outputspec.mask')
 
             if type(regressor_selector['summary']) is not dict:
                 regressor_selector['summary'] = {
