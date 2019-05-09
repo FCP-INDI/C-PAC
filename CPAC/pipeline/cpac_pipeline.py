@@ -1488,7 +1488,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 # TODO ASH review forking
                 if 'BET' in c.functionalMasking:
-                    strat = strat.clone()
+                    strat = strat.fork()
                     new_strat_list.append(strat)
 
                 strat.append_name(func_preproc.name)
@@ -1812,6 +1812,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         for num_strat, strat in enumerate(strat_list):
 
             if 1 in c.runICA:
+
+                if 0 in c.runICA:
+                    new_strat_list += [strat.fork()]
+
                 nodes = strat.get_nodes_names()
 
                 if 'none' in str(c.TR).lower():
