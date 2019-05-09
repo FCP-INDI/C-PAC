@@ -353,9 +353,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     num_strat = 0
 
-    workflow_bit_id = {}
-    workflow_counter = 0
-
     anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
     anat_flow.inputs.inputnode.subject = subject_id
     anat_flow.inputs.inputnode.anat = sub_dict['anat']
@@ -392,8 +389,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     num_strat += 1
     strat_list.append(strat_initial)
-
-    workflow_bit_id['anat_preproc'] = workflow_counter
 
     new_strat_list = []
 
@@ -539,11 +534,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     # T1 -> Template, Non-linear registration (FNIRT or ANTS)
 
     new_strat_list = []
-    workflow_counter += 1
 
     # either run FSL anatomical-to-MNI registration, or...
-    workflow_bit_id['anat_mni_register'] = workflow_counter
-
     if 'FSL' in c.regOption:
         for num_strat, strat in enumerate(strat_list):
 
@@ -835,11 +827,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     # [SYMMETRIC] T1 -> Symmetric Template, Non-linear registration (FNIRT/ANTS)
 
     new_strat_list = []
-    workflow_counter += 1
 
     if 1 in c.runVMHC and 1 in getattr(c, 'runFunctional', [1]):
-
-        workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1134,11 +1123,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     # Inserting Segmentation Preprocessing Workflow
 
     new_strat_list = []
-    workflow_counter += 1
 
     if 1 in c.runSegmentationPreprocessing:
-
-        workflow_bit_id['seg_preproc'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1348,11 +1334,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # EPI Field-Map based Distortion Correction
 
         new_strat_list = []
-        workflow_counter += 1
 
         if 1 in c.runEPI_DistCorr:
-
-            workflow_bit_id['epi_distcorr'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1486,8 +1469,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # Functional Image Preprocessing Workflow
 
         new_strat_list = []
-        workflow_counter += 1
-        workflow_bit_id['func_preproc'] = workflow_counter
 
         if '3dAutoMask' in c.functionalMasking:
 
@@ -1571,9 +1552,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         strat_list += new_strat_list
 
 
-        new_strat_list = []
-        workflow_counter += 1
-
         # Func -> T1 Registration (Initial Linear reg)
 
         # Depending on configuration, either passes output matrix to
@@ -1581,11 +1559,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # (if BBReg is enabled)
 
         new_strat_list = []
-        workflow_counter += 1
 
         if 1 in c.runRegisterFuncToAnat:
-
-            workflow_bit_id['func_to_anat'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1677,11 +1652,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # func_mni_warp, which accepts it as input 'premat'
 
         new_strat_list = []
-        workflow_counter += 1
 
         if 1 in c.runRegisterFuncToAnat and 1 in c.runBBReg:
-
-            workflow_bit_id['func_to_anat_bbreg'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1790,9 +1762,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Inserting Generate Motion Statistics Workflow
 
-        workflow_counter += 1
-        workflow_bit_id['gen_motion_stats'] = workflow_counter
-
         for num_strat, strat in enumerate(strat_list):
 
             gen_motion_stats = motion_power_statistics(
@@ -1839,7 +1808,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             })
 
         new_strat_list = []
-        workflow_bit_id['aroma_preproc'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1966,11 +1934,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # Inserting Nuisance Workflow
 
         new_strat_list = []
-        workflow_counter += 1
 
         if 1 in c.runNuisance:
-
-            workflow_bit_id['nuisance'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2158,12 +2123,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Inserting Median Angle Correction Workflow
         new_strat_list = []
-        workflow_counter += 1
 
         # TODO ASH normalize w schema val
         if 1 in c.runMedianAngleCorrection:
-
-            workflow_bit_id['median_angle_corr'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
