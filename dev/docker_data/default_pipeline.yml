@@ -424,7 +424,7 @@ identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [0]
+runICA :  [0, 1]
 
 
 # Types of denoising strategy:i)nonaggr-patial component regression,ii)aggr-aggressive denoising

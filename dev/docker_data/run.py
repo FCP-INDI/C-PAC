@@ -14,11 +14,11 @@ import yaml
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
 
-DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yaml"
+DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
 if not os.path.exists(DEFAULT_PIPELINE):
     DEFAULT_PIPELINE = os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
-        "default_pipeline.yaml"
+        "default_pipeline.yml"
     )
 
 

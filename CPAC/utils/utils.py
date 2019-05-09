@@ -853,7 +853,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
             "curr_dir: {1}".format(file_path, os.getcwd())
         )
 
-    out_file = os.path.join(file_path, 'log_{0}.yaml'.format(strategy))
+    out_file = os.path.join(file_path, 'log_{0}.yml'.format(strategy))
 
     iflogger.info("CPAC custom log:")
 
