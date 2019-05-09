@@ -1,6 +1,6 @@
 from .utils import (
     find_offending_time_points,
-    create_temporal_variance_mask,
+    temporal_variance_mask,
     generate_summarize_tissue_mask,
     NuisanceRegressor,
 )
@@ -16,7 +16,7 @@ from .bandpass import (
 __all__ = [
     'create_nuisance_workflow',
     'find_offending_time_points',
-    'create_temporal_variance_mask',
+    'temporal_variance_mask',
     'generate_summarize_tissue_mask',
     'bandpass_voxels'
 ]
