@@ -2121,18 +2121,31 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                      regressors_selector,regressors_selector_i,has_segmentation,use_ants,num_strat,calibration_data)
 
                             peer_wf = create_peer(peer_run_nuisance=True, calibration_flag=True,wf_name='create_peer_%d' % num_strat)
+
                             peer_wf.inputs.calibrated_residuals = functional_nuisance_residuals
 
                             node, out_file = strat['eyemask']
                             workflow.connect(node, out_file, peer_wf, 'inputspec.eyemask')
+                    elif 1 in c.peer_run_nuisance and 'functional_nuisance_regressors' in strat.resource_pool.keys():
+
+                        peer_wf = create_peer(peer_run_nuisance=True, calibration_flag=True,
+                                              wf_name='create_peer_%d' % num_strat)
+
+                        node,out_file = strat['functional_nuisance_residuals']
+                        workflow.connect(node,out_file, peer_wf,
+                                        'inputspec.calibrated_residuals')
+                        node, out_file = strat['eyemask']
+                        workflow.connect(node, out_file, peer_wf, 'inputspec.eyemask')
+
+
                     else:
                         peer_wf = create_peer(peer_run_nuisance=False,calibration_flag=True,wf_name='create_peer_%d' % num_strat)
 
                         node, out_file = strat['calibrated_data']
-                        workflow.connect(node, out_file, peer_wf, 'inputspec.calibration_data')
+                        peer_wf.connect(node, out_file, peer_wf, 'inputspec.calibration_data')
 
                         node, out_file = strat['eyemask']
-                        workflow.connect(node, out_file,peer_wf,'inputspec.eyemask')
+                        peer_wf.connect(node, out_file,peer_wf,'inputspec.eyemask')
 
                     strat.append_name(peer_wf.name)
                     strat.set_leaf_properties(peer_wf,
