@@ -7,8 +7,7 @@ from CPAC.nuisance import create_nuisance_workflow, bandpass_voxels, NuisanceReg
 import copy
 
 
-def connect_nuisance(workflow,strat,data, c, regressors_selector, regressors_selector_i,has_segmentation, use_ants,num_strat):
-
+def connect_nuisance(workflow,strat,c, regressors_selector, regressors_selector_i,has_segmentation, use_ants,num_strat,data):
 
     new_strat = strat.fork()
     # to guarantee immutability
