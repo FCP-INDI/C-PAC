@@ -2148,64 +2148,79 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,peer_wf,'inputspec.eyemask')
 
                     strat.append_name(peer_wf.name)
+
                     strat.set_leaf_properties(peer_wf,
                                               'outputspec.model_xdirection')
-                    strat.set_leaf_properties(peer_wf,'outputspec.model_ydirection')
+                    strat.update_resource_pool({'model_xdirection': (peer_wf, 'outputspec.model_xdirection')})
 
-                    strat.update_resource_pool({'model_xdirection': (peer_wf,'outputspec.model_xdirection')})
+
+                    strat.set_leaf_properties(peer_wf,
+                                              'outputspec.model_ydirection')
+
                     strat.update_resource_pool({'model_ydirection': (peer_wf,'outputspec.model_ydirection')})
 
+                if 'model_xdirection' and 'model_ydirection' in strat.resource_pool.values():
+                    calibration_flag = False
+                    if 1 in c.peer_run_nuisance and 'functional_nuisance_regressors' not in strat.resource_pool.keys():
+                        has_segmentation = 'seg_preproc' in nodes
+                        use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
+                        for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
+                            test_data = strat['raw_functional']
+                            functional_nuisance_residuals, functional_nuisance_regressors = connect_nuisance(workflow,
+                                                                                                             strat, c,
+                                                                                                             regressors_selector,
+                                                                                                             regressors_selector_i,
+                                                                                                             has_segmentation,
+                                                                                                             use_ants,
+                                                                                                             num_strat,
+                                                                                                             test_data)
 
-                #if 'model_xdirection' and 'model_ydirection' in strat.resource_pool.values():
-                #    calibration_flag = False
-                #    if 1 in c.peer_run_nuisance:
+                            peer_wf = execute_peer(peer_run_nuisance=True, calibration_flag=True,
+                                                  wf_name='create_peer_%d' % num_strat)
 
-                #        has_segmentation = 'seg_preproc' in nodes
-                #        use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
+                            peer_wf.inputs.test_residuals = functional_nuisance_residuals
 
-                #        for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-                #             nuisance_peer = Function(input_names=["workflow", "strat", "c",
-                #                                                  "regressors_selector", "regressors_selector_i",
-                #                                                  "has_segmentation", "use_ants",
-                #                                                  "num_strat","test_data"],
-                #                                     output_names=['functional_nuisance_residuals',
-                #                                                   'functional_nuisance_regressors'],
-                #                                    function=connect_nuisance)
-                #             nuisance_peer.inputs.workflow = workflow
-                #             nuisance_peer.inputs.strat = strat
-                #             nuisance_peer.inputs.c = c
-                #             nuisance_peer.inputs.regressors_selector = regressors_selector
-                #             nuisance_peer.inputs.regressors_selector_i = regressors_selector_i
-                #             nuisance_peer.inputs.has_segmentation = has_segmentation
-                #             nuisance_peer.inputs.use_ants = use_ants
-                #             nuisance_peer.inputs.num_strat = num_strat
+                            node, out_file = strat['eyemask']
+                            workflow.connect(node, out_file, peer_wf, 'inputspec.eyemask')
+                    elif 1 in c.peer_run_nuisance and 'functional_nuisance_regressors' in strat.resource_pool.keys():
 
-                #             peer_wf = execute_peer(peer_run_nuisance=True, calibration_flag=False,
-                #                                            wf_name='execute_peer_%d' % num_strat)
+                        peer_wf = execute_peer(peer_run_nuisance=True, calibration_flag=True,
+                                              wf_name='execute _peer_%d' % num_strat)
 
-                #             node,out_file = strat['raw_functional']
-                #             wf.connect(node,out_file,nuisance_peer,'inputspec.test_data')
+                        node, out_file = strat['functional_nuisance_residuals']
+                        workflow.connect(node, out_file, peer_wf,
+                                         'inputspec.test_residuals')
+                        node, out_file = strat['eyemask']
+                        workflow.connect(node, out_file, peer_wf, 'inputspec.eyemask')
 
-                #             node, out_file = strat['eyemask']
-                #             wf.connect(node, out_file, peer_wf, 'inputspec.eyemask')
+                    else:
+                        peer_wf = create_peer(peer_run_nuisance=False, calibration_flag=True,
+                                              wf_name='create_peer_%d' % num_strat)
 
-               #              wf.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_wf,'inputspec.test_residuals')
-               #     else:
-               #         peer_wf = execute_peer(peer_run_nuisance=False, calibration_flag=False,wf_name='execute_peer_%d' % num_strat)
+                        node, out_file = strat['raw_functional']
+                        workflow.connect(node, out_file, peer_wf, 'inputspec.test_data')
 
-               #         node, out_file = strat['raw_functional']
-               #         wf.connect(node,out_file, peer_wf, 'inputspec.test_data')
+                        node, out_file = strat['eyemask']
+                        workflow.connect(node, out_file, peer_wf, 'inputspec.eyemask')
 
-               #         node, out_file = strat['eyemask']
-               #         wf.connect(node,out_file, peer_wf, 'inputspec.eyemask')
+                    strat.append_name(peer_estimation.name)
 
-               # strat.update_resource_pool({'fixations_in_xdirection':(peer_wf,'outputspec.fixations_xdirection')})
-               # strat.update_resource_pool({'fixations_in_ydirection':(peer_wf,'outputspec.fixations_ydirection')})
+                    strat.set_leaf_properties(peer_wf,
+                                              'outputspec.fixations_in_xdirection')
 
-               # strat.update_resource_pool({'eye_movements_xdir':(peer_wf,'outputspec.eye_movements_x')})
-               # strat.update_resource_pool({'eye_movements_ydir':(peer_wf,'outputspec.eye_movements_y')})
+                    strat.update_resource_pool({'fixations_in_xdirection':(peer_wf,'outputspec.fixations_xdirection')})
 
-               # strat.append_name(peer_estimation.name)
+                    strat.set_leaf_properties(peer_wf,
+                                              'outputspec.fixations_in_ydirection')
+                    strat.update_resource_pool({'fixations_in_ydirection':(peer_wf,'outputspec.fixations_ydirection')})
+
+                    strat.set_leaf_properties(peer_wf,
+                                              'outputspec.eye_movements_x')
+                    strat.update_resource_pool({'eye_movements_xdir':(peer_wf,'outputspec.eye_movements_x')})
+
+                    strat.set_leaf_properties(peer_wf,
+                                              'outputspec.eye_movements_y')
+                    strat.update_resource_pool({'eye_movements_ydir':(peer_wf,'outputspec.eye_movements_y')})
 
         strat_list += new_strat_list
 
