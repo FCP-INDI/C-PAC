@@ -1297,16 +1297,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                        function=get_tr,
                                                        as_module=True),
                                      name='convert_tr_%d' % num_strat)
-
-            strat.update_resource_pool({
-                    'calibrated_data': (peer_wf, 'outputspec.peer_scan_file_path'),
-                })
-
             strat.set_leaf_properties(peer_wf, 'outputspec.peer_scan_file_path')
+            strat.update_resource_pool({
+                    "calibrated_data": (peer_wf, 'outputspec.peer_scan_file_path'),
+                })
 
             if 1 in c.runPyPEER:
                 try:
-                    strat.update_resource_pool({"eyemask": (peer_wf, 'outputspec.eye_mask')})
+                    strat.update_resource_pool({"eyemask": (peer_wf, 'outputspec.eyemask_filepath')})
                 except:
                     err = "\n\n[!] You have selected to run PEER " \
                               "but have not provided a file path of the " \
@@ -2119,92 +2117,93 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         new_strat_list=[]
         workflow_counter += 1
         if 1 in c.runPyPEER:
-
            workflow_bit_id['peer_wf'] = workflow_counter
-
            for num_strat, strat in enumerate(strat_list):
-
                 if 'outputspec.model_xdirection' or 'outputspec.model_ydirection' not in strat.resource_pool.values():
                     calibration_flag = True
 
-                    if 1 in c.peer_run_nuisance:
-                        peer_estimation = create_peer(peer_run_nuisance=True,calibration_flag=True, wf_name='peer_wf_%d' % num_strat)
-                        nodes = strat.get_nodes_names()
+                    if 1 in c.peer_run_nuisance and 'functional_nuisance_regressors' not in strat.resource_pool.keys():
                         has_segmentation = 'seg_preproc' in nodes
                         use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
                         for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-                            node, out_file = strat.get_leaf_properties()
-                            calibration_data = peer_wf.outputs.outputspec.peer_scan_file_path
 
-                            nuisance_peer = pe.Node(name='nuisance_peer',interface=Function(input_names=[workflow,strat,calibration_data,c,
-                                                                  regressors_selector,regressors_selector_i,
-                                                                  has_segmentation, use_ants,
-                                                                  num_strat],
-                                                        output_names=['functional_nuisance_residuals','functional_nuisance_regressors'],
-                                                        function=connect_nuisance))
-                            #workflow.connect(peer_wf, 'outputspec.peer_scan_file_path', nuisance_peer,
-                            #                 'inputspec.calibration_data')
+                            calibration_data = strat['calibrated_data']
+                            functional_nuisance_residuals,functional_nuisance_regressors = connect_nuisance(workflow,strat,c,
+                                                     regressors_selector,regressors_selector_i,has_segmentation,use_ants,num_strat,calibration_data)
 
-                        workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,'inputspec.calibrated_residuals')
+                            peer_wf = create_peer(peer_run_nuisance=True, calibration_flag=True,wf_name='create_peer_%d' % num_strat)
+                            peer_wf.inputs.calibrated_residuals = functional_nuisance_residuals
 
+                            node, out_file = strat['eyemask']
+                            workflow.connect(node, out_file, peer_wf, 'inputspec.eyemask')
                     else:
-                        peer_estimation = create_peer(peer_run_nuisance=False,calibration_flag=True,wf_name='peer_estimation')
-                        node, out_file = strat.get_leaf_properties()
-                        workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
+                        peer_wf = create_peer(peer_run_nuisance=False,calibration_flag=True,wf_name='create_peer_%d' % num_strat)
+
+                        node, out_file = strat['calibrated_data']
+                        workflow.connect(node, out_file, peer_wf, 'inputspec.calibration_data')
+
+                        node, out_file = strat['eyemask']
+                        workflow.connect(node, out_file,peer_wf,'inputspec.eyemask')
+
+                    strat.append_name(peer_wf.name)
+                    strat.set_leaf_properties(peer_wf,
+                                              'outputspec.model_xdirection')
+                    strat.set_leaf_properties(peer_wf,'outputspec.model_ydirection')
+
+                    strat.update_resource_pool({'model_xdirection': (peer_wf,'outputspec.model_xdirection')})
+                    strat.update_resource_pool({'model_ydirection': (peer_wf,'outputspec.model_ydirection')})
 
 
-                    node, out_file = strat['eyemask']
-                    workflow.connect(node, out_file, peer_estimation,'inputspec.eyemask')
+                #if 'model_xdirection' and 'model_ydirection' in strat.resource_pool.values():
+                #    calibration_flag = False
+                #    if 1 in c.peer_run_nuisance:
 
-                    strat.update_resource_pool({'model_xdirection': (peer_estimation,'outputspec.model_xdirection')})
-                    strat.update_resource_pool({'model_ydirection': (peer_estimation,'outputspec.model_ydirection')})
+                #        has_segmentation = 'seg_preproc' in nodes
+                #        use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
+                #        for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
+                #             nuisance_peer = Function(input_names=["workflow", "strat", "c",
+                #                                                  "regressors_selector", "regressors_selector_i",
+                #                                                  "has_segmentation", "use_ants",
+                #                                                  "num_strat","test_data"],
+                #                                     output_names=['functional_nuisance_residuals',
+                #                                                   'functional_nuisance_regressors'],
+                #                                    function=connect_nuisance)
+                #             nuisance_peer.inputs.workflow = workflow
+                #             nuisance_peer.inputs.strat = strat
+                #             nuisance_peer.inputs.c = c
+                #             nuisance_peer.inputs.regressors_selector = regressors_selector
+                #             nuisance_peer.inputs.regressors_selector_i = regressors_selector_i
+                #             nuisance_peer.inputs.has_segmentation = has_segmentation
+                #             nuisance_peer.inputs.use_ants = use_ants
+                #             nuisance_peer.inputs.num_strat = num_strat
 
-                if 'model_xdirection' and 'model_ydirection' in strat.resource_pool.values():
+                #             peer_wf = execute_peer(peer_run_nuisance=True, calibration_flag=False,
+                #                                            wf_name='execute_peer_%d' % num_strat)
 
-                    calibration_flag = False
+                #             node,out_file = strat['raw_functional']
+                #             wf.connect(node,out_file,nuisance_peer,'inputspec.test_data')
 
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file, peer_estimation, 'inputspec.calibration_data')
-                    if 1 in c.peer_run_nuisance:
+                #             node, out_file = strat['eyemask']
+                #             wf.connect(node, out_file, peer_wf, 'inputspec.eyemask')
 
-                        peer_estimation = create_peer(peer_run_nuisance=True,calibration_flag=False, wf_name='peer_estimation_%d' % num_strat)
-                        node, out_file = strat.get_leaf_properties()
-                        workflow.connect(node, out_file, peer_estimation, 'inputspec.test_data')
+               #              wf.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_wf,'inputspec.test_residuals')
+               #     else:
+               #         peer_wf = execute_peer(peer_run_nuisance=False, calibration_flag=False,wf_name='execute_peer_%d' % num_strat)
 
-                        nodes = strat.get_nodes_names()
-                        has_segmentation = 'seg_preproc' in nodes
-                        use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
-                        for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
-                             nuisance_peer = Function(input_names=[workflow, strat, test_data, c,
-                                                                  regressors_selector, regressors_selector_i,
-                                                                  has_segmentation, use_ants,
-                                                                  num_strat],
-                                                     output_names=['functional_nuisance_residuals',
-                                                                   'functional_nuisance_regressors'],
-                                                    function=connect_nuisance)
+               #         node, out_file = strat['raw_functional']
+               #         wf.connect(node,out_file, peer_wf, 'inputspec.test_data')
 
-                             node, out_file = strat.get_leaf_properties()
-                             workflow.connect(node, out_file, nuisance_peer, 'inputspec.test_data')
+               #         node, out_file = strat['eyemask']
+               #         wf.connect(node,out_file, peer_wf, 'inputspec.eyemask')
 
-                        workflow.connect(nuisance_peer, 'outputspec.functional_nuisance_residuals', peer_estimation,
-                                     'inputspec.test_residuals')
-                    else:
-                       peer_estimation = create_peer(peer_run_nuisance=False, calibration_flag=False,
-                                                     wf_name='peer_estimation_%d' % num_strat)
-                        node, out_file = strat.get_leaf_properties()
-                        workflow.connect(node, out_file, peer_estimation, 'inputspec.test_data')
+               # strat.update_resource_pool({'fixations_in_xdirection':(peer_wf,'outputspec.fixations_xdirection')})
+               # strat.update_resource_pool({'fixations_in_ydirection':(peer_wf,'outputspec.fixations_ydirection')})
 
-                    node,out_file = strat.get_leaf_properties()
-                    workflow.connect(node,out_file,peer_estimation,'eyemask')
+               # strat.update_resource_pool({'eye_movements_xdir':(peer_wf,'outputspec.eye_movements_x')})
+               # strat.update_resource_pool({'eye_movements_ydir':(peer_wf,'outputspec.eye_movements_y')})
 
-                strat.update_resource_pool({'fixations_in_xdirection':(peer_estimation,'outputspec.fixations_xdirection')})
-                strat.update_resource_pool({'fixations_in_ydirection':(peer_estimation,'outputspec.fixations_ydirection')})
-
-                strat.update_resource_pool({'eye_movements_xdir':(peer_estimation,'outputspec.eye_movements_x')})
-                strat.update_resource_pool({'eye_movements_ydir':(peer_estimation,'outputspec.eye_movements_y')})
-
-            strat.append_name(peer_estimation.name)
+               # strat.append_name(peer_estimation.name)
 
         strat_list += new_strat_list
 
@@ -2250,9 +2249,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
             # Keep non-bandpassed version of the output for ALFF
-            strat.update_resource_pool({
-                'functional_freq_unfiltered': strat.get_leaf_properties()
-            })
+            strat.update_resource_pool({'functional_freq_unfiltered': strat.get_leaf_properties()})
 
         # Inserting Bandpassing Workflow
         for num_strat, strat in enumerate(strat_list):
