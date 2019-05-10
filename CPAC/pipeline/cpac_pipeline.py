@@ -2583,8 +2583,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         if 1 in c.runReHo:
 
-            new_strat_list = []
-
             for num_strat, strat in enumerate(strat_list):
 
                 preproc = create_reho()
@@ -2608,10 +2606,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                 reho, 'inputspec.rest_mask')
 
+                strat.update_resource_pool({
+                    'reho': (reho, 'outputspec.raw_reho_map')
+                })
+                
                 create_log_node(workflow, reho, 'outputspec.raw_reho_map',
                                 num_strat)
-
-        strat_list += new_strat_list
 
         ts_analysis_dict = {}
         sca_analysis_dict = {}
