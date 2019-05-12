@@ -340,6 +340,10 @@ startIdx :  0
 stopIdx :  None
 
 
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+functional_volreg_twopass :  On
+
+
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
 runEPI_DistCorr :  [0]
 
