@@ -211,7 +211,7 @@ if args.analysis_level == "cli":
     sys.exit(0)
 
 # check to make sure that the input directory exists
-if not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
+if not args.data_config_file and not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
     print("Error! Could not find {0}".format(args.bids_dir))
     sys.exit(0)
 
@@ -221,18 +221,19 @@ if not args.output_dir.lower().startswith("s3://") and not os.path.exists(args.o
     sys.exit(0)
 
 # validate input dir (if skip_bids_validator is not set)
-if args.bids_validator_config:
-    print("\nRunning BIDS validator")
-    run("bids-validator --config {config} {bids_dir}".format(
-        config=args.bids_validator_config,
-        bids_dir=args.bids_dir))
-elif args.skip_bids_validator:
-    print('\nSkipping bids-validator...')
-elif args.bids_dir.lower().startswith("s3://"):
-    print('\nSkipping bids-validator for S3 datasets...')
-else:
-    print("\nRunning BIDS validator")
-    run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
+if not args.data_config_file:
+    if args.bids_validator_config:
+        print("\nRunning BIDS validator")
+        run("bids-validator --config {config} {bids_dir}".format(
+            config=args.bids_validator_config,
+            bids_dir=args.bids_dir))
+    elif args.skip_bids_validator:
+        print('\nSkipping bids-validator...')
+    elif args.bids_dir.lower().startswith("s3://"):
+        print('\nSkipping bids-validator for S3 datasets...')
+    else:
+        print("\nRunning BIDS validator")
+        run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
 if args.ndmg_mode:
     print('\nRunning ndmg mode')
@@ -332,7 +333,8 @@ else:
     print("#### Running C-PAC")
 
 print("Number of participants to run in parallel: {0}".format(c['numParticipantsAtOnce']))
-print("Input directory: {0}".format(args.bids_dir))
+if not args.data_config_file:
+    print("Input directory: {0}".format(args.bids_dir))
 print("Output directory: {0}".format(c['outputDirectory']))
 print("Working directory: {0}".format(c['workingDirectory']))
 print("Crash directory: {0}".format(c['crashLogDirectory']))
