@@ -336,7 +336,8 @@ slice_timing_pattern :  ['Use NIFTI Header']
 
 
 # This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-funcional_volreg_twopass :  On
+functional_volreg_twopass :  On
+
 
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
 runEPI_DistCorr :  [0]

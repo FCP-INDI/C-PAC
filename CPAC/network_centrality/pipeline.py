@@ -3,7 +3,7 @@ from nipype import logging
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.network_centrality.utils import merge_lists, check_centrality_params
 

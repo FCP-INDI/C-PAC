@@ -40,7 +40,7 @@ stopIdx,Last Timepoint,Time Series Options
 slice_timing_correction,Slice Timing Correction,Time Series Options
 slice_timing_pattern,Slice Timing Correction Pattern,Time Series Options
 TR,TR,Time Series Options
-funcional_volreg_twopass,Volume Registration Two-pass,Time Series Options
+functional_volreg_twopass,Volume Registration Two-pass,Time Series Options
 runEPI_DistCorr,Perform Field-Map Distortion Correction,Distortion Correction
 fmap_distcorr_skullstrip,Skull-strip the magnitude file with:,Distortion Correction
 fmap_distcorr_frac,BET threshold/AFNI shrink factor,Distortion Correction

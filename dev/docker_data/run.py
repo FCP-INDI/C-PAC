@@ -14,11 +14,11 @@ import yaml
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
 
-DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yaml"
+DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
 if not os.path.exists(DEFAULT_PIPELINE):
     DEFAULT_PIPELINE = os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
-        "default_pipeline.yaml"
+        "default_pipeline.yml"
     )
 
 
@@ -211,7 +211,7 @@ if args.analysis_level == "cli":
     sys.exit(0)
 
 # check to make sure that the input directory exists
-if not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
+if not args.data_config_file and not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
     print("Error! Could not find {0}".format(args.bids_dir))
     sys.exit(0)
 
@@ -221,18 +221,19 @@ if not args.output_dir.lower().startswith("s3://") and not os.path.exists(args.o
     sys.exit(0)
 
 # validate input dir (if skip_bids_validator is not set)
-if args.bids_validator_config:
-    print("\nRunning BIDS validator")
-    run("bids-validator --config {config} {bids_dir}".format(
-        config=args.bids_validator_config,
-        bids_dir=args.bids_dir))
-elif args.skip_bids_validator:
-    print('\nSkipping bids-validator...')
-elif args.bids_dir.lower().startswith("s3://"):
-    print('\nSkipping bids-validator for S3 datasets...')
-else:
-    print("\nRunning BIDS validator")
-    run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
+if not args.data_config_file:
+    if args.bids_validator_config:
+        print("\nRunning BIDS validator")
+        run("bids-validator --config {config} {bids_dir}".format(
+            config=args.bids_validator_config,
+            bids_dir=args.bids_dir))
+    elif args.skip_bids_validator:
+        print('\nSkipping bids-validator...')
+    elif args.bids_dir.lower().startswith("s3://"):
+        print('\nSkipping bids-validator for S3 datasets...')
+    else:
+        print("\nRunning BIDS validator")
+        run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
 if args.ndmg_mode:
     print('\nRunning ndmg mode')
@@ -247,6 +248,7 @@ if args.ndmg_mode:
 # otherwise, if we are running group, participant, or dry run we
 # begin by conforming the configuration
 c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+overrides = {}
 if args.pipeline_override:
     overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
     c.update(overrides)
@@ -292,7 +294,7 @@ else:
     c['maximumMemoryPerParticipant'] = 6.0
 
 c['maxCoresPerParticipant'] = int(args.n_cpus)
-c['numParticipantsAtOnce'] = 1
+c['numParticipantsAtOnce'] = int(overrides['numParticipantsAtOnce']) if 'numParticipantsAtOnce' in overrides else 1
 c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
 if args.aws_output_creds:
@@ -332,7 +334,8 @@ else:
     print("#### Running C-PAC")
 
 print("Number of participants to run in parallel: {0}".format(c['numParticipantsAtOnce']))
-print("Input directory: {0}".format(args.bids_dir))
+if not args.data_config_file:
+    print("Input directory: {0}".format(args.bids_dir))
 print("Output directory: {0}".format(c['outputDirectory']))
 print("Working directory: {0}".format(c['workingDirectory']))
 print("Crash directory: {0}".format(c['crashLogDirectory']))

@@ -122,6 +122,8 @@ class Strategy(object):
                 if 'bbreg' in fork:
                     fork_label = 'bbreg'
                 
+                if 'aroma' in fork:
+                    fork_label = 'aroma'
                 if 'nuisance' in fork:
                     fork_label = 'nuisance'
                 if 'frequency_filter' in fork:
@@ -140,6 +142,6 @@ class Strategy(object):
 
                 fork_name += [fork_label]
 
-            fork_names.append('_'.join(fork_name))
+            fork_names.append('_'.join(set(fork_name)))
 
         return dict(zip(strategies, fork_names))

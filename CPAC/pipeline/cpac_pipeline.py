@@ -353,9 +353,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     num_strat = 0
 
-    workflow_bit_id = {}
-    workflow_counter = 0
-
     anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
     anat_flow.inputs.inputnode.subject = subject_id
     anat_flow.inputs.inputnode.anat = sub_dict['anat']
@@ -392,8 +389,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     num_strat += 1
     strat_list.append(strat_initial)
-
-    workflow_bit_id['anat_preproc'] = workflow_counter
 
     new_strat_list = []
 
@@ -539,11 +534,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     # T1 -> Template, Non-linear registration (FNIRT or ANTS)
 
     new_strat_list = []
-    workflow_counter += 1
 
     # either run FSL anatomical-to-MNI registration, or...
-    workflow_bit_id['anat_mni_register'] = workflow_counter
-
     if 'FSL' in c.regOption:
         for num_strat, strat in enumerate(strat_list):
 
@@ -835,11 +827,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     # [SYMMETRIC] T1 -> Symmetric Template, Non-linear registration (FNIRT/ANTS)
 
     new_strat_list = []
-    workflow_counter += 1
 
     if 1 in c.runVMHC and 1 in getattr(c, 'runFunctional', [1]):
-
-        workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1134,11 +1123,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     # Inserting Segmentation Preprocessing Workflow
 
     new_strat_list = []
-    workflow_counter += 1
 
     if 1 in c.runSegmentationPreprocessing:
-
-        workflow_bit_id['seg_preproc'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1349,13 +1335,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # EPI Field-Map based Distortion Correction
 
         new_strat_list = []
-        workflow_counter += 1
 
         rp = strat.get_resource_pool()
 
         if 1 in c.runEPI_DistCorr and 'fmap_phase_diff' in rp.keys() and 'fmap_magnitude' in rp.keys():
-
-            workflow_bit_id['epi_distcorr'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1489,8 +1472,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # Functional Image Preprocessing Workflow
 
         new_strat_list = []
-        workflow_counter += 1
-        workflow_bit_id['func_preproc'] = workflow_counter
 
         if '3dAutoMask' in c.functionalMasking:
 
@@ -1506,11 +1487,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 'inputspec.func')
 
                 func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'funcional_volreg_twopass', True)
+                    getattr(c, 'functional_volreg_twopass', True)
 
                 # TODO ASH review forking
                 if 'BET' in c.functionalMasking:
-                    strat = strat.clone()
+                    strat = strat.fork()
                     new_strat_list.append(strat)
 
                 strat.append_name(func_preproc.name)
@@ -1550,7 +1531,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 'inputspec.func')
 
                 func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'funcional_volreg_twopass', True)
+                    getattr(c, 'functional_volreg_twopass', True)
 
                 strat.append_name(func_preproc.name)
 
@@ -1574,9 +1555,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         strat_list += new_strat_list
 
 
-        new_strat_list = []
-        workflow_counter += 1
-
         # Func -> T1 Registration (Initial Linear reg)
 
         # Depending on configuration, either passes output matrix to
@@ -1584,11 +1562,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # (if BBReg is enabled)
 
         new_strat_list = []
-        workflow_counter += 1
 
         if 1 in c.runRegisterFuncToAnat:
-
-            workflow_bit_id['func_to_anat'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1680,11 +1655,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # func_mni_warp, which accepts it as input 'premat'
 
         new_strat_list = []
-        workflow_counter += 1
 
         if 1 in c.runRegisterFuncToAnat and 1 in c.runBBReg:
-
-            workflow_bit_id['func_to_anat_bbreg'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1793,9 +1765,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Inserting Generate Motion Statistics Workflow
 
-        workflow_counter += 1
-        workflow_bit_id['gen_motion_stats'] = workflow_counter
-
         for num_strat, strat in enumerate(strat_list):
 
             gen_motion_stats = motion_power_statistics(
@@ -1842,11 +1811,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             })
 
         new_strat_list = []
-        workflow_bit_id['aroma_preproc'] = workflow_counter
 
         for num_strat, strat in enumerate(strat_list):
 
             if 1 in c.runICA:
+
+                if 0 in c.runICA:
+                    new_strat_list += [strat.fork()]
+
                 nodes = strat.get_nodes_names()
 
                 if 'none' in str(c.TR).lower():
@@ -1969,11 +1941,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # Inserting Nuisance Workflow
 
         new_strat_list = []
-        workflow_counter += 1
 
         if 1 in c.runNuisance:
-
-            workflow_bit_id['nuisance'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2161,12 +2130,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Inserting Median Angle Correction Workflow
         new_strat_list = []
-        workflow_counter += 1
 
         # TODO ASH normalize w schema val
         if 1 in c.runMedianAngleCorrection:
-
-            workflow_bit_id['median_angle_corr'] = workflow_counter
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2620,8 +2586,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         if 1 in c.runReHo:
 
-            new_strat_list = []
-
             for num_strat, strat in enumerate(strat_list):
 
                 preproc = create_reho()
@@ -2645,10 +2609,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                 reho, 'inputspec.rest_mask')
 
+                strat.update_resource_pool({
+                    'reho': (reho, 'outputspec.raw_reho_map')
+                })
+                
                 create_log_node(workflow, reho, 'outputspec.raw_reho_map',
                                 num_strat)
-
-        strat_list += new_strat_list
 
         ts_analysis_dict = {}
         sca_analysis_dict = {}
@@ -3399,6 +3365,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     qc_plot_id = {}
     qc_hist_id = {}
 
+    raising = None
+
     if 1 in c.generateQualityControlImages:
         qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
             create_qc_workflow(workflow, c, strat_list, Outputs.qc)
@@ -4028,20 +3996,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
                     logger.error(err_msg, log_dir, exc)
 
-        finally:
-
-            # Remove working directory when done
-            if c.removeWorkingDir:
-                try:
-                    subject_wd = os.path.join(c.workingDirectory, workflow_name)
-                    if os.path.exists(subject_wd):
-                        logger.info("Removing working dir: %s" % subject_wd)
-                        shutil.rmtree(subject_wd)
-                except:
-                    logger.warn('Could not remove subjects %s working directory',
-                                workflow_name)
-
-
             execution_info = """
 
     End of subject workflow {workflow}
@@ -4055,7 +4009,43 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         System time of start:      {run_start}
         System time of completion: {run_finish}
 
-    """
+"""
+
+        except KeyboardInterrupt as e:
+
+            raising = e
+
+            execution_info = """
+
+    Stopped of subject workflow {workflow}
+
+    CPAC run stopped:
+
+        Pipeline configuration: {pipeline}
+        Subject workflow: {workflow}
+        Elapsed run time (minutes): {elapsed}
+        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
+        System time of start:      {run_start}
+
+"""
+        except:
+
+            execution_info = """
+
+    Error of subject workflow {workflow}
+
+    CPAC run error:
+
+        Pipeline configuration: {pipeline}
+        Subject workflow: {workflow}
+        Elapsed run time (minutes): {elapsed}
+        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
+        System time of start:      {run_start}
+
+"""
+
+        finally:
+
             logger.info(execution_info.format(
                 workflow=workflow_name,
                 pipeline=c.pipelineName,
@@ -4064,5 +4054,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 run_start=pipeline_start_datetime,
                 run_finish=strftime("%Y-%m-%d %H:%M:%S")
             ))
+
+            # Remove working directory when done
+            if c.removeWorkingDir:
+                try:
+                    subject_wd = os.path.join(c.workingDirectory, workflow_name)
+                    if os.path.exists(subject_wd):
+                        logger.info("Removing working dir: %s" % subject_wd)
+                        shutil.rmtree(subject_wd)
+                except:
+                    logger.warn('Could not remove subjects %s working directory',
+                                workflow_name)
+
+            if raising:
+                raise raising
 
     return workflow
