@@ -1304,17 +1304,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if 1 in c.runEPI_DistCorr:
                 try:
-                    strat.update_resource_pool({
-                        "fmap_phase_diff": (func_wf, 'outputspec.phase_diff'),
-                        "fmap_magnitude": (func_wf, 'outputspec.magnitude')
-                    })
+                    if (func_wf, 'outputspec.phase_diff') and (func_wf, 'outputspec.magnitude'):
+                        strat.update_resource_pool({
+                            "fmap_phase_diff": (func_wf, 'outputspec.phase_diff'),
+                            "fmap_magnitude": (func_wf, 'outputspec.magnitude')
+                        })
                 except:
                     err = "\n\n[!] You have selected to run field map " \
                         "distortion correction, but at least one of your " \
                         "scans listed in your data configuration file is " \
                         "missing either a field map phase difference file " \
                         "or a field map magnitude file, or both.\n\n"
-                    raise Exception(err)
+                    logger.warn(err)
 
             if "Selected Functional Volume" in c.func_reg_input:
                 strat.update_resource_pool({
@@ -1350,7 +1351,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         new_strat_list = []
         workflow_counter += 1
 
-        if 1 in c.runEPI_DistCorr:
+        rp = strat.get_resource_pool()
+
+        if 1 in c.runEPI_DistCorr and 'fmap_phase_diff' in rp.keys() and 'fmap_magnitude' in rp.keys():
 
             workflow_bit_id['epi_distcorr'] = workflow_counter
 
