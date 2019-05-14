@@ -248,6 +248,7 @@ if args.ndmg_mode:
 # otherwise, if we are running group, participant, or dry run we
 # begin by conforming the configuration
 c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+overrides = {}
 if args.pipeline_override:
     overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
     c.update(overrides)
@@ -293,7 +294,7 @@ else:
     c['maximumMemoryPerParticipant'] = 6.0
 
 c['maxCoresPerParticipant'] = int(args.n_cpus)
-c['numParticipantsAtOnce'] = 1
+c['numParticipantsAtOnce'] = int(overrides['numParticipantsAtOnce']) if 'numParticipantsAtOnce' in overrides else 1
 c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
 if args.aws_output_creds:
