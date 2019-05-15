@@ -95,6 +95,8 @@ from CPAC.utils.datasource import (
 )
 from CPAC.utils import Configuration, Strategy, Outputs, function, find_files
 
+from CPAC.utils.interfaces.datasink import DataSink
+
 from CPAC.qc.pipeline import create_qc_workflow
 from CPAC.qc.utils import generate_qc_pages
 
@@ -3560,7 +3562,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             continue
 
                 if ndmg_out:
-                    ds = pe.Node(nio.DataSink(),
+                    ds = pe.Node(DataSink(),
                                  name='sinker_{}_{}'.format(num_strat,
                                                             resource_i))
                     ds.inputs.base_directory = c.outputDirectory
@@ -3704,7 +3706,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 else:
                     # regular datasink
                     ds = pe.Node(
-                        nio.DataSink(),
+                        DataSink(),
                         name='sinker_{}_{}'.format(num_strat, resource_i)
                     )
                     ds.inputs.base_directory = c.outputDirectory
@@ -4008,23 +4010,23 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 """
 
-        except KeyboardInterrupt as e:
+#         except KeyboardInterrupt as e:
 
-            raising = e
+#             raising = e
 
-            execution_info = """
+#             execution_info = """
 
-    Stopped of subject workflow {workflow}
+#     Stopped of subject workflow {workflow}
 
-    CPAC run stopped:
+#     CPAC run stopped:
 
-        Pipeline configuration: {pipeline}
-        Subject workflow: {workflow}
-        Elapsed run time (minutes): {elapsed}
-        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
-        System time of start:      {run_start}
+#         Pipeline configuration: {pipeline}
+#         Subject workflow: {workflow}
+#         Elapsed run time (minutes): {elapsed}
+#         Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
+#         System time of start:      {run_start}
 
-"""
+# """
         except:
 
             execution_info = """
@@ -4063,7 +4065,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     logger.warn('Could not remove subjects %s working directory',
                                 workflow_name)
 
-            if raising:
-                raise raising
+            # if raising:
+            #     raise raising
 
     return workflow
