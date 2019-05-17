@@ -3,6 +3,7 @@ linux_openmp_64/3dBandpass
 linux_openmp_64/3dBrickStat
 linux_openmp_64/3dcalc
 linux_openmp_64/3dDegreeCentrality
+linux_openmp_64/3dDetrend
 linux_openmp_64/3dECM
 linux_openmp_64/3dedge3
 linux_openmp_64/3dinfo
