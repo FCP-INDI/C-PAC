@@ -6,6 +6,8 @@ from xvfbwrapper import Xvfb
 
 class Screenshot(object):
 
+    window = None
+
     def __init__(self, output, size=(1200, 600), wait=1000):
         self.output = output
         self.size = size
@@ -23,6 +25,8 @@ class Screenshot(object):
 
     def __exit__(self, type, value, traceback):
         def _screenshot():
+            if not self.window: 
+                return 
             rect = self.window.GetRect()
             if sys.platform == 'linux2':
                 client_x, client_y = self.window.ClientToScreen((0, 0))
@@ -46,13 +50,14 @@ class Screenshot(object):
             img.SaveFile(self.output, wx.BITMAP_TYPE_PNG)
 
         wx.FutureCall(self.wait, _screenshot)
-        wx.FutureCall(self.wait + 1000, self.window.Destroy)
+        if self.window is not None:
+            wx.FutureCall(self.wait + 1000, self.window.Destroy)
 
         self.app.MainLoop()
         self.vdisplay.stop()
 
 
-def screenshot_page(page, output, size=(1200, 600), wait=1000):
+def screenshot_page(page, output, size=(1200, 600), wait=1000, ind=True):
 
     from CPAC.GUI.interface.windows import config_window
 
@@ -61,7 +66,7 @@ def screenshot_page(page, output, size=(1200, 600), wait=1000):
         config_mainframe = config_window.MainFrame(
             None, "load",
             path=p.resource_filename('CPAC', 'resources/configs/pipeline_config_template.yml'),
-            size=(size)
+            size=(size), ind=ind
         )
         config_mainframe.Show(True)
         config_mainframe.OpenPage(page)

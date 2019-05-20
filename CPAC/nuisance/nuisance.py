@@ -967,7 +967,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     )
 
                 union_masks_paths = pe.Node(
-                    MaskTool(outputtype='NIFTI'),
+                    MaskTool(outputtype='NIFTI_GZ'),
                     name='{}_union_masks'.format(regressor_type)
                 )
 
