@@ -342,9 +342,22 @@ def new_settings_template():
 
 @data_config.command()
 @click.argument('data_settings_file')
-def build(data_settings_file):
+def build_from_settings(data_settings_file):
     from CPAC.utils.build_data_config import run
     run(data_settings_file)
+
+
+@data_config.command()
+@click.argument('bids_dir')
+@click.argument('data_config_name')
+def build_from_bids(bids_dir, data_config_name):
+    import os
+    from CPAC.utils.build_data_config import build_data_config
+    settings_dct = {'dataFormat': 'BIDS',
+                    'bidsBaseDir': bids_dir,
+                    'outputSubjectListLocation': os.getcwd(),
+                    'subjectListName': data_config_name}
+    build_data_config(settings_dct)
 
 
 @utils.group()
