@@ -220,7 +220,7 @@ class SpatialRegression(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='spatialDemean',
                       type=dtype.BOOL,
-                      values=["True", "False"],
+                      values=["On", "Off"],
                       comment="Demean spatial maps before running spatial regression.")
 
         self.page.set_sizer()

@@ -6,7 +6,7 @@ import nipype.interfaces.utility as util
 from nipype.interfaces.base import BaseInterface, \
     BaseInterfaceInputSpec, traits, File, TraitedSpec
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 
 import os
 import numpy as np

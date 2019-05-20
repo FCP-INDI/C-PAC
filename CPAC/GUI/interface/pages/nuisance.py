@@ -180,6 +180,7 @@ selector_renaming = {
     'GreyMatter': 'Grey Matter',
     'aCompCor': 'aCompCor',
     'tCompCor': 'tCompCor',
+    'Custom': 'Custom',
     'PolyOrt': 'Poly Regression',
     'Bandpass': 'Bandpass',
     'Censor': 'Censor',
@@ -542,6 +543,21 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         self.data_controls['tCompCor']['enabled'].UpdateState()
 
 
+        self.titles += [self.render_selectors_title('Custom')]
+
+        has_custom = 'Custom' in self.selectors
+
+        self.data_controls['Custom']['enabled'] = self.add_enabled_row('Enabled', has_custom, self.data_controls['Custom'])
+
+        custom_components_label = wx.StaticText(self.editor, label='Regressor file')
+        custom_components_control = wx.TextCtrl(self.editor, value='1')
+        custom_components_control.SetValue(str(self.selectors.get('Custom', {}).get('file', '')))
+        self.add_to_new_row(custom_components_label, custom_components_control)
+        self.data_controls['Custom']['file'] = custom_components_control
+
+        self.data_controls['Custom']['enabled'].UpdateState()
+
+
         self.titles += [self.render_selectors_title('Detrending and Filtering', main=True)]
 
         self.titles += [self.render_selectors_title('Poly Regression')]
@@ -714,6 +730,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             'GlobalSignal',
             'aCompCor',
             'tCompCor',
+            'Custom',
         ]
 
         for k in valid_regressors:
@@ -789,7 +806,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             
         if self.data_controls['GlobalSignal']['enabled'].GetValue():
             selector['GlobalSignal'] = {}
-            selector['GreyMatter'].update(self.compile_selector_summary(self.data_controls['GreyMatter']))
+            selector['GlobalSignal'].update(self.compile_selector_summary(self.data_controls['GlobalSignal']))
             selector['GlobalSignal'].update(self.compile_selector_derivatives(self.data_controls['GlobalSignal']))
 
         if self.data_controls['aCompCor']['enabled'].GetValue():

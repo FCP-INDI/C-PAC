@@ -651,7 +651,6 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     # matrix
     merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
     merge_outfile = os.path.join(model_path, merge_outfile)
-
     merge_file = create_merged_copefile(model_df["Filepath"].tolist(),
                                         merge_outfile)
 

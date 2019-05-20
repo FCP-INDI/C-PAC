@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import CPAC
 import click
 
 # CLI tree
@@ -165,9 +164,9 @@ def build_models(group_config):
     cgr.build_feat_models(group_config)
 
 
-@feat.command()
+@feat.command(name='run')
 @click.argument('group_config')
-def run(group_config):
+def run_feat(group_config):
     import CPAC.pipeline.cpac_group_runner as cgr
     cgr.run_feat(group_config)
 
@@ -316,6 +315,14 @@ def group_isc(group_config):
     from CPAC.pipeline.cpac_group_runner import run_isc
     run_isc(group_config)
 
+# Group analysis - QPP
+@group.command()
+@click.argument('group_config')
+def qpp(group_config):
+    from CPAC.pipeline.cpac_group_runner import run_qpp
+    run_qpp(group_config)
+
+
 # Utilities
 @main.group()
 def utils():
@@ -345,8 +352,8 @@ def pipe_config():
     pass
 
 
-@pipe_config.command()
-def new_template():
+@pipe_config.command(name='new_template')
+def new_pipeline_template():
     from CPAC.utils.build_data_config import util_copy_template
     util_copy_template('pipeline_config')
 
@@ -356,8 +363,8 @@ def group_config():
     pass
 
 
-@group_config.command()
-def new_template():
+@group_config.command(name='new_template')
+def new_group_template():
     from CPAC.utils.build_data_config import util_copy_template
     util_copy_template('group_config')
 

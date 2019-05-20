@@ -301,3 +301,23 @@ isc_level_voxel_std_filter :  0.0
 
 # Number of permutation tests to compute the statistics.
 isc_permutations :  1000
+
+#Quasi Periodic Patterns (QPP)
+###############################
+
+# Run Quasi Periodic Pattern Analysis
+runQPP :  [1]
+
+
+qpp_scan_inclusion :  
+qpp_session_inclusion :  
+qpp_stratification :
+
+qpp_permutations:  100
+qpp_window:  30
+
+qpp_initial_threshold: 0.2
+qpp_final_threshold: 0.3
+qpp_initial_threshold_iterations :  20
+
+qpp_iterations :  15

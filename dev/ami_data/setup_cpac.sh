@@ -10,6 +10,12 @@ done
 apt-get update
 apt-get install -y x2goserver lubuntu-desktop lxde-icon-theme xvfb
 apt-get remove -y lxlock xscreensaver xscreensaver-data gnome-screensaver
+apt-get upgrade
+
+# Cleaning up NetworkManager, use netplan
+systemctl stop NetworkManager.service
+systemctl disable NetworkManager.service
+rm -Rf /etc/NetworkManager
 
 # Cleaning up NetworkManager, use netplan
 systemctl stop NetworkManager.service
@@ -115,6 +121,11 @@ curl -sSL "http://downloads.sourceforge.net/project/c3d/c3d/1.0.0/c3d-1.0.0-Linu
 echo 'C3DPATH=/opt/c3d/' >> /etc/bash.bashrc
 echo 'PATH=$C3DPATH/bin:$PATH' >> /etc/bash.bashrc
 
+# libpng12 for afni
+wget -q -O /tmp/libpng12.deb http://mirrors.kernel.org/ubuntu/pool/main/libp/libpng/libpng12-0_1.2.54-1ubuntu1_amd64.deb \
+  && dpkg -i /tmp/libpng12.deb \
+  && rm /tmp/libpng12.deb
+
 libs_path=/usr/lib/x86_64-linux-gnu 
 if [ -f $libs_path/libgsl.so.19 ]; then \
     ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
@@ -132,15 +143,16 @@ apt-get install -y --no-install-recommends \
     fsl-mni152-templates
 
 source /etc/fsl/5.0/fsl.sh
+echo 'source /etc/fsl/5.0/fsl.sh' >> /etc/bash.bashrc
 
 curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
 tar xfz /tmp/cpac_resources.tar.gz -C /tmp && \
 cp -n /tmp/cpac_image_resources/MNI_3mm/* $FSLDIR/data/standard && \
 cp -n /tmp/cpac_image_resources/MNI_4mm/* $FSLDIR/data/standard && \
 cp -n /tmp/cpac_image_resources/symmetric/* $FSLDIR/data/standard && \
-cp -nr /tmp/cpac_image_resource/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
-cp -nr /tmp/cpac_image_resource/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
-cp -n /tmp/cpac_image_resource/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
+cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
+cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors && \
+cp -n /tmp/cpac_image_resources/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
 
 apt-get install -y ants
 
@@ -149,29 +161,16 @@ curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar
 chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 echo 'PATH=/opt/ICA-AROMA:$PATH' >> /etc/bash.bashrc
 
-curl -sO https://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
-bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-rm Miniconda-3.8.3-Linux-x86_64.sh
+curl -sO https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh && \
+bash Miniconda2-latest-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+rm Miniconda2-latest-Linux-x86_64.sh
 
 echo 'PATH=/usr/local/miniconda/bin:$PATH' >> /etc/bash.bashrc
-
 export PATH=/usr/local/miniconda/bin:$PATH
 
-conda install -y \
-        blas
-
 conda install -y  \
-        cython==0.26 \
-        jinja2==2.7.2 \
-        matplotlib=2.0.2 \
-        networkx==1.11 \
-        nose==1.3.7 \
-        numpy==1.13.0 \
-        pandas==0.23.4 \
-        scipy==0.19.1 \
-        traits==4.6.0 \
-        wxpython==3.0.0.0 \
-        pip
+    pip \
+    wxpython==3.0.0.0
 
 pip install --upgrade pip==9.0.1
 pip install -r /opt/C-PAC/requirements.txt
@@ -181,8 +180,9 @@ curl -L https://github.com/neurodata/neuroparc/archive/master.zip -o /tmp/neurop
 unzip /tmp/neuroparc.zip -d /tmp/neuroparc 'neuroparc-master/atlases/*' && \
 cp -r /tmp/neuroparc/neuroparc-master/atlases /ndmg_atlases && rm /tmp/neuroparc.zip
 
-apt-get clean && \
-apt-get autoremove -y && \
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+pip install /opt/C-PAC
 
-pip install -e /opt/C-PAC
+conda install -y -c anaconda glib
+conda install -y -c conda-forge harfbuzz
+
+cpac

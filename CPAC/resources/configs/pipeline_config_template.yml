@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.4.2
+# Version 1.4.3
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -260,6 +260,10 @@ template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat
 regOption :  ['ANTS']
 
 
+# If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
+use_lesion_mask : [1]
+
+
 # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
 fsl_linear_reg_only :  [0]
 
@@ -334,6 +338,10 @@ startIdx :  0
 # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
 # Note: the selection here applies to all scans of all participants.
 stopIdx :  None
+
+
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+functional_volreg_twopass :  On
 
 
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
@@ -537,7 +545,13 @@ runSCA :  [1]
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
 sca_roi_paths:
   - s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
-
+    s3://fcp-indi/resources/cpac/resources/CC400.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/ez_mask_pad.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/aal_mask_pad.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/CC200.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/tt_mask_pad.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/ho_mask_pad.nii.gz: Avg, MultReg
+    s3://fcp-indi/resources/cpac/resources/rois_3mm.nii.gz: Avg, MultReg
 
 
 # Normalize each time series before running Dual Regression SCA.
@@ -666,7 +680,7 @@ fwhm : [4]
 smoothing_order :  ['Before']
 
 
-# z-score standardize the derivatives. This is required for group-level analysis.
+# z-score standardize the derivatives. This may be needed for group-level analysis.
 # On - Run z-scoring and output only the z-scored outputs.
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.

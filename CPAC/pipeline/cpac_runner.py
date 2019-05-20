@@ -1,35 +1,14 @@
-# CPAC/pipeline/cpac_runner.py
-#
-
-'''
-This module contains functions used to run a C-PAC pipeline
-'''
-
-# Import packages
-from multiprocessing import Process
 import os
-from CPAC.utils.ga import track_run
-from CPAC.utils import Configuration
-import yaml
 import time
+import warnings
+from multiprocessing import Process
 from time import strftime
 
+import yaml
 
-# Validate length of directory
-def validate(config_obj):
-    
-    # check for path lengths
-    working_dir = config_obj.workingDirectory
-    
-    if not working_dir:
-        print "\n\n" + "ERROR: Your directories in Output Settings are empty." + "\n" + \
-        "Error name: cpac_runner_0002" + "\n\n"
-        raise Exception
+from CPAC.utils import Configuration
+from CPAC.utils.ga import track_run
 
-    if len(working_dir) > 70:
-        print "\n\n" + "WARNING: Path to working directory should NOT be more than 70 characters."
-        print "Please update your configuration. Working directory: ", working_dir, "\n\n"
-        raise Exception
 
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
@@ -43,7 +22,7 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
-        raise Exception ("Subject list is not in proper YAML format. Please check your file")
+        raise Exception("Subject list is not in proper YAML format. Please check your file")
 
     cluster_files_dir = os.path.join(os.getcwd(), 'cluster_files')
     subject_bash_file = os.path.join(cluster_files_dir, 'submit_%s.condor' % str(strftime("%Y_%m_%d_%H_%M_%S")))
@@ -218,9 +197,24 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     except IOError:
         print "config file %s doesn't exist" % config_file
         raise
+    except yaml.parser.ParserError as e:
+        error_detail = "\"%s\" at line %d" % (
+            e.problem,
+            e.problem_mark.line
+        )
+        raise Exception(
+            "Error parsing config file: {0}\n\n"
+            "Error details:\n"
+            "    {1}"
+            "\n\n".format(config_file, error_detail)
+        )
     except Exception as e:
-        raise Exception("Error reading config file - {0}\n\nError details:"
-                        "\n{1}\n\n".format(config_file, e))
+        raise Exception(
+            "Error parsing config file: {0}\n\n"
+            "Error details:\n"
+            "    {1}"
+            "\n\n".format(config_file, e)
+        )
 
     c.logDirectory = os.path.abspath(c.logDirectory)
     c.workingDirectory = os.path.abspath(c.workingDirectory)
@@ -237,7 +231,14 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
         c.numParticipantsAtOnce = int(num_subs_at_once)
 
     # Do some validation
-    validate(c)
+    if not c.workingDirectory:
+        raise Exception('Working directory not specified')
+
+    if len(c.workingDirectory) > 70:
+        warnings.warn("We recommend that the working directory full path "
+                      "should have less then 70 characters. "
+                      "Long paths might not work in your operational system.")
+        warnings.warn("Current working directory: %s" % c.workingDirectory)
 
     # Get the pipeline name
     p_name = p_name or c.pipelineName
@@ -282,7 +283,10 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     pipeline_timing_info.append(len(sublist))
 
     if tracking:
-        track_run(level='participant', participants=len(sublist))
+        try:
+            track_run(level='participant', participants=len(sublist))
+        except:
+            pass
 
     # If we're running on cluster, execute job scheduler
     if c.runOnGrid:

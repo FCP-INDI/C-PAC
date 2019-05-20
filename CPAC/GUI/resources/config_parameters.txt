@@ -40,6 +40,7 @@ stopIdx,Last Timepoint,Time Series Options
 slice_timing_correction,Slice Timing Correction,Time Series Options
 slice_timing_pattern,Slice Timing Correction Pattern,Time Series Options
 TR,TR,Time Series Options
+functional_volreg_twopass,Volume Registration Two-pass,Time Series Options
 runEPI_DistCorr,Perform Field-Map Distortion Correction,Distortion Correction
 fmap_distcorr_skullstrip,Skull-strip the magnitude file with:,Distortion Correction
 fmap_distcorr_frac,BET threshold/AFNI shrink factor,Distortion Correction
@@ -64,17 +65,8 @@ aroma_denoise_type,De-noising Type,ICA-AROMA De-Noising
 runNuisance,Run Nuisance Signal Regression,Nuisance Regression
 lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Regression
 Regressors,Regressors,Nuisance Regression
-nComponents,CompCor Components,Nuisance Regression
-runFristonModel,Use Friston 24-Parameter Model,Nuisance Regression
-runMotionSpike,Run Scrubbing,Nuisance Regression
-fdCalc,Framewise Displacement (FD) Calculation,Nuisance Regression
-spikeThreshold,Framewise Displacement (FD) Threshold (mm),Nuisance Regression
-numRemovePrecedingFrames,Number of Preceding Volumes to Remove,Nuisance Regression
-numRemoveSubsequentFrames,Number of Subsequent Volumes to Remove,Nuisance Regression
 runMedianAngleCorrection,Run Median Angle Correction,Median Angle Correction
 targetAngleDeg,Target Angle (degrees),Median Angle Correction
-runFrequencyFiltering,Run Temporal Filtering,Temporal Filtering Options
-nuisanceBandpassFreq,Band-Pass Filters,Temporal Filtering Options
 runROITimeseries,Extract ROI Average Time Series,ROI TSE Options
 tsa_roi_paths,TSE ROI Paths,ROI TSE Options
 runSCA,Run Seed-based Correlation Analysis,SCA Options
@@ -106,8 +98,3 @@ run_smoothing,Run Smoothing,After Warping Options
 smoothing_order,Smoothing Before/After z-Scoring,After Warping Options
 fwhm,Kernel FWHM (in mm),After Warping Options
 runZScoring,Z-score Standardize Derivatives,After Warping Options
-run_fsl_feat,Run FSL FEAT,FSL FEAT Group Analysis
-numGPAModelsAtOnce,Number of Models to Run Simultaneously,FSL FEAT Group Analysis
-modelConfigs,Models to Run,FSL FEAT Group Analysis
-run_basc,Run BASC,Bootstrapped Analysis of Stable Clusters
-basc_resolution,Output File Resolution,Bootstrapped Analysis of Stable Clusters

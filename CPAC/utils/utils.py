@@ -3,8 +3,6 @@ import fnmatch
 import threading
 from inspect import currentframe, getframeinfo , stack
 
-global_lock = threading.Lock()
-
 
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
     """
@@ -364,6 +362,47 @@ def set_gauss(fwhm):
     return op_string
 
 
+def zscore(data, axis):
+    data = data.copy()
+    data -= data.mean(axis=axis, keepdims=True)
+    data /= data.std(axis=axis, keepdims=True)
+    np.copyto(data, 0.0, where=np.isnan(data))
+    return data
+
+
+def correlation(matrix1, matrix2,
+                match_rows=False, z_scored=False, symmetric=False):
+    d1 = matrix1.shape[-1]
+    d2 = matrix2.shape[-1]
+
+    assert d1 == d2
+    assert matrix1.ndim <= 2
+    assert matrix2.ndim <= 2
+    if match_rows:
+        assert matrix1.shape == matrix2.shape
+
+    var = np.sqrt(d1 * d2)
+    
+    if not z_scored:
+        matrix1 = zscore(matrix1, matrix1.ndim - 1)
+        matrix2 = zscore(matrix2, matrix2.ndim - 1)
+
+    if match_rows:
+        return np.einsum('...i,...i', matrix1, matrix2) / var
+    
+    if matrix1.ndim >= matrix2.ndim:
+        r = np.dot(matrix1, matrix2.T) / var
+    else:
+        r = np.dot(matrix2, matrix1.T) / var
+
+    r = np.clip(r, -1.0, 1.0)
+
+    if symmetric:
+        return (r + r.T) / 2
+    
+    return r
+    
+
 def check(params_dct, subject, scan, val, throw_exception):
 
     if val not in params_dct:
@@ -391,6 +430,29 @@ def check(params_dct, subject, scan, val, throw_exception):
                         "{1}".format(val, subject))
 
     return ret_val
+
+
+def check_random_state(seed):
+    """
+    Turn seed into a np.random.RandomState instance
+    Code from scikit-learn (https://github.com/scikit-learn/scikit-learn)
+
+    Parameters
+    ----------
+    seed : None | int | instance of RandomState
+        If seed is None, return the RandomState singleton used by np.random.
+        If seed is an int, return a new RandomState instance seeded with seed.
+        If seed is already a RandomState instance, return it.
+        Otherwise raise ValueError.
+    """
+    if seed is None or seed is np.random:
+        return np.random.mtrand._rand
+    if isinstance(seed, (numbers.Integral, np.integer)):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
+                     ' instance' % seed)
 
 
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
@@ -791,7 +853,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
             "curr_dir: {1}".format(file_path, os.getcwd())
         )
 
-    out_file = os.path.join(file_path, 'log_{0}.yaml'.format(strategy))
+    out_file = os.path.join(file_path, 'log_{0}.yml'.format(strategy))
 
     iflogger.info("CPAC custom log:")
 
@@ -847,7 +909,7 @@ def create_log(wf_name="log", scan_id=None):
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
-    import CPAC.utils.function as function
+    import CPAC.utils.interfaces.function as function
 
     wf = pe.Workflow(name=wf_name)
 
@@ -1085,33 +1147,47 @@ def setup_logger(logger_name, file_path, level, to_screen=False):
     return logger
 
 
-def check_system_deps(check_ants=False, check_ica_aroma=False):
+def check_command_path(path):
+    import os
+    return os.system("%s >/dev/null 2>&1" % path) != 32512
+
+
+def check_system_deps(check_ants=False,
+                      check_ica_aroma=False,
+                      check_centrality_degree=False,
+                      check_centrality_lfcd=False):
     '''
     Function to check system for neuroimaging tools AFNI, C3D, FSL,
     and (optionally) ANTs
     '''
 
-    # Import packages
-    import os
-
-    # Init variables
     missing_install = []
 
     # Check AFNI
-    if os.system("3dcalc >/dev/null 2>&1") == 32512:
+    if not check_command_path("3dcalc"):
         missing_install.append("AFNI")
+
     # Check FSL
-    if os.system("fslmaths >/dev/null 2>&1") == 32512:
+    if not check_command_path("fslmaths"):
         missing_install.append("FSL")
+
     # Check ANTs/C3D
     if check_ants:
-        if os.system("c3d_affine_tool >/dev/null 2>&1") == 32512:
+        if not check_command_path("c3d_affine_tool"):
             missing_install.append("C3D")
-        if os.system("antsRegistration >/dev/null 2>&1") == 32512:
+        if not check_command_path("antsRegistration"):
             missing_install.append("ANTS")
+
+    if check_centrality_degree:
+        if not check_command_path("3dDegreeCentrality"):
+            missing_install.append("3dDegreeCentrality")
+    if check_centrality_lfcd:
+        if not check_command_path("3dLFCD"):
+            missing_install.append("3dLFCD")
+        
     # Check ICA-AROMA
     if check_ica_aroma:
-        if os.system("ICA_AROMA.py >/dev/null 2>&1") == 32512:
+        if not check_command_path("ICA_AROMA.py"):
             missing_install.append("ICA-AROMA")
 
     # If we're missing deps, raise Exception

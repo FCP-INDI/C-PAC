@@ -1,3 +1,4 @@
+import os
 import fnmatch
 import pandas
 
@@ -196,7 +197,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
               % (pipeline_output_folder, resource_list)
         raise Exception(err)
 
-    return nifti_globs
+    return nifti_globs,search_dirs
 
 
 def grab_raw_score_filepath(filepath, resource_id):
@@ -485,7 +486,7 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
                    get_motion, get_raw_score, get_func=False, derivatives=None,
                    exts=['nii', 'nii.gz']):
 
-    nifti_globs = gather_nifti_globs(
+    nifti_globs, search_dir = gather_nifti_globs(
         pipeline_folder,
         resource_list,
         get_func,
@@ -685,17 +686,19 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     part_ID_count = Counter(pheno_df["participant_id"])
 
-    if series_list:
-        sessions_x_series = len(sessions_list) * len(series_list)
-    else:
-        sessions_x_series = len(sessions_list)
+    sessions_x_series = len(sessions_list)
+    if series_list is not None:
+        sessions_x_series *= len(series_list)
        
     dropped_parts = []
 
     for part_ID in part_ID_count.keys():
         if part_ID_count[part_ID] != sessions_x_series:
             pheno_df = pheno_df[pheno_df.participant_id != part_ID]
-            del pheno_df["participant_%s" % part_ID]
+            try:
+                del pheno_df["participant_%s" % part_ID]
+            except:
+                pass
             dropped_parts.append(part_ID)
 
     return pheno_df, dropped_parts
@@ -1851,6 +1854,92 @@ def run_isc(pipeline_config):
                       std_filter=std_filter)
 
 
+def run_qpp(group_config_file):
+
+    from CPAC.qpp.pipeline import create_qpp
+
+    c = load_config_yml(group_config_file)
+
+    pipeline_dir = os.path.abspath(c.pipeline_dir)
+    out_dir = os.path.join(c.output_dir, 'cpac_group_analysis', 'QPP',
+                           os.path.basename(pipeline_dir))
+    working_dir = os.path.join(c.work_dir, 'cpac_group_analysis', 'QPP',
+                               os.path.basename(pipeline_dir))
+    crash_dir = os.path.join(c.log_dir, 'cpac_group_analysis', 'QPP',
+                             os.path.basename(pipeline_dir))
+
+    try:
+        os.makedirs(out_dir)
+        os.makedirs(working_dir)
+        os.makedirs(crash_dir)
+    except:
+        pass
+
+    outputs = gather_outputs(
+        pipeline_dir,
+        ["functional_to_standard"],
+        inclusion_list=c.participant_list,
+        get_motion=False, get_raw_score=False, get_func=True,
+        derivatives=["functional_to_standard"],
+        exts=['nii', 'nii.gz']
+    )
+
+    if c.qpp_stratification == 'Scan':
+        qpp_stratification = ['Series']
+    elif c.qpp_stratification == 'Session':
+        qpp_stratification = ['Sessions']
+    elif c.qpp_stratification in ['Session and Scan', 'Scan and Session']:
+        qpp_stratification = ['Sessions', 'Series']
+    else:
+        qpp_stratification = []
+        
+    for (resource_id, strat_info), output_df in outputs.items():
+
+        if c.qpp_session_inclusion:
+            output_df = output_df[output_df["Sessions"].isin(c.qpp_session_inclusion)]
+        if c.qpp_scan_inclusion:
+            output_df = output_df[output_df["Series"].isin(c.qpp_scan_inclusion)]
+
+        if qpp_stratification:
+            output_df_groups = output_df.groupby(by=qpp_stratification)
+        else:
+            output_df_groups = [([], output_df)]
+
+        for group_id, output_df_group in output_df_groups:
+
+            group = zip(qpp_stratification, group_id)
+
+            group_id = "_".join(["%s-%s" % ({
+                "Sessions": "ses",
+                "Series": "scan",
+            }[k], v) for k, v in group])
+
+            group_working_dir = os.path.join(working_dir, group_id)
+            group_crash_dir = os.path.join(crash_dir, group_id)
+
+            output_df_group, _ = balance_repeated_measures(
+                output_df_group,
+                output_df_group.Sessions.unique(),
+                output_df_group.Series.unique()
+            )
+
+            output_df_group = output_df_group.sort_values(by='participant_session_id')
+
+            wf = create_qpp(name="QPP", working_dir=group_working_dir, crash_dir=group_crash_dir)
+
+            wf.inputs.inputspec.window_length = c.qpp_window
+            wf.inputs.inputspec.permutations = c.qpp_permutations
+            wf.inputs.inputspec.lower_correlation_threshold = c.qpp_initial_threshold
+            wf.inputs.inputspec.higher_correlation_threshold = c.qpp_final_threshold
+            wf.inputs.inputspec.iterations = c.qpp_iterations
+            wf.inputs.inputspec.correlation_threshold_iteration = c.qpp_initial_threshold_iterations
+            wf.inputs.inputspec.convergence_iterations = 1
+
+            wf.inputs.inputspec.datasets = output_df_group.Filepath.tolist()
+
+            wf.run()
+
+
 def manage_processes(procss, output_dir, num_parallel=1):
 
     import os
@@ -1925,3 +2014,7 @@ def run(config_file):
     # Run randomise, if selected
     if 1 in c.run_randomise:
         run_feat(config_file, feat=False)
+
+    #Run QPP, if selected
+    if 1 in c.run_qpp:
+        run_qpp(config_file)

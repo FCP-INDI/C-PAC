@@ -58,14 +58,14 @@ class RandomiseSettings(wx.ScrolledWindow):
                      control=control.CHOICE_BOX, 
                      name='randomise_demean', 
                      type=dtype.BOOL, 
-                     values = ["True", "False"],
+                     values = ["On", "Off"],
                      comment="Demean data temporally before model fitting.")
 
         self.page.add(label="Threshold-Free Cluster Enhancement ", 
                      control=control.CHOICE_BOX, 
                      name='randomise_tfce', 
                      type=dtype.BOOL, 
-                     values = ["True", "False"],
+                     values = ["On", "Off"],
                      comment="From the FMRIB FSL-Randomise user guide: TFCE "
                              "(Threshold-Free Cluster Enhancement) is a new "
                              "method for finding 'clusters' in your data with"

@@ -10,7 +10,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # version
 _version_major = 1
 _version_minor = 4
-_version_micro = 2
+_version_micro = 3
 _version_extra = ''
 
 
@@ -24,47 +24,44 @@ def get_cpac_gitversion():
     """
     import os
     import subprocess
-    try:
-        import CPAC
-        gitpath = os.path.realpath(os.path.join(os.path.dirname(CPAC.__file__),
-                                                os.path.pardir))
-    except:
-        gitpath = os.getcwd()
+
+    gitpath = os.path.realpath(os.path.join(os.path.dirname(__file__),
+                                            os.path.pardir))
+
     gitpathgit = os.path.join(gitpath, '.git')
     if not os.path.exists(gitpathgit):
         return None
+
     ver = None
+
     try:
         o, _ = subprocess.Popen('git describe --always', shell=True, cwd=gitpath,
                                 stdout=subprocess.PIPE).communicate()
     except Exception:
-        try:
-            o, _ = subprocess.Popen('git describe --always', shell=True, cwd=gitpath,
-                                    stdout=subprocess.PIPE).communicate()
-        except Exception:
-            pass
         pass
     else:
         ver = o.strip().split('-')[-1]
+
     return ver
 
-if '.dev' in _version_extra:
+if 'dev' in _version_extra:
     gitversion = get_cpac_gitversion()
     if gitversion:
-        _version_extra = '.' + gitversion + '-' + 'dev'
+        _version_extra = gitversion + '-' + 'dev'
 
-# Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
-__version__ = "%s.%s.%s%s" % (_version_major,
-                              _version_minor,
-                              _version_micro,
-                              _version_extra)
+
+__version__ = "%s.%s.%s" % (_version_major,
+                            _version_minor,
+                            _version_micro)
+
+if _version_extra:
+    __version__ += ".%s" % _version_extra
 
 ga_tracker = 'UA-19224662-10'
 
 CLASSIFIERS = ["Development Status :: 4 - Beta",
                "Environment :: Console",
                "Intended Audience :: Science/Research",
-               "License :: OSI Approved :: BSD License", # TODO: check if this is true
                "Operating System :: OS Independent",
                "Programming Language :: Python",
                "Topic :: Scientific/Engineering"]
@@ -113,7 +110,7 @@ there will likely still be a few bugs that we did not catch. If you find a bug, 
 please create an issue on CPAC github issue page: https://github.com/FCP-INDI/C-PAC/issues?state=open
 """
 
-CYTHON_MIN_VERSION      = '0.12.1'
+CYTHON_MIN_VERSION  = '0.12.1'
 
 NAME                = 'CPAC'
 MAINTAINER          = "CPAC developers"
@@ -137,11 +134,10 @@ STATUS              = 'stable'
 REQUIREMENTS        = [
     "boto3==1.7.37",
     "click==6.7",
+    "configparser==3.7.4",
     "cython==0.26",
-    "fs==0.5.4",
     "future==0.16.0",
     "INDI-Tools==0.0.6",
-    "jinja2==2.7.2",
     "lockfile==0.12.2",
     "matplotlib==2.0.2",
     "networkx==1.11",
@@ -158,7 +154,7 @@ REQUIREMENTS        = [
     "python-dateutil==2.7.3",
     "pyyaml==4.2b1",
     "scikit-learn==0.19.1",
-    "scipy==0.19.1",
+    "scipy==1.2.1",
     "simplejson==3.15.0",
     "traits==4.6.0",
     "PyBASC==0.4.5",

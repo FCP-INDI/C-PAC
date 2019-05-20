@@ -50,7 +50,6 @@ multiple_value_wfs = ['runAnatomicalPreprocessing',
                       'runAnatomicalToFunctionalRegistration',
                       'runSegmentationPreprocessing',
                       'runNuisance',
-                      'runFrequencyFiltering',
                       'runMedianAngleCorrection',
                       'runScrubbing',
                       'runFristonModel'

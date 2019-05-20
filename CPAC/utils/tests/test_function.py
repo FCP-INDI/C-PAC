@@ -1,5 +1,5 @@
 import nipype.pipeline.engine as pe
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 from CPAC.utils.datasource import get_rest
 
 

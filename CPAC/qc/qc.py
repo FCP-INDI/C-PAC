@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Agg', warn=False, force=True)
 
 from nipype.interfaces import afni 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 from CPAC.qc.utils import (
     resample_1mm, montage_axial, montage_sagittal,
     montage_gm_wm_csf_axial, montage_gm_wm_csf_sagittal,

@@ -5,7 +5,7 @@ import nibabel as nb
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 
 
 def motion_power_statistics(name='motion_stats'):
@@ -127,22 +127,22 @@ def motion_power_statistics(name='motion_stats'):
         Mean Abs dL-R
         Mean Abs dP-A
 
-    High Level Workflow Graph:
-
     .. exec::
         from CPAC.generate_motion_statistics import motion_power_statistics
         wf = motion_power_statistics()
         wf.write_graph(
             graph2use='orig',
-            dotfilename='./images/parameters.dot'
+            dotfilename='./images/generated/motion_statistics.dot'
         )
 
-    .. image:: ../images/parameters.png
+    High Level Workflow Graph:
+
+    .. image:: ../images/generated/motion_statistics.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/parameters_detailed.png
+    .. image:: ../images/generated/motion_statistics_detailed.png
        :width: 1000
 
     Examples

@@ -6,6 +6,15 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
+from nipype.interfaces.afni import utils as afni_utils
+
+
+def collect_arguments(*args):
+    command_args = []
+    if args[0]:
+        command_args += [args[1]]
+    command_args += args[2:]
+    return ' '.join(command_args)
 
 
 # workflow to edit the scan to the proscribed TRs
@@ -63,7 +72,7 @@ def create_wf_edit_func(wf_name="edit_func"):
                                          output_names=['stopidx',
                                                        'startidx'],
                                          function=get_idx),
-                            name='func_get_idx')
+                           name='func_get_idx')
 
     # wire in the func_get_idx node
     preproc.connect(inputNode, 'func',
@@ -74,13 +83,8 @@ def create_wf_edit_func(wf_name="edit_func"):
                     func_get_idx, 'stop_idx')
 
     # allocate a node to edit the functional file
-    try:
-        from nipype.interfaces.afni import utils as afni_utils
-        func_drop_trs = pe.Node(interface=afni_utils.Calc(),
-                                name='func_drop_trs')
-    except ImportError:
-        func_drop_trs = pe.Node(interface=preprocess.Calc(),
-                                name='func_drop_trs')
+    func_drop_trs = pe.Node(interface=afni_utils.Calc(),
+                            name='func_drop_trs')
 
     func_drop_trs.inputs.expr = 'a'
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
@@ -129,17 +133,11 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
 
     Workflow Inputs::
 
-        inputspec.rest : func/rest file or a list of func/rest nifti file
+        inputspec.func : func nifti file
             User input functional(T2) Image, in any of the 8 orientations
 
-        scan_params.tr : string
-            Subject TR
-
-        scan_params.acquistion : string
-            Acquisition pattern (interleaved/sequential, ascending/descending)
-
-        scan_params.ref_slice : integer
-            Reference slice for slice timing correction
+        scan_params.twopass : boolean
+            Perform two-pass on volume registration
 
     Workflow Outputs::
 
@@ -266,15 +264,22 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                -Tmin -bin rest_3dc_RPI_3dv_3dc_maths_maths.nii.gz
                -odt char
 
+    .. exec::
+        from CPAC.func_preproc import create_func_preproc
+        wf = create_func_preproc()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/func_preproc.dot'
+        )
+
     High Level Workflow Graph:
 
-    .. image:: ../images/func_preproc.dot.png
+    .. image:: ../images/generated/func_preproc.png
        :width: 1000
-
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/func_preproc_detailed.dot.png
+    .. image:: ../images/generated/func_preproc_detailed.png
        :width: 1000
 
     Examples
@@ -294,45 +299,37 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     """
 
     preproc = pe.Workflow(name=wf_name)
-    inputNode = pe.Node(util.IdentityInterface(fields=['func']),
-                        name='inputspec')
+    input_node = pe.Node(util.IdentityInterface(fields=['func',
+                                                        'twopass']),
+                         name='inputspec')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['refit',
-                                                        'reorient',
-                                                        'reorient_mean',
-                                                        'motion_correct',
-                                                        'motion_correct_ref',
-                                                        'movement_parameters',
-                                                        'max_displacement',
-                                                        # 'xform_matrix',
-                                                        'mask',
-                                                        'skullstrip',
-                                                        'example_func',
-                                                        'preprocessed',
-                                                        'preprocessed_mask',
-                                                        'slice_time_corrected',
-                                                        'oned_matrix_save']),
+    output_node = pe.Node(util.IdentityInterface(fields=['refit',
+                                                         'reorient',
+                                                         'reorient_mean',
+                                                         'motion_correct',
+                                                         'motion_correct_ref',
+                                                         'movement_parameters',
+                                                         'max_displacement',
+                                                         # 'xform_matrix',
+                                                         'mask',
+                                                         'skullstrip',
+                                                         'example_func',
+                                                         'preprocessed',
+                                                         'preprocessed_mask',
+                                                         'slice_time_corrected',
+                                                         'oned_matrix_save']),
 
-                         name='outputspec')
+                          name='outputspec')
 
-    try:
-        from nipype.interfaces.afni import utils as afni_utils
-        func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                                 name='func_deoblique')
-    except ImportError:
-        func_deoblique = pe.Node(interface=preprocess.Refit(),
-                                 name='func_deoblique')
+    func_deoblique = pe.Node(interface=afni_utils.Refit(),
+                             name='func_deoblique')
     func_deoblique.inputs.deoblique = True
 
-    preproc.connect(inputNode, 'func',
+    preproc.connect(input_node, 'func',
                     func_deoblique, 'in_file')
 
-    try:
-        func_reorient = pe.Node(interface=afni_utils.Resample(),
-                                name='func_reorient')
-    except UnboundLocalError:
-        func_reorient = pe.Node(interface=preprocess.Resample(),
-                                name='func_reorient')
+    func_reorient = pe.Node(interface=afni_utils.Resample(),
+                            name='func_reorient')
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -341,14 +338,10 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                     func_reorient, 'in_file')
 
     preproc.connect(func_reorient, 'out_file',
-                    outputNode, 'reorient')
+                    output_node, 'reorient')
 
-    try:
-        func_get_mean_RPI = pe.Node(interface=afni_utils.TStat(),
-                                    name='func_get_mean_RPI')
-    except UnboundLocalError:
-        func_get_mean_RPI = pe.Node(interface=preprocess.TStat(),
-                                    name='func_get_mean_RPI')
+    func_get_mean_RPI = pe.Node(interface=afni_utils.TStat(),
+                                name='func_get_mean_RPI')
 
     func_get_mean_RPI.inputs.options = '-mean'
     func_get_mean_RPI.inputs.outputtype = 'NIFTI_GZ'
@@ -359,9 +352,18 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     # calculate motion parameters
     func_motion_correct = pe.Node(interface=preprocess.Volreg(),
                                   name='func_motion_correct')
-    func_motion_correct.inputs.args = '-Fourier -twopass'
     func_motion_correct.inputs.zpad = 4
     func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
+
+    preproc.connect([
+        (
+            input_node, func_motion_correct, [
+                (
+                    ('twopass', collect_arguments, '-twopass', '-Fourier'),
+                    'args'
+                )]
+        ),
+    ])
 
     preproc.connect(func_reorient, 'out_file',
                     func_motion_correct, 'in_file')
@@ -373,10 +375,20 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                     func_get_mean_motion, 'in_file')
 
     preproc.connect(func_get_mean_motion, 'out_file',
-                    outputNode, 'motion_correct_ref')
+                    output_node, 'motion_correct_ref')
 
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
     func_motion_correct_A.inputs.md1d_file = 'max_displacement.1D'
+
+    preproc.connect([
+        (
+            input_node, func_motion_correct_A, [
+                (
+                    ('twopass', collect_arguments, '-twopass', '-Fourier'),
+                    'args'
+                )]
+        ),
+    ])
 
     preproc.connect(func_reorient, 'out_file',
                     func_motion_correct_A, 'in_file')
@@ -384,13 +396,13 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                     func_motion_correct_A, 'basefile')
 
     preproc.connect(func_motion_correct_A, 'out_file',
-                    outputNode, 'motion_correct')
+                    output_node, 'motion_correct')
     preproc.connect(func_motion_correct_A, 'md1d_file',
-                    outputNode, 'max_displacement')
+                    output_node, 'max_displacement')
     preproc.connect(func_motion_correct_A, 'oned_file',
-                    outputNode, 'movement_parameters')
+                    output_node, 'movement_parameters')
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
-                    outputNode, 'oned_matrix_save')
+                    output_node, 'oned_matrix_save')
 
     if not use_bet:
 
@@ -403,7 +415,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                         func_get_brain_mask, 'in_file')
 
         preproc.connect(func_get_brain_mask, 'out_file',
-                        outputNode, 'mask')
+                        output_node, 'mask')
 
     else:
 
@@ -426,14 +438,10 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                         erode_one_voxel, 'in_file')
 
         preproc.connect(erode_one_voxel, 'out_file',
-                        outputNode, 'mask')
+                        output_node, 'mask')
 
-    try:
-        func_edge_detect = pe.Node(interface=afni_utils.Calc(),
-                                   name='func_edge_detect')
-    except UnboundLocalError:
-        func_edge_detect = pe.Node(interface=preprocess.Calc(),
-                                   name='func_edge_detect')
+    func_edge_detect = pe.Node(interface=afni_utils.Calc(),
+                               name='func_edge_detect')
 
     func_edge_detect.inputs.expr = 'a*b'
     func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
@@ -449,14 +457,10 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                         func_edge_detect, 'in_file_b')
 
     preproc.connect(func_edge_detect, 'out_file',
-                    outputNode, 'skullstrip')
+                    output_node, 'skullstrip')
 
-    try:
-        func_mean_skullstrip = pe.Node(interface=afni_utils.TStat(),
-                                       name='func_mean_skullstrip')
-    except UnboundLocalError:
-        func_mean_skullstrip = pe.Node(interface=preprocess.TStat(),
-                                       name='func_mean_skullstrip')
+    func_mean_skullstrip = pe.Node(interface=afni_utils.TStat(),
+                                   name='func_mean_skullstrip')
 
     func_mean_skullstrip.inputs.options = '-mean'
     func_mean_skullstrip.inputs.outputtype = 'NIFTI_GZ'
@@ -465,7 +469,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                     func_mean_skullstrip, 'in_file')
 
     preproc.connect(func_mean_skullstrip, 'out_file',
-                    outputNode, 'example_func')
+                    output_node, 'example_func')
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
                              name='func_normalize')
@@ -476,7 +480,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                     func_normalize, 'in_file')
 
     preproc.connect(func_normalize, 'out_file',
-                    outputNode, 'preprocessed')
+                    output_node, 'preprocessed')
 
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
                                   name='func_mask_normalize')
@@ -487,7 +491,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                     func_mask_normalize, 'in_file')
 
     preproc.connect(func_mask_normalize, 'out_file',
-                    outputNode, 'preprocessed_mask')
+                    output_node, 'preprocessed_mask')
 
     return preproc
 

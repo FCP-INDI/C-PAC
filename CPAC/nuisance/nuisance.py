@@ -11,13 +11,18 @@ from nipype.interfaces import afni
 
 import CPAC
 import CPAC.utils as utils
-from CPAC.utils.function import Function
-from CPAC.nuisance import (
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.interfaces.masktool import MaskTool
+from CPAC.utils.interfaces.pc import PC
+
+from CPAC.nuisance.utils import (
     find_offending_time_points,
-    create_temporal_variance_mask,
-    summarize_timeseries,
     generate_summarize_tissue_mask,
+    temporal_variance_mask
 )
+
+
+from CPAC.utils.datasource import check_for_s3
 
 from scipy.fftpack import fft, ifft
 
@@ -36,6 +41,7 @@ def gather_nuisance(functional_file_path,
                     tcompcor_file_path=None,
                     global_summary_file_path=None,
                     motion_parameters_file_path=None,
+                    custom_file_paths=None,
                     censor_file_path=None):
     """
     Gathers the various nuisance regressors together into a single tab separated values file that is an appropriate for
@@ -57,6 +63,7 @@ def gather_nuisance(functional_file_path,
     :param global_summary_file_path: path to TSV that includes summary of global time courses, e.g. output 
         of mask_summarize_time_course 
     :param motion_parameters_file_path: path to TSV that includes motion parameters
+    :param custom_file_paths: path to CSV/TSV files to use as regressors
     :param censor_file_path: path to TSV with a single column with 1's for indices that should be retained and 0's
               for indices that should be censored
     :return: 
@@ -64,14 +71,17 @@ def gather_nuisance(functional_file_path,
 
     # Basic checks for the functional image
     if not functional_file_path or \
-        not os.path.isfile(functional_file_path) or \
         (not functional_file_path.endswith(".nii") and
          not functional_file_path.endswith(".nii.gz")):
 
         raise ValueError("Invalid value for input_file ({}). Should be a nifti "
                          "file and should exist".format(functional_file_path))
 
-    functional_image = nb.load(functional_file_path)
+    try:
+        functional_image = nb.load(functional_file_path)
+    except:
+        raise ValueError("Invalid value for input_file ({}). Should be a nifti "
+                         "file and should exist".format(functional_file_path))
 
     if len(functional_image.shape) < 4 or functional_image.shape[3] < 2:
         raise ValueError("Invalid input_file ({}). Expected 4D file."
@@ -203,6 +213,26 @@ def gather_nuisance(functional_file_path,
                     )
                 )
 
+    # Add custom regressors
+    if custom_file_paths:
+        for custom_file_path in custom_file_paths:
+
+            try:
+                custom_regressor = np.loadtxt(custom_file_path)
+            except:
+                raise ValueError("Could not read regressor {0} from {1}."
+                                .format('Custom', custom_file_path))
+
+            if (len(custom_regressor.shape) > 1 and custom_regressor.shape[1] > 1):
+                raise ValueError(
+                    "Invalid format for censor file {0}, should be a single "
+                    "column containing 1s for volumes to keep and 0s for volumes "
+                    "to censor.".format(custom_file_path)
+                )
+
+            column_names.append(custom_file_path)
+            nuisance_regressors.append(custom_regressor)
+
     # Add spike regressors
     if selector.get('Censor', {}).get('method') == 'SpikeRegression':
 
@@ -274,6 +304,9 @@ def gather_nuisance(functional_file_path,
                 spike_regressor_index = np.zeros(regressor_length)
                 spike_regressor_index[censor_index] = 1
                 nuisance_regressors.append(spike_regressor_index.flatten())
+
+    if len(nuisance_regressors) == 0:
+        return None
 
     # Compile columns into regressor file
     output_file_path = os.path.join(os.getcwd(), "nuisance_regressors.1D")
@@ -357,7 +390,7 @@ def create_nuisance_workflow(nuisance_selectors,
             To not run a type of nuisance regression, it may be ommited from the dictionary.
             selector = {
                 aCompCor: {
-                    symmary: {
+                    summary: {
                         method: 'DetrendPC', aCompCor will always extract the principal components from
                             detrended tissues signal,
                         components: number of components to retain,
@@ -381,7 +414,7 @@ def create_nuisance_workflow(nuisance_selectors,
                         delay regressor, default to False,
                 },
                 tCompCor: {
-                    symmary: {
+                    summary: {
                         method: 'PC', tCompCor will always extract the principal components from
                             BOLD signal,
                         components: number of components to retain,
@@ -398,7 +431,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False,
                 },
                 WhiteMatter: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -409,7 +442,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False (same as for aCompCor),
                 },
                 CerebrospinalFluid: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -420,7 +453,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False (same as for aCompCor),
                 },
                 GreyMatter: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -431,7 +464,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed_squared: True | False (same as for aCompCor),
                 },
                 GlobalSignal: {
-                    symmary: {
+                    summary: {
                         method: 'PC', 'DetrendPC', 'Mean', 'NormMean' or 'DetrendNormMean',
                         components: number of components to retain, if PC,
                     },
@@ -469,7 +502,16 @@ def create_nuisance_workflow(nuisance_selectors,
                     top_frequency: floating point value, frequency in hertz of the
                         lowpass part of the pass band, frequencies above this
                         will be removed
-                }
+                },
+                Custom: [
+                    {
+                        file: file containing the regressors. It can be a CSV file,
+                            with one regressor per column, or a Nifti image, with
+                            one regressor per voxel.
+                        convolve: perform the convolution operation of the given
+                            regressor with the timeseries.
+                    }
+                ]
             }
 
     Workflow Outputs::
@@ -503,15 +545,15 @@ def create_nuisance_workflow(nuisance_selectors,
 
         wf.write_graph(
             graph2use='orig',
-            dotfilename='./images/nuisance.dot'
+            dotfilename='./images/generated/nuisance.dot'
         )
 
-    .. image:: ../images/nuisance.png
+    .. image:: ../images/generated/nuisance.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/nuisance_detailed.png
+    .. image:: ../images/generated/nuisance_detailed.png
        :width: 1000
 
     """
@@ -540,6 +582,9 @@ def create_nuisance_workflow(nuisance_selectors,
         'fd_j_file_path',
         'fd_p_file_path',
         'dvars_file_path',
+
+        'creds_path',
+        'dl_dir',
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
@@ -562,23 +607,31 @@ def create_nuisance_workflow(nuisance_selectors,
             "anat_to_mni_initial_xfm": (inputspec, "anat_to_mni_initial_xfm_file_path"),
             "anat_to_mni_rigid_xfm": (inputspec, "anat_to_mni_rigid_xfm_file_path"),
             "anat_to_mni_affine_xfm": (inputspec, "anat_to_mni_affine_xfm_file_path"),
-        }
+        },
+
+        "DVARS": (inputspec, 'dvars_file_path'),
+        "FD_J": (inputspec, 'framewise_displacement_j_file_path'),
+        "FD_P": (inputspec, 'framewise_displacement_p_file_path'),
+        "Motion": (inputspec, 'motion_parameters_file_path'),
     }
 
     # Regressor map to simplify construction of the needed regressors
     regressors = {
-        'GreyMatter': ['grey_matter_summary_file_path', ()],
-        'WhiteMatter': ['white_matter_summary_file_path', ()],
-        'CerebrospinalFluid': ['csf_summary_file_path', ()],
-        'aCompCor': ['acompcor_file_path', ()],
-        'tCompCor': ['tcompcor_file_path', ()],
-        'GlobalSignal': ['global_summary_file_path', ()],
-        'DVARS': ['dvars_file_path', (inputspec, 'dvars_file_path')],
-        'FD_J': ['framewise_displacement_j_file_path', (inputspec, 'framewise_displacement_j_file_path')],
-        'FD_P': ['framewise_displacement_p_file_path', (inputspec, 'framewise_displacement_p_file_path')],
-        'Motion': ['motion_parameters_file_path', (inputspec, 'motion_parameters_file_path')]
+        'GreyMatter': ['grey_matter_summary_file_path', (), 'ort'],
+        'WhiteMatter': ['white_matter_summary_file_path', (), 'ort'],
+        'CerebrospinalFluid': ['csf_summary_file_path', (), 'ort'],
+        'aCompCor': ['acompcor_file_path', (), 'ort'],
+        'tCompCor': ['tcompcor_file_path', (), 'ort'],
+        'GlobalSignal': ['global_summary_file_path', (), 'ort'],
+        'Custom': ['custom_file_paths', (), 'ort'],
+        'VoxelCustom': ['custom_file_paths', (), 'dsort'],
+        'DVARS': ['dvars_file_path', (), 'ort'],
+        'FD_J': ['framewise_displacement_j_file_path', (), 'ort'],
+        'FD_P': ['framewise_displacement_p_file_path', (), 'ort'],
+        'Motion': ['motion_parameters_file_path', (), 'ort']
     }
 
+    motion = ['DVARS', 'FD_J', 'FD_P', 'Motion']
     derived = ['tCompCor', 'aCompCor']
     tissues = ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid']
 
@@ -588,6 +641,111 @@ def create_nuisance_workflow(nuisance_selectors,
             continue
 
         regressor_selector = nuisance_selectors[regressor_type]
+
+        if regressor_type == 'Custom':
+
+            custom_ort_check_s3_nodes = []
+            custom_dsort_check_s3_nodes = []
+            custom_dsort_convolve_nodes = []
+
+            for custom_regressor in sorted(regressor_selector, key=lambda c: c['file']):
+                custom_regressor_file = custom_regressor['file']
+
+                custom_check_s3_node = pe.Node(Function(
+                    input_names=[
+                        'file_path',
+                        'creds_path',
+                        'dl_dir',
+                        'img_type'
+                    ],
+                    output_names=[
+                        'local_path'
+                    ],
+                    function=check_for_s3,
+                    as_module=True),
+                    name='custom_check_for_s3_%s' % name)
+
+                custom_check_s3_node.inputs.set(
+                    file_path=custom_regressor_file,
+                    img_type='func'
+                )
+
+                if custom_regressor_file.endswith('.nii.gz') or \
+                    custom_regressor_file.endswith('.nii'):
+
+                    if custom_regressor.get('convolve'):
+                        custom_dsort_convolve_nodes += [custom_check_s3_node]
+                    else:
+                        custom_dsort_check_s3_nodes += [custom_check_s3_node]
+
+                else:
+                    custom_ort_check_s3_nodes += [custom_check_s3_node]
+
+            if len(custom_ort_check_s3_nodes) > 0:
+                custom_ort_merge = pe.Node(
+                    util.Merge(len(custom_ort_check_s3_nodes)),
+                    name='custom_ort_merge'
+                )
+
+                for i, custom_check_s3_node in enumerate(custom_ort_check_s3_nodes):
+                    nuisance_wf.connect(
+                        custom_check_s3_node, 'local_path',
+                        custom_ort_merge, "in{}".format(i + 1)
+                    )
+
+                pipeline_resource_pool['custom_ort_file_paths'] = \
+                    (custom_ort_merge, 'out')
+            
+                regressors['Custom'][1] = \
+                    pipeline_resource_pool['custom_ort_file_paths']
+
+            if len(custom_dsort_convolve_nodes) > 0:
+                custom_dsort_convolve_merge = pe.Node(
+                    util.Merge(len(custom_dsort_convolve_nodes)),
+                    name='custom_dsort_convolve_merge'
+                )
+
+                for i, custom_check_s3_node in enumerate(custom_dsort_convolve_nodes):
+                    nuisance_wf.connect(
+                        custom_check_s3_node, 'local_path',
+                        custom_dsort_convolve_merge, "in{}".format(i + 1)
+                    )
+
+            if len(custom_dsort_check_s3_nodes) > 0:
+
+                images_to_merge = len(custom_dsort_check_s3_nodes)
+                if len(custom_dsort_convolve_nodes) > 0:
+                    images_to_merge += 1
+
+                custom_dsort_merge = pe.Node(
+                    util.Merge(images_to_merge),
+                    name='custom_dsort_merge'
+                )
+
+                for i, custom_check_s3_node in enumerate(custom_dsort_check_s3_nodes):
+                    nuisance_wf.connect(
+                        custom_check_s3_node, 'local_path',
+                        custom_dsort_merge, "in{}".format(i + 1)
+                    )
+
+                if len(custom_dsort_convolve_nodes) > 0:
+                    nuisance_wf.connect(
+                        custom_dsort_convolve_merge, 'out',
+                        custom_dsort_merge, "in{}".format(i + 1)
+                    )
+
+                pipeline_resource_pool['custom_dsort_file_paths'] = \
+                    (custom_dsort_merge, 'out')
+            
+                regressors['VoxelCustom'][1] = \
+                    pipeline_resource_pool['custom_dsort_file_paths']
+
+            continue
+
+        if regressor_type in motion:
+            regressor_resource[1] = \
+                pipeline_resource_pool[regressor_type]
+            continue
 
         # Set summary method for tCompCor and aCompCor
         if regressor_type in derived:
@@ -606,6 +764,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
             if not regressor_selector['summary'].get('components'):
                 regressor_selector['summary']['components'] = 1
+
 
         # If regressor is not present, build up the regressor
         if not regressor_resource[1]:
@@ -641,6 +800,19 @@ def create_nuisance_workflow(nuisance_selectors,
                 else:
                     regressor_selector['by_slice'] = False
 
+                temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
+                                                     by_slice=regressor_selector['by_slice'])
+
+                nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
+                nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
+
+                pipeline_resource_pool[regressor_descriptor['tissue']] = \
+                    (temporal_wf, 'outputspec.mask')
+
+            if type(regressor_selector['summary']) is not dict:
+                regressor_selector['summary'] = {
+                    "method": regressor_selector['summary']
+                }
 
             # Add selector into regressor description
 
@@ -659,12 +831,8 @@ def create_nuisance_workflow(nuisance_selectors,
                 raise ValueError("Summary method required for {0}, "
                                  "but none specified".format(regressor_type))
 
-            if type(regressor_selector['summary']) is dict:
-                regressor_descriptor['extraction'] = \
-                    regressor_selector['summary']['method']
-            else:
-                regressor_descriptor['extraction'] = \
-                    regressor_selector['summary']
+            regressor_descriptor['extraction'] = \
+                regressor_selector['summary']['method']
 
             if regressor_descriptor['extraction'] in ['DetrendPC', 'PC']:
                 if not regressor_selector['summary'].get('components'):
@@ -782,28 +950,10 @@ def create_nuisance_workflow(nuisance_selectors,
 
             if regressor_file_resource_key not in pipeline_resource_pool:
 
-                # Retrieve summary from voxels at provided mask
-                summarize_timeseries_node = pe.Node(
-                    Function(
-                        input_names=[
-                            'functional_path',
-                            'masks_path',
-                            'summary'
-                        ],
-                        output_names=['components_path'],
-                        function=summarize_timeseries,
-                        as_module=True,
-                    ),
-                    name='{}_summarization'.format(regressor_type)
-                )
-
-                summarize_timeseries_node.inputs.summary = \
-                    regressor_selector['summary']
-
                 # Merge mask paths to extract voxel timeseries
                 merge_masks_paths = pe.Node(
                     util.Merge(len(regressor_mask_file_resource_keys)),
-                    name='{}_marge_masks'.format(regressor_type)
+                    name='{}_merge_masks'.format(regressor_type)
                 )
                 for i, regressor_mask_file_resource_key in \
                         enumerate(regressor_mask_file_resource_keys):
@@ -816,9 +966,14 @@ def create_nuisance_workflow(nuisance_selectors,
                         merge_masks_paths, "in{}".format(i + 1)
                     )
 
+                union_masks_paths = pe.Node(
+                    MaskTool(outputtype='NIFTI_GZ'),
+                    name='{}_union_masks'.format(regressor_type)
+                )
+
                 nuisance_wf.connect(
                     merge_masks_paths, 'out',
-                    summarize_timeseries_node, 'masks_path'
+                    union_masks_paths, 'in_files'
                 )
 
                 functional_key = 'Functional'
@@ -829,14 +984,118 @@ def create_nuisance_workflow(nuisance_selectors,
                         regressor_selector['extraction_resolution']
                     )
 
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool[functional_key] +
-                    (summarize_timeseries_node, 'functional_path')
-                ))
+                summary_method = regressor_selector['summary']['method']
+
+                summary_method_input = pipeline_resource_pool[functional_key]
+                if 'Detrend' in summary_method:
+
+                    detrend_node = pe.Node(
+                        afni.Detrend(args='-polort 1', outputtype='NIFTI'),
+                        name='{}_detrend'.format(regressor_type)
+                    )
+
+                    nuisance_wf.connect(
+                        summary_method_input[0], summary_method_input[1],
+                        detrend_node, 'in_file'
+                    )
+
+                    summary_method_input = (detrend_node, 'out_file')
+
+                if 'Norm' in summary_method:
+
+                    l2norm_node = pe.Node(
+                        afni.TStat(args='-l2norm', outputtype='NIFTI'),
+                        name='{}_l2norm'.format(regressor_type)
+                    )
+                    nuisance_wf.connect(
+                        summary_method_input[0], summary_method_input[1],
+                        l2norm_node, 'in_file'
+                    )
+                    nuisance_wf.connect(
+                        union_masks_paths, 'out_file',
+                        l2norm_node, 'mask'
+                    )
+
+                    norm_node = pe.Node(
+                        afni.Calc(expr='a/b', outputtype='NIFTI'),
+                        name='{}_norm'.format(regressor_type)
+                    )
+                    nuisance_wf.connect(
+                        summary_method_input[0], summary_method_input[1],
+                        norm_node, 'in_file_a'
+                    )
+                    nuisance_wf.connect(
+                        l2norm_node, 'out_file',
+                        norm_node, 'in_file_b'
+                    )
+
+                    summary_method_input = (norm_node, 'out_file')
+
+                if 'Mean' in summary_method:
+
+                    mean_node = pe.Node(
+                        afni.ROIStats(quiet=False, args='-1Dformat'),
+                        name='{}_mean'.format(regressor_type)
+                    )
+                    nuisance_wf.connect(
+                        summary_method_input[0], summary_method_input[1],
+                        mean_node, 'in_file'
+                    )
+
+                    nuisance_wf.connect(
+                        union_masks_paths, 'out_file',
+                        mean_node, 'mask'
+                    )
+
+                    summary_method_input = (mean_node, 'stats')
+
+                if 'PC' in summary_method:
+
+                    std_node = pe.Node(
+                        afni.TStat(args='-nzstdev', outputtype='NIFTI'),
+                        name='{}_std'.format(regressor_type)
+                    )
+                    nuisance_wf.connect(
+                        summary_method_input[0], summary_method_input[1],
+                        std_node, 'in_file'
+                    )
+                    nuisance_wf.connect(
+                        union_masks_paths, 'out_file',
+                        std_node, 'mask'
+                    )
+
+                    standarized_node = pe.Node(
+                        afni.Calc(expr='a/b', outputtype='NIFTI'),
+                        name='{}_standarized'.format(regressor_type)
+                    )
+                    nuisance_wf.connect(
+                        summary_method_input[0], summary_method_input[1],
+                        standarized_node, 'in_file_a'
+                    )
+                    nuisance_wf.connect(
+                        std_node, 'out_file',
+                        standarized_node, 'in_file_b'
+                    )
+                    
+                    pc_node = pe.Node(
+                        PC(args='-vmean -nscale', pcs=regressor_selector['summary']['components']),
+                        name='{}_pc'.format(regressor_type)
+                    )
+
+                    nuisance_wf.connect(
+                        standarized_node, 'out_file',
+                        pc_node, 'in_file'
+                    )
+                    nuisance_wf.connect(
+                        union_masks_paths, 'out_file',
+                        pc_node, 'mask'
+                    )
+
+                    summary_method_input = (pc_node, 'pcs_file')
 
                 pipeline_resource_pool[regressor_file_resource_key] = \
-                    (summarize_timeseries_node, 'components_path')
-
+                    summary_method_input
+                        
                 # Add it to internal resource pool
                 regressor_resource[1] = \
                     pipeline_resource_pool[regressor_file_resource_key]
@@ -852,6 +1111,7 @@ def create_nuisance_workflow(nuisance_selectors,
                      'tcompcor_file_path',
                      'global_summary_file_path',
                      'motion_parameters_file_path',
+                     'custom_file_paths',
                      'censor_file_path'],
         output_names=['out_file'],
         function=gather_nuisance,
@@ -870,18 +1130,57 @@ def create_nuisance_workflow(nuisance_selectors,
 
     # Check for any regressors to combine into files
     has_nuisance_regressors = any(
-        regressor_resource[1]
-        for regressor_key, regressor_resource
+        regressor_node
+        for regressor_key, (regressor_arg, regressor_node, regressor_target)
         in regressors.items()
+        if regressor_target == 'ort'
     )
 
     if has_nuisance_regressors:
-        for regressor_key, (regressor_arg, regressor_node) in regressors.items():
+        for regressor_key, (regressor_arg, regressor_node, regressor_target) in regressors.items():
+            if regressor_target != 'ort':
+                continue
+                
             if regressor_key in nuisance_selectors:
                 nuisance_wf.connect(
                     regressor_node[0], regressor_node[1],
                     build_nuisance_regressors, regressor_arg
                 )
+
+    # Check for any regressors to combine into files
+    has_voxel_nuisance_regressors = any(
+        regressor_node
+        for regressor_key, (regressor_arg, regressor_node, regressor_target)
+        in regressors.items()
+        if regressor_target == 'dsort'
+    )
+
+    if has_voxel_nuisance_regressors:
+
+        voxel_nuisance_regressors = [
+            (regressor_key, (regressor_arg, regressor_node, regressor_target))
+            for regressor_key, (regressor_arg, regressor_node, regressor_target)
+            in regressors.items()
+            if regressor_target == 'dsort'
+        ]
+
+        voxel_nuisance_regressors_merge = pe.Node(
+            util.Merge(len(voxel_nuisance_regressors)),
+            name='voxel_nuisance_regressors_merge'
+        )
+
+        for i, (regressor_key, (regressor_arg, regressor_node, regressor_target)) \
+            in enumerate(voxel_nuisance_regressors):
+
+            if regressor_target != 'dsort':
+                continue
+
+            node, node_output = regressor_node
+
+            nuisance_wf.connect(
+                node, node_output,
+                voxel_nuisance_regressors_merge, "in{}".format(i + 1)
+            )
 
     if nuisance_selectors.get('Censor'):
 
@@ -999,8 +1298,16 @@ def create_nuisance_workflow(nuisance_selectors,
     ])
 
     if has_nuisance_regressors:
-        nuisance_wf.connect(build_nuisance_regressors, 'out_file',
-                            nuisance_regression, 'ort')
+        nuisance_wf.connect(
+            build_nuisance_regressors, 'out_file',
+            nuisance_regression, 'ort'
+        )
+
+    if has_voxel_nuisance_regressors:
+        nuisance_wf.connect(
+            voxel_nuisance_regressors_merge, 'out',
+            nuisance_regression, 'dsort'
+        )
 
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')

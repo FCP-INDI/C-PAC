@@ -8,10 +8,10 @@ def test_yaml_template():
 
     config_file = tempfile.mkstemp(suffix='test_yaml_template')[1]
 
-    with open("./default_pipeline.yaml", "r") as f:
+    with open("./default_pipeline.yml", "r") as f:
         config = yaml.load(f)
 
-    new_config = create_yaml_from_template(config, "./default_pipeline.yaml")
+    new_config = create_yaml_from_template(config, "./default_pipeline.yml")
 
     with open(config_file, "wb") as f:
         f.write(new_config)
