@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.4.2
+# Version 1.4.3
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -628,7 +628,7 @@ fwhm : [4]
 smoothing_order :  ['Before']
 
 
-# z-score standardize the derivatives. This is required for group-level analysis.
+# z-score standardize the derivatives. This may be needed for group-level analysis.
 # On - Run z-scoring and output only the z-scored outputs.
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.
