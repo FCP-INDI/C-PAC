@@ -10,7 +10,14 @@ def configuration(parent_package='', top_path=None):
                        quiet=True)
 
     config.get_version('CPAC/__init__.py')
-    config.add_subpackage('CPAC')
+
+    for root, _, _ in list(os.walk('CPAC')):
+        if os.path.isfile(os.path.join(root, '__init__.py')):
+            config.add_subpackage(root)
+
+    config.add_data_dir('CPAC/GUI/resources')
+    config.add_data_dir('CPAC/resources')
+
     config.add_define_macros([
         "NPY_NO_DEPRECATED_API",
         "NPY_1_7_API_VERSION"
