@@ -448,7 +448,9 @@ class DataSink(IOBase):
                         src_f,
                         dst_k,
                         ExtraArgs=extra_args,
-                        Callback=ProgressPercentage(src_f))
+                        Callback=ProgressPercentage(src_f)
+                    )
+                    break
                 except Exception as exc:
                     time.sleep(RETRY_WAIT)
                     retry_exc = exc
