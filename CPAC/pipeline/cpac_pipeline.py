@@ -1580,7 +1580,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 # Input registration parameters
                 func_to_anat.inputs.inputspec.interp = 'trilinear'
-
+                # Input registration parameters new test
+                func_to_anat.inputs.inputspec.interp = '...linear'
+                
+                
                 # TODO ASH normalize strings with enums?
                 if 'Mean Functional' in c.func_reg_input:
                     # Input functional image (mean functional)
