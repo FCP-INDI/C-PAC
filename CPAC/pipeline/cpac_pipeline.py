@@ -1214,18 +1214,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # Add in nodes to get parameters from configuration file
             # a node which checks if scan_parameters are present for each scan
             scan_params = \
-                pe.Node(function.Function(input_names=['data_config_scan_params',
-                                                    'subject_id',
-                                                    'scan',
-                                                    'pipeconfig_tr',
-                                                    'pipeconfig_tpattern',
-                                                    'pipeconfig_start_indx',
-                                                    'pipeconfig_stop_indx'],
+                pe.Node(function.Function(input_names=['subject_id',
+                                                       'scan',
+                                                       'pipeconfig_tr',
+                                                       'pipeconfig_tpattern',
+                                                       'pipeconfig_start_indx',
+                                                       'pipeconfig_stop_indx',
+                                                       'data_config_scan_params'],
                                         output_names=['tr',
-                                                        'tpattern',
-                                                        'ref_slice',
-                                                        'start_indx',
-                                                        'stop_indx'],
+                                                      'tpattern',
+                                                      'ref_slice',
+                                                      'start_indx',
+                                                      'stop_indx'],
                                         function=get_scan_params,
                                         as_module=True),
                         name='scan_params_%d' % num_strat)
@@ -1260,13 +1260,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 pipeconfig_start_indx=c.startIdx,
                 pipeconfig_stop_indx=c.stopIdx
             )
-
-            # node to convert TR between seconds and milliseconds
-            convert_tr = pe.Node(function.Function(input_names=['tr'],
-                                                output_names=['tr'],
-                                                function=get_tr,
-                                                as_module=True),
-                                name='convert_tr_%d' % num_strat)
 
             strat.update_resource_pool({
                 'raw_functional': (func_wf, 'outputspec.rest'),
@@ -1419,27 +1412,25 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             pass
                         else:
                             workflow.connect(scan_params, 'tr',
-                                            func_slice_timing_correction, 'tr')
+                                             func_slice_timing_correction, 'tr')
                     else:
                         workflow.connect(scan_params, 'tr',
-                                        func_slice_timing_correction, 'tr')
+                                         func_slice_timing_correction, 'tr')
 
-                if not "Use NIFTI Header" in c.slice_timing_pattern:
+                #if not "Use NIFTI Header" in c.slice_timing_pattern:
 
-                    # add the @ prefix to the tpattern file going into
-                    # AFNI 3dTshift - needed this so the tpattern file
-                    # output from get_scan_params would be tied downstream
-                    # via a connection (to avoid poofing)
-                    add_prefix = pe.Node(util.Function(input_names=['tpattern'],
-                                                    output_names=[
-                                                        'afni_prefix'],
-                                                    function=add_afni_prefix),
-                                        name='func_slice_timing_correction_add_afni_prefix_%d' % num_strat)
-                    workflow.connect(scan_params, 'tpattern',
-                                    add_prefix, 'tpattern')
-                    workflow.connect(add_prefix, 'afni_prefix',
-                                    func_slice_timing_correction,
-                                    'tpattern')
+                # add the @ prefix to the tpattern file going into
+                # AFNI 3dTshift - needed this so the tpattern file
+                # output from get_scan_params would be tied downstream
+                # via a connection (to avoid poofing)
+                add_prefix = pe.Node(util.Function(input_names=['tpattern'],
+                                                   output_names=['afni_prefix'],
+                                                   function=add_afni_prefix),
+                                     name='func_slice_timing_correction_add_afni_prefix_%d' % num_strat)
+                workflow.connect(scan_params, 'tpattern',
+                                 add_prefix, 'tpattern')
+                workflow.connect(add_prefix, 'afni_prefix',
+                                 func_slice_timing_correction, 'tpattern')
 
                 # add the name of the node to the strat name
                 strat.append_name(func_slice_timing_correction.name)
