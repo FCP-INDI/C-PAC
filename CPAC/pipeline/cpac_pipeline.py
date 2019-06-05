@@ -1,3 +1,5 @@
+# new comment
+
 import os
 import time
 import six
@@ -142,7 +144,7 @@ def create_log_node(workflow, logged_wf, output, index, scan_id=None):
             return log_wf
     except Exception as e:
         print(e)
-
+=
 
 def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                   p_name=None, plugin='MultiProc', plugin_args=None):
