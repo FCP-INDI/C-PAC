@@ -486,25 +486,24 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
     #                "{1}".format(' or '.join(keys), subject))
 
 
-def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
-                    pipeconfig_start_indx, pipeconfig_stop_indx,
-                    data_config_scan_params=None):
+def get_scan_params(subject_id, scan, pipeconfig_start_indx,
+                    pipeconfig_stop_indx, data_config_scan_params=None):
     """
     Method to extract slice timing correction parameters
     and scan parameters.
 
     Parameters
     ----------
-    subject_id: a string
+    subject_id : str
         subject id
-    scan : a string
+    scan : str
         scan id
-    subject_map : a dictionary
-        subject map containing all subject information
-    start_indx : an integer
-        starting volume index
-    stop_indx : an integer
-        ending volume index
+    pipeconfig_start_indx : int
+        starting volume index as provided in the pipeline config yaml file
+    pipeconfig_stop_indx : int
+        ending volume index as provided in the pipeline config yaml file
+    data_config_scan_params : str
+        file path to scan parameter JSON file listed in data config yaml file
 
     Returns
     -------
@@ -535,14 +534,6 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     first_tr = ''
     last_tr = ''
     unit = 's'
-
-    if isinstance(pipeconfig_tpattern, list) or isinstance(pipeconfig_tpattern, str):
-        if "None" in pipeconfig_tpattern:
-            pipeconfig_tpattern = None
-
-    if isinstance(pipeconfig_tr, str):
-        if "None" in pipeconfig_tr or "none" in pipeconfig_tr:
-            pipeconfig_tr = None
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
@@ -578,13 +569,7 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
 
-            try:
-                params_dct = data_config_scan_params
-            except:
-                err = "\n[!] Could not parse the scan parameter information "\
-                      "included in your data configuration file for " \
-                      "participant: {0}\n\n".format(subject_id)
-                raise Exception(err)
+            params_dct = data_config_scan_params
 
             # TODO: better handling of errant key values!!!
             # TODO: use schema validator to deal with it
@@ -625,13 +610,6 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                   "the participant {0}.\n\n".format(subject_id)
             raise Exception(err)
 
-    # if values are still empty, override with GUI config
-    if TR == '':
-        if pipeconfig_tr:
-            TR = float(pipeconfig_tr)
-        else:
-            TR = None
-
     if first_tr == '':
         first_tr = pipeconfig_start_indx
 
@@ -643,12 +621,14 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     if 'None' in pattern or 'none' in pattern:
         pattern = None
 
+    '''
     if not pattern:
         if pipeconfig_tpattern:
             if "Use NIFTI Header" in pipeconfig_tpattern:
                 pattern = ''
             else:
                 pattern = pipeconfig_tpattern
+    '''
 
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
@@ -725,10 +705,6 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
             TR = TR / 1000.0
             print("New TR value {0} s".format(TR))
             unit = 's'
-
-    print("scan_parameters -> {0} {1} {2} {3} {4} "
-          "{5} {6}".format(subject_id, scan, str(TR) + unit, pattern,
-                           ref_slice, first_tr, last_tr))
 
     # swap back in
     if TR:

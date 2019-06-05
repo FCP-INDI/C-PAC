@@ -1401,21 +1401,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 node, out_file = strat.get_leaf_properties()
 
                 workflow.connect(node, out_file,
-                                func_slice_timing_correction, 'in_file')
+                                 func_slice_timing_correction, 'in_file')
 
-                # TODO ASH normalize TR w schema validation
-                # we might prefer to use the TR stored in the NIFTI header
-                # if not, use the value in the scan_params node
-                if c.TR:
-                    if isinstance(c.TR, str):
-                        if "None" in c.TR or "none" in c.TR:
-                            pass
-                        else:
-                            workflow.connect(scan_params, 'tr',
-                                             func_slice_timing_correction, 'tr')
-                    else:
-                        workflow.connect(scan_params, 'tr',
-                                         func_slice_timing_correction, 'tr')
+                workflow.connect(scan_params, 'tr',
+                                 func_slice_timing_correction, 'tr')
 
                 #if not "Use NIFTI Header" in c.slice_timing_pattern:
 
