@@ -189,8 +189,21 @@ def run(subject_list_file, config_file="default", p_name=None, plugin=None,
                                              "pipeline_config_template.yml"))
 
     # Init variables
+    sublist = None
     config_file = os.path.realpath(config_file)
-    subject_list_file = os.path.realpath(subject_list_file)
+    if 's3://' not in subject_list_file:
+        subject_list_file = os.path.realpath(subject_list_file)
+    else:
+        from CPAC.utils.bids_utils import collect_bids_files_configs, \
+            bids_gen_cpac_sublist
+        (file_paths, config) = collect_bids_files_configs(subject_list_file,
+                                                          None)
+        sublist = bids_gen_cpac_sublist(subject_list_file, file_paths,
+                                        config, None)
+        if not sublist:
+            import sys
+            print("Did not find data in {0}".format(subject_list_file))
+            sys.exit(1)
 
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
@@ -253,8 +266,9 @@ def run(subject_list_file, config_file="default", p_name=None, plugin=None,
 
     # Load in subject list
     try:
-        with open(subject_list_file, 'r') as sf:
-            sublist = yaml.load(sf)
+        if not sublist:
+            with open(subject_list_file, 'r') as sf:
+                sublist = yaml.load(sf)
     except:
         print "Subject list is not in proper YAML format. Please check " \
               "your file"

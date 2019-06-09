@@ -13,9 +13,7 @@ def slice_timing_wf(name='slice_timing'):
     # configure the workflow's input spec
     inputNode = pe.Node(util.IdentityInterface(fields=['func_ts',
                                                        'tr',
-                                                       'tpattern',
-                                                       'start_idx',
-                                                       'stop_idx']),
+                                                       'tpattern']),
                         name='inputspec')
 
     # configure the workflow's output spec

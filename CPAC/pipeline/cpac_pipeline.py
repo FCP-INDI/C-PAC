@@ -39,6 +39,7 @@ from CPAC.network_centrality.pipeline import (
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
+from CPAC.func_preproc.init_preproc import slice_timing_wf
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
     create_wf_edit_func
@@ -1244,13 +1245,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             # wire in the scan parameter workflow
             workflow.connect(func_wf, 'outputspec.scan_params',
-                            scan_params, 'data_config_scan_params')
+                             scan_params, 'data_config_scan_params')
 
             workflow.connect(func_wf, 'outputspec.subject',
-                            scan_params, 'subject_id')
+                             scan_params, 'subject_id')
 
             workflow.connect(func_wf, 'outputspec.scan',
-                            scan_params, 'scan')
+                             scan_params, 'scan')
 
             # connect in constants
             scan_params.inputs.set(
@@ -1262,23 +1263,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'raw_functional': (func_wf, 'outputspec.rest'),
                 'scan_id': (func_wf, 'outputspec.scan')
             })
-  
-            strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
-            if 1 in c.runEPI_DistCorr:
-                try:
-                    if (func_wf, 'outputspec.phase_diff') and (func_wf, 'outputspec.magnitude'):
-                        strat.update_resource_pool({
-                            "fmap_phase_diff": (func_wf, 'outputspec.phase_diff'),
-                            "fmap_magnitude": (func_wf, 'outputspec.magnitude')
-                        })
-                except:
-                    err = "\n\n[!] You have selected to run field map " \
-                        "distortion correction, but at least one of your " \
-                        "scans listed in your data configuration file is " \
-                        "missing either a field map phase difference file " \
-                        "or a field map magnitude file, or both.\n\n"
-                    logger.warn(err)
+            strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
             if "Selected Functional Volume" in c.func_reg_input:
                 strat.update_resource_pool({
@@ -1286,31 +1272,28 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 })
 
         # Truncate scan length based on configuration information
-
         for num_strat, strat in enumerate(strat_list):
+
             trunc_wf = create_wf_edit_func(
                 wf_name="edit_func_%d" % (num_strat)
             )
 
-            # find the output data on the leaf node
-            node, out_file = strat.get_leaf_properties()
-
             # connect the functional data from the leaf node into the wf
+            node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file,
                              trunc_wf, 'inputspec.func')
 
             # connect the other input parameters
             workflow.connect(scan_params, 'start_indx',
-                            trunc_wf, 'inputspec.start_idx')
+                             trunc_wf, 'inputspec.start_idx')
             workflow.connect(scan_params, 'stop_indx',
-                            trunc_wf, 'inputspec.stop_idx')
+                             trunc_wf, 'inputspec.stop_idx')
 
             # replace the leaf node with the output from the recently added
             # workflow
             strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
 
         # EPI Field-Map based Distortion Correction
-
         new_strat_list = []
 
         rp = strat.get_resource_pool()
@@ -1382,26 +1365,27 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 
         # Slice Timing Correction Workflow
-
         new_strat_list = []
 
         if 1 in c.slice_timing_correction:
 
             for num_strat, strat in enumerate(strat_list):
 
-                node, out_file = strat.get_leaf_properties()
-
                 slice_time = slice_timing_wf(name='func_slice_timing_correction_{0}'.format(num_strat))
 
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file, slice_time,
+                                'inputspec.func_ts')
+
                 # add the name of the node to the strat name
-                strat.append_name(func_slice_timing_correction.name)
+                strat.append_name(slice_time.name)
 
                 # set the leaf node
-                strat.set_leaf_properties(func_slice_timing_correction, 'out_file')
+                strat.set_leaf_properties(slice_time, 'out_file')
 
                 # add the outputs to the resource pool
                 strat.update_resource_pool({
-                    'slice_time_corrected': (func_slice_timing_correction, 'out_file')
+                    'slice_time_corrected': (slice_time, 'out_file')
                 })
 
         # add new strats (if forked)

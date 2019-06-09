@@ -355,10 +355,8 @@ if "s3://" not in args.output_dir.lower():
 else:
     config_file = os.path.join("/scratch", "cpac_pipeline_config_{0}.yml".format(st))
 
-
 with open(config_file, 'w') as f:
     f.write(create_yaml_from_template(c, DEFAULT_PIPELINE))
-
 
 # we have all we need if we are doing a group level analysis
 if args.analysis_level == "group":
@@ -483,7 +481,6 @@ else:
     data_config_file = os.path.join("/scratch", data_config_file)
 
 with open(data_config_file, 'w') as f:
-
     # Avoid dict/list references
     noalias_dumper = yaml.dumper.SafeDumper
     noalias_dumper.ignore_aliases = lambda self, data: True
