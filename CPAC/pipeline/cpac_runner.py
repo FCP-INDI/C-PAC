@@ -167,7 +167,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
 
 # Run C-PAC subjects via job queue
-def run(config_file, subject_list_file, p_name=None, plugin=None,
+def run(subject_list_file, config_file="default", p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False):
     '''
     '''
@@ -179,6 +179,14 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     import time
 
     from CPAC.pipeline.cpac_pipeline import prep_workflow
+
+    if config_file == "default":
+        import pkg_resources as p
+        config_file = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_template.yml"))
 
     # Init variables
     config_file = os.path.realpath(config_file)

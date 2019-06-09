@@ -111,8 +111,7 @@ from CPAC.utils.utils import (
     extract_output_mean,
     create_output_mean_csv,
     get_zscore,
-    get_fisher_zscore,
-    add_afni_prefix
+    get_fisher_zscore
 )
 
 logger = logging.getLogger('nipype.workflow')
@@ -144,7 +143,7 @@ def create_log_node(workflow, logged_wf, output, index, scan_id=None):
             return log_wf
     except Exception as e:
         print(e)
-=
+
 
 def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                   p_name=None, plugin='MultiProc', plugin_args=None):
@@ -1218,18 +1217,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             scan_params = \
                 pe.Node(function.Function(input_names=['subject_id',
                                                        'scan',
-                                                       'pipeconfig_tr',
-                                                       'pipeconfig_tpattern',
                                                        'pipeconfig_start_indx',
                                                        'pipeconfig_stop_indx',
                                                        'data_config_scan_params'],
-                                        output_names=['tr',
-                                                      'tpattern',
-                                                      'ref_slice',
-                                                      'start_indx',
-                                                      'stop_indx'],
-                                        function=get_scan_params,
-                                        as_module=True),
+                                          output_names=['tr',
+                                                        'tpattern',
+                                                        'ref_slice',
+                                                        'start_indx',
+                                                        'stop_indx'],
+                                          function=get_scan_params,
+                                          as_module=True),
                         name='scan_params_%d' % num_strat)
 
             if "Selected Functional Volume" in c.func_reg_input:
@@ -1257,8 +1254,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             # connect in constants
             scan_params.inputs.set(
-                pipeconfig_tr=c.TR,
-                pipeconfig_tpattern=c.slice_timing_pattern,
                 pipeconfig_start_indx=c.startIdx,
                 pipeconfig_stop_indx=c.stopIdx
             )
@@ -1394,34 +1389,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             for num_strat, strat in enumerate(strat_list):
 
-                # create TShift AFNI node
-                func_slice_timing_correction = pe.Node(
-                    interface=preprocess.TShift(),
-                    name='func_slice_timing_correction_%d' % (num_strat))
-                func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
-
                 node, out_file = strat.get_leaf_properties()
 
-                workflow.connect(node, out_file,
-                                 func_slice_timing_correction, 'in_file')
-
-                workflow.connect(scan_params, 'tr',
-                                 func_slice_timing_correction, 'tr')
-
-                #if not "Use NIFTI Header" in c.slice_timing_pattern:
-
-                # add the @ prefix to the tpattern file going into
-                # AFNI 3dTshift - needed this so the tpattern file
-                # output from get_scan_params would be tied downstream
-                # via a connection (to avoid poofing)
-                add_prefix = pe.Node(util.Function(input_names=['tpattern'],
-                                                   output_names=['afni_prefix'],
-                                                   function=add_afni_prefix),
-                                     name='func_slice_timing_correction_add_afni_prefix_%d' % num_strat)
-                workflow.connect(scan_params, 'tpattern',
-                                 add_prefix, 'tpattern')
-                workflow.connect(add_prefix, 'afni_prefix',
-                                 func_slice_timing_correction, 'tpattern')
+                slice_time = slice_timing_wf(name='func_slice_timing_correction_{0}'.format(num_strat))
 
                 # add the name of the node to the strat name
                 strat.append_name(func_slice_timing_correction.name)

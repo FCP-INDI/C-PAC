@@ -403,31 +403,29 @@ def correlation(matrix1, matrix2,
     return r
     
 
-def check(params_dct, subject, scan, val, throw_exception):
+def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
 
-    if val not in params_dct:
-
+    if val_to_check not in params_dct:
         if throw_exception:
-            raise Exception("Missing Value for {0} for subject "
-                            "{1}".format(val, subject))
-
+            raise Exception("Missing Value for {0} for participant "
+                            "{1}".format(val_to_check, subject_id))
         return None
 
-    if isinstance(params_dct[val], dict):
-        ret_val = params_dct[val][scan]
+    if isinstance(params_dct[val_to_check], dict):
+        ret_val = params_dct[val_to_check][scan_id]
     else:
-        ret_val = params_dct[val]
+        ret_val = params_dct[val_to_check]
 
     if ret_val == 'None':
         if throw_exception:
-            raise Exception("None Parameter Value for {0} for subject "
-                            "{1}".format(val, subject))
+            raise Exception("'None' Parameter Value for {0} for participant "
+                            "{1}".format(val_to_check, subject_id))
         else:
             ret_val = None
 
     if ret_val == '' and throw_exception:
-        raise Exception("Missing Value for {0} for subject "
-                        "{1}".format(val, subject))
+        raise Exception("Missing Value for {0} for participant "
+                        "{1}".format(val_to_check, subject_id))
 
     return ret_val
 
@@ -464,7 +462,7 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
 
     for key in keys:
 
-        key = key.lower()
+        #key = key.lower()
         
         if key not in scan_parameters:
             continue
@@ -540,9 +538,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             pipeconfig_stop_indx = None
 
     if data_config_scan_params:
-
         if ".json" in data_config_scan_params:
-
             if not os.path.exists(data_config_scan_params):
                 err = "\n[!] WARNING: Scan parameters JSON file listed in " \
                       "your data configuration file does not exist:\n{0}" \
@@ -592,7 +588,8 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                 )
             )
             
-            ref_slice = check(params_dct, subject_id, scan, 'reference', False)
+            ref_slice = check(params_dct, subject_id, scan, 'reference',
+                              False)
             if ref_slice:
                 ref_slice = int(ref_slice)
 
@@ -760,13 +757,6 @@ def check_tr(tr, in_file):
             'Warning: The TR information does not match between the config and subject list files.')
 
     return TR
-
-
-def add_afni_prefix(tpattern):
-    if tpattern:
-        if ".txt" in tpattern:
-            tpattern = "@{0}".format(tpattern)
-    return tpattern
 
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id):

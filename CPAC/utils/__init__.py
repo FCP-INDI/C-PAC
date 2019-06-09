@@ -31,7 +31,6 @@ from .utils import (
     get_scan_params,
     get_tr,
     check_tr,
-    add_afni_prefix,
     write_to_log,
     create_log,
     find_files,
