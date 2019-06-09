@@ -514,11 +514,13 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                      if f.endswith('json') and ('T1w' in f or 'bold' in f)})
 
     if not file_paths and not config_dict:
-        raise IOError("Didn't find any files in %s. Please verify that the"
-            " path is typed correctly, that you have read access to the"
-            " directory, and that it is not empty.".format(bids_dir))
+        raise IOError("Didn't find any files in {0}. Please verify that the "
+                      "path is typed correctly, that you have read access to "
+                      "the directory, and that it is not "
+                      "empty.".format(bids_dir))
 
     return file_paths, config_dict
+
 
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
 
