@@ -462,7 +462,7 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
 
     for key in keys:
 
-        #key = key.lower()
+        key = key.lower()
         
         if key not in scan_parameters:
             continue
@@ -480,8 +480,6 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
             return value
 
     return None
-    #raise Exception("Missing Value for {0} for subject "
-    #                "{1}".format(' or '.join(keys), subject))
 
 
 def get_scan_params(subject_id, scan, pipeconfig_start_indx,
@@ -708,6 +706,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
         tr = "{0}{1}".format(str(TR), unit)
     else:
         tr = ""
+
     tpattern = pattern
     start_indx = first_tr
     stop_indx = last_tr

@@ -17,7 +17,7 @@ def slice_timing_wf(name='slice_timing'):
                         name='inputspec')
 
     # configure the workflow's output spec
-    outputNode = pe.Node(util.IdentityInterface(fields=['edited_func']),
+    outputNode = pe.Node(util.IdentityInterface(fields=['slice_time_corrected']),
                          name='outputspec')
 
     # create TShift AFNI node

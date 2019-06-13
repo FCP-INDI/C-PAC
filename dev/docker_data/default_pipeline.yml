@@ -335,7 +335,7 @@ slice_timing_correction :  [1]
 slice_timing_pattern :  ['Use NIFTI Header']
 
 
-# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+# This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
 functional_volreg_twopass :  On
 
 

@@ -1228,12 +1228,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                         'stop_indx'],
                                           function=get_scan_params,
                                           as_module=True),
-                        name='scan_params_%d' % num_strat)
+                        name='scan_params_{0}'.format(num_strat))
 
             if "Selected Functional Volume" in c.func_reg_input:
 
                 get_func_volume = pe.Node(interface=afni.Calc(),
-                                        name='get_func_volume_%d' % num_strat)
+                                          name='get_func_volume_{0}'.format(num_strat))
 
                 get_func_volume.inputs.set(
                     expr='a',
@@ -1377,15 +1377,22 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file, slice_time,
                                 'inputspec.func_ts')
 
+                workflow.connect(scan_params, 'tr',
+                                 slice_time, 'inputspec.tr')
+
+                workflow.connect(scan_params, 'tpattern',
+                                 slice_time, 'inputspec.tpattern')
+
                 # add the name of the node to the strat name
                 strat.append_name(slice_time.name)
 
                 # set the leaf node
-                strat.set_leaf_properties(slice_time, 'out_file')
+                strat.set_leaf_properties(slice_time, 'outputspec.slice_time_corrected')
 
                 # add the outputs to the resource pool
                 strat.update_resource_pool({
-                    'slice_time_corrected': (slice_time, 'out_file')
+                    'slice_time_corrected': (slice_time,
+                                             'outputspec.slice_time_corrected')
                 })
 
         # add new strats (if forked)

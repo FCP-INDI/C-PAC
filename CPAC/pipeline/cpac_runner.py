@@ -191,7 +191,7 @@ def run(subject_list_file, config_file="default", p_name=None, plugin=None,
     # Init variables
     sublist = None
     config_file = os.path.realpath(config_file)
-    if 's3://' not in subject_list_file:
+    if '.yaml' in subject_list_file or '.yml' in subject_list_file:
         subject_list_file = os.path.realpath(subject_list_file)
     else:
         from CPAC.utils.bids_utils import collect_bids_files_configs, \
