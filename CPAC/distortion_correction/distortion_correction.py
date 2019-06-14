@@ -168,3 +168,8 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc.connect(fugue1, 'fmap_out_file', outputNode, 'fmap_despiked')
 
     return preproc
+
+
+def blip_distcorr_wf():
+    wf = pe.Workflow(name=wf_name)
+    return wf
