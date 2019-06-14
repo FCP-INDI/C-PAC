@@ -39,9 +39,9 @@ from CPAC.network_centrality.pipeline import (
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
-from CPAC.func_preproc.init_preproc import slice_timing_wf
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
+    slice_timing_wf,
     create_wf_edit_func
 )
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
