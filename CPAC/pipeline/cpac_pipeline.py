@@ -545,6 +545,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anat_mni_flirt_register_%d' % num_strat
             )
 
+            # if someone doesn't have regFSLinterpolation in their pipe config,
+            # it will default to trilinear          
+            if not hasattr(c, 'regFSLinterpolation'):
+                setattr(c, 'regFSLinterpolation', 'trilinear')
+
+            if c.regFSLinterpolation not in ["trilinear", "sinc", "spline"]:
+                err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
+                raise Exception(err_msg)
+            
+            # Input registration parameters
+            flirt_reg_anat_mni.inputs.inputspec.interp = c.regFSLinterpolation
+
             node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
                              flirt_reg_anat_mni, 'inputspec.input_brain')
@@ -660,6 +672,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     num_threads=num_ants_cores
                 )
 
+            # if someone doesn't have regANTSinterpolation in their pipe config,
+            # it will default to LanczosWindowedSinc
+            if not hasattr(c, 'regANTSinterpolation'):
+                setattr(c, 'regANTSinterpolation', 'LanczosWindowedSinc')
+
+            if c.regANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+                err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+                raise Exception(err_msg)
+
+            # Input registration parameters
+            ants_reg_anat_mni.inputs.inputspec.interp = c.regANTSinterpolation
+            
             # calculating the transform with the skullstripped is
             # reported to be better, but it requires very high
             # quality skullstripping. If skullstripping is imprecise
@@ -844,6 +868,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'anat_symmetric_mni_flirt_register_%d' % num_strat
                 )
 
+                
+                # Input registration parameters
+                flirt_reg_anat_symm_mni.inputs.inputspec.interp = c.regFSLinterpolation
+
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
                                  flirt_reg_anat_symm_mni,
@@ -855,9 +883,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     flirt_reg_anat_symm_mni, 'inputspec.reference_brain'
                 )
 
-                if 'ANTS' in c.regOption:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
+                # if 'ANTS' in c.regOption:
+                #    strat = strat.fork()
+                #    new_strat_list.append(strat)
 
                 strat.append_name(flirt_reg_anat_symm_mni.name)
                 strat.set_leaf_properties(flirt_reg_anat_symm_mni,
@@ -962,6 +990,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'anat_symmetric_mni_ants_register_%d' % num_strat,
                         num_threads=num_ants_cores
                     )
+            
+                # Input registration parameters
+                ants_reg_anat_symm_mni.inputs.inputspec.interp = c.regANTSinterpolation
 
                 # calculating the transform with the skullstripped is
                 # reported to be better, but it requires very high
@@ -1580,8 +1611,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 # Input registration parameters
                 func_to_anat.inputs.inputspec.interp = 'trilinear'
-                # Input registration parameters new test
-                func_to_anat.inputs.inputspec.interp = '...linear'
                 
                 
                 # TODO ASH normalize strings with enums?
@@ -3807,13 +3836,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             handler = cb_logging.FileHandler(cb_log_filename)
             cb_logger.addHandler(handler)
 
-            # Log initial information from all the nodes
-            for node_name in workflow.list_node_names():
-                node = workflow.get_node(node_name)
-                cb_logger.debug(json.dumps({
-                    "id": str(node),
-                    "hash": node.inputs.get_hashval()[1],
-                }))
+            # # Log initial information from all the nodes
+            # for node_name in workflow.list_node_names():
+            #     node = workflow.get_node(node_name)
+            #     cb_logger.debug(json.dumps({
+            #         "id": str(node),
+            #         "hash": node.inputs.get_hashval()[1],
+            #     }))
 
             # Add status callback function that writes in callback log
             if nipype.__version__ not in ('1.1.2'):
@@ -3826,6 +3855,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 plugin_args['status_callback'] = log_nodes_cb
 
                 
+            if plugin_args.get('n_procs') == 1:
+                plugin = 'Linear'
             # Actually run the pipeline now, for the current subject
             workflow.run(plugin=plugin, plugin_args=plugin_args)
 
@@ -4018,7 +4049,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 #         System time of start:      {run_start}
 
 # """
-        except:
+        except Exception as e:
+
+            import traceback
+            traceback.print_exc()
 
             execution_info = """
 

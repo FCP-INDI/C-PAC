@@ -390,6 +390,14 @@ runBBReg :  [1]
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
 boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
 
+# Documentation on types of parameters
+# Directions on which parameter should I use
+# Possible values: Linear, BSpline, LanczosWindowedSinc
+regANTSinterpolation: LanczosWindowedSinc
+
+# Possible values: trilinear, sinc, spline
+regFSLinterpolation: sinc
+
 
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
 func_reg_input :  ['Mean Functional']

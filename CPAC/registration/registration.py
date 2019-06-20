@@ -15,6 +15,7 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
 
     inputspec = pe.Node(util.IdentityInterface(fields=['input_brain',
                                                        'reference_brain',
+                                                       'interp',
                                                        'ref_mask']),
                         name='inputspec')
 
@@ -34,13 +35,16 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
                                linear_reg, 'in_file')
 
     linear_register.connect(inputspec, 'reference_brain',
-                               linear_reg, 'reference')
+                            linear_reg, 'reference')
+
+    linear_register.connect(inputspec, 'interp',
+                            linear_reg, 'interp')
 
     linear_register.connect(linear_reg, 'out_file',
-                               outputspec, 'output_brain')
+                            outputspec, 'output_brain')
 
     linear_register.connect(linear_reg, 'out_matrix_file',
-                               inv_flirt_xfm, 'in_file')
+                            inv_flirt_xfm, 'in_file')
 
     linear_register.connect(inv_flirt_xfm, 'out_file',
                                outputspec, 'invlinear_xfm')
@@ -585,6 +589,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
         inputspec.fixed_image_mask: (an existing file name)
             Mask used to limit metric sampling region of the fixed imagein all
             stages
+        inputspec.interp : string
+            Type of interpolation to use ('Linear' or 'BSpline' or 'LanczosWindowedSinc')
 
     Workflow Outputs::
     
@@ -641,7 +647,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                 'write_composite_transform',
                 'anatomical_skull',
                 'reference_skull',
-                'fixed_image_mask']), name='inputspec')
+                'interp',
+                'fixed_image_mask']), 
+                name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(
         fields=['ants_initial_xfm',
@@ -667,6 +675,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                                                      'reference_brain',
                                                      'anatomical_skull',
                                                      'reference_skull',
+                                                     'interp',
                                                      'fixed_image_mask'],
                                         output_names=['warp_list',
                                                       'warped_image'],
@@ -778,6 +787,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     calc_ants_warp_wf.connect(inputspec, 'fixed_image_mask',
             calculate_ants_warp, 'fixed_image_mask')
+
+    calc_ants_warp_wf.connect(inputspec, 'interp',
+            calculate_ants_warp, 'interp')
 
     # inter-workflow connections
 
