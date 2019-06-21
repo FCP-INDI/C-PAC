@@ -80,7 +80,6 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
             Target brain with skull to normalize to
         inputspec.fnirt_config : string (fsl fnirt config file)
             Configuration file containing parameters that can be specified in fnirt
-            
     Workflow Outputs::
     
         outputspec.output_brain : string (nifti file)
@@ -112,6 +111,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                                                        'input_skull',
                                                        'reference_brain',
                                                        'reference_skull',
+                                                       'interp',
                                                        'ref_mask',
                                                        'linear_aff',
                                                        'fnirt_config']),
@@ -129,12 +129,15 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
 
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
                          name='brain_warp')
-        
+                         
     nonlinear_register.connect(inputspec, 'input_skull',
                                nonlinear_reg, 'in_file')
 
     nonlinear_register.connect(inputspec, 'reference_skull',
                                nonlinear_reg, 'ref_file')
+
+    nonlinear_register.connect(inputspec, 'interp',
+                               brain_warp, 'interp')
 
     nonlinear_register.connect(inputspec, 'ref_mask',
                                nonlinear_reg, 'refmask_file')

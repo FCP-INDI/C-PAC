@@ -548,7 +548,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # if someone doesn't have regFSLinterpolation in their pipe config,
             # it will default to trilinear          
             if not hasattr(c, 'regFSLinterpolation'):
-                setattr(c, 'regFSLinterpolation', 'trilinear')
+                setattr(c, 'regFSLinterpolation', 'sinc')
 
             if c.regFSLinterpolation not in ["trilinear", "sinc", "spline"]:
                 err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
@@ -1903,6 +1903,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat.get_leaf_properties()
                     mean_func_node, mean_func_out_file = strat["mean_functional"]
                     
+                    # if someone doesn't have regANTSinterpolation in their pipe config,
+                    # it will default to LanczosWindowedSinc
+                    if not hasattr(c, 'regANTSinterpolation'):
+                        setattr(c, 'regANTSinterpolation',
+                                'LanczosWindowedSinc')
+
+                    if c.regANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+                        err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+                        raise Exception(err_msg)
+                    
                     # Insert it on the resource pool, so no need to connect externally
                     ants_apply_warps_func_mni(
                         workflow, strat, num_strat, num_ants_cores,
@@ -1910,7 +1920,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         mean_func_node, mean_func_out_file,
                         c.template_brain_only_for_func,
                         "ica_aroma_functional_to_standard",
-                        "Linear", 3
+                        c.regANTSinterpolation, 3
                     )
 
                     aroma_preproc = create_aroma(tr=TR,
@@ -2244,6 +2254,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                             name='func_mni_fsl_warp_%d' % num_strat)
                     func_mni_warp.inputs.ref_file = c.template_brain_only_for_func
+                    # Input registration parameters
+                    func_mni_warp.inputs.interp = c.regFSLinterpolation
 
                     functional_brain_mask_to_standard = pe.Node(
                         interface=fsl.ApplyWarp(),
@@ -2257,12 +2269,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name='mean_func_fsl_warp_%d' % num_strat
                     )
                     mean_functional_warp.inputs.ref_file = c.template_brain_only_for_func
+                    mean_functional_warp.inputs.interp = c.regFSLinterpolation
 
                     motion_correct_warp = pe.Node(
                         interface=fsl.ApplyWarp(),
                         name="motion_correct_fsl_warp_%d" % num_strat
                     )
                     motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
+                    motion_correct_warp.inputs.interp = c.regFSLinterpolation
 
                     if 'anat_mni_fnirt_register' in nodes:
                         node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
@@ -2304,6 +2318,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     elif 'anat_mni_flirt_register' in nodes:
                         func_anat_warp = pe.Node(interface=fsl.ApplyWarp(),
 	                                             name='func_anat_fsl_warp_%d' % num_strat)
+                        func_anat_warp.inputs.interp = c.regFSLinterpolation
+                        
                         functional_brain_mask_to_anat = pe.Node(
 	                        interface=fsl.ApplyWarp(),
 	                        name='func_anat_fsl_warp_mask_%d' % num_strat
@@ -2314,11 +2330,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             interface=fsl.ApplyWarp(),
 	                        name='mean_func_to_anat_fsl_warp_%d' % num_strat
 	                    )
+                        mean_functional_to_anat.inputs.interp = c.regFSLinterpolation
 
                         motion_correct_to_anat_warp = pe.Node(
 	                        interface=fsl.ApplyWarp(),
 	                        name="motion_correct_to_anat_fsl_warp_%d" % num_strat
 	                    )
+                        motion_correct_to_anat_warp.inputs.interp = c.regFSLinterpolation
 
                         node, out_file = strat.get_leaf_properties()
                         workflow.connect(node, out_file,
@@ -2331,6 +2349,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node, out_file = strat['mean_functional']
                         workflow.connect(node, out_file,
                                          mean_functional_to_anat, 'in_file')
+
 
                         node, out_file = strat['motion_correct']
                         workflow.connect(node, out_file,
@@ -2407,14 +2426,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat.get_leaf_properties()
                     node2, out_file2 = \
                         strat["mean_functional"]
+                    
+                    # if someone doesn't have regANTSinterpolation in their pipe config,
+                    # it will default to LanczosWindowedSinc
+                    if not hasattr(c, 'regANTSinterpolation'):
+                        setattr(c, 'regANTSinterpolation',
+                                'LanczosWindowedSinc')
 
+                    if c.regANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+                        err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+                        raise Exception(err_msg)
+                    
                     warp_func_wf = ants_apply_warps_func_mni(
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
                         node2, out_file2,
                         c.template_brain_only_for_func,
                         "functional_to_standard",
-                        "Linear", 3
+                        c.regANTSinterpolation, 3
                     )
 
                     create_log_node(workflow, warp_func_wf,
@@ -2432,7 +2461,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node2, out_file2,
                         c.template_brain_only_for_func,
                         "motion_correct_to_standard",
-                        "Linear", 3
+                        c.regANTSinterpolation, 3
                     )
 
                     create_log_node(workflow, warp_motion_wf,
@@ -2464,7 +2493,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node, out_file,
                         c.template_brain_only_for_func,
                         "mean_functional_to_standard",
-                        "Linear", 0
+                        c.regANTSinterpolation, 0
                     )
 
                     create_log_node(workflow, warp_mean_wf,
