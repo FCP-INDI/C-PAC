@@ -1078,7 +1078,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     )
                     
                     pc_node = pe.Node(
-                        PC(args='-vmean -nscale', pcs=regressor_selector['summary']['components']),
+                        PC(args='-vmean -nscale', pcs=regressor_selector['summary']['components'], outputtype='NIFTI'), 
                         name='{}_pc'.format(regressor_type)
                     )
 

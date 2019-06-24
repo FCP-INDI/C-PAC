@@ -243,17 +243,17 @@ bet_vertical_gradient : 0.0
 
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
-resolution_for_anat :  2mm
+resolution_for_anat :  2 
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}mm_brain.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}mm.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -275,7 +275,7 @@ fnirtConfig :  T1_2_MNI152_2mm
 
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}mm_brain_mask_dil.nii.gz
 
 
 # Register skull-on anatomical image to a template.
@@ -409,19 +409,22 @@ runRegisterFuncToMNI :  [1]
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
-resolution_for_func_preproc :  3mm
+resolution_for_func_preproc :  3 # if 3 dim different, enter: num1xnum2xnum3, eg. 3x2.5x2.5
 
 
 # The resolution (in mm) to which the registered derivative outputs are written into.
-resolution_for_func_derivative :  3mm
+resolution_for_func_derivative :  3
+
+
+template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}mm_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}mm.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
@@ -564,17 +567,17 @@ runVMHC :  [1]
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-template_symmetric_brain_only :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+template_symmetric_brain_only :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}mm_brain_symmetric.nii.gz
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-template_symmetric_skull :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
+template_symmetric_skull :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}mm_symmetric.nii.gz
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-dilated_symmetric_brain_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+dilated_symmetric_brain_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}mm_brain_mask_symmetric_dil.nii.gz
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
