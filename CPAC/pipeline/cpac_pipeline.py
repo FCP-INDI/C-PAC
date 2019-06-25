@@ -110,7 +110,10 @@ from CPAC.utils.utils import (
     create_output_mean_csv,
     get_zscore,
     get_fisher_zscore,
-    add_afni_prefix
+    add_afni_prefix,
+    update_template_for_anat,
+    update_template_for_func,
+    update_template_symmetric
 )
 
 logger = logging.getLogger('nipype.workflow')
@@ -526,6 +529,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     if 'FSL' in c.regOption:
         for num_strat, strat in enumerate(strat_list):
 
+            update_template_for_anat(c.resolution_for_anat, 'brain', num_strat, strat, c)
+            update_template_for_anat(c.resolution_for_anat, 'skull', num_strat, strat, c)
+            
             # this is to prevent the user from running FNIRT if they are
             # providing already-skullstripped inputs. this is because
             # FNIRT requires an input with the skull still on
@@ -550,10 +556,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                              flirt_reg_anat_mni, 'inputspec.input_brain')
 
             # pass the reference files
-            workflow.connect(
-                c.template_brain_only_for_anat, 'local_path',
-                flirt_reg_anat_mni, 'inputspec.reference_brain'
-            )
+            node, out_file = strat['template_brain_for_anat']
+            workflow.connect(node, out_file,
+                flirt_reg_anat_mni, 'inputspec.reference_brain')
 
             if 'ANTS' in c.regOption:
                 strat = strat.fork()
@@ -585,6 +590,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
+            update_template_for_anat(c.resolution_for_anat, 'brain', num_strat, strat, c)
+            update_template_for_anat(c.resolution_for_anat, 'skull', num_strat, strat, c)
+
             nodes = strat.get_nodes_names()
 
             if 'anat_mni_flirt_register' in nodes:
@@ -598,10 +606,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  fnirt_reg_anat_mni, 'inputspec.input_brain')
 
                 # pass the reference files
-                workflow.connect(
-                    c.template_brain_only_for_anat, 'local_path',
-                    fnirt_reg_anat_mni, 'inputspec.reference_brain'
-                )
+                node, out_file = strat['template_brain_for_anat']
+                workflow.connect(node, out_file,
+                    fnirt_reg_anat_mni, 'inputspec.reference_brain')
 
                 node, out_file = strat['anatomical_reorient']
                 workflow.connect(node, out_file,
@@ -611,8 +618,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.linear_aff')
 
-                workflow.connect(
-                    c.template_skull_for_anat, 'local_path',
+                node, out_file = strat['template_skull_for_anat']
+                workflow.connect(node, out_file,
                     fnirt_reg_anat_mni, 'inputspec.reference_skull'
                 )
 
@@ -646,6 +653,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     new_strat_list = []
 
     for num_strat, strat in enumerate(strat_list):
+
+        update_template_for_anat(c.resolution_for_anat, 'brain', num_strat, strat, c)
+        update_template_for_anat(c.resolution_for_anat, 'skull', num_strat, strat, c)
 
         nodes = strat.get_nodes_names()
 
@@ -689,10 +699,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  'inputspec.anatomical_brain')
 
                 # pass the reference file
-                workflow.connect(
-                    c.template_brain_only_for_anat, 'local_path',
-                    ants_reg_anat_mni, 'inputspec.reference_brain'
-                )
+                node, out_file = strat['template_brain_for_anat']
+                workflow.connect(node, out_file,
+                    ants_reg_anat_mni, 'inputspec.reference_brain')
 
                 # get the reorient skull-on anatomical from resource pool
                 node, out_file = strat['anatomical_reorient']
@@ -716,10 +725,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  'inputspec.anatomical_brain')
 
                 # pass the reference file
-                workflow.connect(
-                    c.template_brain_only_for_anat, 'local_path',
-                    ants_reg_anat_mni, 'inputspec.reference_brain'
-                )
+                node, out_file = strat['template_brain_for_anat']
+                workflow.connect(node, out_file,
+                    ants_reg_anat_mni, 'inputspec.reference_brain')
 
             ants_reg_anat_mni.inputs.inputspec.set(
                 dimension=3,
@@ -819,6 +827,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
+            # update_template_for_anat(c.resolution_for_anat, 'brain', num_strat, strat, c)
+            # update_template_for_anat(c.resolution_for_anat, 'skull', num_strat, strat, c)
+
+            update_template_symmetric(c.resolution_for_anat, c.template_symmetric_brain_for_resample, 'brain', num_strat, strat, c)
+            update_template_symmetric(c.resolution_for_anat, c.template_symmetric_skull_for_resample, 'skull', num_strat, strat, c)
+            update_template_symmetric(c.resolution_for_anat, c.dilated_symmetric_brain_mask_for_resample, 'brain_mask', num_strat, strat, c)
+
             nodes = strat.get_nodes_names()
 
             if 'FSL' in c.regOption and \
@@ -850,10 +865,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  'inputspec.input_brain')
 
                 # pass the reference files
-                workflow.connect(
-                    c.template_symmetric_brain_only, 'local_path',
-                    flirt_reg_anat_symm_mni, 'inputspec.reference_brain'
-                )
+                node, out_file = strat['template_symmetric_brain']
+                workflow.connect(node, out_file,
+                    flirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                 if 'ANTS' in c.regOption:
                     strat = strat.fork()
@@ -902,10 +916,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      'inputspec.input_brain')
 
                     # pass the reference files
-                    workflow.connect(
-                        c.template_brain_only_for_anat, 'local_path',
-                        fnirt_reg_anat_symm_mni, 'inputspec.reference_brain'
-                    )
+                    node, out_file = strat['template_brain_for_anat']
+                    workflow.connect(node, out_file,
+                        fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                     node, out_file = strat['anatomical_reorient']
                     workflow.connect(node, out_file,
@@ -917,15 +930,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      fnirt_reg_anat_symm_mni,
                                      'inputspec.linear_aff')
 
-                    workflow.connect(
-                        c.template_symmetric_skull, 'local_path',
-                        fnirt_reg_anat_symm_mni, 'inputspec.reference_skull'
-                    )
+                    node, out_file = strat['template_symmetric_skull']
+                    workflow.connect(node, out_file,
+                        fnirt_reg_anat_symm_mni, 'inputspec.reference_skull')
 
-                    workflow.connect(
-                        c.dilated_symmetric_brain_mask, 'local_path',
-                        fnirt_reg_anat_symm_mni, 'inputspec.ref_mask'
-                    )
+                    node, out_file = strat['template_symmetric_brain_mask']
+                    workflow.connect(node, out_file,
+                        fnirt_reg_anat_symm_mni, 'inputspec.ref_mask')
 
                     strat.append_name(fnirt_reg_anat_symm_mni.name)
                     strat.set_leaf_properties(fnirt_reg_anat_symm_mni,
@@ -947,6 +958,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         new_strat_list = []
 
         for num_strat, strat in enumerate(strat_list):
+
+            # update_template_symmetric(c.resolution_for_anat, c.template_symmetric_brain_for_resample, 'brain', num_strat, strat, c)
+            # update_template_symmetric(c.resolution_for_anat, c.template_symmetric_skull_for_resample, 'skull', num_strat, strat, c)
+            # update_template_symmetric(c.resolution_for_anat, c.dilated_symmetric_brain_mask_for_resample, 'brain_mask', num_strat, strat, c)
 
             nodes = strat.get_nodes_names()
 
@@ -990,7 +1005,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      'inputspec.anatomical_brain')
 
                     # pass the reference file
-                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                    node, out_file = strat['template_symmetric_brain']
+                    workflow.connect(node, out_file,
                                     ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                     # get the reorient skull-on anatomical from resource
@@ -1003,7 +1019,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      'inputspec.anatomical_skull')
 
                     # pass the reference file
-                    workflow.connect(c.template_symmetric_skull, 'local_path',
+                    node, out_file = strat['template_symmetric_skull']
+                    workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni, 'inputspec.reference_skull')
 
 
@@ -1016,7 +1033,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      'inputspec.anatomical_brain')
 
                     # pass the reference file
-                    workflow.connect(c.template_symmetric_brain_only, 'local_path',
+                    node, out_file = strat['template_symmetric_brain']
+                    workflow.connect(node, out_file,
                                     ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                 ants_reg_anat_symm_mni.inputs.inputspec.set(
@@ -1196,36 +1214,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
-            def update_template(template, resolution, var1, var2):
-                # if os.path.isfile(template):
-                #     template_img = nb.load(template) 
-                #     template_resolution = template_img.header.get_zooms()
-
-                if not isinstance(resolution, str):
-                    resolution = (resolution,)*3 
-                else:
-                    resolution = tuple(float (i) for i in resolution.split("x"))
-
-                if os.path.isfile(template): 
-                    input_template = pe.Node(util.IdentityInterface(fields=['template']), name='input_{0}_template_{1}_{2}'.format(var1, var2, num_strat)) 
-                    input_template.inputs.template = template
-                    strat.update_resource_pool({
-                                'template_' + var1 + '_for_func_' + var2: (input_template, 'template') # delete 'only' !!!!!
-                    }) 
-                else:
-                    resampled_template = pe.Node(interface = afni.Resample(), name='resampled_{0}_template_{1}_{2}'.format(var1, var2, num_strat))
-                    resampled_template.inputs.in_file = c.template_for_resample
-                    resampled_template.inputs.voxel_size = resolution
-                    resampled_template.inputs.outputtype = 'NIFTI_GZ'
-                    resampled_template.inputs.resample_mode = 'Cu'
-                    strat.update_resource_pool({
-                                'template_' + var1 + '_for_func_' + var2: (resampled_template, 'out_file')
-                    }) 
-
-            update_template(c.template_brain_only_for_func, c.resolution_for_func_preproc, 'brain', 'preproc')
-            update_template(c.template_brain_only_for_func, c.resolution_for_func_derivative, 'brain', 'derivative')
-            update_template(c.template_skull_for_func, c.resolution_for_func_preproc, 'skull', 'preproc')
-            update_template(c.template_skull_for_func, c.resolution_for_func_derivative, 'skull', 'derivative')
+            update_template_for_func(c.resolution_for_func_preproc, 'brain', 'preproc', num_strat, strat, c)
+            update_template_for_func(c.resolution_for_func_derivative, 'brain', 'derivative', num_strat, strat, c)
+            update_template_for_func(c.resolution_for_func_preproc, 'skull', 'preproc', num_strat, strat, c)
+            update_template_for_func(c.resolution_for_func_derivative, 'skull', 'derivative', num_strat, strat, c)
    
             if 'func' in sub_dict:
                 func_paths_dict = sub_dict['func']
@@ -1907,7 +1899,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
                         mean_func_node, mean_func_out_file,
-                        # c.template_brain_only_for_func,
                         "ica_aroma_functional_to_standard",
                         "Linear", 3
                     )
@@ -2242,7 +2233,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                             name='func_mni_fsl_warp_%d' % num_strat)
-                    # func_mni_warp.inputs.ref_file = c.template_brain_only_for_func
+                    
                     node, out_file = strat['template_brain_for_func_preproc']
                     workflow.connect(node, out_file, func_mni_warp, 'ref_file')
                     
@@ -2251,7 +2242,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name='func_mni_fsl_warp_mask_%d' % num_strat
                     )
                     functional_brain_mask_to_standard.inputs.interp = 'nn'
-                    # functional_brain_mask_to_standard.inputs.ref_file = c.template_skull_for_func
+                    
                     node, out_file = strat['template_skull_for_func_preproc']
                     workflow.connect(node, out_file, functional_brain_mask_to_standard, 'ref_file')
 
@@ -2260,7 +2251,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name='mean_func_fsl_warp_%d' % num_strat
                     )
 
-                    # mean_functional_warp.inputs.ref_file = c.template_brain_only_for_func
+                    
                     node, out_file = strat['template_brain_for_func_preproc']
                     workflow.connect(node, out_file, mean_functional_warp, 'ref_file')
 
@@ -2268,7 +2259,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         interface=fsl.ApplyWarp(),
                         name="motion_correct_fsl_warp_%d" % num_strat
                     )
-                    # motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
+                    
                     node, out_file = strat['template_brain_for_func_preproc']
                     workflow.connect(node, out_file, motion_correct_warp, 'ref_file')
 
@@ -2421,7 +2412,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
                         node2, out_file2,
-                        # c.template_brain_only_for_func,
                         "functional_to_standard",
                         "Linear", 3
                     )
@@ -2439,7 +2429,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
                         node2, out_file2,
-                        # c.template_brain_only_for_func,
                         "motion_correct_to_standard",
                         "Linear", 3
                     )
@@ -2455,7 +2444,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
                         node, out_file,
-                        # c.template_brain_only_for_func,
                         "functional_brain_mask_to_standard",
                         "NearestNeighbor", 0
                     )
@@ -2471,7 +2459,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
                         node, out_file,
-                        # c.template_brain_only_for_func,
                         "mean_functional_to_standard",
                         "Linear", 0
                     )
@@ -3656,8 +3643,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     except:
                         pass
 
-                    anat_res_tag = c.resolution_for_anat#.replace('mm', '')
-                    func_res_tag = c.resolution_for_func_preproc#.replace('mm', '')
+                    anat_res_tag = c.resolution_for_anat
+                    func_res_tag = c.resolution_for_func_preproc
 
                     ndmg_key_dct = {
                         'anatomical_brain': (
