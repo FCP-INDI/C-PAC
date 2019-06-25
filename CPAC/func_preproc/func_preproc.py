@@ -136,7 +136,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
         inputspec.func : func nifti file
             User input functional(T2) Image, in any of the 8 orientations
 
-        scan_params.twopass : boolean
+        inputspec.twopass : boolean
             Perform two-pass on volume registration
 
     Workflow Outputs::
