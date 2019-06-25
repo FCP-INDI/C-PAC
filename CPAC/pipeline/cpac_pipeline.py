@@ -3805,12 +3805,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             cb_logger.addHandler(handler)
 
             # Log initial information from all the nodes
-            for node_name in workflow.list_node_names():
-                node = workflow.get_node(node_name)
-                cb_logger.debug(json.dumps({
-                    "id": str(node),
-                    "hash": node.inputs.get_hashval()[1],
-                }))
+            def recurse_nodes(workflow, prefix=''):
+                for node in nx.topological_sort(workflow._graph):
+                    if isinstance(node, pe.Workflow):
+                        for subnode in recurse_nodes(node, prefix + workflow.name + '.'):
+                            yield subnode
+                    else:
+                        yield {
+                            "id": prefix + workflow.name + '.' + node.name,
+                            "hash": node.inputs.get_hashval()[1],
+                        }
+
+            nodes = list(recurse_nodes(workflow))
+            for node in nodes:
+                cb_logger.debug(json.dumps(node))
 
             # Add status callback function that writes in callback log
             if nipype.__version__ not in ('1.1.2'):
@@ -3822,6 +3830,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 from CPAC.utils.monitoring import log_nodes_cb
                 plugin_args['status_callback'] = log_nodes_cb
 
+            if plugin_args['n_procs'] == 1:
+                plugin = 'Linear'
                 
             # Actually run the pipeline now, for the current subject
             workflow.run(plugin=plugin, plugin_args=plugin_args)
@@ -4016,6 +4026,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 # """
         except:
+
+            import traceback
+            traceback.print_exc()
 
             execution_info = """
 
