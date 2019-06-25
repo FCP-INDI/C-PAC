@@ -74,8 +74,6 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
 def check_ts(in_file):
     import numpy as np
-    from nipype import logging
-    logger = logging.getLogger('nipype.workflow')
     try:
         timepoints, rois = np.loadtxt(in_file).shape
     except ValueError:
@@ -87,7 +85,7 @@ def check_ts(in_file):
                    + str(rois) + ') - therefore the GLM is'
                    + ' underspecified and can\'t run.****\n\n\n')
         print(message)
-        logger.warn(message)
+        raise Exception(message)
     else:
         return in_file
 
