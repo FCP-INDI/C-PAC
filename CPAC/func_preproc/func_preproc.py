@@ -17,9 +17,78 @@ def collect_arguments(*args):
     return ' '.join(command_args)
 
 
-# workflow to edit the scan to the proscribed TRs
+def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
+
+    tool = tool.lower()
+    if tool != 'afni' and tool != 'fsl':
+        raise Exception("\n\n[!] Error: The 'tool' parameter of the "
+                        "'skullstrip_functional' workflow must be either "
+                        "'afni' or 'fsl'.\n\nTool input: "
+                        "{0}\n\n".format(tool))
+
+    wf = pe.Workflow(name=wf_name)
+
+    input_node = pe.Node(util.IdentityInterface(fields=['func']),
+                         name='inputspec')
+
+    output_node = pe.Node(util.IdentityInterface(fields=['func_brain',
+                                                         'func_brain_mask']),
+                         name='outputspec')
+
+    if tool == 'afni':
+        func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
+                                      name='func_get_brain_mask_AFNI')
+        func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+        wf.connect(input_node, 'func', func_get_brain_mask, 'in_file')
+
+        wf.connect(func_get_brain_mask, 'out_file',
+                   output_node, 'func_brain_mask')
+
+    elif tool == 'fsl':
+        func_get_brain_mask = pe.Node(interface=fsl.BET(),
+                                      name='func_get_brain_mask_BET')
+
+        func_get_brain_mask.inputs.mask = True
+        func_get_brain_mask.inputs.functional = True
+
+        erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
+                                  name='erode_one_voxel')
+
+        erode_one_voxel.inputs.kernel_shape = 'box'
+        erode_one_voxel.inputs.kernel_size = 1.0
+
+        wf.connect(input_node, 'func', func_get_brain_mask, 'in_file')
+
+        wf.connect(func_get_brain_mask, 'mask_file',
+                   erode_one_voxel, 'in_file')
+
+        wf.connect(erode_one_voxel, 'out_file',
+                   output_node, 'func_brain_mask')
+
+    func_edge_detect = pe.Node(interface=afni_utils.Calc(),
+                               name='func_extract_brain')
+
+    func_edge_detect.inputs.expr = 'a*b'
+    func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(input_node, 'func', func_edge_detect, 'in_file_a')
+
+    if tool == 'afni':
+        wf.connect(func_get_brain_mask, 'out_file',
+                   func_edge_detect, 'in_file_b')
+    elif tool == 'fsl':
+        wf.connect(erode_one_voxel, 'out_file',
+                   func_edge_detect, 'in_file_b')
+
+    wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
+
+    return wf
+    
+    
 def create_wf_edit_func(wf_name="edit_func"):
-    """
+    """Workflow to edit the scan to the proscribed TRs.
+    
     Workflow Inputs::
 
         inputspec.func : func file or a list of func/rest nifti file
@@ -106,7 +175,6 @@ def create_wf_edit_func(wf_name="edit_func"):
     return preproc
 
 
-# functional preprocessing
 def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     """
 
@@ -167,7 +235,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
         outputspec.mask : string (nifti file)
             Path to brain-only mask
 
-        outputspec.example_func : string (nifti file)
+        outputspec.func_mean : string (nifti file)
             Mean, Skull Stripped, Motion Corrected output T2 Image path
             (Image with mean intensity values across voxels)
 
@@ -310,10 +378,9 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                                                          'motion_correct_ref',
                                                          'movement_parameters',
                                                          'max_displacement',
-                                                         # 'xform_matrix',
                                                          'mask',
                                                          'skullstrip',
-                                                         'example_func',
+                                                         'func_mean',
                                                          'preprocessed',
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
@@ -404,79 +471,39 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     output_node, 'oned_matrix_save')
 
-    if not use_bet:
+    # TODO: change the 'use_bet' input from boolean to 'afni' and/or 'fsl'
+    tool = 'afni'
+    if use_bet:
+        tool = 'fsl'
 
-        func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
-                                      name='func_get_brain_mask')
-
-        func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
-
-        preproc.connect(func_motion_correct_A, 'out_file',
-                        func_get_brain_mask, 'in_file')
-
-        preproc.connect(func_get_brain_mask, 'out_file',
-                        output_node, 'mask')
-
-    else:
-
-        func_get_brain_mask = pe.Node(interface=fsl.BET(),
-                                      name='func_get_brain_mask_BET')
-
-        func_get_brain_mask.inputs.mask = True
-        func_get_brain_mask.inputs.functional = True
-
-        erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
-                                  name='erode_one_voxel')
-
-        erode_one_voxel.inputs.kernel_shape = 'box'
-        erode_one_voxel.inputs.kernel_size = 1.0
-
-        preproc.connect(func_motion_correct_A, 'out_file',
-                        func_get_brain_mask, 'in_file')
-
-        preproc.connect(func_get_brain_mask, 'mask_file',
-                        erode_one_voxel, 'in_file')
-
-        preproc.connect(erode_one_voxel, 'out_file',
-                        output_node, 'mask')
-
-    func_edge_detect = pe.Node(interface=afni_utils.Calc(),
-                               name='func_edge_detect')
-
-    func_edge_detect.inputs.expr = 'a*b'
-    func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
+    skullstrip_func = skullstrip_functional(tool,
+                                            "{0}_skullstrip".format(wf_name))
 
     preproc.connect(func_motion_correct_A, 'out_file',
-                    func_edge_detect, 'in_file_a')
-
-    if not use_bet:
-        preproc.connect(func_get_brain_mask, 'out_file',
-                        func_edge_detect, 'in_file_b')
-    else:
-        preproc.connect(erode_one_voxel, 'out_file',
-                        func_edge_detect, 'in_file_b')
-
-    preproc.connect(func_edge_detect, 'out_file',
+                    skullstrip_func, 'inputspec.func')
+    preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     output_node, 'skullstrip')
+    preproc.connect(skullstrip_func, 'outputspec.func_brain_mask',
+                    output_node, 'mask')
 
-    func_mean_skullstrip = pe.Node(interface=afni_utils.TStat(),
-                                   name='func_mean_skullstrip')
+    func_mean = pe.Node(interface=afni_utils.TStat(),
+                        name='func_mean')
 
-    func_mean_skullstrip.inputs.options = '-mean'
-    func_mean_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+    func_mean.inputs.options = '-mean'
+    func_mean.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect(func_edge_detect, 'out_file',
-                    func_mean_skullstrip, 'in_file')
+    preproc.connect(skullstrip_func, 'outputspec.func_brain',
+                    func_mean, 'in_file')
 
-    preproc.connect(func_mean_skullstrip, 'out_file',
-                    output_node, 'example_func')
+    preproc.connect(func_mean, 'out_file',
+                    output_node, 'func_mean')
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
                              name='func_normalize')
     func_normalize.inputs.op_string = '-ing 10000'
     func_normalize.inputs.out_data_type = 'float'
 
-    preproc.connect(func_edge_detect, 'out_file',
+    preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     func_normalize, 'in_file')
 
     preproc.connect(func_normalize, 'out_file',

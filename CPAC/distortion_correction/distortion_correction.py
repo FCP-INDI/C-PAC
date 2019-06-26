@@ -1,14 +1,20 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Nov  9 10:44:47 2017
 
-@author: nrajamani
-"""
+
+import os
+import subprocess
+
+import nibabel as nb
 
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni,fsl
 import nipype.interfaces.utility as util
+
+from CPAC.utils import function
+from CPAC.func_preproc import skullstrip_functional
+from CPAC.registration.registration import create_wf_apply_ants_warp
+
 
 def createAFNIiterable(shrink_fac):
     expr = '-shrink_fac {0} '.format(shrink_fac)
@@ -20,6 +26,9 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     Fieldmap correction takes in an input magnitude image which is Skull Stripped (Tight).
     The magnitude images are obtained from each echo series. It also requires a phase image
     as an input, the phase image is a subtraction of the two phase images from each echo.
+
+    Created on Thu Nov  9 10:44:47 2017
+    @author: nrajamani
 
     Order of commands and inputs:
 
@@ -64,7 +73,6 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc = pe.Workflow(name=wf_name)
                           
     inputNode = pe.Node(util.IdentityInterface(fields=['anat_file',
-                                                       'func_file',
                                                        'fmap_pha',
                                                        'fmap_mag']),
                         name='inputspec')
@@ -170,6 +178,156 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     return preproc
 
 
-def blip_distcorr_wf():
+def same_pe_direction_prep(same_pe_epi, func_mean):
+    """Skull-strip and align the EPI field map that has the same phase
+    encoding direction as the BOLD scan.
+
+    This function only exists to serve as a function node in the
+    blip_distcor_wf sub-workflow because workflow decisions cannot be made
+    dynamically at runtime."""
+
+    if not same_pe_epi:
+        qwarp_input = func_mean
+    elif same_pe_epi:
+        skullstrip_outfile = os.path.join(os.getcwd(),
+                                          "{0}_mask.nii.gz".format(os.path.basename(same_pe_epi)))
+        skullstrip_cmd = ["3dAutomask", "-apply_prefix",
+                          "{0}_masked.nii.gz".format(os.path.basename(same_pe_epi)),
+                          "-prefix", skullstrip_outfile, same_pe_epi]
+        retcode = subprocess.check_output(skullstrip_cmd)
+
+        extract_brain_outfile = os.path.join(os.getcwd(),
+                                             "{0}_calc.nii.gz".format(os.path.basename(same_pe_epi)))
+        extract_brain_cmd = ["3dcalc", "-a", same_pe_epi, "-b",
+                             skullstrip_outfile, "-expr", "a*b", "-prefix",
+                             extract_brain_outfile]
+        retcode = subprocess.check_output(extract_brain_cmd)
+
+        align_epi_outfile = os.path.join(os.getcwd(),
+                                         "{0}_calc_flirt.nii.gz".format(os.path.basename(same_pe_epi)))
+        align_epi_cmd = ["flirt", "-in", extract_brain_outfile, "-ref",
+                         func_mean, "-out", align_epi_outfile, "-cost",
+                         "corratio"]
+        retcode = subprocess.check_output(align_epi_cmd)
+
+        qwarp_input = align_epi_outfile
+
+    return qwarp_input
+
+
+def convert_afni_to_ants(afni_warp):
+    afni_warp = os.path.abspath(afni_warp)
+    afni_warp_img = nb.load(afni_warp)
+    afni_warp_hdr = afni_warp_img.header.copy()
+    afni_warp_hdr.set_data_dtype('<f4')
+    afni_warp_hdr.set_intent('vector', (), '')
+
+    afni_warp_data = afni_warp_img.get_data().astype('<f4')
+
+    ants_warp = os.path.join(os.getcwd(), os.path.basename(afni_warp))
+    nb.Nifti1Image(afni_warp_data,
+                   afni_warp_img.affine,
+                   afni_warp_hdr).to_filename(ants_warp)
+
+    return ants_warp
+
+
+def blip_distcor_wf(wf_name='blip_distcor'):
+    """Execute AFNI 3dQWarp to calculate the distortion "unwarp" for phase
+    encoding direction EPI field map distortion correction.
+
+        1. Skull-strip the opposite-direction phase encoding EPI.
+        2. Transform the opposite-direction phase encoding EPI to the
+           skull-stripped functional and pass this as the base_file to
+           AFNI 3dQWarp (plus-minus).
+        3. If there is a same-direction phase encoding EPI, also skull-strip
+           this, and transform it to the skull-stripped functional. Then, pass
+           this as the in_file to AFNI 3dQWarp (plus-minus).
+        4. If there isn't a same-direction, pass the functional in as the
+           in_file of AFNI 3dQWarp (plus-minus).
+        5. Convert the 3dQWarp transforms to ANTs/ITK format.
+        6. Use antsApplyTransforms, with the original functional as both the
+           input and the reference, and apply the warp from 3dQWarp. The
+           output of this can then proceed to func_preproc.
+
+    :param wf_name:
+    :return:
+    """
+
     wf = pe.Workflow(name=wf_name)
+
+    input_node = pe.Node(util.IdentityInterface(fields=['func_mean',
+                                                        'opposite_pe_epi',
+                                                        'same_pe_epi']),
+                         name='inputspec')
+
+    output_node = pe.Node(util.IdentityInterface(fields=['blip_warp',
+                                                         'new_func_mean',
+                                                         'new_func_mask']),
+                          name='outputspec')
+
+    skullstrip_opposite_pe = skullstrip_functional("afni",
+                                                   "{0}_skullstrip_opp_pe".format(wf_name))
+
+    wf.connect(input_node, 'opposite_pe_epi',
+               skullstrip_opposite_pe, 'inputspec.func')
+
+    opp_pe_to_func = pe.Node(interface=fsl.FLIRT(), name='opp_pe_to_func')
+    opp_pe_to_func.inputs.cost = 'corratio'
+
+    wf.connect(skullstrip_opposite_pe, 'outputspec.func_brain',
+               opp_pe_to_func, 'in_file')
+    wf.connect(input_node, 'func_mean', opp_pe_to_func, 'reference')
+
+    prep_qwarp_input_imports = ['import os', 'import subprocess']
+    prep_qwarp_input = \
+        pe.Node(function.Function(input_names=['same_pe_epi',
+                                               'func_mean'],
+                                  output_names=['qwarp_input'],
+                                  function=same_pe_direction_prep,
+                                  imports=prep_qwarp_input_imports),
+                name='prep_qwarp_input')
+
+    wf.connect(input_node, 'same_pe_epi', prep_qwarp_input, 'same_pe_epi')
+    wf.connect(input_node, 'func_mean', prep_qwarp_input, 'func_mean')
+
+    calc_blip_warp = pe.Node(afni.QwarpPlusMinus(), name='calc_blip_warp')
+    calc_blip_warp.inputs.plusminus = True
+    calc_blip_warp.inputs.outputtype = "NIFTI_GZ"
+    calc_blip_warp.inputs.out_file = os.path.abspath("Qwarp.nii.gz")
+
+    wf.connect(opp_pe_to_func, 'out_file', calc_blip_warp, 'base_file')
+    wf.connect(prep_qwarp_input, 'qwarp_input', calc_blip_warp, 'in_file')
+
+    convert_afni_warp_imports = ['import os', 'import nibabel as nb']
+    convert_afni_warp = \
+        pe.Node(function.Function(input_names=['afni_warp'],
+                                  output_names=['ants_warp'],
+                                  function=convert_afni_to_ants,
+                                  imports=convert_afni_warp_imports),
+                name='convert_afni_warp')
+
+    wf.connect(calc_blip_warp, 'source_warp', convert_afni_warp, 'afni_warp')
+
+    undistort_func_mean = create_wf_apply_ants_warp()
+    undistort_func_mean.inputs.inputspec.interpolation = "LanczosWindowedSinc"
+
+    wf.connect(input_node, 'func_mean',
+               undistort_func_mean, 'inputspec.input_image')
+    wf.connect(input_node, 'func_mean',
+               undistort_func_mean, 'inputspec.reference_image')
+    wf.connect(convert_afni_warp, 'ants_warp',
+               undistort_func_mean, 'inputspec.transforms')
+
+    create_new_mask = skullstrip_functional("afni",
+                                            "{0}_new_func_mask".format(wf_name))
+    wf.connect(undistort_func_mean, 'outputspec.output_image',
+               create_new_mask, 'inputspec.func')
+
+    wf.connect(convert_afni_warp, 'ants_warp', output_node, 'blip_warp')
+    wf.connect(undistort_func_mean, 'outputspec.output_image',
+               output_node, 'new_func_mean')
+    wf.connect(create_new_mask, 'outputspec.func_brain_mask',
+               output_node, 'new_func_mask')
+
     return wf

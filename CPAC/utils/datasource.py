@@ -256,6 +256,44 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
+def match_epi_fmaps(fmap_dct, bold_pedir):
+    """Parse the field map files in the data configuration and determine which
+    ones have the same and opposite phase-encoding directions as the BOLD scan
+    in the current pipeline.
+
+    Example - parse the files under the 'fmap' level, i.e. 'epi_AP':
+        anat: /path/to/T1w.nii.gz
+        fmap:
+          epi_AP:
+            scan: /path/to/field-map.nii.gz
+            scan_parameters: <config dictionary containing phase-encoding
+                              direction>
+        func:
+          rest_1:
+            scan: /path/to/bold.nii.gz
+            scan_parameters: <config dictionary of BOLD scan parameters>
+
+    1. Check PhaseEncodingDirection field in the metadata for the BOLD.
+    2. Check whether there are one or two EPI's in the field map data.
+    3. Grab the one or two EPI field maps.
+    """
+
+    opposite_pe_epi = None
+    same_pe_epi = None
+
+    for epi_scan_name in fmap_dct.keys():
+        if "scan_parameters" in fmap_dct[epi_scan_name].keys():
+            scan_params = fmap_dct[epi_scan_name]["scan_parameters"]
+            if "PhaseEncodingDirection" in scan_params:
+                epi_pedir = scan_params["PhaseEncodingDirection"]
+                if epi_pedir == bold_pedir:
+                    same_pe_epi = fmap_dct[epi_scan_name]["scan"]
+                elif epi_pedir[0] == bold_pedir[0]:
+                    opposite_pe_epi = fmap_dct[epi_scan_name]["scan"]
+
+    return (opposite_pe_epi, same_pe_epi)
+
+
 def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None):
 
     check_s3_node = pe.Node(function.Function(input_names=['file_path',
@@ -278,7 +316,8 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
 
 
 # Check if passed-in file is on S3
-def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
+def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
+                 verbose=False):
 
     # Import packages
     import os
@@ -308,15 +347,12 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
         local_path = file_path
         return local_path
 
-    # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
         
         file_path = s3_str + file_path[len(s3_str):]
 
         # Get bucket name and bucket object
         bucket_name = file_path[len(s3_str):].split('/')[0]
-        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-
         # Extract relative key path from bucket and local path
         s3_prefix = s3_str + bucket_name
         s3_key = file_path[len(s3_prefix) + 1:]
@@ -327,31 +363,35 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
         if not os.path.exists(local_dir):
             os.makedirs(local_dir)
 
-        # Download file
-        try:
-            print("Attempting to download from AWS S3: {0}".format(file_path))
-            bucket.download_file(Key=s3_key, Filename=local_path)
-        except botocore.exceptions.ClientError as exc:
-            error_code = int(exc.response['Error']['Code'])
+        if os.path.exists(local_path):
+            print("{0} already exists- skipping download.".format(local_path))
+        else:
+            # Download file
+            try:
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                print("Attempting to download from AWS S3: {0}".format(file_path))
+                bucket.download_file(Key=s3_key, Filename=local_path)
+            except botocore.exceptions.ClientError as exc:
+                error_code = int(exc.response['Error']['Code'])
 
-            err_msg = str(exc)
-            if error_code == 403:
-                err_msg = 'Access to bucket: "%s" is denied; using credentials '\
-                          'in subject list: "%s"; cannot access the file "%s"'\
-                          % (bucket_name, creds_path, file_path)
-            elif error_code == 404:
-                err_msg = 'File: {0} does not exist; check spelling and try '\
-                          'again'.format(os.path.join(bucket_name, s3_key))
-            else:
+                err_msg = str(exc)
+                if error_code == 403:
+                    err_msg = 'Access to bucket: "%s" is denied; using credentials '\
+                              'in subject list: "%s"; cannot access the file "%s"'\
+                              % (bucket_name, creds_path, file_path)
+                elif error_code == 404:
+                    err_msg = 'File: {0} does not exist; check spelling and try '\
+                              'again'.format(os.path.join(bucket_name, s3_key))
+                else:
+                    err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                              % (bucket_name, exc)
+
+                raise Exception(err_msg)
+
+            except Exception as exc:
                 err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
                           % (bucket_name, exc)
-            
-            raise Exception(err_msg)
-
-        except Exception as exc:
-            err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
-                      % (bucket_name, exc)
-            raise Exception(err_msg)
+                raise Exception(err_msg)
 
     # Otherwise just return what was passed in
     else:
@@ -360,6 +400,9 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
     # Check if it exists or it is sucessfuly downloaded
     if not os.path.exists(local_path):
         raise IOError('File %s does not exists!' % (local_path))
+
+    if verbose:
+        print("Downloaded file:\n{0}\n".format(local_path))
 
     # Check image dimensionality
     if local_path.endswith('.nii') or local_path.endswith('.nii.gz'):
