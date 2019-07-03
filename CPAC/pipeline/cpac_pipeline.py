@@ -3682,6 +3682,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             else:
                 plugin_args['status_callback'] = log_nodes_cb
 
+            if plugin_args['n_procs'] == 1:
+                plugin = 'Linear'
                 
             # Actually run the pipeline now, for the current subject
             workflow.run(plugin=plugin, plugin_args=plugin_args)
