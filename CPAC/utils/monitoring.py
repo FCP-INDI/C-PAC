@@ -111,7 +111,10 @@ class LoggingRequestHandler(SocketServer.BaseRequestHandler):
                     except:
                         break
 
-        self.request.sendall(json.dumps(tree))
+                tree = {s: t for s, t in tree if t}
+
+        headers = 'HTTP/1.1 200 OK\nConnection: close\n\n'
+        self.request.sendall(headers + json.dumps(tree))
 
 
 class LoggingHTTPServer(SocketServer.ThreadingTCPServer, object):
