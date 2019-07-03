@@ -109,7 +109,8 @@ from CPAC.utils.utils import (
     create_output_mean_csv,
     get_zscore,
     get_fisher_zscore,
-    add_afni_prefix
+    add_afni_prefix,
+    pick_wm
 )
 
 from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
