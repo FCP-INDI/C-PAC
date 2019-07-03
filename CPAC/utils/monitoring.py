@@ -130,7 +130,7 @@ class LoggingRequestHandler(SocketServer.BaseRequestHandler):
                     except:
                         break
 
-                tree = {s: t for s, t in tree if t}
+                tree = {s: t for s, t in tree.items() if t}
 
         headers = 'HTTP/1.1 200 OK\nConnection: close\n\n'
         self.request.sendall(headers + json.dumps(tree))
