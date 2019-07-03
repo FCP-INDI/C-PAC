@@ -105,7 +105,6 @@ from CPAC.utils.utils import (
     get_scan_params,
     get_tr,
     extract_txt,
-    create_log,
     extract_output_mean,
     create_output_mean_csv,
     get_zscore,
@@ -113,35 +112,10 @@ from CPAC.utils.utils import (
     add_afni_prefix
 )
 
+from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
+
 logger = logging.getLogger('nipype.workflow')
 # config.enable_debug_mode()
-
-# TODO ASH move to somewhere else
-def pick_wm(seg_prob_list):
-    seg_prob_list.sort()
-    return seg_prob_list[-1]
-
-
-def create_log_node(workflow, logged_wf, output, index, scan_id=None):
-    try:
-        log_dir = workflow.config['logging']['log_directory']
-        if logged_wf:
-            log_wf = create_log(wf_name='log_%s' % logged_wf.name)
-            log_wf.inputs.inputspec.workflow = logged_wf.name
-            log_wf.inputs.inputspec.index = index
-            log_wf.inputs.inputspec.log_dir = log_dir
-            workflow.connect(logged_wf, output, log_wf, 'inputspec.inputs')
-        else:
-            log_wf = create_log(wf_name='log_done_%s' % scan_id,
-                                scan_id=scan_id)
-            log_wf.base_dir = log_dir
-            log_wf.inputs.inputspec.workflow = 'DONE'
-            log_wf.inputs.inputspec.index = index
-            log_wf.inputs.inputspec.log_dir = log_dir
-            log_wf.inputs.inputspec.inputs = log_dir
-            return log_wf
-    except Exception as e:
-        print(e)
 
 
 def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
@@ -569,9 +543,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anatomical_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain')
             })
 
-            create_log_node(workflow, flirt_reg_anat_mni, 'outputspec.output_brain',
-                            num_strat)
-
     strat_list += new_strat_list
 
     new_strat_list = []
@@ -637,9 +608,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'anatomical_to_mni_nonlinear_xfm': (fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
                     'anatomical_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain')
                 }, override=True)
-
-                create_log_node(workflow, fnirt_reg_anat_mni, 'outputspec.output_brain',
-                                num_strat)
 
     strat_list += new_strat_list
 
@@ -770,10 +738,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # The Refit lesion is not added to the resource pool because
                 # it is not used afterward
 
-                # Not sure to understand how log nodes work yet
-                create_log_node(workflow, lesion_preproc,
-                                'inputspec.lesion', num_strat)
-
                 # Retieve the lesion mask from the resource pool
                 node, out_file = strat['lesion_mask']
                 # Set the lesion mask as input of lesion_preproc
@@ -805,9 +769,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anat_to_mni_ants_composite_xfm': (ants_reg_anat_mni, 'outputspec.composite_transform'),
                 'anatomical_to_standard': (ants_reg_anat_mni, 'outputspec.normalized_output_brain')
             })
-
-            create_log_node(workflow, ants_reg_anat_mni,
-                            'outputspec.normalized_output_brain', num_strat)
 
     strat_list += new_strat_list
 
@@ -872,10 +833,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     flirt_reg_anat_symm_mni, 'outputspec.output_brain')
                 })
 
-                create_log_node(workflow, flirt_reg_anat_symm_mni,
-                                'outputspec.output_brain',
-                                num_strat)
-
         strat_list += new_strat_list
 
         new_strat_list = []
@@ -937,10 +894,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'symmetric_anatomical_to_standard': (
                         fnirt_reg_anat_symm_mni, 'outputspec.output_brain')
                     }, override=True)
-
-                    create_log_node(workflow, fnirt_reg_anat_symm_mni,
-                                    'outputspec.output_brain',
-                                    num_strat)
 
         strat_list += new_strat_list
 
@@ -1065,10 +1018,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # The Refit lesion is not added to the resource pool because
                     # it is not used afterward
 
-                    # Not sure to understand how log nodes work yet
-                    create_log_node(workflow, lesion_preproc,
-                                    'inputspec.lesion', num_strat)
-
                     # Retieve the lesion mask from the resource pool
                     node, out_file = strat['lesion_mask']
                     # Set the lesion mask as input of lesion_preproc
@@ -1100,10 +1049,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'anat_to_symmetric_mni_ants_composite_xfm': (ants_reg_anat_symm_mni, 'outputspec.composite_transform'),
                     'symmetric_anatomical_to_standard': (ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain')
                 })
-
-                create_log_node(workflow, ants_reg_anat_symm_mni,
-                                'outputspec.normalized_output_brain',
-                                num_strat)
 
         strat_list += new_strat_list
 
@@ -1182,10 +1127,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
                 'seg_partial_volume_files': (seg_preproc, 'outputspec.partial_volume_files')
             })
-
-            create_log_node(workflow,
-                            seg_preproc, 'outputspec.partial_volume_map',
-                            num_strat)
 
     strat_list += new_strat_list
 
@@ -1497,9 +1438,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save')
                 })
 
-                create_log_node(workflow, func_preproc,
-                                'outputspec.preprocessed', num_strat)
-
         strat_list += new_strat_list
 
         new_strat_list = []
@@ -1535,9 +1473,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'motion_correct': (func_preproc, 'outputspec.motion_correct'),
                     'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
                 })
-
-                create_log_node(workflow, func_preproc, 'outputspec.preprocessed',
-                                num_strat)
 
         strat_list += new_strat_list
 
@@ -1631,8 +1566,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'functional_to_anat_linear_xfm': (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
                 })
 
-                # create_log_node(workflow, func_to_anat, 'outputspec.mni_func', num_strat)
-
         strat_list += new_strat_list
 
         # Func -> T1 Registration (BBREG)
@@ -1703,8 +1636,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         # apply field map distortion correction outputs to
                         # the func->anat registration
 
-                        func_to_anat_bbreg.inputs.echospacing_input.echospacing = c.fmap_distcorr_dwell_time[
-                            0]
+                        func_to_anat_bbreg.inputs.echospacing_input.echospacing = c.fmap_distcorr_dwell_time[0]
                         func_to_anat_bbreg.inputs.pedir_input.pedir = c.fmap_distcorr_pedir
 
                         node, out_file = strat["despiked_fieldmap"]
@@ -1728,8 +1660,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'mean_functional_in_anat': (func_to_anat_bbreg, 'outputspec.anat_func'),
                         'functional_to_anat_linear_xfm': (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')
                     }, override=True)
-
-                    # create_log_node(workflow, func_to_anat, 'outputspec.mni_func', num_strat)
 
                 else:
 
@@ -1910,15 +1840,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     node, out_file = strat["ica_aroma_denoised_functional"]
                     strat.set_leaf_properties(node, out_file)
-
-                    if c.aroma_denoise_type == 'nonaggr':
-                        create_log_node(workflow, aroma_preproc,
-                                        'outputspec.nonaggr_denoised_file',
-                                        num_strat)
-                    elif c.aroma_denoise_type == 'aggr':
-                        create_log_node(workflow, aroma_preproc,
-                                        'outputspec.aggr_denoised_file',
-                                        num_strat)
 
                     strat.append_name(aroma_preproc.name)
 
@@ -2146,10 +2067,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'functional_median_angle_corrected': (median_angle_corr, 'outputspec.subject')
                 })
 
-                create_log_node(workflow,
-                                median_angle_corr, 'outputspec.subject',
-                                num_strat)
-
         strat_list += new_strat_list
 
         for num_strat, strat in enumerate(strat_list):
@@ -2355,9 +2272,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     })
 
                     strat.append_name(func_mni_warp.name)
-                    create_log_node(workflow,
-                                    func_mni_warp, 'out_file',
-                                    num_strat)
 
             strat_list += new_strat_list
 
@@ -2385,9 +2299,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         "Linear", 3
                     )
 
-                    create_log_node(workflow, warp_func_wf,
-                                    'outputspec.output_image', num_strat)
-
                     # 4D FUNCTIONAL MOTION-CORRECTED apply warp
                     node, out_file = \
                         strat['motion_correct']
@@ -2403,9 +2314,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         "Linear", 3
                     )
 
-                    create_log_node(workflow, warp_motion_wf,
-                                    'outputspec.output_image', num_strat)
-
                     # FUNCTIONAL BRAIN MASK (binary, no timeseries) apply warp
                     node, out_file = \
                         strat["functional_brain_mask"]
@@ -2419,9 +2327,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         "NearestNeighbor", 0
                     )
 
-                    create_log_node(workflow, warp_mask_wf,
-                                    'outputspec.output_image', num_strat)
-
                     # FUNCTIONAL MEAN (no timeseries) apply warp
                     node, out_file = \
                         strat["mean_functional"]
@@ -2434,9 +2339,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         "mean_functional_to_standard",
                         "Linear", 0
                     )
-
-                    create_log_node(workflow, warp_mean_wf,
-                                    'outputspec.output_image', num_strat)
 
         strat_list += new_strat_list
         
@@ -2472,9 +2374,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'alff': (alff, 'outputspec.alff_img'),
                     'falff': (alff, 'outputspec.falff_img')
                 })
-
-                create_log_node(workflow,
-                                alff, 'outputspec.falff_img', num_strat)
 
         strat_list += new_strat_list
 
@@ -2564,9 +2463,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 strat.append_name(vmhc.name)
 
-                create_log_node(
-                    workflow, vmhc, 'outputspec.VMHC_FWHM_img', num_strat)
-
         strat_list += new_strat_list
 
         # Inserting REHO Workflow
@@ -2600,9 +2496,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'reho': (reho, 'outputspec.raw_reho_map')
                 })
                 
-                create_log_node(workflow, reho, 'outputspec.raw_reho_map',
-                                num_strat)
-
         ts_analysis_dict = {}
         sca_analysis_dict = {}
 
@@ -2744,9 +2637,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'spatial_map_timeseries': (spatial_map_timeseries, 'outputspec.subject_timeseries')
                     })
 
-                    create_log_node(workflow, spatial_map_timeseries,
-                                    'outputspec.subject_timeseries', num_strat)
-
                 if "DualReg" in sca_analysis_dict.keys():
                     resample_spatial_map_to_native_space_for_dr = pe.Node(
                         interface=fsl.FLIRT(),
@@ -2806,10 +2696,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'outputspec.subject_timeseries')
                     })
 
-                    create_log_node(workflow, spatial_map_timeseries_for_dr,
-                                    'outputspec.subject_timeseries',
-                                    num_strat)
-
         strat_list += new_strat_list
 
         if 1 in c.runROITimeseries and ("Avg" in ts_analysis_dict.keys() or \
@@ -2865,8 +2751,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
                         'functional_to_roi': (resample_functional_to_roi, 'out_file')
                     })
-                    create_log_node(workflow, roi_timeseries, 'outputspec.roi_outputs',
-                                    num_strat)
 
                 if "Avg" in sca_analysis_dict.keys():
 
@@ -2922,8 +2806,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'functional_to_roi_for_SCA': (resample_functional_to_roi, 'out_file')
 
                     })
-                    create_log_node(workflow, roi_timeseries_for_sca,
-                                    'outputspec.roi_outputs', num_strat)
 
                 if "MultReg" in sca_analysis_dict.keys():
 
@@ -2979,8 +2861,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     strat.update_resource_pool({
                         'roi_timeseries_for_SCA_multreg': (roi_timeseries_for_multreg, 'outputspec.roi_outputs')
                     })
-                    create_log_node(workflow, roi_timeseries_for_multreg,
-                                    'outputspec.roi_outputs', num_strat)
 
         strat_list += new_strat_list
 
@@ -3063,9 +2943,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')
                 })
 
-                create_log_node(workflow, voxel_timeseries,
-                                'outputspec.mask_outputs', num_strat)
-
         strat_list += new_strat_list
 
         # Inserting SCA workflow for ROI INPUT
@@ -3088,10 +2965,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 strat.update_resource_pool({
                     'sca_roi_files': (sca_roi, 'outputspec.correlation_files')
                 })
-
-                create_log_node(workflow,
-                                sca_roi, 'outputspec.correlation_stack',
-                                num_strat)
 
                 strat.append_name(sca_roi.name)
 
@@ -3132,9 +3005,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 strat.append_name(dr_temp_reg.name)
 
-                create_log_node(workflow, dr_temp_reg,
-                                'outputspec.temp_reg_map', num_strat)
-
         strat_list += new_strat_list
 
         # (Multiple Regression) Temporal Regression for SCA
@@ -3169,9 +3039,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'sca_tempreg_maps_files': (sc_temp_reg, 'outputspec.temp_reg_map_files'),
                     'sca_tempreg_maps_zstat_files': (sc_temp_reg, 'outputspec.temp_reg_map_z_files')
                 })
-
-                create_log_node(workflow, sc_temp_reg,
-                                'outputspec.temp_reg_map', num_strat)
 
                 strat.append_name(sc_temp_reg.name)
 
@@ -3804,13 +3671,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             handler = cb_logging.FileHandler(cb_log_filename)
             cb_logger.addHandler(handler)
 
-            # Log initial information from all the nodes
-            for node_name in workflow.list_node_names():
-                node = workflow.get_node(node_name)
-                cb_logger.debug(json.dumps({
-                    "id": str(node),
-                    "hash": node.inputs.get_hashval()[1],
-                }))
+            log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
             if nipype.__version__ not in ('1.1.2'):
@@ -3819,7 +3680,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             % (CPAC.__version__)
                 logger.error(err_msg)
             else:
-                from CPAC.utils.monitoring import log_nodes_cb
                 plugin_args['status_callback'] = log_nodes_cb
 
                 
@@ -3835,10 +3695,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             )
             with open(subject_info_file, 'wb') as info:
                 pickle.dump(subject_info, info)
-
-            for i, _ in enumerate(pipeline_ids):
-                for scan in scan_ids:
-                    create_log_node(workflow, None, None, i, scan).run()
 
             if 1 in c.generateQualityControlImages and not ndmg_out:
                 for pip_id in pipeline_ids:
