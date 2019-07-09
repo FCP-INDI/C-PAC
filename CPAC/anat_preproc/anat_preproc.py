@@ -4,6 +4,7 @@ from nipype.interfaces import afni
 from nipype.interfaces import fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+from nipype.interfaces.ants import N4BiasFieldCorrection
 
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 
@@ -98,13 +99,19 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')
 
+    n4 = pe.Node(
+        N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
+        name='anat_n4'
+    )
+    preproc.connect(anat_deoblique, 'out_file', n4, 'input_image')
+
     # Anatomical reorientation
     anat_reorient = pe.Node(interface=afni.Resample(),
                             name='anat_reorient')
 
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
-    preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
+    preproc.connect(n4, 'output_image', anat_reorient, 'in_file')
     preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
 
     if already_skullstripped:
@@ -170,42 +177,28 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                     function=create_3dskullstrip_arg_string),
                                       name='anat_skullstrip_args')
 
-            preproc.connect(inputnode_afni, 'shrink_factor',
-                            skullstrip_args, 'shrink_fac')
-            preproc.connect(inputnode_afni, 'var_shrink_fac',
-                            skullstrip_args, 'var_shrink_fac')
-            preproc.connect(inputnode_afni, 'shrink_fac_bot_lim',
-                            skullstrip_args, 'shrink_fac_bot_lim')
-            preproc.connect(inputnode_afni, 'avoid_vent',
-                            skullstrip_args, 'avoid_vent')
-            preproc.connect(inputnode_afni, 'niter',
-                            skullstrip_args, 'niter')
-            preproc.connect(inputnode_afni, 'pushout',
-                            skullstrip_args, 'pushout')
-            preproc.connect(inputnode_afni, 'touchup',
-                            skullstrip_args, 'touchup')
-            preproc.connect(inputnode_afni, 'fill_hole',
-                            skullstrip_args, 'fill_hole')
-            preproc.connect(inputnode_afni, 'avoid_eyes',
-                            skullstrip_args, 'avoid_eyes')
-            preproc.connect(inputnode_afni, 'use_edge',
-                            skullstrip_args, 'use_edge')
-            preproc.connect(inputnode_afni, 'exp_frac',
-                            skullstrip_args, 'exp_frac')
-            preproc.connect(inputnode_afni, 'smooth_final',
-                            skullstrip_args, 'smooth_final')
-            preproc.connect(inputnode_afni, 'push_to_edge',
-                            skullstrip_args, 'push_to_edge')
-            preproc.connect(inputnode_afni, 'use_skull',
-                            skullstrip_args, 'use_skull')
-            preproc.connect(inputnode_afni, 'perc_int',
-                            skullstrip_args, 'perc_int')
-            preproc.connect(inputnode_afni, 'max_inter_iter',
-                            skullstrip_args, 'max_inter_iter')
-            preproc.connect(inputnode_afni, 'blur_fwhm',
-                            skullstrip_args, 'blur_fwhm')
-            preproc.connect(inputnode_afni, 'fac',
-                            skullstrip_args, 'fac')
+            preproc.connect([
+                (inputnode_afni, skullstrip_args, [
+                    ('shrink_factor', 'shrink_fac'),
+                    ('var_shrink_fac', 'var_shrink_fac'),
+                    ('shrink_fac_bot_lim', 'shrink_fac_bot_lim'),
+                    ('avoid_vent', 'avoid_vent'),
+                    ('niter', 'niter'),
+                    ('pushout', 'pushout'),
+                    ('touchup', 'touchup'),
+                    ('fill_hole', 'fill_hole'),
+                    ('avoid_eyes', 'avoid_eyes'),
+                    ('use_edge', 'use_edge'),
+                    ('exp_frac', 'exp_frac'),
+                    ('smooth_final', 'smooth_final'),
+                    ('push_to_edge', 'push_to_edge'),
+                    ('use_skull', 'use_skull'),
+                    ('perc_int', 'perc_int'),
+                    ('max_inter_iter', 'max_inter_iter'),
+                    ('blur_fwhm', 'blur_fwhm'),
+                    ('fac', 'fac'),
+                ])
+            ])
 
             anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
                                       name='anat_skullstrip')
@@ -243,32 +236,23 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip, 'in_file')
 
-            preproc.connect(inputnode_bet, 'frac',
-                            anat_skullstrip, 'frac')
-            preproc.connect(inputnode_bet, 'mask_boolean',
-                            anat_skullstrip, 'mask')
-            preproc.connect(inputnode_bet, 'mesh_boolean',
-                            anat_skullstrip, 'mesh')
-            preproc.connect(inputnode_bet, 'outline',
-                            anat_skullstrip, 'outline')
-            preproc.connect(inputnode_bet, 'padding',
-                            anat_skullstrip, 'padding')
-            preproc.connect(inputnode_bet, 'radius',
-                            anat_skullstrip, 'radius')
-            preproc.connect(inputnode_bet, 'reduce_bias',
-                            anat_skullstrip, 'reduce_bias')
-            preproc.connect(inputnode_bet, 'remove_eyes',
-                            anat_skullstrip, 'remove_eyes')
-            preproc.connect(inputnode_bet, 'robust',
-                            anat_skullstrip, 'robust')
-            preproc.connect(inputnode_bet, 'skull',
-                            anat_skullstrip, 'skull')
-            preproc.connect(inputnode_bet, 'surfaces',
-                            anat_skullstrip, 'surfaces')
-            preproc.connect(inputnode_bet, 'threshold',
-                            anat_skullstrip, 'threshold')
-            preproc.connect(inputnode_bet, 'vertical_gradient',
-                            anat_skullstrip, 'vertical_gradient')
+            preproc.connect([
+                (inputnode_bet, anat_skullstrip, [
+                    ('frac', 'frac'),
+                    ('mask_boolean', 'mask'),
+                    ('mesh_boolean', 'mesh'),
+                    ('outline', 'outline'),
+                    ('padding', 'padding'),
+                    ('radius', 'radius'),
+                    ('reduce_bias', 'reduce_bias'),
+                    ('remove_eyes', 'remove_eyes'),
+                    ('robust', 'robust'),
+                    ('skull', 'skull'),
+                    ('surfaces', 'surfaces'),
+                    ('threshold', 'threshold'),
+                    ('vertical_gradient', 'vertical_gradient'),
+                ])
+            ])
 
             preproc.connect(anat_skullstrip, 'out_file',
                             outputnode, 'skullstrip')
