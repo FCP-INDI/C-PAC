@@ -395,30 +395,31 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         })
 
     templates_for_resampling = [
-        (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat'),
-        (c.resolution_for_anat, c.template_skull_for_anat, 'template_skull_for_anat'),
-        (c.resolution_for_anat, c.template_symmetric_brain_only, 'template_symmetric_brain'),
-        (c.resolution_for_anat, c.template_symmetric_skull, 'template_symmetric_skull'),
-        (c.resolution_for_anat, c.dilated_symmetric_brain_mask, 'template_dilated_symmetric_brain_mask'),
-        (c.resolution_for_anat, c.ref_mask, 'template_ref_mask'),
-        (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc'),
-        (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative'),
-        (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative')
+        (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
+        (c.resolution_for_anat, c.template_skull_for_anat, 'template_skull_for_anat', 'resolution_for_anat'),
+        (c.resolution_for_anat, c.template_symmetric_brain_only, 'template_symmetric_brain', 'resolution_for_anat'),
+        (c.resolution_for_anat, c.template_symmetric_skull, 'template_symmetric_skull', 'resolution_for_anat'),
+        (c.resolution_for_anat, c.dilated_symmetric_brain_mask, 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
+        (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
+        (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc')
     ]
 
     # update resampled template to resource pool
-    for resolution, template, template_name in templates_for_resampling:
+    for resolution, template, template_name, tag in templates_for_resampling:
         # print(resolution, template, template_name)
 
-        resampled_template = pe.Node(Function(input_names = ['resolution', 'template', 'template_name'], 
+        resampled_template = pe.Node(Function(input_names = ['resolution', 'template', 'template_name', 'tag'], 
                                             output_names = ['resampled_template'], 
                                             function = resolve_resolution), 
                                         name = 'resampled_' + template_name) 
         
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
-        resampled_template.inputs.template_name = template_name 
+        resampled_template.inputs.template_name = template_name
+        resampled_template.inputs.tag = tag 
 
         strat_initial.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
 
@@ -1569,6 +1570,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         strat_list += new_strat_list
 
 
+        # resample brain mask with derivative resolution
+        node, out_file = strat['functional_brain_mask']
+        resampled_template = pe.Node(Function(input_names = ['resolution', 'template', 'template_name'],
+                                            output_names = ['resampled_template'], 
+                                            function = resolve_resolution), 
+                                        name = 'functional_brain_mask_derivative') 
+
+        resampled_template.inputs.resolution = c.resolution_for_func_derivative
+        resampled_template.inputs.template_name = 'functional_brain_mask_derivative' 
+        workflow.connect(node, out_file, resampled_template, 'template')
+        
+        strat.update_resource_pool({'functional_brain_mask_derivative': (resampled_template, 'resampled_template')})
+
+
         # Func -> T1 Registration (Initial Linear reg)
 
         # Depending on configuration, either passes output matrix to
@@ -2462,16 +2477,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         "NearestNeighbor", 0
                     )
 
+                    create_log_node(workflow, warp_mask_wf,
+                                    'outputspec.output_image', num_strat)
+
+                    # FUNCTIONAL BRAIN MASK (with derivative resolution) apply warp
+                    node, out_file = strat['functional_brain_mask_derivative']
+
                     ants_apply_warps_func_mni(
                         workflow, strat, num_strat, num_ants_cores,
                         node, out_file,
                         node, out_file,
                         "functional_brain_mask_to_standard_derivative",
                         "NearestNeighbor", 0
-                    )
-
-                    create_log_node(workflow, warp_mask_wf,
-                                    'outputspec.output_image', num_strat)
+                    )            
 
                     # FUNCTIONAL MEAN (no timeseries) apply warp
                     node, out_file = \
@@ -3295,12 +3313,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_nonsmooth:
                             # template space
                             strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard", c.fwhm, # TODO: _derivative
+                                                "functional_brain_mask_to_standard_derivative", c.fwhm, # TODO: _derivative
                                                 strat, num_strat)
                         elif key in Outputs.template_nonsmooth_mult:
                             # template space with multiple files (map nodes)
                             strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard", c.fwhm, # TODO: _derivative
+                                                "functional_brain_mask_to_standard_derivative", c.fwhm, # TODO: _derivative
                                                 strat, num_strat, map_node=True)
 
                 if 1 in c.runZScoring:
@@ -3322,13 +3340,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_raw:
                             # raw score, in template space
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard", # TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", # TODO: _derivative
                                                         strat, num_strat)
 
                         elif key in Outputs.template_raw_mult:
                             # same as above but multiple files so mapnode required
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard", # TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", # TODO: _derivative
                                                         strat, num_strat,
                                                         map_node=True)
 
@@ -3666,8 +3684,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     except:
                         pass
 
-                    anat_res_tag = c.resolution_for_anat
-                    func_res_tag = c.resolution_for_func_preproc
+                    anat_res_tag = c.resolution_for_anat.replace('mm','')
+                    func_res_tag = c.resolution_for_func_preproc.replace('mm','')
 
                     ndmg_key_dct = {
                         'anatomical_brain': (
@@ -3867,6 +3885,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     "hash": node.inputs.get_hashval()[1],
                 }))
 
+
+            plugin_args = {}
             # Add status callback function that writes in callback log
             if nipype.__version__ not in ('1.1.2'):
                 err_msg = "This version of Nipype may not be compatible with " \
@@ -3879,7 +3899,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 
             # Actually run the pipeline now, for the current subject
-            workflow.run(plugin=plugin, plugin_args=plugin_args)
+            workflow.run(plugin='Linear', plugin_args=plugin_args)
 
 
             # Dump subject info pickle file to subject log dir

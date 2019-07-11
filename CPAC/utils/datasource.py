@@ -383,27 +383,37 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
     return local_path
 
 
-def resolve_resolution(resolution, template, template_name):
+def resolve_resolution(resolution, template, template_name, tag = None):
 
     import nipype.interfaces.afni as afni
     import nipype.pipeline.engine as pe
     from CPAC.utils.datasource import check_for_s3
 
+    tagname = None
+    if tag is not None:
+        tagname = "${" + tag + "}"
+
+    local_path = None 
+
     try:
-        resolution_as_string = template[template.index('T1_') + 3: template.index('mm')] 
-        local_path = check_for_s3(template.replace(resolution_as_string, str(resolution)))
+        if tagname is not None:
+            local_path = check_for_s3(template.replace(tagname, str(resolution)))
+
     except IOError:
         local_path = None  
     
     if local_path is None:
-        resolution_as_string = template[template.index('T1_') + 3: template.index('mm')] 
-        ref_template = template.replace(resolution_as_string, '1')
-        local_path = check_for_s3(ref_template)
-
-        if not isinstance(resolution, str):
-            resolution = (resolution,)*3 
+        if tagname is not None:
+            ref_template = template.replace(tagname, '1mm') 
+            local_path = check_for_s3(ref_template)
         else:
-            resolution = tuple(float (i) for i in resolution.split("x"))
+            local_path = template    
+
+        if "x" in resolution:
+            resolution = tuple(i.replace('mm', '') for i in resolution.split("x"))
+            resolution = tuple(float(i) for i in resolution)
+        else:
+            resolution = (float(resolution.replace('mm', '')),)*3
 
         resample = pe.Node(interface = afni.Resample(), name=template_name)
         resample.inputs.voxel_size = resolution
