@@ -2488,7 +2488,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node, out_file,
                         node, out_file,
                         "functional_brain_mask_to_standard_derivative",
-                        "NearestNeighbor", 0
+                        "NearestNeighbor", 0,
+                        "template_brain_for_func_derivative"
                     )            
 
                     # FUNCTIONAL MEAN (no timeseries) apply warp

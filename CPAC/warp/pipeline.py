@@ -50,13 +50,10 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
 
         apply_ants_warp.inputs.inputspec.dimension = 3
         apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
-        # apply_ants_warp.inputs.inputspec.reference_image = \
-        #     pipeline_config_obj.template_brain_only_for_func
 
         apply_ants_warp.inputs.inputspec.input_image_type = \
             input_image_type
 
-        # 
         node, out_file = strat['template_brain_for_func_derivative'] 
         workflow.connect(node, out_file, apply_ants_warp, 'inputspec.reference_image')
 
@@ -132,10 +129,6 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
                                         name='{0}_to_standard_{1}'.format(output_name,
                                                                         num_strat))
 
-        # apply_fsl_warp.inputs.ref_file = \
-        #     pipeline_config_obj.template_skull_for_func
-
-        # 
         node, out_file = strat['template_skull_for_func_derivative'] 
         workflow.connect(node, out_file, apply_fsl_warp, 'ref_file')
 
@@ -346,7 +339,7 @@ def ants_apply_warps_func_mni(
         input_node, input_outfile,
         ref_node, ref_outfile, 
         func_name, interp,
-        input_image_type
+        input_image_type, template_brain_name='template_brain_for_func_preproc'
     ):
     """Apply the functional-to-structural and structural-to-template warps to
     the 4D functional time-series to warp it to template space.
@@ -416,7 +409,7 @@ def ants_apply_warps_func_mni(
     apply_ants_warp_func_mni.inputs.inputspec. \
         input_image_type = input_image_type
 
-    node, out_file = strat['template_brain_for_func_preproc']
+    node, out_file = strat[template_brain_name]
     workflow.connect(node, out_file, apply_ants_warp_func_mni, 'inputspec.reference_image')
 
     # convert the .mat from linear Func->Anat to
