@@ -373,7 +373,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if 'anatomical_brain_mask' in strat:
 
             anat_preproc = create_anat_preproc(method='mask',
-                                               wf_name='anat_preproc_mask_%d' % num_strat)
+                                               wf_name='anat_preproc_mask_%d' % num_strat,
+                                               non_local_means_filtering=c.non_local_means_filtering,
+                                               n4_correction=c.n4_bias_field_correction)
 
             new_strat = strat.fork()
             node, out_file = new_strat['anatomical']
@@ -397,7 +399,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             anat_preproc = create_anat_preproc(method=None,
                                                already_skullstripped=True,
-                                               wf_name='anat_preproc_already_%d' % num_strat)
+                                               wf_name='anat_preproc_already_%d' % num_strat,
+                                               non_local_means_filtering=c.non_local_means_filtering,
+                                               n4_correction=c.n4_bias_field_correction)
 
             new_strat = strat.fork()
             node, out_file = new_strat['anatomical']
@@ -424,7 +428,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             if "AFNI" in c.skullstrip_option:
 
                 anat_preproc = create_anat_preproc(method='afni',
-                                                   wf_name='anat_preproc_afni_%d' % num_strat)
+                                                   wf_name='anat_preproc_afni_%d' % num_strat,
+                                                   non_local_means_filtering=c.non_local_means_filtering,
+                                                   n4_correction=c.n4_bias_field_correction)
 
                 anat_preproc.inputs.AFNI_options.set(
                     shrink_factor=c.skullstrip_shrink_factor,
@@ -462,7 +468,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "BET" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='fsl',
-                                                   wf_name='anat_preproc_bet_%d' % num_strat)
+                                                   wf_name='anat_preproc_bet_%d' % num_strat,
+                                                   non_local_means_filtering=c.non_local_means_filtering,
+                                                   n4_correction=c.n4_bias_field_correction)
 
                 anat_preproc.inputs.BET_options.set(
                     frac=c.bet_frac,

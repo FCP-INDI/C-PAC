@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 
 from nipype.interfaces import afni
+from nipype.interfaces import ants
 from nipype.interfaces import fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-from nipype.interfaces.ants import N4BiasFieldCorrection
+# from nipype.interfaces.ants import DenoiseImage
+# from nipype.interfaces.ants import N4BiasFieldCorrection
 
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 
 
 def create_anat_preproc(method='afni', already_skullstripped=False,
+                        non_local_means_filtering=True, n4_correction=True,
                         wf_name='anat_preproc'):
     """ 
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
@@ -99,19 +102,34 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')
 
-    n4 = pe.Node(
-        N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
-        name='anat_n4'
-    )
-    preproc.connect(anat_deoblique, 'out_file', n4, 'input_image')
-
+    if non_local_means_filtering and n4_correction:
+        denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
+        preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
+        n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
+            name='anat_n4')
+        preproc.connect(denoise, 'output_image', n4, 'input_image')
+    elif non_local_means_filtering and not n4_correction:
+        denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
+        preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
+    elif not non_local_means_filtering and n4_correction:
+        n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
+            name='anat_n4')
+        preproc.connect(anat_deoblique, 'out_file', n4, 'input_image')
+       
     # Anatomical reorientation
     anat_reorient = pe.Node(interface=afni.Resample(),
                             name='anat_reorient')
 
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
-    preproc.connect(n4, 'output_image', anat_reorient, 'in_file')
+    
+    if n4_correction:
+        preproc.connect(n4, 'output_image', anat_reorient, 'in_file')
+    elif non_local_means_filtering and not n4_correction:
+        preproc.connect(denoise, 'output_image', anat_reorient, 'in_file')
+    else:
+        preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
+
     preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
 
     if already_skullstripped:
