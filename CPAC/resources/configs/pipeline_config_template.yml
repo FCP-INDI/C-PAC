@@ -101,6 +101,14 @@ run_logging :  True
 reGenerateOutputs :  False
 
 
+# Disable anatomical preprocessing to analyze rodent data 
+run_anat_preproc: [0]
+
+
+# Disable anatomical registration to analyze rodent data
+run_anat_registration: [0]
+
+
 # Create a user-friendly, well organized version of the output directory.
 runSymbolicLinks :  [1]
 
