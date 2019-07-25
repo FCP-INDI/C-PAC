@@ -538,7 +538,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     # either run FSL anatomical-to-MNI registration, or...
 
-    if 1 in c.run_anat_registration:
+    if 1 in c.run_anat_registration and c.registration_target == "anat":
 
         if 'FSL' in c.regOption:
             for num_strat, strat in enumerate(strat_list):
@@ -1711,7 +1711,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         new_strat_list = []
 
         # Functional Registration to a Functional Template (optional)
-        if 1 in c.run_func_only_registration:
+        if c.registration_target == "func":
 
             if 'FSL' in c.regOption:
                 for num_strat, strat in enumerate(strat_list):
@@ -1720,7 +1720,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'func_template_flirt_register_{0}'.format(num_strat)
                     )
 
-                    node, out_file = strat['anatomical_brain']
+                    node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
                                      flirt_reg_func_template,
                                      'inputspec.input_brain')
@@ -1773,7 +1773,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             'anat_mni_fnirt_register_{0}'.format(num_strat)
                         )
 
-                        node, out_file = strat['anatomical_brain']
+                        node, out_file = strat['mean_functional']
                         workflow.connect(node, out_file,
                                          fnirt_reg_func_template,
                                          'inputspec.input_brain')
@@ -1784,12 +1784,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             fnirt_reg_func_template, 'inputspec.reference_brain'
                         )
 
-                        node, out_file = strat['anatomical_reorient']
+                        node, out_file = strat['mean_functional']
                         workflow.connect(node, out_file,
                                          fnirt_reg_func_template,
                                          'inputspec.input_skull')
 
-                        node, out_file = strat['anatomical_to_mni_linear_xfm']
+                        node, out_file = strat['functional_to_template_linear_xfm']
                         workflow.connect(node, out_file,
                                          fnirt_reg_func_template,
                                          'inputspec.linear_aff')
@@ -2408,11 +2408,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 nodes = strat.get_nodes_names()
 
-                if 1 in c.run_anat_registration:
+                if c.registration_target == "anat":
                     flirt_connected = 'anat_mni_flirt_register' in nodes
                     fnirt_connected = 'anat_mni_fnirt_register' in nodes
                     xfm_direction = "anatomical_to_mni"
-                if 0 in c.run_func_only_registration:
+                elif c.registration_target == "func":
                     flirt_connected = 'func_template_flirt_register' in nodes
                     fnirt_connected = 'func_template_fnirt_register' in nodes
                     xfm_direction = "func_to_template"
@@ -2429,7 +2429,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     functional_brain_mask_to_standard.inputs.interp = 'nn'
                     functional_brain_mask_to_standard.inputs.ref_file = c.template_skull_for_func
 
-                    if 1 in c.run_anat_registration:
+                    if c.registration_target == "anat":
                         mean_functional_warp = pe.Node(
                             interface=fsl.ApplyWarp(),
                             name='mean_func_fsl_warp_{0}'.format(num_strat)
@@ -2453,7 +2453,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          motion_correct_warp, 'field_file')
 
-                        if 1 in c.run_anat_registration:
+                        if c.registration_target == "anat":
                             node, out_file = strat['functional_to_anat_linear_xfm']
                             workflow.connect(node, out_file,
                                              func_mni_warp, 'premat')
@@ -2525,7 +2525,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          motion_correct_to_anat_warp, 'ref_file')
 
-                        if 1 in c.run_anat_registration:
+                        if c.registration_target == "anat":
                             node, out_file = strat['functional_to_anat_linear_xfm']
                             workflow.connect(node, out_file,
                                              func_anat_warp, 'premat')
@@ -2559,7 +2559,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          motion_correct_warp, 'premat')
 
-                    if 1 in c.run_anat_registration:
+                    if c.registration_target == "anat":
                         strat.update_resource_pool({
                             'mean_functional_to_standard': (
                             mean_functional_warp, 'out_file')
@@ -2638,7 +2638,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     create_log_node(workflow, warp_mask_wf,
                                     'outputspec.output_image', num_strat)
 
-                    if 1 in c.run_anat_registration:
+                    if c.registration_target == "anat":
                         # FUNCTIONAL MEAN (no timeseries) apply warp
                         node, out_file = \
                             strat["mean_functional"]

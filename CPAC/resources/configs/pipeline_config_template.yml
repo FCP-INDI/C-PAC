@@ -290,6 +290,15 @@ ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_di
 regWithSkull :  [0]
 
 
+# Anatomical-to-standard or Functional-to- functional-standard registration.
+# Options:
+#   "anat": anatomical brain registered to anatomical template
+#   "func": functional mean registered to functional template
+#           NOTE: (for functional-only pipelines, i.e. rodent data)
+#           NOTE: must use a functional template!
+registration_target : "anat"
+
+
 # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
 runSegmentationPreprocessing :  [1]
 
@@ -410,9 +419,6 @@ func_reg_input_volume :  0
 
 # Choose which tool to be used in functional masking - AFNI 3dAutoMask or FSL BET.
 functionalMasking :  ['3dAutoMask']
-
-
-run_func_only_registration : [0]
 
 
 # Register functional images to a standard template.

@@ -107,6 +107,10 @@ removeWorkingDir :  True
 reGenerateOutputs :  False
 
 
+# Run anatomical preprocessing. Disable this if you want to run a functional-only pipeline.
+run_anat_preproc: [1]
+
+
 # Choice of using AFNI or FSL-BET to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
@@ -239,6 +243,10 @@ bet_threshold :  Off
 bet_vertical_gradient : 0.0
 
 
+# Run anatomical-to-template registration. Disable this if you want to run a functional-only pipeline.
+run_anat_registration: [1]
+
+
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
 resolution_for_anat :  2mm
@@ -282,6 +290,15 @@ regWithSkull :  [1]
 
 # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.
 already_skullstripped :  [0]
+
+
+# Anatomical-to-standard or Functional-to- functional-standard registration.
+# Options:
+#   "anat": anatomical brain registered to anatomical template
+#   "func": functional mean registered to functional template
+#           NOTE: (for functional-only pipelines, i.e. rodent data)
+#           NOTE: must use a functional template!
+registration_target : "anat"
 
 
 # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
@@ -400,7 +417,7 @@ functionalMasking :  ['3dAutoMask']
 
 # Register functional images to a standard MNI152 template.
 # This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
-runRegisterFuncToMNI :  [1]
+run_warp_func_to_template :  [1]
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
