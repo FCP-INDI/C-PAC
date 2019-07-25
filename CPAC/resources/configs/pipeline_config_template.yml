@@ -101,12 +101,8 @@ run_logging :  True
 reGenerateOutputs :  False
 
 
-# Disable anatomical preprocessing to analyze rodent data 
-run_anat_preproc: [0]
-
-
-# Disable anatomical registration to analyze rodent data
-run_anat_registration: [0]
+# Run anatomical preprocessing. Disable this if you want to run a functional-only pipeline.
+run_anat_preproc: [1]
 
 
 # Create a user-friendly, well organized version of the output directory.
@@ -249,6 +245,10 @@ bet_threshold :  Off
 bet_vertical_gradient : 0.0
 
 
+# Run anatomical-to-template registration. Disable this if you want to run a functional-only pipeline.
+run_anat_registration: [1]
+
+
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
 resolution_for_anat :  2mm
@@ -269,7 +269,7 @@ regOption :  ['ANTS']
 
 
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
-use_lesion_mask : [1]
+use_lesion_mask : [0]
 
 
 # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
@@ -412,9 +412,12 @@ func_reg_input_volume :  0
 functionalMasking :  ['3dAutoMask']
 
 
-# Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
-runRegisterFuncToMNI :  [1]
+run_func_only_registration : [0]
+
+
+# Register functional images to a standard template.
+# This option must be enabled if you wish to transform any derivatives to standard/template space. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
+run_warp_func_to_template :  [1]
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.

@@ -523,6 +523,34 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     return file_paths, config_dict
 
 
+def create_cpac_bids_sublist(bids_dir, aws_input_creds=None,
+                             participant_label=None):
+
+    import sys
+
+    (file_paths, config) = collect_bids_files_configs(bids_dir, aws_input_creds)
+
+    if participant_label:
+        pt_file_paths = []
+        for pt in participant_label:
+
+            if 'sub-' not in pt:
+                pt = 'sub-' + pt
+
+            pt_file_paths += [fp for fp in file_paths if pt in fp]
+
+        file_paths = pt_file_paths
+
+    if not file_paths:
+        print("Did not find any files to process")
+        sys.exit(1)
+
+    sub_list = bids_gen_cpac_sublist(bids_dir, file_paths, config,
+                                     aws_input_creds)
+
+    return sub_list
+
+
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
 
     (img_files, config) = collect_bids_files_configs(bids_dir, creds_path)
