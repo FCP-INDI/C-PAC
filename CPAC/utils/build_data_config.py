@@ -1632,18 +1632,10 @@ def util_copy_template(template_type=None):
               "under 'Pipelines'.\n")
 
 
-def run(data_settings_yml):
-    """Generate and write out a CPAC data configuration (participant list)
-    YAML file."""
-
+def build_data_config(settings_dct):
     import os
     import yaml
     import CPAC
-
-    print "\nGenerating data configuration file.."
-
-    with open(data_settings_yml, "r") as f:
-        settings_dct = yaml.load(f)
 
     if "awsCredentialsFile" not in settings_dct or \
             not settings_dct["awsCredentialsFile"]:
@@ -1658,6 +1650,9 @@ def run(data_settings_yml):
     elif "None" in settings_dct["anatomical_scan"] or \
             "none" in settings_dct["anatomical_scan"]:
         settings_dct["anatomical_scan"] = None
+
+    if 'brain_mask_template' not in settings_dct:
+        settings_dct['brain_mask_template'] = None
 
     # inclusion lists
     incl_dct = format_incl_excl_dct(settings_dct.get('siteList', None), 'sites')
@@ -1821,3 +1816,15 @@ def run(data_settings_yml):
         err = "\n\n[!] No anatomical input files were found given the data " \
               "settings provided.\n\n"
         raise Exception(err)
+
+
+def run(data_settings_yaml):
+    """Generate and write out a CPAC data configuration (participant list)
+    YAML file."""
+
+    from CPAC.utils.utils import read_yaml
+
+    print "\nGenerating data configuration file.."
+
+    settings_dct = read_yaml(data_settings_yaml)
+    build_data_config(settings_dct)
