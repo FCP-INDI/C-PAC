@@ -4,6 +4,13 @@ import threading
 from inspect import currentframe, getframeinfo , stack
 
 
+def read_yaml(yaml_file):
+    import yaml
+    with open(yaml_file, 'r') as f:
+        dct = yaml.load(f)
+    return dct
+
+
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
     """
     Workflow to calculate z-scores

@@ -438,21 +438,22 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     sublist = []
     for ksub, sub in subdict.iteritems():
         for kses, ses in sub.iteritems():
-            if "anat" in ses and "func" in ses:
+            if "anat" in ses or "func" in ses:
                 sublist.append(ses)
-            else:
-                if "anat" not in ses:
-                    print("%s %s %s is missing an anat" % (
-                        ses["site_id"] if 'none' not in ses["site_id"] else '',
-                        ses["subject_id"],
-                        ses["unique_id"]
-                    ))
-                if "func" not in ses:
-                    print("%s %s %s is missing an func" % (
-                        ses["site_id"] if 'none' not in ses["site_id"] else '',
-                        ses["subject_id"],
-                        ses["unique_id"]
-                    ))
+
+            if "anat" not in ses:
+                print("%s %s %s is missing an anat" % (
+                    ses["site_id"] if 'none' not in ses["site_id"] else '',
+                    ses["subject_id"],
+                    ses["unique_id"]
+                ))
+
+            if "func" not in ses:
+                print("%s %s %s is missing a func" % (
+                    ses["site_id"] if 'none' not in ses["site_id"] else '',
+                    ses["subject_id"],
+                    ses["unique_id"]
+                ))
 
     return sublist
 

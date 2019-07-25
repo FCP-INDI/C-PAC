@@ -359,6 +359,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     if 1 in c.run_anat_preproc:
 
+        if "anat" not in sub_dict.keys():
+            warn_msg = "\n\n[!] Participant-session {0} does not have an " \
+                       "anatomical/structural T1w file. Skipping this " \
+                       "participant-session.\n\nIf you do not intend to run "\
+                       "anatomical preprocessing, make sure it is turned " \
+                       "off in the pipeline configuration." \
+                       "\n\n".format(subject_id)
+            logger.warn(warn_msg)
+            raise Exception(warn_msg)
+
         anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
         anat_flow.inputs.inputnode.subject = subject_id
         anat_flow.inputs.inputnode.anat = sub_dict['anat']

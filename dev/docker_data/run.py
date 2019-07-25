@@ -480,6 +480,7 @@ if "s3://" not in args.output_dir.lower():
 else:
     data_config_file = os.path.join("/scratch", data_config_file)
 
+
 with open(data_config_file, 'w') as f:
     # Avoid dict/list references
     noalias_dumper = yaml.dumper.SafeDumper
