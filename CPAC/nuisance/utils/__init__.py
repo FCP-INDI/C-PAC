@@ -664,3 +664,6 @@ class NuisanceRegressor(object):
             self.selector,
             self.selectors,
         )
+
+    def __delitem__(self, key):
+        del self.selector[key]

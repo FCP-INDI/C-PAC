@@ -323,6 +323,17 @@ runFunctional: [1]
 slice_timing_correction :  [1]
 
 
+# Run 3D despike
+func_despike: [1]
+
+
+# Rescale data, set 10 for mouse data
+rescale_data: False
+
+
+scale_factor: 1
+
+
 # Specify the TR (in seconds) at which images were acquired.
 # Default is None- TR information is then read from scan parameters in the data configuration file, or the image file header if there is no scan information in the data configuration.
 # Note: the selection chosen here applies to all scans of all participants.
@@ -392,7 +403,7 @@ runRegisterFuncToAnat :  [1]
 
 
 # Run Functional to Anatomical Registration with BB Register
-runBBReg :  [1]
+runBBReg :  [0]
 
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.

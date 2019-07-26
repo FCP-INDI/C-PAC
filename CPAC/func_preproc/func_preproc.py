@@ -109,7 +109,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(use_bet=False, wf_name='func_preproc'):
+def create_func_preproc(use_bet=False, scale_data=False, scale_factor = 1, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -306,6 +306,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['refit',
+                                                         'rescale',
                                                          'reorient',
                                                          'reorient_mean',
                                                          'motion_correct',
@@ -341,6 +342,12 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
 
     preproc.connect(func_reorient, 'out_file',
                     output_node, 'reorient')
+    
+    if not scale_data:
+        func_rescale = pe.Node(interface=afni_utils.Refit(),
+                                name='func_rescale')
+        func_rescale.inputs.xyzscale = scale_factor                         
+        preproc.connect(func_reorient, 'out_file', output_node, 'rescale')                         
 
     func_get_mean_RPI = pe.Node(interface=afni_utils.TStat(),
                                 name='func_get_mean_RPI')
@@ -497,6 +504,15 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
 
     return preproc
 
+def despike_wf(name='3d_despike'):
+    wf = pe.Workflow(name=name)
+    inputNode = pe.Node(util.IdentityInterface(fields=['func_ts']), name='inputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['despiked_ts']), name='outputspec')
+    func_3d_despike = pe.Node(interface=preprocess.Despike(), name='3d_despike')
+    wf.connect(inputNode, 'func_ts', func_3d_despike, 'in_file')
+    wf.connect(func_3d_despike, 'out_file',
+               outputNode, 'despiked_ts')
+    return wf
 
 def slice_timing_wf(name='slice_timing'):
 

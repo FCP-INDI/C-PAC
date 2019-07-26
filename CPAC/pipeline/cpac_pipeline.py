@@ -41,6 +41,7 @@ from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
+    despike_wf,
     slice_timing_wf,
     create_wf_edit_func
 )
@@ -353,7 +354,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     strat_initial = Strategy()
     # The list of strategies that will be shared all along the pipeline creation
-    strat_list = []
+    strat_list = [strat_initial]
 
     num_strat = 0
 
@@ -402,8 +403,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             strat_initial.update_resource_pool({
                 'lesion_mask': (lesion_datasource, 'outputspec.anat')
             })
-
-        strat_list += [strat_initial]
 
         new_strat_list = []
 
@@ -532,7 +531,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     new_strat_list += [new_strat]
 
-    strat_list = new_strat_list
+        strat_list = new_strat_list
 
     new_strat_list = []
 
@@ -1378,6 +1377,25 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
+        # 3d Despike Workflow
+        new_strat_list = []
+
+        # import pdb; pdb.set_trace()
+
+        if 1 in c.func_despike:
+            for num_strat, strat in enumerate(strat_list):
+                despike = despike_wf(name='func_3d_despike_{0}'.format(num_strat))
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file, despike,
+                                'inputspec.func_ts')
+                strat.append_name(despike.name)
+                strat.set_leaf_properties(despike, 'outputspec.despiked_ts')
+                strat.update_resource_pool({
+                    'despiked': (despike, 'outputspec.despiked_ts')
+                })
+
+        strat_list += new_strat_list
+
 
         # Slice Timing Correction Workflow
         new_strat_list = []
@@ -1389,6 +1407,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 slice_time = slice_timing_wf(name='func_slice_timing_correction_{0}'.format(num_strat))
 
                 node, out_file = strat.get_leaf_properties()
+
                 workflow.connect(node, out_file, slice_time,
                                 'inputspec.func_ts')
 
@@ -1927,12 +1946,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 
-                    node, out_file = new_strat['anatomical_brain']
-                    # node, out_file = new_strat['functional_brain']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_workflow, 'inputspec.anatomical_file_path'
-                    )
+                    if 'anatomical_brain' in new_strat:
+                        node, out_file = new_strat['anatomical_brain']
+                        # node, out_file = new_strat['functional_brain']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow, 'inputspec.anatomical_file_path'
+                        )
+                    else:
+                        for key in regressors_selector:
+                            if 'extraction_resolution' in key:
+                                del key['extraction_resolution']
 
                     if has_segmentation:
 
