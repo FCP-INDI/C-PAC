@@ -408,28 +408,10 @@ if args.analysis_level == "group":
 # otherwise we move on to conforming the data configuration
 if not args.data_config_file:
 
-    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
+    from bids_utils import create_cpac_bids_sublist
 
-    (file_paths, config) = collect_bids_files_configs(args.bids_dir, args.aws_input_creds)
-
-    if args.participant_label:
-
-        pt_file_paths = []
-        for pt in args.participant_label:
-
-            if 'sub-' not in pt:
-                pt = 'sub-' + pt
-
-            pt_file_paths += [fp for fp in file_paths if pt in fp]
-
-        file_paths = pt_file_paths
-
-    if not file_paths:
-        print("Did not find any files to process")
-        sys.exit(1)
-
-    sub_list = bids_gen_cpac_sublist(args.bids_dir, file_paths, config,
-                                     args.aws_input_creds)
+    sub_list = create_cpac_bids_sublist(args.bids_dir, args.aws_input_creds,
+                                        args.participant_label)
 
     if not sub_list:
         print("Did not find data in {0}".format(args.bids_dir))

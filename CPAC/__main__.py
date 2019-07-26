@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import CPAC
 import click
 
 # CLI tree
@@ -350,14 +351,27 @@ def build_from_settings(data_settings_file):
 @data_config.command()
 @click.argument('bids_dir')
 @click.argument('data_config_name')
-def build_from_bids(bids_dir, data_config_name):
+@click.option('--aws_input_creds', default=None)
+def build_from_bids(bids_dir, data_config_name, aws_input_creds=None):
     import os
-    from CPAC.utils.build_data_config import build_data_config
-    settings_dct = {'dataFormat': 'BIDS',
-                    'bidsBaseDir': bids_dir,
-                    'outputSubjectListLocation': os.getcwd(),
-                    'subjectListName': data_config_name}
-    build_data_config(settings_dct)
+    import yaml
+    from CPAC.utils.bids_utils import create_cpac_bids_sublist
+    sublist = create_cpac_bids_sublist(bids_dir, aws_input_creds)
+    sublist_file = os.path.join(os.getcwd(),
+                                "data_config_{0}.yml".format(data_config_name))
+    with open(sublist_file, 'wt') as f:
+        # Make sure YAML doesn't dump aliases (so it's more human
+        # read-able)
+        f.write("# CPAC Data Configuration File\n# Version {0}"
+                "\n".format(CPAC.__version__))
+        f.write("#\n# http://fcp-indi.github.io for more info.\n#\n"
+                "# Tip: This file can be edited manually with "
+                "a text editor for quick modifications.\n\n")
+        noalias_dumper = yaml.dumper.SafeDumper
+        noalias_dumper.ignore_aliases = lambda self, data: True
+        f.write(yaml.dump(sublist, default_flow_style=False,
+                          Dumper=noalias_dumper))
+    print("\nData configuration file written:\n{0}\n".format(sublist_file))
 
 
 @utils.group()

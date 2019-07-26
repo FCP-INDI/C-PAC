@@ -249,7 +249,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     if not base_path.endswith('/'):
         base_path = base_path + '/'
 
-    # output directories are a bit different than standard BIDS, so 
+    # output directories are a bit different than standard BIDS, so
     # we handle things differently
 
     for p in paths_list:
@@ -530,6 +530,34 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                       "empty.".format(bids_dir))
 
     return file_paths, config_dict
+
+
+def create_cpac_bids_sublist(bids_dir, aws_input_creds, participant_label):
+    import sys
+
+    (file_paths, config) = collect_bids_files_configs(bids_dir,
+                                                      aws_input_creds)
+
+    if participant_label:
+
+        pt_file_paths = []
+        for pt in participant_label:
+
+            if 'sub-' not in pt:
+                pt = 'sub-' + pt
+
+            pt_file_paths += [fp for fp in file_paths if pt in fp]
+
+        file_paths = pt_file_paths
+
+    if not file_paths:
+        print("Did not find any files to process")
+        sys.exit(1)
+
+    sub_list = bids_gen_cpac_sublist(bids_dir, file_paths, config,
+                                     aws_input_creds)
+
+    return sub_list
 
 
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
