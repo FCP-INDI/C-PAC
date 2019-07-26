@@ -344,6 +344,7 @@ TR :  None
 # Run functional preproceessing
 runFunctional: [1]
 
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -354,6 +355,17 @@ slice_timing_pattern :  ['Use NIFTI Header']
 
 # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
 functional_volreg_twopass :  On
+
+
+# Run 3D despike
+func_despike: [0]
+
+
+# Rescale data, set 10 for mouse data
+rescale_data: False
+
+
+scale_factor: 10
 
 
 # Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.

@@ -109,7 +109,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(use_bet=False, scale_data=False, scale_factor = 1, wf_name='func_preproc'):
+def create_func_preproc(use_bet=False, scale_data=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -302,7 +302,8 @@ def create_func_preproc(use_bet=False, scale_data=False, scale_factor = 1, wf_na
 
     preproc = pe.Workflow(name=wf_name)
     input_node = pe.Node(util.IdentityInterface(fields=['func',
-                                                        'twopass']),
+                                                        'twopass',
+                                                        'scale_factor']),
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['refit',
@@ -343,11 +344,11 @@ def create_func_preproc(use_bet=False, scale_data=False, scale_factor = 1, wf_na
     preproc.connect(func_reorient, 'out_file',
                     output_node, 'reorient')
     
-    if not scale_data:
+    if scale_data:
         func_rescale = pe.Node(interface=afni_utils.Refit(),
                                 name='func_rescale')
-        func_rescale.inputs.xyzscale = scale_factor                         
-        preproc.connect(func_reorient, 'out_file', output_node, 'rescale')                         
+        preproc.connect(input_node, 'scale_factor', func_rescale, 'xyzscale')
+        preproc.connect(func_reorient, 'out_file', output_node, 'rescale')
 
     func_get_mean_RPI = pe.Node(interface=afni_utils.TStat(),
                                 name='func_get_mean_RPI')

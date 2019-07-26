@@ -1443,6 +1443,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 func_preproc = create_func_preproc(
                     use_bet=False,
+                    scale_data=c.rescale_data,
                     wf_name='func_preproc_automask_%d' % num_strat
                 )
 
@@ -1452,6 +1453,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 func_preproc.inputs.inputspec.twopass = \
                     getattr(c, 'functional_volreg_twopass', True)
+
+                if c.rescale_data:
+                    func_preproc.inputs.inputspec.scale_factor = c.scale_factor
 
                 # TODO ASH review forking
                 if 'BET' in c.functionalMasking:
@@ -1488,7 +1492,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             if 'BET' in c.functionalMasking and 'func_preproc_automask' not in nodes:
 
                 func_preproc = create_func_preproc(use_bet=True,
-                                                wf_name='func_preproc_bet_%d' % num_strat)
+                                                   scale_data=c.rescale_data,
+                                                   wf_name='func_preproc_bet_%d' % num_strat)
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_preproc,
@@ -1496,6 +1501,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 func_preproc.inputs.inputspec.twopass = \
                     getattr(c, 'functional_volreg_twopass', True)
+
+                if c.rescale_data:
+                    func_preproc.inputs.inputspec.scale_factor = c.scale_factor
 
                 strat.append_name(func_preproc.name)
 
