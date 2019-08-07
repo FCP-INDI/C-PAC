@@ -1816,6 +1816,8 @@ def run_isc(pipeline_config):
     with open(pipeline_config, "r") as f:
         pipeconfig_dct = yaml.load(f)
 
+    pipeline_dir = pipeconfig_dct["pipeline_dir"]
+
     output_dir = pipeconfig_dct["output_dir"]
     working_dir = pipeconfig_dct["work_dir"]
     crash_dir = pipeconfig_dct["log_dir"]
@@ -1840,12 +1842,14 @@ def run_isc(pipeline_config):
         return
 
     if not isc and not isfc:
+        print("\nISC and ISFC are not enabled to run in the group-level "
+              "analysis configuration YAML file, and will not run.\n")
         return
 
     pipeline_dirs = []
-    for dirname in os.listdir(output_dir):
+    for dirname in os.listdir(pipeline_dir):
         if "pipeline_" in dirname:
-            pipeline_dirs.append(os.path.join(output_dir, dirname))
+            pipeline_dirs.append(os.path.join(pipeline_dir, dirname))
 
     for pipeline in pipeline_dirs:
         run_isc_group(pipeline, output_dir, working_dir, crash_dir,
