@@ -169,8 +169,6 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 # Run C-PAC subjects via job queue
 def run(config_file, subject_list_file, p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False):
-    '''
-    '''
 
     # Import packages
     import commands
@@ -328,10 +326,12 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
         job_queue = []
 
         # Allocate processes
-        processes = [Process(target=prep_workflow,
-                          args=(sub, c, True, pipeline_timing_info,
-                                p_name, plugin, plugin_args))
-                  for sub in sublist]
+        processes = [
+            Process(target=prep_workflow,
+                    args=(sub, c, True, pipeline_timing_info,
+                          p_name, plugin, plugin_args))
+            for sub in sublist
+        ]
 
         # If we're allocating more processes than are subjects, run them all
         if len(sublist) <= c.numParticipantsAtOnce:
