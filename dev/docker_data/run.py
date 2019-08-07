@@ -236,7 +236,7 @@ if args.analysis_level == "gui":
     import CPAC
 
     CPAC.GUI.run()
-    sys.exit(1)
+    sys.exit(0)
 
 elif args.analysis_level == "cli":
     from CPAC.__main__ import main
