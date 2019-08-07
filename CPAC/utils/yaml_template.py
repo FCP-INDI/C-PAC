@@ -40,7 +40,7 @@ def create_yaml_from_template(d, template):
 
             # keep fields and add values
             # not robust for any YAML, focusing on C-PAC config files
-            key_group = re.match(r'^([a-zA-Z_-]+)\s*:', line)
+            key_group = re.match(r'^([a-z0-9A-Z_-]+)\s*:', line)
             if key_group:
                 key = key_group.group(1)
                 if key in d and d[key] is not None:
