@@ -6,7 +6,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
                                    pushout, touchup, fill_hole, avoid_eyes,
                                    use_edge, exp_frac, smooth_final,
                                    push_to_edge, use_skull, perc_int,
-                                   max_inter_iter, blur_fwhm, fac):
+                                   max_inter_iter, blur_fwhm, fac, monkey):
     """
     Method to return option string for 3dSkullStrip
     
@@ -66,6 +66,9 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
     fac : float
          Multiply input dataset by FAC if range of values is too small
 
+    monkey : boolean
+        Use monkey option in SkullStripping
+
     Returns
     -------
     opt_str : string
@@ -92,6 +95,9 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     if not var_shrink_fac:
         expr += ' -no_var_shrink_fac'
+
+    if monkey:
+        expr += ' -monkey'
 
     if float(shrink_fac_bot_lim) != defaults['shrink_fac_bot_lim']:
         expr += ' -shrink_fac_bot_lim {0}'.format(shrink_fac_bot_lim)

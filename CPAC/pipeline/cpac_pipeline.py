@@ -451,6 +451,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     max_inter_iter=c.skullstrip_max_inter_iter,
                     blur_fwhm=c.skullstrip_blur_fwhm,
                     fac=c.skullstrip_fac,
+                    monkey=c.skullstrip_monkey,
                 )
 
                 new_strat = strat.fork()
