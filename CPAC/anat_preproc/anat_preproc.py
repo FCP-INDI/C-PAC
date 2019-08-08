@@ -7,6 +7,8 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 # from nipype.interfaces.ants import DenoiseImage
 # from nipype.interfaces.ants import N4BiasFieldCorrection
+from CPAC.anat_preproc.ants import init_brain_extraction_wf
+
 
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 
@@ -271,6 +273,85 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                     ('vertical_gradient', 'vertical_gradient'),
                 ])
             ])
+
+            preproc.connect(anat_skullstrip, 'out_file',
+                            outputnode, 'skullstrip')
+            
+          # Skull-stripping using antsBrainExtraction
+        elif method == 'antsBrainExtraction':
+            # inputnode_ants = pe.Node(
+            #     util.IdentityInterface(fields=['in_template',
+            #                                     'template_spec',
+            #                                     'use_float',
+            #                                     'normalization_quality',
+            #                                     'omp_nthreads',
+            #                                     'mem_gb',
+            #                                     'bids_suffix',
+            #                                     'atropos_refine',
+            #                                     'atropos_use_random_seed',
+            #                                     'atropos_model',
+            #                                     'use_laplacian',
+            #                                     'bspline_fitting_distance']),
+            #                     name='antsBrainExtraction_options')
+            # skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
+            #                                                     'spat_norm_dxyz',
+            #                                                     'in_template',
+            #                                                     'template_spec',
+            #                                                     'use_float',
+            #                                                     'normalization_quality',
+            #                                                     'omp_nthreads',
+            #                                                     'mem_gb',
+            #                                                     'bids_suffix',
+            #                                                     'atropos_refine',
+            #                                                     'atropos_use_random_seed',
+            #                                                     'atropos_model',
+            #                                                     'use_laplacian',
+            #                                                     'bspline_fitting_distance'],
+            #                                         output_names=['expr'],
+            #                                         function=init_brain_extraction_wf),
+            #                                         name='anat_skullstrip_args')
+
+            # preproc.connect([
+            #     (inputnode_ants, anat_skullstrip, [
+            #         ('in_template', 'in_template'),
+            #         ('template_spec', 'template_spec'),
+            #         ('use_float', 'use_float'),
+            #         ('normalization_quality', 'normalization_quality'),
+            #         ('omp_nthreads', 'omp_nthreads'),
+            #         ('mem_gb', 'mem_gb'),
+            #         ('bids_suffix', 'bids_suffix'),
+            #         ('atropos_refine', 'atropos_refine'),
+            #         ('atropos_use_random_seed', 'atropos_use_random_seed'),
+            #         ('atropos_model', 'atropos_model'),
+            #         ('use_laplacian', 'use_laplacian'),
+            #         ('bspline_fitting_distance', 'bspline_fitting_distance'),
+            #     ])
+            # ])
+
+            anat_skullstrip = init_brain_extraction_wf(name='anat_skullstrip',
+                                                        in_template='OASIS30ANTs',
+                                                        template_spec=None,
+                                                        use_float=True,
+                                                        normalization_quality='precise',
+                                                        omp_nthreads=None,
+                                                        mem_gb=3.0,
+                                                        bids_suffix='T1w',
+                                                        atropos_refine=True,
+                                                        atropos_use_random_seed=True,
+                                                        atropos_model=None,
+                                                        use_laplacian=True,
+                                                        bspline_fitting_distance=200)
+            
+            # if non_local_means_filtering or n4_correction:
+                
+            
+            anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_deoblique, 'out_file', 
+                            anat_reorient, 'in_file')
+            
+            preproc.connect(anat_reorient, 'out_file',
+                            anat_skullstrip, 'in_file')
 
             preproc.connect(anat_skullstrip, 'out_file',
                             outputnode, 'skullstrip')
