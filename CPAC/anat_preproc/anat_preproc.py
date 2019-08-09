@@ -232,6 +232,22 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
             preproc.connect(anat_skullstrip, 'out_file',
                             outputnode, 'skullstrip')
+            # Apply skull-stripping step mask to original volume
+            anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                            name='anat_skullstrip_orig_vol')
+
+            anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+            anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_reorient, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_a')
+            
+            if method == 'mask':
+                preproc.connect(inputnode, 'brain_mask',
+                                anat_skullstrip_orig_vol, 'in_file_b')
+            else:
+                preproc.connect(anat_skullstrip, 'out_file',
+                                anat_skullstrip_orig_vol, 'in_file_b')
 
         elif method == 'fsl':
             inputnode_bet = pe.Node(
@@ -277,74 +293,40 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(anat_skullstrip, 'out_file',
                             outputnode, 'skullstrip')
             
-          # Skull-stripping using antsBrainExtraction
-        elif method == 'antsBrainExtraction':
-            # inputnode_ants = pe.Node(
-            #     util.IdentityInterface(fields=['in_template',
-            #                                     'template_spec',
-            #                                     'use_float',
-            #                                     'normalization_quality',
-            #                                     'omp_nthreads',
-            #                                     'mem_gb',
-            #                                     'bids_suffix',
-            #                                     'atropos_refine',
-            #                                     'atropos_use_random_seed',
-            #                                     'atropos_model',
-            #                                     'use_laplacian',
-            #                                     'bspline_fitting_distance']),
-            #                     name='antsBrainExtraction_options')
-            # skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
-            #                                                     'spat_norm_dxyz',
-            #                                                     'in_template',
-            #                                                     'template_spec',
-            #                                                     'use_float',
-            #                                                     'normalization_quality',
-            #                                                     'omp_nthreads',
-            #                                                     'mem_gb',
-            #                                                     'bids_suffix',
-            #                                                     'atropos_refine',
-            #                                                     'atropos_use_random_seed',
-            #                                                     'atropos_model',
-            #                                                     'use_laplacian',
-            #                                                     'bspline_fitting_distance'],
-            #                                         output_names=['expr'],
-            #                                         function=init_brain_extraction_wf),
-            #                                         name='anat_skullstrip_args')
+                # Apply skull-stripping step mask to original volume
+            anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                            name='anat_skullstrip_orig_vol')
 
-            # preproc.connect([
-            #     (inputnode_ants, anat_skullstrip, [
-            #         ('in_template', 'in_template'),
-            #         ('template_spec', 'template_spec'),
-            #         ('use_float', 'use_float'),
-            #         ('normalization_quality', 'normalization_quality'),
-            #         ('omp_nthreads', 'omp_nthreads'),
-            #         ('mem_gb', 'mem_gb'),
-            #         ('bids_suffix', 'bids_suffix'),
-            #         ('atropos_refine', 'atropos_refine'),
-            #         ('atropos_use_random_seed', 'atropos_use_random_seed'),
-            #         ('atropos_model', 'atropos_model'),
-            #         ('use_laplacian', 'use_laplacian'),
-            #         ('bspline_fitting_distance', 'bspline_fitting_distance'),
-            #     ])
-            # ])
+            anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+            anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
 
-            anat_skullstrip = init_brain_extraction_wf(name='anat_skullstrip',
-                                                        in_template='OASIS30ANTs',
-                                                        template_spec=None,
-                                                        use_float=True,
-                                                        normalization_quality='precise',
-                                                        omp_nthreads=None,
-                                                        mem_gb=3.0,
-                                                        bids_suffix='T1w',
-                                                        atropos_refine=True,
-                                                        atropos_use_random_seed=True,
-                                                        atropos_model=None,
-                                                        use_laplacian=True,
-                                                        bspline_fitting_distance=200)
+            preproc.connect(anat_reorient, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_a')  
+                            
+            if method == 'mask':
+                preproc.connect(inputnode, 'brain_mask',
+                                anat_skullstrip_orig_vol, 'in_file_b')
+            else:
+                preproc.connect(anat_skullstrip, 'out_file',
+                                anat_skullstrip_orig_vol, 'in_file_b')
+
+        elif method == 'antsBrainExtraction':   
+            anat_skullstrip_ants = init_brain_extraction_wf(name='antsBrainExtraction_options',
+                                                            in_template=None,
+                                                            template_spec=None,
+                                                            use_float=True,
+                                                            normalization_quality='precise',
+                                                            omp_nthreads=None,
+                                                            mem_gb=3.0,
+                                                            bids_suffix='T1w',
+                                                            atropos_refine=True,
+                                                            atropos_use_random_seed=True,
+                                                            atropos_model=None,
+                                                            use_laplacian=True,
+                                                            bspline_fitting_distance=200)
             
             # if non_local_means_filtering or n4_correction:
-                
-            
+             
             anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
             preproc.connect(anat_deoblique, 'out_file', 
@@ -355,23 +337,17 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
             preproc.connect(anat_skullstrip, 'out_file',
                             outputnode, 'skullstrip')
+                            
+            anat_skullstrip_orig_vol = anat_skullstrip_ants.out_file
 
-        # Apply skull-stripping step mask to original volume
-        anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
-                                           name='anat_skullstrip_orig_vol')
+            ### if provide mask, antsBrainExtraction how to deal with it?
+        # if method == 'mask':
+        #     preproc.connect(inputnode, 'brain_mask',
+        #                     anat_skullstrip_orig_vol, 'in_file')
+        # else:
+        #     preproc.connect(anat_skullstrip, 'out_file',
+        #                     anat_skullstrip_orig_vol, 'in_file')
 
-        anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
-        anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
-
-        preproc.connect(anat_reorient, 'out_file',
-                        anat_skullstrip_orig_vol, 'in_file_a')
-
-        if method == 'mask':
-            preproc.connect(inputnode, 'brain_mask',
-                            anat_skullstrip_orig_vol, 'in_file_b')
-        else:
-            preproc.connect(anat_skullstrip, 'out_file',
-                            anat_skullstrip_orig_vol, 'in_file_b')
 
         preproc.connect(anat_skullstrip_orig_vol, 'out_file',
                         outputnode, 'brain')

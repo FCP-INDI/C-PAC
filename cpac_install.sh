@@ -104,7 +104,7 @@ pip_packages=(
     "patsy==0.5.0"
     "prov==1.5.0"
     "psutil==5.4.6"
-    "pygraphviz==1.3.1"
+    # "pygraphviz==1.3.1"
     "simplejson==3.15.0"
     "python-dateutil==2.7.3"
     "PyBASC==0.4.5"

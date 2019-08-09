@@ -418,7 +418,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         else:
 
-            if not any(o in c.skullstrip_option for o in ["AFNI", "BET","antsBrainExtraction"]):
+            if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "antsBrainExtraction"]):
                 err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
                     'setting does not include either \'AFNI\' or \'BET\'.\n\n' \
                     'Options you provided:\nskullstrip_option: {0}' \
@@ -507,14 +507,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                        non_local_means_filtering=c.non_local_means_filtering,
                                                        n4_correction=c.n4_bias_field_correction)
     
-                    anat_preproc.inputs.antsBrainExtraction.set(
-                        in_template=c.antsBrainExtraction_template,
-                    )
-    
+                    # anat_preproc.inputs.anat_skullstrip_ants.set(
+                    #     in_template=c.antsBrainExtraction_template,
+                    # )
+                    
                     new_strat = strat.fork()
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
+                    # pass the reference files
+                    workflow.connect(c.antsBrainExtraction_template, 'local_path',
+                                    anat_preproc, 'inputs.anat_skullstrip_ants.in_template')
+                                    
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
