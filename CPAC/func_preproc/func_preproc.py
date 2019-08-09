@@ -107,7 +107,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(use_bet=False, wf_name='func_preproc'):
+def create_func_preproc(tool='both', wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -404,8 +404,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     output_node, 'oned_matrix_save')
 
-    if not use_bet:
-
+    if tool == '3dAutoMask':
         func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
                                       name='func_get_brain_mask')
 
@@ -417,8 +416,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
         preproc.connect(func_get_brain_mask, 'out_file',
                         output_node, 'mask')
 
-    else:
-
+    elif tool == 'BET':
         func_get_brain_mask = pe.Node(interface=fsl.BET(),
                                       name='func_get_brain_mask_BET')
 
@@ -440,6 +438,24 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
         preproc.connect(erode_one_voxel, 'out_file',
                         output_node, 'mask')
 
+    elif tool == 'fmriprep':
+        skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=True), name='skullstrip_first_pass')
+        bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
+        bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
+        unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ', args='-clfrac 0.2 -rbt 18.3 65.0 90.0', out_file="uni.nii.gz"), name='unifize')
+        skullstrip_second_pass = pe.Node(preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'), name='skullstrip_second_pass')
+        combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'), name='combine_masks')
+
+        preproc.connect([(func_motion_correct_A, skullstrip_first_pass, [('out_file', 'in_file')]),
+                        (skullstrip_first_pass, bet_dilate, [('mask_file', 'in_file')]),
+                        (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
+                        (skullstrip_first_pass, bet_mask, [('out_file' , 'in_file')]),
+                        (bet_mask, unifize, [('out_file', 'in_file')]),
+                        (unifize, skullstrip_second_pass, [('out_file', 'in_file')]),
+                        (skullstrip_first_pass, combine_masks, [('mask_file', 'in_file')]),
+                        (skullstrip_second_pass, combine_masks, [('out_file', 'operand_file')]),
+                        (combine_masks, output_node, [('out_file', 'mask')])])
+
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
                                name='func_edge_detect')
 
@@ -449,11 +465,14 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'out_file',
                     func_edge_detect, 'in_file_a')
 
-    if not use_bet:
+    if tool == '3dAutoMask':
         preproc.connect(func_get_brain_mask, 'out_file',
                         func_edge_detect, 'in_file_b')
-    else:
+    elif tool == 'BET':
         preproc.connect(erode_one_voxel, 'out_file',
+                        func_edge_detect, 'in_file_b')
+    elif tool == 'fmriprep':
+        preproc.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
 
     preproc.connect(func_edge_detect, 'out_file',
