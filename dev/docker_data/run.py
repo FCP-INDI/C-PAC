@@ -236,7 +236,7 @@ args = parser.parse_args()
 # if we are running the GUI, then get to it
 if args.analysis_level == "gui":
     print("Starting CPAC GUI")
-    import CPAC
+    import CPAC.GUI
 
     CPAC.GUI.run()
     sys.exit(0)
@@ -560,8 +560,8 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     elif args.analysis_level == "participant":
         # build pipeline easy way
-        import CPAC
         from CPAC.utils.monitoring import monitor_server
+        import CPAC.pipeline.cpac_runner
 
         monitoring = None
         if args.monitoring:
