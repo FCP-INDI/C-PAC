@@ -329,6 +329,19 @@ def utils():
     pass
 
 
+@utils.command()
+@click.argument('crash_file')
+def crash(crash_file):
+    
+    import mock
+
+    def accept_all(object, name, value):
+        return value
+
+    with mock.patch('nipype.interfaces.base.traits_extension.File.validate', side_effect=accept_all) as abc_urandom_function:
+        from nipype.scripts.crash_files import display_crash_file
+        display_crash_file(crash_file, False, False, None)
+
 @utils.group()
 def data_config():
     pass
