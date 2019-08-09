@@ -13,7 +13,7 @@ from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 
 
-def create_anat_preproc(method='afni', already_skullstripped=False,
+def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, method='afni', already_skullstripped=False,
                         non_local_means_filtering=True, n4_correction=True,
                         wf_name='anat_preproc'):
     """ 
@@ -117,7 +117,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
         preproc.connect(anat_deoblique, 'out_file', n4, 'input_image')
-       
+
     # Anatomical reorientation
     anat_reorient = pe.Node(interface=afni.Resample(),
                             name='anat_reorient')
@@ -311,31 +311,33 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                 anat_skullstrip_orig_vol, 'in_file_b')
 
         elif method == 'antsBrainExtraction':   
-            anat_skullstrip_ants = init_brain_extraction_wf(name='antsBrainExtraction_options',
-                                                            in_template=None,
-                                                            template_spec=None,
-                                                            use_float=True,
-                                                            normalization_quality='precise',
-                                                            omp_nthreads=None,
-                                                            mem_gb=3.0,
-                                                            bids_suffix='T1w',
-                                                            atropos_refine=True,
-                                                            atropos_use_random_seed=True,
-                                                            atropos_model=None,
-                                                            use_laplacian=True,
-                                                            bspline_fitting_distance=200)
+            anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=template_path,
+                                                            tpl_mask_path=mask_path,
+                                                            tpl_regmask_path=regmask_path,
+                                                            name='antsBrainExtraction_options')
+                                                            # use_float=True,
+                                                            # normalization_quality='precise',
+                                                            # omp_nthreads=None,
+                                                            # mem_gb=3.0,
+                                                            # bids_suffix='T1w',
+                                                            # atropos_refine=True,
+                                                            # atropos_use_random_seed=True,
+                                                            # atropos_model=None,
+                                                            # use_laplacian=True,
+                                                            # bspline_fitting_distance=200)
             
+
             # if non_local_means_filtering or n4_correction:
              
-            anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+            anat_skullstrip_ants.inputs.outputtype = 'NIFTI_GZ'
 
             preproc.connect(anat_deoblique, 'out_file', 
                             anat_reorient, 'in_file')
             
             preproc.connect(anat_reorient, 'out_file',
-                            anat_skullstrip, 'in_file')
+                            anat_skullstrip_ants, 'in_files')
 
-            preproc.connect(anat_skullstrip, 'out_file',
+            preproc.connect(anat_skullstrip_ants, 'out_file',
                             outputnode, 'skullstrip')
                             
             anat_skullstrip_orig_vol = anat_skullstrip_ants.out_file

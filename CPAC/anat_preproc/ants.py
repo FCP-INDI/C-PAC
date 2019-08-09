@@ -55,8 +55,10 @@ ATROPOS_MODELS = {
 }
 
 
-def init_brain_extraction_wf(name='brain_extraction_wf',
-                             in_template='OASIS30ANTs',
+def init_brain_extraction_wf(tpl_target_path,
+                             tpl_mask_path,
+                             tpl_regmask_path,    
+                             name='brain_extraction_wf',
                              template_spec=None,
                              use_float=True,
                              normalization_quality='precise',
@@ -154,7 +156,7 @@ def init_brain_extraction_wf(name='brain_extraction_wf',
         out_tpms
             Output :abbr:`TPMs (tissue probability maps)` by ATROPOS
     """
-    from templateflow.api import get as get_template
+    # from templateflow.api import get as get_template
     wf = pe.Workflow(name)
 
     template_spec = template_spec or {}
@@ -162,27 +164,29 @@ def init_brain_extraction_wf(name='brain_extraction_wf',
     # suffix passed via spec takes precedence
     template_spec['suffix'] = template_spec.get('suffix', bids_suffix)
 
-    tpl_target_path, common_spec = get_template_specs(
-        in_template,
-        template_spec=template_spec)
+    # tpl_target_path, common_spec = get_template_specs(
+    #     in_template,
+    #     template_spec=template_spec)
 
-    # Get probabilistic brain mask if available
-    tpl_mask_path = get_template(
-        in_template, label='brain', suffix='probseg', **common_spec) or \
-        get_template(in_template, desc='brain', suffix='mask', **common_spec)
 
-    if omp_nthreads is None or omp_nthreads < 1:
-        omp_nthreads = cpu_count()
+
+    # # Get probabilistic brain mask if available
+    # tpl_mask_path = get_template(
+    #     in_template, label='brain', suffix='probseg', **common_spec) or \
+    #     get_template(in_template, desc='brain', suffix='mask', **common_spec)
+
+    # if omp_nthreads is None or omp_nthreads < 1:
+    #     omp_nthreads = cpu_count()
 
     inputnode = pe.Node(niu.IdentityInterface(fields=['in_files', 'in_mask']),
                         name='inputnode')
 
-    # Try to find a registration mask, set if available
-    tpl_regmask_path = get_template(
-        in_template, desc='BrainCerebellumExtraction', suffix='mask',
-        **common_spec)
-    if tpl_regmask_path:
-        inputnode.inputs.in_mask = str(tpl_regmask_path)
+    # # Try to find a registration mask, set if available
+    # tpl_regmask_path = get_template(
+    #     in_template, desc='BrainCerebellumExtraction', suffix='mask',
+    #     **common_spec)
+    # if tpl_regmask_path:
+    inputnode.inputs.in_mask = tpl_regmask_path
 
     outputnode = pe.Node(niu.IdentityInterface(
         fields=['out_file', 'out_mask', 'bias_corrected', 'bias_image',

@@ -501,32 +501,30 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 new_strat_list += [new_strat]
 
-                if "antsBrainExtraction" in c.skullstrip_option:
-                    anat_preproc = create_anat_preproc(method='antsBrainExtraction',
-                                                       wf_name='anat_preproc_antsBrainExtraction_%d' % num_strat,
-                                                       non_local_means_filtering=c.non_local_means_filtering,
-                                                       n4_correction=c.n4_bias_field_correction)
-    
-                    # anat_preproc.inputs.anat_skullstrip_ants.set(
-                    #     in_template=c.antsBrainExtraction_template,
-                    # )
-                    
-                    new_strat = strat.fork()
-                    node, out_file = new_strat['anatomical']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.anat')
-                    # pass the reference files
-                    workflow.connect(c.antsBrainExtraction_template, 'local_path',
-                                    anat_preproc, 'inputs.anat_skullstrip_ants.in_template')
-                                    
-                    new_strat.append_name(anat_preproc.name)
-                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                    new_strat.update_resource_pool({
-                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
-                    })
-    
-                    new_strat_list += [new_strat]
+            if "antsBrainExtraction" in c.skullstrip_option:
+                anat_preproc = create_anat_preproc(template_path=c.antsBrainExtraction_template_path, mask_path=c.antsBrainExtraction_mask_path, regmask_path=c.antsBrainExtraction_regmask_path, method='antsBrainExtraction',
+                                                    wf_name='anat_preproc_antsBrainExtraction_%d' % num_strat,
+                                                    non_local_means_filtering=c.non_local_means_filtering,
+                                                    n4_correction=c.n4_bias_field_correction)
+
+                # anat_preproc.inputs.anat_skullstrip_ants.set(
+                #     in_template=c.antsBrainExtraction_template,
+                # )
+                # import pudb 
+                # pudb.set_trace()
+
+                new_strat = strat.fork()
+                node, out_file = new_strat['anatomical']
+                workflow.connect(node, out_file,
+                                anat_preproc, 'inputspec.anat')                
+                new_strat.append_name(anat_preproc.name)
+                new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                new_strat.update_resource_pool({
+                    'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                    'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                })
+
+                new_strat_list += [new_strat]
     strat_list = new_strat_list
 
     new_strat_list = []
