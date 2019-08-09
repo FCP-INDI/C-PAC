@@ -33,6 +33,17 @@ log_dir: /path/to/log/dir
 FSLDIR: FSLDIR
 
 
+# Number of CPUs to dedicate to the group-level analysis run. Parallelizes the pipeline where applicable.
+num_cpus: 1
+
+
+# Scan inclusion list. For most group-level analyses, a separate model is run for each scan/series in your individual-level analysis pipeline directory.
+# Use this list to prune your run to only specific scans.
+# Example:
+#   scan_inclusion: ['rest_run-1', 'rest_run-2']
+scan_inclusion: []
+
+
 # FSL-FEAT
 ##############################################################################
 

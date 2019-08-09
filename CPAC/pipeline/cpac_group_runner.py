@@ -1721,7 +1721,7 @@ def run_basc(pipeline_config):
 
 def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                   isc, isfc, levels=[], permutations=1000, 
-                  std_filter=None):
+                  std_filter=None, scan_inclusion=None, num_cpus=1):
 
     import os
     from CPAC.isc.pipeline import create_isc, create_isfc
@@ -1771,6 +1771,9 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
         if isc:
             for df_scan in df_dct.keys():
+                if scan_inclusion:
+                    if df_scan not in scan_inclusion:
+                        continue
                 func_paths = {
                     p.split("_")[0]: f
                     for p, f in
@@ -1780,15 +1783,24 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                isc_wf = create_isc(name="ISC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                out_dir = os.path.join(out_dir, derivative, _, df_scan)
+
+                isc_wf = create_isc(name="ISC_{0}".format(df_scan),
+                                    output_dir=out_dir,
+                                    working_dir=working_dir,
+                                    crash_dir=crash_dir)
                 isc_wf.inputs.inputspec.subjects = func_paths
                 isc_wf.inputs.inputspec.permutations = permutations
                 isc_wf.inputs.inputspec.std = std_filter
                 isc_wf.inputs.inputspec.collapse_subj = False
-                isc_wf.run()
+                isc_wf.run(plugin='MultiProc',
+                           plugin_args={'n_procs': num_cpus})
 
         if isfc:
             for df_scan in df_dct.keys():
+                if scan_inclusion:
+                    if df_scan not in scan_inclusion:
+                        continue
                 func_paths = {
                     p.split("_")[0]: f
                     for p, f in
@@ -1798,12 +1810,18 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                out_dir = os.path.join(out_dir, derivative, _, df_scan)
+
+                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan),
+                                      output_dir=out_dir,
+                                      working_dir=working_dir,
+                                      crash_dir=crash_dir)
                 isfc_wf.inputs.inputspec.subjects = func_paths
                 isfc_wf.inputs.inputspec.permutations = permutations
                 isfc_wf.inputs.inputspec.std = std_filter
                 isfc_wf.inputs.inputspec.collapse_subj = False
-                isfc_wf.run()
+                isfc_wf.run(plugin='MultiProc',
+                            plugin_args={'n_procs': num_cpus})
 
 
 def run_isc(pipeline_config):
@@ -1822,6 +1840,13 @@ def run_isc(pipeline_config):
     working_dir = pipeconfig_dct["work_dir"]
     crash_dir = pipeconfig_dct["log_dir"]
 
+    scan_inclusion = None
+    if "scan_inclusion" in pipeconfig_dct.keys():
+        scan_inclusion = pipeconfig_dct["scan_inclusion"]
+
+    num_cpus = 1
+    if "num_cpus" in pipeconfig_dct.keys():
+        num_cpus = pipeconfig_dct["num_cpus"]
 
     isc = 1 in pipeconfig_dct.get("runISC", [])
     isfc = 1 in pipeconfig_dct.get("runISFC", [])
@@ -1854,8 +1879,8 @@ def run_isc(pipeline_config):
     for pipeline in pipeline_dirs:
         run_isc_group(pipeline, output_dir, working_dir, crash_dir,
                       isc=isc, isfc=isfc, levels=levels,
-                      permutations=permutations,
-                      std_filter=std_filter)
+                      permutations=permutations, std_filter=std_filter,
+                      scan_inclusion=scan_inclusion, num_cpus=num_cpus)
 
 
 def run_qpp(group_config_file):
