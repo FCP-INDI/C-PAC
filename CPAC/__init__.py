@@ -7,5 +7,5 @@ for resting state functional MRI (R-fMRI) data, for use by both novice and
 expert users.
 """
 
-from .info import __version__
+from info import __version__
 version = __version__
