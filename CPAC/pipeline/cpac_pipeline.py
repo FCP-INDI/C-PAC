@@ -1548,10 +1548,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             nodes = strat.get_nodes_names()
 
-            if 'fmriprep' in c.functionalMasking and 'func_preproc_automask' not in nodes and 'func_preproc_bet' not in nodes:
+            if 'BET+3dAutoMask' in c.functionalMasking and 'func_preproc_automask' not in nodes and 'func_preproc_bet' not in nodes:
 
                 func_preproc = create_func_preproc(tool=c.functionalMasking[0],
-                                                wf_name='func_preproc_fmriprep_%d' % num_strat)
+                                                wf_name='func_preproc_bet_automask_%d' % num_strat)
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_preproc,
                                 'inputspec.func')

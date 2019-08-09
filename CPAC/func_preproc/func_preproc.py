@@ -438,7 +438,7 @@ def create_func_preproc(tool='both', wf_name='func_preproc'):
         preproc.connect(erode_one_voxel, 'out_file',
                         output_node, 'mask')
 
-    elif tool == 'fmriprep':
+    elif tool == 'BET+3dAutoMask':
         skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=True), name='skullstrip_first_pass')
         bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
         bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
@@ -471,7 +471,7 @@ def create_func_preproc(tool='both', wf_name='func_preproc'):
     elif tool == 'BET':
         preproc.connect(erode_one_voxel, 'out_file',
                         func_edge_detect, 'in_file_b')
-    elif tool == 'fmriprep':
+    elif tool == 'BET+3dAutoMask':
         preproc.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
 
