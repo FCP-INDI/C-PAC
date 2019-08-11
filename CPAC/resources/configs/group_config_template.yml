@@ -1,5 +1,5 @@
 # CPAC Group-Level Analysis Configuration YAML file
-# Version 1.4.2
+# Version 1.4.3
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -312,6 +312,12 @@ isc_level_voxel_std_filter :  0.0
 
 # Number of permutation tests to compute the statistics.
 isc_permutations :  1000
+
+
+# ROI/atlases to include in the analysis. For ROI-level ISC/ISFC runs.
+# This should be a list of names/strings of the ROI names used in individual-level analysis, if ROI timeseries extraction was performed.
+isc_roi_inclusion: [""]
+
 
 #Quasi Periodic Patterns (QPP)
 ###############################

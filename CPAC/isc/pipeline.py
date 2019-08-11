@@ -73,15 +73,21 @@ def save_data_isc(subject_ids, ISC, p, out_dir, collapse_subj=True, voxel_masker
 
     if voxel_masker:
         corr_file, p_file = os.path.abspath('./correlations.nii.gz'), os.path.abspath('./significance.nii.gz')
-        
+        corr_out, p_out = os.path.join(out_dir, 'correlations.nii.gz'), os.path.join(out_dir, 'significance.nii.gz')
+
         ISC_image = voxel_masker.inverse_transform(ISC.T)
         p_image = voxel_masker.inverse_transform(p.T)
 
         nb.save(ISC_image, corr_file)
         nb.save(p_image, p_file)
 
+        os.makedirs(out_dir)
+        nb.save(ISC_image, corr_out)
+        nb.save(p_image, p_out)
+
     else:
         corr_file, p_file = os.path.abspath('./correlations.csv'), os.path.abspath('./significance.csv')
+        corr_out, p_out = os.path.join(out_dir, 'correlations.csv'), os.path.join(out_dir, 'significance.csv')
 
         if ISC.ndim == 1:
             ISC = np.expand_dims(ISC, axis=0)
@@ -92,6 +98,10 @@ def save_data_isc(subject_ids, ISC, p, out_dir, collapse_subj=True, voxel_masker
         np.savetxt(corr_file, ISC, delimiter=',', fmt='%1.10f')
         np.savetxt(p_file, p, delimiter=',', fmt='%1.10f')
 
+        os.makedirs(out_dir)
+        np.savetxt(corr_out, ISC, delimiter=',', fmt='%1.10f')
+        np.savetxt(p_out, p, delimiter=',', fmt='%1.10f')
+
     return subject_ids_file, corr_file, p_file
 
 
@@ -100,13 +110,21 @@ def save_data_isfc(subject_ids, ISFC, p, out_dir, collapse_subj=True):
     subject_ids_file = os.path.abspath('./subject_ids.txt')
     np.savetxt(subject_ids_file, np.array(subject_ids), fmt="%s")
 
+    os.makedirs(out_dir)
+
     corr_file = os.path.abspath('./correlations.npy')
+    corr_out = os.path.join(out_dir, 'correlations.npy')
+
     corr = np.load(ISFC)
     np.save(corr_file, corr if collapse_subj else np.moveaxis(corr, -1, 0))
-    
+    np.save(corr_out, corr if collapse_subj else np.moveaxis(corr, -1, 0))    
+
     p_file = os.path.abspath('./significance.npy')
+    p_out = os.path.join(out_dir, 'significance.npy')
+
     p = np.load(p)
     np.save(p_file, p if collapse_subj else np.moveaxis(p, -1, 0))
+    np.save(p_out, p if collapse_subj else np.moveaxis(p, -1, 0))
 
     return subject_ids_file, corr_file, p_file
 
@@ -210,6 +228,8 @@ def create_isc(name='isc', output_dir=None, working_dir=None, crash_dir=None):
     
     """
 
+    if not output_dir:
+        output_dir = os.path.join(os.getcwd(), 'ISC_output_dir')
     if not working_dir:
         working_dir = os.path.join(os.getcwd(), 'ISC_work_dir')
     if not crash_dir:
@@ -251,6 +271,7 @@ def create_isc(name='isc', output_dir=None, working_dir=None, crash_dir=None):
                                  function=save_data_isc,
                                  as_module=True),
                         name='save')
+    save_node.inputs.out_dir = output_dir
 
     isc_node = pe.Node(Function(input_names=['D',
                                              'std',
@@ -347,6 +368,9 @@ def create_isfc(name='isfc', output_dir=None, working_dir=None,
     
     """
 
+
+    if not output_dir:
+        output_dir = os.path.join(os.getcwd(), 'ISC_output_dir')
     if not working_dir:
         working_dir = os.path.join(os.getcwd(), 'ISC_work_dir')
     if not crash_dir:
@@ -380,6 +404,7 @@ def create_isfc(name='isfc', output_dir=None, working_dir=None,
                                  function=save_data_isfc,
                                  as_module=True),
                         name='save')
+    save_node.inputs.out_dir = output_dir
 
     outputspec = pe.Node(
         util.IdentityInterface(fields=['correlations', 'significance']),
