@@ -510,8 +510,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # anat_preproc.inputs.anat_skullstrip_ants.set(
                 #     in_template=c.antsBrainExtraction_template,
                 # )
-                # import pudb 
-                # pudb.set_trace()
 
                 new_strat = strat.fork()
                 node, out_file = new_strat['anatomical']

@@ -25,3 +25,4 @@ simplejson==3.15.0
 scikit-learn==0.19.1
 traits==4.6.0
 PyBASC==0.4.5
+pathlib==1.0.1
