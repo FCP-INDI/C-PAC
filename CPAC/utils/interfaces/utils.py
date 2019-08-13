@@ -74,7 +74,7 @@ class CopyXForm(SimpleInterface):
         for f in self._fields:
             in_files = getattr(self.inputs, f)
             self._results[f] = []
-            if isinstance(in_files, str):
+            if not isinstance(in_files, list):  # if isinstance(in_files, str):
                 in_files = [in_files]
             for in_file in in_files:
                 out_name = fname_presuffix(
