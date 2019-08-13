@@ -4,7 +4,9 @@
 Nipype translation of ANTs workflows
 ------------------------------------
 """
-# credit fmriprep..........ADD 
+#  This file is adapted from fMRIPrep
+#  more info: https://github.com/poldracklab/niworkflows/blob/master/niworkflows/anat/ants.py 
+#               https://fmriprep.readthedocs.io/ 
 
 # general purpose
 from collections import OrderedDict

@@ -3905,8 +3905,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 # """
         except:
-            import traceback
-            traceback.print_exc()
+
 
             execution_info = """
 

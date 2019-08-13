@@ -53,20 +53,20 @@ pipelineName :  cpac_default
 
 # Directory where CPAC should store temporary and intermediate files.
 # workingDirectory :  ./cpac_runs/default/working
-workingDirectory :  /Users/hecheng.jin/fmriprep_comparison/cpac_run_ants/test1/cpac_runs/default/working
+workingDirectory :  ./cpac_runs/default/working
 
 # Directory where CPAC should write crash logs.
 # crashLogDirectory :  ./cpac_runs/default/crash
-crashLogDirectory :  /Users/hecheng.jin/fmriprep_comparison/cpac_run_ants/test1/cpac_runs/default/crash
+crashLogDirectory :  ./cpac_runs/default/crash
 
 
 # Directory where CPAC should place run logs.
 # logDirectory :  ./cpac_runs/default/log
-logDirectory :  /Users/hecheng.jin/fmriprep_comparison/cpac_run_ants/test1/cpac_runs/default/log
+logDirectory :  ./cpac_runs/default/log
 
 # Directory where CPAC should place processed data.
 # outputDirectory :  ./cpac_runs/default/output
-outputDirectory :  /Users/hecheng.jin/fmriprep_comparison/cpac_run_ants/test1/cpac_runs/default/output
+outputDirectory :  ./cpac_runs/default/output
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
 awsOutputBucketCredentials :  
@@ -111,16 +111,16 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or antsBrainExtraction to perform SkullStripping
-skullstrip_option :  ['antsBrainExtraction']
+skullstrip_option :  ['AFNI']
 
 # Template to be used during antsBrainExtraction.
 # It is not necessary to change this path unless you intend to use a non-standard template.
 # antsBrainExtraction Brain extraction template
-antsBrainExtraction_template_path : /Users/hecheng.jin/fmriprep_comparison/OASIStemplate/T_template0.nii.gz
+antsBrainExtraction_template_path : /Path/to/OASIStemplate/T_template0.nii.gz
 # antsBrainExtraction probability mask
-antsBrainExtraction_mask_path : /Users/hecheng.jin/fmriprep_comparison/OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
+antsBrainExtraction_mask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
 # antsBrainExtraction registration mask 
-antsBrainExtraction_regmask_path : /Users/hecheng.jin/fmriprep_comparison/OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
+antsBrainExtraction_regmask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
 skullstrip_shrink_factor :  0.6
@@ -304,7 +304,7 @@ non_local_means_filtering: False
 
 
 # N4 bias field correction 
-n4_bias_field_correction: False
+n4_bias_field_correction: True
 
 
 # Full path to a directory containing binarized prior probability maps.
