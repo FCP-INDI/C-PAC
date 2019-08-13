@@ -3905,11 +3905,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 # """
         except:
-<<<<<<< HEAD
-
-=======
-            
->>>>>>> 002d8d8facc72020c4b4a1092aaa268040ce0c7e
 
             execution_info = """
 
