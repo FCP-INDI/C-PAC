@@ -438,7 +438,7 @@ def create_func_preproc(tool, wf_name='func_preproc'):
         preproc.connect(erode_one_voxel, 'out_file',
                         output_node, 'mask')
 
-    elif tool == 'BET+3dAutoMask':
+    elif tool == 'BET_3dAutoMask':
         skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=True), name='skullstrip_first_pass')
         bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
         bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
@@ -471,7 +471,7 @@ def create_func_preproc(tool, wf_name='func_preproc'):
     elif tool == 'BET':
         preproc.connect(erode_one_voxel, 'out_file',
                         func_edge_detect, 'in_file_b')
-    elif tool == 'BET+3dAutoMask':
+    elif tool == 'BET_3dAutoMask':
         preproc.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
 
@@ -577,27 +577,28 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 def connect_func_preproc(workflow, c, strat_list):
 
     from CPAC.func_preproc.func_preproc import create_func_preproc
+    from CPAC.pipeline.cpac_pipeline import create_log_node
+    
+    new_strat_list = []
 
-    for num_tool, tool in enumerate(c):
+    for num_strat, strat in enumerate(strat_list):
+       
+        for num_tool, tool in enumerate(c):
 
-        new_strat_list = []
-        
-        if num_tool != 0:
-                new_strat_list.append(strat.fork())
+            new_strat = strat.fork()
 
-        for num_strat, strat in enumerate(strat_list):
             func_preproc = create_func_preproc(tool=tool, wf_name='func_preproc_'+tool.lower()+'_%d' % num_strat)
-            node, out_file = strat.get_leaf_properties()
+            node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, func_preproc,
                             'inputspec.func')
                         
             func_preproc.inputs.inputspec.twopass = \
                 getattr(c, 'functional_volreg_twopass', True)
 
-            strat.append_name(func_preproc.name)
-            strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+            new_strat.append_name(func_preproc.name)
+            new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
-            strat.update_resource_pool({
+            new_strat.update_resource_pool({
                 'mean_functional': (func_preproc, 'outputspec.example_func'),
                 'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
                 'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
@@ -610,6 +611,8 @@ def connect_func_preproc(workflow, c, strat_list):
 
             create_log_node(workflow, func_preproc, 'outputspec.preprocessed', num_strat)
 
-        strat_list += new_strat_list
+            new_strat_list.append(new_strat)
+
+    strat_list = new_strat_list
 
     return workflow, strat_list
