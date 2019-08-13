@@ -6,9 +6,11 @@
 Nipype interfaces for ANTs commands
 """
 
-# This file is adapted from fMRIPrep
-#  more info: https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/ants.py 
-#               https://fmriprep.readthedocs.io/ 
+# This functionality is adapted from poldracklab/niworkflows:
+# https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/ants.py
+# https://fmriprep.readthedocs.io/
+# https://poldracklab.stanford.edu/
+# We are temporarily maintaining our own copy for more granular control.
 
 import os
 from glob import glob
