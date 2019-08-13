@@ -27,7 +27,6 @@ from collections import OrderedDict
 import scipy.ndimage as nd
 from nipype import logging
 from nipype.utils.filemanip import fname_presuffix
-from nipype.utils.misc import normalize_mc_params
 from nipype.interfaces.io import add_traits
 from nipype.interfaces.base import (
     traits, isdefined, File, InputMultiPath,
