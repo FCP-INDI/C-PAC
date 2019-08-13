@@ -1,3 +1,5 @@
+# new comment
+
 import os
 import time
 import six
@@ -39,6 +41,7 @@ from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
+    slice_timing_wf,
     create_wf_edit_func
 )
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
@@ -108,8 +111,7 @@ from CPAC.utils.utils import (
     extract_output_mean,
     create_output_mean_csv,
     get_zscore,
-    get_fisher_zscore,
-    add_afni_prefix,
+    get_fisher_zscore
     pick_wm
 )
 
@@ -1164,26 +1166,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # Add in nodes to get parameters from configuration file
             # a node which checks if scan_parameters are present for each scan
             scan_params = \
-                pe.Node(function.Function(input_names=['data_config_scan_params',
-                                                    'subject_id',
-                                                    'scan',
-                                                    'pipeconfig_tr',
-                                                    'pipeconfig_tpattern',
-                                                    'pipeconfig_start_indx',
-                                                    'pipeconfig_stop_indx'],
-                                        output_names=['tr',
+                pe.Node(function.Function(input_names=['subject_id',
+                                                       'scan',
+                                                       'pipeconfig_start_indx',
+                                                       'pipeconfig_stop_indx',
+                                                       'data_config_scan_params'],
+                                          output_names=['tr',
                                                         'tpattern',
                                                         'ref_slice',
                                                         'start_indx',
                                                         'stop_indx'],
-                                        function=get_scan_params,
-                                        as_module=True),
-                        name='scan_params_%d' % num_strat)
+                                          function=get_scan_params,
+                                          as_module=True),
+                        name='scan_params_{0}'.format(num_strat))
 
             if "Selected Functional Volume" in c.func_reg_input:
 
                 get_func_volume = pe.Node(interface=afni.Calc(),
-                                        name='get_func_volume_%d' % num_strat)
+                                          name='get_func_volume_{0}'.format(num_strat))
 
                 get_func_volume.inputs.set(
                     expr='a',
@@ -1195,50 +1195,26 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             # wire in the scan parameter workflow
             workflow.connect(func_wf, 'outputspec.scan_params',
-                            scan_params, 'data_config_scan_params')
+                             scan_params, 'data_config_scan_params')
 
             workflow.connect(func_wf, 'outputspec.subject',
-                            scan_params, 'subject_id')
+                             scan_params, 'subject_id')
 
             workflow.connect(func_wf, 'outputspec.scan',
-                            scan_params, 'scan')
+                             scan_params, 'scan')
 
             # connect in constants
             scan_params.inputs.set(
-                pipeconfig_tr=c.TR,
-                pipeconfig_tpattern=c.slice_timing_pattern,
                 pipeconfig_start_indx=c.startIdx,
                 pipeconfig_stop_indx=c.stopIdx
             )
-
-            # node to convert TR between seconds and milliseconds
-            convert_tr = pe.Node(function.Function(input_names=['tr'],
-                                                output_names=['tr'],
-                                                function=get_tr,
-                                                as_module=True),
-                                name='convert_tr_%d' % num_strat)
 
             strat.update_resource_pool({
                 'raw_functional': (func_wf, 'outputspec.rest'),
                 'scan_id': (func_wf, 'outputspec.scan')
             })
-  
-            strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
-            if 1 in c.runEPI_DistCorr:
-                try:
-                    if (func_wf, 'outputspec.phase_diff') and (func_wf, 'outputspec.magnitude'):
-                        strat.update_resource_pool({
-                            "fmap_phase_diff": (func_wf, 'outputspec.phase_diff'),
-                            "fmap_magnitude": (func_wf, 'outputspec.magnitude')
-                        })
-                except:
-                    err = "\n\n[!] You have selected to run field map " \
-                        "distortion correction, but at least one of your " \
-                        "scans listed in your data configuration file is " \
-                        "missing either a field map phase difference file " \
-                        "or a field map magnitude file, or both.\n\n"
-                    logger.warn(err)
+            strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
             if "Selected Functional Volume" in c.func_reg_input:
                 strat.update_resource_pool({
@@ -1246,31 +1222,28 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 })
 
         # Truncate scan length based on configuration information
-
         for num_strat, strat in enumerate(strat_list):
+
             trunc_wf = create_wf_edit_func(
                 wf_name="edit_func_%d" % (num_strat)
             )
 
-            # find the output data on the leaf node
-            node, out_file = strat.get_leaf_properties()
-
             # connect the functional data from the leaf node into the wf
+            node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file,
                              trunc_wf, 'inputspec.func')
 
             # connect the other input parameters
             workflow.connect(scan_params, 'start_indx',
-                            trunc_wf, 'inputspec.start_idx')
+                             trunc_wf, 'inputspec.start_idx')
             workflow.connect(scan_params, 'stop_indx',
-                            trunc_wf, 'inputspec.stop_idx')
+                             trunc_wf, 'inputspec.stop_idx')
 
             # replace the leaf node with the output from the recently added
             # workflow
             strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
 
         # EPI Field-Map based Distortion Correction
-
         new_strat_list = []
 
         rp = strat.get_resource_pool()
@@ -1342,64 +1315,34 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 
         # Slice Timing Correction Workflow
-
         new_strat_list = []
 
         if 1 in c.slice_timing_correction:
 
             for num_strat, strat in enumerate(strat_list):
 
-                # create TShift AFNI node
-                func_slice_timing_correction = pe.Node(
-                    interface=preprocess.TShift(),
-                    name='func_slice_timing_correction_%d' % (num_strat))
-                func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
+                slice_time = slice_timing_wf(name='func_slice_timing_correction_{0}'.format(num_strat))
 
                 node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file, slice_time,
+                                'inputspec.func_ts')
 
-                workflow.connect(node, out_file,
-                                func_slice_timing_correction, 'in_file')
+                workflow.connect(scan_params, 'tr',
+                                 slice_time, 'inputspec.tr')
 
-                # TODO ASH normalize TR w schema validation
-                # we might prefer to use the TR stored in the NIFTI header
-                # if not, use the value in the scan_params node
-                if c.TR:
-                    if isinstance(c.TR, str):
-                        if "None" in c.TR or "none" in c.TR:
-                            pass
-                        else:
-                            workflow.connect(scan_params, 'tr',
-                                            func_slice_timing_correction, 'tr')
-                    else:
-                        workflow.connect(scan_params, 'tr',
-                                        func_slice_timing_correction, 'tr')
-
-                if not "Use NIFTI Header" in c.slice_timing_pattern:
-
-                    # add the @ prefix to the tpattern file going into
-                    # AFNI 3dTshift - needed this so the tpattern file
-                    # output from get_scan_params would be tied downstream
-                    # via a connection (to avoid poofing)
-                    add_prefix = pe.Node(util.Function(input_names=['tpattern'],
-                                                    output_names=[
-                                                        'afni_prefix'],
-                                                    function=add_afni_prefix),
-                                        name='func_slice_timing_correction_add_afni_prefix_%d' % num_strat)
-                    workflow.connect(scan_params, 'tpattern',
-                                    add_prefix, 'tpattern')
-                    workflow.connect(add_prefix, 'afni_prefix',
-                                    func_slice_timing_correction,
-                                    'tpattern')
+                workflow.connect(scan_params, 'tpattern',
+                                 slice_time, 'inputspec.tpattern')
 
                 # add the name of the node to the strat name
-                strat.append_name(func_slice_timing_correction.name)
+                strat.append_name(slice_time.name)
 
                 # set the leaf node
-                strat.set_leaf_properties(func_slice_timing_correction, 'out_file')
+                strat.set_leaf_properties(slice_time, 'outputspec.slice_time_corrected')
 
                 # add the outputs to the resource pool
                 strat.update_resource_pool({
-                    'slice_time_corrected': (func_slice_timing_correction, 'out_file')
+                    'slice_time_corrected': (slice_time,
+                                             'outputspec.slice_time_corrected')
                 })
 
         # add new strats (if forked)

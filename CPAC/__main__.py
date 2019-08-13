@@ -141,7 +141,7 @@ def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False,
                                              "pipeline_config_ndmg.yml"))
 
     import CPAC.pipeline.cpac_runner as cpac_runner
-    cpac_runner.run(pipe_config, data_config, num_subs_at_once=num_cores,
+    cpac_runner.run(data_config, pipe_config, num_subs_at_once=num_cores,
                     debug=debug)
 
 

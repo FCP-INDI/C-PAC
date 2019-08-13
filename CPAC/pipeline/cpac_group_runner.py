@@ -136,6 +136,9 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
         derivatives = derivatives + list(
             keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
                 keys['Values'] == 'z-stat']['Resource'])
+        derivatives = derivatives + list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'r-to-z']['Resource'])
 
         if pull_func:
             derivatives = derivatives + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
