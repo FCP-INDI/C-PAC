@@ -288,6 +288,14 @@ already_skullstripped :  [0]
 runSegmentationPreprocessing :  [1]
 
 
+# Non-local means filtering / Denoise image 
+non_local_means_filtering: False
+
+
+# N4 bias field correction 
+n4_bias_field_correction: True
+
+
 # Full path to a directory containing binarized prior probability maps.
 # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use non-standard priors.
@@ -335,7 +343,7 @@ slice_timing_correction :  [1]
 slice_timing_pattern :  ['Use NIFTI Header']
 
 
-# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+# This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
 functional_volreg_twopass :  On
 
 

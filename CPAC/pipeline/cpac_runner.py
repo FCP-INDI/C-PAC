@@ -167,10 +167,8 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
 
 # Run C-PAC subjects via job queue
-def run(config_file, subject_list_file, p_name=None, plugin=None,
+def run(subject_list_file, config_file="default", p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False):
-    '''
-    '''
 
     # Import packages
     import commands
@@ -180,9 +178,30 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
     from CPAC.pipeline.cpac_pipeline import prep_workflow
 
+    if config_file == "default":
+        import pkg_resources as p
+        config_file = \
+            p.resource_filename("CPAC",
+                                os.path.join("resources",
+                                             "configs",
+                                             "pipeline_config_template.yml"))
+
     # Init variables
+    sublist = None
     config_file = os.path.realpath(config_file)
-    subject_list_file = os.path.realpath(subject_list_file)
+    if '.yaml' in subject_list_file or '.yml' in subject_list_file:
+        subject_list_file = os.path.realpath(subject_list_file)
+    else:
+        from CPAC.utils.bids_utils import collect_bids_files_configs, \
+            bids_gen_cpac_sublist
+        (file_paths, config) = collect_bids_files_configs(subject_list_file,
+                                                          None)
+        sublist = bids_gen_cpac_sublist(subject_list_file, file_paths,
+                                        config, None)
+        if not sublist:
+            import sys
+            print("Did not find data in {0}".format(subject_list_file))
+            sys.exit(1)
 
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
@@ -245,8 +264,9 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
 
     # Load in subject list
     try:
-        with open(subject_list_file, 'r') as sf:
-            sublist = yaml.load(sf)
+        if not sublist:
+            with open(subject_list_file, 'r') as sf:
+                sublist = yaml.load(sf)
     except:
         print "Subject list is not in proper YAML format. Please check " \
               "your file"
@@ -328,10 +348,12 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
         job_queue = []
 
         # Allocate processes
-        processes = [Process(target=prep_workflow,
-                          args=(sub, c, True, pipeline_timing_info,
-                                p_name, plugin, plugin_args))
-                  for sub in sublist]
+        processes = [
+            Process(target=prep_workflow,
+                    args=(sub, c, True, pipeline_timing_info,
+                          p_name, plugin, plugin_args))
+            for sub in sublist
+        ]
 
         # If we're allocating more processes than are subjects, run them all
         if len(sublist) <= c.numParticipantsAtOnce:
