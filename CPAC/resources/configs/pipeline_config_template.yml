@@ -52,20 +52,16 @@ pipelineName :  cpac_default
 
 
 # Directory where CPAC should store temporary and intermediate files.
-# workingDirectory :  ./cpac_runs/default/working
 workingDirectory :  ./cpac_runs/default/working
 
 # Directory where CPAC should write crash logs.
-# crashLogDirectory :  ./cpac_runs/default/crash
 crashLogDirectory :  ./cpac_runs/default/crash
 
 
 # Directory where CPAC should place run logs.
-# logDirectory :  ./cpac_runs/default/log
 logDirectory :  ./cpac_runs/default/log
 
 # Directory where CPAC should place processed data.
-# outputDirectory :  ./cpac_runs/default/output
 outputDirectory :  ./cpac_runs/default/output
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
