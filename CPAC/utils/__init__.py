@@ -2,7 +2,7 @@ import extract_data_multiscan
 import create_fsl_model
 import extract_parameters
 import build_data_config
-from interfaces import function, masktool
+from .interfaces import function, masktool
 from .extract_data import run
 from .datasource import create_anat_datasource
 from .datasource import create_func_datasource
@@ -31,13 +31,16 @@ from .utils import (
     get_scan_params,
     get_tr,
     check_tr,
-    write_to_log,
-    create_log,
+    add_afni_prefix,
     find_files,
     extract_output_mean,
     create_output_mean_csv,
-    setup_logger,
+    pick_wm,
     check_command_path,
     check_system_deps,
     check_config_resources,
 )
+
+__all__ = [
+    'function'
+]
