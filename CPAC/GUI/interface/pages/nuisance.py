@@ -863,17 +863,17 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             if self.data_controls['Censor']['threshold']['fdj']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
                     'type': 'FD_J',
-                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdj']['value']),
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdj']['value'].GetValue()),
                 })
             if self.data_controls['Censor']['threshold']['fdp']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
                     'type': 'FD_P',
-                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdp']['value']),
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdp']['value'].GetValue()),
                 })
             if self.data_controls['Censor']['threshold']['dvars']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
                     'type': 'DVARS',
-                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['dvars']['value']),
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['dvars']['value'].GetValue()),
                 })
 
         return selector
