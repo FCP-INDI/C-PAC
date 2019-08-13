@@ -324,16 +324,6 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
                                                             tpl_mask_path=mask_path,
                                                             tpl_regmask_path=regmask_path,
                                                             name='anat_skullstrip_ants')
-                                                            # use_float=True,
-                                                            # normalization_quality='precise',
-                                                            # omp_nthreads=None,
-                                                            # mem_gb=3.0,
-                                                            # bids_suffix='T1w',
-                                                            # atropos_refine=True,
-                                                            # atropos_use_random_seed=True,
-                                                            # atropos_model=None,
-                                                            # use_laplacian=True,
-                                                            # bspline_fitting_distance=200)
             
             if n4_correction:
                 preproc.disconnect(n4, 'output_image', anat_reorient, 'in_file')
