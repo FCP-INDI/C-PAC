@@ -194,9 +194,15 @@ def gather_nuisance(functional_file_path,
             nuisance_regressors.append(regressors[:, regressor_index])
 
             if regressor_selector.get('include_delayed', False):
-                column_names.append("{0}Back".format(regressor_name))
+                column_names.append("{0}Delay".format(regressor_name))
                 nuisance_regressors.append(
                     np.append([0.0], regressors[0:-1, regressor_index])
+                )
+
+            if regressor_selector.get('include_backdiff', False):
+                column_names.append("{0}BackDiff".format(regressor_name))
+                nuisance_regressors.append(
+                    np.append([0.0], np.diff(regressors[:, regressor_index], n=1))
                 )
 
             if regressor_selector.get('include_squared', False):
@@ -206,10 +212,18 @@ def gather_nuisance(functional_file_path,
                 )
 
             if regressor_selector.get('include_delayed_squared', False):
-                column_names.append("{0}BackSq".format(regressor_name))
+                column_names.append("{0}DelaySq".format(regressor_name))
                 nuisance_regressors.append(
                     np.square(
                         np.append([0.0], regressors[0:-1, regressor_index])
+                    )
+                )
+
+            if regressor_selector.get('include_backdiff_squared', False):
+                column_names.append("{0}BackDiffSq".format(regressor_name))
+                nuisance_regressors.append(
+                    np.square(
+                        np.append([0.0], np.diff(regressors[:, regressor_index], n=1))
                     )
                 )
 
@@ -412,6 +426,10 @@ def create_nuisance_workflow(nuisance_selectors,
                         default to False,
                     include_delayed_squared: True | False, whether or not to include a squared one-frame
                         delay regressor, default to False,
+                    include_backdiff: True | False, whether or not to include a one-lag difference,
+                        default to False,
+                    include_backdiff_squared: True | False, whether or not to include a squared one-frame
+                        delay regressor, default to False,
                 },
                 tCompCor: {
                     summary: {
@@ -426,9 +444,11 @@ def create_nuisance_workflow(nuisance_selectors,
                     by_slice: True | False, whether or not the threshold criterion should be applied
                         by slice or across the entire volume, makes most sense for thresholds
                         using SD or PCT,
-                    include_delayed: True | False,
-                    include_squared: True | False,
-                    include_delayed_squared: True | False,
+                    include_delayed: True | False (same as for aCompCor),
+                    include_squared: True | False (same as for aCompCor),
+                    include_delayed_squared: True | False (same as for aCompCor),
+                    include_backdiff: True | False (same as for aCompCor),
+                    include_backdiff_squared: True | False (same as for aCompCor),
                 },
                 WhiteMatter: {
                     summary: {
@@ -440,6 +460,8 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed: True | False (same as for aCompCor),
                     include_squared: True | False (same as for aCompCor),
                     include_delayed_squared: True | False (same as for aCompCor),
+                    include_backdiff: True | False (same as for aCompCor),
+                    include_backdiff_squared: True | False (same as for aCompCor),
                 },
                 CerebrospinalFluid: {
                     summary: {
@@ -451,6 +473,8 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed: True | False (same as for aCompCor),
                     include_squared: True | False (same as for aCompCor),
                     include_delayed_squared: True | False (same as for aCompCor),
+                    include_backdiff: True | False (same as for aCompCor),
+                    include_backdiff_squared: True | False (same as for aCompCor),
                 },
                 GreyMatter: {
                     summary: {
@@ -462,6 +486,8 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed: True | False (same as for aCompCor),
                     include_squared: True | False (same as for aCompCor),
                     include_delayed_squared: True | False (same as for aCompCor),
+                    include_backdiff: True | False (same as for aCompCor),
+                    include_backdiff_squared: True | False (same as for aCompCor),
                 },
                 GlobalSignal: {
                     summary: {
@@ -471,11 +497,15 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_delayed: True | False (same as for aCompCor),
                     include_squared: True | False (same as for aCompCor),
                     include_delayed_squared: True | False (same as for aCompCor),
+                    include_backdiff: True | False (same as for aCompCor),
+                    include_backdiff_squared: True | False (same as for aCompCor),
                 },
                 Motion: None | { 
                     include_delayed: True | False (same as for aCompCor),
                     include_squared: True | False (same as for aCompCor),
                     include_delayed_squared: True | False (same as for aCompCor),
+                    include_backdiff: True | False (same as for aCompCor),
+                    include_backdiff_squared: True | False (same as for aCompCor),
                 },
                 Censor: {
                     method: 'Kill', 'Zero', 'Interpolate', 'SpikeRegression',

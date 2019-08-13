@@ -3623,8 +3623,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             handler = cb_logging.FileHandler(cb_log_filename)
             cb_logger.addHandler(handler)
 
-            log_nodes_initial(workflow)
 
+            # Log initial information from all the nodes
+            def recurse_nodes(workflow, prefix=''):
+                for node in nx.topological_sort(workflow._graph):
+                    if isinstance(node, pe.Workflow):
+                        for subnode in recurse_nodes(node, prefix + workflow.name + '.'):
+                            yield subnode
+                    else:
+                        yield {
+                            "id": prefix + workflow.name + '.' + node.name,
+                            "hash": node.inputs.get_hashval()[1],
+                        }
+
+            nodes = list(recurse_nodes(workflow))
+            for node in nodes:
+                cb_logger.debug(json.dumps(node))
+
+                
             # Add status callback function that writes in callback log
             if nipype.__version__ not in ('1.1.2'):
                 err_msg = "This version of Nipype may not be compatible with " \
@@ -3826,6 +3842,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 # """
         except:
+
+            import traceback
+            traceback.print_exc()
 
             execution_info = """
 
