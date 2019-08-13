@@ -2,9 +2,11 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
-#  This file is adapted from fMRIPrep
-#  more info: https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/utils.py  
-#               https://fmriprep.readthedocs.io/ 
+# This functionality is adapted from poldracklab/niworkflows:
+# https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/utils.py  
+# https://fmriprep.readthedocs.io/
+# https://poldracklab.stanford.edu/
+# We are temporarily maintaining our own copy for more granular control.
 
 """
 Utilities
