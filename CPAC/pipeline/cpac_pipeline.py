@@ -39,6 +39,7 @@ from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
+    connect_func_preproc,
     create_wf_edit_func
 )
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
@@ -1458,125 +1459,127 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Functional Image Preprocessing Workflow
 
-        new_strat_list = []
+        workflow, strat_list = connect_func_preproc(workflow, c.functionalMasking, strat_list)
 
-        if '3dAutoMask' in c.functionalMasking:
+        # new_strat_list = []
 
-            for num_strat, strat in enumerate(strat_list):
+        # if '3dAutoMask' in c.functionalMasking:
 
-                func_preproc = create_func_preproc(
-                    tool=c.functionalMasking[0],
-                    wf_name='func_preproc_automask_%d' % num_strat
-                )
+        #     for num_strat, strat in enumerate(strat_list):
 
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.func')
+        #         func_preproc = create_func_preproc(
+        #             tool=c.functionalMasking[0],
+        #             wf_name='func_preproc_automask_%d' % num_strat
+        #         )
 
-                func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'functional_volreg_twopass', True)
+        #         node, out_file = strat.get_leaf_properties()
+        #         workflow.connect(node, out_file, func_preproc,
+        #                         'inputspec.func')
 
-                # TODO ASH review forking
-                if 'BET' in c.functionalMasking:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
+        #         func_preproc.inputs.inputspec.twopass = \
+        #             getattr(c, 'functional_volreg_twopass', True)
 
-                strat.append_name(func_preproc.name)
+        #         # TODO ASH review forking
+        #         if 'BET' in c.functionalMasking:
+        #             strat = strat.fork()
+        #             new_strat_list.append(strat)
 
-                strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+        #         strat.append_name(func_preproc.name)
 
-                # add stuff to resource pool if we need it
-                strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.example_func'),
-                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                    'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save')
-                })
+        #         strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
-                create_log_node(workflow, func_preproc,
-                                'outputspec.preprocessed', num_strat)
+        #         # add stuff to resource pool if we need it
+        #         strat.update_resource_pool({
+        #             'mean_functional': (func_preproc, 'outputspec.example_func'),
+        #             'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+        #             'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+        #             'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+        #             'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+        #             'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+        #             'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+        #             'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save')
+        #         })
 
-        strat_list += new_strat_list
+        #         create_log_node(workflow, func_preproc,
+        #                         'outputspec.preprocessed', num_strat)
 
-        new_strat_list = []
+        # strat_list += new_strat_list
 
-        for num_strat, strat in enumerate(strat_list):
+        # new_strat_list = []
 
-            nodes = strat.get_nodes_names()
+        # for num_strat, strat in enumerate(strat_list):
 
-            if 'BET' in c.functionalMasking and 'func_preproc_automask' not in nodes:
+        #     nodes = strat.get_nodes_names()
 
-                func_preproc = create_func_preproc(tool=c.functionalMasking[0],
-                                                wf_name='func_preproc_bet_%d' % num_strat)
+        #     if 'BET' in c.functionalMasking and 'func_preproc_automask' not in nodes:
 
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.func')
+        #         func_preproc = create_func_preproc(tool=c.functionalMasking[0],
+        #                                         wf_name='func_preproc_bet_%d' % num_strat)
 
-                func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'functional_volreg_twopass', True)
+        #         node, out_file = strat.get_leaf_properties()
+        #         workflow.connect(node, out_file, func_preproc,
+        #                         'inputspec.func')
 
-                strat.append_name(func_preproc.name)
+        #         func_preproc.inputs.inputspec.twopass = \
+        #             getattr(c, 'functional_volreg_twopass', True)
 
-                strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+        #         strat.append_name(func_preproc.name)
 
-                # TODO redundant with above resource pool additions?
-                strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.example_func'),
-                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                    'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
-                })
+        #         strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
-                create_log_node(workflow, func_preproc, 'outputspec.preprocessed',
-                                num_strat)
+        #         # TODO redundant with above resource pool additions?
+        #         strat.update_resource_pool({
+        #             'mean_functional': (func_preproc, 'outputspec.example_func'),
+        #             'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+        #             'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+        #             'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+        #             'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+        #             'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+        #             'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+        #             'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
+        #         })
 
-        strat_list += new_strat_list
+        #         create_log_node(workflow, func_preproc, 'outputspec.preprocessed',
+        #                         num_strat)
+
+        # strat_list += new_strat_list
 
 
-        new_strat_list = []
+        # new_strat_list = []
 
-        for num_strat, strat in enumerate(strat_list):
+        # for num_strat, strat in enumerate(strat_list):
 
-            nodes = strat.get_nodes_names()
+        #     nodes = strat.get_nodes_names()
 
-            if 'BET+3dAutoMask' in c.functionalMasking and 'func_preproc_automask' not in nodes and 'func_preproc_bet' not in nodes:
+        #     if 'BET+3dAutoMask' in c.functionalMasking and 'func_preproc_automask' not in nodes and 'func_preproc_bet' not in nodes:
 
-                func_preproc = create_func_preproc(tool=c.functionalMasking[0],
-                                                wf_name='func_preproc_bet_automask_%d' % num_strat)
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.func')
+        #         func_preproc = create_func_preproc(tool=c.functionalMasking[0],
+        #                                         wf_name='func_preproc_bet_automask_%d' % num_strat)
+        #         node, out_file = strat.get_leaf_properties()
+        #         workflow.connect(node, out_file, func_preproc,
+        #                         'inputspec.func')
                             
-                func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'functional_volreg_twopass', True)
-                strat.append_name(func_preproc.name)
-                strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+        #         func_preproc.inputs.inputspec.twopass = \
+        #             getattr(c, 'functional_volreg_twopass', True)
+        #         strat.append_name(func_preproc.name)
+        #         strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
-                # TODO redundant with above resource pool additions?
-                strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.example_func'),
-                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                    'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
-                })
+        #         # TODO redundant with above resource pool additions?
+        #         strat.update_resource_pool({
+        #             'mean_functional': (func_preproc, 'outputspec.example_func'),
+        #             'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+        #             'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+        #             'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+        #             'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+        #             'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+        #             'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+        #             'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
+        #         })
 
-                create_log_node(workflow, func_preproc, 'outputspec.preprocessed',
-                                num_strat)
+        #         create_log_node(workflow, func_preproc, 'outputspec.preprocessed',
+        #                         num_strat)
 
-        strat_list += new_strat_list
+        # strat_list += new_strat_list
 
 
         # Func -> T1 Registration (Initial Linear reg)

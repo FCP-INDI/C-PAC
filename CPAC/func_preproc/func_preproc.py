@@ -107,7 +107,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(tool='both', wf_name='func_preproc'):
+def create_func_preproc(tool, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -572,3 +572,44 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
         stopidx = stop_idx
 
     return stopidx, startidx
+
+
+def connect_func_preproc(workflow, c, strat_list):
+
+    from CPAC.func_preproc.func_preproc import create_func_preproc
+
+    for num_tool, tool in enumerate(c):
+
+        new_strat_list = []
+        
+        if num_tool != 0:
+                new_strat_list.append(strat.fork())
+
+        for num_strat, strat in enumerate(strat_list):
+            func_preproc = create_func_preproc(tool=tool, wf_name='func_preproc_'+tool.lower()+'_%d' % num_strat)
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.func')
+                        
+            func_preproc.inputs.inputspec.twopass = \
+                getattr(c, 'functional_volreg_twopass', True)
+
+            strat.append_name(func_preproc.name)
+            strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+
+            strat.update_resource_pool({
+                'mean_functional': (func_preproc, 'outputspec.example_func'),
+                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+                'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+                'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+                'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
+            })
+
+            create_log_node(workflow, func_preproc, 'outputspec.preprocessed', num_strat)
+
+        strat_list += new_strat_list
+
+    return workflow, strat_list
