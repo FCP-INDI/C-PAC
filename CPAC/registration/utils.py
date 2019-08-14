@@ -12,14 +12,13 @@ def seperate_warps_list(warp_list, selection):
 
 
 def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
-                  reference_skull, fixed_image_mask=None):
+                  reference_skull, interp, fixed_image_mask=None):
     
     regcmd = ["antsRegistration",
               "--collapse-output-transforms", "0",
               "--dimensionality", "3",
               "--initial-moving-transform",
               "[{0},{1},0]".format(reference_brain, anatomical_brain),
-              "--interpolation", "Linear",
               "--output", "[transform,transform_Warped.nii.gz]",
               "--transform", "Rigid[0.1]",
               "--metric", "MI[{0},{1},1,32," \
@@ -42,7 +41,8 @@ def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
               "--smoothing-sigmas", "3.0x2.0x1.0x0.0",
               "--shrink-factors", "6x4x2x1",
               "--use-histogram-matching", "1",
-              "--winsorize-image-intensities", "[0.01,0.99]"]
+              "--winsorize-image-intensities", "[0.01,0.99]",
+              "--interpolation", "{0}".format(interp)]
 
     if fixed_image_mask is not None:
         regcmd.append("-x")
@@ -172,4 +172,3 @@ def cpac_ants_apply_nonlinear_inverse_warp(cpac_dir, moving_image, reference,
             pass
 
     #run_ants_apply_warp()
-

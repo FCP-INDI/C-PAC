@@ -287,6 +287,18 @@ regWithSkull :  [0]
 runSegmentationPreprocessing :  [1]
 
 
+# Tissue segmentation options, including 'FAST' and 'ATROPOS'
+# segmentationMethod: ['FAST']
+
+
+# Non-local means filtering / Denoise image 
+non_local_means_filtering: False
+
+
+# N4 bias field correction 
+n4_bias_field_correction: True
+
+
 # Full path to a directory containing binarized prior probability maps.
 # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use non-standard priors.
@@ -311,8 +323,9 @@ PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 # Run functional preproceessing
 runFunctional: [1]
 
+
 # Interpolate voxel time courses so they are sampled at the same time points.
-slice_timing_correction :  [0]
+slice_timing_correction :  [1]
 
 
 # Specify the TR (in seconds) at which images were acquired.
@@ -345,8 +358,11 @@ stopIdx :  None
 functional_volreg_twopass :  On
 
 
-# Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
-runEPI_DistCorr :  [0]
+# Perform distortion correction.
+# PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+# Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+# Options: ["PhaseDiff", "Blip", "None"]
+distortion_correction :  ["None"]
 
 
 # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
@@ -390,6 +406,22 @@ runBBReg :  [1]
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
 boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
+
+# Documentation on types of parameters
+# Directions on which parameter should I use
+# Possible values: Linear, BSpline, LanczosWindowedSinc
+anatRegANTSinterpolation: LanczosWindowedSinc
+
+# Possible values: trilinear, sinc, spline
+anatRegFSLinterpolation: sinc
+
+# Documentation on types of parameters
+# Directions on which parameter should I use
+# Possible values: Linear, BSpline, LanczosWindowedSinc
+funcRegANTSinterpolation: LanczosWindowedSinc
+
+# Possible values: trilinear, sinc, spline
+funcRegFSLinterpolation: sinc
 
 
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.

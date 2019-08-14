@@ -23,7 +23,7 @@ from CPAC.utils.utils import (
 # Apply warps, Z-scoring, Smoothing, Averages
 # use derivative
 def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_obj,
-                        map_node=False, input_image_type=0):
+                       map_node=False, input_image_type=0, distcor=False):
 
     nodes = strat.get_nodes_names()
 
@@ -98,6 +98,12 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
                             'outputspec.itk_transform',
                             collect_transforms,
                             'inputspec.fsl_to_itk_affine')
+
+        if distcor:
+            node, out_file = strat['blip_warp']
+            workflow.connect(node, out_file,
+                             collect_transforms,
+                             'inputspec.distortion_unwarp')
 
         # output file to be converted
         node, out_file = strat[output_name]
@@ -339,7 +345,9 @@ def ants_apply_warps_func_mni(
         input_node, input_outfile,
         ref_node, ref_outfile, 
         func_name, interp,
-        input_image_type, template_brain_name='template_brain_for_func_preproc'
+        input_image_type, 
+        template_brain_name='template_brain_for_func_preproc',
+        distcor=False
     ):
     """Apply the functional-to-structural and structural-to-template warps to
     the 4D functional time-series to warp it to template space.
@@ -457,6 +465,12 @@ def ants_apply_warps_func_mni(
                      collect_transforms_func_mni,
                      'inputspec.fsl_to_itk_affine')
 
+    if distcor:
+        node, out_file = strat['blip_warp']
+        workflow.connect(node, out_file,
+                         collect_transforms_func_mni,
+                         'inputspec.distortion_unwarp')
+
     # this <node, out_file> pulls in directly because
     # it pulls in the leaf in some instances
     workflow.connect(input_node,
@@ -480,7 +494,8 @@ def ants_apply_warps_func_mni(
 
 def ants_apply_inverse_warps_template_to_func(
         workflow, strat, num_strat, num_ants_cores, input_node, input_outfile,
-        ref_node, ref_outfile, func_name, interp, input_image_type
+        ref_node, ref_outfile, func_name, interp, input_image_type,
+        distcor=False
 ):
     """Apply the functional-to-structural and structural-to-template warps
     inversely to functional time-series in template space to warp it back to
@@ -596,6 +611,12 @@ def ants_apply_inverse_warps_template_to_func(
                      'outputspec.itk_transform',
                      collect_transforms_mni_func,
                      'inputspec.fsl_to_itk_affine')
+
+    if distcor:
+        node, out_file = strat['blip_warp_inverse']
+        workflow.connect(node, out_file,
+                         collect_transforms_mni_func,
+                         'inputspec.distortion_unwarp')
 
     # this <node, out_file> pulls in directly because
     # it pulls in the leaf in some instances
