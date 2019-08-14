@@ -104,7 +104,12 @@ class Strategy(object):
         for fork_point in fork_points:
             fork_name = []
 
+            # import pdb;
+            # pdb.set_trace()
+            fork_point.sort()
+
             for fork in fork_point:
+                
                 fork_label = ''
 
                 if 'ants' in fork:
@@ -117,6 +122,8 @@ class Strategy(object):
                     fork_label = 'func-3dautomask'
                 if 'bet' in fork:
                     fork_label = 'func-bet'
+                if 'bet_3dautomask' in fork:
+                    fork_label = 'func-bet-3dautomask'    
                 if 'epi_distcorr' in fork:
                     fork_label = 'dist-corr'
                 if 'bbreg' in fork:

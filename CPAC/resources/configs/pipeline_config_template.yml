@@ -48,23 +48,23 @@ num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  cpac_default
+pipelineName :  cpac_test
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  ./cpac_runs/default/working
+workingDirectory :  ./cpac_runs/test_all/working
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  ./cpac_runs/default/crash
+crashLogDirectory :  ./cpac_runs/test_all/crash
 
 
 # Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/default/log
+logDirectory :  ./cpac_runs/test_all/log
 
 
 # Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/default/output
+outputDirectory :  ./cpac_runs/test_all/output
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -399,7 +399,7 @@ func_reg_input :  ['Mean Functional']
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI 3dAutoMask, FSL BET or both BET+3dAutoMask.
+# Choose which tool to be used in functional masking - AFNI 3dAutoMask, FSL BET or both BET_3dAutoMask.
 functionalMasking :  ['3dAutoMask']
 
 
