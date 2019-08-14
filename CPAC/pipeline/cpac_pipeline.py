@@ -2422,9 +2422,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         "NearestNeighbor", 0, distcor=blip
                     )
 
-                    create_log_node(workflow, warp_mask_wf,
-                                    'outputspec.output_image', num_strat)
-
                     # FUNCTIONAL BRAIN MASK (with derivative resolution) apply warp
                     node, out_file = strat['functional_brain_mask_derivative']
 
