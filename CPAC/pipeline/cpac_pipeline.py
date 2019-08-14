@@ -1500,9 +1500,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
-            if 'functional_brain_mask' in strat:
-                continue
-
             # Resample brain mask with derivative resolution
             node, out_file = strat['functional_brain_mask']
             resampled_template = pe.Node(
