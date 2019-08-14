@@ -141,7 +141,7 @@ def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False,
                                              "pipeline_config_ndmg.yml"))
 
     import CPAC.pipeline.cpac_runner as cpac_runner
-    cpac_runner.run(pipe_config, data_config, num_subs_at_once=num_cores,
+    cpac_runner.run(data_config, pipe_config, num_subs_at_once=num_cores,
                     debug=debug)
 
 
@@ -328,6 +328,19 @@ def qpp(group_config):
 def utils():
     pass
 
+
+@utils.command()
+@click.argument('crash_file')
+def crash(crash_file):
+    
+    import mock
+
+    def accept_all(object, name, value):
+        return value
+
+    with mock.patch('nipype.interfaces.base.traits_extension.File.validate', side_effect=accept_all) as abc_urandom_function:
+        from nipype.scripts.crash_files import display_crash_file
+        display_crash_file(crash_file, False, False, None)
 
 @utils.group()
 def data_config():

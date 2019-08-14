@@ -385,7 +385,7 @@ class DataConfig(wx.Frame):
     def run(self, config):
         
         # Import packages
-        import CPAC
+        import CPAC.utils.build_data_config
 
         # Try to build subject list from config
         try:
