@@ -170,7 +170,8 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
                                                'perc_int',
                                                'max_inter_iter',
                                                'blur_fwhm',
-                                               'fac']),
+                                               'fac',
+                                               'monkey']),
                 name='AFNI_options')
 
             skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
@@ -192,7 +193,8 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
                                                                  'perc_int',
                                                                  'max_inter_iter',
                                                                  'blur_fwhm',
-                                                                 'fac'],
+                                                                 'fac',
+                                                                 'monkey'],
                                                     output_names=['expr'],
                                                     function=create_3dskullstrip_arg_string),
                                       name='anat_skullstrip_args')
@@ -217,6 +219,7 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
                     ('max_inter_iter', 'max_inter_iter'),
                     ('blur_fwhm', 'blur_fwhm'),
                     ('fac', 'fac'),
+                    ('monkey','monkey')
                 ])
             ])
 
