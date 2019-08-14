@@ -3900,7 +3900,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 
             # Actually run the pipeline now, for the current subject
-            workflow.run(plugin='Linear', plugin_args=plugin_args)
+            workflow.run(plugin=plugin, plugin_args=plugin_args)
 
 
             # Dump subject info pickle file to subject log dir
