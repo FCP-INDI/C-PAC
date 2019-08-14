@@ -21,7 +21,7 @@ from CPAC.utils.utils import (
 )
 
 # Apply warps, Z-scoring, Smoothing, Averages
-
+# use derivative
 def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_obj,
                        map_node=False, input_image_type=0, distcor=False):
 
@@ -50,11 +50,12 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
 
         apply_ants_warp.inputs.inputspec.dimension = 3
         apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
-        apply_ants_warp.inputs.inputspec.reference_image = \
-            pipeline_config_obj.template_brain_only_for_func
 
         apply_ants_warp.inputs.inputspec.input_image_type = \
             input_image_type
+
+        node, out_file = strat['template_brain_for_func_derivative'] 
+        workflow.connect(node, out_file, apply_ants_warp, 'inputspec.reference_image')
 
         # affine from FLIRT func->anat linear registration
         node, out_file = strat['functional_to_anat_linear_xfm']
@@ -134,8 +135,8 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
                                         name='{0}_to_standard_{1}'.format(output_name,
                                                                         num_strat))
 
-        apply_fsl_warp.inputs.ref_file = \
-            pipeline_config_obj.template_skull_for_func
+        node, out_file = strat['template_skull_for_func_derivative'] 
+        workflow.connect(node, out_file, apply_fsl_warp, 'ref_file')
 
         # output file to be warped
         node, out_file = strat[output_name]
@@ -171,8 +172,12 @@ def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_
 
         node, out_file = strat['anatomical_brain']
         workflow.connect(node, out_file, apply_anat_warp, 'ref_file')
-        apply_fsl_warp.inputs.ref_file = \
-            pipeline_config_obj.template_skull_for_func
+        # apply_fsl_warp.inputs.ref_file = \
+        #     pipeline_config_obj.template_skull_for_func
+
+        #
+        node, out_file = strat['template_skull_for_func_derivative'] 
+        workflow.connect(node, out_file, apply_fsl_warp, 'ref_file')
 
         # output file to be warped
         node, out_file = strat[output_name]
@@ -334,13 +339,15 @@ def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
 
     return strat
 
-
+# use preproc
 def ants_apply_warps_func_mni(
         workflow, strat, num_strat, num_ants_cores,
         input_node, input_outfile,
-        ref_node, ref_outfile, standard,
+        ref_node, ref_outfile, 
         func_name, interp,
-        input_image_type, distcor=False
+        input_image_type, 
+        template_brain_name='template_brain_for_func_preproc',
+        distcor=False
     ):
     """Apply the functional-to-structural and structural-to-template warps to
     the 4D functional time-series to warp it to template space.
@@ -398,7 +405,8 @@ def ants_apply_warps_func_mni(
         create_wf_apply_ants_warp(name='apply_ants_warp_%s_%d' % (func_name, num_strat),
                                   ants_threads=int(num_ants_cores))
 
-    apply_ants_warp_func_mni.inputs.inputspec.reference_image = standard
+    # apply_ants_warp_func_mni.inputs.inputspec.reference_image = standard
+
     apply_ants_warp_func_mni.inputs.inputspec.dimension = 3
     apply_ants_warp_func_mni.inputs.inputspec.interpolation = interp
 
@@ -408,6 +416,9 @@ def ants_apply_warps_func_mni(
     # (default), vector, tensor, or time series.
     apply_ants_warp_func_mni.inputs.inputspec. \
         input_image_type = input_image_type
+
+    node, out_file = strat[template_brain_name]
+    workflow.connect(node, out_file, apply_ants_warp_func_mni, 'inputspec.reference_image')
 
     # convert the .mat from linear Func->Anat to
     # ANTS format

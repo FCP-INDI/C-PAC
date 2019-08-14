@@ -426,6 +426,51 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
     return local_path
 
 
+def resolve_resolution(resolution, template, template_name, tag = None):
+
+    import nipype.interfaces.afni as afni
+    import nipype.pipeline.engine as pe
+    from CPAC.utils.datasource import check_for_s3
+
+    tagname = None
+    if tag is not None:
+        tagname = "${" + tag + "}"
+
+    local_path = None 
+
+    try:
+        if tagname is not None:
+            local_path = check_for_s3(template.replace(tagname, str(resolution)))
+
+    except IOError:
+        local_path = None  
+    
+    if local_path is None:
+        if tagname is not None:
+            ref_template = template.replace(tagname, '1mm') 
+            local_path = check_for_s3(ref_template)
+        else:
+            local_path = template    
+
+        if "x" in resolution:
+            resolution = tuple(i.replace('mm', '') for i in resolution.split("x"))
+            resolution = tuple(float(i) for i in resolution)
+        else:
+            resolution = (float(resolution.replace('mm', '')),)*3
+
+        resample = pe.Node(interface = afni.Resample(), name=template_name)
+        resample.inputs.voxel_size = resolution
+        resample.inputs.outputtype = 'NIFTI_GZ'
+        resample.inputs.resample_mode = 'Cu'
+        resample.inputs.in_file = local_path
+        resample.base_dir = '.'
+
+        resampled_template = resample.run()
+        local_path = resampled_template.outputs.out_file
+
+    return local_path
+
+
 def create_anat_datasource(wf_name='anat_datasource'):
 
     import nipype.pipeline.engine as pe
