@@ -670,7 +670,7 @@ def connect_func_preproc(workflow, c, strat_list):
             new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
             new_strat.update_resource_pool({
-                'mean_functional': (func_preproc, 'outputspec.example_func'),
+                'mean_functional': (func_preproc, 'outputspec.func_mean'),
                 'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
                 'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
                 'max_displacement': (func_preproc, 'outputspec.max_displacement'),
