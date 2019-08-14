@@ -102,11 +102,10 @@ class Strategy(object):
         fork_points = Strategy.get_forking_points(strategies)
         
         for fork_point in fork_points:
-            fork_name = []
-
-            # import pdb;
-            # pdb.set_trace()
+            
             fork_point.sort()
+
+            fork_name = []
 
             for fork in fork_point:
                 
