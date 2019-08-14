@@ -256,13 +256,8 @@ class ListBox(wx.Frame):
 
     def runAnalysis1(self, pipeline, sublist, p):
         
-        try:
-            import CPAC
-            from CPAC.utils import Configuration
-        except ImportError, e:
-            wx.MessageBox("Error importing CPAC. %s" % e, "Error")
-            print "Error importing CPAC"
-            print e
+        import CPAC.pipeline.cpac_runner
+        from CPAC.utils import Configuration
 
         c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
         plugin_args = {'n_procs': c.maxCoresPerParticipant,
@@ -363,6 +358,8 @@ class ListBox(wx.Frame):
 
     def runGroupLevelAnalysis(self, event):
 
+        import CPAC.pipeline.cpac_group_runner
+        
         # Runs group analysis when user clicks "Run Group Level Analysis" in
         # GUI
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
@@ -379,7 +376,6 @@ class ListBox(wx.Frame):
                         raise Exception("Error reading config file- %s", config)
                     if 'pipeline_dir' in config.keys():
                         group_config = True
-                        import CPAC
                         CPAC.pipeline.cpac_group_runner.run(pipeline)
                 else:
                     print "pipeline doesn't exist"
