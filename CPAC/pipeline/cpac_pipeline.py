@@ -118,7 +118,7 @@ from CPAC.utils.utils import (
     extract_output_mean,
     create_output_mean_csv,
     get_zscore,
-    get_fisher_zscore
+    get_fisher_zscore,
     pick_wm
 )
 
