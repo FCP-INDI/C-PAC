@@ -1374,8 +1374,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # Distortion Correction
         new_strat_list = []
 
-        rp = strat.get_resource_pool()
-
         # Distortion Correction - Field Map Phase-difference
         phase_diff = False
         if "fmap" in sub_dict.keys():
@@ -1500,20 +1498,31 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
+        for num_strat, strat in enumerate(strat_list):
 
-        # resample brain mask with derivative resolution
-        node, out_file = strat['functional_brain_mask']
-        resampled_template = pe.Node(Function(input_names = ['resolution', 'template', 'template_name'],
-                                            output_names = ['resampled_template'], 
-                                            function = resolve_resolution), 
-                                        name = 'functional_brain_mask_derivative') 
+            if 'functional_brain_mask' in strat:
+                continue
 
-        resampled_template.inputs.resolution = c.resolution_for_func_derivative
-        resampled_template.inputs.template_name = 'functional_brain_mask_derivative' 
-        workflow.connect(node, out_file, resampled_template, 'template')
-        
-        strat.update_resource_pool({'functional_brain_mask_derivative': (resampled_template, 'resampled_template')})
+            # Resample brain mask with derivative resolution
+            node, out_file = strat['functional_brain_mask']
+            resampled_template = pe.Node(
+                Function(
+                    input_names=['resolution', 'template', 'template_name'],
+                    output_names=['resampled_template'],
+                    function=resolve_resolution
+                ),
+                name='functional_brain_mask_derivative_%d' % (num_strat)
+            )
 
+            resampled_template.inputs.resolution = c.resolution_for_func_derivative
+            resampled_template.inputs.template_name = 'functional_brain_mask_derivative'
+            workflow.connect(node, out_file, resampled_template, 'template')
+            strat.update_resource_pool({
+                'functional_brain_mask_derivative': (
+                    resampled_template,
+                    'resampled_template'
+                )
+            })
 
         # Func -> T1 Registration (Initial Linear reg)
 
