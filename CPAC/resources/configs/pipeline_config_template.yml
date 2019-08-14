@@ -57,7 +57,6 @@ workingDirectory :  ./cpac_runs/default/working
 # Directory where CPAC should write crash logs.
 crashLogDirectory :  ./cpac_runs/default/crash
 
-
 # Directory where CPAC should place run logs.
 logDirectory :  ./cpac_runs/default/log
 
@@ -109,13 +108,13 @@ already_skullstripped :  [0]
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
-# Template to be used during antsBrainExtraction.
+# Template to be used during niworkflows-ants.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-# antsBrainExtraction Brain extraction template
+# niworkflows-ants Brain extraction template
 niworkflows_ants_template_path : /Path/to/OASIStemplate/T_template0.nii.gz
-# antsBrainExtraction probability mask
+# niworkflows-ants probability mask
 niworkflows_ants_mask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
-# antsBrainExtraction registration mask 
+# niworkflows-ants registration mask 
 niworkflows_ants_regmask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
