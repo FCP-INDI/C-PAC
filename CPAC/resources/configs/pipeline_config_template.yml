@@ -432,7 +432,7 @@ func_reg_input :  ['Mean Functional']
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI 3dAutoMask or FSL BET.
+# Choose which tool to be used in functional masking - AFNI 3dAutoMask, FSL BET or both BET_3dAutoMask.
 functionalMasking :  ['3dAutoMask']
 
 

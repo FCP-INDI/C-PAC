@@ -45,6 +45,7 @@ from CPAC.distortion_correction.distortion_correction import (
 )
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
+    connect_func_preproc,
     slice_timing_wf,
     create_wf_edit_func
 )
@@ -1344,82 +1345,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 
         # Functional Image Preprocessing Workflow
-        new_strat_list = []
-        if '3dAutoMask' in c.functionalMasking:
-            for num_strat, strat in enumerate(strat_list):
+        workflow, strat_list = connect_func_preproc(workflow, c.functionalMasking, strat_list)
 
-                func_preproc = create_func_preproc(
-                    use_bet=False,
-                    wf_name='func_preproc_automask_%d' % num_strat
-                )
-
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.func')
-
-                func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'functional_volreg_twopass', True)
-
-                # TODO ASH review forking
-                if 'BET' in c.functionalMasking:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(func_preproc.name)
-
-                strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-
-                # add stuff to resource pool if we need it
-                strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
-                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                    'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save')
-                })
-
-        strat_list += new_strat_list
-
-        new_strat_list = []
-
-        for num_strat, strat in enumerate(strat_list):
-
-            nodes = strat.get_nodes_names()
-
-            if 'BET' in c.functionalMasking and 'func_preproc_automask' not in nodes:
-
-                func_preproc = create_func_preproc(use_bet=True,
-                                                wf_name='func_preproc_bet_%d' % num_strat)
-
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.func')
-
-                func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'functional_volreg_twopass', True)
-
-                strat.append_name(func_preproc.name)
-
-                strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-
-                # TODO redundant with above resource pool additions?
-                strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
-                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                    'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
-                })
-
-        strat_list += new_strat_list
-
-
+  
         # Distortion Correction
         new_strat_list = []
 

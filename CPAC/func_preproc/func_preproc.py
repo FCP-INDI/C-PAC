@@ -177,7 +177,8 @@ def create_wf_edit_func(wf_name="edit_func"):
     return preproc
 
 
-def create_func_preproc(use_bet=False, wf_name='func_preproc'):
+# functional preprocessing
+def create_func_preproc(tool, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -473,17 +474,78 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     output_node, 'oned_matrix_save')
 
-    # TODO: change the 'use_bet' input from boolean to 'afni' and/or 'fsl'
-    tool = 'afni'
-    if use_bet:
-        tool = 'fsl'
+    if tool == '3dAutoMask':
+        func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
+                                      name='func_get_brain_mask')
 
-    skullstrip_func = skullstrip_functional(tool,
-                                            "{0}_skullstrip".format(wf_name))
+        func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+        preproc.connect(func_motion_correct_A, 'out_file',
+                        func_get_brain_mask, 'in_file')
+
+        preproc.connect(func_get_brain_mask, 'out_file',
+                        output_node, 'mask')
+
+    elif tool == 'BET':
+        func_get_brain_mask = pe.Node(interface=fsl.BET(),
+                                      name='func_get_brain_mask_BET')
+
+        func_get_brain_mask.inputs.mask = True
+        func_get_brain_mask.inputs.functional = True
+
+        erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
+                                  name='erode_one_voxel')
+
+        erode_one_voxel.inputs.kernel_shape = 'box'
+        erode_one_voxel.inputs.kernel_size = 1.0
+
+        preproc.connect(func_motion_correct_A, 'out_file',
+                        func_get_brain_mask, 'in_file')
+
+        preproc.connect(func_get_brain_mask, 'mask_file',
+                        erode_one_voxel, 'in_file')
+
+        preproc.connect(erode_one_voxel, 'out_file',
+                        output_node, 'mask')
+
+    elif tool == 'BET_3dAutoMask':
+        skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=True), name='skullstrip_first_pass')
+        bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
+        bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
+        unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ', args='-clfrac 0.2 -rbt 18.3 65.0 90.0', out_file="uni.nii.gz"), name='unifize')
+        skullstrip_second_pass = pe.Node(preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'), name='skullstrip_second_pass')
+        combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'), name='combine_masks')
+
+        preproc.connect([(func_motion_correct_A, skullstrip_first_pass, [('out_file', 'in_file')]),
+                        (skullstrip_first_pass, bet_dilate, [('mask_file', 'in_file')]),
+                        (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
+                        (skullstrip_first_pass, bet_mask, [('out_file' , 'in_file')]),
+                        (bet_mask, unifize, [('out_file', 'in_file')]),
+                        (unifize, skullstrip_second_pass, [('out_file', 'in_file')]),
+                        (skullstrip_first_pass, combine_masks, [('mask_file', 'in_file')]),
+                        (skullstrip_second_pass, combine_masks, [('out_file', 'operand_file')]),
+                        (combine_masks, output_node, [('out_file', 'mask')])])
+
+    func_edge_detect = pe.Node(interface=afni_utils.Calc(),
+                               name='func_edge_detect')
+
+    func_edge_detect.inputs.expr = 'a*b'
+    func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
 
     preproc.connect(func_motion_correct_A, 'out_file',
-                    skullstrip_func, 'inputspec.func')
-    preproc.connect(skullstrip_func, 'outputspec.func_brain',
+                    func_edge_detect, 'in_file_a')
+
+    if tool == '3dAutoMask':
+        preproc.connect(func_get_brain_mask, 'out_file',
+                        func_edge_detect, 'in_file_b')
+    elif tool == 'BET':
+        preproc.connect(erode_one_voxel, 'out_file',
+                        func_edge_detect, 'in_file_b')
+    elif tool == 'BET_3dAutoMask':
+        preproc.connect(combine_masks, 'out_file',
+                        func_edge_detect, 'in_file_b')
+
+    preproc.connect(func_edge_detect, 'out_file',
                     output_node, 'skullstrip')
     preproc.connect(skullstrip_func, 'outputspec.func_brain_mask',
                     output_node, 'mask')
@@ -625,3 +687,47 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
         stopidx = stop_idx
 
     return stopidx, startidx
+
+
+def connect_func_preproc(workflow, c, strat_list):
+
+    from CPAC.func_preproc.func_preproc import create_func_preproc
+    from CPAC.pipeline.cpac_pipeline import create_log_node
+    
+    new_strat_list = []
+
+    for num_strat, strat in enumerate(strat_list):
+       
+        for num_tool, tool in enumerate(c):
+
+            new_strat = strat.fork()
+
+            func_preproc = create_func_preproc(tool=tool, wf_name='func_preproc_'+tool.lower()+'_%d' % num_strat)
+            node, out_file = new_strat.get_leaf_properties()
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.func')
+                        
+            func_preproc.inputs.inputspec.twopass = \
+                getattr(c, 'functional_volreg_twopass', True)
+
+            new_strat.append_name(func_preproc.name)
+            new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+
+            new_strat.update_resource_pool({
+                'mean_functional': (func_preproc, 'outputspec.example_func'),
+                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+                'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+                'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+                'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
+            })
+
+            create_log_node(workflow, func_preproc, 'outputspec.preprocessed', num_strat)
+
+            new_strat_list.append(new_strat)
+
+    strat_list = new_strat_list
+
+    return workflow, strat_list
