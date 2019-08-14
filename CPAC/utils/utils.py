@@ -6,6 +6,28 @@ import numpy as np
 from inspect import currentframe, getframeinfo , stack
 
 
+def get_flag(in_flag):
+    return in_flag
+
+
+def get_flag_wf(wf_name='get_flag'):
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    wf = pe.Workflow(name=wf_name)
+
+    input_node = pe.Node(util.IdentityInterface(fields=['in_flag']),
+                         name='inputspec')
+
+    get_flag = pe.Node(util.Function(input_names=['in_flag'],
+                                     function=get_flag),
+                       name='get_flag')
+
+    wf.connect(input_node, 'in_flag', get_flag, 'in_flag')
+
+
+
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
     """
     Workflow to calculate z-scores
@@ -561,6 +583,9 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             elif "SliceAcquisitionOrder" in params_dct.keys():
                 pattern = str(check(params_dct, subject_id, scan,
                                     'SliceAcquisitionOrder', False))
+            if "PhaseEncodingDirection" in params_dct.keys():
+                pe_direction = str(check(params_dct, subject_id, scan,
+                                         'PhaseEncodingDirection', False))
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
@@ -600,6 +625,9 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             last_tr = check(params_dct, subject_id, scan, 'last_TR', False)
             if last_tr:
                 last_tr = check2(last_tr)
+
+            pe_direction = check(params_dct, subject_id, scan,
+                                 'PhaseEncodingDirection', False)
 
         else:
             err = "\n\n[!] Could not read the format of the scan parameters "\
@@ -713,7 +741,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     start_indx = first_tr
     stop_indx = last_tr
 
-    return tr, tpattern, ref_slice, start_indx, stop_indx
+    return tr, tpattern, ref_slice, start_indx, stop_indx, pe_direction
 
 
 def get_tr(tr):

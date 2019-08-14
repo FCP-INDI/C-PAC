@@ -38,7 +38,10 @@ from CPAC.network_centrality.pipeline import (
 )
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
-from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
+from CPAC.distortion_correction.distortion_correction import (
+    create_EPI_DistCorr,
+    blip_distcor_wf
+)
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
     slice_timing_wf,
@@ -1185,7 +1188,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 func_paths_dict = sub_dict['rest']
 
             func_wf = create_func_datasource(func_paths_dict,
-                                            'func_gather_%d' % num_strat)
+                                             'func_gather_%d' % num_strat)
             func_wf.inputs.inputnode.set(
                 subject=subject_id,
                 creds_path=input_creds_path,
@@ -1197,19 +1200,22 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # Add in nodes to get parameters from configuration file
             # a node which checks if scan_parameters are present for each scan
             scan_params = \
-                pe.Node(function.Function(input_names=['subject_id',
+                pe.Node(function.Function(input_names=['data_config_scan_params',
+                                                       'subject_id',
                                                        'scan',
+                                                       'pipeconfig_tr',
+                                                       'pipeconfig_tpattern',
                                                        'pipeconfig_start_indx',
-                                                       'pipeconfig_stop_indx',
-                                                       'data_config_scan_params'],
-                                          output_names=['tr',
-                                                        'tpattern',
-                                                        'ref_slice',
-                                                        'start_indx',
-                                                        'stop_indx'],
-                                          function=get_scan_params,
-                                          as_module=True),
-                        name='scan_params_{0}'.format(num_strat))
+                                                       'pipeconfig_stop_indx'],
+                                        output_names=['tr',
+                                                      'tpattern',
+                                                      'ref_slice',
+                                                      'start_indx',
+                                                      'stop_indx',
+                                                      'pe_direction'],
+                                        function=get_scan_params,
+                                        as_module=True),
+                        name='scan_params_%d' % num_strat)
 
             if "Selected Functional Volume" in c.func_reg_input:
 
@@ -1222,7 +1228,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     outputtype='NIFTI_GZ'
                 )
                 workflow.connect(func_wf, 'outputspec.rest',
-                                get_func_volume, 'in_file_a')
+                                 get_func_volume, 'in_file_a')
 
             # wire in the scan parameter workflow
             workflow.connect(func_wf, 'outputspec.scan_params',
@@ -1274,82 +1280,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # workflow
             strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
 
-        # EPI Field-Map based Distortion Correction
-        new_strat_list = []
-
-        rp = strat.get_resource_pool()
-
-        if 1 in c.runEPI_DistCorr and 'fmap_phase_diff' in rp.keys() and 'fmap_magnitude' in rp.keys():
-
-            for num_strat, strat in enumerate(strat_list):
-
-                if 'BET' in c.fmap_distcorr_skullstrip:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=True,
-                        wf_name='epi_distcorr_%d' % (num_strat)
-                    )
-                    epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
-                    epi_distcorr.get_node('bet_frac_input').iterables = \
-                        ('bet_frac', c.fmap_distcorr_frac)
-                else:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=False,
-                        wf_name='epi_distcorr_%d' % (num_strat)
-                    )
-                    epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
-                        c.fmap_distcorr_threshold
-
-                epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
-                epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
-                epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
-
-                epi_distcorr.get_node('deltaTE_input').iterables = (
-                    'deltaTE', c.fmap_distcorr_deltaTE
-                )
-                epi_distcorr.get_node('dwellT_input').iterables = (
-                    'dwellT', c.fmap_distcorr_dwell_time
-                )
-                epi_distcorr.get_node('dwell_asym_ratio_input').iterables = (
-                    'dwell_asym_ratio', c.fmap_distcorr_dwell_asym_ratio
-                )
-
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, epi_distcorr,
-                                'inputspec.func_file')
-
-                node, out_file = strat['anatomical_reorient']
-                workflow.connect(node, out_file, epi_distcorr,
-                                'inputspec.anat_file')
-
-                node, out_file = strat['fmap_phase_diff']
-                workflow.connect(node, out_file, epi_distcorr,
-                                'inputspec.fmap_pha')
-
-                node, out_file = strat['fmap_magnitude']
-                workflow.connect(node, out_file, epi_distcorr,
-                                'inputspec.fmap_mag')
-
-                # TODO ASH review forking
-                if 0 in c.runEPI_DistCorr:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(epi_distcorr.name)
-
-                strat.update_resource_pool({
-                    'despiked_fieldmap': (epi_distcorr, 'outputspec.fmap_despiked'),
-                    'fieldmap_mask': (epi_distcorr, 'outputspec.fieldmapmask'),
-                    'prepared_fieldmap_map': (epi_distcorr, 'outputspec.fieldmap')
-                })
-
-        strat_list += new_strat_list
-
 
         # Slice Timing Correction Workflow
         new_strat_list = []
-
         if 1 in c.slice_timing_correction:
-
             for num_strat, strat in enumerate(strat_list):
 
                 slice_time = slice_timing_wf(name='func_slice_timing_correction_{0}'.format(num_strat))
@@ -1381,11 +1315,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 
         # Functional Image Preprocessing Workflow
-
         new_strat_list = []
-
         if '3dAutoMask' in c.functionalMasking:
-
             for num_strat, strat in enumerate(strat_list):
 
                 func_preproc = create_func_preproc(
@@ -1411,7 +1342,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 # add stuff to resource pool if we need it
                 strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.example_func'),
+                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
                     'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
                     'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
                     'max_displacement': (func_preproc, 'outputspec.max_displacement'),
@@ -1447,7 +1378,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 # TODO redundant with above resource pool additions?
                 strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.example_func'),
+                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
                     'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
                     'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
                     'max_displacement': (func_preproc, 'outputspec.max_displacement'),
@@ -1456,6 +1387,136 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'motion_correct': (func_preproc, 'outputspec.motion_correct'),
                     'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
                 })
+
+        strat_list += new_strat_list
+
+
+        # Distortion Correction
+        new_strat_list = []
+
+        rp = strat.get_resource_pool()
+
+        # Distortion Correction - Field Map Phase-difference
+        phase_diff = False
+        if "fmap" in sub_dict.keys():
+            phase = False
+            magnitude = False
+            for scan_name in sub_dict["fmap"].keys():
+                if "phasediff" in scan_name:
+                    phase = True
+                if "magnitude" in scan_name:
+                    magnitude = True
+            if phase and magnitude:
+                phase_diff = True
+
+        if "PhaseDiff" in c.distortion_correction and phase_diff:
+            for num_strat, strat in enumerate(strat_list):
+                if 'BET' in c.fmap_distcorr_skullstrip:
+                    epi_distcorr = create_EPI_DistCorr(
+                        use_BET=True,
+                        wf_name='epi_distcorr_%d' % (num_strat)
+                    )
+                    epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
+                    epi_distcorr.get_node('bet_frac_input').iterables = \
+                        ('bet_frac', c.fmap_distcorr_frac)
+                else:
+                    epi_distcorr = create_EPI_DistCorr(
+                        use_BET=False,
+                        wf_name='epi_distcorr_%d' % (num_strat)
+                    )
+                    epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
+                        c.fmap_distcorr_threshold
+
+                epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
+                epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
+                epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
+
+                epi_distcorr.get_node('deltaTE_input').iterables = (
+                    'deltaTE', c.fmap_distcorr_deltaTE
+                )
+                epi_distcorr.get_node('dwellT_input').iterables = (
+                    'dwellT', c.fmap_distcorr_dwell_time
+                )
+                epi_distcorr.get_node('dwell_asym_ratio_input').iterables = (
+                    'dwell_asym_ratio', c.fmap_distcorr_dwell_asym_ratio
+                )
+
+                node, out_file = strat['anatomical_reorient']
+                workflow.connect(node, out_file, epi_distcorr,
+                                'inputspec.anat_file')
+
+                node, out_file = strat['fmap_phase_diff']
+                workflow.connect(node, out_file, epi_distcorr,
+                                'inputspec.fmap_pha')
+
+                node, out_file = strat['fmap_magnitude']
+                workflow.connect(node, out_file, epi_distcorr,
+                                'inputspec.fmap_mag')
+
+                # TODO ASH review forking
+                if "None" in c.distortion_correction or \
+                        "Blip" in c.distortion_correction:
+                    strat = strat.fork()
+                    new_strat_list.append(strat)
+
+                strat.append_name(epi_distcorr.name)
+
+                strat.update_resource_pool({
+                    'despiked_fieldmap': (epi_distcorr, 'outputspec.fmap_despiked'),
+                    'fieldmap_mask': (epi_distcorr, 'outputspec.fieldmapmask'),
+                })
+
+        # Distortion Correction - "Blip-Up / Blip-Down"
+        blip = False
+        blip_fmap = False
+        if "fmap" in sub_dict:
+            for scan_name in sub_dict["fmap"].keys():
+                if "epi" in scan_name:
+                    blip_fmap = True
+
+        if "Blip" in c.distortion_correction and blip_fmap:
+            for num_strat, strat in enumerate(strat_list):
+
+                fmap_paths_dct = sub_dict['fmap']
+                blip = True
+
+                match_epi_fmaps = \
+                    pe.Node(function.Function(input_names=['fmap_dct',
+                                                           'bold_pedir'],
+                                              output_names=['opposite_pe_epi',
+                                                            'same_pe_epi'],
+                                              function=match_epi_fmaps,
+                                              as_module=True),
+                            name='match_epi_fmaps_{0}'.format(num_strat))
+                match_epi_fmaps.inputs.fmap_dct = fmap_paths_dct
+                workflow.connect(scan_params, 'pe_direction',
+                                 match_epi_fmaps, 'bold_pedir')
+
+                blip_correct = blip_distcor_wf(wf_name='blip_correct_{0}'.format(num_strat))
+                blip_correct.inputs.outputtype = "NIFTI_GZ"
+
+                node, out_file = strat["mean_functional"]
+                workflow.connect(node, out_file,
+                                 blip_correct, 'inputspec.func_mean')
+
+                workflow.connect(match_epi_fmaps, 'opposite_pe_epi',
+                                 blip_correct, 'inputspec.opposte_pe_epi')
+
+                workflow.connect(match_epi_fmaps, 'same_pe_epi',
+                                 blip_correct, 'inputspec.same_pe_epi')
+
+            if "None" in c.distortion_correction:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            strat.append_name(blip_correct.name)
+
+            strat.update_resource_pool({
+                'blip_warp': (blip_correct, 'outputspec.blip_warp'),
+                'blip_warp_inverse': (blip_correct, 'outputspec.blip_warp_inverse'),
+                'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
+                'functional_brain_mask': (blip_correct, 'outputspec.new_func_mask')
+            })
 
         strat_list += new_strat_list
 
@@ -1531,11 +1592,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     node, out_file = strat["despiked_fieldmap"]
                     workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.fieldmap')
+                                     func_to_anat, 'inputspec.fieldmap')
 
                     node, out_file = strat["fieldmap_mask"]
                     workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.fieldmapmask')
+                                     func_to_anat, 'inputspec.fieldmapmask')
 
                 # TODO ASH review forking
                 if 0 in c.runRegisterFuncToAnat:
@@ -1573,7 +1634,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if 'seg_preproc' in nodes:
 
                     dist_corr = False
-                    if 'epi_distcorr' in nodes:
+                    if 'epi_distcorr' in nodes or 'blip_correct' in nodes:
                         dist_corr = True
 
                     func_to_anat_bbreg = create_bbregister_func_to_anat(
@@ -1802,7 +1863,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         mean_func_node, mean_func_out_file,
                         c.template_brain_only_for_func,
                         "ica_aroma_functional_to_standard",
-                        c.funcRegANTSinterpolation, 3
+                        c.funcRegANTSinterpolation, 3, distcor=blip
                     )
 
                     aroma_preproc = create_aroma(tr=TR,
@@ -1829,7 +1890,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     ants_apply_inverse_warps_template_to_func(
                         workflow, strat, num_strat, num_ants_cores, node,
                         out_file, mean_func_node, mean_func_out_file,
-                        "ica_aroma_denoised_functional", "Linear", 3
+                        "ica_aroma_denoised_functional", "Linear", 3,
+                        distcor=blip
                     )
 
                     node, out_file = strat["ica_aroma_denoised_functional"]
@@ -2309,7 +2371,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node2, out_file2,
                         c.template_brain_only_for_func,
                         "functional_to_standard",
-                        c.funcRegANTSinterpolation, 3
+                        "Linear", 3, distcor=blip
+                        c.funcRegANTSinterpolation, 3,
+                        distcor=blip
                     )
 
                     # 4D FUNCTIONAL MOTION-CORRECTED apply warp
@@ -2324,7 +2388,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node2, out_file2,
                         c.template_brain_only_for_func,
                         "motion_correct_to_standard",
-                        c.funcRegANTSinterpolation, 3
+                        c.funcRegANTSinterpolation, 3,
+                        distcor=blip
                     )
 
                     # FUNCTIONAL BRAIN MASK (binary, no timeseries) apply warp
@@ -2337,7 +2402,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node, out_file,
                         c.template_brain_only_for_func,
                         "functional_brain_mask_to_standard",
-                        "NearestNeighbor", 0
+                        "NearestNeighbor", 0, distcor=blip
                     )
 
                     # FUNCTIONAL MEAN (no timeseries) apply warp
@@ -2350,7 +2415,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         node, out_file,
                         c.template_brain_only_for_func,
                         "mean_functional_to_standard",
-                        c.funcRegANTSinterpolation, 0
+                        "Linear", 0, distcor=blip
+                        c.funcRegANTSinterpolation, 0,
+                        distcor=blip
                     )
 
         strat_list += new_strat_list
@@ -3094,10 +3161,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         # smoothing happens at the end, so only the non-smooth
                         # named output labels for the native-space outputs
                         strat = output_to_standard(
-                            workflow, key, strat, num_strat, c)
+                            workflow, key, strat, num_strat, c,
+                            distcor=blip)
                     elif key in Outputs.native_nonsmooth_mult:
-                        strat = output_to_standard(workflow, key, strat, num_strat, c,
-                                                map_node=True)
+                        strat = output_to_standard(workflow, key, strat,
+                                                   num_strat, c,
+                                                   map_node=True,
+                                                   distcor=blip)
 
             if "Before" in c.smoothing_order:
                 # run smoothing before Z-scoring
