@@ -8,6 +8,8 @@ import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 
+from CPAC.func_preproc.utils import add_afni_prefix
+
 
 def collect_arguments(*args):
     command_args = []
@@ -204,7 +206,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
         inputspec.func : func nifti file
             User input functional(T2) Image, in any of the 8 orientations
 
-        scan_params.twopass : boolean
+        inputspec.twopass : boolean
             Perform two-pass on volume registration
 
     Workflow Outputs::
@@ -521,6 +523,49 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                     output_node, 'preprocessed_mask')
 
     return preproc
+
+
+def slice_timing_wf(name='slice_timing'):
+
+    # allocate a workflow object
+    wf = pe.Workflow(name=name)
+
+    # configure the workflow's input spec
+    inputNode = pe.Node(util.IdentityInterface(fields=['func_ts',
+                                                       'tr',
+                                                       'tpattern']),
+                        name='inputspec')
+
+    # configure the workflow's output spec
+    outputNode = pe.Node(util.IdentityInterface(fields=['slice_time_corrected']),
+                         name='outputspec')
+
+    # create TShift AFNI node
+    func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
+                                           name='slice_timing')
+    func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(inputNode, 'func_ts', func_slice_timing_correction, 'in_file')
+    wf.connect(inputNode, 'tr', func_slice_timing_correction, 'tr')
+
+    # if not "Use NIFTI Header" in c.slice_timing_pattern:
+
+    # add the @ prefix to the tpattern file going into
+    # AFNI 3dTshift - needed this so the tpattern file
+    # output from get_scan_params would be tied downstream
+    # via a connection (to avoid poofing)
+    add_prefix = pe.Node(util.Function(input_names=['tpattern'],
+                                       output_names=['afni_prefix'],
+                                       function=add_afni_prefix),
+                         name='slice_timing_add_afni_prefix')
+    wf.connect(inputNode, 'tpattern', add_prefix, 'tpattern')
+    wf.connect(add_prefix, 'afni_prefix',
+               func_slice_timing_correction, 'tpattern')
+
+    wf.connect(func_slice_timing_correction, 'out_file',
+               outputNode, 'slice_time_corrected')
+
+    return wf
 
 
 def get_idx(in_files, stop_idx=None, start_idx=None):

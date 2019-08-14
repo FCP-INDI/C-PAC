@@ -480,6 +480,10 @@ class NuisanceRegressor(object):
             nr_repr += 'D'
         if selector.get('include_delayed_squared'):
             nr_repr += 'B'
+        if selector.get('include_backdiff'):
+            nr_repr += 'V'
+        if selector.get('include_backdiff_squared'):
+            nr_repr += 'C'
         return nr_repr
 
     @staticmethod

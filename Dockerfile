@@ -10,7 +10,7 @@ RUN apt-get install -y curl && \
      apt-get install -y nodejs
 RUN npm install -g bids-validator
 
-# Install Ubuntu dependencies
+# Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
       build-essential \
       cmake \
@@ -45,6 +45,7 @@ RUN apt-get install -y \
       pkg-config \
       tcsh \
       unzip \
+      vim \
       xvfb \
       xauth \
       zlib1g-dev
