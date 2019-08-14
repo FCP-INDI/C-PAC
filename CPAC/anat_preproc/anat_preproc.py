@@ -318,8 +318,8 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
             preproc.connect(anat_skullstrip_orig_vol, 'out_file',
                             outputnode, 'brain')
 
-        elif method == 'antsBrainExtraction': 
-            # Skull-stripping using antsBrainExtraction  
+        elif method == 'niworkflows-ants': 
+            # Skull-stripping using niworkflows-ants  
             anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=template_path,
                                                             tpl_mask_path=mask_path,
                                                             tpl_regmask_path=regmask_path,
