@@ -418,7 +418,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         else:
 
-            if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "antsBrainExtraction"]):
+            if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "niworkflows-ants"]):
                 err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
                     'setting does not include either \'AFNI\' or \'BET\'.\n\n' \
                     'Options you provided:\nskullstrip_option: {0}' \
@@ -501,15 +501,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 new_strat_list += [new_strat]
 
-            if "antsBrainExtraction" in c.skullstrip_option:
-                anat_preproc = create_anat_preproc(template_path=c.antsBrainExtraction_template_path, mask_path=c.antsBrainExtraction_mask_path, regmask_path=c.antsBrainExtraction_regmask_path, method='antsBrainExtraction',
-                                                    wf_name='anat_preproc_antsBrainExtraction_%d' % num_strat,
+            if "niworkflows-ants" in c.skullstrip_option:
+                anat_preproc = create_anat_preproc(template_path=c.niworkflows_ants_template_path, mask_path=c.niworkflows_ants_mask_path, regmask_path=c.niworkflows_ants_regmask_path, method='niworkflows-ants',
+                                                    wf_name='anat_preproc_niworkflows_ants_%d' % num_strat,
                                                     non_local_means_filtering=c.non_local_means_filtering,
                                                     n4_correction=c.n4_bias_field_correction)
-
-                # anat_preproc.inputs.anat_skullstrip_ants.set(
-                #     in_template=c.antsBrainExtraction_template,
-                # )
 
                 new_strat = strat.fork()
                 node, out_file = new_strat['anatomical']
