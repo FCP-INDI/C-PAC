@@ -251,12 +251,12 @@ resolution_for_anat :  2mm
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  /Users/hecheng.jin/Monkey/NMT/NMTtemplate/NMT_SS_1mm.nii.gz
+template_brain_only_for_anat :  /Path/to/NMTtemplate/NMT_SS_1mm.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat : /Users/hecheng.jin/Monkey/NMT/NMTtemplate/NMT_1mm.nii.gz
+template_skull_for_anat : /Path/to/NMTtemplate/NMT_1mm.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -305,17 +305,17 @@ priors_path :  $FSLDIR/data/standard/tissuepriors/2mm
 
 # Full path to a binarized White Matter prior probability map.
 # It is not necessary to change this path unless you intend to use non-standard priors.
-PRIORS_WHITE :  /Users/hecheng.jin/Monkey/NMT/NMT_v1.2/masks/probabilisitic_segmentation_masks/NMT_segmentation_WM.nii.gz
+PRIORS_WHITE :  /Path/to/NMTtemplate/masks/probabilisitic_segmentation_masks/NMT_segmentation_WM.nii.gz
 
 
 # Full path to a binarized Gray Matter prior probability map.
 # It is not necessary to change this path unless you intend to use non-standard priors.
-PRIORS_GRAY :  /Users/hecheng.jin/Monkey/NMT/NMT_v1.2/masks/probabilisitic_segmentation_masks/NMT_segmentation_GM.nii.gz
+PRIORS_GRAY :  /Path/to/NMTtemplate/masks/probabilisitic_segmentation_masks/NMT_segmentation_GM.nii.gz
 
 
 # Full path to a binarized CSF prior probability map.
 # It is not necessary to change this path unless you intend to use non-standard priors.
-PRIORS_CSF :  /Users/hecheng.jin/Monkey/NMT/NMT_v1.2/masks/probabilisitic_segmentation_masks/NMT_segmentation_CSF.nii.gz
+PRIORS_CSF :  /Path/to/NMTtemplate/masks/probabilisitic_segmentation_masks/NMT_segmentation_CSF.nii.gz
 
 
 # Run functional preproceessing
@@ -436,11 +436,11 @@ resolution_for_func_derivative :  3mm
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  /Users/hecheng.jin/Monkey/NMT/NMTtemplate/NMT_SS_2mm.nii.gz
+template_brain_only_for_func :  /Path/to/NMTtemplate/NMT_SS_2mm.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /Users/hecheng.jin/Monkey/NMT/NMTtemplate/NMT_2mm.nii.gz 
+template_skull_for_func :  /Path/to/NMTtemplate/NMT_2mm.nii.gz 
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
@@ -462,7 +462,7 @@ runNuisance :  [1]
 
 # Standard Lateral Ventricles Binary Mask
 # lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
-lateral_ventricles_mask :  /Users/hecheng.jin/Monkey/NMT/NMTtemplate/fullmask.nii.gz
+lateral_ventricles_mask :  /Path/to/NMTtemplate/fullmask.nii.gz
 
 # Select which nuisance signal corrections to apply
 Regressors :
@@ -481,10 +481,10 @@ Regressors :
        - CerebrospinalFluid
      extraction_resolution: 2
 
-#   CerebrospinalFluid:
-#     summary: Mean
-#     extraction_resolution: 2
-#     erode_mask: true
+  CerebrospinalFluid:
+    summary: Mean
+    extraction_resolution: 2
+    erode_mask: true
      
    GlobalSignal:
      summary: Mean
@@ -511,10 +511,10 @@ Regressors :
        - CerebrospinalFluid
      extraction_resolution: 2
 
-#   CerebrospinalFluid:
-#     summary: Mean
-#     extraction_resolution: 2
-#     erode_mask: true
+  CerebrospinalFluid:
+    summary: Mean
+    extraction_resolution: 2
+    erode_mask: true
 
    PolyOrt:
     degree: 2
