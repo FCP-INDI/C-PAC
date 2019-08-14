@@ -788,6 +788,12 @@ def check_tr(tr, in_file):
     return TR
 
 
+def add_afni_prefix(tpattern):
+    if ".txt" in tpattern:
+        tpattern = "@{0}".format(tpattern)
+    return tpattern
+
+
 def write_to_log(workflow, log_dir, index, inputs, scan_id):
     """
     Method to write into log file the status of the workflow run.

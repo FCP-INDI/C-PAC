@@ -117,11 +117,11 @@ class Strategy(object):
                     fork_label = 'fnirt'
                 elif 'flirt_register' in fork:
                     fork_label = 'linear-only'
-                if 'automask' in fork:
+                if 'afni' in fork:
                     fork_label = 'func-3dautomask'
-                if 'bet' in fork:
+                if 'fsl' in fork:
                     fork_label = 'func-bet'
-                if 'bet_3dautomask' in fork:
+                if 'fsl_afni' in fork:
                     fork_label = 'func-bet-3dautomask'    
                 if 'epi_distcorr' in fork:
                     fork_label = 'dist-corr'

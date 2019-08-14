@@ -44,7 +44,7 @@ from CPAC.distortion_correction.distortion_correction import (
     blip_distcor_wf
 )
 from CPAC.func_preproc.func_preproc import (
-    create_func_preproc,
+    # create_func_preproc,
     connect_func_preproc,
     slice_timing_wf,
     create_wf_edit_func
@@ -118,7 +118,7 @@ from CPAC.utils.utils import (
     extract_output_mean,
     create_output_mean_csv,
     get_zscore,
-    get_fisher_zscore
+    get_fisher_zscore,
     pick_wm
 )
 
@@ -126,6 +126,10 @@ from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
 
 logger = logging.getLogger('nipype.workflow')
 # config.enable_debug_mode()
+
+def pick_wm(seg_prob_list):
+    seg_prob_list.sort()
+    return seg_prob_list[-1]
 
 
 def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
@@ -492,7 +496,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     max_inter_iter=c.skullstrip_max_inter_iter,
                     blur_fwhm=c.skullstrip_blur_fwhm,
                     fac=c.skullstrip_fac,
-                    monkey=c.skullstrip_monkey,
+                    # monkey=c.skullstrip_monkey,
                 )
 
                 new_strat = strat.fork()
@@ -1237,6 +1241,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             func_wf = create_func_datasource(func_paths_dict,
                                              'func_gather_%d' % num_strat)
+
             func_wf.inputs.inputnode.set(
                 subject=subject_id,
                 creds_path=input_creds_path,
