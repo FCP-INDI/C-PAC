@@ -54,18 +54,14 @@ pipelineName :  cpac_default
 # Directory where CPAC should store temporary and intermediate files.
 workingDirectory :  ./cpac_runs/default/working
 
-
 # Directory where CPAC should write crash logs.
 crashLogDirectory :  ./cpac_runs/default/crash
-
 
 # Directory where CPAC should place run logs.
 logDirectory :  ./cpac_runs/default/log
 
-
 # Directory where CPAC should place processed data.
 outputDirectory :  ./cpac_runs/default/output
-
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
 awsOutputBucketCredentials :  
@@ -109,9 +105,17 @@ runSymbolicLinks :  [1]
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET to perform SkullStripping
+# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
+# Template to be used during niworkflows-ants.
+# It is not necessary to change this path unless you intend to use a non-standard template.
+# niworkflows-ants Brain extraction template
+niworkflows_ants_template_path : /Path/to/OASIStemplate/T_template0.nii.gz
+# niworkflows-ants probability mask
+niworkflows_ants_mask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
+# niworkflows-ants registration mask 
+niworkflows_ants_regmask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
 skullstrip_shrink_factor :  0.6
