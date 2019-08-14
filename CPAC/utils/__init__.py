@@ -12,7 +12,7 @@ from .datasource import create_spatial_map_dataflow
 from .configuration import Configuration
 from .strategy import Strategy
 from .outputs import Outputs
-
+from CPAC.func_preproc.utils import add_afni_prefix
 from .utils import (
     get_zscore,
     get_fisher_zscore,
@@ -31,7 +31,6 @@ from .utils import (
     get_scan_params,
     get_tr,
     check_tr,
-    add_afni_prefix,
     find_files,
     extract_output_mean,
     create_output_mean_csv,
