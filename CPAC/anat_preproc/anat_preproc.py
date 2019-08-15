@@ -5,8 +5,6 @@ from nipype.interfaces import ants
 from nipype.interfaces import fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-# from nipype.interfaces.ants import DenoiseImage
-# from nipype.interfaces.ants import N4BiasFieldCorrection
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 
 
