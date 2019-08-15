@@ -1,5 +1,3 @@
-# new comment
-
 import os
 import time
 import six
@@ -25,7 +23,6 @@ import nipype.interfaces.afni as afni
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
-from nipype.interfaces.utility import Function
 from nipype.interfaces.utility import Merge
 from nipype.pipeline.engine.utils import format_dot
 from nipype import config
@@ -103,7 +100,8 @@ from CPAC.utils.datasource import (
     create_check_for_s3_node,
     resolve_resolution
 )
-from CPAC.utils import Configuration, Strategy, Outputs, function, find_files
+from CPAC.utils import Configuration, Strategy, Outputs, find_files
+from CPAC.utils.interfaces.function import Function
 
 from CPAC.utils.interfaces.datasink import DataSink
 
@@ -397,8 +395,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # print(resolution, template, template_name)
 
         resampled_template = pe.Node(Function(input_names = ['resolution', 'template', 'template_name', 'tag'], 
-                                            output_names = ['resampled_template'], 
-                                            function = resolve_resolution), 
+                                              output_names = ['resampled_template'], 
+                                              function = resolve_resolution,
+                                              as_module = True), 
                                         name = 'resampled_' + template_name) 
         
         resampled_template.inputs.resolution = resolution
@@ -1253,22 +1252,23 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # Add in nodes to get parameters from configuration file
             # a node which checks if scan_parameters are present for each scan
             scan_params = \
-                pe.Node(function.Function(input_names=['data_config_scan_params',
-                                                       'subject_id',
-                                                       'scan',
-                                                       'pipeconfig_tr',
-                                                       'pipeconfig_tpattern',
-                                                       'pipeconfig_start_indx',
-                                                       'pipeconfig_stop_indx'],
-                                        output_names=['tr',
-                                                      'tpattern',
-                                                      'ref_slice',
-                                                      'start_indx',
-                                                      'stop_indx',
-                                                      'pe_direction'],
-                                        function=get_scan_params,
-                                        as_module=True),
-                        name='scan_params_%d' % num_strat)
+                pe.Node(Function(
+                    input_names=['data_config_scan_params',
+                                 'subject_id',
+                                 'scan',
+                                 'pipeconfig_tr',
+                                 'pipeconfig_tpattern',
+                                 'pipeconfig_start_indx',
+                                 'pipeconfig_stop_indx'],
+                    output_names=['tr',
+                                  'tpattern',
+                                  'ref_slice',
+                                  'start_indx',
+                                  'stop_indx',
+                                  'pe_direction'],
+                    function=get_scan_params,
+                    as_module=True
+                ), name='scan_params_%d' % num_strat)
 
             if "Selected Functional Volume" in c.func_reg_input:
 
@@ -1459,12 +1459,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 blip = True
 
                 match_epi_fmaps = \
-                    pe.Node(function.Function(input_names=['fmap_dct',
-                                                           'bold_pedir'],
-                                              output_names=['opposite_pe_epi',
-                                                            'same_pe_epi'],
-                                              function=match_epi_fmaps,
-                                              as_module=True),
+                    pe.Node(Function(input_names=['fmap_dct',
+                                                  'bold_pedir'],
+                                     output_names=['opposite_pe_epi',
+                                                   'same_pe_epi'],
+                                     function=match_epi_fmaps,
+                                     as_module=True),
                             name='match_epi_fmaps_{0}'.format(num_strat))
                 match_epi_fmaps.inputs.fmap_dct = fmap_paths_dct
                 workflow.connect(scan_params, 'pe_direction',
@@ -1506,7 +1506,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 Function(
                     input_names=['resolution', 'template', 'template_name'],
                     output_names=['resampled_template'],
-                    function=resolve_resolution
+                    function=resolve_resolution,
+                    as_module=True
                 ),
                 name='functional_brain_mask_derivative_%d' % (num_strat)
             )
@@ -2142,12 +2143,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             bandpass_selector = strat['nuisance_regression_selector']['Bandpass']
 
             frequency_filter = pe.Node(
-                function.Function(input_names=['realigned_file',
-                                               'bandpass_freqs',
-                                               'sample_period'],
-                                  output_names=['bandpassed_file'],
-                                  function=bandpass_voxels,
-                                  as_module=True),
+                Function(input_names=['realigned_file',
+                                      'bandpass_freqs',
+                                      'sample_period'],
+                         output_names=['bandpassed_file'],
+                         function=bandpass_voxels,
+                         as_module=True),
                 name='frequency_filter_%d' % num_strat
             )
 
@@ -3449,7 +3450,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
                                     resample_functional_to_roi, 'reference')
 
-                ndmg_ts = pe.Node(function.Function(
+                ndmg_ts = pe.Node(Function(
                     input_names=['func_file',
                                  'label_file'],
                     output_names=['roi_ts',
@@ -3467,7 +3468,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
                                  ndmg_ts, 'label_file')
 
-                ndmg_graph = pe.MapNode(function.Function(
+                ndmg_graph = pe.MapNode(Function(
                     input_names=['ts', 'labels'],
                     output_names=['out_file'],
                     function=ndmg_create_graphs,
@@ -3708,7 +3709,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 merge_link_node.inputs.ravel_inputs = True
 
                 link_node = pe.Node(
-                    interface=function.Function(
+                    interface=Function(
                         input_names=[
                             'output_dir',
                             'symlink_dir',
@@ -3719,7 +3720,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         output_names=[],
                         function=create_symlinks,
                         as_module=True
-                    ), name='create_symlinks_{}'.format(num_strat)
+                    ),
+                    name='create_symlinks_{}'.format(num_strat)
                 )
 
                 link_node.inputs.output_dir = c.outputDirectory
