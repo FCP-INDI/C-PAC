@@ -407,7 +407,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_initial.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
 
-
     strat_list += [strat_initial]
 
     new_strat_list = []
@@ -762,8 +761,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  'inputspec.anatomical_skull')
 
                 # pass the reference file
+                node, out_file = strat['template_skull_for_anat']
                 workflow.connect(
-                    c.template_skull_for_anat, 'local_path',
+                    node, out_file,
                     ants_reg_anat_mni, 'inputspec.reference_skull'
                 )
 
