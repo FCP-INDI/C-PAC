@@ -721,7 +721,8 @@ elif args.analysis_level in ["test_config", "participant"]:
 
         print ("Starting participant level processing")
         CPAC.pipeline.cpac_runner.run(
-            pipeline_config_file, data_config_file,
+            data_config_file,
+            pipeline_config_file,
             plugin='MultiProc' if plugin_args['n_procs'] > 1 else 'Linear',
             plugin_args=plugin_args,
             tracking=not args.tracking_opt_out

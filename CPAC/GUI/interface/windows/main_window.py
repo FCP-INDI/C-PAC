@@ -268,7 +268,7 @@ class ListBox(wx.Frame):
             #print "THERE'S SOMETHING RUNNING!"
             pass
 
-        CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
+        CPAC.pipeline.cpac_runner.run(sublist, pipeline, p,
                                       plugin='MultiProc',
                                       plugin_args=plugin_args)
 

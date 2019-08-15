@@ -167,7 +167,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
 
 # Run C-PAC subjects via job queue
-def run(subject_list_file, config_file="default", p_name=None, plugin=None,
+def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False):
 
     # Import packages
@@ -178,7 +178,7 @@ def run(subject_list_file, config_file="default", p_name=None, plugin=None,
 
     from CPAC.pipeline.cpac_pipeline import prep_workflow
 
-    if config_file == "default":
+    if not config_file:
         import pkg_resources as p
         config_file = \
             p.resource_filename("CPAC",

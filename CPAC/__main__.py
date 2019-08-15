@@ -483,7 +483,7 @@ def run_suite(show_list=False, pipeline_filter=''):
                 data = data_test
                 
             # run
-            cpac_runner.run(pipe, data)
+            cpac_runner.run(data, pipe)
 
     if show_list:
         print("")
