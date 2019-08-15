@@ -452,7 +452,7 @@ def resolve_resolution(resolution, template, template_name, tag = None):
         else:
             local_path = template    
 
-        if "x" in resolution:
+        if "x" in str(resolution):
             resolution = tuple(i.replace('mm', '') for i in resolution.split("x"))
             resolution = tuple(float(i) for i in resolution)
         else:
