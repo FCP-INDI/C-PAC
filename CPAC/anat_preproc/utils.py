@@ -87,7 +87,8 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
         perc_int=0,
         max_inter_iter=4,
         blur_fwhm=0,
-        fac=1.0
+        fac=1.0,
+        monkey=False
     )
 
     if float(shrink_fac) != defaults['shrink_fac']:
