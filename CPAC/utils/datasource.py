@@ -453,10 +453,9 @@ def resolve_resolution(resolution, template, template_name, tag = None):
             local_path = template    
 
         if "x" in str(resolution):
-            resolution = tuple(i.replace('mm', '') for i in resolution.split("x"))
-            resolution = tuple(float(i) for i in resolution)
+            resolution = tuple(float(i.replace('mm', '')) for i in resolution.split("x"))
         else:
-            resolution = (float(resolution.replace('mm', '')),)*3
+            resolution = (float(resolution.replace('mm', '')), ) * 3
 
         resample = pe.Node(interface = afni.Resample(), name=template_name)
         resample.inputs.voxel_size = resolution
