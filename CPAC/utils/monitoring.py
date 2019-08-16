@@ -25,8 +25,7 @@ def recurse_nodes(workflow, prefix=''):
 
 def log_nodes_initial(workflow):
     logger = logging.getLogger('callback')
-    nodes = list(recurse_nodes(workflow))
-    for node in nodes:
+    for node in recurse_nodes(workflow):
         logger.debug(json.dumps(node))
 
 

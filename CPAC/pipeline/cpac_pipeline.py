@@ -1316,7 +1316,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             strat.update_resource_pool({
                 'raw_functional': (func_wf, 'outputspec.rest'),
-                'scan_id': (func_wf, 'outputspec.scan')
+                'scan_id': (func_wf, 'outputspec.scan'),
+                'tr': (scan_params, 'tr'),
+                'tpattern': (scan_params, 'tpattern'),
+                'start_idx': (scan_params, 'start_indx'),
+                'stop_idx': (scan_params, 'stop_indx'),
+                'pe_direction': (scan_params, 'pe_direction'),
             })
 
             strat.set_leaf_properties(func_wf, 'outputspec.rest')
@@ -1339,9 +1344,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                              trunc_wf, 'inputspec.func')
 
             # connect the other input parameters
-            workflow.connect(scan_params, 'start_indx',
+            node, node_out = strat['start_idx']
+            workflow.connect(node, node_out,
                              trunc_wf, 'inputspec.start_idx')
-            workflow.connect(scan_params, 'stop_indx',
+
+            node, node_out = strat['stop_idx']
+            workflow.connect(node, node_out,
                              trunc_wf, 'inputspec.stop_idx')
 
             # replace the leaf node with the output from the recently added
@@ -1351,8 +1359,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Slice Timing Correction Workflow
         new_strat_list = []
-        if 1 in c.slice_timing_correction:
-            for num_strat, strat in enumerate(strat_list):
+
+        for num_strat, strat in enumerate(strat_list):
+
+            if 0 in c.slice_timing_correction:
+
+                new_strat_list += [strat.fork()]
+
+            if 1 in c.slice_timing_correction:
+
+                strat = strat.fork()
 
                 slice_time = slice_timing_wf(name='func_slice_timing_correction_{0}'.format(num_strat))
 
@@ -1360,11 +1376,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file, slice_time,
                                 'inputspec.func_ts')
 
-                workflow.connect(scan_params, 'tr',
-                                 slice_time, 'inputspec.tr')
+                node, node_out = strat['tr']
+                workflow.connect(node, node_out,
+                                    slice_time, 'inputspec.tr')
 
-                workflow.connect(scan_params, 'tpattern',
-                                 slice_time, 'inputspec.tpattern')
+                node, node_out = strat['tpattern']
+                workflow.connect(node, node_out,
+                                    slice_time, 'inputspec.tpattern')
 
                 # add the name of the node to the strat name
                 strat.append_name(slice_time.name)
@@ -1375,15 +1393,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # add the outputs to the resource pool
                 strat.update_resource_pool({
                     'slice_time_corrected': (slice_time,
-                                             'outputspec.slice_time_corrected')
+                                                'outputspec.slice_time_corrected')
                 })
+                
+                new_strat_list += [strat]
 
         # add new strats (if forked)
-        strat_list += new_strat_list
+        strat_list = new_strat_list
 
 
         # Functional Image Preprocessing Workflow
-        workflow, strat_list = connect_func_preproc(workflow, c.functionalMasking, strat_list)
+        workflow, strat_list = connect_func_preproc(workflow, strat_list, c)
 
   
         # Distortion Correction
@@ -1482,7 +1502,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      as_module=True),
                             name='match_epi_fmaps_{0}'.format(num_strat))
                 match_epi_fmaps.inputs.fmap_dct = fmap_paths_dct
-                workflow.connect(scan_params, 'pe_direction',
+
+                node, node_out = strat['pe_direction']
+                workflow.connect(node, node_out,
                                  match_epi_fmaps, 'bold_pedir')
 
                 blip_correct = blip_distcor_wf(wf_name='blip_correct_{0}'.format(num_strat))
@@ -3802,12 +3824,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             cb_logger.addHandler(handler)
 
             # Log initial information from all the nodes
-            for node_name in workflow.list_node_names():
-                node = workflow.get_node(node_name)
-                cb_logger.debug(json.dumps({
-                    "id": str(node),
-                    "hash": node.inputs.get_hashval()[1],
-                }))
+            log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
             if nipype.__version__ not in ('1.1.2'):
