@@ -229,6 +229,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 """
 
+    execution_info = """
+
+    End of subject workflow {workflow}
+
+    CPAC run complete:
+
+        Pipeline configuration: {pipeline}
+        Subject workflow: {workflow}
+        Elapsed run time (minutes): {elapsed}
+        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
+        System time of start:      {run_start}
+        System time of completion: {run_finish}
+
+"""
+
     logger.info(information.format(
         cpac_version=CPAC.__version__,
         cores=c.maxCoresPerParticipant,
@@ -3962,42 +3977,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
                     logger.error(err_msg, log_dir, exc)
 
-            execution_info = """
-
-    End of subject workflow {workflow}
-
-    CPAC run complete:
-
-        Pipeline configuration: {pipeline}
-        Subject workflow: {workflow}
-        Elapsed run time (minutes): {elapsed}
-        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
-        System time of start:      {run_start}
-        System time of completion: {run_finish}
-
-"""
-
-#         except KeyboardInterrupt as e:
-
-#             raising = e
-
-#             execution_info = """
-
-#     Stopped of subject workflow {workflow}
-
-#     CPAC run stopped:
-
-#         Pipeline configuration: {pipeline}
-#         Subject workflow: {workflow}
-#         Elapsed run time (minutes): {elapsed}
-#         Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
-#         System time of start:      {run_start}
-
-# """
         except Exception as e:
-
-            import traceback
-            traceback.print_exc()
 
             import traceback
             traceback.print_exc()
