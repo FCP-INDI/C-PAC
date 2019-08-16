@@ -108,14 +108,16 @@ already_skullstripped :  [0]
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
+
 # Template to be used during niworkflows-ants.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-# niworkflows-ants Brain extraction template
-niworkflows_ants_template_path : /Path/to/OASIStemplate/T_template0.nii.gz
-# niworkflows-ants probability mask
-niworkflows_ants_mask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
-# niworkflows-ants registration mask 
-niworkflows_ants_regmask_path : /Path/to/OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
+# niworkflows-ants Brain extraction template, e.g. OASIStemplate/T_template0.nii.gz
+niworkflows_ants_template_path : 
+# niworkflows-ants probability mask, e.g. OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
+niworkflows_ants_mask_path : 
+# niworkflows-ants registration mask, e.g. OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
+niworkflows_ants_regmask_path : 
+
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
 skullstrip_shrink_factor :  0.6
