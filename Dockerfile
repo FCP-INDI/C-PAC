@@ -125,7 +125,7 @@ RUN mkdir /ants_template && \
     curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip && \
     unzip /tmp/Oasis.zip -d /tmp &&\
     mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
-    rm -r /tmp
+    rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
 
 # install ANTs
 ENV PATH=/usr/lib/ants:$PATH
