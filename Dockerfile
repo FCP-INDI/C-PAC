@@ -120,6 +120,13 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
+# download OASIS templates for niworkflows-ants skullstripping
+RUN mkdir /ants_template && \
+    curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip && \
+    unzip /tmp/Oasis.zip -d /tmp &&\
+    mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
+    rm -r /tmp
+
 # install ANTs
 ENV PATH=/usr/lib/ants:$PATH
 RUN apt-get install -y ants
