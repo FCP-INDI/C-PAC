@@ -133,8 +133,6 @@ parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' not execute the pipeline.',
                     choices=['participant', 'group', 'test_config', 'gui', 'cli'], type=str.lower)
 
-parser.add_argument('args', nargs=argparse.REMAINDER)
-
 parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' configuration file to use. '
                                             'Use the format'
@@ -231,7 +229,15 @@ parser.add_argument('--monitoring',
                     action='store_true')
 
 # get the command line arguments
-args = parser.parse_args()
+args = parser.parse_args(
+    sys.argv[
+        1:(
+            sys.argv.index('--')
+            if '--' in sys.argv
+            else len(sys.argv)
+        )
+    ]
+)
 
 # if we are running the GUI, then get to it
 if args.analysis_level == "gui":
@@ -241,9 +247,10 @@ if args.analysis_level == "gui":
     CPAC.GUI.run()
     sys.exit(0)
 
-if args.analysis_level == "cli":
+elif args.analysis_level == "cli":
     from CPAC.__main__ import main
-    main.main(args=sys.argv[sys.argv.index('cli') + 1:])
+    main.main(args=sys.argv[sys.argv.index('--') + 1:])
+    sys.exit(0)
 
 elif args.analysis_level == "group":
     if not args.group_file or not os.path.exists(args.group_file):
