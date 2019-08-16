@@ -644,7 +644,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     return stopidx, startidx
 
 
-def connect_func_preproc(workflow, c, strat_list):
+def connect_func_preproc(workflow, strat_list, c):
 
     from CPAC.func_preproc.func_preproc import create_func_preproc
     
@@ -652,13 +652,16 @@ def connect_func_preproc(workflow, c, strat_list):
 
     for num_strat, strat in enumerate(strat_list):
        
-        for tool in c:
+        for tool in c.functionalMasking:
 
             tool = tool.lower()
 
             new_strat = strat.fork()
 
-            func_preproc = create_func_preproc(tool=tool, wf_name='func_preproc_'+tool+'_%d' % num_strat)
+            func_preproc = create_func_preproc(
+                tool=tool,
+                wf_name='func_preproc_%s_%d' % (tool, num_strat)
+            )
             node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, func_preproc,
                             'inputspec.func')
@@ -682,6 +685,4 @@ def connect_func_preproc(workflow, c, strat_list):
 
             new_strat_list.append(new_strat)
 
-    strat_list = new_strat_list
-
-    return workflow, strat_list
+    return workflow, new_strat_list
