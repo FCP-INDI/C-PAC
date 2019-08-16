@@ -8,7 +8,7 @@ import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 
-from CPAC.func_preproc.utils import add_afni_prefix
+from CPAC.func_preproc.utils import add_afni_prefix, nullify
 
 
 def collect_arguments(*args):
@@ -562,24 +562,28 @@ def slice_timing_wf(name='slice_timing'):
                                            name='slice_timing')
     func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
 
-    wf.connect(inputNode, 'func_ts', func_slice_timing_correction, 'in_file')
-    wf.connect(inputNode, 'tr', func_slice_timing_correction, 'tr')
 
-    # if not "Use NIFTI Header" in c.slice_timing_pattern:
-
-    # add the @ prefix to the tpattern file going into
-    # AFNI 3dTshift - needed this so the tpattern file
-    # output from get_scan_params would be tied downstream
-    # via a connection (to avoid poofing)
     wf.connect([
         (
             inputNode,
             func_slice_timing_correction,
             [
                 (
-                    ('tpattern', add_afni_prefix),
+                    'func_ts',
+                    'in_file'
+                ),
+                (
+                    # add the @ prefix to the tpattern file going into
+                    # AFNI 3dTshift - needed this so the tpattern file
+                    # output from get_scan_params would be tied downstream
+                    # via a connection (to avoid poofing)
+                    ('tpattern', nullify),
                     'tpattern'
-                )
+                ),
+                (
+                    ('tr', nullify),
+                    'tr'
+                ),
             ]
         ),
     ])

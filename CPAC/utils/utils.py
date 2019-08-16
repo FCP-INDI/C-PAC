@@ -554,6 +554,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     first_tr = ''
     last_tr = ''
     unit = 's'
+    pe_direction = ''
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
@@ -741,7 +742,14 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
     start_indx = first_tr
     stop_indx = last_tr
 
-    return tr, tpattern, ref_slice, start_indx, stop_indx, pe_direction
+    return (
+        tr if tr else None,
+        tpattern if tpattern else None,
+        ref_slice,
+        start_indx,
+        stop_indx,
+        pe_direction
+    )
 
 
 def get_tr(tr):
