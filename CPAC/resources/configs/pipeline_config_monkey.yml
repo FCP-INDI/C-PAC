@@ -112,6 +112,7 @@ already_skullstripped :  [0]
 # Choice of using AFNI or FSL-BET to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
+
 # Choice of using monkey option for AFNI 3dskullstrip 
 skullstrip_monkey : True
 
@@ -419,8 +420,9 @@ func_reg_input :  ['Mean Functional']
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI 3dAutoMask or FSL BET.
-functionalMasking :  ['3dAutoMask']
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
+functionalMasking :  ['AFNI']
+
 
 # Register functional images to a standard MNI152 template.
 # This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
