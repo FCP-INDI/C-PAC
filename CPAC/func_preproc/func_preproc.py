@@ -76,7 +76,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
         skullstrip_second_pass = pe.Node(preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'), name='skullstrip_second_pass')
         combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'), name='combine_masks')
 
-        preproc.connect([(func_motion_correct_A, skullstrip_first_pass, [('out_file', 'in_file')]),
+        wf.connect([(input_node, skullstrip_first_pass, [('func', 'in_file')]),
                         (skullstrip_first_pass, bet_dilate, [('mask_file', 'in_file')]),
                         (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
                         (skullstrip_first_pass, bet_mask, [('out_file' , 'in_file')]),
@@ -101,7 +101,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
         wf.connect(erode_one_voxel, 'out_file',
                    func_edge_detect, 'in_file_b')
     elif tool == 'fsl_afni':
-        preproc.connect(combine_masks, 'out_file',
+        wf.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
