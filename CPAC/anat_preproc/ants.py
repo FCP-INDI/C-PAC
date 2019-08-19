@@ -245,7 +245,7 @@ def init_brain_extraction_wf(tpl_target_path,
     settings_file = 'antsBrainExtraction_%s.json' if use_laplacian \
         else 'antsBrainExtractionNoLaplacian_%s.json'
     norm = pe.Node(Registration(from_file=pkgr_fn(
-        'niworkflows.data', settings_file % normalization_quality)),
+        'CPAC.anat_preproc', 'data/'+settings_file % normalization_quality)),
         name='norm',
         n_procs=omp_nthreads,
         mem_gb=mem_gb)
