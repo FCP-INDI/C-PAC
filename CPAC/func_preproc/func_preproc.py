@@ -577,7 +577,7 @@ def slice_timing_wf(name='slice_timing'):
                     # AFNI 3dTshift - needed this so the tpattern file
                     # output from get_scan_params would be tied downstream
                     # via a connection (to avoid poofing)
-                    ('tpattern', nullify),
+                    ('tpattern', nullify, add_afni_prefix),
                     'tpattern'
                 ),
                 (
