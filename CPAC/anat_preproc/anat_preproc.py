@@ -101,7 +101,11 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
     anat_deoblique.inputs.deoblique = True
     preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')
-
+    # Disable non_local_means_filtering and n4_correction when run niworkflows-ants
+    if method == 'niworkflows-ants':
+        non_local_means_filtering = False 
+        n4_correction = False
+        
     if non_local_means_filtering and n4_correction:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
         preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
@@ -325,16 +329,6 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
                                                             tpl_mask_path=mask_path,
                                                             tpl_regmask_path=regmask_path,
                                                             name='anat_skullstrip_ants')
-            
-            if n4_correction:
-                preproc.disconnect(n4, 'output_image', anat_reorient, 'in_file')
-            elif non_local_means_filtering and not n4_correction:
-                preproc.disconnect(denoise, 'output_image', anat_reorient, 'in_file')
-            else:
-                preproc.disconnect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
-
-            preproc.connect(anat_deoblique, 'out_file', 
-                            anat_reorient, 'in_file')
             
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip_ants, 'inputnode.in_files')

@@ -117,7 +117,7 @@ skullstrip_option :  ['AFNI']
 niworkflows_ants_template_path : /ants_template/oasis/T_template0.nii.gz
 # niworkflows-ants probability mask
 niworkflows_ants_mask_path : /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
-# niworkflows-ants registration mask 
+# niworkflows-ants registration mask (can be optional)
 niworkflows_ants_regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
 

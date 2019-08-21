@@ -105,7 +105,7 @@ runSymbolicLinks :  [1]
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
+# Choice of using AFNI (using 3dSkullstrip) or FSL (using BET) or niworkflows-ants to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
 
@@ -115,7 +115,7 @@ skullstrip_option :  ['AFNI']
 niworkflows_ants_template_path : 
 # niworkflows-ants probability mask, e.g. OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
 niworkflows_ants_mask_path : 
-# niworkflows-ants registration mask, e.g. OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
+# niworkflows-ants registration mask (can be optional), e.g. OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
 niworkflows_ants_regmask_path : 
 
 
