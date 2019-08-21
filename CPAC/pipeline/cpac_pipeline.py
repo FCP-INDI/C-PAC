@@ -478,7 +478,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "niworkflows-ants"]):
                 err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
-                    'setting does not include either \'AFNI\' or \'BET\'.\n\n' \
+                    'setting does not include either \'AFNI\' or \'BET\' or \'niworkflows-ants\'.\n\n' \
                     'Options you provided:\nskullstrip_option: {0}' \
                     '\n\n'.format(str(c.skullstrip_option))
                 raise Exception(err)

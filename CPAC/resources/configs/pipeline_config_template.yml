@@ -113,7 +113,7 @@ non_local_means_filtering: False
 n4_bias_field_correction: True
 
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
+# Choice of using AFNI (using 3dSkullstrip) or FSL (using BET) or niworkflows-ants to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
 
@@ -123,7 +123,7 @@ skullstrip_option :  ['AFNI']
 niworkflows_ants_template_path : 
 # niworkflows-ants probability mask, e.g. OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
 niworkflows_ants_mask_path : 
-# niworkflows-ants registration mask, e.g. OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
+# niworkflows-ants registration mask (can be optional), e.g. OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
 niworkflows_ants_regmask_path : 
 
 
@@ -462,6 +462,7 @@ resolution_for_func_preproc :  3mm
 resolution_for_func_derivative :  3mm
 
 
+# A standard template for resampling if using float resolution 
 template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 
