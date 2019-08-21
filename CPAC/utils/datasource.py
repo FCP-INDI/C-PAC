@@ -401,7 +401,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
     else:
         local_path = file_path
 
-    # Check if it exists or it is sucessfuly downloaded
+    # Check if it exists or it is successfully downloaded
     if not os.path.exists(local_path):
         raise IOError('File %s does not exists!' % (local_path))
 

@@ -1168,7 +1168,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     new_strat_list = []
 
     if 1 in c.runSegmentationPreprocessing:
-
         for num_strat, strat in enumerate(strat_list):
 
             nodes = strat.get_nodes_names()
@@ -1178,10 +1177,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # TODO ASH based on config, instead of nodes?
             if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=False,
-                                                 wf_name='seg_preproc_%d' % num_strat)
+                                                 use_priors=c.seg_use_priors,
+                                                 wf_name='seg_preproc_{0}'.format(num_strat))
             elif 'anat_mni_ants_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=True,
-                                                 wf_name='seg_preproc_%d' % num_strat)
+                                                 use_priors=c.seg_use_priors,
+                                                 wf_name='seg_preproc_{0}'.format(num_strat))
 
             # TODO ASH review
             if seg_preproc is None:
@@ -1213,15 +1214,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
 
-            
-            workflow.connect(c.PRIORS_CSF, 'local_path',
-                             seg_preproc, 'inputspec.PRIOR_CSF')
+            if c.seg_use_priors:
+                workflow.connect(c.PRIORS_CSF, 'local_path',
+                                 seg_preproc, 'inputspec.PRIOR_CSF')
 
-            workflow.connect(c.PRIORS_GRAY, 'local_path',
-                             seg_preproc, 'inputspec.PRIOR_GRAY')
+                workflow.connect(c.PRIORS_GRAY, 'local_path',
+                                 seg_preproc, 'inputspec.PRIOR_GRAY')
 
-            workflow.connect(c.PRIORS_WHITE, 'local_path',
-                             seg_preproc, 'inputspec.PRIOR_WHITE')
+                workflow.connect(c.PRIORS_WHITE, 'local_path',
+                                 seg_preproc, 'inputspec.PRIOR_WHITE')
 
             # TODO ASH review with forking function
             if 0 in c.runSegmentationPreprocessing:
