@@ -2240,7 +2240,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     functional_brain_mask_to_standard_derivative = pe.Node(
                         interface=fsl.ApplyWarp(),
-                        name='func_mni_fsl_warp_mask_%d' % num_strat
+                        name='func_mni_fsl_warp_mask_derivative_%d' % num_strat
                     )
                     functional_brain_mask_to_standard_derivative.inputs.interp = 'nn'
                     
