@@ -1942,9 +1942,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Inserting Nuisance Workflow
 
-        new_strat_list = []
-
         if 1 in c.runNuisance:
+
+            new_strat_list = []
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2125,9 +2125,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     new_strat_list.append(new_strat)
 
-        # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
-        # Each regressor forks the strategy, instead of reusing it, to keep the code simple
-        strat_list = new_strat_list
+            # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
+            # Each regressor forks the strategy, instead of reusing it, to keep the code simple
+            strat_list = new_strat_list
 
 
         # Inserting Median Angle Correction Workflow
