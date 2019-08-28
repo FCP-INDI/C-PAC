@@ -3388,6 +3388,53 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         except:
             pass
 
+
+        ndmg_out = False
+        try:
+            # let's encapsulate this inside a Try..Except block so if
+            # someone doesn't have ndmg_outputs in their pipe config,
+            # it will default to the regular datasink
+            #     TODO: update this when we change to the optionals
+            #     TODO: only pipe config
+            if 1 in c.ndmg_mode:
+                ndmg_out = True
+        except:
+            pass
+
+
+        # TODO enforce value with schema validation
+        try:
+            encrypt_data = bool(c.s3Encryption[0])
+        except:
+            encrypt_data = False
+
+
+        # TODO enforce value with schema validation
+        # Extract credentials path for output if it exists
+        try:
+            # Get path to creds file
+            creds_path = ''
+            if c.awsOutputBucketCredentials:
+                creds_path = str(c.awsOutputBucketCredentials)
+                creds_path = os.path.abspath(creds_path)
+
+            if c.outputDirectory.lower().startswith('s3://'):
+                # Test for s3 write access
+                s3_write_access = \
+                    aws_utils.test_bucket_access(creds_path,
+                                                    c.outputDirectory)
+
+                if not s3_write_access:
+                    raise Exception('Not able to write to bucket!')
+
+        except Exception as e:
+            if c.outputDirectory.lower().startswith('s3://'):
+                err_msg = 'There was an error processing credentials or ' \
+                            'accessing the S3 bucket. Check and try again.\n' \
+                            'Error: %s' % e
+                raise Exception(err_msg)
+
+
         # this section creates names for the different branched strategies.
         # it identifies where the pipeline has forked and then appends the
         # name of the forked nodes to the branch name in the output directory
@@ -3417,51 +3464,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 pipeline_id += '_' + fork_points_labels[strat]
 
             pipeline_ids.append(pipeline_id)
-
-
-            # TODO enforce value with schema validation
-            # Extract credentials path for output if it exists
-            try:
-                # Get path to creds file
-                creds_path = ''
-                if c.awsOutputBucketCredentials:
-                    creds_path = str(c.awsOutputBucketCredentials)
-                    creds_path = os.path.abspath(creds_path)
-
-                if c.outputDirectory.lower().startswith('s3://'):
-                    # Test for s3 write access
-                    s3_write_access = \
-                        aws_utils.test_bucket_access(creds_path,
-                                                     c.outputDirectory)
-
-                    if not s3_write_access:
-                        raise Exception('Not able to write to bucket!')
-
-            except Exception as e:
-                if c.outputDirectory.lower().startswith('s3://'):
-                    err_msg = 'There was an error processing credentials or ' \
-                                'accessing the S3 bucket. Check and try again.\n' \
-                                'Error: %s' % e
-                    raise Exception(err_msg)
-
-
-            # TODO enforce value with schema validation
-            try:
-                encrypt_data = bool(c.s3Encryption[0])
-            except:
-                encrypt_data = False
-
-            ndmg_out = False
-            try:
-                # let's encapsulate this inside a Try..Except block so if
-                # someone doesn't have ndmg_outputs in their pipe config,
-                # it will default to the regular datasink
-                #     TODO: update this when we change to the optionals
-                #     TODO: only pipe config
-                if 1 in c.ndmg_mode:
-                    ndmg_out = True
-            except:
-                pass
 
             if ndmg_out:
                 # create the graphs
