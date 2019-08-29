@@ -1510,7 +1510,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  match_epi_fmaps_node, 'bold_pedir')
 
                 blip_correct = blip_distcor_wf(wf_name='blip_correct_{0}'.format(num_strat))
-                blip_correct.inputs.outputtype = "NIFTI_GZ"
 
                 node, out_file = strat["mean_functional"]
                 workflow.connect(node, out_file,
