@@ -41,8 +41,7 @@ def create_aroma(tr=None, wf_name='create_aroma'):
 
     inputNode = pe.Node(util.IdentityInterface(fields=['denoise_file',
                                                        'mat_file',
-                                                       'fnirt_warp_file',
-                                                       'out_dir']),
+                                                       'fnirt_warp_file']),
                         name='inputspec')
 
     inputNode_params = pe.Node(util.IdentityInterface(fields=['denoise_type',
@@ -65,11 +64,10 @@ def create_aroma(tr=None, wf_name='create_aroma'):
     preproc.connect(bet_aroma,'mask_file', outputNode,'mask_aroma')
     
     aroma = pe.Node(ICA_AROMA(), name='aroma_wf')
-
+    aroma.inputs.out_dir = '.'
     if tr:
         aroma.inputs.TR = tr
 
-    preproc.connect(inputNode,'out_dir', aroma,'out_dir')
     preproc.connect(inputNode,'denoise_file', aroma,'in_file')
     preproc.connect(inputNode,'mat_file', aroma,'mat_file')
     preproc.connect(inputNode,'fnirt_warp_file', aroma,'fnirt_warp_file')
@@ -77,7 +75,6 @@ def create_aroma(tr=None, wf_name='create_aroma'):
     preproc.connect(bet_aroma,'mask_file', aroma,'mask')
     preproc.connect(inputNode_params,'denoise_type', aroma,'denoise_type')
     preproc.connect(inputNode_params,'dim', aroma,'dim')
-    preproc.connect(aroma,'out_dir', outputNode,'out_dir')
     preproc.connect(aroma,'nonaggr_denoised_file', outputNode,'nonaggr_denoised_file')
     preproc.connect(aroma,'aggr_denoised_file', outputNode,'aggr_denoised_file')
 	

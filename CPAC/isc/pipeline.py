@@ -10,7 +10,7 @@ from nilearn import input_data, masking, image, datasets
 from nilearn.image import resample_to_img, concat_imgs
 from nilearn.input_data import NiftiMasker, NiftiLabelsMasker
 
-from CPAC.utils.function import Function
+from CPAC.utils.interfaces.function import Function
 
 import os
 import copy

@@ -106,6 +106,13 @@ class TimeSeriesOptions(wx.ScrolledWindow):
                               "Note: the selection here applies to all scans "
                               "of all participants.")
 
+        self.page.add(label="Volume Registration Two-pass", 
+                      control=control.CHOICE_BOX,
+                      name='functional_volreg_twopass',
+                      type=dtype.BOOL,
+                      comment="This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.",
+                      values=["On", "Off"])
+
         self.page.set_sizer() 
         parent.get_page_list().append(self)
 
@@ -272,7 +279,7 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                       type=dtype.LSTR,
                       comment="Choose which tool to be used in functional masking - AFNI 3dAutoMask or FSL BET.",
                       values=["3dAutoMask", "BET", "3dAutoMask & BET"])
- 
+
         self.page.set_sizer()
         parent.get_page_list().append(self)
         

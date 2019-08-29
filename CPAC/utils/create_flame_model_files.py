@@ -73,10 +73,11 @@ def create_grp_file(design_matrix, grp_file_vector, output_dir, model_name):
 
     filename = "grouping.grp"
 
+    grp_file_vector = [int(x) for x in grp_file_vector]
+
     out_file = os.path.join(output_dir, model_name + ".grp")
 
     with open(out_file, "wt") as f:
-
         print >>f, '/NumWaves\t1'
         print >>f, '/NumPoints\t%d\n' %dimx
         print >>f, '/Matrix'
@@ -198,13 +199,14 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
     import os
     import numpy as np
 
+    column_names = [x for x in list(column_names) if 'participant_id' not in x]
+
     # Read the header of the contrasts file, which should contain the columns
     # of the design matrix and f-tests (if any)
     with open(con_file, "r") as f:
         evs = f.readline()
-
     evs = evs.rstrip('\r\n').split(',')
-
+    
     if evs[0].strip().lower() != "contrasts":
         print "Error: first cell in contrasts file should contain " \
               "'Contrasts' "
@@ -234,13 +236,16 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
     # f tests specifying whether this contrast is part of that particular
     # f test).
 
+    if isinstance(lst, tuple):
+        lst = [lst]
+
     ftst = []
     fts_columns = []
     contrasts = []
     contrast_names = []
 
     length = len(list(lst[0]))
-    
+
     for contr in lst:
         # tp = tuple in the format (contrast_name, 0, 0, 0, 0, ...)
         #      with the zeroes being the vector of contrasts for that contrast
@@ -308,16 +313,12 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
                      len(column_names), num_EVs_in_con_file, \
                              str(column_names))
 
-        raise Exception(err_string)
+        #raise Exception(err_string)
+        print err_string
+        return None, None
 
     for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
-
-        ## TODO: Possible source for errors: the script seems to suggest it checks
-        ## whether the order of the EVs is the same in the contrasts table as in the
-        ## design matrix, but it doesn't actually check this, it only checks whether
-        ## they are the same set, possibly in a different order.
         if con_csv_col not in design_mat_col:
-
             errmsg = "\n\n[!] CPAC says: The names of the EVs in your " \
                      "custom contrasts .csv file do not match the names or " \
                      "order of the EVs in the design matrix. Please make " \
@@ -325,7 +326,8 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
                      "%s\nYour contrasts matrix columns: %s\n\n" \
                      % (column_names, evs[1:])
 
-            raise Exception(errmsg)        
+            print errmsg
+            return None, None        
 
     out_file = os.path.join(output_dir, model_name + '.con')
 
@@ -389,12 +391,6 @@ def create_flame_model_files(design_matrix, col_names, contrasts_vectors,
                              group_sep, grouping_vector, coding_scheme,
                              model_name, output_measure, output_dir):
 
-    mat_file = write_mat_file(design_matrix, output_dir, model_name,
-        col_names, output_measure)
-
-    grp_file = create_grp_file(design_matrix, grouping_vector, output_dir,
-        model_name)
-
     if contrasts_vectors:
         con_file = create_con_file(contrasts_vectors, contrast_names,
                                    col_names, model_name, output_measure,
@@ -410,6 +406,16 @@ def create_flame_model_files(design_matrix, col_names, contrasts_vectors,
         con_file, fts_file = create_con_ftst_file(custom_contrasts_csv,
             model_name, output_measure, output_dir, col_names, coding_scheme,
             group_sep)
+
+    if not con_file:
+        # don't write out the rest of the files if this didn't work out
+        return None, None, None, None
+
+    mat_file = write_mat_file(design_matrix, output_dir, model_name,
+        col_names, output_measure)
+
+    grp_file = create_grp_file(design_matrix, grouping_vector, output_dir,
+        model_name)
 
     return mat_file, grp_file, con_file, fts_file
 

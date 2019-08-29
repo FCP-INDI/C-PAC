@@ -1,0 +1,128 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "CPAC GUI",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
+            "console": "integratedTerminal",
+            "pythonPath": "${config:python.pythonPath}",
+            "debugStdLib": true,
+            "args": [
+                "gui"
+            ]
+        },
+        {
+            "name": "CPAC Test Suite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
+            "console": "integratedTerminal",
+            "pythonPath": "${config:python.pythonPath}",
+            "debugStdLib": true,
+            "args": [
+                "utils",
+                "test",
+                "run_suite"
+            ]
+        },
+        {
+            "name": "CPAC Docker Run",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",
+            "console": "integratedTerminal",
+            "pythonPath": "${config:python.pythonPath}",
+            "debugStdLib": true,
+            "args": [
+                "--monitoring",
+                // "--pipeline_file",
+                // "${workspaceFolder}/default_pipeline.yaml",
+                "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/OHSU",
+                "${workspaceFolder}/cpac_runs",
+                "participant"
+            ]
+        },
+        {
+            "name": "CPAC Run",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
+            "console": "integratedTerminal",
+            "pythonPath": "${config:python.pythonPath}",
+            "debugStdLib": true,
+            "args": [
+                "run",
+                "ADHD200"
+            ]
+        },
+        {
+            "name": "CPAC Run Benchmark",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cpac",
+            "cwd": "${workspaceFolder}/cpac_runs",
+            "console": "integratedTerminal",
+            "pythonPath": "${config:python.pythonPath}",
+            "debugStdLib": true,
+            "args": [
+                "run", "ADHD200_2", "--pipe_config", "benchmark-ants"
+            ]
+        },
+        {
+            "name": "Nypipe Crash",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/.env/bin/nipypecli",
+            "console": "integratedTerminal",
+            "pythonPath": "${config:python.pythonPath}",
+            "debugStdLib": true,
+            "args": [
+                "crash",
+                "-r",
+                "${file}"
+            ]
+        },
+        {
+            "name": "Python: Attach",
+            "type": "python",
+            "request": "attach",
+            "port": 5678,
+            "host": "localhost"
+        },
+        {
+            "name": "Python: Current File (External Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "externalTerminal",
+            "debugStdLib": true
+        },
+        {
+            "name": "Python: Terminal (integrated)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Test file",
+            "type": "python",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}/.vscode/run_nose.py",
+            "pythonPath": "${config:python.pythonPath}",
+            "debugStdLib": true,
+            "args": [
+                "${file}",
+                "-v",
+                "-s",
+                "--nologcapture"
+            ]
+        },
+    ]
+}

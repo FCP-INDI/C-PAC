@@ -1,5 +1,7 @@
 import numpy as np
-from .utils import correlation, p_from_null, phase_randomize
+from CPAC.utils import correlation
+
+from .utils import p_from_null, phase_randomize
 
 
 def isfc(D, std=None, collapse_subj=True):

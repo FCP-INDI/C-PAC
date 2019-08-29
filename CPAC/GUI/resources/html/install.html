@@ -170,7 +170,6 @@ make install
 <li>Matplotlib  *</li>
 <li>wxPython</li>
 <li>PyYAML  *</li>
-<li>Jinja2  *</li>
 <li>PyLockfile  *</li>
 <li>Cython  (version 12.1 or greater)  *</li>
 <li>iPython  (optional)</li>
@@ -194,7 +193,7 @@ chmod +x Miniconda-3.8.3-Linux-x86_64.sh
 <span class="nb">echo</span> <span class="s1">&#39;export PATH=~/miniconda/bin:${PATH}&#39;</span> &gt;&gt; ~/.bashrc
 conda create -y -n cpac python
 <span class="nb">source</span> activate cpac
-conda install -y cython numpy scipy matplotlib networkx traits pyyaml jinja2 nose ipython pip wxpython pandas
+conda install -y cython numpy scipy matplotlib networkx traits pyyaml nose ipython pip wxpython pandas
 pip install lockfile pygraphviz nibabel nipype patsy psutil boto3 INDI-tools future prov simplejson
 <span class="nb">source</span> deactivate
 </pre></div>

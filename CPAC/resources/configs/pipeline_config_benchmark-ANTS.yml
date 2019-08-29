@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.3.0
+# Version 1.4.3
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -40,7 +40,7 @@ maxCoresPerParticipant :  2
 
 
 # The number of participant workflows to run at the same time. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
-numParticipantsAtOnce :  10
+numParticipantsAtOnce :  1
 
 
 # The number of cores to allocate to ANTS-based anatomical registration per participant. Multiple cores can greatly speed up this preprocessing step. This number cannot be greater than the number of cores per participant.
@@ -110,7 +110,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  AFNI
+skullstrip_option :  ['AFNI']
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -260,6 +260,10 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 regOption :  ['ANTS']
 
 
+# Use only FLIRT, without FNIRT, for anatomical-to-template registration.
+fsl_linear_reg_only :  [0]
+
+
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
 fnirtConfig :  T1_2_MNI152_2mm
@@ -298,6 +302,9 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 # It is not necessary to change this path unless you intend to use non-standard priors.
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
+
+# Run functional preproceessing
+runFunctional: [1]
 
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
@@ -430,58 +437,32 @@ runNuisance :  [1]
 lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
 
 
-# Select which nuisance signal corrections to apply:
-# compcor = CompCor
-# wm = White Matter
-# csf = CSF
-# gm = Gray Matter
-# global = Global Mean Signal
-# pc1 = First Principle Component
-# motion = Motion
-# linear = Linear Trend
-# quadratic = Quadratic Trend
+# Select which nuisance signal corrections to apply
 Regressors :
-  -  compcor :  1
-     wm :  0
-     csf :  1
-     global :  0
-     pc1 :  0
-     motion :  1
-     linear :  1
-     quadratic :  0
-     gm :  0
+ - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: true
+     
+   aCompCor:
+     summary:
+       method: PC
+       components: 5
+     tissues:
+       - WhiteMatter
+       - CerebrospinalFluid
+     extraction_resolution: 2
 
+   CerebrospinalFluid:
+     summary: Mean
+     extraction_resolution: 2
+     
+   PolyOrt:
+    degree: 1
 
-# Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.
-nComponents : [5]
-
-
-# Use the Friston 24-Parameter Model during volume realignment.
-# If this option is turned off, only 6 parameters will be used.
-# These parameters will also be output as a spreadsheet.
-runFristonModel :  [1]
-
-
-# Remove or regress out volumes exhibiting excessive motion.
-# Each of these options are mutually exclusive, and selecting more than one will create a new pipeline fork for each option. For example, de-spiking and scrubbing will not run within the same pipeline strategy.
-runMotionSpike :  []
-
-
-# (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) calculation to apply the threshold to during de-spiking or scrubbing.
-fdCalc :  ['Jenkinson']
-
-
-# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
-# Any volume exhibiting FD greater than the value will be regressed out or scrubbed.
-spikeThreshold : [0.2]
-
-
-# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub preceding a volume with excessive FD.
-numRemovePrecedingFrames :  1
-
-
-# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub subsequent to a volume with excessive FD.
-numRemoveSubsequentFrames :  2
+   Bandpass:
+     bottom_frequency: 0.01
+     top_frequency: 0.1
 
 
 # Correct for the global signal using Median Angle Correction.
@@ -490,14 +471,6 @@ runMedianAngleCorrection :  [1]
 
 # Target angle used during Median Angle Correction.
 targetAngleDeg : [90]
-
-
-# Apply a temporal band-pass filter to functional data.
-runFrequencyFiltering :  [1]
-
-
-# Define one or more band-pass filters by clicking the + button.
-nuisanceBandpassFreq : [[0.01, 0.1]]
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
@@ -593,7 +566,7 @@ degWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the degree centrality adjacency matrix.
-degCorrelationThresholdOption :  ['Significance threshold']
+degCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -608,7 +581,7 @@ eigWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
-eigCorrelationThresholdOption :  ['Significance threshold']
+eigCorrelationThresholdOption :  ['Sparsity threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -655,7 +628,7 @@ fwhm : [4]
 smoothing_order :  ['Before']
 
 
-# z-score standardize the derivatives. This is required for group-level analysis.
+# z-score standardize the derivatives. This may be needed for group-level analysis.
 # On - Run z-scoring and output only the z-scored outputs.
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.

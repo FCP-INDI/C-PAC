@@ -42,7 +42,7 @@ class ComputerSettings(wx.ScrolledWindow):
                               "single machine.\n\nIf set to True, CPAC will "
                               "attempt to submit jobs through the job "
                               "scheduler / resource manager selected below.",
-                      values=["False", "True"],
+                      values=["On", "Off"],
                       wkf_switch=True)
 
         self.page.add(label="FSL Path ",
@@ -243,7 +243,7 @@ class DirectorySettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='removeWorkingDir',
                       type=dtype.BOOL,
-                      values=["False", "True"],
+                      values=["On", "Off"],
                       comment="Deletes the contents of the Working "
                               "Directory after running.\n\nThis saves disk "
                               "space, but any additional preprocessing or "
@@ -253,7 +253,7 @@ class DirectorySettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name="run_logging",
                       type=dtype.BOOL,
-                      values=["True", "False"],
+                      values=["On", "Off"],
                       comment="Whether to write log details of the pipeline. "
                               "run to the logging files.")
 
@@ -261,7 +261,7 @@ class DirectorySettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='reGenerateOutputs',
                       type=dtype.BOOL,
-                      values=["False", "True"],
+                      values=["On", "Off"],
                       comment="Uses the contents of the Working Directory "
                               "to regenerate all outputs and their "
                               "symbolic links.\n\nRequires an intact "
