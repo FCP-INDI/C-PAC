@@ -98,7 +98,8 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     check_for_s3,
     create_check_for_s3_node,
-    resolve_resolution
+    resolve_resolution,
+    match_epi_fmaps
 )
 from CPAC.utils import Configuration, Strategy, Outputs, find_files
 from CPAC.utils.interfaces.function import Function
@@ -1494,7 +1495,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 fmap_paths_dct = sub_dict['fmap']
                 blip = True
 
-                match_epi_fmaps = \
+                match_epi_fmaps_node = \
                     pe.Node(Function(input_names=['fmap_dct',
                                                   'bold_pedir'],
                                      output_names=['opposite_pe_epi',
@@ -1502,11 +1503,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      function=match_epi_fmaps,
                                      as_module=True),
                             name='match_epi_fmaps_{0}'.format(num_strat))
-                match_epi_fmaps.inputs.fmap_dct = fmap_paths_dct
+                match_epi_fmaps_node.inputs.fmap_dct = fmap_paths_dct
 
                 node, node_out = strat['pe_direction']
                 workflow.connect(node, node_out,
-                                 match_epi_fmaps, 'bold_pedir')
+                                 match_epi_fmaps_node, 'bold_pedir')
 
                 blip_correct = blip_distcor_wf(wf_name='blip_correct_{0}'.format(num_strat))
                 blip_correct.inputs.outputtype = "NIFTI_GZ"
@@ -1515,10 +1516,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                  blip_correct, 'inputspec.func_mean')
 
-                workflow.connect(match_epi_fmaps, 'opposite_pe_epi',
+                workflow.connect(match_epi_fmaps_node, 'opposite_pe_epi',
                                  blip_correct, 'inputspec.opposte_pe_epi')
 
-                workflow.connect(match_epi_fmaps, 'same_pe_epi',
+                workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
                                  blip_correct, 'inputspec.same_pe_epi')
 
             if "None" in c.distortion_correction:
