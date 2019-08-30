@@ -1516,7 +1516,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  blip_correct, 'inputspec.func_mean')
 
                 workflow.connect(match_epi_fmaps_node, 'opposite_pe_epi',
-                                 blip_correct, 'inputspec.opposte_pe_epi')
+                                 blip_correct, 'inputspec.opposite_pe_epi')
 
                 workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
                                  blip_correct, 'inputspec.same_pe_epi')
@@ -1532,7 +1532,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'blip_warp_inverse': (blip_correct, 'outputspec.blip_warp_inverse'),
                 'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
                 'functional_brain_mask': (blip_correct, 'outputspec.new_func_mask')
-            })
+            }, override=True)
 
         strat_list += new_strat_list
 
@@ -1677,7 +1677,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         dist_corr = True
 
                     func_to_anat_bbreg = create_bbregister_func_to_anat(
-                        dist_corr,
+                        phase_diff,
                         'func_to_anat_bbreg_%d' % num_strat
                     )
 
@@ -1716,7 +1716,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     func_to_anat_bbreg,
                                     'inputspec.anat_wm_segmentation')
 
-                    if dist_corr:
+                    if dist_corr and phase_diff:
                         # apply field map distortion correction outputs to
                         # the func->anat registration
 
