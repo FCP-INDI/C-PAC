@@ -125,9 +125,9 @@ from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
 logger = logging.getLogger('nipype.workflow')
 # config.enable_debug_mode()
 
-def pick_wm(seg_prob_list):
-    seg_prob_list.sort()
-    return seg_prob_list[-1]
+# def pick_wm(seg_prob_list):
+#     seg_prob_list.sort()
+#     return seg_prob_list[-1]
 
 
 def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
@@ -1178,11 +1178,26 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=False,
                                                  use_priors=c.seg_use_priors,
+                                                 use_threshold=c.seg_use_threshold,
+                                                 use_erosion=c.seg_use_erosion,
+                                                 erosion_prop=c.seg_erosion_prop,
                                                  wf_name='seg_preproc_{0}'.format(num_strat))
+                seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
+                seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
+                seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+                                                                 
             elif 'anat_mni_ants_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=True,
                                                  use_priors=c.seg_use_priors,
+                                                 use_threshold=c.seg_use_threshold,
+                                                 use_erosion=c.seg_use_erosion,
+                                                 erosion_prop=c.seg_erosion_prop,
                                                  wf_name='seg_preproc_{0}'.format(num_strat))
+                seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
+                seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
+                seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+           
+
 
             # TODO ASH review
             if seg_preproc is None:
@@ -1214,15 +1229,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
 
-            if c.seg_use_priors:
-                workflow.connect(c.PRIORS_CSF, 'local_path',
-                                 seg_preproc, 'inputspec.PRIOR_CSF')
 
-                workflow.connect(c.PRIORS_GRAY, 'local_path',
-                                 seg_preproc, 'inputspec.PRIOR_GRAY')
+            workflow.connect(c.PRIORS_CSF, 'local_path',
+                                seg_preproc, 'inputspec.PRIOR_CSF')
 
-                workflow.connect(c.PRIORS_WHITE, 'local_path',
-                                 seg_preproc, 'inputspec.PRIOR_WHITE')
+            workflow.connect(c.PRIORS_GRAY, 'local_path',
+                                seg_preproc, 'inputspec.PRIOR_GRAY')
+
+            workflow.connect(c.PRIORS_WHITE, 'local_path',
+                                seg_preproc, 'inputspec.PRIOR_WHITE')
 
             # TODO ASH review with forking function
             if 0 in c.runSegmentationPreprocessing:
@@ -1942,9 +1957,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         # Inserting Nuisance Workflow
 
-        new_strat_list = []
+
 
         if 1 in c.runNuisance:
+
+            new_strat_list = []
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2125,9 +2142,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     new_strat_list.append(new_strat)
 
-        # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
-        # Each regressor forks the strategy, instead of reusing it, to keep the code simple
-        strat_list = new_strat_list
+            # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
+            # Each regressor forks the strategy, instead of reusing it, to keep the code simple
+            strat_list = new_strat_list
 
 
         # Inserting Median Angle Correction Workflow

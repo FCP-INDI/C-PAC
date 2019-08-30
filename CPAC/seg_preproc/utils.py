@@ -5,7 +5,8 @@ import re
 import commands
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-
+import scipy.ndimage as nd
+import numpy as np
 
 def check_if_file_is_empty(in_file):
     """
@@ -57,7 +58,7 @@ def pick_wm_0(probability_maps):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
         for filename in probability_maps:
-            if filename.endswith("seg_0.nii.gz"):
+            if filename.endswith("prob_0.nii.gz"):
                 return filename
     return None
 
@@ -85,7 +86,7 @@ def pick_wm_1(probability_maps):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
         for filename in probability_maps:
-            if filename.endswith("seg_1.nii.gz"):
+            if filename.endswith("prob_1.nii.gz"):
                 return filename
     return None
 
@@ -113,8 +114,13 @@ def pick_wm_2(probability_maps):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
         for filename in probability_maps:
-            if filename.endswith("seg_2.nii.gz"):
+            if filename.endswith("prob_2.nii.gz"):
                 return filename
     return None
 
 
+def erosion(roi_mask, erosion_prop):
+    orig_vol = np.sum(roi_mask > 0)
+    while np.sum(roi_mask > 0) / orig_vol > erosion_prop :
+        roi_mask = nd.binary_erosion(roi_mask, iterations=1)
+    return roi_mask
