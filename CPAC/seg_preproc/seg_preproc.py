@@ -418,7 +418,7 @@ def process_segment_map(wf_name,
         Whether or not to use threshold to further refine
         the resulting segmentation tissue masks.
     thresh: float, default value: 0.95
-        Thresh values if use threshold.
+        Thresh values, if use threshold.
     use_erosion: boolean
         Whether or not to erode the resulting segmentation tissue masks.   
     use_ants : boolean
@@ -584,19 +584,19 @@ def process_segment_map(wf_name,
         #                     name='{0}_mask'.format(wf_name))
         # segment_mask.inputs.op_string = ' -mas %s '
         
-        ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np']
+        ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
 
         if use_erosion:
             # erosion 
             erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_prop'], 
-                                                output_names = ['roi_mask'], 
+                                                output_names = ['out_file'], 
                                                 function = erosion,
                                                 imports = ero_imports),                                    
                                                 name='erosion_segmentmap_%s' % (wf_name))
 
             erosion_segmentmap.inputs.erosion_prop =  erosion_prop   
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
-            input_1, value_1 = (erosion_segmentmap, 'roi_mask')
+            input_1, value_1 = (erosion_segmentmap, 'out_file')
 
         #connect to output nodes
         # preproc.connect(tissueprior_mni_to_t1, 'output_image', outputNode, 'tissueprior_mni2t1')
@@ -666,19 +666,19 @@ def process_segment_map(wf_name,
         #                     name='{0}_mask'.format(wf_name))
         # segment_mask.inputs.op_string = ' -mas %s '
         
-        ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np']
+        ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
 
         if use_erosion:
             # erosion 
             erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_prop'], 
-                                                output_names = ['roi_mask'], 
+                                                output_names = ['out_file'], 
                                                 function = erosion,
                                                 imports = ero_imports),                                    
                                                 name='erosion_segmentmap_%s' % (wf_name))
 
             erosion_segmentmap.inputs.erosion_prop =  erosion_prop   
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
-            input_1, value_1 = (erosion_segmentmap, 'roi_mask')
+            input_1, value_1 = (erosion_segmentmap, 'out_file')
 
         #connect to output nodes
         # preproc.connect(tissueprior_mni_to_t1, 'output_image', outputNode, 'tissueprior_mni2t1')
