@@ -481,7 +481,8 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
             conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
             if not isinstance(pedir, str):
                 raise Exception("\n\nPhase-encoding direction must be a "
-                                "string value.\n\n")
+                                "string value.\n\nValue: {0}"
+                                "\n\n".format(pedir))
             if pedir not in conv_dct.keys():
                 raise Exception("\n\nInvalid phase-encoding direction "
                                 "entered: {0}\n\n".format(pedir))

@@ -98,7 +98,8 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     check_for_s3,
     create_check_for_s3_node,
-    resolve_resolution
+    resolve_resolution,
+    match_epi_fmaps
 )
 from CPAC.utils import Configuration, Strategy, Outputs, find_files
 from CPAC.utils.interfaces.function import Function
@@ -1509,7 +1510,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 fmap_paths_dct = sub_dict['fmap']
                 blip = True
 
-                match_epi_fmaps = \
+                match_epi_fmaps_node = \
                     pe.Node(Function(input_names=['fmap_dct',
                                                   'bold_pedir'],
                                      output_names=['opposite_pe_epi',
@@ -1517,23 +1518,22 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      function=match_epi_fmaps,
                                      as_module=True),
                             name='match_epi_fmaps_{0}'.format(num_strat))
-                match_epi_fmaps.inputs.fmap_dct = fmap_paths_dct
+                match_epi_fmaps_node.inputs.fmap_dct = fmap_paths_dct
 
                 node, node_out = strat['pe_direction']
                 workflow.connect(node, node_out,
-                                 match_epi_fmaps, 'bold_pedir')
+                                 match_epi_fmaps_node, 'bold_pedir')
 
                 blip_correct = blip_distcor_wf(wf_name='blip_correct_{0}'.format(num_strat))
-                blip_correct.inputs.outputtype = "NIFTI_GZ"
 
                 node, out_file = strat["mean_functional"]
                 workflow.connect(node, out_file,
                                  blip_correct, 'inputspec.func_mean')
 
-                workflow.connect(match_epi_fmaps, 'opposite_pe_epi',
-                                 blip_correct, 'inputspec.opposte_pe_epi')
+                workflow.connect(match_epi_fmaps_node, 'opposite_pe_epi',
+                                 blip_correct, 'inputspec.opposite_pe_epi')
 
-                workflow.connect(match_epi_fmaps, 'same_pe_epi',
+                workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
                                  blip_correct, 'inputspec.same_pe_epi')
 
             if "None" in c.distortion_correction:
@@ -1547,7 +1547,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'blip_warp_inverse': (blip_correct, 'outputspec.blip_warp_inverse'),
                 'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
                 'functional_brain_mask': (blip_correct, 'outputspec.new_func_mask')
-            })
+            }, override=True)
 
         strat_list += new_strat_list
 
@@ -1692,7 +1692,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         dist_corr = True
 
                     func_to_anat_bbreg = create_bbregister_func_to_anat(
-                        dist_corr,
+                        phase_diff,
                         'func_to_anat_bbreg_%d' % num_strat
                     )
 
@@ -1731,7 +1731,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     func_to_anat_bbreg,
                                     'inputspec.anat_wm_segmentation')
 
-                    if dist_corr:
+                    if dist_corr and phase_diff:
                         # apply field map distortion correction outputs to
                         # the func->anat registration
 
@@ -1956,9 +1956,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 
         # Inserting Nuisance Workflow
-
-
-
         if 1 in c.runNuisance:
 
             new_strat_list = []
@@ -3405,6 +3402,53 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         except:
             pass
 
+
+        ndmg_out = False
+        try:
+            # let's encapsulate this inside a Try..Except block so if
+            # someone doesn't have ndmg_outputs in their pipe config,
+            # it will default to the regular datasink
+            #     TODO: update this when we change to the optionals
+            #     TODO: only pipe config
+            if 1 in c.ndmg_mode:
+                ndmg_out = True
+        except:
+            pass
+
+
+        # TODO enforce value with schema validation
+        try:
+            encrypt_data = bool(c.s3Encryption[0])
+        except:
+            encrypt_data = False
+
+
+        # TODO enforce value with schema validation
+        # Extract credentials path for output if it exists
+        try:
+            # Get path to creds file
+            creds_path = ''
+            if c.awsOutputBucketCredentials:
+                creds_path = str(c.awsOutputBucketCredentials)
+                creds_path = os.path.abspath(creds_path)
+
+            if c.outputDirectory.lower().startswith('s3://'):
+                # Test for s3 write access
+                s3_write_access = \
+                    aws_utils.test_bucket_access(creds_path,
+                                                    c.outputDirectory)
+
+                if not s3_write_access:
+                    raise Exception('Not able to write to bucket!')
+
+        except Exception as e:
+            if c.outputDirectory.lower().startswith('s3://'):
+                err_msg = 'There was an error processing credentials or ' \
+                            'accessing the S3 bucket. Check and try again.\n' \
+                            'Error: %s' % e
+                raise Exception(err_msg)
+
+
         # this section creates names for the different branched strategies.
         # it identifies where the pipeline has forked and then appends the
         # name of the forked nodes to the branch name in the output directory
@@ -3434,51 +3478,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 pipeline_id += '_' + fork_points_labels[strat]
 
             pipeline_ids.append(pipeline_id)
-
-
-            # TODO enforce value with schema validation
-            # Extract credentials path for output if it exists
-            try:
-                # Get path to creds file
-                creds_path = ''
-                if c.awsOutputBucketCredentials:
-                    creds_path = str(c.awsOutputBucketCredentials)
-                    creds_path = os.path.abspath(creds_path)
-
-                if c.outputDirectory.lower().startswith('s3://'):
-                    # Test for s3 write access
-                    s3_write_access = \
-                        aws_utils.test_bucket_access(creds_path,
-                                                     c.outputDirectory)
-
-                    if not s3_write_access:
-                        raise Exception('Not able to write to bucket!')
-
-            except Exception as e:
-                if c.outputDirectory.lower().startswith('s3://'):
-                    err_msg = 'There was an error processing credentials or ' \
-                                'accessing the S3 bucket. Check and try again.\n' \
-                                'Error: %s' % e
-                    raise Exception(err_msg)
-
-
-            # TODO enforce value with schema validation
-            try:
-                encrypt_data = bool(c.s3Encryption[0])
-            except:
-                encrypt_data = False
-
-            ndmg_out = False
-            try:
-                # let's encapsulate this inside a Try..Except block so if
-                # someone doesn't have ndmg_outputs in their pipe config,
-                # it will default to the regular datasink
-                #     TODO: update this when we change to the optionals
-                #     TODO: only pipe config
-                if 1 in c.ndmg_mode:
-                    ndmg_out = True
-            except:
-                pass
 
             if ndmg_out:
                 # create the graphs
