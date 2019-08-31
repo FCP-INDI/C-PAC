@@ -100,7 +100,7 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
 
     anat_deoblique.inputs.deoblique = True
     preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
-    preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')
+    preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')    
     # Disable non_local_means_filtering and n4_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
         non_local_means_filtering = False 

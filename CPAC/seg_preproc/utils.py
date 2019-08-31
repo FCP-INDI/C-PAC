@@ -5,7 +5,9 @@ import re
 import commands
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-
+import scipy.ndimage as nd
+import numpy as np
+import nibabel as nb
 
 def check_if_file_is_empty(in_file):
     """
@@ -57,7 +59,7 @@ def pick_wm_0(probability_maps):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
         for filename in probability_maps:
-            if filename.endswith("seg_0.nii.gz"):
+            if filename.endswith("prob_0.nii.gz"):
                 return filename
     return None
 
@@ -85,7 +87,7 @@ def pick_wm_1(probability_maps):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
         for filename in probability_maps:
-            if filename.endswith("seg_1.nii.gz"):
+            if filename.endswith("prob_1.nii.gz"):
                 return filename
     return None
 
@@ -113,8 +115,27 @@ def pick_wm_2(probability_maps):
         if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
         for filename in probability_maps:
-            if filename.endswith("seg_2.nii.gz"):
+            if filename.endswith("prob_2.nii.gz"):
                 return filename
     return None
+
+
+def erosion(roi_mask, erosion_prop):
+    roi_mask_img = nb.load(roi_mask)
+    roi_mask_data = roi_mask_img.get_fdata()
+    orig_vol = np.sum(roi_mask_data > 0)
+    
+    while np.sum(roi_mask_data > 0) / orig_vol > erosion_prop :
+        roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=1)
+    
+    hdr = roi_mask_img.get_header()
+    output_img = nb.Nifti1Image(roi_mask_data, header=hdr,
+                                 affine=roi_mask_img.get_affine())
+    out_file = os.path.join(os.getcwd(), 'segment_tissue_mask.nii.gz')
+
+    output_img.to_filename(out_file)
+
+    return out_file
+
 
 
