@@ -1,3 +1,4 @@
+import json
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -256,7 +257,92 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
-def match_epi_fmaps(fmap_dct, bold_pedir):
+def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
+    """Return the field map files, from the dictionary of functional files
+    described in the data configuration (sublist) YAML file.
+    """
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(
+                                fields=['subject', 'scan', 'creds_path',
+                                        'dl_dir'],
+                                mandatory_inputs=True),
+                        name='inputnode')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
+                                                        'scan', 'scan_params',
+                                                        'phase_diff',
+                                                        'magnitude']),
+                         name='outputspec')
+
+    # get the functional scan itself
+    selectrest = pe.Node(function.Function(input_names=['scan',
+                                                        'rest_dict',
+                                                        'resource'],
+                                           output_names=['file_path'],
+                                           function=get_rest,
+                                           as_module=True),
+                         name='selectrest')
+    selectrest.inputs.rest_dict = fmap_dct
+    selectrest.inputs.resource = "scan"
+    wf.connect(inputnode, 'scan', selectrest, 'scan')
+
+    # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
+    # is - otherwise, just return the local file path
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+
+    wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+    check_s3_node.inputs.img_type = 'other'
+
+    wf.connect(inputnode, 'subject', outputnode, 'subject')
+    wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
+    wf.connect(inputnode, 'scan', outputnode, 'scan')
+
+    # scan parameters CSV
+    select_scan_params = pe.Node(function.Function(input_names=['scan',
+                                                                'rest_dict',
+                                                                'resource'],
+                                                   output_names=['file_path'],
+                                                   function=get_rest,
+                                                   as_module=True),
+                                 name='select_scan_params')
+    select_scan_params.inputs.rest_dict = fmap_dct
+    select_scan_params.inputs.resource = "scan_parameters"
+    wf.connect(inputnode, 'scan', select_scan_params, 'scan')
+
+    # if the scan parameters file is on AWS S3, download it
+    s3_scan_params = pe.Node(function.Function(input_names=['file_path',
+                                                            'creds_path',
+                                                            'dl_dir',
+                                                            'img_type'],
+                                               output_names=['local_path'],
+                                               function=check_for_s3,
+                                               as_module=True),
+                             name='s3_scan_params')
+
+    wf.connect(select_scan_params, 'file_path', s3_scan_params, 'file_path')
+    wf.connect(inputnode, 'creds_path', s3_scan_params, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', s3_scan_params, 'dl_dir')
+    wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
+
+    return wf
+
+
+def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
+                    epi_fmap_two=None, epi_fmap_params_two=None):
     """Parse the field map files in the data configuration and determine which
     ones have the same and opposite phase-encoding directions as the BOLD scan
     in the current pipeline.
@@ -278,18 +364,24 @@ def match_epi_fmaps(fmap_dct, bold_pedir):
     3. Grab the one or two EPI field maps.
     """
 
+    fmap_dct = {epi_fmap_one: epi_fmap_params_one}
+    if epi_fmap_two and epi_fmap_params_two:
+        fmap_dct[epi_fmap_two] = epi_fmap_params_two
+
     opposite_pe_epi = None
     same_pe_epi = None
 
-    for epi_scan_name in fmap_dct.keys():
-        if "scan_parameters" in fmap_dct[epi_scan_name].keys():
-            scan_params = fmap_dct[epi_scan_name]["scan_parameters"]
-            if "PhaseEncodingDirection" in scan_params:
-                epi_pedir = scan_params["PhaseEncodingDirection"]
-                if epi_pedir == bold_pedir:
-                    same_pe_epi = fmap_dct[epi_scan_name]["scan"]
-                elif epi_pedir[0] == bold_pedir[0]:
-                    opposite_pe_epi = fmap_dct[epi_scan_name]["scan"]
+    for epi_scan in fmap_dct.keys():
+        scan_params = fmap_dct[epi_scan]
+        if not isinstance(scan_params, dict) and ".json" in scan_params:
+            with open(scan_params, 'r') as f:
+                scan_params = json.load(f)
+        if "PhaseEncodingDirection" in scan_params:
+            epi_pedir = scan_params["PhaseEncodingDirection"]
+            if epi_pedir == bold_pedir:
+                same_pe_epi = epi_scan
+            elif epi_pedir[0] == bold_pedir[0]:
+                opposite_pe_epi = epi_scan
 
     return (opposite_pe_epi, same_pe_epi)
 
