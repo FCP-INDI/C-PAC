@@ -179,8 +179,8 @@ RUN git lfs install
 RUN mkdir /ndmg_atlases && \
     GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
     cd /tmp/neuroparc && \
-    git lfs pull -I "atlases/label/*" && \
-    cp -r /tmp/neuroparc/atlases/label /ndmg_atlases/label && \
+    git lfs pull -I "atlases/label/Human/*" && \
+    cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label/Human && \
     cd -
 
 
