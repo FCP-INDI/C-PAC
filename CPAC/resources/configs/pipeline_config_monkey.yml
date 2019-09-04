@@ -59,12 +59,16 @@ workingDirectory :  ./cpac_runs/default/working
 crashLogDirectory :  ./cpac_runs/default/crash
 
 
-# Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/default1/log
-
-
 # Directory where CPAC should place processed data.
 outputDirectory :  ./cpac_runs/default/output
+
+
+# Whether to write log details of the pipeline.
+run_logging :  True
+
+
+# Directory where CPAC should place run logs.
+logDirectory :  ./cpac_runs/default/log
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -96,8 +100,9 @@ generateQualityControlImages :  [1]
 removeWorkingDir :  False
 
 
-# Whether to write log details of the pipeline. run to the logging files.
-run_logging :  True
+# Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
+# Requires an intact Working Directory from a previous CPAC run.
+reGenerateOutputs :  False
 
 
 # Anatomical preprocessing options.
@@ -291,7 +296,8 @@ regOption :  ['ANTS']
 
 
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
-use_lesion_mask : [1]
+# ANTS registration only.
+use_lesion_mask : [0]
 
 
 # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
@@ -452,15 +458,31 @@ runBBReg :  [1]
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
+boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
-# Documentation on types of parameters
-# Directions on which parameter should I use
+
+# Interpolation method for writing out transformed anatomical images.
+# ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-regANTSinterpolation: Linear
+anatRegANTSinterpolation: LanczosWindowedSinc
 
+
+# Interpolation method for writing out transformed anatomical images.
+# FSL registration tools only.
 # Possible values: trilinear, sinc, spline
-regFSLinterpolation: trilinear
+anatRegFSLinterpolation: sinc
+
+
+# Interpolation method for writing out transformed functional images.
+# ANTS registration tools only.
+# Possible values: Linear, BSpline, LanczosWindowedSinc
+funcRegANTSinterpolation: LanczosWindowedSinc
+
+
+# Interpolation method for writing out transformed functional images.
+# FSL registration tools only.
+# Possible values: trilinear, sinc, spline
+funcRegFSLinterpolation: sinc
 
 
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
@@ -472,6 +494,7 @@ func_reg_input_volume :  0
 
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
+# Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
 
 

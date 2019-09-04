@@ -59,12 +59,16 @@ workingDirectory :  ./cpac_runs/benchmark-FNIRT/w
 crashLogDirectory :  ./cpac_runs/benchmark-FNIRT/c
 
 
-# Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/benchmark-FNIRT/l
-
-
 # Directory where CPAC should place processed data.
 outputDirectory :  ./cpac_runs/benchmark-FNIRT/o
+
+
+# Whether to write log details of the pipeline. run to the logging files.
+run_logging :  True
+
+
+# Directory where CPAC should place run logs.
+logDirectory :  ./cpac_runs/benchmark-FNIRT/l
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -94,10 +98,6 @@ generateQualityControlImages :  [1]
 # Deletes the contents of the Working Directory after running.
 # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
 removeWorkingDir :  False
-
-
-# Whether to write log details of the pipeline. run to the logging files.
-run_logging :  True
 
 
 # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
@@ -462,6 +462,30 @@ runBBReg :  [1]
 boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
 
+# Interpolation method for writing out transformed anatomical images.
+# ANTS registration tools only.
+# Possible values: Linear, BSpline, LanczosWindowedSinc
+anatRegANTSinterpolation: LanczosWindowedSinc
+
+
+# Interpolation method for writing out transformed anatomical images.
+# FSL registration tools only.
+# Possible values: trilinear, sinc, spline
+anatRegFSLinterpolation: sinc
+
+
+# Interpolation method for writing out transformed functional images.
+# ANTS registration tools only.
+# Possible values: Linear, BSpline, LanczosWindowedSinc
+funcRegANTSinterpolation: LanczosWindowedSinc
+
+
+# Interpolation method for writing out transformed functional images.
+# FSL registration tools only.
+# Possible values: trilinear, sinc, spline
+funcRegFSLinterpolation: sinc
+
+
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
 func_reg_input :  ['Mean Functional']
 
@@ -471,6 +495,7 @@ func_reg_input_volume :  0
 
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
+# Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
 
 
