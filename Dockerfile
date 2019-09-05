@@ -176,7 +176,7 @@ RUN apt-get install git-lfs
 RUN git lfs install
 
 # Get atlases
-RUN mkdir /ndmg_atlases && \
+RUN mkdir -p /ndmg_atlases/label/Human && \
     GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
     cd /tmp/neuroparc && \
     git lfs pull -I "atlases/label/Human/*" && \
