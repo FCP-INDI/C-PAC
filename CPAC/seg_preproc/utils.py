@@ -120,14 +120,46 @@ def pick_wm_2(probability_maps):
     return None
 
 
+def mask_erosion(skullstrip_mask, roi_mask, mask_erosion_prop):
+    skullstrip_mask_img =  nb.load(skullstrip_mask)
+    skullstrip_mask_data = skullstrip_mask_img.get_fdata()
+
+    roi_mask_img = nb.load(roi_mask)
+    roi_mask_data = roi_mask_img.get_fdata()
+    
+    orig_vol = np.sum(skullstrip_mask_data > 0)
+    while np.sum(skullstrip_mask_data > 0) / (orig_vol*1.0) > mask_erosion_prop :
+        skullstrip_mask_data = nd.binary_erosion(skullstrip_mask_data, iterations=1)
+    
+    roi_mask_data[~skullstrip_mask_data] = 0
+    hdr = roi_mask_img.get_header()
+    output_img_1 = nb.Nifti1Image(roi_mask_data, header=hdr,
+                                 affine=roi_mask_img.get_affine())
+    out_file_1 = os.path.join(os.getcwd(), 'segment_tissue_eroded_mask.nii.gz')
+    output_img_1.to_filename(out_file_1)
+
+    hdr = skullstrip_mask_img.get_header()
+    output_img_2 = nb.Nifti1Image(skullstrip_mask_data, header=hdr,
+                                 affine=skullstrip_mask_img.get_affine())
+    out_file_2 = os.path.join(os.getcwd(), 'eroded_skullstrip_mask.nii.gz')
+
+    output_img_2.to_filename(out_file_2)
+
+
+
+    return out_file_1, out_file_2
+
+
+
+
 def erosion(roi_mask, erosion_prop):
     roi_mask_img = nb.load(roi_mask)
     roi_mask_data = roi_mask_img.get_fdata()
     orig_vol = np.sum(roi_mask_data > 0)
-    
-    while np.sum(roi_mask_data > 0) / orig_vol > erosion_prop :
+    	
+    while np.sum(roi_mask_data > 0) / (orig_vol*1.0) > erosion_prop :
         roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=1)
-    
+
     hdr = roi_mask_img.get_header()
     output_img = nb.Nifti1Image(roi_mask_data, header=hdr,
                                  affine=roi_mask_img.get_affine())
@@ -136,6 +168,3 @@ def erosion(roi_mask, erosion_prop):
     output_img.to_filename(out_file)
 
     return out_file
-
-
-
