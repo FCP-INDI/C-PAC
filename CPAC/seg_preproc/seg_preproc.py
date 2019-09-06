@@ -598,8 +598,8 @@ def process_segment_map(wf_name,
 
         if use_erosion:
             # mask erosion 
-            eroded_mask = pe.Node(util.Function(input_names = ['skullstrip_mask', 'roi_mask', 'mask_erosion_prop'], 
-                                                output_names = ['out_file_1', 'out_file_2'], 
+            eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_prop'], 
+                                                output_names = ['output_roi_mask', 'eroded_skullstrip_mask'], 
                                                 function = mask_erosion,
                                                 imports = ero_imports),                                    
                                                 name='erode_skullstrip_mask_%s' % (wf_name))
@@ -607,18 +607,18 @@ def process_segment_map(wf_name,
             preproc.connect(inputNode, 'brain_mask', eroded_mask, 'skullstrip_mask')
             preproc.connect(input_1, value_1, eroded_mask, 'roi_mask')
             
-            input_1, value_1 = (eroded_mask, 'out_file_1')
+            input_1, value_1 = (eroded_mask, 'output_roi_mask')
 
             # erosion 
             erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_prop'], 
-                                                output_names = ['out_file'], 
+                                                output_names = ['eroded_roi_mask'], 
                                                 function = erosion,
                                                 imports = ero_imports),                                    
                                                 name='erosion_segmentmap_%s' % (wf_name))
 
             erosion_segmentmap.inputs.erosion_prop =  erosion_prop   
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
-            input_1, value_1 = (erosion_segmentmap, 'out_file')
+            input_1, value_1 = (erosion_segmentmap, 'eroded_roi_mask')
 
         #connect to output nodes
         # preproc.connect(tissueprior_mni_to_t1, 'output_image', outputNode, 'tissueprior_mni2t1')
@@ -692,29 +692,27 @@ def process_segment_map(wf_name,
 
         if use_erosion:
             # mask erosion 
-            eroded_mask = pe.Node(util.Function(input_names = ['skullstrip_mask', 'roi_mask', 'mask_erosion_prop'], 
-                                                output_names = ['eroded_mask_file'], 
+            eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_prop'], 
+                                                output_names = ['output_roi_mask', 'eroded_skullstrip_mask'], 
                                                 function = mask_erosion,
                                                 imports = ero_imports),                                    
-                                                name='eroded_mask_%s' % (wf_name))
-            eroded_mask.inputs.erosion_prop =  erosion_prop**3 
+                                                name='erode_skullstrip_mask_%s' % (wf_name))
+            eroded_mask.inputs.mask_erosion_prop =  erosion_prop**3 
             preproc.connect(inputNode, 'brain_mask', eroded_mask, 'skullstrip_mask')
             preproc.connect(input_1, value_1, eroded_mask, 'roi_mask')
             
-            input_1, value_1 = (eroded_mask, 'eroded_mask_file')
-
-
+            input_1, value_1 = (eroded_mask, 'output_roi_mask')
 
             # erosion 
             erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_prop'], 
-                                                output_names = ['out_file'], 
+                                                output_names = ['eroded_roi_mask'], 
                                                 function = erosion,
                                                 imports = ero_imports),                                    
                                                 name='erosion_segmentmap_%s' % (wf_name))
 
             erosion_segmentmap.inputs.erosion_prop =  erosion_prop   
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
-            input_1, value_1 = (erosion_segmentmap, 'out_file')
+            input_1, value_1 = (erosion_segmentmap, 'eroded_roi_mask')
 
         #connect to output nodes
         # preproc.connect(tissueprior_mni_to_t1, 'output_image', outputNode, 'tissueprior_mni2t1')
