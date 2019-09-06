@@ -49,3 +49,5 @@ pip-log.txt
  .vscode/settings.json
 
 cpac_runs/
+
+.DS_Store
