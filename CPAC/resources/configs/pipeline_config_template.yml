@@ -113,7 +113,7 @@ non_local_means_filtering: False
 n4_bias_field_correction: True
 
 
-# Choice of using AFNI (using 3dSkullstrip) or FSL (using BET) or niworkflows-ants to perform SkullStripping
+# Choice of using AFNI or BET or niworkflows-ants to perform SkullStripping
 skullstrip_option :  ['AFNI']
 
 
