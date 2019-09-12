@@ -12,6 +12,7 @@ linux_openmp_64/3dLFCD
 linux_openmp_64/3dmask_tool
 linux_openmp_64/3dmaskave
 linux_openmp_64/3dpc
+linux_openmp_64/3dQwarp
 linux_openmp_64/3drefit
 linux_openmp_64/3dresample
 linux_openmp_64/3dROIstats

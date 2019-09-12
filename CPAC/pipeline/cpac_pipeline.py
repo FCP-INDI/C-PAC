@@ -94,9 +94,9 @@ from CPAC.utils.symlinks import create_symlinks
 from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
+    create_fmap_datasource,
     create_roi_mask_dataflow,
     create_spatial_map_dataflow,
-    check_for_s3,
     create_check_for_s3_node,
     resolve_resolution,
     match_epi_fmaps
@@ -1275,7 +1275,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             func_wf = create_func_datasource(func_paths_dict,
                                              'func_gather_%d' % num_strat)
-
             func_wf.inputs.inputnode.set(
                 subject=subject_id,
                 creds_path=input_creds_path,
@@ -1283,6 +1282,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             )
             func_wf.get_node('inputnode').iterables = \
                 ("scan", func_paths_dict.keys())
+
+            if "fmap" in sub_dict:
+                fmap_rp_list = []
+                for key in sub_dict["fmap"].keys():
+                    if "epi_" in key:
+                        gather_fmap = create_fmap_datasource(sub_dict["fmap"],
+                                                             "fmap_gather_{0}".format(key))
+                        gather_fmap.inputs.inputnode.set(
+                            subject=subject_id,
+                            creds_path=input_creds_path,
+                            dl_dir=c.workingDirectory
+                        )
+                        gather_fmap.inputs.inputnode.scan = key
+                        strat.update_resource_pool({
+                            key: (gather_fmap, 'outputspec.rest'),
+                            "{0}_scan_params".format(key): (gather_fmap, 'outputspec.scan_params')
+                        })
+                        fmap_rp_list.append(key)
 
             # Add in nodes to get parameters from configuration file
             # a node which checks if scan_parameters are present for each scan
@@ -1509,19 +1526,41 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         if "Blip" in c.distortion_correction and blip_fmap:
             for num_strat, strat in enumerate(strat_list):
-
-                fmap_paths_dct = sub_dict['fmap']
                 blip = True
 
+                match_epi_imports = ['import json']
                 match_epi_fmaps_node = \
-                    pe.Node(Function(input_names=['fmap_dct',
-                                                  'bold_pedir'],
+                    pe.Node(Function(input_names=['bold_pedir',
+                                                  'epi_fmap_one',
+                                                  'epi_fmap_params_one',
+                                                  'epi_fmap_two',
+                                                  'epi_fmap_params_two'],
                                      output_names=['opposite_pe_epi',
                                                    'same_pe_epi'],
                                      function=match_epi_fmaps,
+                                     imports=match_epi_imports,
                                      as_module=True),
                             name='match_epi_fmaps_{0}'.format(num_strat))
-                match_epi_fmaps_node.inputs.fmap_dct = fmap_paths_dct
+
+                if fmap_rp_list:
+                    epi_rp_key = fmap_rp_list[0]
+                    epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
+                    node, node_out = strat[epi_rp_key]
+                    workflow.connect(node, node_out,
+                                     match_epi_fmaps_node, 'epi_fmap_one')
+                    node, node_out = strat[epi_param_rp_key]
+                    workflow.connect(node, node_out,
+                                     match_epi_fmaps_node, 'epi_fmap_params_one')
+                    if len(epi_rp_key) > 1:
+                        epi_rp_key = fmap_rp_list[1]
+                        epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
+                        node, node_out = strat[epi_rp_key]
+                        workflow.connect(node, node_out,
+                                         match_epi_fmaps_node, 'epi_fmap_two')
+                        node, node_out = strat[epi_param_rp_key]
+                        workflow.connect(node, node_out,
+                                         match_epi_fmaps_node,
+                                         'epi_fmap_params_two')
 
                 node, node_out = strat['pe_direction']
                 workflow.connect(node, node_out,
@@ -2917,6 +2956,69 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'functional_to_roi': (resample_functional_to_roi, 'out_file')
                     })
 
+                    # create the graphs
+                    from CPAC.utils.ndmg_utils import (
+                        ndmg_roi_timeseries,
+                        ndmg_create_graphs
+                    )
+
+                    atlases = []
+                    if 'Avg' in ts_analysis_dict.keys():
+                        atlases = ts_analysis_dict['Avg']
+
+                    roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
+                                                                     'roi_dataflow_for_ndmg_%d' % num_strat
+                                                                     )
+
+                    resample_functional_to_roi = pe.Node(
+                        interface=fsl.FLIRT(),
+                        name='resample_functional_to_roi_ndmg_%d' % num_strat)
+                    resample_functional_to_roi.inputs.set(
+                        interp='trilinear',
+                        apply_xfm=True,
+                        in_matrix_file=c.identityMatrix
+                    )
+                    workflow.connect(roi_dataflow_for_ndmg,
+                                     'outputspec.out_file',
+                                     resample_functional_to_roi, 'reference')
+
+                    ndmg_ts = pe.Node(Function(
+                        input_names=['func_file',
+                                     'label_file'],
+                        output_names=['roi_ts',
+                                      'rois',
+                                      'roits_file'],
+                        function=ndmg_roi_timeseries,
+                        as_module=True
+                    ), name='ndmg_ts_%d' % num_strat)
+
+                    node, out_file = strat['functional_to_standard']
+                    workflow.connect(node, out_file,
+                                     resample_functional_to_roi, 'in_file')
+                    workflow.connect(resample_functional_to_roi, 'out_file',
+                                     ndmg_ts, 'func_file')
+                    workflow.connect(roi_dataflow_for_ndmg,
+                                     'outputspec.out_file',
+                                     ndmg_ts, 'label_file')
+
+                    ndmg_graph = pe.MapNode(Function(
+                        input_names=['ts', 'labels'],
+                        output_names=['out_file'],
+                        function=ndmg_create_graphs,
+                        as_module=True
+                    ), name='ndmg_graphs_%d' % num_strat,
+                        iterfield=['labels'])
+
+                    workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
+                    workflow.connect(roi_dataflow_for_ndmg,
+                                     'outputspec.out_file',
+                                     ndmg_graph, 'labels')
+
+                    strat.update_resource_pool({
+                        'ndmg_ts': (ndmg_ts, 'roits_file'),
+                        'ndmg_graph': (ndmg_graph, 'out_file')
+                    })
+
                 if "Avg" in sca_analysis_dict.keys():
 
                     # same workflow, except to run TSE and send it to the resource
@@ -3481,66 +3583,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 pipeline_id += '_' + fork_points_labels[strat]
 
             pipeline_ids.append(pipeline_id)
-
-            if ndmg_out:
-                # create the graphs
-                from CPAC.utils.ndmg_utils import (
-                    ndmg_roi_timeseries,
-                    ndmg_create_graphs
-                )
-
-                atlases = []
-                if 'Avg' in ts_analysis_dict.keys():
-                    atlases = ts_analysis_dict['Avg']
-
-                roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
-                    'roi_dataflow_for_ndmg_%d' % num_strat
-                )
-
-                resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                                                     name='resample_functional_to_roi_ndmg_%d' % num_strat)
-                resample_functional_to_roi.inputs.set(
-                    interp='trilinear',
-                    apply_xfm=True,
-                    in_matrix_file=c.identityMatrix
-                )
-                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                    resample_functional_to_roi, 'reference')
-
-                ndmg_ts = pe.Node(Function(
-                    input_names=['func_file',
-                                 'label_file'],
-                    output_names=['roi_ts',
-                                  'rois',
-                                  'roits_file'],
-                    function=ndmg_roi_timeseries,
-                    as_module=True
-                ), name='ndmg_ts_%d' % num_strat)
-
-                node, out_file = strat['functional_to_standard']
-                workflow.connect(node, out_file,
-                                 resample_functional_to_roi, 'in_file')
-                workflow.connect(resample_functional_to_roi, 'out_file',
-                                 ndmg_ts, 'func_file')
-                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                 ndmg_ts, 'label_file')
-
-                ndmg_graph = pe.MapNode(Function(
-                    input_names=['ts', 'labels'],
-                    output_names=['out_file'],
-                    function=ndmg_create_graphs,
-                    as_module=True
-                ), name='ndmg_graphs_%d' % num_strat, iterfield=['labels'])
-
-                workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
-                workflow.connect(roi_dataflow_for_ndmg, 'outputspec.out_file',
-                                 ndmg_graph, 'labels')
-
-                strat.update_resource_pool({
-                    'ndmg_ts': (ndmg_ts, 'roits_file'),
-                    'ndmg_graph': (ndmg_graph, 'out_file')
-                })
-
 
             rp = strat.get_resource_pool()
 

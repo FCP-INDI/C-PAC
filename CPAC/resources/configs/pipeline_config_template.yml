@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.4.3
+# Version 1.5.0
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -54,14 +54,22 @@ pipelineName :  cpac_default
 # Directory where CPAC should store temporary and intermediate files.
 workingDirectory :  ./cpac_runs/default/working
 
+
 # Directory where CPAC should write crash logs.
 crashLogDirectory :  ./cpac_runs/default/crash
+
+
+# Directory where CPAC should place processed data.
+outputDirectory :  ./cpac_runs/default/output
+
+
+# Whether to write log details of the pipeline.
+run_logging :  True
+
 
 # Directory where CPAC should place run logs.
 logDirectory :  ./cpac_runs/default/log
 
-# Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/default/output
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
 awsOutputBucketCredentials :  
@@ -79,6 +87,10 @@ write_func_outputs :  [0]
 write_debugging_outputs :  [0]
 
 
+# Generate a lean output directory in the same output format as the ndmg pipeline.
+ndmg_mode :  [0]
+
+
 # Generate quality control pages containing preprocessing and derivative outputs.
 generateQualityControlImages :  [1]
 
@@ -88,22 +100,13 @@ generateQualityControlImages :  [1]
 removeWorkingDir :  False
 
 
-# Whether to write log details of the pipeline. run to the logging files.
-run_logging :  True
-
-
 # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
 # Requires an intact Working Directory from a previous CPAC run.
 reGenerateOutputs :  False
 
 
-# Create a user-friendly, well organized version of the output directory.
-runSymbolicLinks :  [1]
-
-
-# Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.
-already_skullstripped :  [0]
-
+# Anatomical preprocessing options.
+# ---------------------------------
 
 # Non-local means filtering / Denoise image
 non_local_means_filtering: False
@@ -113,18 +116,34 @@ non_local_means_filtering: False
 n4_bias_field_correction: True
 
 
-# Choice of using AFNI or BET or niworkflows-ants to perform SkullStripping
+# Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
+# Set this to 1 if your input images are already skull-stripped.
+already_skullstripped :  [0]
+
+
+# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
+# Options: ['AFNI', 'FSL', 'niworkflows-ants']
 skullstrip_option :  ['AFNI']
 
 
 # Template to be used during niworkflows-ants.
+# For skullstrip option 'niworkflows-ants' only.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-# niworkflows-ants Brain extraction template, e.g. OASIStemplate/T_template0.nii.gz
-niworkflows_ants_template_path : 
-# niworkflows-ants probability mask, e.g. OASIStemplate/T_template0_BrainCerebellumProbabilityMask.nii.gz
-niworkflows_ants_mask_path : 
-# niworkflows-ants registration mask (can be optional), e.g. OASIStemplate/T_template0_BrainCerebellumRegistrationMask.nii.gz
-niworkflows_ants_regmask_path : 
+
+# niworkflows-ants Brain extraction template
+niworkflows_ants_template_path : /ants_template/oasis/T_template0.nii.gz
+
+# niworkflows-ants probability mask
+niworkflows_ants_mask_path : /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
+
+# niworkflows-ants registration mask (can be optional)
+niworkflows_ants_regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
+
+
+# Options to be used for AFNI 3dSkullStrip only.
+
+# Choice of using monkey option for AFNI 3dskullstrip
+skullstrip_monkey : False
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -207,6 +226,8 @@ skullstrip_blur_fwhm :  0
 skullstrip_monkey : False
 
 
+# Options to be used for FSL-BET skull-stripping only.
+
 # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
 bet_frac :  0.5
 
@@ -281,7 +302,8 @@ regOption :  ['ANTS']
 
 
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
-use_lesion_mask : [1]
+# ANTS registration only.
+use_lesion_mask : [0]
 
 
 # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
@@ -310,29 +332,10 @@ runSegmentationPreprocessing :  [1]
 seg_use_priors: True
 
 
-# Use threshold to further refine the resulting segmentation tissue masks.
-seg_use_threshold : True
-
-
-# Set the threshold value for refining the resulting segmentation tissue masks(CSF, White Matter, and Gray Matter)
-# The default value is 0.95.
-seg_CSF_threshold_value : 0.95
-seg_WM_threshold_value : 0.95
-seg_GM_threshold_value : 0.95
-
-
-# Erode binarized tissue mask.
-seg_use_erosion : False
-
-
-# Erosion propability, if use erosion to erode binarized tissue masks. 
-seg_erosion_prop : 0.6
-
-
 # Full path to a directory containing binarized prior probability maps.
 # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use non-standard priors.
-priors_path :  $FSLDIR/data/standard/tissuepriors/2mm
+priors_path :  /usr/share/fsl/5.0/data/standard/tissuepriors/2mm
 
 
 # Full path to a binarized White Matter prior probability map.
@@ -348,6 +351,31 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 # Full path to a binarized CSF prior probability map.
 # It is not necessary to change this path unless you intend to use non-standard priors.
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
+
+
+# Use threshold to further refine the resulting segmentation tissue masks.
+seg_use_threshold : True
+
+# Set the threshold value for refining the resulting segmentation tissue masks (CSF, White Matter, and Gray Matter)
+# The default value is 0.95.
+
+# CSF (cerebrospinal fluid) threshold.
+seg_CSF_threshold_value : 0.95
+
+# White matter threshold.
+seg_WM_threshold_value : 0.95
+
+
+# Gray matter threshold.
+seg_GM_threshold_value : 0.95
+
+
+# Erode binarized tissue mask.
+seg_use_erosion : False
+
+
+# Erosion propability, if use erosion to erode binarized tissue masks.
+seg_erosion_prop : 0.6
 
 
 # Run functional preproceessing
@@ -395,6 +423,8 @@ functional_volreg_twopass :  On
 distortion_correction :  ["None"]
 
 
+# Options for 'PhaseDiff' distortion correction only.
+
 # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
 fmap_distcorr_skullstrip :  ['BET']
 
@@ -435,21 +465,29 @@ runBBReg :  [1]
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
+boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
-# Documentation on types of parameters
-# Directions on which parameter should I use
+
+# Interpolation method for writing out transformed anatomical images.
+# ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
 anatRegANTSinterpolation: LanczosWindowedSinc
 
+
+# Interpolation method for writing out transformed anatomical images.
+# FSL registration tools only.
 # Possible values: trilinear, sinc, spline
 anatRegFSLinterpolation: sinc
 
-# Documentation on types of parameters
-# Directions on which parameter should I use
+
+# Interpolation method for writing out transformed functional images.
+# ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
 funcRegANTSinterpolation: LanczosWindowedSinc
 
+
+# Interpolation method for writing out transformed functional images.
+# FSL registration tools only.
 # Possible values: trilinear, sinc, spline
 funcRegFSLinterpolation: sinc
 
@@ -463,6 +501,7 @@ func_reg_input_volume :  0
 
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
+# Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
 
 
