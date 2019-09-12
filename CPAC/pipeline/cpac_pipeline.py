@@ -471,6 +471,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             new_strat.update_resource_pool({
                 'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                 'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
             })
 
             new_strat_list += [new_strat]
@@ -1186,6 +1187,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
                 seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
                 seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+                workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
                                                                  
             elif 'anat_mni_ants_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=True,
@@ -1197,6 +1199,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
                 seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
                 seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+                workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
            
 
 

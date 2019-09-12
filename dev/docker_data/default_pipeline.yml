@@ -320,7 +320,7 @@ fnirtConfig :  T1_2_MNI152_2mm
 
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
 
 # Register skull-on anatomical image to a template.

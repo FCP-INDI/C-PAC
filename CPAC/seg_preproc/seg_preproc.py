@@ -16,7 +16,8 @@ from CPAC.seg_preproc.utils import (
     pick_wm_0,
     pick_wm_1,
     pick_wm_2,
-    erosion)
+    erosion,
+    mask_erosion)
     
 import nipype.pipeline.engine as pe
 import scipy.ndimage as nd
@@ -234,6 +235,7 @@ def create_seg_preproc(use_ants,
 
     preproc = pe.Workflow(name = wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['brain',
+                                                       'brain_mask',
                                                        'standard2highres_init',
                                                        'standard2highres_mat',
                                                        'standard2highres_rig',
@@ -308,6 +310,9 @@ def create_seg_preproc(use_ants,
 
     preproc.connect(inputNode, 'brain',
                     process_csf, 'inputspec.brain')
+
+    preproc.connect(inputNode, 'brain_mask',
+                    process_csf, 'inputspec.brain_mask')
     
     preproc.connect(inputnode_csf_threshold, 'csf_threshold',
                     process_csf, 'inputspec.threshold')
@@ -343,6 +348,8 @@ def create_seg_preproc(use_ants,
 
     preproc.connect(inputNode, 'brain',
                     process_wm, 'inputspec.brain')
+    preproc.connect(inputNode, 'brain_mask',
+                    process_wm, 'inputspec.brain_mask')
     preproc.connect(inputnode_wm_threshold, 'wm_threshold',
                     process_wm, 'inputspec.threshold')
     preproc.connect(inputNode, 'PRIOR_WHITE',
@@ -374,6 +381,8 @@ def create_seg_preproc(use_ants,
 
     preproc.connect(inputNode, 'brain',
                     process_gm, 'inputspec.brain')
+    preproc.connect(inputNode, 'brain_mask',
+                    process_gm, 'inputspec.brain_mask')
     preproc.connect(inputnode_gm_threshold, 'gm_threshold',
                     process_gm, 'inputspec.threshold')
     preproc.connect(inputNode, 'PRIOR_GRAY',
@@ -508,6 +517,7 @@ def process_segment_map(wf_name,
     inputNode = pe.Node(util.IdentityInterface(fields=['tissue_prior',
                                                        'threshold',
                                                        'brain',
+                                                       'brain_mask',
                                                        'probability_tissue_map',
                                                        'standard2highres_init',
                                                        'standard2highres_mat',
@@ -562,7 +572,7 @@ def process_segment_map(wf_name,
 
         if use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(), 
-                                                name='segmentmap_threshold_%s' % (wf_name))
+                                                name='threshold_segmentmap_%s' % (wf_name))
             preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')
             
             preproc.connect(input_1, value_1, segmentmap_threshold, 'in_file')
@@ -587,16 +597,28 @@ def process_segment_map(wf_name,
         ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
 
         if use_erosion:
+            # mask erosion 
+            eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_prop'], 
+                                                output_names = ['output_roi_mask', 'eroded_skullstrip_mask'], 
+                                                function = mask_erosion,
+                                                imports = ero_imports),                                    
+                                                name='erode_skullstrip_mask_%s' % (wf_name))
+            eroded_mask.inputs.mask_erosion_prop =  erosion_prop**3 
+            preproc.connect(inputNode, 'brain_mask', eroded_mask, 'skullstrip_mask')
+            preproc.connect(input_1, value_1, eroded_mask, 'roi_mask')
+            
+            input_1, value_1 = (eroded_mask, 'output_roi_mask')
+
             # erosion 
             erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_prop'], 
-                                                output_names = ['out_file'], 
+                                                output_names = ['eroded_roi_mask'], 
                                                 function = erosion,
                                                 imports = ero_imports),                                    
                                                 name='erosion_segmentmap_%s' % (wf_name))
 
             erosion_segmentmap.inputs.erosion_prop =  erosion_prop   
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
-            input_1, value_1 = (erosion_segmentmap, 'out_file')
+            input_1, value_1 = (erosion_segmentmap, 'eroded_roi_mask')
 
         #connect to output nodes
         # preproc.connect(tissueprior_mni_to_t1, 'output_image', outputNode, 'tissueprior_mni2t1')
@@ -644,7 +666,7 @@ def process_segment_map(wf_name,
 
         if use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(), 
-                                                name='segmentmap_threshold_%s' % (wf_name))
+                                                name='threshold_segmentmap_%s' % (wf_name))
             preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')
             
             preproc.connect(input_1, value_1, segmentmap_threshold, 'in_file')
@@ -669,16 +691,28 @@ def process_segment_map(wf_name,
         ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
 
         if use_erosion:
+            # mask erosion 
+            eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_prop'], 
+                                                output_names = ['output_roi_mask', 'eroded_skullstrip_mask'], 
+                                                function = mask_erosion,
+                                                imports = ero_imports),                                    
+                                                name='erode_skullstrip_mask_%s' % (wf_name))
+            eroded_mask.inputs.mask_erosion_prop =  erosion_prop**3 
+            preproc.connect(inputNode, 'brain_mask', eroded_mask, 'skullstrip_mask')
+            preproc.connect(input_1, value_1, eroded_mask, 'roi_mask')
+            
+            input_1, value_1 = (eroded_mask, 'output_roi_mask')
+
             # erosion 
             erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_prop'], 
-                                                output_names = ['out_file'], 
+                                                output_names = ['eroded_roi_mask'], 
                                                 function = erosion,
                                                 imports = ero_imports),                                    
                                                 name='erosion_segmentmap_%s' % (wf_name))
 
             erosion_segmentmap.inputs.erosion_prop =  erosion_prop   
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
-            input_1, value_1 = (erosion_segmentmap, 'out_file')
+            input_1, value_1 = (erosion_segmentmap, 'eroded_roi_mask')
 
         #connect to output nodes
         # preproc.connect(tissueprior_mni_to_t1, 'output_image', outputNode, 'tissueprior_mni2t1')
