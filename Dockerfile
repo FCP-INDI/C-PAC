@@ -82,11 +82,7 @@ ENV PATH $C3DPATH/bin:$PATH
 
 # install AFNI
 COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
-RUN libs_path=/usr/lib/x86_64-linux-gnu && \
-    if [ -f $libs_path/libgsl.so.19 ]; then \
-        ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
-    fi && \
-    mkdir -p /opt/afni && \
+RUN mkdir -p /opt/afni && \
     curl -sO http://s3.amazonaws.com/fcp-indi/resources/afni_ubuntu_16_64.tar.gz && \
     tar zxv -C /opt/afni --strip-components=1 -f afni_ubuntu_16_64.tar.gz $(cat /opt/required_afni_pkgs.txt) && \
     rm -rf afni_ubuntu_16_64.tar.gz
