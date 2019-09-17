@@ -402,6 +402,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_preproc, c.eye_mask_path, 'eye_mask_path', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc')
     ]
@@ -2005,7 +2006,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             for num_strat, strat in enumerate(strat_list):
 
                 # for each strategy, create a new one without nuisance
-                if 0 in c.runNuisance:
+                if 0 in c.runNuisance or 1 in c.run_pypeer:
                     new_strat_list.append(strat.fork())
 
                 nodes = strat.get_nodes_names()
@@ -3330,6 +3331,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             strat_list = create_network_centrality_workflow(
                 workflow, c, strat_list)
 
+        # PyPEER Integration
+        new_strat_list = []
+        if 1 in c.run_pypeer:
+            from CPAC.peer.peer import connect_peer
+            for num_strat, strat in enumerate(strat_list):
+                workflow, new_strat_list = connect_peer(workflow, c,
+                                                        num_strat,
+                                                        strat,
+                                                        new_strat_list)
+        strat_list += new_strat_list
+
         '''
         Loop through the resource pool and connect the nodes for:
             - applying warps to standard
@@ -3903,6 +3915,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # Actually run the pipeline now, for the current subject
             workflow.run(plugin=plugin, plugin_args=plugin_args)
 
+            # PyPEER kick-off
+            if 1 in c.run_pypeer:
+                from CPAC.pypeer.peer import prep_for_pypeer
+                output_dir = os.path.join(c.outputDirectory,
+                                          "pipeline_{0}".format(pipeline_id),
+                                          subject_id)
+                prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
+                                c.eye_mask_path, output_dir, subject_id,
+                                c.peer_stimulus_path, c.peer_gsr,
+                                c.peer_scrub, c.peer_scrub_thresh)
 
             # Dump subject info pickle file to subject log dir
             subject_info['status'] = 'Completed'
