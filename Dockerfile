@@ -168,6 +168,10 @@ RUN pip install --upgrade pip==9.0.1
 RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
 
+# install PyPEER
+RUN git clone https://github.com/ChildMindInstitute/PyPEER.git /tmp/PyPEER && \
+    pip install -e /tmp/PyPEER
+
 # install cpac templates
 ADD dev/docker_data/cpac_templates.tar.gz /
 
