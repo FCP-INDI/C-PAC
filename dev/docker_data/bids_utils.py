@@ -97,7 +97,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # try to populate the configuration using information
     # already in the list
     for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                  'rec', 'run']:
+                  'rec', 'dir', 'run']:
         if level in f_dict:
             key = "-".join([level, f_dict[level]])
         else:
@@ -160,7 +160,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
     # of the dictionary
     t_dict = bids_config_dict
     for level in ['scantype', 'site', 'sub', 'ses', 'task',
-                  'acq', 'rec', 'run']:
+                  'acq', 'rec', 'dir', 'run']:
         key = '-'.join([level, 'none'])
         t_dict[key] = {}
         t_dict = t_dict[key]
@@ -215,7 +215,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
         # explicitly define values for those runs
         t_dict = bids_config_dict  # pointer to current dictionary
         for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                      'rec', 'run']:
+                      'rec', 'dir', 'run']:
             if level in f_dict:
                 key = "-".join([level, f_dict[level]])
             else:

@@ -402,6 +402,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_preproc, c.eye_mask_path, 'eye_mask_path', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc')
     ]
@@ -471,6 +472,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             new_strat.update_resource_pool({
                 'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                 'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
             })
 
             new_strat_list += [new_strat]
@@ -1186,6 +1188,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
                 seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
                 seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+                workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
                                                                  
             elif 'anat_mni_ants_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=True,
@@ -1197,6 +1200,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
                 seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
                 seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+                workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
            
 
 
@@ -2002,7 +2006,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             for num_strat, strat in enumerate(strat_list):
 
                 # for each strategy, create a new one without nuisance
-                if 0 in c.runNuisance:
+                if 0 in c.runNuisance or 1 in c.run_pypeer:
                     new_strat_list.append(strat.fork())
 
                 nodes = strat.get_nodes_names()
@@ -3900,6 +3904,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # Actually run the pipeline now, for the current subject
             workflow.run(plugin=plugin, plugin_args=plugin_args)
 
+            # PyPEER kick-off
+            if 1 in c.run_pypeer:
+                from CPAC.pypeer.peer import prep_for_pypeer
+                output_dir = os.path.join(c.outputDirectory,
+                                          "pipeline_{0}".format(pipeline_id),
+                                          subject_id)
+                prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
+                                c.eye_mask_path, output_dir, subject_id,
+                                c.peer_stimulus_path, c.peer_gsr,
+                                c.peer_scrub, c.peer_scrub_thresh)
 
             # Dump subject info pickle file to subject log dir
             subject_info['status'] = 'Completed'
