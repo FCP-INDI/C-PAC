@@ -97,7 +97,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # try to populate the configuration using information
     # already in the list
     for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                  'rec', 'run']:
+                  'rec', 'dir', 'run']:
         if level in f_dict:
             key = "-".join([level, f_dict[level]])
         else:
