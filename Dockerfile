@@ -87,9 +87,9 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
         ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
     fi && \
     mkdir -p /opt/afni && \
-    curl -sO https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
-    tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz $(cat /opt/required_afni_pkgs.txt) && \
-    rm -rf linux_openmp_64.tgz
+    curl -sO http://s3.amazonaws.com/fcp-indi/resources/afni_ubuntu_16_64.tar.gz && \
+    tar zxv -C /opt/afni --strip-components=1 -f afni_ubuntu_16_64.tar.gz $(cat /opt/required_afni_pkgs.txt) && \
+    rm -rf afni_ubuntu_16_64.tar.gz
 
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
