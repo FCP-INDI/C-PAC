@@ -3331,17 +3331,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             strat_list = create_network_centrality_workflow(
                 workflow, c, strat_list)
 
-        # PyPEER Integration
-        new_strat_list = []
-        if 1 in c.run_pypeer:
-            from CPAC.peer.peer import connect_peer
-            for num_strat, strat in enumerate(strat_list):
-                workflow, new_strat_list = connect_peer(workflow, c,
-                                                        num_strat,
-                                                        strat,
-                                                        new_strat_list)
-        strat_list += new_strat_list
-
         '''
         Loop through the resource pool and connect the nodes for:
             - applying warps to standard
