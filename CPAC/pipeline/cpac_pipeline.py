@@ -402,15 +402,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.eye_mask_path, 'eye_mask_path', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc')
     ]
 
+    if 1 in c.run_pypeer:
+        templates_for_resampling.append((c.resolution_for_func_preproc, c.eye_mask_path, 'template_eye_mask', 'resolution_for_func_preproc'))
+        Outputs.any.append("template_eye_mask")
+
     # update resampled template to resource pool
     for resolution, template, template_name, tag in templates_for_resampling:
-        # print(resolution, template, template_name)
-
         resampled_template = pe.Node(Function(input_names = ['resolution', 'template', 'template_name', 'tag'], 
                                               output_names = ['resampled_template'], 
                                               function = resolve_resolution,
@@ -3907,12 +3908,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # PyPEER kick-off
             if 1 in c.run_pypeer:
                 from CPAC.pypeer.peer import prep_for_pypeer
-                output_dir = os.path.join(c.outputDirectory,
-                                          "pipeline_{0}".format(pipeline_id),
-                                          subject_id)
                 prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
-                                c.eye_mask_path, output_dir, subject_id,
-                                c.peer_stimulus_path, c.peer_gsr,
+                                c.eye_mask_path, c.outputDirectory, subject_id, 
+                                pipeline_ids, c.peer_stimulus_path, c.peer_gsr,
                                 c.peer_scrub, c.peer_scrub_thresh)
 
             # Dump subject info pickle file to subject log dir
