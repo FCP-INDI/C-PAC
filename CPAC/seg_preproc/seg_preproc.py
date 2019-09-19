@@ -641,14 +641,10 @@ def process_segment_map(wf_name,
         tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
         
         # mni to t1
-        preproc.connect(inputNode, 'tissue_prior', tissueprior_mni_to_t1, 'input_image')
-        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
+        preproc.connect(inputNode, 'tissue_prior', tissueprior_mni_to_t1, 'in_file')
+        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference')
 
-        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
-        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
-        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
-
-        preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
+        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'in_matrix_file')
             
         input_1, value_1 = (inputNode, 'probability_tissue_map')
 
@@ -659,7 +655,7 @@ def process_segment_map(wf_name,
 
             preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
             
-            preproc.connect(tissueprior_mni_to_t1, 'output_image', overlap_segmentmap_with_prior, 'operand_files')
+            preproc.connect(tissueprior_mni_to_t1, 'out_file', overlap_segmentmap_with_prior, 'operand_files')
             
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
