@@ -649,7 +649,7 @@ def process_segment_map(wf_name,
         input_1, value_1 = (inputNode, 'probability_tissue_map')
 
         if use_priors:
-            overlap_segmentmap_with_prior = pe.Node(interface=fsl.ImageMaths(), 
+            overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(), 
                                                     name='overlap_%s_map_with_prior' % (wf_name))
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s ' 
 
