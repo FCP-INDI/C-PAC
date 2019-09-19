@@ -92,7 +92,7 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
     rm -rf afni_16_3_08.tar.gz
 
 # set up AFNI
-ENV PATH=/opt/afni:$PATH
+ENV PATH=/opt/afni/afni:$PATH
 
 # install FSL
 RUN apt-get install -y --no-install-recommends \
