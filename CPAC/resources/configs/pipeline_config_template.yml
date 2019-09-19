@@ -805,3 +805,41 @@ smoothing_order :  ['Before']
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.
 runZScoring :  [1]
+
+
+# PyPEER integration
+# Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
+run_pypeer: [0]
+
+
+# PEER scan names to use for training
+# Example: ['peer_run-1', 'peer_run-2']
+peer_eye_scan_names: []
+
+
+# Naturalistic viewing data scan names to use for eye estimation
+# Example: ['movieDM']
+peer_data_scan_names: []
+
+
+# Template-space eye mask
+eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz
+
+
+# PyPEER Stimulus File Path
+# This is a file describing the stimulus locations from the calibration sequence.
+peer_stimulus_path: None
+
+
+# PyPEER Minimal nuisance regression
+# Note: PyPEER employs minimal preprocessing - these choices do not reflect what runs in the main pipeline.
+#       PyPEER uses non-nuisance-regressed data from the main pipeline.
+
+# Global signal regression (PyPEER only)
+peer_gsr: True
+
+# Motion scrubbing (PyPEER only)
+peer_scrub: False
+
+# Motion scrubbing threshold (PyPEER only)
+peer_scrub_thresh: 0.2

@@ -833,12 +833,12 @@ run_pypeer: [0]
 
 
 # PEER scan names to use for training
-# Example: ['task-peer_run-1', 'task-peer_run-2']
+# Example: ['peer_run-1', 'peer_run-2']
 peer_eye_scan_names: []
 
 
 # Naturalistic viewing data scan names to use for eye estimation
-# Example: ['task-movieDM']
+# Example: ['movieDM']
 peer_data_scan_names: []
 
 
