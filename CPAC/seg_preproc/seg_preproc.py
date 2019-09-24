@@ -426,8 +426,6 @@ def process_segment_map(wf_name,
     use_threshold: boolean
         Whether or not to use threshold to further refine
         the resulting segmentation tissue masks.
-    thresh: float, default value: 0.95
-        Thresh values, if use threshold.
     use_erosion: boolean
         Whether or not to erode the resulting segmentation tissue masks.   
     use_ants : boolean
