@@ -113,12 +113,12 @@ reGenerateOutputs :  False
 # Anatomical preprocessing options.
 # ---------------------------------
 
-# Non-local means filtering / Denoise image
+# Non-local means filtering via ANTs DenoiseImage
 non_local_means_filtering: False
 
 
-# N4 bias field correction
-n4_bias_field_correction: True
+# N4 bias field correction via ANTs
+n4_bias_field_correction: False
 
 
 # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
