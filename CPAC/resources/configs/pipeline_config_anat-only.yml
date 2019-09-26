@@ -373,7 +373,7 @@ seg_GM_threshold_value : 0.95
 seg_use_erosion : False
 
 
-# Erosion propability, if use erosion to erode binarized tissue masks.
+# Erosion proportion, if use erosion to erode binarized tissue masks.
 seg_erosion_prop : 0.6
 
 

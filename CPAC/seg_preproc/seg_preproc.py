@@ -13,9 +13,12 @@ import nipype.interfaces.ants as ants
 from nipype.interfaces.ants import WarpImageMultiTransform
 from CPAC.seg_preproc.utils import (
     check_if_file_is_empty,
-    pick_wm_0,
-    pick_wm_1,
-    pick_wm_2,
+    pick_wm_prob_0,
+    pick_wm_prob_1,
+    pick_wm_prob_2,
+    pick_wm_class_0,
+    pick_wm_class_1,
+    pick_wm_class_2,
     erosion,
     mask_erosion)
     
@@ -23,7 +26,7 @@ import nipype.pipeline.engine as pe
 import scipy.ndimage as nd
 import numpy as np
 
-def create_seg_preproc(use_ants,
+def create_seg_preproc(use_ants,           
                         use_priors,
                         use_threshold,
                         use_erosion,
@@ -273,6 +276,7 @@ def create_seg_preproc(use_ants,
                                                         # 'wm_bin',
                                                         'wm_mask',
                                                         'probability_maps',
+                                                        'tissue_class_files',
                                                         'mixeltype',
                                                         'partial_volume_map',
                                                         'partial_volume_files']),
@@ -290,14 +294,16 @@ def create_seg_preproc(use_ants,
 
     preproc.connect(inputNode, 'brain', segment, 'in_files')
 
-    preproc.connect(segment, 'probability_maps',
-                    outputNode, 'probability_maps')
     preproc.connect(segment, 'mixeltype',
                     outputNode, 'mixeltype')
     preproc.connect(segment, 'partial_volume_files',
                     outputNode, 'partial_volume_files')
     preproc.connect(segment, 'partial_volume_map',
                     outputNode, 'partial_volume_map')
+    preproc.connect(segment, 'tissue_class_files',
+                    outputNode, 'tissue_class_files')
+    preproc.connect(segment, 'probability_maps',
+                    outputNode, 'probability_maps')
 
     process_csf = process_segment_map('CSF', use_ants, use_priors, use_threshold, use_erosion, erosion_prop)
 
@@ -310,22 +316,18 @@ def create_seg_preproc(use_ants,
 
     preproc.connect(inputNode, 'brain',
                     process_csf, 'inputspec.brain')
-
     preproc.connect(inputNode, 'brain_mask',
                     process_csf, 'inputspec.brain_mask')
-    
     preproc.connect(inputnode_csf_threshold, 'csf_threshold',
                     process_csf, 'inputspec.threshold')
-
     preproc.connect(inputNode, 'PRIOR_CSF',
                     process_csf, 'inputspec.tissue_prior')
-
-    preproc.connect(segment, ('probability_maps', pick_wm_0),
+    preproc.connect(segment, ('tissue_class_files', pick_wm_class_0),
+                    process_csf, 'inputspec.tissue_class_file')
+    preproc.connect(segment, ('probability_maps', pick_wm_prob_0),
                     process_csf, 'inputspec.probability_tissue_map')
-
     preproc.connect(inputNode, 'standard2highres_mat',
                     process_csf, 'inputspec.standard2highres_mat')
-
     # preproc.connect(process_csf, 'outputspec.tissueprior_mni2t1',
     #                 outputNode, 'csf_mni2t1')
     # preproc.connect(process_csf, 'outputspec.segment_combo',
@@ -354,9 +356,10 @@ def create_seg_preproc(use_ants,
                     process_wm, 'inputspec.threshold')
     preproc.connect(inputNode, 'PRIOR_WHITE',
                     process_wm, 'inputspec.tissue_prior')
-    preproc.connect(segment, ('probability_maps', pick_wm_2),
-                    process_wm, 'inputspec.probability_tissue_map')
-
+    preproc.connect(segment, ('tissue_class_files', pick_wm_class_2),
+                    process_wm, 'inputspec.tissue_class_file')
+    preproc.connect(segment, ('probability_maps', pick_wm_prob_2),
+                    process_wm, 'inputspec.probability_tissue_map')                 
     preproc.connect(inputNode, 'standard2highres_mat',
                     process_wm, 'inputspec.standard2highres_mat')
     # preproc.connect(process_wm, 'outputspec.tissueprior_mni2t1',
@@ -372,7 +375,6 @@ def create_seg_preproc(use_ants,
 
     process_gm = process_segment_map('GM', use_ants, use_priors, use_threshold, use_erosion, erosion_prop)
 
-
     if use_ants:
         preproc.connect(inputNode, 'standard2highres_init',
                         process_gm, 'inputspec.standard2highres_init')
@@ -387,7 +389,9 @@ def create_seg_preproc(use_ants,
                     process_gm, 'inputspec.threshold')
     preproc.connect(inputNode, 'PRIOR_GRAY',
                     process_gm, 'inputspec.tissue_prior')
-    preproc.connect(segment, ('probability_maps', pick_wm_1),
+    preproc.connect(segment, ('tissue_class_files', pick_wm_class_1),
+                    process_gm, 'inputspec.tissue_class_file')
+    preproc.connect(segment, ('probability_maps', pick_wm_prob_1),
                     process_gm, 'inputspec.probability_tissue_map')
     preproc.connect(inputNode, 'standard2highres_mat',
                     process_gm, 'inputspec.standard2highres_mat')
@@ -423,11 +427,9 @@ def process_segment_map(wf_name,
     use_priors: boolean
         Whether or not to use template-space tissue priors to further refine
         the resulting segmentation tissue masks.
-    use_threshold: boolean
-        Whether or not to use threshold to further refine
-        the resulting segmentation tissue masks.
-    thresh: float, default value: 0.95
-        Thresh values, if use threshold.
+    use_threshold: String
+        Choose threshold to further refine
+        the resulting segmentation tissue masks. 
     use_erosion: boolean
         Whether or not to erode the resulting segmentation tissue masks.   
     use_ants : boolean
@@ -518,6 +520,7 @@ def process_segment_map(wf_name,
                                                        'threshold',
                                                        'brain',
                                                        'brain_mask',
+                                                       'tissue_class_file',
                                                        'probability_tissue_map',
                                                        'standard2highres_init',
                                                        'standard2highres_mat',
@@ -556,7 +559,10 @@ def process_segment_map(wf_name,
 
         preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
     
-        input_1, value_1 = (inputNode, 'probability_tissue_map')
+        if 'FSL-FAST Thresholding' in use_threshold:
+            input_1, value_1 = (inputNode, 'tissue_class_file')
+        else:
+            input_1, value_1 = (inputNode, 'probability_tissue_map')
 
         if use_priors:
             overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(), 
@@ -570,7 +576,7 @@ def process_segment_map(wf_name,
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
 
-        if use_threshold:
+        if 'Customized Thresholding' in use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(), 
                                                 name='threshold_segmentmap_%s' % (wf_name))
             preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')
@@ -641,30 +647,29 @@ def process_segment_map(wf_name,
         tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
         
         # mni to t1
-        preproc.connect(inputNode, 'tissue_prior', tissueprior_mni_to_t1, 'input_image')
-        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
+        preproc.connect(inputNode, 'tissue_prior', tissueprior_mni_to_t1, 'in_file')
+        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference')
 
-        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
-        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
-        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
-
-        preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
+        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'in_matrix_file')
             
-        input_1, value_1 = (inputNode, 'probability_tissue_map')
+        if 'FSL-FAST Thresholding' in use_threshold:
+            input_1, value_1 = (inputNode, 'tissue_class_file')
+        else:
+            input_1, value_1 = (inputNode, 'probability_tissue_map')
 
         if use_priors:
-            overlap_segmentmap_with_prior = pe.Node(interface=fsl.ImageMaths(), 
+            overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(), 
                                                     name='overlap_%s_map_with_prior' % (wf_name))
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s ' 
 
             preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
             
-            preproc.connect(tissueprior_mni_to_t1, 'output_image', overlap_segmentmap_with_prior, 'operand_files')
+            preproc.connect(tissueprior_mni_to_t1, 'out_file', overlap_segmentmap_with_prior, 'operand_files')
             
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
 
-        if use_threshold:
+        if 'Customized Thresholding' in use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(), 
                                                 name='threshold_segmentmap_%s' % (wf_name))
             preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')

@@ -36,7 +36,7 @@ def check_if_file_is_empty(in_file):
     return in_file
 
 
-def pick_wm_0(probability_maps):
+def pick_wm_prob_0(probability_maps):
 
     """
     Returns the csf probability map from the list of segmented probability maps
@@ -64,7 +64,7 @@ def pick_wm_0(probability_maps):
     return None
 
 
-def pick_wm_1(probability_maps):
+def pick_wm_prob_1(probability_maps):
 
     """
     Returns the gray matter probability map from the list of segmented probability maps
@@ -92,7 +92,7 @@ def pick_wm_1(probability_maps):
     return None
 
 
-def pick_wm_2(probability_maps):
+def pick_wm_prob_2(probability_maps):
 
     """
     Returns the white matter probability map from the list of segmented probability maps
@@ -119,6 +119,89 @@ def pick_wm_2(probability_maps):
                 return filename
     return None
 
+
+def pick_wm_class_0(tissue_class_files):
+
+    """
+    Returns the csf tissu class file from the list of segmented tissue class files
+
+    Parameters
+    ----------
+
+    tissue_class_files : list (string)
+        List of tissue class files
+
+    Returns
+    -------
+
+    file : string
+        Path to segment_seg_0.nii.gz is returned
+
+    """
+
+    if isinstance(tissue_class_files, list):
+        if len(tissue_class_files) == 1:
+            tissue_class_files = tissue_class_files[0]
+        for filename in tissue_class_files:
+            if filename.endswith("seg_0.nii.gz"):
+                return filename
+    return None
+
+
+def pick_wm_class_1(tissue_class_files):
+
+    """
+    Returns the gray matter tissue class file from the list of segmented tissue class files
+
+    Parameters
+    ----------
+
+    tissue_class_files : list (string)
+        List of tissue class files
+
+    Returns
+    -------
+
+    file : string
+        Path to segment_seg_1.nii.gz is returned
+
+    """
+
+    if isinstance(tissue_class_files, list):
+        if len(tissue_class_files) == 1:
+            tissue_class_files = tissue_class_files[0]
+        for filename in tissue_class_files:
+            if filename.endswith("seg_1.nii.gz"):
+                return filename
+    return None
+
+
+def pick_wm_class_2(tissue_class_files):
+
+    """
+    Returns the white matter tissue class file from the list of segmented tissue class files
+
+    Parameters
+    ----------
+
+    tissue_class_files : list (string)
+        List of tissue class files
+
+    Returns
+    -------
+
+    file : string
+        Path to segment_seg_2.nii.gz is returned
+
+    """
+
+    if isinstance(tissue_class_files, list):
+        if len(tissue_class_files) == 1:
+            tissue_class_files = tissue_class_files[0]
+        for filename in tissue_class_files:
+            if filename.endswith("seg_2.nii.gz"):
+                return filename
+    return None
 
 # This functionality is adapted from poldracklab/niworkflows:
 # https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/utils.py
