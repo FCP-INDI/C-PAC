@@ -1178,6 +1178,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             seg_preproc = None
 
+
+            if not any(o in c.seg_use_threshold for o in ["FSL-FAST Thresholding", "Customized Threholding"]):
+                err = '\n\n[!] C-PAC says: Your segmentation thresholding options ' \
+                    'setting does not include either \'FSL-FAST Thresholding\' or \'Customized Threholding\'.\n\n' \
+                    'Options you provided:\nseg_use_threshold: {0}' \
+                    '\n\n'.format(str(c.seg_use_threshold))
+                raise Exception(err)
+
             # TODO ASH based on config, instead of nodes?
             if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                 seg_preproc = create_seg_preproc(use_ants=False,
