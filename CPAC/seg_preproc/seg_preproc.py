@@ -576,7 +576,7 @@ def process_segment_map(wf_name,
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
 
-        if 'Customized Threholding' in use_threshold:
+        if 'Customized Thresholding' in use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(), 
                                                 name='threshold_segmentmap_%s' % (wf_name))
             preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')
@@ -669,7 +669,7 @@ def process_segment_map(wf_name,
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
 
-        if 'Customized Threholding' in use_threshold:
+        if 'Customized Thresholding' in use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(), 
                                                 name='threshold_segmentmap_%s' % (wf_name))
             preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')

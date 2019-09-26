@@ -355,7 +355,7 @@ PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
 # Use threshold to further refine the resulting segmentation tissue masks.
 # FSL-FAST Thresholding - Use FSL FAST generated tissue class files (binary masks) to generate the resulting segmentation tissue masks. 
-# Customized Threholding - Set the threshold value for tissue probability maps to generate the resulting segmentation tissue masks.
+# Customized Thresholding - Set the threshold value for tissue probability maps to generate the resulting segmentation tissue masks.
 seg_use_threshold : ['FSL-FAST Thresholding']
 
 # Set the threshold value for refining the resulting segmentation tissue masks (CSF, White Matter, and Gray Matter)
