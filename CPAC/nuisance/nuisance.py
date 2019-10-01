@@ -402,6 +402,11 @@ def create_nuisance_workflow(nuisance_selectors,
 
         inputspec.selector : Dictionary containing configuration parameters for nuisance regression.
             To not run a type of nuisance regression, it may be ommited from the dictionary.
+
+            @ANI for each summary, you can add a filter field with the possible options: linear, cosine
+                 and you should remove the DetrendPC method, since it is `linear filter + PC`
+                 so filtering will be available for every selector that has summary :)
+
             selector = {
                 aCompCor: {
                     summary: {
