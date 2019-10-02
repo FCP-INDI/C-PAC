@@ -501,6 +501,10 @@ funcRegFSLinterpolation: sinc
 func_reg_input :  ['Mean Functional']
 
 
+# Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
+n4_correct_mean_EPI : False
+
+
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0
 
