@@ -41,8 +41,7 @@ from CPAC.distortion_correction.distortion_correction import (
     blip_distcor_wf
 )
 from CPAC.func_preproc.func_preproc import (
-    # create_func_preproc,
-    connect_func_preproc,
+    create_func_preproc,
     slice_timing_wf,
     create_wf_edit_func
 )
@@ -480,9 +479,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         else:
 
-            if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "niworkflows-ants"]):
+            if not any(o in c.skullstrip_option for o in ["AFNI", "FSL", "niworkflows-ants"]):
                 err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
-                    'setting does not include either \'AFNI\' or \'BET\' or \'niworkflows-ants\'.\n\n' \
+                    'setting does not include either \'AFNI\' or \'FSL\' or \'niworkflows-ants\'.\n\n' \
                     'Options you provided:\nskullstrip_option: {0}' \
                     '\n\n'.format(str(c.skullstrip_option))
                 raise Exception(err)
@@ -525,11 +524,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat.update_resource_pool({
                     'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                     'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                 })
 
                 new_strat_list += [new_strat]
 
-            if "BET" in c.skullstrip_option:
+            if "FSL" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='fsl',
                                                    wf_name='anat_preproc_bet_%d' % num_strat,
                                                    non_local_means_filtering=c.non_local_means_filtering,
@@ -560,6 +560,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat.update_resource_pool({
                     'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                     'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                 })
 
                 new_strat_list += [new_strat]
@@ -579,6 +580,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat.update_resource_pool({
                     'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                     'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                 })
 
                 new_strat_list += [new_strat]
@@ -1448,11 +1450,54 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # add new strats (if forked)
         strat_list = new_strat_list
 
-
         # Functional Image Preprocessing Workflow
-        workflow, strat_list = connect_func_preproc(workflow, strat_list, c)
+        new_strat_list = []
 
-  
+        for num_strat, strat in enumerate(strat_list):
+        
+            for tool in c.functionalMasking:
+
+                tool = tool.lower()
+
+                new_strat = strat.fork()
+
+                func_preproc = create_func_preproc(
+                    tool=tool,
+                    wf_name='func_preproc_%s_%d' % (tool, num_strat)
+                )
+                node, out_file = new_strat.get_leaf_properties()
+                workflow.connect(node, out_file, func_preproc,
+                                'inputspec.func')
+                node, out_file = new_strat['anatomical_reorient']
+                workflow.connect(node, out_file, func_preproc,
+                                'inputspec.anat_skull')
+                node, out_file = new_strat['anatomical_brain_mask']
+                workflow.connect(node, out_file, func_preproc,
+                                'inputspec.anatomical_brain_mask')
+                            
+                func_preproc.inputs.inputspec.twopass = \
+                    getattr(c, 'functional_volreg_twopass', True)
+
+                new_strat.append_name(func_preproc.name)
+                new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+
+                new_strat.update_resource_pool({
+                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+                    'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
+                })
+                # import pdb
+                # pdb.set_trace()
+                # new_strat_list += [new_strat]
+
+                new_strat_list.append(new_strat)
+        
+        strat_list = new_strat_list   # ????? +=
         # Distortion Correction
         new_strat_list = []
 

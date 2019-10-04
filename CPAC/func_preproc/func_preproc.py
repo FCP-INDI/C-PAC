@@ -5,6 +5,7 @@ logger = logging.getLogger('workflow')
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
+from nipype.interfaces import afni
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 
@@ -22,15 +23,17 @@ def collect_arguments(*args):
 def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
 
     tool = tool.lower()
-    if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni':
+    if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni' and tool != 'anatomical_mask':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'skullstrip_functional' workflow must be either "
-                        "'afni' or 'fsl'.\n\nTool input: "
+                        "'afni' or 'fsl' or 'fsl_afni' or 'anatomical_mask'.\n\nTool input: "
                         "{0}\n\n".format(tool))
                
     wf = pe.Workflow(name=wf_name)
 
-    input_node = pe.Node(util.IdentityInterface(fields=['func']),
+    input_node = pe.Node(util.IdentityInterface(fields=['func',
+                                                        'anatomical_brain_mask',
+                                                        'anat_skull']),
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['func_brain',
@@ -85,6 +88,61 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
                         (skullstrip_first_pass, combine_masks, [('mask_file', 'in_file')]),
                         (skullstrip_second_pass, combine_masks, [('out_file', 'operand_file')]),
                         (combine_masks, output_node, [('out_file', 'func_brain_mask')])])
+    
+    # Refine functional mask by anatomical-functional registration
+    elif tool == 'anatomical_mask':
+
+        # Dialate anatomical mask
+        anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
+                         name='anat_mask_dilate')
+        anat_mask_dilate.inputs.dilate_inputs = '1'
+        anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
+
+        wf.connect(input_node, 'anatomical_brain_mask', anat_mask_dilate, 'in_file' )
+
+
+        # Get functional mean to use later as reference, when transform anatomical mask to functional space
+        func_skull_mean = pe.Node(interface=afni_utils.TStat(),
+                                    name='func_skull_mean')
+        func_skull_mean.inputs.options = '-mean'
+        func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+
+        wf.connect(input_node, 'func', func_skull_mean, 'in_file')
+
+
+        # Register func to anat
+        linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
+                         name='linear_reg_func_to_anat')
+        linear_reg_func_to_anat.inputs.cost = 'mutualinfo'
+        linear_reg_func_to_anat.inputs.dof = 6
+        
+        wf.connect(func_skull_mean, 'out_file', linear_reg_func_to_anat, 'in_file')
+        wf.connect(input_node, 'anat_skull', linear_reg_func_to_anat, 'reference')
+
+
+        # Inverse func to anat affine
+        inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
+                                name='inv_func_to_anat_affine')
+        inv_func_to_anat_affine.inputs.invert_xfm = True
+
+        wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
+                                    inv_func_to_anat_affine, 'in_file')
+
+
+        # Transform anatomical mask to functional space
+        linear_trans_mask_anat_to_func = pe.Node(interface=fsl.FLIRT(),
+                         name='linear_trans_mask_anat_to_func')
+        linear_trans_mask_anat_to_func.inputs.apply_xfm = True
+        linear_trans_mask_anat_to_func.inputs.cost = 'mutualinfo'
+        linear_trans_mask_anat_to_func.inputs.dof = 6
+        linear_trans_mask_anat_to_func.inputs.interp = 'nearestneighbour'
+        
+        wf.connect(anat_mask_dilate, 'out_file', linear_trans_mask_anat_to_func, 'in_file')
+        wf.connect(func_skull_mean, 'out_file', linear_trans_mask_anat_to_func, 'reference')
+        wf.connect(inv_func_to_anat_affine, 'out_file',
+                                    linear_trans_mask_anat_to_func, 'in_matrix_file')
+        wf.connect(linear_trans_mask_anat_to_func, 'out_file',
+                                    output_node, 'func_brain_mask')
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
                                name='func_extract_brain')
@@ -102,6 +160,9 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
                    func_edge_detect, 'in_file_b')
     elif tool == 'fsl_afni':
         wf.connect(combine_masks, 'out_file',
+                        func_edge_detect, 'in_file_b')
+    elif tool == 'anatomical_mask':
+        wf.connect(linear_trans_mask_anat_to_func, 'out_file',
                         func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
@@ -392,7 +453,9 @@ def create_func_preproc(tool, wf_name='func_preproc'):
 
     preproc = pe.Workflow(name=wf_name)
     input_node = pe.Node(util.IdentityInterface(fields=['func',
-                                                        'twopass']),
+                                                        'twopass',
+                                                        'anatomical_brain_mask',
+                                                        'anat_skull']),
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['refit',
@@ -497,7 +560,10 @@ def create_func_preproc(tool, wf_name='func_preproc'):
 
     skullstrip_func = skullstrip_functional(tool,
                                             "{0}_skullstrip".format(wf_name))
-
+    preproc.connect(input_node, 'anatomical_brain_mask',
+                    skullstrip_func, 'inputspec.anatomical_brain_mask')
+    preproc.connect(input_node, 'anat_skull',
+                    skullstrip_func, 'inputspec.anat_skull')                
     preproc.connect(func_motion_correct_A, 'out_file',
                     skullstrip_func, 'inputspec.func')
     preproc.connect(skullstrip_func, 'outputspec.func_brain',
@@ -653,45 +719,3 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     return stopidx, startidx
 
 
-def connect_func_preproc(workflow, strat_list, c):
-
-    from CPAC.func_preproc.func_preproc import create_func_preproc
-    
-    new_strat_list = []
-
-    for num_strat, strat in enumerate(strat_list):
-       
-        for tool in c.functionalMasking:
-
-            tool = tool.lower()
-
-            new_strat = strat.fork()
-
-            func_preproc = create_func_preproc(
-                tool=tool,
-                wf_name='func_preproc_%s_%d' % (tool, num_strat)
-            )
-            node, out_file = new_strat.get_leaf_properties()
-            workflow.connect(node, out_file, func_preproc,
-                            'inputspec.func')
-                        
-            func_preproc.inputs.inputspec.twopass = \
-                getattr(c, 'functional_volreg_twopass', True)
-
-            new_strat.append_name(func_preproc.name)
-            new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-
-            new_strat.update_resource_pool({
-                'mean_functional': (func_preproc, 'outputspec.func_mean'),
-                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
-            })
-
-            new_strat_list.append(new_strat)
-
-    return workflow, new_strat_list

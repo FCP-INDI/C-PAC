@@ -497,7 +497,8 @@ funcRegANTSinterpolation: LanczosWindowedSinc
 funcRegFSLinterpolation: sinc
 
 
-# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose. 
+# Options: ['Mean Functional', 'Selected Functional Volume']
 func_reg_input :  ['Mean Functional']
 
 
@@ -505,8 +506,8 @@ func_reg_input :  ['Mean Functional']
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
-# Options: ['AFNI', 'FSL', 'FSL_AFNI']
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by anatomical-functional registration. 
+# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'anatomical_mask']
 functionalMasking :  ['AFNI']
 
 
