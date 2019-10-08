@@ -142,8 +142,8 @@ niworkflows_ants_regmask_path : /ants_template/oasis/T_template0_BrainCerebellum
 
 # Options to be used for AFNI 3dSkullStrip only.
 
-# Choice of using monkey option for AFNI 3dskullstrip
-skullstrip_monkey : False
+# Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
+skullstrip_mask_vol: False
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -233,7 +233,7 @@ bet_frac :  0.5
 
 
 # Mask created along with skull stripping
-bet_mask_boolean :  Off
+bet_mask_boolean :  On
 
 
 # Mesh created along with skull stripping
@@ -503,7 +503,7 @@ func_reg_input :  ['Mean Functional']
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by anatomical-functional registration. 
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space. 
 # Options: ['AFNI', 'FSL', 'FSL_AFNI', 'anatomical_mask']
 functionalMasking :  ['AFNI']
 

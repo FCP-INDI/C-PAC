@@ -494,6 +494,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                    n4_correction=c.n4_bias_field_correction)
 
                 anat_preproc.inputs.AFNI_options.set(
+                    mask_vol = c.skullstrip_mask_vol,
                     shrink_factor=c.skullstrip_shrink_factor,
                     var_shrink_fac=c.skullstrip_var_shrink_fac,
                     shrink_fac_bot_lim=c.skullstrip_shrink_factor_bot_lim,
