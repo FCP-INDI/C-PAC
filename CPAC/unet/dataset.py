@@ -299,12 +299,3 @@ class BlockDataset(data.Dataset):
 
         return rimg_blk
 
-
-# if __name__ == '__main__':
-#     volume_dataset=VolumeDataset(rimg_in=None, cimg_in='../site-ucdavis/TrainT1w', bmsk_in='../site-ucdavis/TrainMask')
-#     volume_loader=data.DataLoader(dataset=volume_dataset, batch_size=1, shuffle=True)
-#     for i, (cimg, bmsk) in enumerate(volume_loader):
-#         block_dataset=BlockDataset(rimg=cimg, bfld=None, bmsk=bmsk, num_slice=3, rescale_dim=256)
-#         block_loader=data.DataLoader(dataset=block_dataset, batch_size=20, shuffle=True)
-#         for j, (cimg_blk, bmsk_blk) in enumerate(block_loader):
-#             print(bmsk_blk.shape)

@@ -297,22 +297,3 @@ class MultiSliceModel(nn.Module):
             out=self.SsUNet(x)
 
         return out
-
-# if __name__=='__main__':
-#     model=UNet2d(dim_in=3)
-    
-#     x=Variable(torch.rand(2, 3, 256, 256))
-    
-#     model.cuda()
-#     x=x.cuda()
-
-#     h_x=model(x)
-#     print(h_x.shape)
-    #model.BcUNet.unfreeze()
-    #for child in model.BcUNet.children():
-    #    for param in child.parameters():
-    #        print(param.requires_grad)
-    #model.cuda()
-    #cudnn.benchmark=True
-    #x=x.cuda()
-    #h_x=model(x)

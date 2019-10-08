@@ -311,19 +311,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     # TODO ASH normalize file paths with schema validator
     template_keys = [
-        # ("anat", "template_brain_only_for_anat"),
-        # ("anat", "template_skull_for_anat"),
-        # ("anat", "ref_mask"),
-        # ("anat", "template_symmetric_brain_only"),
-        # ("anat", "template_symmetric_skull"),
-        # ("anat", "dilated_symmetric_brain_mask"),
+        ("anat", "template_brain_only_for_anat"),
+        ("anat", "template_skull_for_anat"),
+        ("anat", "ref_mask"),
+        ("anat", "template_symmetric_brain_only"),
+        ("anat", "template_symmetric_skull"),
+        ("anat", "dilated_symmetric_brain_mask"),
         ("anat", "templateSpecificationFile"),
         ("anat", "lateral_ventricles_mask"),
         ("anat", "PRIORS_CSF"),
         ("anat", "PRIORS_GRAY"),
         ("anat", "PRIORS_WHITE"),
-        # ("anat", "template_brain_only_for_func"),
-        # ("anat", "template_skull_for_func"),
+        ("anat", "template_brain_only_for_func"),
+        ("anat", "template_skull_for_func"),
         ("other", "configFileTwomm"),
     ]
 
@@ -433,10 +433,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         if 'anatomical_brain_mask' in strat:
 
-            anat_preproc = create_anat_preproc(method='mask',
-                                               wf_name='anat_preproc_mask_%d' % num_strat,
-                                               non_local_means_filtering=c.non_local_means_filtering,
-                                               n4_correction=c.n4_bias_field_correction)
+            anat_preproc = create_anat_preproc(method='mask', 
+                                               c=c, 
+                                               wf_name='anat_preproc_mask_%d' % num_strat)
 
             new_strat = strat.fork()
             node, out_file = new_strat['anatomical']
@@ -460,9 +459,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             anat_preproc = create_anat_preproc(method=None,
                                                already_skullstripped=True,
-                                               wf_name='anat_preproc_already_%d' % num_strat,
-                                               non_local_means_filtering=c.non_local_means_filtering,
-                                               n4_correction=c.n4_bias_field_correction)
+                                               c=c,
+                                               wf_name='anat_preproc_already_%d' % num_strat)
 
             new_strat = strat.fork()
             node, out_file = new_strat['anatomical']
@@ -480,7 +478,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         else:
 
-            if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "niworkflows-ants"]):
+            if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "niworkflows-ants", "unet"]):
                 err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
                     'setting does not include either \'AFNI\' or \'BET\' or \'niworkflows-ants\'.\n\n' \
                     'Options you provided:\nskullstrip_option: {0}' \
@@ -490,9 +488,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             if "AFNI" in c.skullstrip_option:
 
                 anat_preproc = create_anat_preproc(method='afni',
-                                                   wf_name='anat_preproc_afni_%d' % num_strat,
-                                                   non_local_means_filtering=c.non_local_means_filtering,
-                                                   n4_correction=c.n4_bias_field_correction)
+                                                   c=c,
+                                                   wf_name='anat_preproc_afni_%d' % num_strat)
 
                 anat_preproc.inputs.AFNI_options.set(
                     shrink_factor=c.skullstrip_shrink_factor,
@@ -531,9 +528,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "BET" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='fsl',
-                                                   wf_name='anat_preproc_bet_%d' % num_strat,
-                                                   non_local_means_filtering=c.non_local_means_filtering,
-                                                   n4_correction=c.n4_bias_field_correction)
+                                                   c=c,
+                                                   wf_name='anat_preproc_bet_%d' % num_strat)
 
                 anat_preproc.inputs.BET_options.set(
                     frac=c.bet_frac,
@@ -565,10 +561,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list += [new_strat]
 
             if "niworkflows-ants" in c.skullstrip_option:
-                anat_preproc = create_anat_preproc(template_path=c.niworkflows_ants_template_path, mask_path=c.niworkflows_ants_mask_path, regmask_path=c.niworkflows_ants_regmask_path, method='niworkflows-ants',
-                                                    wf_name='anat_preproc_niworkflows_ants_%d' % num_strat,
-                                                    non_local_means_filtering=c.non_local_means_filtering,
-                                                    n4_correction=c.n4_bias_field_correction)
+                anat_preproc = create_anat_preproc(method='niworkflows-ants',
+                                                   c=c,
+                                                   wf_name='anat_preproc_niworkflows_ants_%d' % num_strat)
 
                 new_strat = strat.fork()
                 node, out_file = new_strat['anatomical']
@@ -582,6 +577,29 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 })
 
                 new_strat_list += [new_strat]
+
+            if "unet" in c.skullstrip_option:
+
+                # import pdb; pdb.set_trace()
+
+                anat_preproc = create_anat_preproc(method='unet',
+                                                   c=c,
+                                                   wf_name='anat_preproc_unet_%d' % num_strat)
+            
+                new_strat = strat.fork()
+                node, out_file = new_strat['anatomical']
+                workflow.connect(node, out_file,
+                                anat_preproc, 'inputspec.anat')                
+                new_strat.append_name(anat_preproc.name)
+                new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                new_strat.update_resource_pool({
+                    'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                    'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                })
+
+                new_strat_list += [new_strat]
+
+
     strat_list = new_strat_list
 
     new_strat_list = []

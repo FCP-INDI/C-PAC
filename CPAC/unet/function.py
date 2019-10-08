@@ -45,10 +45,7 @@ def extract_large_comp(prt_msk):
 
     return prt_msk
 
-# def myCoolFunction():
-#     print('function works!')
-
-def predict_volumes(model, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="pre_mask",
+def predict_volumes(model, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="unet_pre_mask",
         save_dice=False, save_nii=True, nii_outdir=None, verbose=False, 
         rescale_dim=256, num_slice=3):
 
@@ -173,10 +170,8 @@ def predict_volumes(model, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="pre
             t1w_shape=t1w_nii.shape
 
             if isinstance(nii_outdir, NoneType):
-                nii_outdir=t1w_dir
-            
-            if not os.path.exists(nii_outdir):
-                os.mkdir(nii_outdir)
+                nii_outdir = os.getcwd()
+
             out_path=os.path.join(nii_outdir, t1w_name+"_"+suffix+".nii.gz")
             write_nifti(np.array(pr_bmsk_final, dtype=np.float32), t1w_aff, t1w_shape, out_path)
 
@@ -189,6 +184,3 @@ def predict_volumes(model, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="pre
     # return output mask
     return out_path
 
-# Unit test
-# if __name__=='__main__':
-#     pass

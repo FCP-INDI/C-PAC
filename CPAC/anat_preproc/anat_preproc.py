@@ -2,7 +2,7 @@
 import torch 
 import torch.nn as nn
 from CPAC.unet.model import UNet2d
-from CPAC.unet.function import predict_volumes#, myCoolFunction
+from CPAC.unet.function import predict_volumes
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
@@ -12,9 +12,10 @@ from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 
 # TODO change args to c
-def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, method='afni', already_skullstripped=False,
-                        non_local_means_filtering=False, n4_correction=False, c=None,
-                        wf_name='anat_preproc'):
+# def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, method='afni', 
+#                         non_local_means_filtering=False, n4_correction=False, c=None,
+#                         wf_name='anat_preproc'):
+def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_name='anat_preproc'):
     """ 
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image
@@ -103,21 +104,21 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
     anat_deoblique.inputs.deoblique = True
     preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')    
-    # Disable non_local_means_filtering and n4_correction when run niworkflows-ants
+    # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
-        non_local_means_filtering = False 
-        n4_correction = False
+        c.non_local_means_filtering = False 
+        c.n4_bias_field_correction = False
         
-    if non_local_means_filtering and n4_correction:
+    if c.non_local_means_filtering and c.n4_bias_field_correction:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
         preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
         preproc.connect(denoise, 'output_image', n4, 'input_image')
-    elif non_local_means_filtering and not n4_correction:
+    elif c.non_local_means_filtering and not c.n4_bias_field_correction:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
         preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
-    elif not non_local_means_filtering and n4_correction:
+    elif not c.non_local_means_filtering and c.n4_bias_field_correction:
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
         preproc.connect(anat_deoblique, 'out_file', n4, 'input_image')
@@ -129,9 +130,9 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
     
-    if n4_correction:
+    if c.n4_bias_field_correction:
         preproc.connect(n4, 'output_image', anat_reorient, 'in_file')
-    elif non_local_means_filtering and not n4_correction:
+    elif c.non_local_means_filtering and not c.n4_bias_field_correction:
         preproc.connect(denoise, 'output_image', anat_reorient, 'in_file')
     else:
         preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
@@ -334,9 +335,9 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
 
         elif method == 'niworkflows-ants': 
             # Skull-stripping using niworkflows-ants  
-            anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=template_path,
-                                                            tpl_mask_path=mask_path,
-                                                            tpl_regmask_path=regmask_path,
+            anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=c.niworkflows_ants_template_path,
+                                                            tpl_mask_path=c.niworkflows_ants_mask_path,
+                                                            tpl_regmask_path=c.niworkflows_ants_regmask_path,
                                                             name='anat_skullstrip_ants')
             
             preproc.connect(anat_reorient, 'out_file',
@@ -380,7 +381,6 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
             kernel_root: 16
             rescale_dim: 256
             """
-            # how to change as nipype pipeline? Function node? 
             # TODO: add options to pipeline_config
             train_model=UNet2d(dim_in=3, num_conv_block=5, kernel_root=16)
             checkpoint=torch.load(c.unet_model, map_location={'cuda:0':'cpu'})
@@ -398,8 +398,6 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
             
             unet_mask.inputs.model = model
             preproc.connect(anat_reorient, 'out_file', unet_mask, 'cimg_in')
-
-            # unet_mask = pe.Node(util.Function(function=myCoolFunction()), name='unet_mask')
 
             """
             Revised mask with ANTs
