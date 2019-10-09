@@ -136,6 +136,9 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False,
         derivatives = derivatives + list(
             keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
                 keys['Values'] == 'z-stat']['Resource'])
+        derivatives = derivatives + list(
+            keys[keys['Derivative'] == 'yes'][keys['Space'] == 'template'][
+                keys['Values'] == 'r-to-z']['Resource'])
 
         if pull_func:
             derivatives = derivatives + list(keys[keys['Functional timeseries'] == 'yes']['Resource'])
@@ -1721,7 +1724,8 @@ def run_basc(pipeline_config):
 
 def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                   isc, isfc, levels=[], permutations=1000, 
-                  std_filter=None):
+                  std_filter=None, scan_inclusion=None,
+                  roi_inclusion=None, num_cpus=1):
 
     import os
     from CPAC.isc.pipeline import create_isc, create_isfc
@@ -1746,6 +1750,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
         exts=['nii', 'nii.gz', 'csv']
     )
 
+    iteration_ids = []
     for preproc_strat in output_df_dct.keys():
         # go over each preprocessing strategy
 
@@ -1756,6 +1761,18 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
         if "roi" not in levels and derivative == "roi_timeseries":
             continue
+
+        if derivative == "roi_timeseries":
+            if roi_inclusion:
+                # backwards because ROI labels embedded as substrings
+                for roi_label in roi_inclusion:
+                    if roi_label in _:
+                        break
+                else:
+                    print("ROI label '{0}' not found in\n"
+                          "{1}/{2}\n".format(roi_label, derivative, _))
+                    continue
+
 
         df_dct = {}
         strat_df = output_df_dct[preproc_strat]
@@ -1771,6 +1788,9 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
         if isc:
             for df_scan in df_dct.keys():
+                if scan_inclusion:
+                    if df_scan not in scan_inclusion:
+                        continue
                 func_paths = {
                     p.split("_")[0]: f
                     for p, f in
@@ -1780,15 +1800,27 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                isc_wf = create_isc(name="ISC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                unique_out_dir = os.path.join(out_dir, "ISC", derivative, _, df_scan)
+
+                it_id = "ISC_{0}_{1}_{2}".format(df_scan, derivative, 
+                                                 _.replace('.', '').replace('+', ''))
+
+                isc_wf = create_isc(name=it_id,
+                                    output_dir=unique_out_dir,
+                                    working_dir=working_dir,
+                                    crash_dir=crash_dir)
                 isc_wf.inputs.inputspec.subjects = func_paths
                 isc_wf.inputs.inputspec.permutations = permutations
                 isc_wf.inputs.inputspec.std = std_filter
                 isc_wf.inputs.inputspec.collapse_subj = False
-                isc_wf.run()
+                isc_wf.run(plugin='MultiProc',
+                           plugin_args={'n_procs': num_cpus})
 
         if isfc:
             for df_scan in df_dct.keys():
+                if scan_inclusion:
+                    if df_scan not in scan_inclusion:
+                        continue
                 func_paths = {
                     p.split("_")[0]: f
                     for p, f in
@@ -1798,12 +1830,21 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
                     )
                 }
 
-                isfc_wf = create_isfc(name="ISFC_{0}".format(df_scan), working_dir=working_dir, crash_dir=crash_dir)
+                unique_out_dir = os.path.join(out_dir, "ISFC", derivative, _, df_scan)
+
+                it_id = "ISFC_{0}_{1}_{2}".format(df_scan, derivative,
+                                                  _.replace('.', '').replace('+', ''))
+
+                isfc_wf = create_isfc(name=it_id,
+                                      output_dir=unique_out_dir,
+                                      working_dir=working_dir,
+                                      crash_dir=crash_dir)
                 isfc_wf.inputs.inputspec.subjects = func_paths
                 isfc_wf.inputs.inputspec.permutations = permutations
                 isfc_wf.inputs.inputspec.std = std_filter
                 isfc_wf.inputs.inputspec.collapse_subj = False
-                isfc_wf.run()
+                isfc_wf.run(plugin='MultiProc',
+                            plugin_args={'n_procs': num_cpus})
 
 
 def run_isc(pipeline_config):
@@ -1816,10 +1857,23 @@ def run_isc(pipeline_config):
     with open(pipeline_config, "r") as f:
         pipeconfig_dct = yaml.load(f)
 
+    pipeline_dir = pipeconfig_dct["pipeline_dir"]
+
     output_dir = pipeconfig_dct["output_dir"]
     working_dir = pipeconfig_dct["work_dir"]
     crash_dir = pipeconfig_dct["log_dir"]
 
+    scan_inclusion = None
+    if "scan_inclusion" in pipeconfig_dct.keys():
+        scan_inclusion = pipeconfig_dct["scan_inclusion"]
+
+    roi_inclusion = None
+    if "isc_roi_inclusion" in pipeconfig_dct.keys():
+        roi_inclusion = pipeconfig_dct["isc_roi_inclusion"]
+
+    num_cpus = 1
+    if "num_cpus" in pipeconfig_dct.keys():
+        num_cpus = pipeconfig_dct["num_cpus"]
 
     isc = 1 in pipeconfig_dct.get("runISC", [])
     isfc = 1 in pipeconfig_dct.get("runISFC", [])
@@ -1840,18 +1894,31 @@ def run_isc(pipeline_config):
         return
 
     if not isc and not isfc:
+        print("\nISC and ISFC are not enabled to run in the group-level "
+              "analysis configuration YAML file, and will not run.\n")
         return
 
     pipeline_dirs = []
-    for dirname in os.listdir(output_dir):
+    if "pipeline_" in pipeline_dir:
+        pipeline_dirs.append(pipeline_dir)
+    for dirname in os.listdir(pipeline_dir):
         if "pipeline_" in dirname:
-            pipeline_dirs.append(os.path.join(output_dir, dirname))
+            pipeline_dirs.append(os.path.join(pipeline_dir, dirname))
+
+    if not pipeline_dirs:
+        print("\nNo pipeline output directories found- make sure your "
+              "'pipeline_dir' field in the group configuration YAML "
+              "file is pointing to a C-PAC pipeline output directory "
+              "populated with a folder or folders that begin with the "
+              "'pipeline_' prefix.\n\nPipeline directory "
+              "provided:\n{0}\n".format(pipeline_dir))
 
     for pipeline in pipeline_dirs:
         run_isc_group(pipeline, output_dir, working_dir, crash_dir,
                       isc=isc, isfc=isfc, levels=levels,
-                      permutations=permutations,
-                      std_filter=std_filter)
+                      permutations=permutations, std_filter=std_filter,
+                      scan_inclusion=scan_inclusion,
+                      roi_inclusion=roi_inclusion, num_cpus=num_cpus)
 
 
 def run_qpp(group_config_file):

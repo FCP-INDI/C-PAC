@@ -1,3 +1,4 @@
+import json
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -256,6 +257,135 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
+def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
+    """Return the field map files, from the dictionary of functional files
+    described in the data configuration (sublist) YAML file.
+    """
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(
+                                fields=['subject', 'scan', 'creds_path',
+                                        'dl_dir'],
+                                mandatory_inputs=True),
+                        name='inputnode')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
+                                                        'scan', 'scan_params',
+                                                        'phase_diff',
+                                                        'magnitude']),
+                         name='outputspec')
+
+    # get the functional scan itself
+    selectrest = pe.Node(function.Function(input_names=['scan',
+                                                        'rest_dict',
+                                                        'resource'],
+                                           output_names=['file_path'],
+                                           function=get_rest,
+                                           as_module=True),
+                         name='selectrest')
+    selectrest.inputs.rest_dict = fmap_dct
+    selectrest.inputs.resource = "scan"
+    wf.connect(inputnode, 'scan', selectrest, 'scan')
+
+    # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
+    # is - otherwise, just return the local file path
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+
+    wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+    check_s3_node.inputs.img_type = 'other'
+
+    wf.connect(inputnode, 'subject', outputnode, 'subject')
+    wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
+    wf.connect(inputnode, 'scan', outputnode, 'scan')
+
+    # scan parameters CSV
+    select_scan_params = pe.Node(function.Function(input_names=['scan',
+                                                                'rest_dict',
+                                                                'resource'],
+                                                   output_names=['file_path'],
+                                                   function=get_rest,
+                                                   as_module=True),
+                                 name='select_scan_params')
+    select_scan_params.inputs.rest_dict = fmap_dct
+    select_scan_params.inputs.resource = "scan_parameters"
+    wf.connect(inputnode, 'scan', select_scan_params, 'scan')
+
+    # if the scan parameters file is on AWS S3, download it
+    s3_scan_params = pe.Node(function.Function(input_names=['file_path',
+                                                            'creds_path',
+                                                            'dl_dir',
+                                                            'img_type'],
+                                               output_names=['local_path'],
+                                               function=check_for_s3,
+                                               as_module=True),
+                             name='s3_scan_params')
+
+    wf.connect(select_scan_params, 'file_path', s3_scan_params, 'file_path')
+    wf.connect(inputnode, 'creds_path', s3_scan_params, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', s3_scan_params, 'dl_dir')
+    wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
+
+    return wf
+
+
+def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
+                    epi_fmap_two=None, epi_fmap_params_two=None):
+    """Parse the field map files in the data configuration and determine which
+    ones have the same and opposite phase-encoding directions as the BOLD scan
+    in the current pipeline.
+
+    Example - parse the files under the 'fmap' level, i.e. 'epi_AP':
+        anat: /path/to/T1w.nii.gz
+        fmap:
+          epi_AP:
+            scan: /path/to/field-map.nii.gz
+            scan_parameters: <config dictionary containing phase-encoding
+                              direction>
+        func:
+          rest_1:
+            scan: /path/to/bold.nii.gz
+            scan_parameters: <config dictionary of BOLD scan parameters>
+
+    1. Check PhaseEncodingDirection field in the metadata for the BOLD.
+    2. Check whether there are one or two EPI's in the field map data.
+    3. Grab the one or two EPI field maps.
+    """
+
+    fmap_dct = {epi_fmap_one: epi_fmap_params_one}
+    if epi_fmap_two and epi_fmap_params_two:
+        fmap_dct[epi_fmap_two] = epi_fmap_params_two
+
+    opposite_pe_epi = None
+    same_pe_epi = None
+
+    for epi_scan in fmap_dct.keys():
+        scan_params = fmap_dct[epi_scan]
+        if not isinstance(scan_params, dict) and ".json" in scan_params:
+            with open(scan_params, 'r') as f:
+                scan_params = json.load(f)
+        if "PhaseEncodingDirection" in scan_params:
+            epi_pedir = scan_params["PhaseEncodingDirection"]
+            if epi_pedir == bold_pedir:
+                same_pe_epi = epi_scan
+            elif epi_pedir[0] == bold_pedir[0]:
+                opposite_pe_epi = epi_scan
+
+    return (opposite_pe_epi, same_pe_epi)
+
+
 def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None):
 
     check_s3_node = pe.Node(function.Function(input_names=['file_path',
@@ -278,7 +408,8 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
 
 
 # Check if passed-in file is on S3
-def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
+def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
+                 verbose=False):
 
     # Import packages
     import os
@@ -308,15 +439,12 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
         local_path = file_path
         return local_path
 
-    # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
         
         file_path = s3_str + file_path[len(s3_str):]
 
         # Get bucket name and bucket object
         bucket_name = file_path[len(s3_str):].split('/')[0]
-        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-
         # Extract relative key path from bucket and local path
         s3_prefix = s3_str + bucket_name
         s3_key = file_path[len(s3_prefix) + 1:]
@@ -325,41 +453,52 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
         # Get local directory and create folders if they dont exist
         local_dir = os.path.dirname(local_path)
         if not os.path.exists(local_dir):
-            os.makedirs(local_dir)
+            try:
+                os.makedirs(local_dir)
+            except OSError as e:
+                if e.errno != os.errno.EEXIST:
+                    raise e
 
-        # Download file
-        try:
-            print("Attempting to download from AWS S3: {0}".format(file_path))
-            bucket.download_file(Key=s3_key, Filename=local_path)
-        except botocore.exceptions.ClientError as exc:
-            error_code = int(exc.response['Error']['Code'])
+        if os.path.exists(local_path):
+            print("{0} already exists- skipping download.".format(local_path))
+        else:
+            # Download file
+            try:
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                print("Attempting to download from AWS S3: {0}".format(file_path))
+                bucket.download_file(Key=s3_key, Filename=local_path)
+            except botocore.exceptions.ClientError as exc:
+                error_code = int(exc.response['Error']['Code'])
 
-            err_msg = str(exc)
-            if error_code == 403:
-                err_msg = 'Access to bucket: "%s" is denied; using credentials '\
-                          'in subject list: "%s"; cannot access the file "%s"'\
-                          % (bucket_name, creds_path, file_path)
-            elif error_code == 404:
-                err_msg = 'File: {0} does not exist; check spelling and try '\
-                          'again'.format(os.path.join(bucket_name, s3_key))
-            else:
+                err_msg = str(exc)
+                if error_code == 403:
+                    err_msg = 'Access to bucket: "%s" is denied; using credentials '\
+                              'in subject list: "%s"; cannot access the file "%s"'\
+                              % (bucket_name, creds_path, file_path)
+                elif error_code == 404:
+                    err_msg = 'File: {0} does not exist; check spelling and try '\
+                              'again'.format(os.path.join(bucket_name, s3_key))
+                else:
+                    err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                              % (bucket_name, exc)
+
+                raise Exception(err_msg)
+
+            except Exception as exc:
                 err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
                           % (bucket_name, exc)
-            
-            raise Exception(err_msg)
-
-        except Exception as exc:
-            err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
-                      % (bucket_name, exc)
-            raise Exception(err_msg)
+                raise Exception(err_msg)
 
     # Otherwise just return what was passed in
     else:
         local_path = file_path
 
-    # Check if it exists or it is sucessfuly downloaded
+    # Check if it exists or it is successfully downloaded
     if not os.path.exists(local_path):
-        raise IOError('File %s does not exists!' % (local_path))
+        raise IOError('File {0} does not exist!'.format(local_path))
+
+    if verbose:
+        print("Downloaded file:\n{0}\n".format(local_path))
 
     # Check image dimensionality
     if local_path.endswith('.nii') or local_path.endswith('.nii.gz'):
@@ -375,6 +514,48 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other'):
                 raise IOError('File: %s must be a functional image with 4 '\
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
+
+    return local_path
+
+
+def resolve_resolution(resolution, template, template_name, tag = None):
+
+    import nipype.interfaces.afni as afni
+    import nipype.pipeline.engine as pe
+    from CPAC.utils.datasource import check_for_s3
+
+    tagname = None
+    local_path = None 
+    # TODO XL think a more general way to check template
+    if "{" in template and tag is not None:
+            tagname = "${" + tag + "}"
+    try:
+        if tagname is not None:
+            local_path = check_for_s3(template.replace(tagname, str(resolution)))
+    except IOError:
+        local_path = None
+
+    if local_path is None:
+        if tagname is not None:
+            ref_template = template.replace(tagname, '1mm') 
+            local_path = check_for_s3(ref_template)
+        else:
+            local_path = template    
+
+        if "x" in str(resolution):
+            resolution = tuple(float(i.replace('mm', '')) for i in resolution.split("x"))
+        else:
+            resolution = (float(resolution.replace('mm', '')), ) * 3
+
+        resample = pe.Node(interface = afni.Resample(), name=template_name)
+        resample.inputs.voxel_size = resolution
+        resample.inputs.outputtype = 'NIFTI_GZ'
+        resample.inputs.resample_mode = 'Cu'
+        resample.inputs.in_file = local_path
+        resample.base_dir = '.'
+
+        resampled_template = resample.run()
+        local_path = resampled_template.outputs.out_file
 
     return local_path
 

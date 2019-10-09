@@ -97,7 +97,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # try to populate the configuration using information
     # already in the list
     for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                  'rec', 'run']:
+                  'rec', 'dir', 'run']:
         if level in f_dict:
             key = "-".join([level, f_dict[level]])
         else:
@@ -160,7 +160,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
     # of the dictionary
     t_dict = bids_config_dict
     for level in ['scantype', 'site', 'sub', 'ses', 'task',
-                  'acq', 'rec', 'run']:
+                  'acq', 'rec', 'dir', 'run']:
         key = '-'.join([level, 'none'])
         t_dict[key] = {}
         t_dict = t_dict[key]
@@ -215,7 +215,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
         # explicitly define values for those runs
         t_dict = bids_config_dict  # pointer to current dictionary
         for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                      'rec', 'run']:
+                      'rec', 'dir', 'run']:
             if level in f_dict:
                 key = "-".join([level, f_dict[level]])
             else:
@@ -434,6 +434,16 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                f_dict["ses"],
                                task_key,
                                p))
+
+            if "epi" in f_dict["scantype"]:
+                pe_dir = f_dict["dir"]
+                if "acq" in f_dict:
+                    if "fMRI" in f_dict["acq"]:
+                        if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
+                            subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
+                        if "epi_{0}".format(pe_dir) not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"].keys():
+                            subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["epi_{0}".format(pe_dir)] = task_info
+
                     
     sublist = []
     for ksub, sub in subdict.iteritems():
@@ -459,7 +469,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
 
 def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     """
-
     :param bids_dir:
     :param aws_input_creds:
     :return:
@@ -467,6 +476,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
 
     file_paths = []
     config_dict = {}
+
+    suffixes = ['T1w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude']
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -485,40 +496,42 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         print "gathering files from S3 bucket (%s) for %s" % (bucket, prefix)
 
         for s3_obj in bucket.objects.filter(Prefix=prefix):
-            # we only know how to handle T1w and BOLD files, for now
-            if 'T1w' in str(s3_obj.key) or 'bold' in str(s3_obj.key):
-                if str(s3_obj.key).endswith("json"):
-                    try:
-                        config_dict[s3_obj.key.replace(prefix, "").lstrip('/')] \
-                            = json.loads(s3_obj.get()["Body"].read())
-                    except Exception as e:
-                        print ("Error retrieving %s (%s)" %
-                               (s3_obj.key.replace(prefix, ""),
-                                e.message))
-                        raise
-                elif 'nii' in str(s3_obj.key):
-                    file_paths.append(str(s3_obj.key)
-                                      .replace(prefix,'').lstrip('/'))
+            for suf in suffixes:
+                if suf in str(s3_obj.key):
+                    if str(s3_obj.key).endswith("json"):
+                        try:
+                            config_dict[s3_obj.key.replace(prefix, "").lstrip('/')] \
+                                = json.loads(s3_obj.get()["Body"].read())
+                        except Exception as e:
+                            print ("Error retrieving %s (%s)" %
+                                   (s3_obj.key.replace(prefix, ""),
+                                    e.message))
+                            raise
+                    elif 'nii' in str(s3_obj.key):
+                        file_paths.append(str(s3_obj.key)
+                                          .replace(prefix,'').lstrip('/'))
 
     else:
         for root, dirs, files in os.walk(bids_dir, topdown=False):
             if files:
-                file_paths += [os.path.join(root, f).replace(bids_dir,'')
-                                   .lstrip('/')
-                               for f in files
-                               if 'nii' in f and ('T1w' in f or 'bold' in f)]
-                config_dict.update(
-                    {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
-                         json.load(open(os.path.join(root, f), 'r'))
-                     for f in files
-                     if f.endswith('json') and ('T1w' in f or 'bold' in f)})
+                for f in files:
+                    for suf in suffixes:
+                        if 'nii' in f and suf in f:
+                            file_paths += [os.path.join(root, f).replace(bids_dir,'')
+                                   .lstrip('/')]
+                        if f.endswith('json') and suf in f:
+                            config_dict.update(
+                                {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
+                                     json.load(open(os.path.join(root, f), 'r'))})
 
     if not file_paths and not config_dict:
-        raise IOError("Didn't find any files in %s. Please verify that the"
-            " path is typed correctly, that you have read access to the"
-            " directory, and that it is not empty.".format(bids_dir))
+        raise IOError("Didn't find any files in {0}. Please verify that the "
+                      "path is typed correctly, that you have read access to "
+                      "the directory, and that it is not "
+                      "empty.".format(bids_dir))
 
     return file_paths, config_dict
+
 
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
 

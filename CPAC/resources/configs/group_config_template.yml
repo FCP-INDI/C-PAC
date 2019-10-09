@@ -1,5 +1,5 @@
 # CPAC Group-Level Analysis Configuration YAML file
-# Version 1.4.2
+# Version 1.4.3
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -31,6 +31,17 @@ log_dir: /path/to/log/dir
 
 # The path to your FSL installation directory. This can be left as 'FSLDIR' to grab your system's default FSL installation. However, if you prefer to use a specific install of FSL, you can enter the path here.
 FSLDIR: FSLDIR
+
+
+# Number of CPUs to dedicate to the group-level analysis run. Parallelizes the pipeline where applicable.
+num_cpus: 1
+
+
+# Scan inclusion list. For most group-level analyses, a separate model is run for each scan/series in your individual-level analysis pipeline directory.
+# Use this list to prune your run to only specific scans.
+# Example:
+#   scan_inclusion: ['rest_run-1', 'rest_run-2']
+scan_inclusion: []
 
 
 # FSL-FEAT
@@ -301,6 +312,12 @@ isc_level_voxel_std_filter :  0.0
 
 # Number of permutation tests to compute the statistics.
 isc_permutations :  1000
+
+
+# ROI/atlases to include in the analysis. For ROI-level ISC/ISFC runs.
+# This should be a list of names/strings of the ROI names used in individual-level analysis, if ROI timeseries extraction was performed.
+isc_roi_inclusion: [""]
+
 
 #Quasi Periodic Patterns (QPP)
 ###############################
