@@ -2286,14 +2286,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # Run FSL ApplyWarp
                 if 'anat_mni_flirt_register' in nodes or 'anat_mni_fnirt_register' in nodes:
 
+                    # preproc
                     func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                             name='func_mni_fsl_warp_%d' % num_strat)
-                    
+                    func_mni_warp.inputs.interp = c.funcRegFSLinterpolation # Input registration parameters
                     node, out_file = strat['template_brain_for_func_preproc']
                     workflow.connect(node, out_file, func_mni_warp, 'ref_file')                  
-
-                    # Input registration parameters
-                    func_mni_warp.inputs.interp = c.funcRegFSLinterpolation
 
                     functional_brain_mask_to_standard = pe.Node(
                         interface=fsl.ApplyWarp(),
@@ -2303,15 +2301,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     
                     node, out_file = strat['template_skull_for_func_preproc']
                     workflow.connect(node, out_file, functional_brain_mask_to_standard, 'ref_file')
-
-                    functional_brain_mask_to_standard_derivative = pe.Node(
-                        interface=fsl.ApplyWarp(),
-                        name='func_mni_fsl_warp_mask_derivative_%d' % num_strat
-                    )
-                    functional_brain_mask_to_standard_derivative.inputs.interp = 'nn'
-                    
-                    node, out_file = strat['template_skull_for_func_derivative']
-                    workflow.connect(node, out_file, functional_brain_mask_to_standard_derivative, 'ref_file')
 
                     mean_functional_warp = pe.Node(
                         interface=fsl.ApplyWarp(),
@@ -2331,7 +2320,42 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file, motion_correct_warp, 'ref_file')
                     motion_correct_warp.inputs.interp = c.funcRegFSLinterpolation
 
+                    # derivative
+                    func_mni_warp_derivative = pe.Node(interface=fsl.ApplyWarp(),
+                                            name='func_mni_fsl_warp_derivative_%d' % num_strat)
+                    func_mni_warp_derivative.inputs.interp = c.funcRegFSLinterpolation # Input registration parameters
+                    node, out_file = strat['template_brain_for_func_derivative']
+                    workflow.connect(node, out_file, func_mni_warp_derivative, 'ref_file')              
+
+                    functional_brain_mask_to_standard_derivative = pe.Node(
+                        interface=fsl.ApplyWarp(),
+                        name='func_mni_fsl_warp_mask_derivative_%d' % num_strat
+                    )
+                    functional_brain_mask_to_standard_derivative.inputs.interp = 'nn'
+                    
+                    node, out_file = strat['template_skull_for_func_derivative']
+                    workflow.connect(node, out_file, functional_brain_mask_to_standard_derivative, 'ref_file')
+
+                    mean_functional_warp_derivative = pe.Node(
+                        interface=fsl.ApplyWarp(),
+                        name='mean_func_fsl_warp_derivative_%d' % num_strat
+                    )
+                    
+                    node, out_file = strat['template_brain_for_func_derivative']
+                    workflow.connect(node, out_file, mean_functional_warp_derivative, 'ref_file')
+                    mean_functional_warp_derivative.inputs.interp = c.funcRegFSLinterpolation
+
+                    motion_correct_warp_derivative = pe.Node(
+                        interface=fsl.ApplyWarp(),
+                        name="motion_correct_fsl_warp_derivative_%d" % num_strat
+                    )
+                    
+                    node, out_file = strat['template_brain_for_func_derivative']
+                    workflow.connect(node, out_file, motion_correct_warp_derivative, 'ref_file')
+                    motion_correct_warp_derivative.inputs.interp = c.funcRegFSLinterpolation
+
                     if 'anat_mni_fnirt_register' in nodes:
+                        # preproc
                         node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                         workflow.connect(node, out_file,
                                          func_mni_warp, 'field_file')
@@ -2368,7 +2392,45 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          motion_correct_warp, 'in_file')
 
+                        # derivative
+                        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp_derivative, 'field_file')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard_derivative, 'field_file')
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp_derivative, 'field_file')
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp_derivative, 'field_file')
+
+                        node, out_file = strat['functional_to_anat_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp_derivative, 'premat')
+
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file,
+                                         func_mni_warp_derivative, 'in_file')
+
+                        node, out_file = strat['functional_brain_mask']
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard_derivative, 'in_file')
+
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp_derivative, 'in_file')
+
+                        node, out_file = strat['motion_correct']
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp_derivative, 'in_file')
+
                     elif 'anat_mni_flirt_register' in nodes:
+                        # preproc
                         func_anat_warp = pe.Node(interface=fsl.ApplyWarp(),
 	                                             name='func_anat_fsl_warp_%d' % num_strat)
                         func_anat_warp.inputs.interp = c.funcRegFSLinterpolation
@@ -2450,6 +2512,89 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                          mean_functional_warp, 'premat')
                         workflow.connect(node, out_file,
                                          motion_correct_warp, 'premat')
+
+                        # derivative
+                        func_anat_warp_derivative = pe.Node(interface=fsl.ApplyWarp(),
+	                                             name='func_anat_fsl_warp_derivative_%d' % num_strat)
+                        func_anat_warp_derivative.inputs.interp = c.funcRegFSLinterpolation
+                        
+                        functional_brain_mask_to_anat_derivative = pe.Node(
+	                        interface=fsl.ApplyWarp(),
+	                        name='func_anat_fsl_warp_mask_derivative_%d' % num_strat
+	                    )
+                        functional_brain_mask_to_anat_derivative.inputs.interp = 'nn'
+
+                        mean_functional_to_anat_derivative = pe.Node(
+                            interface=fsl.ApplyWarp(),
+	                        name='mean_func_to_anat_fsl_warp_derivative_%d' % num_strat
+	                    )
+                        mean_functional_to_anat_derivative.inputs.interp = c.funcRegFSLinterpolation
+
+                        motion_correct_to_anat_warp_derivative = pe.Node(
+	                        interface=fsl.ApplyWarp(),
+	                        name="motion_correct_to_anat_fsl_warp_derivative_%d" % num_strat
+	                    )
+                        motion_correct_to_anat_warp_derivative.inputs.interp = c.funcRegFSLinterpolation
+
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file,
+                                         func_anat_warp_derivative, 'in_file')
+
+                        node, out_file = strat['functional_brain_mask']
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat_derivative, 'in_file')
+
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat_derivative, 'in_file')
+
+
+                        node, out_file = strat['motion_correct']
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp_derivative, 'in_file')
+
+                        node, out_file = strat['anatomical_brain']
+                        workflow.connect(node, out_file,
+                                         func_anat_warp_derivative, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat_derivative, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat_derivative, 'ref_file')
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp_derivative, 'ref_file') 
+
+                        node, out_file = strat['functional_to_anat_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_anat_warp_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_anat_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_to_anat_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_to_anat_warp_derivative, 'premat')
+
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(func_anat_warp_derivative, 'out_file',
+                                         func_mni_warp_derivative, 'in_file')
+
+                        workflow.connect(functional_brain_mask_to_anat_derivative, 'out_file',
+                                         functional_brain_mask_to_standard_derivative, 'in_file')
+
+                        workflow.connect(mean_functional_to_anat_derivative, 'out_file',
+                                         mean_functional_warp_derivative, 'in_file')
+
+                        workflow.connect(motion_correct_to_anat_warp_derivative, 'out_file',
+                                         motion_correct_warp_derivative, 'in_file')
+
+                        node, out_file = strat['anatomical_to_mni_linear_xfm']
+                        workflow.connect(node, out_file,
+                                         func_mni_warp_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         functional_brain_mask_to_standard_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         mean_functional_warp_derivative, 'premat')
+                        workflow.connect(node, out_file,
+                                         motion_correct_warp_derivative, 'premat')
 
                     strat.update_resource_pool({
                         'functional_to_standard': (func_mni_warp, 'out_file'),
@@ -3388,12 +3533,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_nonsmooth:
                             # template space
                             strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard_derivative", c.fwhm, # TODO: _derivative
+                                                "functional_brain_mask_to_standard_derivative", c.fwhm, 
                                                 strat, num_strat)
                         elif key in Outputs.template_nonsmooth_mult:
                             # template space with multiple files (map nodes)
                             strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard_derivative", c.fwhm, # TODO: _derivative
+                                                "functional_brain_mask_to_standard_derivative", c.fwhm, 
                                                 strat, num_strat, map_node=True)
 
                 if 1 in c.runZScoring:
@@ -3415,13 +3560,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_raw:
                             # raw score, in template space
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard_derivative", # TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", 
                                                         strat, num_strat)
 
                         elif key in Outputs.template_raw_mult:
                             # same as above but multiple files so mapnode required
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard_derivative", # TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", 
                                                         strat, num_strat,
                                                         map_node=True)
 
@@ -3446,12 +3591,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_raw:
                             # raw score, in template space
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard", # TODO: _derivative using mask for derivative
+                                                        "functional_brain_mask_to_standard_derivative",
                                                         strat, num_strat)
                         elif key in Outputs.template_raw_mult:
                             # same as above but multiple files so mapnode required
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard", #TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", 
                                                         strat, num_strat,
                                                         map_node=True)
 
