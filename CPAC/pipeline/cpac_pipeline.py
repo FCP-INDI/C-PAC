@@ -41,7 +41,6 @@ from CPAC.distortion_correction.distortion_correction import (
     blip_distcor_wf
 )
 from CPAC.func_preproc.func_preproc import (
-    # create_func_preproc,
     connect_func_preproc,
     slice_timing_wf,
     create_wf_edit_func

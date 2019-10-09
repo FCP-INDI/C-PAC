@@ -19,14 +19,14 @@ def collect_arguments(*args):
     return ' '.join(command_args)
 
 
-def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
+def skullstrip_functional(skullstrip_tool='afni', wf_name='skullstrip_functional'):
 
-    tool = tool.lower()
-    if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni':
-        raise Exception("\n\n[!] Error: The 'tool' parameter of the "
+    skullstrip_tool = skullstrip_tool.lower()
+    if skullstrip_tool != 'afni' and skullstrip_tool != 'fsl' and skullstrip_tool != 'fsl_afni':
+        raise Exception("\n\n[!] Error: The 'skullstrip_tool' parameter of the "
                         "'skullstrip_functional' workflow must be either "
-                        "'afni' or 'fsl'.\n\nTool input: "
-                        "{0}\n\n".format(tool))
+                        "'afni' or 'fsl' or 'fsl_afni'.\n\nskullstrip_tool input: "
+                        "{0}\n\n".format(skullstrip_tool))
                
     wf = pe.Workflow(name=wf_name)
 
@@ -37,7 +37,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
                                                          'func_brain_mask']),
                          name='outputspec')
 
-    if tool == 'afni':
+    if skullstrip_tool == 'afni':
         func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
                                       name='func_get_brain_mask_AFNI')
         func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
@@ -47,7 +47,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
         wf.connect(func_get_brain_mask, 'out_file',
                    output_node, 'func_brain_mask')
 
-    elif tool == 'fsl':
+    elif skullstrip_tool == 'fsl':
         func_get_brain_mask = pe.Node(interface=fsl.BET(),
                                       name='func_get_brain_mask_BET')
 
@@ -68,7 +68,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
         wf.connect(erode_one_voxel, 'out_file',
                    output_node, 'func_brain_mask')
 
-    elif tool == 'fsl_afni':
+    elif skullstrip_tool == 'fsl_afni':
         skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=True), name='skullstrip_first_pass')
         bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
         bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
@@ -94,20 +94,20 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
 
     wf.connect(input_node, 'func', func_edge_detect, 'in_file_a')
 
-    if tool == 'afni':
+    if skullstrip_tool == 'afni':
         wf.connect(func_get_brain_mask, 'out_file',
                    func_edge_detect, 'in_file_b')
-    elif tool == 'fsl':
+    elif skullstrip_tool == 'fsl':
         wf.connect(erode_one_voxel, 'out_file',
                    func_edge_detect, 'in_file_b')
-    elif tool == 'fsl_afni':
+    elif skullstrip_tool == 'fsl_afni':
         wf.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
 
     return wf
-    
+
     
 def create_wf_edit_func(wf_name="edit_func"):
     """Workflow to edit the scan to the proscribed TRs.
@@ -199,7 +199,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(tool, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, motion_correct_tool, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -441,65 +441,92 @@ def create_func_preproc(tool, wf_name='func_preproc'):
                     func_get_mean_RPI, 'in_file')
 
     # calculate motion parameters
-    func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                  name='func_motion_correct')
-    func_motion_correct.inputs.zpad = 4
-    func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
+    if motion_correct_tool == 'afni':
+        func_motion_correct = pe.Node(interface=preprocess.Volreg(),
+                                    name='func_motion_correct_3dvolreg')
+        func_motion_correct.inputs.zpad = 4
+        func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect([
-        (
-            input_node, func_motion_correct, [
-                (
-                    ('twopass', collect_arguments, '-twopass', '-Fourier'),
-                    'args'
-                )]
-        ),
-    ])
+        preproc.connect([(input_node, func_motion_correct, [(('twopass', collect_arguments, '-twopass', '-Fourier'),'args')]),])
+        preproc.connect(func_get_mean_RPI, 'out_file',
+                    func_motion_correct, 'basefile')   
 
-    preproc.connect(func_reorient, 'out_file',
-                    func_motion_correct, 'in_file')
-    preproc.connect(func_get_mean_RPI, 'out_file',
-                    func_motion_correct, 'basefile')
+        preproc.connect(func_reorient, 'out_file',
+                        func_motion_correct, 'in_file')
 
-    func_get_mean_motion = func_get_mean_RPI.clone('func_get_mean_motion')
-    preproc.connect(func_motion_correct, 'out_file',
-                    func_get_mean_motion, 'in_file')
+        func_get_mean_motion = func_get_mean_RPI.clone('func_get_mean_motion')
+        preproc.connect(func_motion_correct, 'out_file',
+                        func_get_mean_motion, 'in_file')
 
-    preproc.connect(func_get_mean_motion, 'out_file',
-                    output_node, 'motion_correct_ref')
+        preproc.connect(func_get_mean_motion, 'out_file',
+                        output_node, 'motion_correct_ref')
 
-    func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
-    func_motion_correct_A.inputs.md1d_file = 'max_displacement.1D'
+        func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
+        func_motion_correct_A.inputs.md1d_file = 'max_displacement.1D'
 
-    preproc.connect([
-        (
-            input_node, func_motion_correct_A, [
-                (
-                    ('twopass', collect_arguments, '-twopass', '-Fourier'),
-                    'args'
-                )]
-        ),
-    ])
+        preproc.connect([
+            (
+                input_node, func_motion_correct_A, [
+                    (
+                        ('twopass', collect_arguments, '-twopass', '-Fourier'),
+                        'args'
+                    )]
+            ),
+        ])
 
-    preproc.connect(func_reorient, 'out_file',
-                    func_motion_correct_A, 'in_file')
-    preproc.connect(func_get_mean_motion, 'out_file',
-                    func_motion_correct_A, 'basefile')
+        preproc.connect(func_reorient, 'out_file',
+                        func_motion_correct_A, 'in_file')
+        preproc.connect(func_get_mean_motion, 'out_file',
+                        func_motion_correct_A, 'basefile')
 
-    preproc.connect(func_motion_correct_A, 'out_file',
-                    output_node, 'motion_correct')
-    preproc.connect(func_motion_correct_A, 'md1d_file',
-                    output_node, 'max_displacement')
-    preproc.connect(func_motion_correct_A, 'oned_file',
-                    output_node, 'movement_parameters')
-    preproc.connect(func_motion_correct_A, 'oned_matrix_save',
-                    output_node, 'oned_matrix_save')
+        preproc.connect(func_motion_correct_A, 'out_file',
+                        output_node, 'motion_correct')
+        preproc.connect(func_motion_correct_A, 'md1d_file',
+                        output_node, 'max_displacement')
+        preproc.connect(func_motion_correct_A, 'oned_file',
+                        output_node, 'movement_parameters')
+        preproc.connect(func_motion_correct_A, 'oned_matrix_save',
+                        output_node, 'oned_matrix_save')
 
-    skullstrip_func = skullstrip_functional(tool,
-                                            "{0}_skullstrip".format(wf_name))
+        skullstrip_func = skullstrip_functional(skullstrip_tool,
+                                                "{0}_skullstrip".format(wf_name))
 
-    preproc.connect(func_motion_correct_A, 'out_file',
-                    skullstrip_func, 'inputspec.func')
+        preproc.connect(func_motion_correct_A, 'out_file',
+                        skullstrip_func, 'inputspec.func')
+
+    elif motion_correct_tool == 'fsl':
+        func_motion_correct = pe.Node(interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
+                                    name='func_motion_correct_mcflirt')
+        func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
+
+        preproc.connect(func_reorient, 'out_file',
+                        func_motion_correct, 'in_file')
+        
+        fsl2itk = pe.Node(MCFLIRT2ITK(), name='fsl2itk')
+
+        func_motion_normalize = pe.Node(NormalizeMotionParams(format='FSL'),
+                                name="func_motion_normalize")
+
+        preproc.connect(func_reorient, 'out_file',
+                        func_motion_correct, 'in_file')
+
+        preproc.connect(func_reorient, 'out_file',
+                        fsl2itk, 'in_source')
+
+        preproc.connect(func_reorient, 'out_file',
+                        fsl2itk, 'in_reference')
+
+        preproc.connect([
+            (inputnode, mcflirt, [('raw_ref_image', 'ref_file'),
+                                ('bold_file', 'in_file')]),
+            (inputnode, fsl2itk, [('raw_ref_image', 'in_source'),
+                                ('raw_ref_image', 'in_reference')]),
+            (mcflirt, fsl2itk, [('mat_file', 'in_files')]),
+            (mcflirt, func_motion_normalize, [('par_file', 'in_file')]),
+            (fsl2itk, outputnode, [('out_file', 'xforms')]),
+            (func_motion_normalize, outputnode, [('out_file', 'movpar_file')]),
+
+
     preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     output_node, 'skullstrip')
     preproc.connect(skullstrip_func, 'outputspec.func_brain_mask',
@@ -661,15 +688,15 @@ def connect_func_preproc(workflow, strat_list, c):
 
     for num_strat, strat in enumerate(strat_list):
        
-        for tool in c.functionalMasking:
+        for skullstrip_tool in c.functionalMasking:
 
-            tool = tool.lower()
+            skullstrip_tool = skullstrip_tool.lower()
 
             new_strat = strat.fork()
 
             func_preproc = create_func_preproc(
-                tool=tool,
-                wf_name='func_preproc_%s_%d' % (tool, num_strat)
+                skullstrip_tool=skullstrip_tool,
+                wf_name='func_preproc_%s_%d' % (skullstrip_tool, num_strat)
             )
             node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, func_preproc,

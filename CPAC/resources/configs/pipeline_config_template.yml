@@ -384,6 +384,10 @@ seg_erosion_prop : 0.6
 runFunctional: [1]
 
 
+# run motion statistics before slice timing correction
+runMotionStatistics : [1]
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -500,6 +504,10 @@ func_reg_input :  ['Mean Functional']
 
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0
+
+
+# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+motion_correction : ['AFNI']
 
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
