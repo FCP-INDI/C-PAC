@@ -469,6 +469,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             # fslmaths brain_mask.nii.gz -thr .5 -bin brain_mask_thr.nii.gz
             refined_mask = pe.Node(interface=fsl.Threshold(), name='refined_mask')
             refined_mask.inputs.thresh = 0.5
+            refined_mask.inputs.args = '-bin'
             preproc.connect(template_brain_to_native_brain, 'out_file', refined_mask, 'in_file')
 
             # get a new brain with mask
@@ -476,7 +477,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             refined_brain.inputs.op_string = "-mul %s"
             preproc.connect(anat_reorient, 'out_file', refined_brain, 'in_file')
             preproc.connect(refined_mask, 'out_file', refined_brain, 'operand_files')
-
+            preproc.connect(refined_mask, 'out_file', outputnode, 'brain_mask')
             preproc.connect(refined_brain, 'out_file', outputnode, 'brain')
 
     return preproc

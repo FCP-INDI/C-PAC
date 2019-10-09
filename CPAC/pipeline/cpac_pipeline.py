@@ -310,11 +310,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     # TODO ASH normalize file paths with schema validator
     template_keys = [
-        ("anat", "template_brain_only_for_anat"),
-        ("anat", "template_skull_for_anat"),
-        ("anat", "ref_mask"),
-        ("anat", "template_symmetric_brain_only"),
-        ("anat", "template_symmetric_skull"),
+        # ("anat", "template_brain_only_for_anat"),
+        # ("anat", "template_skull_for_anat"),
+        # ("anat", "ref_mask"),
+        # ("anat", "template_symmetric_brain_only"),
+        # ("anat", "template_symmetric_skull"),
         ("anat", "dilated_symmetric_brain_mask"),
         ("anat", "templateSpecificationFile"),
         ("anat", "lateral_ventricles_mask"),
@@ -598,6 +598,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat.update_resource_pool({
                     'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                     'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                 })
 
                 new_strat_list += [new_strat]
