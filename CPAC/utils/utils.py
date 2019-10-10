@@ -1,7 +1,31 @@
 import os
 import fnmatch
+import numbers
 import threading
+import numpy as np
 from inspect import currentframe, getframeinfo , stack
+
+
+def get_flag(in_flag):
+    return in_flag
+
+
+def get_flag_wf(wf_name='get_flag'):
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    wf = pe.Workflow(name=wf_name)
+
+    input_node = pe.Node(util.IdentityInterface(fields=['in_flag']),
+                         name='inputspec')
+
+    get_flag = pe.Node(util.Function(input_names=['in_flag'],
+                                     function=get_flag),
+                       name='get_flag')
+
+    wf.connect(input_node, 'in_flag', get_flag, 'in_flag')
+
 
 
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
@@ -403,31 +427,29 @@ def correlation(matrix1, matrix2,
     return r
     
 
-def check(params_dct, subject, scan, val, throw_exception):
+def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
 
-    if val not in params_dct:
-
+    if val_to_check not in params_dct:
         if throw_exception:
-            raise Exception("Missing Value for {0} for subject "
-                            "{1}".format(val, subject))
-
+            raise Exception("Missing Value for {0} for participant "
+                            "{1}".format(val_to_check, subject_id))
         return None
 
-    if isinstance(params_dct[val], dict):
-        ret_val = params_dct[val][scan]
+    if isinstance(params_dct[val_to_check], dict):
+        ret_val = params_dct[val_to_check][scan_id]
     else:
-        ret_val = params_dct[val]
+        ret_val = params_dct[val_to_check]
 
     if ret_val == 'None':
         if throw_exception:
-            raise Exception("None Parameter Value for {0} for subject "
-                            "{1}".format(val, subject))
+            raise Exception("'None' Parameter Value for {0} for participant "
+                            "{1}".format(val_to_check, subject_id))
         else:
             ret_val = None
 
     if ret_val == '' and throw_exception:
-        raise Exception("Missing Value for {0} for subject "
-                        "{1}".format(val, subject))
+        raise Exception("Missing Value for {0} for participant "
+                        "{1}".format(val_to_check, subject_id))
 
     return ret_val
 
@@ -482,29 +504,26 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
             return value
 
     return None
-    #raise Exception("Missing Value for {0} for subject "
-    #                "{1}".format(' or '.join(keys), subject))
 
 
-def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
-                    pipeconfig_start_indx, pipeconfig_stop_indx,
-                    data_config_scan_params=None):
+def get_scan_params(subject_id, scan, pipeconfig_start_indx,
+                    pipeconfig_stop_indx, data_config_scan_params=None):
     """
     Method to extract slice timing correction parameters
     and scan parameters.
 
     Parameters
     ----------
-    subject_id: a string
+    subject_id : str
         subject id
-    scan : a string
+    scan : str
         scan id
-    subject_map : a dictionary
-        subject map containing all subject information
-    start_indx : an integer
-        starting volume index
-    stop_indx : an integer
-        ending volume index
+    pipeconfig_start_indx : int
+        starting volume index as provided in the pipeline config yaml file
+    pipeconfig_stop_indx : int
+        ending volume index as provided in the pipeline config yaml file
+    data_config_scan_params : str
+        file path to scan parameter JSON file listed in data config yaml file
 
     Returns
     -------
@@ -535,23 +554,14 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     first_tr = ''
     last_tr = ''
     unit = 's'
-
-    if isinstance(pipeconfig_tpattern, list) or isinstance(pipeconfig_tpattern, str):
-        if "None" in pipeconfig_tpattern:
-            pipeconfig_tpattern = None
-
-    if isinstance(pipeconfig_tr, str):
-        if "None" in pipeconfig_tr or "none" in pipeconfig_tr:
-            pipeconfig_tr = None
+    pe_direction = ''
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
             pipeconfig_stop_indx = None
 
     if data_config_scan_params:
-
         if ".json" in data_config_scan_params:
-
             if not os.path.exists(data_config_scan_params):
                 err = "\n[!] WARNING: Scan parameters JSON file listed in " \
                       "your data configuration file does not exist:\n{0}" \
@@ -574,17 +584,14 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
             elif "SliceAcquisitionOrder" in params_dct.keys():
                 pattern = str(check(params_dct, subject_id, scan,
                                     'SliceAcquisitionOrder', False))
+            if "PhaseEncodingDirection" in params_dct.keys():
+                pe_direction = str(check(params_dct, subject_id, scan,
+                                         'PhaseEncodingDirection', False))
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
 
-            try:
-                params_dct = data_config_scan_params
-            except:
-                err = "\n[!] Could not parse the scan parameter information "\
-                      "included in your data configuration file for " \
-                      "participant: {0}\n\n".format(subject_id)
-                raise Exception(err)
+            params_dct = data_config_scan_params
 
             # TODO: better handling of errant key values!!!
             # TODO: use schema validator to deal with it
@@ -607,7 +614,8 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                 )
             )
             
-            ref_slice = check(params_dct, subject_id, scan, 'reference', False)
+            ref_slice = check(params_dct, subject_id, scan, 'reference',
+                              False)
             if ref_slice:
                 ref_slice = int(ref_slice)
 
@@ -619,18 +627,14 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
             if last_tr:
                 last_tr = check2(last_tr)
 
+            pe_direction = check(params_dct, subject_id, scan,
+                                 'PhaseEncodingDirection', False)
+
         else:
             err = "\n\n[!] Could not read the format of the scan parameters "\
                   "information included in the data configuration file for " \
                   "the participant {0}.\n\n".format(subject_id)
             raise Exception(err)
-
-    # if values are still empty, override with GUI config
-    if TR == '':
-        if pipeconfig_tr:
-            TR = float(pipeconfig_tr)
-        else:
-            TR = None
 
     if first_tr == '':
         first_tr = pipeconfig_start_indx
@@ -643,12 +647,14 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     if 'None' in pattern or 'none' in pattern:
         pattern = None
 
+    '''
     if not pattern:
         if pipeconfig_tpattern:
             if "Use NIFTI Header" in pipeconfig_tpattern:
                 pattern = ''
             else:
                 pattern = pipeconfig_tpattern
+    '''
 
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
@@ -726,20 +732,24 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
             print("New TR value {0} s".format(TR))
             unit = 's'
 
-    print("scan_parameters -> {0} {1} {2} {3} {4} "
-          "{5} {6}".format(subject_id, scan, str(TR) + unit, pattern,
-                           ref_slice, first_tr, last_tr))
-
     # swap back in
     if TR:
         tr = "{0}{1}".format(str(TR), unit)
     else:
         tr = ""
+
     tpattern = pattern
     start_indx = first_tr
     stop_indx = last_tr
 
-    return tr, tpattern, ref_slice, start_indx, stop_indx
+    return (
+        tr if tr else None,
+        tpattern if tpattern else None,
+        ref_slice,
+        start_indx,
+        stop_indx,
+        pe_direction
+    )
 
 
 def get_tr(tr):
@@ -952,6 +962,11 @@ def create_log(wf_name="log", scan_id=None):
 
     return wf
 
+  
+def pick_wm(seg_prob_list):
+    seg_prob_list.sort()
+    return seg_prob_list[-1]
+
 
 def find_files(directory, pattern):
     for root, dirs, files in os.walk(directory):
@@ -1096,55 +1111,6 @@ def create_output_mean_csv(subject_dir):
 
         csv_file.write(deriv_string + '\n')
         csv_file.write(val_string + '\n')
-
-
-# Setup log file
-def setup_logger(logger_name, file_path, level, to_screen=False):
-    '''
-    Function to initialize and configure a logger that can write to file
-    and (optionally) the screen.
-
-    Parameters
-    ----------
-    logger_name : string
-        name of the logger
-    file_path : string
-        file path to the log file on disk
-    level : integer
-        indicates the level at which the logger should log; this is
-        controlled by integers that come with the python logging
-        package. (e.g. logging.INFO=20, logging.DEBUG=10)
-    to_screen : boolean (optional)
-        flag to indicate whether to enable logging to the screen
-
-    Returns
-    -------
-    logger : logging.Logger object
-        Python logging.Logger object which is capable of logging run-
-        time information about the program to file and/or screen
-    '''
-
-    # Import packages
-    import logging
-
-    # Init logger, formatter, filehandler, streamhandler
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(level)
-    formatter = logging.Formatter('%(asctime)s : %(message)s')
-
-    # Write logs to file
-    fileHandler = logging.FileHandler(file_path)
-    fileHandler.setFormatter(formatter)
-    logger.addHandler(fileHandler)
-
-    # Write to screen, if desired
-    if to_screen:
-        streamHandler = logging.StreamHandler()
-        streamHandler.setFormatter(formatter)
-        logger.addHandler(streamHandler)
-
-    # Return the logger
-    return logger
 
 
 def check_command_path(path):

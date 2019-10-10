@@ -102,9 +102,13 @@ class Strategy(object):
         fork_points = Strategy.get_forking_points(strategies)
         
         for fork_point in fork_points:
+            
+            fork_point.sort()
+
             fork_name = []
 
             for fork in fork_point:
+                
                 fork_label = ''
 
                 if 'ants' in fork:
@@ -113,10 +117,12 @@ class Strategy(object):
                     fork_label = 'fnirt'
                 elif 'flirt_register' in fork:
                     fork_label = 'linear-only'
-                if 'automask' in fork:
+                if 'afni' in fork:
                     fork_label = 'func-3dautomask'
-                if 'bet' in fork:
+                if 'fsl' in fork:
                     fork_label = 'func-bet'
+                if 'fsl_afni' in fork:
+                    fork_label = 'func-bet-3dautomask'    
                 if 'epi_distcorr' in fork:
                     fork_label = 'dist-corr'
                 if 'bbreg' in fork:

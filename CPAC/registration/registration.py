@@ -15,6 +15,7 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
 
     inputspec = pe.Node(util.IdentityInterface(fields=['input_brain',
                                                        'reference_brain',
+                                                       'interp',
                                                        'ref_mask']),
                         name='inputspec')
 
@@ -34,13 +35,16 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
                                linear_reg, 'in_file')
 
     linear_register.connect(inputspec, 'reference_brain',
-                               linear_reg, 'reference')
+                            linear_reg, 'reference')
+
+    linear_register.connect(inputspec, 'interp',
+                            linear_reg, 'interp')
 
     linear_register.connect(linear_reg, 'out_file',
-                               outputspec, 'output_brain')
+                            outputspec, 'output_brain')
 
     linear_register.connect(linear_reg, 'out_matrix_file',
-                               inv_flirt_xfm, 'in_file')
+                            inv_flirt_xfm, 'in_file')
 
     linear_register.connect(inv_flirt_xfm, 'out_file',
                                outputspec, 'invlinear_xfm')
@@ -76,7 +80,6 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
             Target brain with skull to normalize to
         inputspec.fnirt_config : string (fsl fnirt config file)
             Configuration file containing parameters that can be specified in fnirt
-            
     Workflow Outputs::
     
         outputspec.output_brain : string (nifti file)
@@ -108,6 +111,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                                                        'input_skull',
                                                        'reference_brain',
                                                        'reference_skull',
+                                                       'interp',
                                                        'ref_mask',
                                                        'linear_aff',
                                                        'fnirt_config']),
@@ -125,12 +129,15 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
 
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
                          name='brain_warp')
-        
+                         
     nonlinear_register.connect(inputspec, 'input_skull',
                                nonlinear_reg, 'in_file')
 
     nonlinear_register.connect(inputspec, 'reference_skull',
                                nonlinear_reg, 'ref_file')
+
+    nonlinear_register.connect(inputspec, 'interp',
+                               brain_warp, 'interp')
 
     nonlinear_register.connect(inputspec, 'ref_mask',
                                nonlinear_reg, 'refmask_file')
@@ -474,7 +481,8 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
             conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
             if not isinstance(pedir, str):
                 raise Exception("\n\nPhase-encoding direction must be a "
-                                "string value.\n\n")
+                                "string value.\n\nValue: {0}"
+                                "\n\n".format(pedir))
             if pedir not in conv_dct.keys():
                 raise Exception("\n\nInvalid phase-encoding direction "
                                 "entered: {0}\n\n".format(pedir))
@@ -585,6 +593,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
         inputspec.fixed_image_mask: (an existing file name)
             Mask used to limit metric sampling region of the fixed imagein all
             stages
+        inputspec.interp : string
+            Type of interpolation to use ('Linear' or 'BSpline' or 'LanczosWindowedSinc')
 
     Workflow Outputs::
     
@@ -641,7 +651,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                 'write_composite_transform',
                 'anatomical_skull',
                 'reference_skull',
-                'fixed_image_mask']), name='inputspec')
+                'interp',
+                'fixed_image_mask']), 
+                name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(
         fields=['ants_initial_xfm',
@@ -667,6 +679,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                                                      'reference_brain',
                                                      'anatomical_skull',
                                                      'reference_skull',
+                                                     'interp',
                                                      'fixed_image_mask'],
                                         output_names=['warp_list',
                                                       'warped_image'],
@@ -778,6 +791,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     calc_ants_warp_wf.connect(inputspec, 'fixed_image_mask',
             calculate_ants_warp, 'fixed_image_mask')
+
+    calc_ants_warp_wf.connect(inputspec, 'interp',
+            calculate_ants_warp, 'interp')
 
     # inter-workflow connections
 
@@ -1056,7 +1072,7 @@ def create_wf_c3d_fsl_to_itk(input_image_type=0, map_node=False,
     return fsl_to_itk_conversion
 
 
-def create_wf_collect_transforms(map_node=False, inverse=False,
+def create_wf_collect_transforms(map_node=False, inverse=False, distcor=False,
                                  name='create_wf_collect_transforms'):
     """Collect the list of warps/transforms to be applied using the ANTs apply
     warp tool into a single string.
@@ -1081,8 +1097,8 @@ def create_wf_collect_transforms(map_node=False, inverse=False,
     collect_transforms_wf = pe.Workflow(name=name)
 
     inputspec = pe.Node(util.IdentityInterface(fields=['warp_file',
-            'linear_initial', 'linear_affine', 'linear_rigid', \
-            'fsl_to_itk_affine']), name='inputspec')
+            'linear_initial', 'linear_affine', 'linear_rigid',
+            'fsl_to_itk_affine', 'distortion_unwarp']), name='inputspec')
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
@@ -1101,26 +1117,49 @@ def create_wf_collect_transforms(map_node=False, inverse=False,
             fields=['transformation_series']), name='outputspec')
 
     if inverse:
-        # Field file from anatomical nonlinear registration
-        collect_transforms_wf.connect(inputspec, 'warp_file',
-                                      collect_transforms, 'in5')
+        if distcor:
+            # Field file from anatomical nonlinear registration
+            collect_transforms_wf.connect(inputspec, 'warp_file',
+                                          collect_transforms, 'in6')
 
-        # affine transformation from anatomical registration
-        collect_transforms_wf.connect(inputspec, 'linear_affine',
-                                      collect_transforms, 'in4')
+            # affine transformation from anatomical registration
+            collect_transforms_wf.connect(inputspec, 'linear_affine',
+                                          collect_transforms, 'in5')
 
-        # rigid transformation from anatomical registration
-        collect_transforms_wf.connect(inputspec, 'linear_rigid',
-                                      collect_transforms, 'in3')
+            # rigid transformation from anatomical registration
+            collect_transforms_wf.connect(inputspec, 'linear_rigid',
+                                          collect_transforms, 'in4')
 
-        # initial transformation from anatomical registration
-        collect_transforms_wf.connect(inputspec, 'linear_initial',
-                                      collect_transforms, 'in2')
+            # initial transformation from anatomical registration
+            collect_transforms_wf.connect(inputspec, 'linear_initial',
+                                          collect_transforms, 'in3')
 
-        # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
-        collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
-                                      collect_transforms, 'in1')
+            # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
+            collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
+                                          collect_transforms, 'in2')
 
+            collect_transforms_wf.connect(inputspec, 'distortion_unwarp',
+                                          collect_transforms, 'in1')
+        else:
+            # Field file from anatomical nonlinear registration
+            collect_transforms_wf.connect(inputspec, 'warp_file',
+                                          collect_transforms, 'in5')
+
+            # affine transformation from anatomical registration
+            collect_transforms_wf.connect(inputspec, 'linear_affine',
+                                          collect_transforms, 'in4')
+
+            # rigid transformation from anatomical registration
+            collect_transforms_wf.connect(inputspec, 'linear_rigid',
+                                          collect_transforms, 'in3')
+
+            # initial transformation from anatomical registration
+            collect_transforms_wf.connect(inputspec, 'linear_initial',
+                                          collect_transforms, 'in2')
+
+            # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
+            collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
+                                          collect_transforms, 'in1')
     else:
         # Field file from anatomical nonlinear registration
         collect_transforms_wf.connect(inputspec, 'warp_file',
@@ -1141,6 +1180,10 @@ def create_wf_collect_transforms(map_node=False, inverse=False,
         # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
         collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
                 collect_transforms, 'in5')
+
+        if distcor:
+            collect_transforms_wf.connect(inputspec, 'distortion_unwarp',
+                                          collect_transforms, 'in6')
 
     collect_transforms_wf.connect(collect_transforms, 'out', outputspec,
             'transformation_series')
