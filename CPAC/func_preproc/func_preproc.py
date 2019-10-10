@@ -23,10 +23,10 @@ def collect_arguments(*args):
 def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
 
     tool = tool.lower()
-    if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni' and tool != 'anatomical_mask':
+    if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni' and tool != 'anatomical_refined':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'skullstrip_functional' workflow must be either "
-                        "'afni' or 'fsl' or 'fsl_afni' or 'anatomical_mask'.\n\nTool input: "
+                        "'afni' or 'fsl' or 'fsl_afni' or 'anatomical_refined'.\n\nTool input: "
                         "{0}\n\n".format(tool))
                
     wf = pe.Workflow(name=wf_name)
@@ -89,8 +89,8 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
                         (skullstrip_second_pass, combine_masks, [('out_file', 'operand_file')]),
                         (combine_masks, output_node, [('out_file', 'func_brain_mask')])])
     
-    # Refine functional mask by anatomical-functional registration
-    elif tool == 'anatomical_mask':
+    # Refine functional mask by registering anatomical mask to functional space
+    elif tool == 'anatomical_refined':
 
         # Dialate anatomical mask
         anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
@@ -161,7 +161,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
     elif tool == 'fsl_afni':
         wf.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
-    elif tool == 'anatomical_mask':
+    elif tool == 'anatomical_refined':
         wf.connect(linear_trans_mask_anat_to_func, 'out_file',
                         func_edge_detect, 'in_file_b')
 
