@@ -38,22 +38,27 @@ class Configuration(object):
         from string import Template 
         
         # TODO remove function from here
-        def check_pattern(orig_key):
+        def check_pattern(orig_key, tags = None):
             temp = Template(orig_key)
             if type(temp.template) is str:
                 patterns = temp.pattern.findall(temp.template)
                 pattern_map = {}
+                keep_tags_map = {}
                 for pattern in patterns:
-                    for val in pattern:
+                    for val in filter(None, pattern):
                         if val:
                             if not pattern_map.get(val):
+                                if tags is not None and val not in tags:
+                                    keep_tags_map[val] = '${' + val + '}'
+                                    continue
                                 if getattr(self, val):
                                     pattern_map[val] = getattr(self, val)
                                 else: 
                                     raise ValueError("No value found for attribute %s. "\
                                                     "Please check the configuration file" %val)
                 if pattern_map:
-                    return check_pattern(Template(orig_key).substitute(pattern_map))
+                    pattern_map.update(keep_tags_map)
+                    return check_pattern(Template(orig_key).substitute(pattern_map), tags=tags)
                 else:
                     return orig_key
             else:
@@ -67,10 +72,23 @@ class Configuration(object):
         attributes = [(attr, getattr(self, attr)) for attr in dir(self) \
                       if not callable(attr) and not attr.startswith("__")]     
         
-        for attr in attributes:
-            new_key = check_pattern(attr[1])
-            #check_path(new_key)
-            setattr(self, attr[0], new_key)
+        template_list = ['template_brain_only_for_anat',
+                        'template_skull_for_anat',
+                        'ref_mask',
+                        'template_brain_only_for_func',
+                        'template_skull_for_func',
+                        'template_symmetric_brain_only',
+                        'template_symmetric_skull',
+                        'dilated_symmetric_brain_mask']
+        
+        for attr_key, attr_value in attributes:
+
+            if attr_key in template_list:
+                new_key = check_pattern(attr_value, 'FSLDIR')
+            else:    
+                new_key = check_pattern(attr_value)
+                #check_path(new_key)
+            setattr(self, attr_key, new_key)
 
     __update_attr = update_attr
     

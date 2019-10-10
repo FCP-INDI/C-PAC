@@ -108,6 +108,7 @@ pip_packages=(
     "simplejson==3.15.0"
     "python-dateutil==2.7.3"
     "PyBASC==0.4.5"
+    "pathlib==1.0.1"
 )
 
 ##### Helper functions for installing system dependencies.

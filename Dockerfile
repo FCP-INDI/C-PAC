@@ -10,7 +10,7 @@ RUN apt-get install -y curl && \
      apt-get install -y nodejs
 RUN npm install -g bids-validator
 
-# Install Ubuntu dependencies
+# Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
       build-essential \
       cmake \
@@ -45,6 +45,7 @@ RUN apt-get install -y \
       pkg-config \
       tcsh \
       unzip \
+      vim \
       xvfb \
       xauth \
       zlib1g-dev
@@ -86,9 +87,9 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
         ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
     fi && \
     mkdir -p /opt/afni && \
-    curl -sO https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz && \
-    tar zxv -C /opt/afni --strip-components=1 -f linux_openmp_64.tgz $(cat /opt/required_afni_pkgs.txt) && \
-    rm -rf linux_openmp_64.tgz
+    curl -sO http://s3.amazonaws.com/fcp-indi/resources/linux_openmp_64.zip && \
+    unzip -j linux_openmp_64.zip $(cat /opt/required_afni_pkgs.txt) -d /opt/afni && \
+    rm -rf linux_openmp_64.zip
 
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
@@ -119,7 +120,15 @@ RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /
     cp -nr /tmp/cpac_image_resources/tissuepriors/2mm $FSLDIR/data/standard/tissuepriors && \
     cp -nr /tmp/cpac_image_resources/tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
 
+# download OASIS templates for niworkflows-ants skullstripping
+RUN mkdir /ants_template && \
+    curl -sL https://s3-eu-west-1.amazonaws.com/pfigshare-u-files/3133832/Oasis.zip -o /tmp/Oasis.zip && \
+    unzip /tmp/Oasis.zip -d /tmp &&\
+    mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
+    rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
+
 # install ANTs
+ENV PATH=/usr/lib/ants:$PATH
 RUN apt-get install -y ants
 
 # install ICA-AROMA
@@ -159,6 +168,9 @@ RUN pip install --upgrade pip==9.0.1
 RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
 
+# install PyPEER
+RUN pip install git+https://github.com/ChildMindInstitute/PyPEER.git
+
 # install cpac templates
 ADD dev/docker_data/cpac_templates.tar.gz /
 
@@ -167,11 +179,11 @@ RUN apt-get install git-lfs
 RUN git lfs install
 
 # Get atlases
-RUN mkdir /ndmg_atlases && \
+RUN mkdir -p /ndmg_atlases/label && \
     GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
     cd /tmp/neuroparc && \
-    git lfs pull -I "atlases/label/*" && \
-    cp -r /tmp/neuroparc/atlases/label /ndmg_atlases/label && \
+    git lfs pull -I "atlases/label/Human/*" && \
+    cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
     cd -
 
 

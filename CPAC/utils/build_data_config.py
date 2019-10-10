@@ -559,6 +559,15 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                             "sub-{participant}/fmap/sub-{participant}"
                             "_magnitud*.nii.gz")
 
+    fmap_pedir_sess = os.path.join(bids_base_dir,
+                                   "sub-{participant}/ses-{session}/fmap/"
+                                   "sub-{participant}_ses-{session}/"
+                                   "dir-*_acq-fMRI_epi.nii.gz")
+
+    fmap_pedir = os.path.join(bids_base_dir,
+                              "sub-{participant}/fmap/sub-{participant}"
+                              "_dir-*_acq-fMRI_epi.nii.gz")
+
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
 
     fmap_phase_scan_glob = os.path.join(bids_base_dir,
@@ -568,6 +577,10 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
     fmap_mag_scan_glob = os.path.join(bids_base_dir,
                                       "sub-*fmap/"
                                       "sub-*_task-*_magnitud*.nii.gz")
+
+    fmap_pedir_scan_glob = os.path.join(bids_base_dir,
+                                        "sub-*fmap/"
+                                        "sub-*_dir-*_acq-fMRI_epi.nii.gz")
 
     part_tsv_glob = os.path.join(bids_base_dir, "*participants.tsv")
 
@@ -633,6 +646,17 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                 fmap_mag = os.path.join(bids_base_dir,
                                         "sub-{participant}/fmap/sub-{participant}"
                                         "task-{scan}_magnitud*.nii.gz")
+
+            '''
+            if fnmatch.fnmatch(filepath, fmap_pedir_scan_glob):
+                # check if there is a scan level for the fmap magnitude files
+                fmap_pedir_sess = os.path.join(bids_base_dir,
+                                             "sub-{participant}/ses-{session}/fmap/"
+                                             "sub-{participant}_ses-{session}_task-{scan}_magnitud*.nii.gz")
+                fmap_pedir = os.path.join(bids_base_dir,
+                                        "sub-{participant}/fmap/sub-{participant}"
+                                        "task-{scan}_magnitud*.nii.gz")
+            '''
 
             if fnmatch.fnmatch(filepath, part_tsv_glob):
                 # check if there is a participants.tsv file
@@ -872,6 +896,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                                     brain_mask_template=brain_mask_template,
                                     fmap_phase_template=fmap_phase_sess,
                                     fmap_mag_template=fmap_mag_sess,
+                                    fmap_pedir_template=fmap_pedir_sess,
                                     aws_creds_path=aws_creds_path,
                                     inclusion_dct=inclusion_dct,
                                     exclusion_dct=exclusion_dct,
@@ -884,6 +909,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                                     brain_mask_template=brain_mask_template,
                                     fmap_phase_template=fmap_phase,
                                     fmap_mag_template=fmap_mag,
+                                    fmap_pedir_template=fmap_pedir,
                                     aws_creds_path=aws_creds_path,
                                     inclusion_dct=inclusion_dct,
                                     exclusion_dct=exclusion_dct,
@@ -1346,9 +1372,9 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 def get_nonBIDS_data(anat_template, func_template, file_list=None,
                      anat_scan=None, scan_params_dct=None,
                      brain_mask_template=None, fmap_phase_template=None,
-                     fmap_mag_template=None, aws_creds_path=None,
-                     inclusion_dct=None, exclusion_dct=None, sites_dct=None,
-                     verbose=False):
+                     fmap_mag_template=None, fmap_pedir_template=None,
+                     aws_creds_path=None, inclusion_dct=None,
+                     exclusion_dct=None, sites_dct=None, verbose=False):
     """Prepare a data dictionary for the data configuration file when given
     file path templates describing the input data directories."""
 
@@ -1575,6 +1601,37 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                        sites_dct, scan_params_dct,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
+
+    if fmap_pedir_template:
+        # make globby templates, to use them to filter down the path_list into
+        # only paths that will work with the templates
+        fmap_pedir_glob = fmap_phase_template
+
+        for keyword in keywords:
+            if keyword in fmap_pedir_glob:
+                fmap_pedir_glob = fmap_pedir_glob.replace(keyword, '*')
+
+        # presumably, the paths contained in each of these pools should be
+        # field map files only, if the templates were set up properly
+        if file_list:
+            # mainly for AWS S3-stored data sets
+            fmap_pedir_pool = []
+            for filepath in file_list:
+                if fnmatch.fnmatch(filepath, fmap_pedir_glob):
+                    fmap_pedir_pool.append(filepath)
+        else:
+            fmap_pedir_pool = glob.glob(fmap_pedir_glob)
+
+        #TODO: must now deal with phase encoding direction!!!!
+        #TODO: have to check scan params, first!!!
+
+        for fmap_pedir in fmap_pedir_pool:
+            data_dct = update_data_dct(fmap_pedir, fmap_pedir_template,
+                                       data_dct, "fmap_pedir", None,
+                                       sites_dct, scan_params_dct,
+                                       inclusion_dct, exclusion_dct,
+                                       aws_creds_path)
+
 
     return data_dct
 

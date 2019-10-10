@@ -1,9 +1,32 @@
 import os
 import glob
 import json
+import logging
 import datetime
 import threading
 import SocketServer
+
+import networkx as nx
+import nipype.pipeline.engine as pe
+
+
+# Log initial information from all the nodes
+def recurse_nodes(workflow, prefix=''):
+    for node in nx.topological_sort(workflow._graph):
+        if isinstance(node, pe.Workflow):
+            for subnode in recurse_nodes(node, prefix + workflow.name + '.'):
+                yield subnode
+        else:
+            yield {
+                "id": prefix + workflow.name + '.' + node.name,
+                "hash": node.inputs.get_hashval()[1],
+            }
+
+
+def log_nodes_initial(workflow):
+    logger = logging.getLogger('callback')
+    for node in recurse_nodes(workflow):
+        logger.debug(json.dumps(node))
 
 
 def log_nodes_cb(node, status):
@@ -28,9 +51,6 @@ def log_nodes_cb(node, status):
     if status != 'end':
         return
 
-    # Import packages
-    import json
-    import logging
     import nipype.pipeline.engine.nodes as nodes
 
     logger = logging.getLogger('callback')
@@ -41,12 +61,10 @@ def log_nodes_cb(node, status):
     runtime = node.result.runtime
 
     status_dict = {
-        'name': node.name,
         'id': str(node),
         'hash': node.inputs.get_hashval()[1],
         'start': getattr(runtime, 'startTime'),
         'finish': getattr(runtime, 'endTime'),
-        'duration': getattr(runtime, 'duration'),
         'runtime_threads': getattr(runtime, 'cpu_percent', 'N/A'),
         'runtime_memory_gb': getattr(runtime, 'mem_peak_gb', 'N/A'),
         'estimated_memory_gb': node.mem_gb,
@@ -111,7 +129,10 @@ class LoggingRequestHandler(SocketServer.BaseRequestHandler):
                     except:
                         break
 
-        self.request.sendall(json.dumps(tree))
+                tree = {s: t for s, t in tree.items() if t}
+
+        headers = 'HTTP/1.1 200 OK\nConnection: close\n\n'
+        self.request.sendall(headers + json.dumps(tree) + "\n")
 
 
 class LoggingHTTPServer(SocketServer.ThreadingTCPServer, object):

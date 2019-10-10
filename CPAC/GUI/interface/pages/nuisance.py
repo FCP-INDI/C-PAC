@@ -110,6 +110,10 @@ def selectors_repr(selectors):
             terms += ["{}{}".format(renamed, 'ₜ₋₁')]
         if regressor.get('include_delayed_squared'):
             terms += ["{}{}".format(renamed, 'ₜ₋₁²')]
+        if regressor.get('include_backdiff'):
+            terms += ["{}{}".format(renamed, '₍ₜ₎₋₍ₜ₋₁₎')]
+        if regressor.get('include_backdiff_squared'):
+            terms += ["{}{}".format(renamed, '₍₍ₜ₎₋₍ₜ₋₁₎₎²')]
 
         regressor_terms = ' + '.join(terms)
 
@@ -204,6 +208,8 @@ selector_derivatives_renaming = {
     'include_delayed': 'Include Delayed',
     'include_squared': 'Include Squared',
     'include_delayed_squared': 'Include Delayed Squared',
+    'include_backdiff': 'Include Backwards Difference',
+    'include_backdiff_squared': 'Include Backwards Difference Squared',
 }
 
 selector_derivatives_renaming_inverse = \
@@ -751,6 +757,8 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             'include_delayed': bool(selector['include_delayed'].GetValue()),
             'include_delayed_squared': bool(selector['include_delayed_squared'].GetValue()),
             'include_squared': bool(selector['include_squared'].GetValue()),
+            'include_backdiff': bool(selector['include_backdiff'].GetValue()),
+            'include_backdiff_squared': bool(selector['include_backdiff_squared'].GetValue()),
         }
 
     def compile_selector_tissue_parameters(self, selector):
@@ -855,17 +863,17 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             if self.data_controls['Censor']['threshold']['fdj']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
                     'type': 'FD_J',
-                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdj']['value']),
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdj']['value'].GetValue()),
                 })
             if self.data_controls['Censor']['threshold']['fdp']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
                     'type': 'FD_P',
-                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdp']['value']),
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['fdp']['value'].GetValue()),
                 })
             if self.data_controls['Censor']['threshold']['dvars']['enabled'].GetValue():
                 selector['Censor']['thresholds'].append({
                     'type': 'DVARS',
-                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['dvars']['value']),
+                    'value': self.parse_threshold(self.data_controls['Censor']['threshold']['dvars']['value'].GetValue()),
                 })
 
         return selector

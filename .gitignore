@@ -44,4 +44,10 @@ pip-log.txt
 *.c
 *.so
 
+
+ .vscode/launch.json
+ .vscode/settings.json
+
 cpac_runs/
+
+.DS_Store
