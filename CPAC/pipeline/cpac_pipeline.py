@@ -2669,6 +2669,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         "NearestNeighbor", 0, distcor=blip
                     )
 
+                    # 4D FUNCTIONAL MOTION-CORRECTED apply warp
+                    # node, out_file = \
+                    #     strat['motion_correct_derivative']
+                    # node2, out_file2 = \
+                    #     strat["mean_functional_derivative"]
+
+                    # ants_apply_warps_func_mni(
+                    #     workflow, strat, num_strat, num_ants_cores,
+                    #     node, out_file,
+                    #     node2, out_file2,
+                    #     "motion_correct_to_standard_derivative",
+                    #     c.funcRegANTSinterpolation, 3,
+                    #     distcor=blip
+                    # )
+
                     # FUNCTIONAL BRAIN MASK (with derivative resolution) apply warp
                     node, out_file = strat['functional_brain_mask_derivative']
 
@@ -3533,12 +3548,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_nonsmooth:
                             # template space
                             strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard_derivative", c.fwhm, 
+                                                "functional_brain_mask_to_standard", c.fwhm, 
                                                 strat, num_strat)
                         elif key in Outputs.template_nonsmooth_mult:
                             # template space with multiple files (map nodes)
                             strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard_derivative", c.fwhm, 
+                                                "functional_brain_mask_to_standard", c.fwhm, 
                                                 strat, num_strat, map_node=True)
 
                 if 1 in c.runZScoring:
