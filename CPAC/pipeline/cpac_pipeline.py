@@ -64,7 +64,7 @@ from CPAC.registration import (
     create_wf_calculate_ants_warp,
     create_wf_apply_ants_warp,
     create_wf_c3d_fsl_to_itk,
-    create_wf_collect_transforms
+    create_wf_collect_transforms,
     ants_apply_warps_func_mni,
     fsl_apply_transform_func_to_mni
 )
@@ -1853,22 +1853,22 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if 'anat_mni_flirt_register' in nodes or 'anat_mni_fnirt_register' in nodes:
 
                     for output, func_key, ref_key, interp in [ \
-                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preprocss', 'nn'),
+                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'nn'),
                             ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'nn'),
-                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preprocss', c.funcRegFSLinterpolation),
+                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', c.funcRegFSLinterpolation),
                             ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', c.funcRegFSLinterpolation),
-                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preprocess', c.funcRegFSLinterpolation),
+                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', c.funcRegFSLinterpolation),
                     ]:
                         fsl_apply_transform_func_to_mni( workflow, output, func_key, ref_key, num_strat, strat, interp)
 
                 elif 'ANTS' in c.regOption:
 
                     for output, func_key, ref_key, interp, image_type in [ \
-                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preprocss', 'NearestNeighbor', 0),
+                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'NearestNeighbor', 0),
                             ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'NearestNeighbor', 0),
-                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preprocss', c.funcRegANTSinterpolation, 0),
+                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', c.funcRegANTSinterpolation, 0),
                             ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', c.funcRegANTSinterpolation, 0),
-                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preprocess', c.funcRegANTSinterpolation, 3),
+                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', c.funcRegANTSinterpolation, 3),
                     ]:
 
                         # all of these use 'mean_functional' for the ref_key parameters, which 
@@ -1876,7 +1876,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         warp_motion_wf = ants_apply_warps_func_mni(
                             workflow, strat, num_strat, num_ants_cores,
                             func_key, 'mean_functional', output,
-                            interp, image_type, distcor=blip
+                            interp=interp,
+                            template_brain_name=ref_key,
+                            input_image_type=image_type,
+                            distcor=blip
                         )
 
             strat_list += new_strat_list
@@ -2347,7 +2350,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # ANTS warp application
                     for output, func_key, ref_key, interp, image_type in [ \
-                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preprocess', c.funcRegANTSinterpolation, 3),
+                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', c.funcRegANTSinterpolation, 3),
                     ]:
 
                         # all of these use 'mean_functional' for the ref_key parameters, which 
@@ -2355,7 +2358,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         warp_motion_wf = ants_apply_warps_func_mni(
                             workflow, strat, num_strat, num_ants_cores,
                             func_key, 'mean_functional', output,
-                            interp, image_type, distcor=blip
+                            interp=interp,
+                            template_brain_name=ref_key,
+                            input_image_type=image_type,
+                            distcor=blip
                         )
 
         strat_list += new_strat_list
