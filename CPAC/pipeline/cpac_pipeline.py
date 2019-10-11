@@ -132,7 +132,7 @@ logger = logging.getLogger('nipype.workflow')
 
 
 def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
-                  p_name=None, plugin='MultiProc', plugin_args=None):
+                  p_name=None, plugin='MultiProc', plugin_args=None, test_config=False):
     '''
     Function to prepare and, optionally, run the C-PAC workflow
 
@@ -1831,8 +1831,36 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
-        # Inserting Generate Motion Statistics Workflow
+        # CC This is the first opportunity to write some of the outputs of basic 
+        # func preproc, such as the brain mask and mean EPI. Doing it any later
+        # might result in multiple versions of these files being needlessly generated
+        # do to strategies created by denoising, which do not impact the mean or brainmask
+        #
+        # preproc Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
+        #  apply the warp
+        new_strat_list = []
 
+        if 1 in c.runRegisterFuncToMNI:
+
+            for num_strat, strat in enumerate(strat_list):
+
+                nodes = strat.get_nodes_names()
+
+                # Run FSL ApplyWarp
+                if 'anat_mni_flirt_register' in nodes or 'anat_mni_fnirt_register' in nodes:
+
+                    for output, func_key, ref_key, interp in [ \
+                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preprocss', 'nn'),
+                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'nn'),
+                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preprocss', c.funcRegFSLinterpolation),
+                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', c.funcRegFSLinterpolation),
+                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preprocess', c.funcRegFSLinterpolation),
+                    ]:
+                        fsl_apply_transform_func_to_mni( workflow, output, func_key, ref_key, num_strat, strat, interp)
+
+            strat_list += new_strat_list
+
+        # Inserting Generate Motion Statistics Workflow
         for num_strat, strat in enumerate(strat_list):
 
             gen_motion_stats = motion_power_statistics(
@@ -2273,7 +2301,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             })
 
 
-        # Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
+        # Denoised Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp
         new_strat_list = []
 
@@ -2286,180 +2314,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # Run FSL ApplyWarp
                 if 'anat_mni_flirt_register' in nodes or 'anat_mni_fnirt_register' in nodes:
 
-                    func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                            name='func_mni_fsl_warp_%d' % num_strat)
-                    
-                    node, out_file = strat['template_brain_for_func_preproc']
-                    workflow.connect(node, out_file, func_mni_warp, 'ref_file')                  
-
-                    # Input registration parameters
-                    func_mni_warp.inputs.interp = c.funcRegFSLinterpolation
-
-                    functional_brain_mask_to_standard = pe.Node(
-                        interface=fsl.ApplyWarp(),
-                        name='func_mni_fsl_warp_mask_%d' % num_strat
-                    )
-                    functional_brain_mask_to_standard.inputs.interp = 'nn'
-                    
-                    node, out_file = strat['template_skull_for_func_preproc']
-                    workflow.connect(node, out_file, functional_brain_mask_to_standard, 'ref_file')
-
-                    functional_brain_mask_to_standard_derivative = pe.Node(
-                        interface=fsl.ApplyWarp(),
-                        name='func_mni_fsl_warp_mask_derivative_%d' % num_strat
-                    )
-                    functional_brain_mask_to_standard_derivative.inputs.interp = 'nn'
-                    
-                    node, out_file = strat['template_skull_for_func_derivative']
-                    workflow.connect(node, out_file, functional_brain_mask_to_standard_derivative, 'ref_file')
-
-                    mean_functional_warp = pe.Node(
-                        interface=fsl.ApplyWarp(),
-                        name='mean_func_fsl_warp_%d' % num_strat
-                    )
-                    
-                    node, out_file = strat['template_brain_for_func_preproc']
-                    workflow.connect(node, out_file, mean_functional_warp, 'ref_file')
-                    mean_functional_warp.inputs.interp = c.funcRegFSLinterpolation
-
-                    motion_correct_warp = pe.Node(
-                        interface=fsl.ApplyWarp(),
-                        name="motion_correct_fsl_warp_%d" % num_strat
-                    )
-                    
-                    node, out_file = strat['template_brain_for_func_preproc']
-                    workflow.connect(node, out_file, motion_correct_warp, 'ref_file')
-                    motion_correct_warp.inputs.interp = c.funcRegFSLinterpolation
-
-                    if 'anat_mni_fnirt_register' in nodes:
-                        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
-                        workflow.connect(node, out_file,
-                                         func_mni_warp, 'field_file')
-                        workflow.connect(node, out_file,
-                                         functional_brain_mask_to_standard, 'field_file')
-                        workflow.connect(node, out_file,
-                                         mean_functional_warp, 'field_file')
-                        workflow.connect(node, out_file,
-                                         motion_correct_warp, 'field_file')
-
-                        node, out_file = strat['functional_to_anat_linear_xfm']
-                        workflow.connect(node, out_file,
-                                         func_mni_warp, 'premat')
-                        workflow.connect(node, out_file,
-                                         functional_brain_mask_to_standard, 'premat')
-                        workflow.connect(node, out_file,
-                                         mean_functional_warp, 'premat')
-                        workflow.connect(node, out_file,
-                                         motion_correct_warp, 'premat')
-
-                        node, out_file = strat.get_leaf_properties()
-                        workflow.connect(node, out_file,
-                                         func_mni_warp, 'in_file')
-
-                        node, out_file = strat['functional_brain_mask']
-                        workflow.connect(node, out_file,
-                                         functional_brain_mask_to_standard, 'in_file')
-
-                        node, out_file = strat['mean_functional']
-                        workflow.connect(node, out_file,
-                                         mean_functional_warp, 'in_file')
-
-                        node, out_file = strat['motion_correct']
-                        workflow.connect(node, out_file,
-                                         motion_correct_warp, 'in_file')
-
-                    elif 'anat_mni_flirt_register' in nodes:
-                        func_anat_warp = pe.Node(interface=fsl.ApplyWarp(),
-	                                             name='func_anat_fsl_warp_%d' % num_strat)
-                        func_anat_warp.inputs.interp = c.funcRegFSLinterpolation
-                        
-                        functional_brain_mask_to_anat = pe.Node(
-	                        interface=fsl.ApplyWarp(),
-	                        name='func_anat_fsl_warp_mask_%d' % num_strat
-	                    )
-                        functional_brain_mask_to_anat.inputs.interp = 'nn'
-
-                        mean_functional_to_anat = pe.Node(
-                            interface=fsl.ApplyWarp(),
-	                        name='mean_func_to_anat_fsl_warp_%d' % num_strat
-	                    )
-                        mean_functional_to_anat.inputs.interp = c.funcRegFSLinterpolation
-
-                        motion_correct_to_anat_warp = pe.Node(
-	                        interface=fsl.ApplyWarp(),
-	                        name="motion_correct_to_anat_fsl_warp_%d" % num_strat
-	                    )
-                        motion_correct_to_anat_warp.inputs.interp = c.funcRegFSLinterpolation
-
-                        node, out_file = strat.get_leaf_properties()
-                        workflow.connect(node, out_file,
-                                         func_anat_warp, 'in_file')
-
-                        node, out_file = strat['functional_brain_mask']
-                        workflow.connect(node, out_file,
-                                         functional_brain_mask_to_anat, 'in_file')
-
-                        node, out_file = strat['mean_functional']
-                        workflow.connect(node, out_file,
-                                         mean_functional_to_anat, 'in_file')
-
-
-                        node, out_file = strat['motion_correct']
-                        workflow.connect(node, out_file,
-                                         motion_correct_to_anat_warp, 'in_file')
-
-                        node, out_file = strat['anatomical_brain']
-                        workflow.connect(node, out_file,
-                                         func_anat_warp, 'ref_file')
-                        workflow.connect(node, out_file,
-                                         functional_brain_mask_to_anat, 'ref_file')
-                        workflow.connect(node, out_file,
-                                         mean_functional_to_anat, 'ref_file')
-                        workflow.connect(node, out_file,
-                                         motion_correct_to_anat_warp, 'ref_file') 
-
-                        node, out_file = strat['functional_to_anat_linear_xfm']
-                        workflow.connect(node, out_file,
-                                         func_anat_warp, 'premat')
-                        workflow.connect(node, out_file,
-                                         functional_brain_mask_to_anat, 'premat')
-                        workflow.connect(node, out_file,
-                                         mean_functional_to_anat, 'premat')
-                        workflow.connect(node, out_file,
-                                         motion_correct_to_anat_warp, 'premat')
-
-                        node, out_file = strat.get_leaf_properties()
-                        workflow.connect(func_anat_warp, 'out_file',
-                                         func_mni_warp, 'in_file')
-
-                        workflow.connect(functional_brain_mask_to_anat, 'out_file',
-                                         functional_brain_mask_to_standard, 'in_file')
-
-                        workflow.connect(mean_functional_to_anat, 'out_file',
-                                         mean_functional_warp, 'in_file')
-
-                        workflow.connect(motion_correct_to_anat_warp, 'out_file',
-                                         motion_correct_warp, 'in_file')
-
-                        node, out_file = strat['anatomical_to_mni_linear_xfm']
-                        workflow.connect(node, out_file,
-                                         func_mni_warp, 'premat')
-                        workflow.connect(node, out_file,
-                                         functional_brain_mask_to_standard, 'premat')
-                        workflow.connect(node, out_file,
-                                         mean_functional_warp, 'premat')
-                        workflow.connect(node, out_file,
-                                         motion_correct_warp, 'premat')
-
-                    strat.update_resource_pool({
-                        'functional_to_standard': (func_mni_warp, 'out_file'),
-                        'functional_brain_mask_to_standard': (functional_brain_mask_to_standard, 'out_file'),
-                        'functional_brain_mask_to_standard_derivative': (functional_brain_mask_to_standard_derivative, 'out_file'),
-                        'mean_functional_to_standard': (mean_functional_warp, 'out_file'),
-                        'motion_correct_to_standard': (motion_correct_warp, 'out_file')
-                    })
-
-                    strat.append_name(func_mni_warp.name)
+                    for output, func_key, ref_key, interp in [ \
+                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', c.funcRegFSLinterpolation),
+                    ]:
+                        fsl_apply_transform_func_to_mni( workflow, output, func_key, ref_key, num_strat, strat, interp)
 
             strat_list += new_strat_list
 
@@ -3865,220 +3723,225 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         logger.info(forks)
 
+        if test_config:
 
-        try:
+            logger.info('This has been a test of the pipeline configuration file, the pipeline was built successfully, but was not run')
 
-            pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
-
-            subject_info['resource_pool'] = []
-
-            for strat_no, strat in enumerate(strat_list):
-                strat_label = 'strat_%d' % strat_no
-                subject_info[strat_label] = strat.get_name()
-                subject_info['resource_pool'].append(strat.get_resource_pool())
-
-            subject_info['status'] = 'Running'
-
-            # Create callback logger
-            cb_log_filename = os.path.join(log_dir,
-                                        'callback.log')
+        else:
 
             try:
-                if not os.path.exists(os.path.dirname(cb_log_filename)):
-                    os.makedirs(os.path.dirname(cb_log_filename))
-            except IOError:
-                pass
 
-            # Add handler to callback log file
-            cb_logger = cb_logging.getLogger('callback')
-            cb_logger.setLevel(cb_logging.DEBUG)
-            handler = cb_logging.FileHandler(cb_log_filename)
-            cb_logger.addHandler(handler)
+                pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
-            # Log initial information from all the nodes
-            log_nodes_initial(workflow)
+                subject_info['resource_pool'] = []
 
-            # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.1.2'):
-                err_msg = "This version of Nipype may not be compatible with " \
-                            "CPAC v%s, please install Nipype version 1.1.2\n" \
-                            % (CPAC.__version__)
-                logger.error(err_msg)
-            else:
-                plugin_args['status_callback'] = log_nodes_cb
+                for strat_no, strat in enumerate(strat_list):
+                    strat_label = 'strat_%d' % strat_no
+                    subject_info[strat_label] = strat.get_name()
+                    subject_info['resource_pool'].append(strat.get_resource_pool())
 
-            if plugin_args['n_procs'] == 1:
-                plugin = 'Linear'
+                subject_info['status'] = 'Running'
 
-            # Actually run the pipeline now, for the current subject
-            workflow.run(plugin=plugin, plugin_args=plugin_args)
+                # Create callback logger
+                cb_log_filename = os.path.join(log_dir,
+                                            'callback.log')
 
-            # PyPEER kick-off
-            if 1 in c.run_pypeer:
-                from CPAC.pypeer.peer import prep_for_pypeer
-                prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
-                                c.eye_mask_path, c.outputDirectory, subject_id, 
-                                pipeline_ids, c.peer_stimulus_path, c.peer_gsr,
-                                c.peer_scrub, c.peer_scrub_thresh)
+                try:
+                    if not os.path.exists(os.path.dirname(cb_log_filename)):
+                        os.makedirs(os.path.dirname(cb_log_filename))
+                except IOError:
+                    pass
 
-            # Dump subject info pickle file to subject log dir
-            subject_info['status'] = 'Completed'
+                # Add handler to callback log file
+                cb_logger = cb_logging.getLogger('callback')
+                cb_logger.setLevel(cb_logging.DEBUG)
+                handler = cb_logging.FileHandler(cb_log_filename)
+                cb_logger.addHandler(handler)
 
-            subject_info_file = os.path.join(
-                log_dir, 'subject_info_%s.pkl' % subject_id
-            )
-            with open(subject_info_file, 'wb') as info:
-                pickle.dump(subject_info, info)
+                # Log initial information from all the nodes
+                log_nodes_initial(workflow)
 
-            if 1 in c.generateQualityControlImages and not ndmg_out:
-                for pip_id in pipeline_ids:
-                    pipeline_base = os.path.join(c.outputDirectory,
-                                                'pipeline_%s' % pip_id)
+                # Add status callback function that writes in callback log
+                if nipype.__version__ not in ('1.1.2'):
+                    err_msg = "This version of Nipype may not be compatible with " \
+                                "CPAC v%s, please install Nipype version 1.1.2\n" \
+                                % (CPAC.__version__)
+                    logger.error(err_msg)
+                else:
+                    plugin_args['status_callback'] = log_nodes_cb
 
-                    sub_output_dir = os.path.join(pipeline_base, subject_id)
-                    qc_output_folder = os.path.join(sub_output_dir, 'qc_html')
+                if plugin_args['n_procs'] == 1:
+                    plugin = 'Linear'
 
-                    generate_qc_pages(qc_output_folder,
-                                    sub_output_dir,
-                                    qc_montage_id_a,
-                                    qc_montage_id_s,
-                                    qc_plot_id,
-                                    qc_hist_id)
+                # Actually run the pipeline now, for the current subject
+                workflow.run(plugin=plugin, plugin_args=plugin_args)
 
-            # have this check in case the user runs cpac_runner from terminal and
-            # the timing parameter list is not supplied as usual by the GUI
-            if pipeline_timing_info != None:
+                # PyPEER kick-off
+                if 1 in c.run_pypeer:
+                    from CPAC.pypeer.peer import prep_for_pypeer
+                    prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
+                                    c.eye_mask_path, c.outputDirectory, subject_id, 
+                                    pipeline_ids, c.peer_stimulus_path, c.peer_gsr,
+                                    c.peer_scrub, c.peer_scrub_thresh)
 
-                # pipeline_timing_info list:
-                #  [0] - unique pipeline ID
-                #  [1] - pipeline start time stamp (first click of 'run' from GUI)
-                #  [2] - number of subjects in subject list
-                unique_pipeline_id = pipeline_timing_info[0]
-                pipeline_start_stamp = pipeline_timing_info[1]
-                num_subjects = pipeline_timing_info[2]
+                # Dump subject info pickle file to subject log dir
+                subject_info['status'] = 'Completed'
+    
+                subject_info_file = os.path.join(
+                    log_dir, 'subject_info_%s.pkl' % subject_id
+                )
+                with open(subject_info_file, 'wb') as info:
+                    pickle.dump(subject_info, info)
 
-                # elapsed time data list:
-                #  [0] - elapsed time in minutes
-                elapsed_time_data = []
+                if 1 in c.generateQualityControlImages and not ndmg_out:
+                    for pip_id in pipeline_ids:
+                        pipeline_base = os.path.join(c.outputDirectory,
+                                                    'pipeline_%s' % pip_id)
 
-                elapsed_time_data.append(
-                    int(((time.time() - pipeline_start_time) / 60)))
+                        sub_output_dir = os.path.join(pipeline_base, subject_id)
+                        qc_output_folder = os.path.join(sub_output_dir, 'qc_html')
 
-                # elapsedTimeBin list:
-                #  [0] - cumulative elapsed time (minutes) across all subjects
-                #  [1] - number of times the elapsed time has been appended
-                #        (effectively a measure of how many subjects have run)
+                        generate_qc_pages(qc_output_folder,
+                                        sub_output_dir,
+                                        qc_montage_id_a,
+                                        qc_montage_id_s,
+                                        qc_plot_id,
+                                        qc_hist_id)
 
-                # TODO
-                # write more doc for all this
-                # warning in .csv that some runs may be partial
-                # code to delete .tmp file
+                # have this check in case the user runs cpac_runner from terminal and
+                # the timing parameter list is not supplied as usual by the GUI
+                if pipeline_timing_info != None:
 
-                timing_temp_file_path = os.path.join(c.logDirectory,
-                                                    '%s_pipeline_timing.tmp' % unique_pipeline_id)
+                    # pipeline_timing_info list:
+                    #  [0] - unique pipeline ID
+                    #  [1] - pipeline start time stamp (first click of 'run' from GUI)
+                    #  [2] - number of subjects in subject list
+                    unique_pipeline_id = pipeline_timing_info[0]
+                    pipeline_start_stamp = pipeline_timing_info[1]
+                    num_subjects = pipeline_timing_info[2]
 
-                if not os.path.isfile(timing_temp_file_path):
-                    elapsedTimeBin = []
-                    elapsedTimeBin.append(0)
-                    elapsedTimeBin.append(0)
+                    # elapsed time data list:
+                    #  [0] - elapsed time in minutes
+                    elapsed_time_data = []
+
+                    elapsed_time_data.append(
+                        int(((time.time() - pipeline_start_time) / 60)))
+
+                    # elapsedTimeBin list:
+                    #  [0] - cumulative elapsed time (minutes) across all subjects
+                    #  [1] - number of times the elapsed time has been appended
+                    #        (effectively a measure of how many subjects have run)
+
+                    # TODO
+                    # write more doc for all this
+                    # warning in .csv that some runs may be partial
+                    # code to delete .tmp file
+
+                    timing_temp_file_path = os.path.join(c.logDirectory,
+                                                        '%s_pipeline_timing.tmp' % unique_pipeline_id)
+
+                    if not os.path.isfile(timing_temp_file_path):
+                        elapsedTimeBin = []
+                        elapsedTimeBin.append(0)
+                        elapsedTimeBin.append(0)
+
+                        with open(timing_temp_file_path, 'wb') as handle:
+                            pickle.dump(elapsedTimeBin, handle)
+
+                    with open(timing_temp_file_path, 'rb') as handle:
+                        elapsedTimeBin = pickle.loads(handle.read())
+
+                    elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
+                    elapsedTimeBin[1] = elapsedTimeBin[1] + 1
 
                     with open(timing_temp_file_path, 'wb') as handle:
                         pickle.dump(elapsedTimeBin, handle)
 
-                with open(timing_temp_file_path, 'rb') as handle:
-                    elapsedTimeBin = pickle.loads(handle.read())
+                    # this happens once the last subject has finished running!
+                    if elapsedTimeBin[1] == num_subjects:
 
-                elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
-                elapsedTimeBin[1] = elapsedTimeBin[1] + 1
+                        pipelineTimeDict = {}
+                        pipelineTimeDict['Pipeline'] = c.pipelineName
+                        pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
+                        pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
+                        pipelineTimeDict['Number_of_Subjects'] = num_subjects
+                        pipelineTimeDict['Start_Time'] = pipeline_start_stamp
+                        pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+                        pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
+                        pipelineTimeDict['Status'] = 'Complete'
+    
+                        gpaTimeFields = [
+                            'Pipeline', 'Cores_Per_Subject',
+                            'Simultaneous_Subjects',
+                            'Number_of_Subjects', 'Start_Time',
+                            'End_Time', 'Elapsed_Time_(minutes)',
+                            'Status'
+                        ]
+                        timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
 
-                with open(timing_temp_file_path, 'wb') as handle:
-                    pickle.dump(elapsedTimeBin, handle)
+                        with open(os.path.join(
+                            c.logDirectory,
+                            'cpac_individual_timing_%s.csv' % c.pipelineName
+                        ), 'a') as timeCSV, open(os.path.join(
+                            c.logDirectory,
+                            'cpac_individual_timing_%s.csv' % c.pipelineName
+                        ), 'rb') as readTimeCSV:
 
-                # this happens once the last subject has finished running!
-                if elapsedTimeBin[1] == num_subjects:
+                            timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                            timeReader = csv.DictReader(readTimeCSV)
 
-                    pipelineTimeDict = {}
-                    pipelineTimeDict['Pipeline'] = c.pipelineName
-                    pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
-                    pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
-                    pipelineTimeDict['Number_of_Subjects'] = num_subjects
-                    pipelineTimeDict['Start_Time'] = pipeline_start_stamp
-                    pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
-                    pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
-                    pipelineTimeDict['Status'] = 'Complete'
+                            headerExists = False
+                            for line in timeReader:
+                                if 'Start_Time' in line:
+                                    headerExists = True
 
-                    gpaTimeFields = [
-                        'Pipeline', 'Cores_Per_Subject',
-                        'Simultaneous_Subjects',
-                        'Number_of_Subjects', 'Start_Time',
-                        'End_Time', 'Elapsed_Time_(minutes)',
-                        'Status'
-                    ]
-                    timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
+                            if headerExists == False:
+                                timeWriter.writerow(timeHeader)
 
-                    with open(os.path.join(
-                        c.logDirectory,
-                        'cpac_individual_timing_%s.csv' % c.pipelineName
-                    ), 'a') as timeCSV, open(os.path.join(
-                        c.logDirectory,
-                        'cpac_individual_timing_%s.csv' % c.pipelineName
-                    ), 'rb') as readTimeCSV:
+                            timeWriter.writerow(pipelineTimeDict)
 
-                        timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-                        timeReader = csv.DictReader(readTimeCSV)
+                        # remove the temp timing file now that it is no longer needed
+                        os.remove(timing_temp_file_path)
 
-                        headerExists = False
-                        for line in timeReader:
-                            if 'Start_Time' in line:
-                                headerExists = True
-
-                        if headerExists == False:
-                            timeWriter.writerow(timeHeader)
-
-                        timeWriter.writerow(pipelineTimeDict)
-
-                    # remove the temp timing file now that it is no longer needed
-                    os.remove(timing_temp_file_path)
-
-            # Upload logs to s3 if s3_str in output directory
-            if c.outputDirectory.lower().startswith('s3://'):
-
-                try:
-                    # Store logs in s3 output director/logs/...
-                    s3_log_dir = os.path.join(
-                        c.outputDirectory,
-                        'logs',
-                        os.path.basename(log_dir)
-                    )
-                    bucket_name = c.outputDirectory.split('/')[2]
-                    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-
-                    # Collect local log files
-                    local_log_files = []
-                    for root, _, files in os.walk(log_dir):
-                        local_log_files.extend([os.path.join(root, fil)
-                                                for fil in files])
-                    # Form destination keys
-                    s3_log_files = [loc.replace(log_dir, s3_log_dir)
-                                    for loc in local_log_files]
-                    # Upload logs
-                    aws_utils.s3_upload(bucket,
-                                        (local_log_files, s3_log_files),
-                                        encrypt=encrypt_data)
-                    # Delete local log files
-                    for log_f in local_log_files:
-                        os.remove(log_f)
-
-                except Exception as exc:
-                    err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
-                    logger.error(err_msg, log_dir, exc)
-
-        except Exception as e:
-
-            import traceback
-            traceback.print_exc()
-
-            execution_info = """
+                # Upload logs to s3 if s3_str in output directory
+                if c.outputDirectory.lower().startswith('s3://'):
+    
+                    try:
+                        # Store logs in s3 output director/logs/...
+                        s3_log_dir = os.path.join(
+                            c.outputDirectory,
+                            'logs',
+                            os.path.basename(log_dir)
+                        )
+                        bucket_name = c.outputDirectory.split('/')[2]
+                        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+    
+                        # Collect local log files
+                        local_log_files = []
+                        for root, _, files in os.walk(log_dir):
+                            local_log_files.extend([os.path.join(root, fil)
+                                                    for fil in files])
+                        # Form destination keys
+                        s3_log_files = [loc.replace(log_dir, s3_log_dir)
+                                        for loc in local_log_files]
+                        # Upload logs
+                        aws_utils.s3_upload(bucket,
+                                            (local_log_files, s3_log_files),
+                                            encrypt=encrypt_data)
+                        # Delete local log files
+                        for log_f in local_log_files:
+                            os.remove(log_f)
+    
+                    except Exception as exc:
+                        err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
+                        logger.error(err_msg, log_dir, exc)
+    
+            except Exception as e:
+    
+                import traceback
+                traceback.print_exc()
+    
+                execution_info = """
 
     Error of subject workflow {workflow}
 
@@ -4092,29 +3955,29 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
 """
 
-        finally:
+            finally:
 
-            logger.info(execution_info.format(
-                workflow=workflow_name,
-                pipeline=c.pipelineName,
-                log_dir=c.logDirectory,
-                elapsed=(time.time() - pipeline_start_time) / 60,
-                run_start=pipeline_start_datetime,
-                run_finish=strftime("%Y-%m-%d %H:%M:%S")
-            ))
+                logger.info(execution_info.format(
+                    workflow=workflow_name,
+                    pipeline=c.pipelineName,
+                    log_dir=c.logDirectory,
+                    elapsed=(time.time() - pipeline_start_time) / 60,
+                    run_start=pipeline_start_datetime,
+                    run_finish=strftime("%Y-%m-%d %H:%M:%S")
+                ))
 
-            # Remove working directory when done
-            if c.removeWorkingDir:
-                try:
-                    subject_wd = os.path.join(c.workingDirectory, workflow_name)
-                    if os.path.exists(subject_wd):
-                        logger.info("Removing working dir: %s" % subject_wd)
-                        shutil.rmtree(subject_wd)
-                except:
-                    logger.warn('Could not remove subjects %s working directory',
-                                workflow_name)
+                # Remove working directory when done
+                if c.removeWorkingDir:
+                    try:
+                        subject_wd = os.path.join(c.workingDirectory, workflow_name)
+                        if os.path.exists(subject_wd):
+                            logger.info("Removing working dir: %s" % subject_wd)
+                            shutil.rmtree(subject_wd)
+                    except:
+                        logger.warn('Could not remove subjects %s working directory',
+                                    workflow_name)
 
-            # if raising:
-            #     raise raising
+                # if raising:
+                #     raise raising
 
     return workflow
