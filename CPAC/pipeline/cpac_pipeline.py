@@ -65,7 +65,10 @@ from CPAC.registration import (
     create_wf_apply_ants_warp,
     create_wf_c3d_fsl_to_itk,
     create_wf_collect_transforms
+    ants_apply_warps_func_mni,
+    fsl_apply_transform_func_to_mni
 )
+
 from CPAC.nuisance import create_nuisance_workflow, bandpass_voxels, NuisanceRegressor
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
@@ -78,8 +81,8 @@ from CPAC.timeseries import (
     get_vertices_timeseries,
     get_spatial_map_timeseries
 )
+
 from CPAC.warp.pipeline import (
-    ants_apply_warps_func_mni,
     ants_apply_inverse_warps_template_to_func
 )
 
@@ -1858,6 +1861,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     ]:
                         fsl_apply_transform_func_to_mni( workflow, output, func_key, ref_key, num_strat, strat, interp)
 
+                elif 'ANTS' in c.regOption:
+
+                    for output, func_key, ref_key, interp, image_type in [ \
+                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preprocss', 'NearestNeighbor', 0),
+                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'NearestNeighbor', 0),
+                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preprocss', c.funcRegANTSinterpolation, 0),
+                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', c.funcRegANTSinterpolation, 0),
+                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preprocess', c.funcRegANTSinterpolation, 3),
+                    ]:
+
+                        # all of these use 'mean_functional' for the ref_key parameters, which 
+                        # corresponds to a reference for the C3D fsl mat to itk transformation
+                        warp_motion_wf = ants_apply_warps_func_mni(
+                            workflow, strat, num_strat, num_ants_cores,
+                            func_key, 'mean_functional', output,
+                            interp, image_type, distcor=blip
+                        )
+
             strat_list += new_strat_list
 
         # Inserting Generate Motion Statistics Workflow
@@ -2314,99 +2335,28 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # Run FSL ApplyWarp
                 if 'anat_mni_flirt_register' in nodes or 'anat_mni_fnirt_register' in nodes:
 
+                    # to write 3D and 4D files generated from the func to template space, just
+                    # copy and past a tuple in the list below and modify it to reflect what
+                    # you want to do. 
                     for output, func_key, ref_key, interp in [ \
                             ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', c.funcRegFSLinterpolation),
                     ]:
                         fsl_apply_transform_func_to_mni( workflow, output, func_key, ref_key, num_strat, strat, interp)
 
-            strat_list += new_strat_list
-
-            for num_strat, strat in enumerate(strat_list):
-
-                nodes = strat.get_nodes_names()
-
-                if 'ANTS' in c.regOption and \
-                    'anat_mni_flirt_register' not in nodes and \
-                        'anat_mni_fnirt_register' not in nodes:
+                elif 'ANTS' in c.regOption:
 
                     # ANTS warp application
+                    for output, func_key, ref_key, interp, image_type in [ \
+                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preprocess', c.funcRegANTSinterpolation, 3),
+                    ]:
 
-                    # 4D FUNCTIONAL apply warp
-                    node, out_file = strat.get_leaf_properties()
-                    node2, out_file2 = \
-                        strat["mean_functional"]
-                    
-                    # if someone doesn't have funcRegANTSinterpolation in their pipe config,
-                    # it will default to LanczosWindowedSinc
-                    if not hasattr(c, 'funcRegANTSinterpolation'):
-                        setattr(c, 'funcRegANTSinterpolation',
-                                'LanczosWindowedSinc')
-
-                    if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-                        err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
-                        raise Exception(err_msg)
-                    
-                    warp_func_wf = ants_apply_warps_func_mni(
-                        workflow, strat, num_strat, num_ants_cores,
-                        node, out_file,
-                        node2, out_file2,
-                        "functional_to_standard",
-                        c.funcRegANTSinterpolation, 3,
-                        distcor=blip
-                    )
-
-                    # 4D FUNCTIONAL MOTION-CORRECTED apply warp
-                    node, out_file = \
-                        strat['motion_correct']
-                    node2, out_file2 = \
-                        strat["mean_functional"]
-
-                    warp_motion_wf = ants_apply_warps_func_mni(
-                        workflow, strat, num_strat, num_ants_cores,
-                        node, out_file,
-                        node2, out_file2,
-                        "motion_correct_to_standard",
-                        c.funcRegANTSinterpolation, 3,
-                        distcor=blip
-                    )
-
-                    # FUNCTIONAL BRAIN MASK (binary, no timeseries) apply warp
-                    node, out_file = \
-                        strat["functional_brain_mask"]
-
-                    warp_mask_wf = ants_apply_warps_func_mni(
-                        workflow, strat, num_strat, num_ants_cores,
-                        node, out_file,
-                        node, out_file,
-                        "functional_brain_mask_to_standard",
-                        "NearestNeighbor", 0, distcor=blip
-                    )
-
-                    # FUNCTIONAL BRAIN MASK (with derivative resolution) apply warp
-                    node, out_file = strat['functional_brain_mask_derivative']
-
-                    ants_apply_warps_func_mni(
-                        workflow, strat, num_strat, num_ants_cores,
-                        node, out_file,
-                        node, out_file,
-                        "functional_brain_mask_to_standard_derivative",
-                        "NearestNeighbor", 0,
-                        "template_brain_for_func_derivative",
-                        distcor=blip
-                    )            
-
-                    # FUNCTIONAL MEAN (no timeseries) apply warp
-                    node, out_file = \
-                        strat["mean_functional"]
-
-                    warp_mean_wf = ants_apply_warps_func_mni(
-                        workflow, strat, num_strat, num_ants_cores,
-                        node, out_file,
-                        node, out_file,
-                        "mean_functional_to_standard",
-                        c.funcRegANTSinterpolation, 0,
-                        distcor=blip
-                    )
+                        # all of these use 'mean_functional' for the ref_key parameters, which 
+                        # corresponds to a reference for the C3D fsl mat to itk transformation
+                        warp_motion_wf = ants_apply_warps_func_mni(
+                            workflow, strat, num_strat, num_ants_cores,
+                            func_key, 'mean_functional', output,
+                            interp, image_type, distcor=blip
+                        )
 
         strat_list += new_strat_list
         
