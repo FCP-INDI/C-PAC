@@ -62,9 +62,6 @@ from CPAC.registration import (
     create_register_func_to_anat,
     create_bbregister_func_to_anat,
     create_wf_calculate_ants_warp,
-    create_wf_apply_ants_warp,
-    create_wf_c3d_fsl_to_itk,
-    create_wf_collect_transforms,
     ants_apply_warps_func_mni,
     fsl_apply_transform_func_to_mni
 )
@@ -281,6 +278,38 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                       check_ica_aroma='1' in str(c.runICA[0]),
                       check_centrality_degree=check_centrality_degree,
                       check_centrality_lfcd=check_centrality_lfcd)
+
+    if 'ANTS' in c.regOption:
+
+        # if someone doesn't have anatRegANTSinterpolation in their pipe config,
+        # it will default to LanczosWindowedSinc
+        if not hasattr(c, 'anatRegANTSinterpolation'):
+            setattr(c, 'anatRegANTSinterpolation', 'LanczosWindowedSinc')
+
+        if c.anatRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+            raise Exception(err_msg)
+
+        # if someone doesn't have funcRegANTSinterpolation in their pipe config,
+        # it will default to LanczosWindowedSinc
+        if not hasattr(c, 'funcRegANTSinterpolation'):
+               setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
+
+        if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+            raise Exception(err_msg)
+
+    if 'FSL' in c.regOption:
+
+        # if someone doesn't have anatRegFSLinterpolation in their pipe config,
+        # it will default to sinc          
+        if not hasattr(c, 'anatRegFSLinterpolation'):
+            setattr(c, 'anatRegFSLinterpolation', 'sinc')
+
+        if c.anatRegFSLinterpolation not in ["trilinear", "sinc", "spline"]:
+            err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
+            raise Exception(err_msg)
+            
 
     # absolute paths of the dirs
     c.workingDirectory = os.path.abspath(c.workingDirectory)
@@ -612,15 +641,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anat_mni_flirt_register_%d' % num_strat
             )
 
-            # if someone doesn't have anatRegFSLinterpolation in their pipe config,
-            # it will default to sinc          
-            if not hasattr(c, 'anatRegFSLinterpolation'):
-                setattr(c, 'anatRegFSLinterpolation', 'sinc')
-
-            if c.anatRegFSLinterpolation not in ["trilinear", "sinc", "spline"]:
-                err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
-                raise Exception(err_msg)
-            
             # Input registration parameters
             flirt_reg_anat_mni.inputs.inputspec.interp = c.anatRegFSLinterpolation
 
@@ -728,15 +748,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'anat_mni_ants_register_%d' % num_strat,
                     num_threads=num_ants_cores
                 )
-
-            # if someone doesn't have anatRegANTSinterpolation in their pipe config,
-            # it will default to LanczosWindowedSinc
-            if not hasattr(c, 'anatRegANTSinterpolation'):
-                setattr(c, 'anatRegANTSinterpolation', 'LanczosWindowedSinc')
-
-            if c.anatRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-                err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
-                raise Exception(err_msg)
 
             # Input registration parameters
             ants_reg_anat_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
@@ -1191,31 +1202,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             # TODO ASH based on config, instead of nodes?
             if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
-                seg_preproc = create_seg_preproc(use_ants=False,
-                                                 use_priors=c.seg_use_priors,
-                                                 use_threshold=c.seg_use_threshold,
-                                                 use_erosion=c.seg_use_erosion,
-                                                 erosion_prop=c.seg_erosion_prop,
-                                                 wf_name='seg_preproc_{0}'.format(num_strat))
-                seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
-                seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
-                seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
-                workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
-                                                                 
+                use_ants = False
             elif 'anat_mni_ants_register' in nodes:
-                seg_preproc = create_seg_preproc(use_ants=True,
-                                                 use_priors=c.seg_use_priors,
-                                                 use_threshold=c.seg_use_threshold,
-                                                 use_erosion=c.seg_use_erosion,
-                                                 erosion_prop=c.seg_erosion_prop,
-                                                 wf_name='seg_preproc_{0}'.format(num_strat))
-                seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
-                seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
-                seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
-                workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
-           
+                use_ants = True
 
-
+            seg_preproc = create_seg_preproc(use_ants=False,
+                                             use_priors=c.seg_use_priors,
+                                             use_threshold=c.seg_use_threshold,
+                                             use_erosion=c.seg_use_erosion,
+                                             erosion_prop=c.seg_erosion_prop,
+                                             wf_name='seg_preproc_{0}'.format(num_strat))
+            seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
+            seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
+            seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+            workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
+                                                                 
             # TODO ASH review
             if seg_preproc is None:
                 continue
@@ -2000,32 +2001,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # we don't have the FNIRT warp file, so we need to calculate
                     # ICA-AROMA de-noising in template space
 
-                    # 4D FUNCTIONAL apply warp
-                    node, out_file = strat.get_leaf_properties()
-                    mean_func_node, mean_func_out_file = strat["mean_functional"]
-                    
-                    # if someone doesn't have funcRegANTSinterpolation in their pipe config,
-                    # it will default to LanczosWindowedSinc
-                    if not hasattr(c, 'funcRegANTSinterpolation'):
-                        setattr(c, 'funcRegANTSinterpolation',
-                                'LanczosWindowedSinc')
-
-                    if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-                        err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
-                        raise Exception(err_msg)
-                    
                     # Insert it on the resource pool, so no need to connect externally
                     ants_apply_warps_func_mni(
                         workflow, strat, num_strat, num_ants_cores,
-                        node, out_file,
-                        mean_func_node, mean_func_out_file,
-                        "ica_aroma_functional_to_standard",
-                        c.funcRegANTSinterpolation, 3, distcor=blip
+                        'leaf',
+                        'mean_functional', 
+                        'ica_aroma_functional_to_standard',
+                        interp=c.funcRegANTSinterpolation, 
+                        input_image_type=3, distcor=blip
                     )
 
                     aroma_preproc = create_aroma(tr=TR,
-                                                 wf_name='create_aroma_%d'
-                                                         % num_strat)
+                                                 wf_name='create_aroma_%d'.format(num_strat))
 
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
 
