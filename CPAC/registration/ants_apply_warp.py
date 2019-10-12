@@ -28,7 +28,8 @@ def ants_apply_warps_func_mni(
         interp='LanczosWindowedSinc',
         template_brain_name='template_brain_for_func_preproc',
         input_image_type=0, 
-        distcor=False
+        distcor=False,
+        map_node=False
     ):
     """Apply the functional-to-structural and structural-to-template warps to
     the 4D functional time-series to warp it to template space.
@@ -141,7 +142,7 @@ def ants_apply_warps_func_mni(
 
     #### now we add in the apply ants warps node
     apply_ants_warp_func_mni = \
-        create_wf_apply_ants_warp(name='apply_ants_warp_{0}_{1}'.format(func_name, num_strat),
+        create_wf_apply_ants_warp(map_node, name='apply_ants_warp_{0}_{1}'.format(func_name, num_strat),
                                   ants_threads=int(num_ants_cores))
 
     # input_image_type:
