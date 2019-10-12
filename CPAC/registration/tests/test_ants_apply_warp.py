@@ -24,23 +24,7 @@ def file_node(path, file_node_num=0):
     #(c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc')
 #]
 
-def test_ants_apply_warp_func_mni():
-
-
-    # resources needed by workflow
-    #
-    #  template_brain_for_func_preproc
-    #  anat_mni_fnirt_register
-    #  anatomical_to_mni_nonlinear_xfm
-    #  functional_to_anat_linear_xfm
-    #
-    #  anat_mni_flirt_register
-    #  functional_to_mni_linear_xfm [?]
-    #  anatomical_to_mni_linear_xfm
-    #  functional_to_anat_linear_xfm
-    # 
-
-    outputs = Outputs()
+def mock_resources():
 
     # mock the config dictionary
     c = Configuration({
@@ -77,7 +61,9 @@ def test_ants_apply_warp_func_mni():
             "ants_rigid_xfm": os.path.join(c.outputDirectory,
                 "ants_rigid_xfm/transform1Rigid.mat"),
             "functional_to_anat_linear_xfm": os.path.join(c.outputDirectory,
-                "functional_to_anat_linear_xfm/_scan_test/sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_flirt.mat")
+                "functional_to_anat_linear_xfm/_scan_test/sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_flirt.mat"),
+            "dr_tempreg_maps_files": [os.path.join(c.outputDirectory,'dr_tempreg_maps_files_to_standard_smooth/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mmE-DPC5_G-M_M-SDB_P-2/_spatial_map_PNAS_Smith09_rsn10_spatial_map_file_..cpac_templates..PNAS_Smith09_rsn10.nii.gz/_fwhm_4/_dr_tempreg_maps_files_to_standard_smooth_0{0}/temp_reg_map_000{0}_antswarp_maths.nii.gz'.format(n)) for n in range(10)]
+
     }
    
     file_node_num = 0
@@ -90,7 +76,9 @@ def test_ants_apply_warp_func_mni():
 
     templates_for_resampling = [
         (c.resolution_for_func_preproc, c.template_brain_only_for_func,
-            'template_brain_for_func_preproc', 'resolution_for_func_preproc')
+            'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_preproc, c.template_brain_only_for_func,
+            'template_skull_for_func_preproc', 'resolution_for_func_preproc')
     ]
 
     for resolution, template, template_name, tag in templates_for_resampling:
@@ -107,6 +95,13 @@ def test_ants_apply_warp_func_mni():
 
         strat.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
 
+    return c, strat
+
+def test_ants_apply_warp_func_mni():
+
+    # get the config and strat for the mock
+    c, strat = mock_resources()
+
     # build the workflow
     workflow = pe.Workflow(name='test_ants_apply_warps_func_mni')
     workflow.base_dir = c.workingDirectory
@@ -119,6 +114,26 @@ def test_ants_apply_warp_func_mni():
             'mean_functional', 'mean_functional', 'mean_functional_to_standard', 
             c.funcRegANTSinterpolation, 'template_brain_for_func_preproc', 0,
             distcor=False)
+
+    workflow.run()
+
+def test_ants_apply_warp_func_mni_mapnode():
+
+    # get the config and strat for the mock
+    c, strat = mock_resources()
+
+    # build the workflow
+    workflow = pe.Workflow(name='test_ants_apply_warps_func_mni')
+    workflow.base_dir = c.workingDirectory
+    workflow.config['execution'] = {
+        'hash_method': 'timestamp',
+        'crashdump_dir': os.path.abspath(c.crashLogDirectory)
+    }
+
+    workflow = ants_apply_warps_func_mni(workflow, strat, 0, 8, 
+            'dr_tempreg_maps_files', 'mean_functional', 'mean_functional_to_standard', 
+            c.funcRegANTSinterpolation, 'template_brain_for_func_preproc', 0,
+            distcor=False, map_node=True)
 
     workflow.run()
 
