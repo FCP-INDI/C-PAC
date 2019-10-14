@@ -20,7 +20,7 @@ def collect_arguments(*args):
     return ' '.join(command_args)
 
 
-def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
+def skullstrip_functional(tool='afni', anatomcial_mask_dilation=False, wf_name='skullstrip_functional'):
 
     tool = tool.lower()
     if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni' and tool != 'anatomical_refined':
@@ -92,15 +92,6 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
     # Refine functional mask by registering anatomical mask to functional space
     elif tool == 'anatomical_refined':
 
-        # Dialate anatomical mask
-        anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
-                         name='anat_mask_dilate')
-        anat_mask_dilate.inputs.dilate_inputs = '1'
-        anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
-
-        wf.connect(input_node, 'anatomical_brain_mask', anat_mask_dilate, 'in_file' )
-
-
         # Get functional mean to use later as reference, when transform anatomical mask to functional space
         func_skull_mean = pe.Node(interface=afni_utils.TStat(),
                                     name='func_skull_mean')
@@ -136,8 +127,21 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
         linear_trans_mask_anat_to_func.inputs.cost = 'mutualinfo'
         linear_trans_mask_anat_to_func.inputs.dof = 6
         linear_trans_mask_anat_to_func.inputs.interp = 'nearestneighbour'
-        
-        wf.connect(anat_mask_dilate, 'out_file', linear_trans_mask_anat_to_func, 'in_file')
+
+
+        # Dialate anatomical mask, if 'anatomcial_mask_dilation : True' in config file
+        if anatomcial_mask_dilation :
+            anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
+                            name='anat_mask_dilate')
+            anat_mask_dilate.inputs.dilate_inputs = '1'
+            anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
+
+            wf.connect(input_node, 'anatomical_brain_mask', anat_mask_dilate, 'in_file' )
+            wf.connect(anat_mask_dilate, 'out_file', linear_trans_mask_anat_to_func, 'in_file')
+
+        else: 
+            wf.connect(input_node, 'anatomical_brain_mask', linear_trans_mask_anat_to_func, 'in_file')
+
         wf.connect(func_skull_mean, 'out_file', linear_trans_mask_anat_to_func, 'reference')
         wf.connect(inv_func_to_anat_affine, 'out_file',
                                     linear_trans_mask_anat_to_func, 'in_matrix_file')
@@ -260,7 +264,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(tool, wf_name='func_preproc'):
+def create_func_preproc(tool, anatomcial_mask_dilation=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -558,7 +562,7 @@ def create_func_preproc(tool, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     output_node, 'oned_matrix_save')
 
-    skullstrip_func = skullstrip_functional(tool,
+    skullstrip_func = skullstrip_functional(tool, anatomcial_mask_dilation, 
                                             "{0}_skullstrip".format(wf_name))
     preproc.connect(input_node, 'anatomical_brain_mask',
                     skullstrip_func, 'inputspec.anatomical_brain_mask')

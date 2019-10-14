@@ -1464,6 +1464,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 func_preproc = create_func_preproc(
                     tool=tool,
+                    anatomcial_mask_dilation=c.anatomcial_mask_dilation,
                     wf_name='func_preproc_%s_%d' % (tool, num_strat)
                 )
                 node, out_file = new_strat.get_leaf_properties()
@@ -1492,13 +1493,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'motion_correct': (func_preproc, 'outputspec.motion_correct'),
                     'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
                 })
-                # import pdb
-                # pdb.set_trace()
-                # new_strat_list += [new_strat]
 
                 new_strat_list.append(new_strat)
         
-        strat_list = new_strat_list   # ????? +=
+        strat_list = new_strat_list   
         # Distortion Correction
         new_strat_list = []
 
