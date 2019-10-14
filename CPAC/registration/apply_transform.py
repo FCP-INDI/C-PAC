@@ -4,13 +4,21 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 
-def fsl_apply_transform_func_to_mni(workflow, output_name, func_key, ref_key, num_strat, strat, interpolation_method):
+def fsl_apply_transform_func_to_mni(workflow, output_name, func_key, ref_key, num_strat, strat, interpolation_method, map_node=False):
 
     strat_nodes = strat.get_nodes_names()
 
-    # func_mni_warp
-    func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-            name='func_mni_fsl_warp_{0}_{1:d}'.format(output_name, num_strat))
+    if map_node == True:
+        # func_mni_warp
+        func_mni_warp = pe.MapNode(interface=fsl.ApplyWarp(),
+                name='func_mni_fsl_warp_{0}_{1:d}'.format(output_name, num_strat),
+                iterfield=['in_file'],
+                mem_gb=1.5)
+    else:
+        # func_mni_warp
+        func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
+                name='func_mni_fsl_warp_{0}_{1:d}'.format(output_name, num_strat))
+
         
     func_mni_warp.inputs.interp = interpolation_method
 

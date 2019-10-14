@@ -905,7 +905,7 @@ def create_wf_apply_ants_warp(map_node=False, inverse=False,
     if map_node:
         apply_ants_warp = pe.MapNode(interface=ants.ApplyTransforms(),
                                      name='apply_ants_warp_mapnode',
-                                     iterfield=['input_image', 'transforms'],
+                                     iterfield=['input_image'],
                                      mem_gb=1.5)
     else:
         apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
