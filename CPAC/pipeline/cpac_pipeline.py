@@ -49,7 +49,6 @@ from CPAC.func_preproc.func_preproc import (
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
 from CPAC.warp.pipeline import (
-    output_to_standard,
     z_score_standardize,
     fisher_z_score_standardize,
     output_smooth,
@@ -76,10 +75,6 @@ from CPAC.timeseries import (
     get_voxel_timeseries,
     get_vertices_timeseries,
     get_spatial_map_timeseries
-)
-
-from CPAC.warp.pipeline import (
-    ants_apply_inverse_warps_template_to_func
 )
 
 from CPAC.vmhc.vmhc import create_vmhc
@@ -1975,9 +1970,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # ICA-AROMA de-noising in template space
 
                     for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_to_standard', 'leaf', 'ica_aroma_funcitonal_to_standard', 'func_4d'),
+                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type, image_type=image_type)
+                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type, image_type=image_type, distcor=blip)
 
                     aroma_preproc = create_aroma(tr=TR,
                                                  wf_name='create_aroma_%d'.format(num_strat))
@@ -1999,17 +1994,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             aroma_preproc, 'outputspec.aggr_denoised_file'
                         )
 
-                    ants_apply_inverse_warps_template_to_func(
-                        workflow, strat, num_strat, num_ants_cores, node,
-                        out_file, mean_func_node, mean_func_out_file,
-                        "ica_aroma_denoised_functional", "Linear", 3,
-                        distcor=blip
+                    strat.update_resource_pool({
+                        'ica_aroma_denoised_functional_standard': (node, out_file)
+                        }
                     )
 
-                    node, out_file = strat["ica_aroma_denoised_functional"]
-                    strat.set_leaf_properties(node, out_file)
-
-                    strat.append_name(aroma_preproc.name)
+                    for output_name, func_key, ref_key, image_type in [ \
+                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_standard', 'template_func_preproc', 'func_4d'),
+                    ]:
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type, image_type=image_type, distcor=blip, inverse=True)
 
         strat_list += new_strat_list
 
@@ -3094,20 +3087,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         for num_strat, strat in enumerate(strat_list):
 
             if 1 in c.runRegisterFuncToMNI:
+
                 rp = strat.get_resource_pool()
+
                 for key in sorted(rp.keys()):
-                    # connect nodes to apply warps to template
+
                     if key in Outputs.native_nonsmooth:
-                        # smoothing happens at the end, so only the non-smooth
-                        # named output labels for the native-space outputs
-                        strat = output_to_standard(
-                            workflow, key, strat, num_strat, c,
-                            distcor=blip)
+                        image_type = 'func_derivative'
+                        output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
+                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
+
                     elif key in Outputs.native_nonsmooth_mult:
-                        strat = output_to_standard(workflow, key, strat,
-                                                   num_strat, c,
-                                                   map_node=True,
-                                                   distcor=blip)
+                        image_type = 'func_derivative_mult'
+                        output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
+                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
 
             if "Before" in c.smoothing_order:
                 # run smoothing before Z-scoring
