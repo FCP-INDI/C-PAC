@@ -91,7 +91,8 @@ def ants_apply_warps_func_mni(
         template_brain_name='template_brain_for_func_preproc',
         input_image_type=0, 
         distcor=False,
-        map_node=False
+        map_node=False,
+        inverse=False
     ):
     """Apply the functional-to-structural and structural-to-template warps to
     the 4D functional time-series to warp it to template space.
@@ -134,6 +135,9 @@ def ants_apply_warps_func_mni(
         correction map exist in the resource pool
     """
 
+    inverse_string = ''
+    if inverse is True:
+        inverse_string = '_inverse'
 
     # make sure that resource pool has some required resources before proceeding
     if 'fsl_mat_as_itk' not in strat:
@@ -166,14 +170,15 @@ def ants_apply_warps_func_mni(
         strat.append_name(fsl_to_itk_func_mni.name)
 
     # stack of transforms to be combined to acheive the desired transformation
-    collect_transforms_key = 'collect_transforms_func_mni{0}'.format('_distcor' if distcor else '')
+    collect_transforms_key = 'collect_transforms_func_mni{0}{1}'.format('_distcor' if distcor else '', inverse_string)
 
     if collect_transforms_key not in strat:
 
         # collects series of warps to be applied
         collect_transforms_func_mni = \
             create_wf_collect_transforms(
-                name='collect_transforms_func_mni_{0}'.format(num_strat)
+                inverse=inverse,
+                name='collect_transforms_func_mni{0}_{1}'.format(inverse_string, num_strat)
             )
 
         # transforms to be concatenated, the first element of each tuple is the resource
@@ -186,7 +191,10 @@ def ants_apply_warps_func_mni(
                                  ('fsl_mat_as_itk', 'inputspec.fsl_to_itk_affine')]
 
         if distcor is True:
-            transforms_to_combine.append(('blip_warp', 'inputspec.distortion_unwarp'))
+            if inverse is True:
+                transforms_to_combine.append(('blip_warp_inverse', 'inputspec.distortion_unwarp'))
+            else:
+                transforms_to_combine.append(('blip_warp', 'inputspec.distortion_unwarp'))
 
         for transform_key, inputspec_port in transforms_to_combine:
 
@@ -204,8 +212,8 @@ def ants_apply_warps_func_mni(
 
     #### now we add in the apply ants warps node
     apply_ants_warp_func_mni = \
-        create_wf_apply_ants_warp(map_node, name='apply_ants_warp_{0}_{1}'.format(func_name, num_strat),
-                                  ants_threads=int(num_ants_cores))
+        create_wf_apply_ants_warp(map_node, name='apply_ants_warp_{0}{1}_{2}'.format(func_name, inverse_string, num_strat),
+                                  ants_threads=int(num_ants_cores), inverse=inverse)
 
     # input_image_type:
     # (0 or 1 or 2 or 3)
@@ -240,7 +248,7 @@ def ants_apply_warps_func_mni(
     return workflow
 
 def output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, pipeline_config_obj,
-                            map_node=False, input_image_type='derivative'):
+                            input_image_type='derivative', inverse=True):
 
     image_types = ['func_derivative', 'func_derivative_multi', 'func_4d', 'func_mask']
 
@@ -279,7 +287,8 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num
                             template_brain_name=ref_key,
                             input_image_type=image_type,
                             distcor=distcor,
-                            map_node=map_node
+                            map_node=map_node,
+                            inverse=inverse
                         )
 
     return strat
