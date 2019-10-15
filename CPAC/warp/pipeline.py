@@ -22,183 +22,49 @@ from CPAC.utils.utils import (
 
 # Apply warps, Z-scoring, Smoothing, Averages
 # use derivative
-def output_to_standard(workflow, output_name, strat, num_strat, pipeline_config_obj,
-                       map_node=False, input_image_type=0, distcor=False):
+def output_func_to_standard(workflow, func_key, ref_key, strat, num_strat, pipeline_config_obj,
+                            map_node=False, input_image_type='derivative', distcor=False):
+
+    image_types = ['derivative', 'derivative_multi', 'func4d', 'map']
+
+    if input_image_type not in image_types:
+        raise ValueError('Input image type {0} should be one of {1}'.format(input_image_type, ', '.join(image_types)))
 
     nodes = strat.get_nodes_names()
 
-    if 'apply_ants_warp_functional_to_standard' in nodes:
+    map_node = True if input_image_type == 'derivative_multi' or False
 
-        # ANTS WARP APPLICATION
+    output_name = '{0}_to_standard'.format(func_key)
 
-        # convert the func-to-anat linear warp from FSL FLIRT to
-        # ITK (ANTS) format
-        fsl_to_itk_convert = create_wf_c3d_fsl_to_itk(input_image_type,
-                                                      map_node,
-                                                      name='{0}_fsl_to_itk_{1}'.format(output_name, num_strat))
+    if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
 
-        # collect the list of warps into a single stack to feed into the
-        # ANTS warp apply tool
-        collect_transforms = create_wf_collect_transforms(map_node,
-                                                          name='{0}_collect_transforms_{1}'.format(output_name, num_strat))
-
-        # ANTS apply warp
-        apply_ants_warp = create_wf_apply_ants_warp(map_node,
-                                                    name='{0}_to_standard_{1}'.format(
-                                                        output_name, num_strat),
-                                                    ants_threads=int(pipeline_config_obj.num_ants_threads))
-
-        apply_ants_warp.inputs.inputspec.dimension = 3
-        apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
-
-        apply_ants_warp.inputs.inputspec.input_image_type = \
-            input_image_type
-
-        node, out_file = strat['template_brain_for_func_derivative'] 
-        workflow.connect(node, out_file, apply_ants_warp, 'inputspec.reference_image')
-
-        # affine from FLIRT func->anat linear registration
-        node, out_file = strat['functional_to_anat_linear_xfm']
-        workflow.connect(node, out_file, fsl_to_itk_convert,
-                            'inputspec.affine_file')
-
-        # reference used in FLIRT func->anat linear registration
-        node, out_file = strat['anatomical_brain']
-        workflow.connect(node, out_file, fsl_to_itk_convert,
-                            'inputspec.reference_file')
-
-        # output file to be converted
-        node, out_file = \
-            strat[output_name]
-        workflow.connect(node, out_file, fsl_to_itk_convert,
-                            'inputspec.source_file')
-
-        # nonlinear warp from anatomical->template ANTS registration
-        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
-        workflow.connect(node, out_file, collect_transforms,
-                            'inputspec.warp_file')
-
-        # linear initial from anatomical->template ANTS registration
-        node, out_file = strat['ants_initial_xfm']
-        workflow.connect(node, out_file, collect_transforms,
-                            'inputspec.linear_initial')
-
-        # linear affine from anatomical->template ANTS registration
-        node, out_file = strat['ants_affine_xfm']
-        workflow.connect(node, out_file, collect_transforms,
-                            'inputspec.linear_affine')
-
-        # rigid affine from anatomical->template ANTS registration
-        node, out_file = strat['ants_rigid_xfm']
-        workflow.connect(node, out_file, collect_transforms,
-                            'inputspec.linear_rigid')
-
-        # converted FLIRT func->anat affine, now in ITK (ANTS) format
-        workflow.connect(fsl_to_itk_convert,
-                            'outputspec.itk_transform',
-                            collect_transforms,
-                            'inputspec.fsl_to_itk_affine')
-
-        if distcor:
-            node, out_file = strat['blip_warp']
-            workflow.connect(node, out_file,
-                             collect_transforms,
-                             'inputspec.distortion_unwarp')
-
-        # output file to be converted
-        node, out_file = strat[output_name]
-        workflow.connect(node, out_file, apply_ants_warp,
-                            'inputspec.input_image')
-
-        # collection of warps to be applied to the output file
-        workflow.connect(collect_transforms,
-                            'outputspec.transformation_series',
-                            apply_ants_warp,
-                            'inputspec.transforms')
-
-        strat.update_resource_pool({
-            '{0}_to_standard'.format(output_name): (apply_ants_warp, 'outputspec.output_image')
-        })
-
-        strat.append_name(apply_ants_warp.name)
-
-        num_strat += 1
-
-    elif 'anat_mni_fnirt_register' in nodes:
-        # FSL WARP APPLICATION
-        if map_node:
-            apply_fsl_warp = pe.MapNode(interface=fsl.ApplyWarp(),
-                                        name='{0}_to_standard_{1}'.format(output_name, num_strat),
-                                        iterfield=['in_file'])
+        if input_image_type == 'map':
+            interp = 'nn'
         else:
-            apply_fsl_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                        name='{0}_to_standard_{1}'.format(output_name,
-                                                                        num_strat))
+            interp = pipeline_config_obj.funcRegFSLinterpolation
 
-        node, out_file = strat['template_skull_for_func_derivative'] 
-        workflow.connect(node, out_file, apply_fsl_warp, 'ref_file')
+        fsl_apply_transform_func_to_mni(workflow, output_name, func_key, ref_key, num_strat, strat, interp)
 
-        # output file to be warped
-        node, out_file = strat[output_name]
-        workflow.connect(node, out_file, apply_fsl_warp, 'in_file')
+    elif 'ANTS' in pipeline_config_obj.regOption:
 
-        # linear affine from func->anat linear FLIRT registration
-        node, out_file = strat['functional_to_anat_linear_xfm']
-        workflow.connect(node, out_file, apply_fsl_warp, 'premat')
-
-        # nonlinear warp from anatomical->template FNIRT registration
-        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
-        workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
-
-        strat.update_resource_pool({'{0}_to_standard'.format(output_name): (apply_fsl_warp, 'out_file')})
-        strat.append_name(apply_fsl_warp.name)
-
-    elif 'anat_mni_flirt_register' in nodes:
-        # FSL WARP APPLICATION
-        if map_node:
-            apply_anat_warp = pe.MapNode(interface=fsl.ApplyWarp(),
-                                         name='{0}_to_anat_{1}'.format(output_name, num_strat),
-                                        iterfield=['in_file'])
-            apply_fsl_warp = pe.MapNode(interface=fsl.ApplyWarp(),
-                                        name='{0}_to_standard_{1}'.format(output_name, num_strat),
-                                        iterfield=['in_file'])
+        if input_image_type == 'map':
+            interp = 'nn'
         else:
-            apply_anat_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                        name='{0}_to_anat_{1}'.format(output_name,
-                                                                        num_strat))
-            apply_fsl_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                        name='{0}_to_standard_{1}'.format(output_name,
-                                                                        num_strat))
+            interp = pipeline_config_obj.funcRegANTSinterpolation
 
-        node, out_file = strat['anatomical_brain']
-        workflow.connect(node, out_file, apply_anat_warp, 'ref_file')
-        # apply_fsl_warp.inputs.ref_file = \
-        #     pipeline_config_obj.template_skull_for_func
+        image_type = 1 if input_image_type == 'func4d' else 0
 
-        #
-        node, out_file = strat['template_skull_for_func_derivative'] 
-        workflow.connect(node, out_file, apply_fsl_warp, 'ref_file')
-
-        # output file to be warped
-        node, out_file = strat[output_name]
-        workflow.connect(node, out_file, apply_anat_warp, 'in_file')
-
-        # linear affine from func->anat linear FLIRT registration
-        node, out_file = strat['functional_to_anat_linear_xfm']
-        workflow.connect(node, out_file, apply_anat_warp, 'premat')
-
-        # output file to be warped
-        workflow.connect(apply_anat_warp, 'out_file', apply_fsl_warp, 'in_file')
-
-        # nonlinear warp from anatomical->template FNIRT registration
-        node, out_file = strat['anatomical_to_mni_linear_xfm']
-        workflow.connect(node, out_file, apply_fsl_warp, 'premat')
-
-        strat.update_resource_pool({'{0}_to_standard'.format(output_name): (apply_fsl_warp, 'out_file')})
-        strat.append_name(apply_fsl_warp.name)
+        ants_apply_warps_func_mni(workflow, strat, num_strat, 
+                            pipeline_config_obj.num_ants_cores,
+                            func_key, 'mean_functional', output_name,
+                            interp=interp,
+                            template_brain_name=ref_key,
+                            input_image_type=image_type,
+                            distcor=distcor,
+                            map_node=map_node
+                        )
 
     return strat
-
 
 def z_score_standardize(workflow, output_name, mask_name,
                         strat, num_strat, map_node=False):

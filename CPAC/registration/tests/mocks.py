@@ -16,6 +16,7 @@ def configuration_strategy_mock( method = 'FSL' ):
 
     # mock the config dictionary
     c = Configuration({
+        "num_ants_threads": 4,
         "workingDirectory": "/scratch/pipeline_tests",
         "crashLogDirectory": "/scratch",
         "outputDirectory": "/output/output/pipeline_analysis_nuisance/sub-M10978008_ses-NFB3",
@@ -29,10 +30,13 @@ def configuration_strategy_mock( method = 'FSL' ):
         "funcRegANTSinterpolation": "LanczosWindowedSinc"
     })
 
+    if method == 'ANTS':
+        c.update('regOption', 'ANTS')
+    else:
+        c.update('regOption', 'FSL')
+
     # mock the strategy
     strat = Strategy()
-
-    strat.append_name('anat_mni_fnirt_register_0')
 
     resource_dict = {
             "mean_functional": os.path.join(c.outputDirectory,
@@ -47,6 +51,8 @@ def configuration_strategy_mock( method = 'FSL' ):
                 "ants_affine_xfm/transform2Affine.mat"),
             "ants_rigid_xfm": os.path.join(c.outputDirectory,
                 "ants_rigid_xfm/transform1Rigid.mat"),
+            "anatomical_to_mni_linear_xfm": os.path.join(c.outputDirectory,
+                "anatomical_to_mni_linear_xfm/sub-M10978008_ses-NFB3_T1w_resample_calc_flirt.mat"),
             "functional_to_anat_linear_xfm": os.path.join(c.outputDirectory,
                 "functional_to_anat_linear_xfm/_scan_test/sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_flirt.mat"),
             "dr_tempreg_maps_files": [os.path.join(c.outputDirectory,'dr_tempreg_maps_files_to_standard_smooth/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mmE-DPC5_G-M_M-SDB_P-2/_spatial_map_PNAS_Smith09_rsn10_spatial_map_file_..cpac_templates..PNAS_Smith09_rsn10.nii.gz/_fwhm_4/_dr_tempreg_maps_files_to_standard_smooth_0{0}/temp_reg_map_000{0}_antswarp_maths.nii.gz'.format(n)) for n in range(10)]
