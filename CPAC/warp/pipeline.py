@@ -6,10 +6,7 @@ from nipype.interfaces.afni import preprocess
 from CPAC.registration import create_fsl_fnirt_nonlinear_reg, \
     create_register_func_to_anat, \
     create_bbregister_func_to_anat, \
-    create_wf_calculate_ants_warp, \
-    create_wf_apply_ants_warp, \
-    create_wf_c3d_fsl_to_itk, \
-    create_wf_collect_transforms
+    create_wf_calculate_ants_warp
 
 from CPAC.utils import Configuration, function, find_files
 from CPAC.utils.utils import (
