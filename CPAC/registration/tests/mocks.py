@@ -55,7 +55,7 @@ def configuration_strategy_mock( method = 'FSL' ):
                 "anatomical_to_mni_linear_xfm/sub-M10978008_ses-NFB3_T1w_resample_calc_flirt.mat"),
             "functional_to_anat_linear_xfm": os.path.join(c.outputDirectory,
                 "functional_to_anat_linear_xfm/_scan_test/sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_flirt.mat"),
-            "dr_tempreg_maps_files": [os.path.join(c.outputDirectory,'dr_tempreg_maps_files_to_standard_smooth/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mmE-DPC5_G-M_M-SDB_P-2/_spatial_map_PNAS_Smith09_rsn10_spatial_map_file_..cpac_templates..PNAS_Smith09_rsn10.nii.gz/_fwhm_4/_dr_tempreg_maps_files_to_standard_smooth_0{0}/temp_reg_map_000{0}_antswarp_maths.nii.gz'.format(n)) for n in range(10)]
+            "dr_tempreg_maps_files": [os.path.join('/scratch', 'resting_preproc_sub-M10978008_ses-NFB3_cpac105', 'temporal_dual_regression_0/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mmE-DPC5_G-M_M-SDB_P-2/_spatial_map_PNAS_Smith09_rsn10_spatial_map_file_..cpac_templates..PNAS_Smith09_rsn10.nii.gz/split_raw_volumes/temp_reg_map_000{0}.nii.gz'.format(n)) for n in range(10)]
     }
 
     if method == 'ANTS':
@@ -67,10 +67,10 @@ def configuration_strategy_mock( method = 'FSL' ):
    
     file_node_num = 0
     for resource, filepath in resource_dict.items():
-        print('resource: {0}, filename: {1}'.format(resource, filepath))
         strat.update_resource_pool({
             resource: file_node(filepath, file_node_num)
         })
+        strat.append_name(resource+'_0')
         file_node_num += 1
 
     templates_for_resampling = [
@@ -93,5 +93,6 @@ def configuration_strategy_mock( method = 'FSL' ):
         resampled_template.inputs.tag = tag
 
         strat.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
+        strat.append_name('resampled_template_0')
 
     return c, strat
