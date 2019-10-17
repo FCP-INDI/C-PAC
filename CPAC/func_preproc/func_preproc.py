@@ -20,7 +20,7 @@ def collect_arguments(*args):
     return ' '.join(command_args)
 
 
-def skullstrip_functional(tool='afni', anatomcial_mask_dilation=False, wf_name='skullstrip_functional'):
+def skullstrip_functional(tool='afni', anatomical_mask_dilation=False, wf_name='skullstrip_functional'):
 
     tool = tool.lower()
     if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni' and tool != 'anatomical_refined':
@@ -129,8 +129,8 @@ def skullstrip_functional(tool='afni', anatomcial_mask_dilation=False, wf_name='
         linear_trans_mask_anat_to_func.inputs.interp = 'nearestneighbour'
 
 
-        # Dialate anatomical mask, if 'anatomcial_mask_dilation : True' in config file
-        if anatomcial_mask_dilation :
+        # Dialate anatomical mask, if 'anatomical_mask_dilation : True' in config file
+        if anatomical_mask_dilation :
             anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
                             name='anat_mask_dilate')
             anat_mask_dilate.inputs.dilate_inputs = '1'
@@ -264,7 +264,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(tool, anatomcial_mask_dilation=False, wf_name='func_preproc'):
+def create_func_preproc(tool, anatomical_mask_dilation=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -562,7 +562,7 @@ def create_func_preproc(tool, anatomcial_mask_dilation=False, wf_name='func_prep
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     output_node, 'oned_matrix_save')
 
-    skullstrip_func = skullstrip_functional(tool, anatomcial_mask_dilation, 
+    skullstrip_func = skullstrip_functional(tool, anatomical_mask_dilation, 
                                             "{0}_skullstrip".format(wf_name))
     preproc.connect(input_node, 'anatomical_brain_mask',
                     skullstrip_func, 'inputspec.anatomical_brain_mask')

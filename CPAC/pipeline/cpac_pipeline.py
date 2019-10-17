@@ -1464,7 +1464,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 func_preproc = create_func_preproc(
                     tool=tool,
-                    anatomcial_mask_dilation=c.anatomcial_mask_dilation,
+                    anatomical_mask_dilation=c.anatomical_mask_dilation,
                     wf_name='func_preproc_%s_%d' % (tool, num_strat)
                 )
                 node, out_file = new_strat.get_leaf_properties()
