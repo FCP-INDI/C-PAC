@@ -265,7 +265,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(tool, anatomical_mask_dilation=False, wf_name='func_preproc'):
+def create_func_preproc(tool, n4_correction, anatomical_mask_dilation=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented

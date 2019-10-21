@@ -1464,6 +1464,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 func_preproc = create_func_preproc(
                     tool=tool,
+                    n4_correction=c.n4_correct_mean_EPI,
                     anatomical_mask_dilation=c.anatomical_mask_dilation,
                     wf_name='func_preproc_%s_%d' % (tool, num_strat)
                 )
