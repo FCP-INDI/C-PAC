@@ -122,7 +122,9 @@ class Strategy(object):
                 if 'fsl' in fork:
                     fork_label = 'func-bet'
                 if 'fsl_afni' in fork:
-                    fork_label = 'func-bet-3dautomask'    
+                    fork_label = 'func-bet-3dautomask' 
+                if 'anat_refined' in fork:
+                    fork_label = 'func-anat-refined'   
                 if 'epi_distcorr' in fork:
                     fork_label = 'dist-corr'
                 if 'bbreg' in fork:
@@ -145,6 +147,10 @@ class Strategy(object):
                     fork_label = 'anat-afni'
                 if 'anat_preproc_bet' in fork:
                     fork_label = 'anat-bet'
+                if 'anat_preproc_ants' in fork:
+                    fork_label = 'anat-ants'
+                if 'anat_preproc_unet' in fork:
+                    fork_label = 'anat-unet'
 
                 fork_name += [fork_label]
 

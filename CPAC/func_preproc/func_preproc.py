@@ -199,7 +199,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(skullstrip_tool, motion_correct_tool, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, motion_correct_tool, run_despike=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -404,12 +404,12 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, wf_name='func_prep
                                                          'max_displacement',
                                                          'mask',
                                                          'skullstrip',
+                                                         'func_despiked',
                                                          'func_mean',
                                                          'preprocessed',
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
-                                                         'oned_matrix_save']),
-
+                                                         'transform_matrices']),
                           name='outputspec')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
@@ -486,7 +486,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, wf_name='func_prep
         preproc.connect(func_motion_correct_A, 'oned_file',
                         output_node, 'movement_parameters')
         preproc.connect(func_motion_correct_A, 'oned_matrix_save',
-                        output_node, 'oned_matrix_save')
+                        output_node, 'transform_matrices')
 
         skullstrip_func = skullstrip_functional(skullstrip_tool,
                                                 "{0}_skullstrip".format(wf_name))
@@ -495,40 +495,62 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, wf_name='func_prep
                         skullstrip_func, 'inputspec.func')
 
     elif motion_correct_tool == 'fsl':
+
         func_motion_correct = pe.Node(interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
                                     name='func_motion_correct_mcflirt')
-        func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
+        func_motion_correct.inputs.output_type = 'NIFTI_GZ'
+
+        preproc.connect(func_get_mean_RPI, 'out_file',
+                    func_motion_correct, 'in_file') 
+
+        func_get_mean_motion = func_get_mean_RPI.clone('func_get_mean_motion')
+        preproc.connect(func_motion_correct, 'out_file',
+                        func_get_mean_motion, 'in_file')
+
+        preproc.connect(func_get_mean_motion, 'out_file',
+                        output_node, 'motion_correct_ref')
+
+        func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
 
         preproc.connect(func_reorient, 'out_file',
-                        func_motion_correct, 'in_file')
+                        func_motion_correct_A, 'in_file')
+
+        preproc.connect(func_get_mean_motion, 'out_file',
+                        func_motion_correct_A, 'ref_file')
         
-        fsl2itk = pe.Node(MCFLIRT2ITK(), name='fsl2itk')
+        skullstrip_func = skullstrip_functional(skullstrip_tool,
+                                                "{0}_skullstrip".format(wf_name))
 
-        func_motion_normalize = pe.Node(NormalizeMotionParams(format='FSL'),
-                                name="func_motion_normalize")
+        preproc.connect(func_motion_correct, 'out_file',
+                        skullstrip_func, 'inputspec.func')
+        
+        # TODO check!!
+        preproc.connect(func_motion_correct, 'par_file',
+                        output_node, 'movement_parameters')
 
-        preproc.connect(func_reorient, 'out_file',
-                        func_motion_correct, 'in_file')
+        preproc.connect(func_motion_correct, 'mat_file',
+                        output_node, 'transform_matrices')
 
-        preproc.connect(func_reorient, 'out_file',
-                        fsl2itk, 'in_source')
+        preproc.connect(func_motion_correct, 'rms_files', # absolute and relative displacement, not max
+                        output_node, 'max_displacement')
 
-        preproc.connect(func_reorient, 'out_file',
-                        fsl2itk, 'in_reference')
+        # fsl2itk = pe.Node(MCFLIRT2ITK(), name='fsl2itk')
 
-        preproc.connect([
-            (inputnode, mcflirt, [('raw_ref_image', 'ref_file'),
-                                ('bold_file', 'in_file')]),
-            (inputnode, fsl2itk, [('raw_ref_image', 'in_source'),
-                                ('raw_ref_image', 'in_reference')]),
-            (mcflirt, fsl2itk, [('mat_file', 'in_files')]),
-            (mcflirt, func_motion_normalize, [('par_file', 'in_file')]),
-            (fsl2itk, outputnode, [('out_file', 'xforms')]),
-            (func_motion_normalize, outputnode, [('out_file', 'movpar_file')]),
+        # func_motion_normalize = pe.Node(NormalizeMotionParams(format='FSL'),
+        #                         name="func_motion_normalize")
 
+        # preproc.connect(func_reorient, 'out_file',
+        #                 func_motion_correct, 'in_file')
+
+        # preproc.connect(func_reorient, 'out_file',
+        #                 fsl2itk, 'in_source')
+
+        # preproc.connect(func_reorient, 'out_file',
+        #                 fsl2itk, 'in_reference')
 
     preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     output_node, 'skullstrip')
+
     preproc.connect(skullstrip_func, 'outputspec.func_brain_mask',
                     output_node, 'mask')
 
@@ -538,8 +560,22 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, wf_name='func_prep
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect(skullstrip_func, 'outputspec.func_brain',
-                    func_mean, 'in_file')
+    if run_despike:
+        despike = pe.Node(interface=preprocess.Despike(), 
+                        name='func_despike')
+        despike.inputs.outputtype = 'NIFTI_GZ' 
+
+        preproc.connect(skullstrip_func, 'outputspec.func_brain',
+                        despike, 'in_file')
+
+        preproc.connect(despike, 'out_file',
+                        func_mean, 'in_file')
+
+        preproc.connect(despike, 'out_file',
+                        output_node, 'func_despiked')
+    else: 
+        preproc.connect(skullstrip_func, 'outputspec.func_brain', 
+                        func_mean, 'in_file')
 
     preproc.connect(func_mean, 'out_file',
                     output_node, 'func_mean')
@@ -651,8 +687,6 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 
     """
 
-    # stopidx = None
-    # startidx = None
     # Import packages
     from nibabel import load
 
@@ -688,37 +722,70 @@ def connect_func_preproc(workflow, strat_list, c):
 
     for num_strat, strat in enumerate(strat_list):
        
-        for skullstrip_tool in c.functionalMasking:
+        for motion_correct_tool in c.motion_correction:
 
-            skullstrip_tool = skullstrip_tool.lower()
+            for skullstrip_tool in c.functionalMasking:
+                
+                motion_correct_tool = motion_correct_tool.lower()
+                skullstrip_tool = skullstrip_tool.lower()
+                
+                for motion_stat in c.runMotionStatistics:
 
-            new_strat = strat.fork()
+                    for despike in c.run_despike:
 
-            func_preproc = create_func_preproc(
-                skullstrip_tool=skullstrip_tool,
-                wf_name='func_preproc_%s_%d' % (skullstrip_tool, num_strat)
-            )
-            node, out_file = new_strat.get_leaf_properties()
-            workflow.connect(node, out_file, func_preproc,
-                            'inputspec.func')
+                        if despike == 1:
+                            new_strat = strat.fork()
+
+                            func_preproc = create_func_preproc(
+                                skullstrip_tool=skullstrip_tool,
+                                motion_correct_tool=motion_correct_tool,
+                                run_despike=True,
+                                wf_name='func_preproc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
+                            )
+                        else:
+                            new_strat = strat.fork()
+
+                            func_preproc = create_func_preproc(
+                                skullstrip_tool=skullstrip_tool,
+                                motion_correct_tool=motion_correct_tool,
+                                wf_name='func_preproc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
+                            )
+
+                        node, out_file = new_strat.get_leaf_properties()
+                        workflow.connect(node, out_file, func_preproc,
+                                        'inputspec.func')
+                                    
+                        func_preproc.inputs.inputspec.twopass = \
+                            getattr(c, 'functional_volreg_twopass', True)
+
+                        new_strat.append_name(func_preproc.name)
+                        new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+
+                        if motion_stat == 0:
+
+                            new_strat.update_resource_pool({
+                                'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+                                'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+                                'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+                                'functional_despiked': (func_preproc, 'outputspec.func_despiked'),
+                                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                                'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+                                'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
+                            })
                         
-            func_preproc.inputs.inputspec.twopass = \
-                getattr(c, 'functional_volreg_twopass', True)
+                        elif motion_stat == 1:
 
-            new_strat.append_name(func_preproc.name)
-            new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+                            new_strat.update_resource_pool({
+                                'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),                              
+                                'functional_despiked': (func_preproc, 'outputspec.func_despiked'),
+                                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                                'motion_correct': (func_preproc, 'outputspec.motion_correct'),                                
+                            })
 
-            new_strat.update_resource_pool({
-                'mean_functional': (func_preproc, 'outputspec.func_mean'),
-                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
-            })
-
-            new_strat_list.append(new_strat)
+                        new_strat_list.append(new_strat)
 
     return workflow, new_strat_list

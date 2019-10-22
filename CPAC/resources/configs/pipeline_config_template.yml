@@ -127,7 +127,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants']
+# Options: ['AFNI', 'BET', 'niworkflows-ants']
 skullstrip_option :  ['AFNI']
 
 
@@ -390,7 +390,7 @@ runFunctional: [1]
 
 
 # run motion statistics before slice timing correction
-runMotionStatistics : [1]
+runMotionStatistics : [0]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.
@@ -518,6 +518,10 @@ motion_correction : ['AFNI']
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
 # Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
+
+
+# Run AFNI 3dDespike after motion correction
+run_despike : [1]
 
 
 # Register functional images to a standard MNI152 template.
