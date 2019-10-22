@@ -14,7 +14,7 @@ from CPAC.registration import create_wf_calculate_ants_warp, \
                               create_wf_collect_transforms, \
                               create_wf_apply_ants_warp
 
-def create_vmhc(use_ants, flirt_only=False, name='vmhc_workflow', ants_threads=1):
+def create_vmhc(num_strat, strat, pipeline_config, flirt_only=False, name='vmhc_workflow', ants_threads=1):
 
     """
     Compute the map of brain functional homotopy, the high degree of synchrony in spontaneous activity between geometrically corresponding interhemispheric (i.e., homotopic) regions.
@@ -232,6 +232,8 @@ def create_vmhc(use_ants, flirt_only=False, name='vmhc_workflow', ants_threads=1
 
     vmhc = pe.Workflow(name=name)
 
+    nodes = strat.get_nodes_names()
+
     inputNode = pe.Node(util.IdentityInterface(fields=['rest_res',
                                                 'example_func2highres_mat',
                                                 'rest_mask',
@@ -260,17 +262,6 @@ def create_vmhc(use_ants, flirt_only=False, name='vmhc_workflow', ants_threads=1
         func_to_standard = pe.Node(interface=fsl.ApplyWarp(),
                                    name='func_to_standard')
 
-    elif use_ants == True:
-        # ANTS warp image etc.
-        fsl_to_itk_vmhc = create_wf_c3d_fsl_to_itk(0, name='fsl_to_itk_vmhc')
-
-        collect_transforms_vmhc = create_wf_collect_transforms(0, name='collect_transforms_vmhc')
-
-        apply_ants_xfm_vmhc = create_wf_apply_ants_warp(map_node=False, name='apply_ants_xfm_vmhc',
-                                                        ants_threads=ants_threads)
-
-        # this has to be 3 instead of default 0 because it is a 4D file
-        apply_ants_xfm_vmhc.inputs.inputspec.input_image_type = 3
 
     # copy and L/R swap file
     copy_and_L_R_swap = pe.Node(interface=fsl.SwapDimensions(),
@@ -309,7 +300,8 @@ def create_vmhc(use_ants, flirt_only=False, name='vmhc_workflow', ants_threads=1
     smooth = pe.Node(interface=fsl.MultiImageMaths(),
                         name='smooth')
 
-    if use_ants == False:
+    if 'func_mni_fsl_warp' in nodes:
+
         vmhc.connect(inputNode, 'rest_res',
                      smooth, 'in_file')
         vmhc.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -341,53 +333,38 @@ def create_vmhc(use_ants, flirt_only=False, name='vmhc_workflow', ants_threads=1
         vmhc.connect(func_to_standard, 'out_file',
                      pearson_correlation, 'xset')
 
-    elif use_ants == True:
+    elif 'ANTS' in pipeline_config.regOption and \
+                    'anat_mni_flirt_register' not in nodes and \
+                    'anat_mni_fnirt_register' not in nodes and \
+                    'anat_symmetric_mni_flirt_register' not in nodes and \
+                    'anat_symmetric_mni_fnirt_register' not in nodes:
+
         # connections for ANTS stuff
 
         # functional apply warp stuff
         vmhc.connect(inputNode, 'rest_res',
                      smooth, 'in_file')
+
         vmhc.connect(inputnode_fwhm, ('fwhm', set_gauss),
                      smooth, 'op_string')
+
         vmhc.connect(inputNode, 'rest_mask',
                      smooth, 'operand_files')
 
         vmhc.connect(smooth, 'out_file',
                      apply_ants_xfm_vmhc, 'inputspec.input_image')
 
-        vmhc.connect(inputNode, 'ants_symm_initial_xfm',
-                     collect_transforms_vmhc, 'inputspec.linear_initial')
+        ants_apply_warps_func_mni(vmhc,
+            'func_preproc_symm_mni',
+            (smooth, 'out_file'),
+            'template_skull_for_func_preproc',
+            num_strat, strat,
+            symmetry='symmetric',
+            input_image_type=3,
+            num_ants_cores=pipeline_config.num_ants_threads)
 
-        vmhc.connect(inputNode, 'ants_symm_rigid_xfm',
-                     collect_transforms_vmhc, 'inputspec.linear_rigid')
-
-        vmhc.connect(inputNode, 'ants_symm_affine_xfm',
-                     collect_transforms_vmhc, 'inputspec.linear_affine')
-
-        vmhc.connect(inputNode, 'ants_symm_warp_field',
-                     collect_transforms_vmhc, 'inputspec.warp_file')
-
-        # func->anat matrix (bbreg)
-        vmhc.connect(inputNode, 'example_func2highres_mat',
-                     fsl_to_itk_vmhc, 'inputspec.affine_file')
-
-        vmhc.connect(inputNode, 'brain', fsl_to_itk_vmhc,
-                     'inputspec.reference_file')
-
-        vmhc.connect(inputNode, 'mean_functional', fsl_to_itk_vmhc,
-                     'inputspec.source_file')
-
-        vmhc.connect(fsl_to_itk_vmhc, 'outputspec.itk_transform', 
-                     collect_transforms_vmhc, 'inputspec.fsl_to_itk_affine')
-
-        vmhc.connect(inputNode, 'standard_for_func',
-                     apply_ants_xfm_vmhc, 'inputspec.reference_image')
-
-        vmhc.connect(collect_transforms_vmhc,
-                     'outputspec.transformation_series',
-                     apply_ants_xfm_vmhc, 'inputspec.transforms')
-
-        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
+        node, ofile = strat['func_preproc_symm_mni']
+        vmhc.connect(node, ofile,
                      copy_and_L_R_swap, 'in_file')
 
         vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
