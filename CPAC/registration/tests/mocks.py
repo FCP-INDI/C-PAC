@@ -55,6 +55,14 @@ def configuration_strategy_mock( method = 'FSL' ):
                 "anatomical_to_mni_linear_xfm/sub-M10978008_ses-NFB3_T1w_resample_calc_flirt.mat"),
             "functional_to_anat_linear_xfm": os.path.join(c.outputDirectory,
                 "functional_to_anat_linear_xfm/_scan_test/sub-M10978008_ses-NFB3_task-test_bold_calc_tshift_resample_volreg_calc_tstat_flirt.mat"),
+            'ants_symm_warp_field': os.path.join(c.outputDirectory,
+                "anatomical_to_symmetric_mni_nonlinear_xfm/transform3Warp.nii.gz"),
+            'ants_symm_affine_xfm': os.path.join(c.outputDirectory,
+                "ants_symmetric_affine_xfm/transform2Affine.mat"),
+            'ants_symm_rigid_xfm': os.path.join(c.outputDirectory,
+                "ants_symmetric_rigid_xfm/transform1Rigid.mat"),
+            'ants_symm_initial_xfm': os.path.join(c.outputDirectory,
+                "ants_symmetric_initial_xfm/transform0DerivedInitialMovingTranslation.mat"),
             "dr_tempreg_maps_files": [os.path.join('/scratch', 'resting_preproc_sub-M10978008_ses-NFB3_cpac105', 'temporal_dual_regression_0/_scan_test/_selector_CSF-2mmE-M_aC-WM-2mmE-DPC5_G-M_M-SDB_P-2/_spatial_map_PNAS_Smith09_rsn10_spatial_map_file_..cpac_templates..PNAS_Smith09_rsn10.nii.gz/split_raw_volumes/temp_reg_map_000{0}.nii.gz'.format(n)) for n in range(10)]
     }
 
