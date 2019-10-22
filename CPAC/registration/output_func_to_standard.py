@@ -106,6 +106,7 @@ def ants_apply_warps_func_mni(
         distcor=False,
         map_node=False,
         inverse=False,
+        symmetry='asymmetric',
         input_image_type=0,
         num_ants_cores=1
     ):
@@ -263,6 +264,28 @@ def ants_apply_warps_func_mni(
 
     if collect_transforms_key not in strat:
 
+        # handle both symmetric and asymmetric transforms
+        ants_transformation_dict =  {
+                'asymmetric': {
+                    'anatomical_to_mni_nonlinear_xfm': 'anatomical_to_mni_nonlinear_xfm',
+                    'ants_affine_xfm': 'ants_affine_xfm',
+                    'ants_rigid_xfm': 'ants_rigid_xfm',
+                    'ants_initial_xfm': 'ants_initial_xfm',
+                    'blip_warp': 'blip_warp',
+                    'blip_warp_inverse': 'blip_warp_inverse',
+                    'fsl_mat_as_itk': 'fsl_mat_as_itk',
+                    },
+                 'symmetric': {
+                    'anatomical_to_mni_nonlinear_xfm': 'ants_symm_warp_field',
+                    'ants_affine_xfm': 'ants_symm_affine_xfm',
+                    'ants_rigid_xfm': 'ants_symm_rigid_xfm',
+                    'ants_initial_xfm': 'ants_symm_initial_xfm',
+                    'blip_warp': 'blip_warp',
+                    'blip_warp_inverse': 'blip_warp_inverse',
+                    'fsl_mat_as_itk': 'fsl_mat_as_itk',
+                     }
+                }
+
         # transforms to be concatenated, the first element of each tuple is
         # the resource pool key related to the resource that should be 
         # connected in, and the second element is the input to which it 
@@ -301,7 +324,7 @@ def ants_apply_warps_func_mni(
 
         # wire in the various tranformations
         for transform_key, input_port in transforms_to_combine:
-             node, out_file = strat[transform_key]
+             node, out_file = strat[ants_transformation_dict[symmetry][transform_key]]
              workflow.connect(node, out_file,
                  collect_transforms, input_port)
 
