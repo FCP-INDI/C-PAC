@@ -8,6 +8,7 @@ from utils import check_if_file_is_empty,\
                   pick_wm_class_0,\
                   pick_wm_class_1,\
                   pick_wm_class_2,\
+                  mask_erosion,\
                   erosion
 
 # List all functions
@@ -20,4 +21,5 @@ __all__ = ['create_seg_preproc',
            'pick_wm_class_0',
            'pick_wm_class_1',
            'pick_wm_class_2',
+           'mask_erosion',
            'erosion']

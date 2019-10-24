@@ -59,7 +59,7 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
 
 
 # cosine_filter adapted from nipype 'https://github.com/nipy/nipype/blob/d353f0d879826031334b09d33e9443b8c9b3e7fe/nipype/algorithms/confounds.py'
-def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=False, axis=-1, failure_mode='error'):
+def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, axis=-1, failure_mode='error'):
     """
     input_image_path: string
             Bold image to be filtered.
