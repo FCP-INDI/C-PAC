@@ -374,18 +374,6 @@ def extract_txt(list_timeseries):
 
     return out_file
 
-
-def set_gauss(fwhm):
-    fwhm = float(fwhm)
-
-    sigma = float(fwhm / 2.3548)
-
-    op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
-    op_string = op
-
-    return op_string
-
-
 def zscore(data, axis):
     data = data.copy()
     data -= data.mean(axis=axis, keepdims=True)
