@@ -2331,87 +2331,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             for num_strat, strat in enumerate(strat_list):
 
-                nodes = strat.get_nodes_names()
-
-                if 'func_mni_fsl_warp' in nodes:
-                    if 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' in nodes:
-                        vmhc = create_vmhc(False, True, 'vmhc_%d' % num_strat)
-                    elif 'anat_mni_fnirt_register' in nodes:
-                        vmhc = create_vmhc(False, False, 'vmhc_%d' % num_strat)
-                else:
-                    vmhc = create_vmhc(True, False, 'vmhc_%d' % num_strat,
-                                       int(num_ants_cores))
-
-                # vmhc.inputs.inputspec.standard_for_func = c.template_skull_for_func 
-                vmhc.inputs.fwhm_input.fwhm = c.fwhm
-                vmhc.get_node('fwhm_input').iterables = ('fwhm', c.fwhm)
-
-                node, out_file = strat['template_skull_for_func_preproc']
-                workflow.connect(node, out_file, 
-                                vmhc, 'inputspec.standard_for_func')
-
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file,
-                                vmhc, 'inputspec.rest_res')
-
-                node, out_file = strat['functional_to_anat_linear_xfm']
-                workflow.connect(node, out_file,
-                                vmhc, 'inputspec.example_func2highres_mat')
-
-                node, out_file = strat['functional_brain_mask']
-                workflow.connect(node, out_file,
-                                vmhc, 'inputspec.rest_mask')
-
-                node, out_file = strat['mean_functional']
-                workflow.connect(node, out_file,
-                                vmhc, 'inputspec.mean_functional')
-
-                node, out_file = strat['anatomical_brain']
-                workflow.connect(node, out_file,
-                                vmhc, 'inputspec.brain')
-
-                # TODO ASH normalize w schema val
-                if 'ANTS' in c.regOption and \
-                    'anat_mni_flirt_register' not in nodes and \
-                    'anat_mni_fnirt_register' not in nodes and \
-                    'anat_symmetric_mni_flirt_register' not in nodes and \
-                    'anat_symmetric_mni_fnirt_register' not in nodes:
-
-                    node, out_file = strat['ants_symmetric_initial_xfm']
-                    workflow.connect(node, out_file,
-                                    vmhc, 'inputspec.ants_symm_initial_xfm')
-
-                    node, out_file = strat['ants_symmetric_rigid_xfm']
-                    workflow.connect(node, out_file,
-                                    vmhc, 'inputspec.ants_symm_rigid_xfm')
-
-                    node, out_file = strat['ants_symmetric_affine_xfm']
-                    workflow.connect(node, out_file,
-                                    vmhc, 'inputspec.ants_symm_affine_xfm')
-
-                    node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
-                    workflow.connect(node, out_file,
-                                    vmhc, 'inputspec.ants_symm_warp_field')
-
-                else:
-                    if 'anat_mni_fnirt_register' in nodes:
-                        node, out_file = strat['anatomical_to_symmetric_mni_nonlinear_xfm']
-                        workflow.connect(node, out_file,
-                                         vmhc, 'inputspec.fnirt_nonlinear_warp')
-                    elif 'anat_mni_flirt_register' in nodes:
-                        node, out_file = strat[
-                            'anatomical_to_symmetric_mni_linear_xfm']
-                        workflow.connect(node, out_file,
-                                         vmhc,
-                                         'inputspec.flirt_linear_aff')
-
-                strat.update_resource_pool({
-                    'vmhc_raw_score': (vmhc, 'outputspec.VMHC_FWHM_img'),
-                    'vmhc_fisher_zstd': (vmhc, 'outputspec.VMHC_Z_FWHM_img'),
-                    'vmhc_fisher_zstd_zstat_map': (vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')
-                })
-
-                strat.append_name(vmhc.name)
+                create_vmhc(workflow, num_strat, strat, pipeline_config,
+                        output_name='vmhc_{0}'.format(num_strat))
 
         strat_list += new_strat_list
 
@@ -3103,37 +3024,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
 
             if "Before" in c.smoothing_order:
+
                 # run smoothing before Z-scoring
                 if 1 in c.run_smoothing:
                     rp = strat.get_resource_pool()
                     for key in sorted(rp.keys()):
-                        # connect nodes for smoothing
-                        if "centrality" in key:
-                            # centrality needs its own mask
-                            strat = output_smooth(workflow, key,
-                                                c.templateSpecificationFile, c.fwhm,
-                                                strat, num_strat, map_node=True)
-                        elif key in Outputs.native_nonsmooth:
-                            # native space
-                            strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
-                                                strat, num_strat)
-                        elif key in Outputs.native_nonsmooth_mult:
-                            # native space with multiple files (map nodes)
-                            strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
-                                                strat, num_strat, map_node=True)
-                        elif key in Outputs.template_nonsmooth:
-                            # template space
-                            strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard_derivative", c.fwhm, # TODO: _derivative
-                                                strat, num_strat)
-                        elif key in Outputs.template_nonsmooth_mult:
-                            # template space with multiple files (map nodes)
-                            strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard_derivative", c.fwhm, # TODO: _derivative
-                                                strat, num_strat, map_node=True)
+                        spatial_smooth_outputs(workflow, key, strat, num_strat, c)
 
                 if 1 in c.runZScoring:
                     rp = strat.get_resource_pool()
+
                     for key in sorted(rp.keys()):
                         # connect nodes for z-score standardization
                         if "sca_roi_files_to_standard" in key:
@@ -3192,32 +3092,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                         map_node=True)
 
                 if 1 in c.run_smoothing:
+
                     rp = strat.get_resource_pool()
+
                     for key in sorted(rp.keys()):
-                        # connect nodes for smoothing
-                        if "centrality" in key:
-                            # centrality needs its own mask
-                            strat = output_smooth(workflow, key,
-                                                c.templateSpecificationFile, c.fwhm,
-                                                strat, num_strat, map_node=True)
-                        elif key in Outputs.native_nonsmooth:
-                            # native space
-                            strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
-                                                strat, num_strat)
-                        elif key in Outputs.native_nonsmooth_mult:
-                            # native space with multiple files (map nodes)
-                            strat = output_smooth(workflow, key, "functional_brain_mask", c.fwhm,
-                                                strat, num_strat, map_node=True)
-                        elif key in Outputs.template_nonsmooth:
-                            # template space
-                            strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard", c.fwhm,
-                                                strat, num_strat)
-                        elif key in Outputs.template_nonsmooth_mult:
-                            # template space with multiple files (map nodes)
-                            strat = output_smooth(workflow, key,
-                                                "functional_brain_mask_to_standard", c.fwhm,
-                                                strat, num_strat, map_node=True)
+                        spatial_smooth_outputs(workflow, key, strat, num_strat, c)
 
             rp = strat.get_resource_pool()
             for key in sorted(rp.keys()):
