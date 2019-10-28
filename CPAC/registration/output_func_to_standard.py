@@ -383,8 +383,8 @@ def ants_apply_warps_func_mni(
     return workflow
 
 def output_func_to_standard(workflow, func_key, ref_key, output_name,
-        strat, num_strat, pipeline_config_obj, input_image_type='derivative',
-        inverse=False):
+        strat, num_strat, pipeline_config_obj, input_image_type='func_derivative',
+        symmetry='asymmetric', inverse=False):
 
     image_types = ['func_derivative', 'func_derivative_multi',
             'func_4d', 'func_mask']
@@ -420,12 +420,12 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         else:
             interp = pipeline_config_obj.funcRegANTSinterpolation
 
-        image_type = 1 if input_image_type == 'func4d' else 0
+        image_type = 3 if input_image_type == 'func_4d' else 0
 
         ants_apply_warps_func_mni(workflow, output_name, func_key, ref_key,
                 num_strat, strat, interpolation_method=interp,
                 distcor=distcor, map_node=map_node, inverse=inverse,
-                input_image_type=image_type,
+                symmetry=symmetry, input_image_type=image_type,
                 num_ants_cores=pipeline_config_obj.num_ants_threads)
 
     else:
