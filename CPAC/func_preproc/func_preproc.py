@@ -500,8 +500,11 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, run_despike=False,
                                     name='func_motion_correct_mcflirt')
         func_motion_correct.inputs.output_type = 'NIFTI_GZ'
 
+        preproc.connect(func_reorient, 'out_file',
+                        func_motion_correct, 'in_file')
+
         preproc.connect(func_get_mean_RPI, 'out_file',
-                    func_motion_correct, 'in_file') 
+                    func_motion_correct, 'basefile') 
 
         func_get_mean_motion = func_get_mean_RPI.clone('func_get_mean_motion')
         preproc.connect(func_motion_correct, 'out_file',
@@ -511,6 +514,9 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, run_despike=False,
                         output_node, 'motion_correct_ref')
 
         func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
+        func_motion_correct_A.inputs.save_mats = True
+        func_motion_correct_A.inputs.save_plots = True
+        func_motion_correct_A.inputs.save_rms = True
 
         preproc.connect(func_reorient, 'out_file',
                         func_motion_correct_A, 'in_file')
@@ -521,32 +527,19 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, run_despike=False,
         skullstrip_func = skullstrip_functional(skullstrip_tool,
                                                 "{0}_skullstrip".format(wf_name))
 
-        preproc.connect(func_motion_correct, 'out_file',
+        preproc.connect(func_motion_correct_A, 'out_file',
                         skullstrip_func, 'inputspec.func')
         
-        # TODO check!!
-        preproc.connect(func_motion_correct, 'par_file',
+        # TODO: normalize motion parameters, 
+        # check output file formats and motion statistics calculation method 
+        preproc.connect(func_motion_correct_A, 'par_file',
                         output_node, 'movement_parameters')
 
-        preproc.connect(func_motion_correct, 'mat_file',
+        preproc.connect(func_motion_correct_A, 'mat_file',
                         output_node, 'transform_matrices')
 
-        preproc.connect(func_motion_correct, 'rms_files', # absolute and relative displacement, not max
+        preproc.connect(func_motion_correct_A, 'rms_files', # absolute and relative displacement, not max
                         output_node, 'max_displacement')
-
-        # fsl2itk = pe.Node(MCFLIRT2ITK(), name='fsl2itk')
-
-        # func_motion_normalize = pe.Node(NormalizeMotionParams(format='FSL'),
-        #                         name="func_motion_normalize")
-
-        # preproc.connect(func_reorient, 'out_file',
-        #                 func_motion_correct, 'in_file')
-
-        # preproc.connect(func_reorient, 'out_file',
-        #                 fsl2itk, 'in_source')
-
-        # preproc.connect(func_reorient, 'out_file',
-        #                 fsl2itk, 'in_reference')
 
     preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     output_node, 'skullstrip')
