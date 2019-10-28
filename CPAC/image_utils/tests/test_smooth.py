@@ -3,7 +3,7 @@ import os
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from mocks import configuration_strategy_mock
+from CPAC.utils.test_mocks import configuration_strategy_mock
 from CPAC.image_utils import spatial_smooth
 
 import CPAC.utils.test_init as test_utils
