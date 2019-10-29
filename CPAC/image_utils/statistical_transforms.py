@@ -10,7 +10,6 @@ from CPAC.registration import create_fsl_fnirt_nonlinear_reg, \
 
 from CPAC.utils import Configuration, function, find_files
 from CPAC.utils.utils import (
-    set_gauss,
     get_scan_params,
     extract_output_mean,
     get_zscore,
