@@ -18,7 +18,7 @@ def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config
 
     # set the mask for the smoothing operation
     if "centrality" in func_key:
-        smoothing_mask_key = c.templateSpecificationFile
+        smoothing_mask_key = (pipeline_config_object.templateSpecificationFile, 'local_path')
     elif func_key in Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
         smoothing_mask_key = "functional_brain_mask_to_standard_derivative"
     else:
@@ -26,15 +26,18 @@ def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config
 
     # set the image type for the smoothing operation
     if func_key in Outputs.template_nonsmooth_mult + Outputs.native_nonsmooth_mult:
-        input_image_type = 'func_derivative_mult'
+        input_image_type = 'func_derivative_multi'
     else:
         input_image_type = 'func_derivative'
 
     output_name = '{0}_smooth'.format(func_key)
 
     # insert the smoothing workflow
-    workflow, strat = output_smooth(workflow, func_key, smooth_mask_key, output_name,
-                                strat, num_strat, c, input_image_type=input_image_type)
+    if output_name not in strat:
+        workflow, strat = spatial_smooth(workflow, func_key, smoothing_mask_key, output_name,
+                                         strat, num_strat, pipeline_config_object, input_image_type=input_image_type)
+    else:
+        print('{0} already exists in the resource pool'.format(output_name))
 
     return workflow, strat
 
@@ -62,16 +65,20 @@ def spatial_smooth(workflow, func_key, mask_key, output_name,
         if func_key == 'leaf':
             func_node, func_file = strat.get_leaf_properties()
         else:
-            func_node, func_file = strat[func_key]
+            try:
+                func_node, func_file = strat[func_key]
+            except KeyError as e:
+                print('Could not find func_key {0} in resource pool'.format(func_key))
 
     elif isinstance(func_key, tuple):
         func_node, func_file = func_key
 
     if isinstance(mask_key, str):
         mask_node, mask_file = strat[mask_key]
-
     elif isinstance(mask_key, tuple):
         mask_node, mask_file = mask_key
+    else:
+        raise ValueError('mask {0} ({1}) could not be deciphered'.format(mask_key, type(mask_key)))
 
     # TODO review connetion to config, is the node really necessary?
     inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
