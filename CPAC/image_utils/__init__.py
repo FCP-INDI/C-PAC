@@ -1,1 +1,2 @@
-from spatial_smoothing import spatial_smooth
+from spatial_smoothing import *
+from statistical_transforms import *
