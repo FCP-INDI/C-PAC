@@ -48,10 +48,10 @@ from CPAC.func_preproc.func_preproc import (
 )
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
-from CPAC.warp.pipeline import (
+from CPAC.image_utils import (
+    spatial_smooth_outputs,
     z_score_standardize,
     fisher_z_score_standardize,
-    output_smooth,
     calc_avg
 )
 
@@ -1200,7 +1200,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             elif 'anat_mni_ants_register' in nodes:
                 use_ants = True
 
-            seg_preproc = create_seg_preproc(use_ants=False,
+            seg_preproc = create_seg_preproc(use_ants=use_ants,
                                              use_priors=c.seg_use_priors,
                                              use_threshold=c.seg_use_threshold,
                                              use_erosion=c.seg_use_erosion,
@@ -1849,7 +1849,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
                         ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_derivative'),
                 ]:
-                    output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type, image_type=image_type)
+                    output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
             strat_list += new_strat_list
 
@@ -1972,7 +1972,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type, image_type=image_type, distcor=blip)
+                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, distcor=blip)
 
                     aroma_preproc = create_aroma(tr=TR,
                                                  wf_name='create_aroma_%d'.format(num_strat))
@@ -2002,7 +2002,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_standard', 'template_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type, image_type=image_type, distcor=blip, inverse=True)
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, distcor=blip, inverse=True)
 
         strat_list += new_strat_list
 
@@ -2284,7 +2284,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type, image_type=image_type)
+                    output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
         strat_list += new_strat_list
         
@@ -2331,7 +2331,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             for num_strat, strat in enumerate(strat_list):
 
-                create_vmhc(workflow, num_strat, strat, pipeline_config,
+                create_vmhc(workflow, num_strat, strat, c,
                         output_name='vmhc_{0}'.format(num_strat))
 
         strat_list += new_strat_list
@@ -3019,7 +3019,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
 
                     elif key in Outputs.native_nonsmooth_mult:
-                        image_type = 'func_derivative_mult'
+                        image_type = 'func_derivative_multi'
                         output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
 
@@ -3029,7 +3029,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if 1 in c.run_smoothing:
                     rp = strat.get_resource_pool()
                     for key in sorted(rp.keys()):
-                        spatial_smooth_outputs(workflow, key, strat, num_strat, c)
+                        if 'centrality' in key or key in Outputs.native_nonsmooth + Outputs.native_nonsmooth_mult + \
+                                Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
+                            spatial_smooth_outputs(workflow, key, strat, num_strat, c)
 
                 if 1 in c.runZScoring:
                     rp = strat.get_resource_pool()
@@ -3096,7 +3098,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     rp = strat.get_resource_pool()
 
                     for key in sorted(rp.keys()):
-                        spatial_smooth_outputs(workflow, key, strat, num_strat, c)
+                        if 'centrality' in key or key in Outputs.native_nonsmooth + Outputs.native_nonsmooth_mult + \
+                                Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
+                            spatial_smooth_outputs(workflow, key, strat, num_strat, c)
 
             rp = strat.get_resource_pool()
             for key in sorted(rp.keys()):
