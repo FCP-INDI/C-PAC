@@ -242,7 +242,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
     # write out a swapped version of the file
     # copy and L/R swap file
     copy_and_L_R_swap = pe.Node(interface=fsl.SwapDimensions(),
-                      name='copy_and_L_R_swap')
+                      name='copy_and_L_R_swap_{0}'.format(num_strat))
 
     copy_and_L_R_swap.inputs.new_dims = ('-x', 'y', 'z')
 
@@ -252,7 +252,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
 
     # calculate correlation between original and swapped images
     pearson_correlation = pe.Node(interface=preprocess.TCorrelate(),
-                      name='pearson_correlation')
+                      name='pearson_correlation_{0}'.format(num_strat))
 
     pearson_correlation.inputs.pearson = True
     pearson_correlation.inputs.polort = -1
