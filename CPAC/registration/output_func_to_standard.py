@@ -393,7 +393,6 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         raise ValueError('Input image type {0} should be one of {1}'.format(\
                 input_image_type, ', '.join(image_types)))
 
-    print(strat.name)
     nodes = strat.get_nodes_names()
     
     map_node = True if input_image_type == 'derivative_multi' else False
