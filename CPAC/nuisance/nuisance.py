@@ -23,7 +23,8 @@ from CPAC.nuisance.utils import (
 
 from CPAC.nuisance.utils.compcor import (
     calc_compcor_components,
-    cosine_filter)
+    cosine_filter,
+    TR_string_to_float)
 
 
 from CPAC.utils.datasource import check_for_s3
@@ -138,7 +139,6 @@ def gather_nuisance(functional_file_path,
             if type(regressor_selector['summary']) is str:
                 regressor_selector['summary'] = {
                     'method': regressor_selector['summary'],
-                    # 'filter': regressor_selector['summary']
                 }
 
         if not regressor_file or not os.path.isfile(regressor_file):
@@ -187,16 +187,11 @@ def gather_nuisance(functional_file_path,
             if regressor_type == "Motion":
                 regressor_name = motion_labels[regressor_index]
             else:
-                # summary_filter = regressor_selector['summary']
                 summary_method = regressor_selector['summary']
                 if type(summary_method) is dict:
-                    summary_method = summary_method['method']
+                    summary_method = summary_method['method'] 
 
-                # if type(summary_filter) is dict:
-                #     summary_filter = summary_filter['filter']
-
-                regressor_name = "{0}{1}{2}{3}".format(regressor_type,
-                                                    # summary_filter,
+                regressor_name = "{0}{1}{2}".format(regressor_type,
                                                     summary_method,
                                                     regressor_index)
 
@@ -803,9 +798,6 @@ def create_nuisance_workflow(nuisance_selectors,
                                  .format(regressor_type,
                                          regressor_selector['summary']))
 
-            # regressor_selector['summary']['method'] = \
-            #     'DetrendPC' if regressor_type == 'aCompCor' else 'PC'
-
             if not regressor_selector['summary'].get('components'):
                 regressor_selector['summary']['components'] = 1
 
@@ -1086,9 +1078,18 @@ def create_nuisance_workflow(nuisance_selectors,
                                 summary_filter_input[0], summary_filter_input[1],
                                 cosfilter_node, 'input_image_path'
                             )
+                            tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
+                                                                   output_names=['tr_float'],
+                                                                   function=TR_string_to_float),
+                                                     name='tr_string2float')
 
                             nuisance_wf.connect(
                                 inputspec, 'tr',
+                                tr_string2float_node, 'tr'
+                            )
+
+                            nuisance_wf.connect(
+                                tr_string2float_node, 'tr_float',
                                 cosfilter_node, 'timestep'
                             )
 

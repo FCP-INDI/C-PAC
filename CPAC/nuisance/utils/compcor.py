@@ -64,11 +64,15 @@ def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, 
     input_image_path: string
             Bold image to be filtered.
     timestep: float
-            'Repetition time (TR) of series - derived from image header if unspecified'
+            'Repetition time (TR) of series (in sec) - derived from image header if unspecified'
     period_cut: float
             Minimum period (in sec) for DCT high-pass filter, nipype default value: 128
 
     """
+
+    from CPAC.nuisance.utils.compcor import _full_rank
+    from CPAC.nuisance.utils.compcor import _cosine_drift
+
     input_img = nb.load(input_image_path)
     input_data = input_img.get_fdata()
 
@@ -96,11 +100,14 @@ def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, 
     hdr = input_img.get_header()
     output_img = nb.Nifti1Image(output_data, header=hdr,
                                 affine=input_img.get_affine())
-    cosfiltered_img = os.path.join(os.getcwd(), 'func_cosine_filtered_image.nii.gz')
+
+    file_name = input_image_path[input_image_path.rindex('/')+1:]
+
+    cosfiltered_img = os.path.join(os.getcwd(), file_name)
 
     output_img.to_filename(cosfiltered_img)
 
-    return cosfiltered_img, non_constant_regressors
+    return cosfiltered_img
 
 
 # _cosine_drift and _full_rank copied from nipype 'https://github.com/nipy/nipype/blob/d353f0d879826031334b09d33e9443b8c9b3e7fe/nipype/algorithms/confounds.py'
@@ -171,3 +178,11 @@ def fallback_svd(a, full_matrices=True, compute_uv=True):
 
 
     return svd(a, full_matrices=full_matrices, compute_uv=compute_uv, lapack_driver='gesvd')
+
+def TR_string_to_float(tr):
+    if 'ms' in tr:
+        tr = float(tr.replace('ms',''))/1000
+    else:
+        tr = float(tr.replace('s',''))
+    
+    return tr
