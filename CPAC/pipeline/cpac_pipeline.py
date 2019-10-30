@@ -3015,11 +3015,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     if key in Outputs.native_nonsmooth:
                         image_type = 'func_derivative'
-                        output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
-                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
-
                     elif key in Outputs.native_nonsmooth_mult:
                         image_type = 'func_derivative_multi'
+                    else:
+                        continue
+
+                    output_name = '{0}_to_standard'.format(key)
+                    if output_name not in strat:
                         output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
 
