@@ -395,7 +395,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
 
     nodes = strat.get_nodes_names()
     
-    map_node = True if input_image_type == 'derivative_multi' else False
+    map_node = True if input_image_type == 'func_derivative_multi' else False
 
     distcor = True if 'epi_distcorr' in nodes or \
             'blip_correct' in nodes else False
