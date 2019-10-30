@@ -506,6 +506,71 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
     return register_bbregister_func_to_anat
     
 
+def create_register_func_to_epi(name='register_func_to_epi', c='ANTS'):
+
+    register_func_to_epi = pe.Workflow(name=name)
+    
+    inputspec = pe.Node(util.IdentityInterface(fields=['func_4d',
+                                                       'mean_func',
+                                                       'epi']),
+                        name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['func_to_epi_nonlinear_xfm',
+                                                        'func_in_epi']),
+                         name='outputspec')
+
+    if 'ANTS' in c:
+
+        func_to_epi = pe.Node(interface=ants.Registration(), name='func_to_epi_ants')
+        func_to_epi.inputs.metric = ['CC']
+        func_to_epi.inputs.metric_weight = [1,5]
+        func_to_epi.inputs.transforms = ['SyN']
+        func_to_epi.inputs.transform_parameters = [(0.25,)]
+        func_to_epi.inputs.interpolation = 'NearestNeighbor'
+        func_to_epi.inputs.number_of_iterations = [[60,50,20]] 
+        func_to_epi.inputs.smoothing_sigmas = [[0.6,0.2,0.0]] 
+        func_to_epi.inputs.shrink_factors = [[4,2,1]] 
+        func_to_epi.inputs.convergence_threshold = [1.e-8]
+
+        register_func_to_epi.connect(inputspec, 'mean_func', func_to_epi, 'moving_image')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi, 'fixed_image')
+        register_func_to_epi.connect(func_to_epi, 'forward_transforms', outputspec, 'func_to_epi_nonlinear_xfm')
+
+        func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
+
+        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
+        register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'reference_image')
+        register_func_to_epi.connect(func_to_epi, 'forward_transforms', func_in_epi, 'transforms')
+        register_func_to_epi.connect(func_in_epi, 'output_image', outputspec, 'func_in_epi')
+
+    elif 'FSL' in c:
+        # flirt linear registration 
+        func_to_epi_linear = pe.Node(interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')
+        func_to_epi_linear.inputs.dof = 6
+
+        register_func_to_epi.connect(inputspec, 'mean_func', func_to_epi_linear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_linear, 'reference')
+
+        # fnirt non-linear registration
+        func_to_epi_nonlinear = pe.Node(interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
+        func_to_epi_nonlinear.inputs.fieldcoeff_file = True
+
+        register_func_to_epi.connect(inputspec, 'mean_func', func_to_epi_nonlinear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
+        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'func_to_epi_nonlinear_xfm')
+
+        # apply warp
+        func_in_epi = pe.Node(interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
+
+        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'ref_file')
+        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
+        register_func_to_epi.connect(func_in_epi, 'out_file', outputspec, 'func_in_epi')
+
+    return register_func_to_epi
+
+
 def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_threads=1):
 
     '''

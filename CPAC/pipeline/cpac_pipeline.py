@@ -60,6 +60,7 @@ from CPAC.registration import (
     create_fsl_fnirt_nonlinear_reg,
     create_register_func_to_anat,
     create_bbregister_func_to_anat,
+    create_register_func_to_epi,
     create_wf_calculate_ants_warp,
     output_func_to_standard
 )
@@ -428,8 +429,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'), # derivative resolution?
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc')
+        (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
 
     if 1 in c.run_pypeer:
@@ -1833,7 +1835,41 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # func preproc, such as the brain mask and mean EPI. Doing it any later
         # might result in multiple versions of these files being needlessly generated
         # do to strategies created by denoising, which do not impact the mean or brainmask
-        #
+        
+        new_strat_list = []
+
+        if 1 in c.runRegisterFuncToEPI:
+
+            for num_strat, strat in enumerate(strat_list):
+
+                nodes = strat.get_nodes_names()
+
+                for reg in c.regOption:
+
+                    func_to_epi = create_register_func_to_epi('func_to_epi_{0}_{1}'.format(reg.lower(), num_strat), reg)
+
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, func_to_epi, 'inputspec.func_4d')
+
+                    node, out_file = strat['mean_functional']
+                    workflow.connect(node, out_file, func_to_epi, 'inputspec.mean_func')
+
+                    node, out_file = strat['template_epi']
+                    workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
+
+                    strat.update_resource_pool({
+                        'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.func_to_epi_nonlinear_xfm'),
+                        'func_in_epi': (func_to_epi, 'outputspec.func_in_epi')
+                    })
+
+                    # for output_name, func_key, ref_key, image_type in [ \
+                    #         ('functional_to_epi', 'mean_functional', 'template_epi', 'func_4d'),
+                    # ]:
+                    #     output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+
+            strat_list += new_strat_list
+
+
         # preproc Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp
         new_strat_list = []
@@ -1849,7 +1885,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
                         ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_derivative'),
                 ]:
-                    output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
             strat_list += new_strat_list
 
@@ -1972,10 +2008,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, distcor=blip)
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type) # distcor=blip
 
-                    aroma_preproc = create_aroma(tr=TR,
-                                                 wf_name='create_aroma_%d'.format(num_strat))
+                    aroma_preproc = create_aroma(tr=TR, wf_name='create_aroma_{0}'.format(num_strat))
 
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
 
@@ -2002,7 +2037,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_standard', 'template_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, distcor=blip, inverse=True)
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True) # distcor=blip, 
 
         strat_list += new_strat_list
 

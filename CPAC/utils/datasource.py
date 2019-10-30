@@ -526,7 +526,7 @@ def resolve_resolution(resolution, template, template_name, tag = None):
 
     tagname = None
     local_path = None 
-    # TODO XL think a more general way to check template
+    # TODO XL think a better way to check template
     if "{" in template and tag is not None:
             tagname = "${" + tag + "}"
     try:
