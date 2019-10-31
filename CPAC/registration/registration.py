@@ -511,7 +511,7 @@ def create_register_func_to_epi(name='register_func_to_epi', c='ANTS'):
     register_func_to_epi = pe.Workflow(name=name)
     
     inputspec = pe.Node(util.IdentityInterface(fields=['func_4d',
-                                                       'mean_func',
+                                                       'func_ref',
                                                        'epi']),
                         name='inputspec')
 
@@ -520,19 +520,22 @@ def create_register_func_to_epi(name='register_func_to_epi', c='ANTS'):
                          name='outputspec')
 
     if 'ANTS' in c:
-
+        # TODO: change to linear
         func_to_epi = pe.Node(interface=ants.Registration(), name='func_to_epi_ants')
-        func_to_epi.inputs.metric = ['CC']
-        func_to_epi.inputs.metric_weight = [1,5]
-        func_to_epi.inputs.transforms = ['SyN']
-        func_to_epi.inputs.transform_parameters = [(0.25,)]
-        func_to_epi.inputs.interpolation = 'NearestNeighbor'
-        func_to_epi.inputs.number_of_iterations = [[60,50,20]] 
-        func_to_epi.inputs.smoothing_sigmas = [[0.6,0.2,0.0]] 
-        func_to_epi.inputs.shrink_factors = [[4,2,1]] 
-        func_to_epi.inputs.convergence_threshold = [1.e-8]
 
-        register_func_to_epi.connect(inputspec, 'mean_func', func_to_epi, 'moving_image')
+        func_to_epi.inputs.transforms = ['Rigid', 'Affine', 'SyN']
+        func_to_epi.inputs.transform_parameters = [(0.1,), (0.1,), (0.25,3,0)]
+        func_to_epi.inputs.metric = ['MI', 'MI', 'CC'] 
+        func_to_epi.inputs.metric_weight = [[1,32], [1,32], [1,5]] 
+        func_to_epi.inputs.sampling_strategy = ['Regular'] * 3
+        func_to_epi.inputs.sampling_percentage = [0.25] * 3
+        func_to_epi.inputs.interpolation = 'NearestNeighbor'
+        func_to_epi.inputs.number_of_iterations = [[1000,500,250,100]] * 3 
+        func_to_epi.inputs.convergence_threshold = [1.e-8] * 3
+        func_to_epi.inputs.smoothing_sigmas = [[3.0,2.0,1.0,0.0], [3.0,2.0,1.0,0.0], [0.6,0.2,0.0]] 
+        func_to_epi.inputs.shrink_factors = [[8,4,2,1], [8,4,2,1], [4,2,1]]
+
+        register_func_to_epi.connect(inputspec, 'func_ref', func_to_epi, 'moving_image')
         register_func_to_epi.connect(inputspec, 'epi', func_to_epi, 'fixed_image')
         register_func_to_epi.connect(func_to_epi, 'forward_transforms', outputspec, 'func_to_epi_nonlinear_xfm')
 
@@ -548,14 +551,14 @@ def create_register_func_to_epi(name='register_func_to_epi', c='ANTS'):
         func_to_epi_linear = pe.Node(interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')
         func_to_epi_linear.inputs.dof = 6
 
-        register_func_to_epi.connect(inputspec, 'mean_func', func_to_epi_linear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'func_ref', func_to_epi_linear, 'in_file')
         register_func_to_epi.connect(inputspec, 'epi', func_to_epi_linear, 'reference')
 
         # fnirt non-linear registration
         func_to_epi_nonlinear = pe.Node(interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
         func_to_epi_nonlinear.inputs.fieldcoeff_file = True
 
-        register_func_to_epi.connect(inputspec, 'mean_func', func_to_epi_nonlinear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'func_ref', func_to_epi_nonlinear, 'in_file')
         register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
         register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'func_to_epi_nonlinear_xfm')
 

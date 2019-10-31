@@ -531,7 +531,7 @@ def resolve_resolution(resolution, template, template_name, tag = None):
             tagname = "${" + tag + "}"
     try:
         if tagname is not None:
-            local_path = check_for_s3(template.replace(tagname, str(resolution)))
+            local_path = check_for_s3(template.replace(tagname, str(resolution)))     
     except IOError:
         local_path = None
 
@@ -539,6 +539,8 @@ def resolve_resolution(resolution, template, template_name, tag = None):
         if tagname is not None:
             ref_template = template.replace(tagname, '1mm') 
             local_path = check_for_s3(ref_template)
+        elif tagname is None and "s3" in template:
+            local_path = check_for_s3(template)
         else:
             local_path = template    
 

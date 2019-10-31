@@ -1851,8 +1851,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.func_4d')
 
-                    node, out_file = strat['mean_functional']
-                    workflow.connect(node, out_file, func_to_epi, 'inputspec.mean_func')
+                    if 'Mean Functional' in c.func_reg_input:
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_ref')
+
+                    elif 'Selected Functional Volume' in c.func_reg_input:
+                        node, out_file = strat['selected_func_volume']
+                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_ref')                       
 
                     node, out_file = strat['template_epi']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
