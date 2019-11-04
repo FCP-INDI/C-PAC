@@ -460,6 +460,10 @@ fmap_distcorr_dwell_asym_ratio : [0.93902439]
 fmap_distcorr_pedir :  x
 
 
+# Run Functional to EPI Template Registration
+runRegisterFuncToEPI :  [0]
+
+
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
@@ -533,6 +537,10 @@ template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${res
 
 # Standard FSL Anatomical Brain Image with Skull
 template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
+
+# EPI template
+template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.

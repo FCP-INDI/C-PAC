@@ -1853,24 +1853,18 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     if 'Mean Functional' in c.func_reg_input:
                         node, out_file = strat['mean_functional']
-                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_ref')
+                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d')
 
                     elif 'Selected Functional Volume' in c.func_reg_input:
                         node, out_file = strat['selected_func_volume']
-                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_ref')                       
+                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d')                       
 
                     node, out_file = strat['template_epi']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
 
                     strat.update_resource_pool({
-                        'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.func_to_epi_nonlinear_xfm'),
                         'func_in_epi': (func_to_epi, 'outputspec.func_in_epi')
                     })
-
-                    # for output_name, func_key, ref_key, image_type in [ \
-                    #         ('functional_to_epi', 'mean_functional', 'template_epi', 'func_4d'),
-                    # ]:
-                    #     output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
             strat_list += new_strat_list
 
