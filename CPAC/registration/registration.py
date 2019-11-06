@@ -525,9 +525,9 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
                          name='outputspec')
 
     if reg_option == 'ANTS':
-        # registration
+        # linear + non-linear registration
         func_to_epi_ants = create_wf_calculate_ants_warp(name='func_to_epi_ants')
-        func_to_epi_ants.inputs.inputspec.interp = 'NearestNeighbor'
+        func_to_epi_ants.inputs.inputspec.interp = 'LanczosWindowedSinc'
 
         register_func_to_epi.connect([
             (inputspec, func_to_epi_ants, [
@@ -592,6 +592,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
         # apply transform
         func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
         func_in_epi.inputs.input_image_type = 3
+        func_in_epi.inputs.interpolation = 'LanczosWindowedSinc'
 
         register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
         register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'reference_image')
@@ -617,11 +618,12 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
 
         # apply warp
         func_in_epi = pe.Node(interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
+        func_in_epi.inputs.interp = 'sinc'
 
         register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'in_file')
         register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'ref_file')
-        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
         register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
+        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
         register_func_to_epi.connect(func_in_epi, 'out_file', outputspec, 'func_in_epi')
 
     return register_func_to_epi
