@@ -1836,15 +1836,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # might result in multiple versions of these files being needlessly generated
         # do to strategies created by denoising, which do not impact the mean or brainmask
         
+        # preproc Func -> EPI Template
         new_strat_list = []
 
+        # TODO: forking runRegisterFuncToEPI
         if 1 in c.runRegisterFuncToEPI:
 
-            for num_strat, strat in enumerate(strat_list):
+            new_strat_list = []
 
-                nodes = strat.get_nodes_names()
+            for num_strat, strat in enumerate(strat_list): 
 
                 for reg in c.regOption:
+
+                    new_strat = strat.fork()
 
                     func_to_epi = create_register_func_to_epi('func_to_epi_{0}_{1}'.format(reg.lower(), num_strat), reg)
 
@@ -1862,11 +1866,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat['template_epi']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
 
-                    strat.update_resource_pool({
+                    new_strat.update_resource_pool({
                         'func_in_epi': (func_to_epi, 'outputspec.func_in_epi')
                     })
 
-            strat_list += new_strat_list
+                    new_strat.append_name(func_to_epi.name)
+
+                    new_strat_list.append(new_strat)
+
+            strat_list = new_strat_list
 
 
         # preproc Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
