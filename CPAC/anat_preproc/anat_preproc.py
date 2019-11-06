@@ -429,7 +429,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             template_brain_mask.inputs.in_file = c.template_brain_only_for_anat
             template_brain_mask.inputs.args = '-bin'
 
-            # ??? ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
+            # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
             ants_template_head_to_template = pe.Node(interface=ants.Registration(), name='template_head_to_template')
             ants_template_head_to_template.inputs.metric = ['CC']
             ants_template_head_to_template.inputs.metric_weight = [1,5]
@@ -437,10 +437,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             ants_template_head_to_template.inputs.transforms = ['SyN']
             ants_template_head_to_template.inputs.transform_parameters = [(0.25,)]
             ants_template_head_to_template.inputs.interpolation = 'NearestNeighbor'
-            # ants_template_head_to_template.inputs.interpolation_parameters = (3.0, 0)
-            ants_template_head_to_template.inputs.number_of_iterations = [[60,50,20]] #???
-            ants_template_head_to_template.inputs.smoothing_sigmas = [[0.6,0.2,0.0]] #???
-            ants_template_head_to_template.inputs.shrink_factors = [[4,2,1]] #??? 
+            ants_template_head_to_template.inputs.number_of_iterations = [[60,50,20]] 
+            ants_template_head_to_template.inputs.smoothing_sigmas = [[0.6,0.2,0.0]]
+            ants_template_head_to_template.inputs.shrink_factors = [[4,2,1]] 
             ants_template_head_to_template.inputs.convergence_threshold = [1.e-8]
             preproc.connect(native_head_to_template_head, 'out_file', ants_template_head_to_template, 'fixed_image')
 
