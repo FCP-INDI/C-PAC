@@ -43,7 +43,8 @@ from CPAC.distortion_correction.distortion_correction import (
 from CPAC.func_preproc.func_preproc import (
     create_func_preproc,
     slice_timing_wf,
-    create_wf_edit_func
+    create_wf_edit_func,
+    create_scale_func_wf
 )
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
@@ -1379,6 +1380,25 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'selected_func_volume': (get_func_volume, 'out_file')
                 })
 
+        # scale func data based on configuration information
+        for num_strat, strat in enumerate(strat_list):
+
+            scale_func_wf = create_scale_func_wf(
+                runScaling=c.runScaling,
+                scaling_factor=c.scaling_factor,
+                wf_name="scale_func_%d" % (num_strat)
+            )
+
+            # connect the functional data from the leaf node into the wf
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file,
+                             scale_func_wf, 'inputspec.func')
+
+            # replace the leaf node with the output from the recently added
+            # workflow
+            strat.set_leaf_properties(scale_func_wf, 'outputspec.scaled_func')
+
+    
         # Truncate scan length based on configuration information
         for num_strat, strat in enumerate(strat_list):
 

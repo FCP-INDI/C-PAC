@@ -389,6 +389,14 @@ seg_erosion_prop : 0.6
 runFunctional: [1]
 
 
+# Scale functional raw data, usually used in rodent pipeline
+runScaling : False
+
+
+# Set scaling factor, if runScaling : True. Scale the size of the dataset voxels by the factor.
+scaling_factor : 10
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
