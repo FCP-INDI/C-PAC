@@ -1272,7 +1272,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     strat_list += new_strat_list
 
-    if 'EPI_template' in c.template_based_segmenation or 'T1_template' in c.template_based_segmenation:
+    if 'T1_template' in c.template_based_segmenation:
+
         for num_strat, strat in enumerate(strat_list):
 
             nodes = strat.get_nodes_names()
@@ -1291,7 +1292,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 use_ants = True
 
             seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
-                                                             wf_name='seg_preproc_{0}'.format(num_strat))  
+                                                             wf_name='seg_preproc_t1_template_{0}'.format(num_strat))  
 
             # TODO ASH review
             if seg_preproc_template_based is None:
@@ -1882,7 +1883,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # and you have bbreg enabled- this will ensure bbreg will run for
                 # the strat that has segmentation but will not run (thus avoiding
                 # a crash) on the strat without segmentation
-                if 'seg_preproc' in nodes:
+                if 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes:
 
                     dist_corr = False
                     if 'epi_distcorr' in nodes or 'blip_correct' in nodes:
@@ -2011,9 +2012,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat['template_epi']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
 
+                    # update resource pool
                     new_strat.update_resource_pool({
                         'func_in_epi': (func_to_epi, 'outputspec.func_in_epi')
                     })
+
+                    if reg == 'FSL' :
+                        new_strat.update_resource_pool({
+                            'func_to_epi_flirt_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),
+                            'func_to_epi_fnirt_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
+                            'func_to_epi_invlinear_xfm': (func_to_epi, 'outputspec.invlinear_xfm')
+                        })     
+
+                    elif reg == 'ANTS' :
+                        new_strat.update_resource_pool({
+                            'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
+                            'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
+                            'func_to_epi_ants_nonlinear_xfm': (func_to_epi, 'outputspec.ants_nonlinear_xfm')
+                        })                     
 
                     new_strat.append_name(func_to_epi.name)
 
@@ -2021,7 +2037,86 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             strat_list = new_strat_list
 
+        if 'EPI_template' in c.template_based_segmenation :
 
+            for num_strat, strat in enumerate(strat_list):
+
+                nodes = strat.get_nodes_names()
+
+                if not any(o in c.template_based_segmenation for o in ['EPI_template', 'T1_template', 'None']):
+                    err = '\n\n[!] C-PAC says: Your template based segmentation ' \
+                        'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
+                        'Options you provided:\ntemplate_based_segmenation: {0}' \
+                        '\n\n'.format(str(c.template_based_segmenation))
+                    raise Exception(err)
+
+                # TODO ASH based on config, instead of nodes?
+                if 'func_to_epi_fsl' in nodes : 
+                    use_ants = False
+                elif 'func_to_epi_ants' in nodes :
+                    use_ants = True
+
+                seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
+                                                                wf_name='seg_preproc_epi_template_{0}'.format(num_strat))  
+
+                # TODO ASH review
+                if seg_preproc_template_based is None:
+                    continue
+                
+
+                if 'func_to_epi_fsl' in nodes :
+
+                    node, out_file = strat['mean_functional']
+                    workflow.connect(node, out_file,
+                                    seg_preproc_template_based, 'inputspec.brain') 
+
+                    node, out_file = strat['func_to_epi_invlinear_xfm'] 
+                    workflow.connect(node, out_file,
+                                    seg_preproc_template_based,
+                                    'inputspec.standard2highres_mat')                                          
+
+                elif 'func_to_epi_ants' in nodes :
+
+                    node, out_file = strat['mean_functional']
+                    workflow.connect(node, out_file,
+                                    seg_preproc_template_based, 'inputspec.brain') 
+
+                    node, out_file = strat['func_to_epi_ants_initial_xfm']
+                    workflow.connect(node, out_file,
+                                    seg_preproc_template_based,
+                                    'inputspec.standard2highres_init')
+
+                    node, out_file = strat['func_to_epi_ants_rigid_xfm']
+                    workflow.connect(node, out_file,
+                                    seg_preproc_template_based,
+                                    'inputspec.standard2highres_rig')
+
+                    node, out_file = strat['func_to_epi_ants_affine_xfm']
+                    workflow.connect(node, out_file,
+                                    seg_preproc_template_based,
+                                    'inputspec.standard2highres_mat')                                          
+
+                workflow.connect(c.template_based_segmenation_CSF, 'local_path',
+                                    seg_preproc_template_based, 'inputspec.CSF_template')
+
+                workflow.connect(c.template_based_segmenation_GRAY, 'local_path',
+                                    seg_preproc_template_based, 'inputspec.GRAY_template')
+
+                workflow.connect(c.template_based_segmenation_WHITE, 'local_path',
+                                    seg_preproc_template_based, 'inputspec.WHITE_template')
+
+                # TODO ASH review with forking function
+                if 'None' in c.template_based_segmenation:
+                    strat = strat.fork()
+                    new_strat_list.append(strat)
+
+                strat.append_name(seg_preproc_template_based.name)
+                strat.update_resource_pool({
+                    'anatomical_gm_mask': (seg_preproc_template_based, 'outputspec.gm_mask'),
+                    'anatomical_csf_mask': (seg_preproc_template_based, 'outputspec.csf_mask'),
+                    'anatomical_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
+                })
+                
         # preproc Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp
         new_strat_list = []
@@ -2208,7 +2303,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 nodes = strat.get_nodes_names()
 
-                has_segmentation = 'seg_preproc' in nodes
+                has_segmentation = 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes or 'seg_preproc_epi_template' in nodes
                 use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
                 for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
@@ -2472,10 +2567,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if 1 in c.runRegisterFuncToMNI:
 
             for num_strat, strat in enumerate(strat_list):
-<<<<<<< HEAD
-
-=======
->>>>>>> develop
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:

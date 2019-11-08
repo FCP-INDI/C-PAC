@@ -329,7 +329,7 @@ runSegmentationPreprocessing :  [1]
 
 # Generate white matter, gray matter, CSF masks based on EPI template segmentation masks, T1 template segmentation masks, or not use template-based segmentation.
 # If use template based segmentation, please make sure to specify white matter, gray matter, CSF mask paths at below three configurations. 
-# These masks should be in the same space of your anatomical registration template, e.g. EPI template space or T1 template space. 
+# These masks should be in the same space of your registration template, e.g. if you choose 'EPI_template' , below tissue masks should also be EPI template tissue masks. 
 # Options: ['EPI_template', 'T1_template', 'None']
 template_based_segmenation : ['None']
 

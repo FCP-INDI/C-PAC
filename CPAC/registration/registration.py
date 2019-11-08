@@ -521,6 +521,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
                                                         'ants_nonlinear_xfm',
                                                         'fsl_flirt_xfm',
                                                         'fsl_fnirt_xfm',
+                                                        'invlinear_xfm',
                                                         'func_in_epi']),
                          name='outputspec')
 
@@ -607,6 +608,9 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
         register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_linear, 'in_file')
         register_func_to_epi.connect(inputspec, 'epi', func_to_epi_linear, 'reference')
         register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', outputspec, 'fsl_flirt_xfm')
+        
+        inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(), name='inv_linear_reg0_xfm')
+        inv_flirt_xfm.inputs.invert_xfm = True
 
         # fnirt non-linear registration
         func_to_epi_nonlinear = pe.Node(interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
@@ -616,6 +620,9 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
         register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
         register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_to_epi_nonlinear, 'affine_file')
         register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'fsl_fnirt_xfm')
+
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', inv_flirt_xfm, 'in_file')
+        register_func_to_epi.connect(inv_flirt_xfm, 'out_file', outputspec, 'invlinear_xfm')
 
         # apply warp
         func_in_epi = pe.Node(interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
