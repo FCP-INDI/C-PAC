@@ -111,18 +111,23 @@ class Strategy(object):
                 
                 fork_label = ''
 
-                if 'ants' in fork:
-                    fork_label = 'ants'
-                if 'fnirt' in fork:
-                    fork_label = 'fnirt'
-                elif 'flirt_register' in fork:
-                    fork_label = 'linear-only'
-                if 'afni' in fork:
+                # TODO: reorganize labels
+                if 'anat_mni_ants_register' in fork:
+                    fork_label = 'anat-ants'
+                if 'anat_mni_fnirt_register' in fork:
+                    fork_label = 'anat-fnirt'
+                if 'anat_mni_flirt_register' in fork:
+                    fork_label = 'anat-flirt'
+                if 'func_to_epi_ants' in fork:
+                    fork_label = 'func-ants'
+                if 'func_to_epi_fsl' in fork:
+                    fork_label = 'func-fsl'
+                if 'func_preproc_afni' in fork:
                     fork_label = 'func-3dautomask'
-                if 'fsl' in fork:
+                if 'func_preproc_fsl' in fork:
                     fork_label = 'func-bet'
-                if 'fsl_afni' in fork:
-                    fork_label = 'func-bet-3dautomask' 
+                if 'func_preproc_fsl_afni' in fork:
+                    fork_label = 'func-bet-3dautomask'    
                 if 'anat_refined' in fork:
                     fork_label = 'func-anat-refined'   
                 if 'epi_distcorr' in fork:
@@ -154,6 +159,6 @@ class Strategy(object):
 
                 fork_name += [fork_label]
 
-            fork_names.append('_'.join(set(fork_name)))
+            fork_names.append('_'.join(sorted(set(fork_name))))
 
         return dict(zip(strategies, fork_names))

@@ -7,7 +7,6 @@
 This module contains functions that assist in initializing CPAC
 tests resources
 '''
-
 # Return tests data config file
 def populate_template_config(config_type):
     '''
@@ -593,6 +592,14 @@ def setup_test_logger(logger_name, log_file, level, to_screen=False):
     # Return the logger
     return logger
 
+def pearson_correlation(nii_1, nii_2):
+    import nibabel as nb
+    import numpy as np
+
+    data_1 = nb.load(nii_1).get_data()
+    data_2 = nb.load(nii_2).get_data()
+    R = np.corrcoef(data_1.flatten(), data_2.flatten())
+    return(R[0,1])
 
 # Calculate concordance correlation coefficient
 def concordance(x, y):

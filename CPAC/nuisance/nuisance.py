@@ -18,7 +18,8 @@ from CPAC.utils.interfaces.pc import PC
 from CPAC.nuisance.utils import (
     find_offending_time_points,
     generate_summarize_tissue_mask,
-    temporal_variance_mask
+    temporal_variance_mask,
+    calc_compcor_components
 )
 
 from CPAC.nuisance.utils.compcor import (
@@ -1060,8 +1061,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
                         summary_method_input = (compcor_node, 'compcor_file')
 
-                else:
-                                    
+                else:               
                     if 'cosine' in summary_filter:
                             cosfilter_imports = ['import os',
                                                 'import numpy as np',
