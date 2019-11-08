@@ -1920,6 +1920,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'anat_symmetric_mni_ants_register' not in nodes and \
                             'anat_mni_ants_register' not in nodes:
 
+                    for output_name, func_key, ref_key, image_type in [ \
+                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                    ]:
+                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+
                     aroma_preproc = create_aroma(tr=TR,
                                                 wf_name='create_aroma_%d' % num_strat)
 
@@ -1972,7 +1977,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, distcor=blip)
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
                     aroma_preproc = create_aroma(tr=TR,
                                                  wf_name='create_aroma_%d'.format(num_strat))
@@ -2629,26 +2634,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         ndmg_create_graphs
                     )
 
-                    atlases = []
-                    if 'Avg' in ts_analysis_dict.keys():
-                        atlases = ts_analysis_dict['Avg']
-
-                    roi_dataflow_for_ndmg = create_roi_mask_dataflow(atlases,
-                                                                     'roi_dataflow_for_ndmg_%d' % num_strat
-                                                                     )
-
-                    resample_functional_to_roi = pe.Node(
-                        interface=fsl.FLIRT(),
-                        name='resample_functional_to_roi_ndmg_%d' % num_strat)
-                    resample_functional_to_roi.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
-                    workflow.connect(roi_dataflow_for_ndmg,
-                                     'outputspec.out_file',
-                                     resample_functional_to_roi, 'reference')
-
                     ndmg_ts = pe.Node(Function(
                         input_names=['func_file',
                                      'label_file'],
@@ -2659,13 +2644,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         as_module=True
                     ), name='ndmg_ts_%d' % num_strat)
 
-                    node, out_file = strat['functional_to_standard']
-                    workflow.connect(node, out_file,
-                                     resample_functional_to_roi, 'in_file')
                     workflow.connect(resample_functional_to_roi, 'out_file',
                                      ndmg_ts, 'func_file')
-                    workflow.connect(roi_dataflow_for_ndmg,
-                                     'outputspec.out_file',
+                    workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      ndmg_ts, 'label_file')
 
                     ndmg_graph = pe.MapNode(Function(
@@ -2677,7 +2658,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         iterfield=['labels'])
 
                     workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
-                    workflow.connect(roi_dataflow_for_ndmg,
+                    workflow.connect(roi_dataflow,
                                      'outputspec.out_file',
                                      ndmg_graph, 'labels')
 
