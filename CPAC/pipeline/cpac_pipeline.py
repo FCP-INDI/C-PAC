@@ -2663,7 +2663,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      ndmg_graph, 'labels')
 
                     strat.update_resource_pool({
-                        'ndmg_ts': (ndmg_ts, 'roits_file'),
+                        # 'ndmg_ts': (ndmg_ts, 'roits_file'),
                         'ndmg_graph': (ndmg_graph, 'out_file')
                     })
 
@@ -3342,7 +3342,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'
                             .format(id_tag, func_template_tag, func_res_tag)
                         ),
-                        'ndmg_ts': (
+                        'roi_timeseries': (
                             'func',
                             'roi-timeseries',
                             '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'
