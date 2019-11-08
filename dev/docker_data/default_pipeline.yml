@@ -127,7 +127,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants']
+# Options: ['AFNI', 'BET', 'niworkflows-ants']
 skullstrip_option :  ['AFNI']
 
 
@@ -225,10 +225,6 @@ skullstrip_fac :  1
 
 # Blur dataset after spatial normalization. Recommended when you have lots of CSF in brain and when you have protruding gyri (finger like). If so, recommended value range is 2-4. Otherwise, leave at 0.
 skullstrip_blur_fwhm :  0
-
-
-# Set it as True if processing monkey data with AFNI 
-skullstrip_monkey : False
 
 
 # Options to be used for FSL-BET skull-stripping only.
@@ -387,6 +383,10 @@ seg_erosion_prop : 0.6
 runFunctional: [1]
 
 
+# run motion statistics before slice timing correction
+runMotionStatistics : [0]
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -509,9 +509,17 @@ n4_correct_mean_EPI : False
 func_reg_input_volume :  0
 
 
+# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+motion_correction : ['AFNI']
+
+
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
 # Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
+
+
+# Run AFNI 3dDespike after motion correction
+run_despike : [1]
 
 
 # Register functional images to a standard MNI152 template.
