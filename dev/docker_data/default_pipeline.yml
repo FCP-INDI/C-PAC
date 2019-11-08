@@ -127,7 +127,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants']
+# Options: ['AFNI', 'BET', 'niworkflows-ants']
 skullstrip_option :  ['AFNI']
 
 
@@ -225,10 +225,6 @@ skullstrip_fac :  1
 
 # Blur dataset after spatial normalization. Recommended when you have lots of CSF in brain and when you have protruding gyri (finger like). If so, recommended value range is 2-4. Otherwise, leave at 0.
 skullstrip_blur_fwhm :  0
-
-
-# Set it as True if processing monkey data with AFNI 
-skullstrip_monkey : False
 
 
 # Options to be used for FSL-BET skull-stripping only.
@@ -407,6 +403,10 @@ seg_erosion_prop : 0.6
 runFunctional: [1]
 
 
+# run motion statistics before slice timing correction
+runMotionStatistics : [0]
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -480,6 +480,10 @@ fmap_distcorr_dwell_asym_ratio : [0.93902439]
 fmap_distcorr_pedir :  x
 
 
+# Run Functional to EPI Template Registration
+runRegisterFuncToEPI :  [0]
+
+
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
@@ -521,13 +525,25 @@ funcRegFSLinterpolation: sinc
 func_reg_input :  ['Mean Functional']
 
 
+# Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
+n4_correct_mean_EPI : False
+
+
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0
+
+
+# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+motion_correction : ['AFNI']
 
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
 # Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
+
+
+# Run AFNI 3dDespike after motion correction
+run_despike : [1]
 
 
 # Register functional images to a standard MNI152 template.
@@ -553,6 +569,10 @@ template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${res
 
 # Standard FSL Anatomical Brain Image with Skull
 template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
+
+# EPI template
+template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.

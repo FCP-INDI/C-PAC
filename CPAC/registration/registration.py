@@ -506,6 +506,131 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
     return register_bbregister_func_to_anat
     
 
+def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
+
+    register_func_to_epi = pe.Workflow(name=name)
+    
+    inputspec = pe.Node(util.IdentityInterface(fields=['func_4d',
+                                                       'func_3d',
+                                                       'epi']),
+                        name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['ants_initial_xfm',
+                                                        'ants_rigid_xfm',
+                                                        'ants_affine_xfm',
+                                                        'ants_nonlinear_xfm',
+                                                        'fsl_flirt_xfm',
+                                                        'fsl_fnirt_xfm',
+                                                        'func_in_epi']),
+                         name='outputspec')
+
+    if reg_option == 'ANTS':
+        # linear + non-linear registration
+        func_to_epi_ants = create_wf_calculate_ants_warp(name='func_to_epi_ants')
+        func_to_epi_ants.inputs.inputspec.interp = 'LanczosWindowedSinc'
+
+        register_func_to_epi.connect([
+            (inputspec, func_to_epi_ants, [
+                ('func_3d', 'inputspec.anatomical_brain'),
+                ('epi', 'inputspec.reference_brain'),
+                ('func_3d', 'inputspec.anatomical_skull'),
+                ('epi', 'inputspec.reference_skull'),
+            ]),
+        ])
+
+        func_to_epi_ants.inputs.inputspec.set(
+                dimension=3,
+                use_histogram_matching=True,
+                winsorize_lower_quantile=0.01,
+                winsorize_upper_quantile=0.99,
+                metric=['MI', 'MI', 'CC'],
+                metric_weight=[[1,32], [1,32], [1,5]],
+                radius_or_number_of_bins=[32, 32, 4],
+                sampling_strategy=['Regular', 'Regular', None],
+                sampling_percentage=[0.25, 0.25, None],
+                number_of_iterations=[
+                    [1000, 500, 250, 100],
+                    [1000, 500, 250, 100],
+                    [100, 100, 70, 20]
+                ],
+                convergence_threshold=[1e-8, 1e-8, 1e-9],
+                convergence_window_size=[10, 10, 15],
+                transforms=['Rigid', 'Affine', 'SyN'],
+                transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
+                shrink_factors=[
+                    [8, 4, 2, 1],
+                    [8, 4, 2, 1],
+                    [4, 2, 1]
+                ],
+                smoothing_sigmas=[
+                    [3, 2, 1, 0],
+                    [3, 2, 1, 0],
+                    [0.6,0.2,0.0]
+                ]
+            )
+
+        register_func_to_epi.connect([
+            (func_to_epi_ants, outputspec, [
+                ('outputspec.ants_initial_xfm', 'ants_initial_xfm'),
+                ('outputspec.ants_rigid_xfm', 'ants_rigid_xfm'),
+                ('outputspec.ants_affine_xfm', 'ants_affine_xfm'),
+                ('outputspec.warp_field', 'ants_nonlinear_xfm'),
+            ]),
+        ])
+
+        # combine transforms
+        collect_transforms = pe.Node(util.Merge(4), name='collect_transforms_ants')
+        register_func_to_epi.connect([
+            (func_to_epi_ants, collect_transforms, [
+                ('outputspec.ants_initial_xfm', 'in1'),
+                ('outputspec.ants_rigid_xfm', 'in2'),
+                ('outputspec.ants_affine_xfm', 'in3'),
+                ('outputspec.warp_field', 'in4'),
+            ]),
+        ])
+
+        # apply transform
+        func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
+        func_in_epi.inputs.input_image_type = 3
+        func_in_epi.inputs.interpolation = 'LanczosWindowedSinc'
+
+        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
+        register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'reference_image')
+        register_func_to_epi.connect(collect_transforms, 'out', func_in_epi, 'transforms')
+        register_func_to_epi.connect(func_in_epi, 'output_image', outputspec, 'func_in_epi')
+
+    elif reg_option == 'FSL':
+        # flirt linear registration 
+        func_to_epi_linear = pe.Node(interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')
+        func_to_epi_linear.inputs.dof = 6
+
+        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_linear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_linear, 'reference')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', outputspec, 'fsl_flirt_xfm')
+
+        # fnirt non-linear registration
+        func_to_epi_nonlinear = pe.Node(interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
+        func_to_epi_nonlinear.inputs.fieldcoeff_file = True
+
+        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_nonlinear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_to_epi_nonlinear, 'affine_file')
+        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'fsl_fnirt_xfm')
+
+        # apply warp
+        func_in_epi = pe.Node(interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
+        func_in_epi.inputs.interp = 'sinc'
+
+        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'ref_file')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
+        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
+        register_func_to_epi.connect(func_in_epi, 'out_file', outputspec, 'func_in_epi')
+
+    return register_func_to_epi
+
+
+# TODO: refactor - change anatomical brain/skull to input brain/skull
 def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_threads=1):
 
     '''
@@ -728,13 +853,13 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
             calculate_ants_warp, 'anatomical_brain')
-
+    # why?
     calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
             calculate_ants_warp, 'anatomical_skull')
 
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_brain')
-
+    # why?
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_skull')
 
