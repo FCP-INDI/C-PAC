@@ -1293,14 +1293,36 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
                                                              wf_name='seg_preproc_t1_template_{0}'.format(num_strat))  
-
+            
             # TODO ASH review
             if seg_preproc_template_based is None:
                 continue
-             
+
             node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
                              seg_preproc_template_based, 'inputspec.brain')
+
+            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
+                node, out_file = strat['mni_to_anatomical_linear_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_mat')
+
+            elif 'anat_mni_ants_register' in nodes:
+                node, out_file = strat['ants_initial_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_init')
+
+                node, out_file = strat['ants_rigid_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_rig')
+
+                node, out_file = strat['ants_affine_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_mat')
 
             workflow.connect(c.template_based_segmenation_CSF, 'local_path',
                                 seg_preproc_template_based, 'inputspec.CSF_template')
