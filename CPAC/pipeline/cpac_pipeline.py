@@ -2050,6 +2050,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 
+                    node, node_out = strat['tr']
+                    workflow.connect(node, node_out,
+                                    nuisance_regression_workflow, 'inputspec.tr')
+
                     node, out_file = new_strat['anatomical_brain']
                     workflow.connect(
                         node, out_file,
