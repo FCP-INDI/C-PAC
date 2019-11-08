@@ -84,12 +84,12 @@ def fsl_apply_transform_func_to_mni(workflow,output_name, func_key, ref_key,
         workflow.connect(combine_transforms, outfile,
                          func_mni_warp, 'premat')
 
-        strat.update_resource_pool({ output_name: (func_mni_warp, 'out_file')}) 
-        strat.append_name(func_mni_warp.name)
-
     else:
         raise ValueError(
                 'Could not find flirt or fnirt registration in nodes')
+
+    strat.update_resource_pool({ output_name: (func_mni_warp, 'out_file')}) 
+    strat.append_name(func_mni_warp.name)
     
     return workflow
 

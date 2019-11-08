@@ -1985,6 +1985,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'anat_symmetric_mni_ants_register' not in nodes and \
                             'anat_mni_ants_register' not in nodes:
 
+                    for output_name, func_key, ref_key, image_type in [ \
+                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                    ]:
+                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, distcor=blip)
+
                     aroma_preproc = create_aroma(tr=TR,
                                                 wf_name='create_aroma_%d' % num_strat)
 
