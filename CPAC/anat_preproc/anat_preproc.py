@@ -156,7 +156,8 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
         if method == 'afni':
             # Skull-stripping using AFNI 3dSkullStrip
             inputnode_afni = pe.Node(
-                util.IdentityInterface(fields=['shrink_factor',
+                util.IdentityInterface(fields=['mask_vol',
+                                               'shrink_factor',
                                                'var_shrink_fac',
                                                'shrink_fac_bot_lim',
                                                'avoid_vent',
@@ -179,6 +180,7 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
 
             skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
                                                                  'spat_norm_dxyz',
+                                                                 'mask_vol',
                                                                  'shrink_fac',
                                                                  'var_shrink_fac',
                                                                  'shrink_fac_bot_lim',
@@ -204,6 +206,7 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
 
             preproc.connect([
                 (inputnode_afni, skullstrip_args, [
+                    ('mask_vol', 'mask_vol'),
                     ('shrink_factor', 'shrink_fac'),
                     ('var_shrink_fac', 'var_shrink_fac'),
                     ('shrink_fac_bot_lim', 'shrink_fac_bot_lim'),
@@ -236,18 +239,7 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
             preproc.connect(skullstrip_args, 'expr',
                             anat_skullstrip, 'args')
 
-            preproc.connect(anat_skullstrip, 'out_file',
-                            outputnode, 'skullstrip')
-            # Apply skull-stripping step mask to original volume
-            anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
-                                            name='anat_skullstrip_orig_vol')
-
-            anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
-            anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
-
-            preproc.connect(anat_reorient, 'out_file',
-                            anat_skullstrip_orig_vol, 'in_file_a')
-            
+            # Generate anatomical brain mask
 
             anat_brain_mask = pe.Node(interface=afni.Calc(),
                                             name='anat_brain_mask')
@@ -258,7 +250,17 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
             preproc.connect(anat_skullstrip, 'out_file',
                             anat_brain_mask, 'in_file_a')
 
-            preproc.connect(anat_skullstrip, 'out_file',
+            # Apply skull-stripping step mask to original volume
+            anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                            name='anat_skullstrip_orig_vol')
+
+            anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+            anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_reorient, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_a')
+
+            preproc.connect(anat_brain_mask, 'out_file',
                             anat_skullstrip_orig_vol, 'in_file_b')
             
             preproc.connect(anat_brain_mask, 'out_file',
@@ -287,6 +289,7 @@ def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, m
             
             anat_skullstrip = pe.Node(
                 interface=fsl.BET(), name='anat_skullstrip')
+            anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
 
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip, 'in_file')
