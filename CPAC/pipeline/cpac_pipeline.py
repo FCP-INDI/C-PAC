@@ -2092,6 +2092,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 
+                    node, node_out = strat['tr']
+                    workflow.connect(node, node_out,
+                                    nuisance_regression_workflow, 'inputspec.tr')
+
                     node, out_file = new_strat['anatomical_brain']
                     workflow.connect(
                         node, out_file,
@@ -2322,7 +2326,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if 1 in c.runRegisterFuncToMNI:
 
             for num_strat, strat in enumerate(strat_list):
-
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
@@ -3097,13 +3100,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_raw:
                             # raw score, in template space
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard_derivative", # TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", 
                                                         strat, num_strat)
 
                         elif key in Outputs.template_raw_mult:
                             # same as above but multiple files so mapnode required
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard_derivative", # TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", 
                                                         strat, num_strat,
                                                         map_node=True)
 
@@ -3128,12 +3131,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elif key in Outputs.template_raw:
                             # raw score, in template space
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard", # TODO: _derivative using mask for derivative
+                                                        "functional_brain_mask_to_standard_derivative",
                                                         strat, num_strat)
                         elif key in Outputs.template_raw_mult:
                             # same as above but multiple files so mapnode required
                             strat = z_score_standardize(workflow, key,
-                                                        "functional_brain_mask_to_standard", #TODO: _derivative
+                                                        "functional_brain_mask_to_standard_derivative", 
                                                         strat, num_strat,
                                                         map_node=True)
 
