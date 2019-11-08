@@ -377,7 +377,10 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                              name='3dROIstats')
     timeseries_roi.inputs.quiet = False
     timeseries_roi.inputs.args = "-1Dformat"
-
+    # TODO: add -mask_f2short for float parcellation mask
+    # if parcellation mask has float values
+    #     timeseries_roi.inputs.mask_f2short = True
+    
     wflow.connect(inputNode, 'rest',
                   timeseries_roi, 'in_file')
 
