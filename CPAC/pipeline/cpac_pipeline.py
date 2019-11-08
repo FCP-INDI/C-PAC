@@ -2663,7 +2663,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      ndmg_graph, 'labels')
 
                     strat.update_resource_pool({
-                        # 'ndmg_ts': (ndmg_ts, 'roits_file'),
                         'ndmg_graph': (ndmg_graph, 'out_file')
                     })
 
