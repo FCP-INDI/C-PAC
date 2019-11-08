@@ -109,8 +109,9 @@ runSymbolicLinks :  [1]
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET to perform SkullStripping
-skullstrip_option :  AFNI
+# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
+# Options: ['AFNI', 'FSL', 'niworkflows-ants']
+skullstrip_option :  ['AFNI']
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
