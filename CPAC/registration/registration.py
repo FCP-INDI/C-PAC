@@ -614,6 +614,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
 
         register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_nonlinear, 'in_file')
         register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_to_epi_nonlinear, 'affine_file')
         register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'fsl_fnirt_xfm')
 
         # apply warp
