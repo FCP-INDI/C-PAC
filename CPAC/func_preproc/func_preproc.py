@@ -1,4 +1,5 @@
 from nipype import logging
+from nipype.interfaces import ants
 
 logger = logging.getLogger('workflow')
 
@@ -199,7 +200,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(skullstrip_tool, motion_correct_tool, run_despike=False, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, motion_correct_tool, n4_correction, run_despike=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -570,7 +571,18 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, run_despike=False,
         preproc.connect(skullstrip_func, 'outputspec.func_brain', 
                         func_mean, 'in_file')
 
-    preproc.connect(func_mean, 'out_file',
+    if n4_correction:
+        func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
+                                        name='func_mean_n4_corrected')
+        func_mean_n4_corrected.inputs.args = '-r True'
+        # func_mean_n4_corrected.inputs.rescale_intensities = True
+        preproc.connect(func_mean, 'out_file', 
+                    func_mean_n4_corrected, 'input_image')
+        preproc.connect(func_mean_n4_corrected, 'output_image',
+                    output_node, 'func_mean')
+
+    else:
+        preproc.connect(func_mean, 'out_file',
                     output_node, 'func_mean')
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
@@ -714,9 +726,7 @@ def connect_func_preproc(workflow, strat_list, c):
     new_strat_list = []
 
     for num_strat, strat in enumerate(strat_list):
-       
         for motion_correct_tool in c.motion_correction:
-
             for skullstrip_tool in c.functionalMasking:
                 
                 motion_correct_tool = motion_correct_tool.lower()
