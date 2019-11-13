@@ -126,13 +126,13 @@ n4_bias_field_correction: False
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
+# Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
 # Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
 skullstrip_option :  ['AFNI']
 
 
 # UNet model
-unet_model: ./CPAC/unet/models/Site-All-T-epoch_36.model
+unet_model : /unet_models/Site-All-T-epoch_36.model
 
 
 # Template to be used during niworkflows-ants.
