@@ -2050,7 +2050,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         new_strat.update_resource_pool({
                             'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
                             'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
-                            'func_to_epi_ants_nonlinear_xfm': (func_to_epi, 'outputspec.ants_nonlinear_xfm')
+                            'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm')
                         })                     
 
                     new_strat.append_name(func_to_epi.name)

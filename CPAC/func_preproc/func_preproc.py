@@ -742,6 +742,7 @@ def connect_func_preproc(workflow, strat_list, c):
                             func_preproc = create_func_preproc(
                                 skullstrip_tool=skullstrip_tool,
                                 motion_correct_tool=motion_correct_tool,
+                                n4_correction=c.n4_correct_mean_EPI,
                                 run_despike=True,
                                 wf_name='func_preproc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
                             )
@@ -751,6 +752,7 @@ def connect_func_preproc(workflow, strat_list, c):
                             func_preproc = create_func_preproc(
                                 skullstrip_tool=skullstrip_tool,
                                 motion_correct_tool=motion_correct_tool,
+                                n4_correction=c.n4_correct_mean_EPI,
                                 wf_name='func_preproc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
                             )
 
