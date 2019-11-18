@@ -382,13 +382,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             rescale_dim: 256
             """
             # TODO: add options to pipeline_config
-            train_model=UNet2d(dim_in=3, num_conv_block=5, kernel_root=16)
-            checkpoint=torch.load(c.unet_model, map_location={'cuda:0':'cpu'})
+            train_model = UNet2d(dim_in=3, num_conv_block=5, kernel_root=16)
+            unet_path = check_for_s3(c.unet_model)
+            checkpoint = torch.load(unet_path, map_location={'cuda:0':'cpu'})
             train_model.load_state_dict(checkpoint['state_dict'])
-            model=nn.Sequential(train_model, nn.Softmax2d())
-
-            # predict_volumes(model, cimg_in=input_t1w, bmsk_in=None, rescale_dim=rescale_dim, save_dice=False,
-            #         save_nii=True, nii_outdir=out_dir, suffix='pre_mask') # mask
+            model = nn.Sequential(train_model, nn.Softmax2d())
 
             # create a node called unet_mask
             unet_mask = pe.Node(util.Function(input_names=['model', 'cimg_in'], 
