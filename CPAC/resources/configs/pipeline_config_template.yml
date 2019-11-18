@@ -147,8 +147,8 @@ niworkflows_ants_regmask_path : /ants_template/oasis/T_template0_BrainCerebellum
 
 # Options to be used for AFNI 3dSkullStrip only.
 
-# Choice of using monkey option for AFNI 3dskullstrip
-skullstrip_monkey : False
+# Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
+skullstrip_mask_vol: False
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -238,7 +238,7 @@ bet_frac :  0.5
 
 
 # Mask created along with skull stripping
-bet_mask_boolean :  Off
+bet_mask_boolean :  On
 
 
 # Mesh created along with skull stripping
@@ -527,7 +527,8 @@ funcRegANTSinterpolation: LanczosWindowedSinc
 funcRegFSLinterpolation: sinc
 
 
-# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose. 
+# Options: ['Mean Functional', 'Selected Functional Volume']
 func_reg_input :  ['Mean Functional']
 
 
@@ -539,9 +540,17 @@ n4_correct_mean_EPI : False
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
-# Options: ['AFNI', 'FSL', 'FSL_AFNI']
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space. 
+# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
 functionalMasking :  ['AFNI']
+
+
+# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
+anatomical_mask_dilation : False 
+
+
+# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+motion_correction : ['AFNI']
 
 
 # Register functional images to a standard MNI152 template.

@@ -6,7 +6,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
                                    pushout, touchup, fill_hole, avoid_eyes,
                                    use_edge, exp_frac, smooth_final,
                                    push_to_edge, use_skull, perc_int,
-                                   max_inter_iter, blur_fwhm, fac, monkey):
+                                   max_inter_iter, blur_fwhm, fac, monkey, mask_vol):
     """
     Method to return option string for 3dSkullStrip
     
@@ -68,6 +68,9 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     monkey : boolean
         Use monkey option in SkullStripping
+    
+    mask_vol : boolean
+        Output a mask volume instead of a skull-stripped volume.
 
     Returns
     -------
@@ -88,7 +91,8 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
         max_inter_iter=4,
         blur_fwhm=0,
         fac=1.0,
-        monkey=False
+        monkey=False,
+        mask_vol=False
     )
 
     if float(shrink_fac) != defaults['shrink_fac']:
@@ -96,6 +100,9 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     if not var_shrink_fac:
         expr += ' -no_var_shrink_fac'
+    
+    if mask_vol:
+        expr += ' -mask_vol'
 
     if monkey:
         expr += ' -monkey'
