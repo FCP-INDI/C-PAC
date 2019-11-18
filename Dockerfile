@@ -188,7 +188,8 @@ RUN mkdir -p /ndmg_atlases/label && \
 
 # Get UNet model
 RUN mkdir -p /unet_models && \
-    git clone https://github.com/sandywang/MultiSliceUNet-NHP.git /tmp/MultiSliceUNet-NHP && \
+    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/sandywang/MultiSliceUNet-NHP.git /tmp/MultiSliceUNet-NHP && \
+    git lfs migrate import --fixup --everything && \
     cd /tmp/MultiSliceUNet-NHP && \
     cp -r /tmp/MultiSliceUNet-NHP/models/. /unet_models && \
     rm -rf /tmp/MultiSliceUNet-NHP && \
