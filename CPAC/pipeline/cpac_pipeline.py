@@ -1506,6 +1506,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 func_preproc = create_func_preproc(
                                     skullstrip_tool=skullstrip_tool,
                                     motion_correct_tool=motion_correct_tool,
+                                    n4_correction=c.n4_correct_mean_EPI,
                                     run_despike=True,
                                     wf_name='func_preproc_before_stc_despiked_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
                                 )
@@ -1517,6 +1518,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 func_preproc = create_func_preproc(
                                     skullstrip_tool=skullstrip_tool,
                                     motion_correct_tool=motion_correct_tool,
+                                    n4_correction=c.n4_correct_mean_EPI,
                                     wf_name='func_preproc_before_stc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
                                 )
 
@@ -1568,6 +1570,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             node, out_file = new_strat['coordinate_transformation']
                             workflow.connect(node, out_file,
                                             gen_motion_stats, 'inputspec.transformations')
+
+                            new_strat.append_name(gen_motion_stats.name)
+
+                            new_strat.update_resource_pool({
+                                'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
+                                'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
+                                'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
+                                'power_params': (gen_motion_stats, 'outputspec.power_params'),
+                                'motion_params': (gen_motion_stats, 'outputspec.motion_params')
+                            })
 
         strat_list = new_strat_list
 
