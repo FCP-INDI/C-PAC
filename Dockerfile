@@ -186,15 +186,6 @@ RUN mkdir -p /ndmg_atlases/label && \
     cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
     cd -
 
-# Get UNet model
-RUN mkdir -p /unet_models && \
-    GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/sandywang/MultiSliceUNet-NHP.git /tmp/MultiSliceUNet-NHP && \
-    git lfs migrate import --fixup --everything && \
-    cd /tmp/MultiSliceUNet-NHP && \
-    cp -r /tmp/MultiSliceUNet-NHP/models/. /unet_models && \
-    rm -rf /tmp/MultiSliceUNet-NHP && \
-    cd -
-
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 

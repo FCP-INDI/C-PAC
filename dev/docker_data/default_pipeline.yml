@@ -132,7 +132,7 @@ skullstrip_option :  ['AFNI']
 
 
 # UNet model
-unet_model : /unet_models/Site-All-T-epoch_36.model
+unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 
 
 # Template to be used during niworkflows-ants.
