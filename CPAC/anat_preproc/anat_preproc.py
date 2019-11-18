@@ -10,6 +10,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
+from CPAC.utils.datasource import check_for_s3
 
 # TODO change args to c
 # def create_anat_preproc(template_path=None, mask_path=None, regmask_path=None, method='afni', 
@@ -384,6 +385,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             # TODO: add options to pipeline_config
             train_model = UNet2d(dim_in=3, num_conv_block=5, kernel_root=16)
             unet_path = check_for_s3(c.unet_model)
+            import pdb; pdb.set_trace()
             checkpoint = torch.load(unet_path, map_location={'cuda:0':'cpu'})
             train_model.load_state_dict(checkpoint['state_dict'])
             model = nn.Sequential(train_model, nn.Softmax2d())
