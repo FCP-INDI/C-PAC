@@ -1524,6 +1524,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 func_preproc = create_func_preproc(
                                     skullstrip_tool=skullstrip_tool,
                                     motion_correct_tool=motion_correct_tool,
+                                    n4_correction=c.n4_correct_mean_EPI,
                                     run_despike=True,
                                     wf_name='func_preproc_before_stc_despiked_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
                                 )
@@ -1535,6 +1536,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 func_preproc = create_func_preproc(
                                     skullstrip_tool=skullstrip_tool,
                                     motion_correct_tool=motion_correct_tool,
+                                    n4_correction=c.n4_correct_mean_EPI,
                                     wf_name='func_preproc_before_stc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
                                 )
 
