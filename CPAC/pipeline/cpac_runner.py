@@ -168,7 +168,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
 # Run C-PAC subjects via job queue
 def run(subject_list_file, config_file=None, p_name=None, plugin=None,
-        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False):
+        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False, test_config=False):
 
     # Import packages
     import commands
@@ -177,6 +177,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     import time
 
     from CPAC.pipeline.cpac_pipeline import prep_workflow
+
+    print('Run called with config file {0}'.format(config_file))
 
     if not config_file:
         import pkg_resources as p
@@ -339,7 +341,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         if c.numParticipantsAtOnce == 1:
             for sub in sublist:
                 prep_workflow(sub, c, True, pipeline_timing_info,
-                              p_name, plugin, plugin_args)
+                              p_name, plugin, plugin_args, test_config)
             return
                 
         pid = open(os.path.join(c.workingDirectory, 'pid.txt'), 'w')
@@ -351,7 +353,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         processes = [
             Process(target=prep_workflow,
                     args=(sub, c, True, pipeline_timing_info,
-                          p_name, plugin, plugin_args))
+                          p_name, plugin, plugin_args, test_config))
             for sub in sublist
         ]
 

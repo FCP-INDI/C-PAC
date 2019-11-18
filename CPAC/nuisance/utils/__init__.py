@@ -14,6 +14,7 @@ from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.brickstat import BrickStat
 
 from CPAC.nuisance.utils.crc import encode as crc_encode
+from CPAC.nuisance.utils.compcor import calc_compcor_components
 
 import scipy.signal as signal
 

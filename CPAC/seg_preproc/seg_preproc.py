@@ -732,4 +732,213 @@ def process_segment_map(wf_name,
 
     return preproc
 
+def create_seg_preproc_template_based(use_ants,
+                                    wf_name='seg_preproc_templated_based'):
+    
+    """Generate the subject's cerebral spinal fluids,
+    white matter and gray matter mask based on provided template, if selected to do so.
 
+    Parameters
+    ----------
+    use_ants: boolean
+        Whether we are using ANTs or FSL-FNIRT for registration purposes.
+    wf_name : string
+        name of the workflow
+
+    Returns
+    -------
+    seg_preproc_templated_based : workflow
+        Workflow Object for Segmentation Workflow
+
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/seg_preproc/seg_preproc.py>`_ 
+
+    Workflow Inputs: ::
+
+        inputspec.brain : string (existing nifti file)
+            Anatomical image(without skull)   
+                Note: Mean EPI will replace anatomical image, if anatomical data doesn't exist.
+
+        inputspec.standard2highres_mat : string (existing affine transformation .mat file)
+            File for transformation from mni space to anatomical space
+    
+        inputspec.CSF_template : string (existing nifti file)
+            CSF tissue mask on template space  
+    
+        inputspec.GRAY_template : string (existing nifti file)
+            GRAY Matter CSF tissue mask on template space
+    
+        inputspec.WHITE_template : string (existing nifti file)
+            White Matter tissue mask on template space
+        
+    Workflow Outputs: ::
+
+        outputspec.csf_mni2t1 : string (nifti file)
+            outputs CSF prior template(in MNI space) registered to anatomical space
+        
+        outputspec.gm_mni2t1 : string (nifti file)
+            outputs gray matter prior template registered to anatomical space
+    
+        outputspec.wm_mni2t1 : string (nifti file)
+            outputs White Matter prior template(in MNI space) registered to anatomical space
+
+
+    Order of commands:
+    
+    - Register CSF template in template space to t1(or mean EPI) space. For details see `flirt <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT>`_::
+    
+        flirt
+        -in CSF_template
+        -ref mprage_brain.nii.gz
+        -applyxfm
+        -init standard2highres_inv.mat
+        -out csf_mni2t1
+
+        -bin csf_bin.nii.gz
+
+
+    - Register WM template in template space to t1 space ::
+        
+        flirt
+        -in WHITE_template
+        -ref mprage_brain.nii.gz
+        -applyxfm
+        -init standard2highres.mat
+        -out wm_mni2t1
+
+ 
+    - Register GM template in template space to t1 space ::
+    
+        flirt
+        -in GRAY_template
+        -ref mprage_brain.nii.gz
+        -applyxfm
+        -init standard2highres.mat
+        -out gm_mni2t1
+
+    """
+
+    preproc = pe.Workflow(name = wf_name)
+    inputNode = pe.Node(util.IdentityInterface(fields=['brain',
+                                                       'standard2highres_init',
+                                                       'standard2highres_mat',
+                                                       'standard2highres_rig',
+                                                       'CSF_template',
+                                                       'WHITE_template',
+                                                       'GRAY_template']),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',                                           
+                                                        'gm_mask',
+                                                        'wm_mask']),
+                        name='outputspec')
+
+
+    csf_template2t1 = tissue_mask_template_to_t1('CSF', use_ants)
+
+    if use_ants:
+        preproc.connect(inputNode, 'standard2highres_init',
+                        csf_template2t1, 'inputspec.standard2highres_init')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        csf_template2t1, 'inputspec.standard2highres_rig')
+
+    preproc.connect(inputNode, 'brain',
+                    csf_template2t1, 'inputspec.brain')
+    preproc.connect(inputNode, 'CSF_template',
+                    csf_template2t1, 'inputspec.tissue_mask_template')
+    preproc.connect(inputNode, 'standard2highres_mat',
+                    csf_template2t1, 'inputspec.standard2highres_mat')
+    preproc.connect(csf_template2t1, 'outputspec.segment_mask_temp2t1',
+                    outputNode, 'csf_mask')
+
+
+    wm_template2t1 = tissue_mask_template_to_t1('WM', use_ants)
+
+    if use_ants:
+        preproc.connect(inputNode, 'standard2highres_init',
+                        wm_template2t1, 'inputspec.standard2highres_init')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        wm_template2t1, 'inputspec.standard2highres_rig')
+
+    preproc.connect(inputNode, 'brain',
+                    wm_template2t1, 'inputspec.brain')
+    preproc.connect(inputNode, 'WHITE_template',
+                    wm_template2t1, 'inputspec.tissue_mask_template')               
+    preproc.connect(inputNode, 'standard2highres_mat',
+                    wm_template2t1, 'inputspec.standard2highres_mat')
+    preproc.connect(wm_template2t1, 'outputspec.segment_mask_temp2t1',
+                    outputNode, 'wm_mask')
+
+
+    gm_template2t1 = tissue_mask_template_to_t1('GM', use_ants)
+
+    if use_ants:
+        preproc.connect(inputNode, 'standard2highres_init',
+                        gm_template2t1, 'inputspec.standard2highres_init')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        gm_template2t1, 'inputspec.standard2highres_rig')
+
+    preproc.connect(inputNode, 'brain',
+                    gm_template2t1, 'inputspec.brain')
+    preproc.connect(inputNode, 'GRAY_template',
+                    gm_template2t1, 'inputspec.tissue_mask_template')
+    preproc.connect(inputNode, 'standard2highres_mat',
+                    gm_template2t1, 'inputspec.standard2highres_mat')
+    preproc.connect(gm_template2t1, 'outputspec.segment_mask_temp2t1',
+                    outputNode, 'gm_mask')
+
+    return preproc
+
+
+def tissue_mask_template_to_t1(wf_name,
+                                use_ants):
+
+    import nipype.interfaces.utility as util
+
+    preproc = pe.Workflow(name=wf_name)
+
+    inputNode = pe.Node(util.IdentityInterface(fields=['brain',
+                                                       'standard2highres_init',
+                                                       'standard2highres_mat',
+                                                       'standard2highres_rig',
+                                                       'tissue_mask_template']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['segment_mask_temp2t1']),
+                        name='outputspec')
+
+    if use_ants:
+        collect_linear_transforms = pe.Node(util.Merge(3),
+                                            name='{0}_collect_linear_transforms'.format(wf_name))
+
+        tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
+                                        name='{0}_mni_to_t1'.format(wf_name))
+        tissueprior_mni_to_t1.inputs.invert_transform_flags = [True, True, True]
+        tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
+
+        # mni to t1
+        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
+        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
+        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
+        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
+        preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
+        preproc.connect(inputNode, 'tissue_mask_template', tissueprior_mni_to_t1, 'input_image')
+        
+        preproc.connect (tissueprior_mni_to_t1, 'output_image', outputNode, 'segment_mask_temp2t1')
+
+    else:
+        tissueprior_mni_to_t1 = pe.Node(interface=fsl.FLIRT(),
+                                        name='{0}_mni_to_t1'.format(wf_name))
+        tissueprior_mni_to_t1.inputs.apply_xfm = True
+        tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
+        
+        # mni to t1
+        preproc.connect(inputNode, 'tissue_mask_template', tissueprior_mni_to_t1, 'in_file')
+        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference')
+        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'in_matrix_file')
+        
+        preproc.connect (tissueprior_mni_to_t1, 'out_file', outputNode, 'segment_mask_temp2t1')
+
+    return preproc

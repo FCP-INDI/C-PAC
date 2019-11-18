@@ -506,6 +506,138 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
     return register_bbregister_func_to_anat
     
 
+def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
+
+    register_func_to_epi = pe.Workflow(name=name)
+    
+    inputspec = pe.Node(util.IdentityInterface(fields=['func_4d',
+                                                       'func_3d',
+                                                       'epi']),
+                        name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['ants_initial_xfm',
+                                                        'ants_rigid_xfm',
+                                                        'ants_affine_xfm',
+                                                        'ants_nonlinear_xfm',
+                                                        'fsl_flirt_xfm',
+                                                        'fsl_fnirt_xfm',
+                                                        'invlinear_xfm',
+                                                        'func_in_epi']),
+                         name='outputspec')
+
+    if reg_option == 'ANTS':
+        # linear + non-linear registration
+        func_to_epi_ants = create_wf_calculate_ants_warp(name='func_to_epi_ants')
+        func_to_epi_ants.inputs.inputspec.interp = 'LanczosWindowedSinc'
+
+        register_func_to_epi.connect([
+            (inputspec, func_to_epi_ants, [
+                ('func_3d', 'inputspec.anatomical_brain'),
+                ('epi', 'inputspec.reference_brain'),
+                ('func_3d', 'inputspec.anatomical_skull'),
+                ('epi', 'inputspec.reference_skull'),
+            ]),
+        ])
+
+        func_to_epi_ants.inputs.inputspec.set(
+                dimension=3,
+                use_histogram_matching=True,
+                winsorize_lower_quantile=0.01,
+                winsorize_upper_quantile=0.99,
+                metric=['MI', 'MI', 'CC'],
+                metric_weight=[[1,32], [1,32], [1,5]],
+                radius_or_number_of_bins=[32, 32, 4],
+                sampling_strategy=['Regular', 'Regular', None],
+                sampling_percentage=[0.25, 0.25, None],
+                number_of_iterations=[
+                    [1000, 500, 250, 100],
+                    [1000, 500, 250, 100],
+                    [100, 100, 70, 20]
+                ],
+                convergence_threshold=[1e-8, 1e-8, 1e-9],
+                convergence_window_size=[10, 10, 15],
+                transforms=['Rigid', 'Affine', 'SyN'],
+                transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
+                shrink_factors=[
+                    [8, 4, 2, 1],
+                    [8, 4, 2, 1],
+                    [4, 2, 1]
+                ],
+                smoothing_sigmas=[
+                    [3, 2, 1, 0],
+                    [3, 2, 1, 0],
+                    [0.6,0.2,0.0]
+                ]
+            )
+
+        register_func_to_epi.connect([
+            (func_to_epi_ants, outputspec, [
+                ('outputspec.ants_initial_xfm', 'ants_initial_xfm'),
+                ('outputspec.ants_rigid_xfm', 'ants_rigid_xfm'),
+                ('outputspec.ants_affine_xfm', 'ants_affine_xfm'),
+                ('outputspec.warp_field', 'ants_nonlinear_xfm'),
+            ]),
+        ])
+
+        # combine transforms
+        collect_transforms = pe.Node(util.Merge(4), name='collect_transforms_ants')
+        register_func_to_epi.connect([
+            (func_to_epi_ants, collect_transforms, [
+                ('outputspec.ants_initial_xfm', 'in1'),
+                ('outputspec.ants_rigid_xfm', 'in2'),
+                ('outputspec.ants_affine_xfm', 'in3'),
+                ('outputspec.warp_field', 'in4'),
+            ]),
+        ])
+
+        # apply transform
+        func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
+        func_in_epi.inputs.input_image_type = 3
+        func_in_epi.inputs.interpolation = 'LanczosWindowedSinc'
+
+        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
+        register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'reference_image')
+        register_func_to_epi.connect(collect_transforms, 'out', func_in_epi, 'transforms')
+        register_func_to_epi.connect(func_in_epi, 'output_image', outputspec, 'func_in_epi')
+
+    elif reg_option == 'FSL':
+        # flirt linear registration 
+        func_to_epi_linear = pe.Node(interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')
+        func_to_epi_linear.inputs.dof = 6
+
+        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_linear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_linear, 'reference')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', outputspec, 'fsl_flirt_xfm')
+        
+        inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(), name='inv_linear_reg0_xfm')
+        inv_flirt_xfm.inputs.invert_xfm = True
+
+        # fnirt non-linear registration
+        func_to_epi_nonlinear = pe.Node(interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
+        func_to_epi_nonlinear.inputs.fieldcoeff_file = True
+
+        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_nonlinear, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_to_epi_nonlinear, 'affine_file')
+        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'fsl_fnirt_xfm')
+
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', inv_flirt_xfm, 'in_file')
+        register_func_to_epi.connect(inv_flirt_xfm, 'out_file', outputspec, 'invlinear_xfm')
+
+        # apply warp
+        func_in_epi = pe.Node(interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
+        func_in_epi.inputs.interp = 'sinc'
+
+        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'in_file')
+        register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'ref_file')
+        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
+        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
+        register_func_to_epi.connect(func_in_epi, 'out_file', outputspec, 'func_in_epi')
+
+    return register_func_to_epi
+
+
+# TODO: refactor - change anatomical brain/skull to input brain/skull
 def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_threads=1):
 
     '''
@@ -728,13 +860,13 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
             calculate_ants_warp, 'anatomical_brain')
-
+    # why?
     calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
             calculate_ants_warp, 'anatomical_skull')
 
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_brain')
-
+    # why?
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_skull')
 
@@ -834,359 +966,4 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     return calc_ants_warp_wf
 
-
-def create_wf_apply_ants_warp(map_node=False, inverse=False,
-                              name='create_wf_apply_ants_warp',
-                              ants_threads=1):
-
-    """
-    Applies previously calculated ANTS registration transforms to input
-    images. This workflow employs the antsApplyTransforms tool:
-
-    http://stnava.github.io/ANTs/
-
-    Parameters
-    ----------
-    name : string, optional
-        Name of the workflow.
-
-    Returns
-    -------
-    apply_ants_warp_wf : nipype.pipeline.engine.Workflow
-
-    Notes
-    -----
-
-    Workflow Inputs::
-
-        inputspec.input_image : string (nifti file)
-            Image file of brain to be registered to reference
-        inputspec.reference_image : string (nifti file)
-            Image file of brain or template being used as a reference
-        inputspec.transforms : list of filepaths (nifti, .mat, .txt)
-            List of transforms and warps to be applied to the input image
-        inputspec.dimension : integer
-            Dimension value of image being registered (2, 3, or 4)
-        inputspec.interpolation : string
-            Type of interpolation to be used. See antsApplyTransforms
-            documentation or Nipype interface documentation for options
-
-            
-    Workflow Outputs::
-    
-        outputspec.output_image : string (nifti file)
-            Normalized output file
-
-                 
-    Workflow Graph:
-    
-    .. image::
-        :width: 500
-    
-    Detailed Workflow Graph:
-    
-    .. image:: 
-        :width: 500
-       
-    """
-
-    import nipype.interfaces.ants as ants
-
-    apply_ants_warp_wf = pe.Workflow(name=name)
-
-    inputspec = pe.Node(util.IdentityInterface(fields=['input_image', 
-                                                       'reference_image',
-                                                       'transforms',
-                                                       'dimension',
-                                                       'input_image_type',
-                                                       'interpolation']),
-                        name='inputspec')
-
-    if map_node:
-        apply_ants_warp = pe.MapNode(interface=ants.ApplyTransforms(),
-                                     name='apply_ants_warp_mapnode',
-                                     iterfield=['input_image', 'transforms'],
-                                     mem_gb=1.5)
-    else:
-        apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
-                                  name='apply_ants_warp',
-                                  mem_gb=1.5)
-
-    apply_ants_warp.inputs.out_postfix = '_antswarp'
-    apply_ants_warp.interface.num_threads = ants_threads
-
-    if inverse:
-        apply_ants_warp.inputs.invert_transform_flags = [True, True, True, True,
-                                                         False]
-
-    outputspec = pe.Node(util.IdentityInterface(fields=['output_image']),
-                         name='outputspec')
-
-    # connections from inputspec
-    apply_ants_warp_wf.connect(inputspec, 'input_image', apply_ants_warp, 
-                               'input_image')
-
-    apply_ants_warp_wf.connect(inputspec, 'reference_image', apply_ants_warp, 
-                               'reference_image')
-
-    apply_ants_warp_wf.connect(inputspec, 'transforms', apply_ants_warp, 
-                               'transforms')
-
-    apply_ants_warp_wf.connect(inputspec, 'dimension', apply_ants_warp, 
-                               'dimension')
-
-    apply_ants_warp_wf.connect(inputspec, 'input_image_type', apply_ants_warp, 
-                               'input_image_type')
-
-    apply_ants_warp_wf.connect(inputspec, 'interpolation', apply_ants_warp, 
-                               'interpolation')
-
-    # connections to outputspec
-    apply_ants_warp_wf.connect(apply_ants_warp, 'output_image',
-                               outputspec, 'output_image')
-
-    return apply_ants_warp_wf
-
-
-def create_wf_c3d_fsl_to_itk(input_image_type=0, map_node=False,
-                             name='create_wf_c3d_fsl_to_itk'):
-
-    """
-    Converts an FSL-format output matrix to an ITK-format (ANTS) matrix
-    for use with ANTS registration tools.
-
-    Parameters
-    ----------
-    name : string, optional
-        Name of the workflow.
-
-    Returns
-    -------
-    fsl_to_itk_conversion : nipype.pipeline.engine.Workflow
-
-    Notes
-    -----
-    
-    Workflow Inputs::
-    
-        inputspec.affine_file : string (nifti file)
-            Output matrix of FSL-based functional to anatomical registration
-        inputspec.reference_file : string (nifti file)
-            File of skull-stripped anatomical brain to be used in affine
-            conversion
-        inputspec.source_file : string (nifti file)
-            Should match the input of the apply warp (in_file) unless you are
-            applying the warp to a 4-d file, in which case this file should
-            be a mean_functional file
-
-    Workflow Outputs::
-    
-        outputspec.itk_transform : string (nifti file)
-            Converted affine transform in ITK format usable with ANTS
-    
-    """
-
-    import nipype.interfaces.c3 as c3
-    from nipype.interfaces.utility import Function
-    from CPAC.registration.utils import change_itk_transform_type
-    from nipype.interfaces.afni import preprocess
-
-    fsl_to_itk_conversion = pe.Workflow(name=name)
-
-    itk_imports = ['import os']
-
-    inputspec = pe.Node(util.IdentityInterface(fields=['affine_file',
-                                                       'reference_file',
-                                                       'source_file']),
-                        name='inputspec')
-
-    # converts FSL-format .mat affine xfm into ANTS-format .txt
-    # .mat affine comes from Func->Anat registration
-
-    if map_node:
-        fsl_reg_2_itk = pe.MapNode(c3.C3dAffineTool(),
-                                   name='fsl_reg_2_itk_mapnode',
-                                   iterfield=['source_file'])
-
-        change_transform = pe.MapNode(util.Function(
-                input_names=['input_affine_file'],
-                output_names=['updated_affine_file'],
-                function=change_itk_transform_type,
-                imports=itk_imports),
-                name='change_transform_type',
-                iterfield=['input_affine_file'])
-    else:
-        fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(), name='fsl_reg_2_itk')
-
-        change_transform = pe.Node(util.Function(
-                input_names=['input_affine_file'],
-                output_names=['updated_affine_file'],
-                function=change_itk_transform_type,
-                imports=itk_imports),
-                name='change_transform_type')
-
-    fsl_reg_2_itk.inputs.itk_transform = True
-    fsl_reg_2_itk.inputs.fsl2ras = True
-
-    outputspec = pe.Node(util.IdentityInterface(fields=['itk_transform']),
-                                                name='outputspec')
-
-    fsl_to_itk_conversion.connect(inputspec, 'affine_file', fsl_reg_2_itk,
-            'transform_file')
-
-    fsl_to_itk_conversion.connect(inputspec, 'reference_file', fsl_reg_2_itk,
-            'reference_file')
-
-    # source_file input of the conversion must be a 3D file, so if the source
-    # file is 4D (input_image_type=3), average it into a 3D file first
-    if input_image_type == 0:
-
-        fsl_to_itk_conversion.connect(inputspec, 'source_file', fsl_reg_2_itk,
-                'source_file')
-
-    elif input_image_type == 3:
-
-        try:
-            tstat_source = pe.Node(interface=preprocess.TStat(),
-                                   name='fsl_to_itk_tcat_source')
-        except AttributeError:
-            from nipype.interfaces.afni import utils as afni_utils
-            tstat_source = pe.Node(interface=afni_utils.TStat(),
-                                   name='fsl_to_itk_tcat_source')
-
-        tstat_source.inputs.outputtype = 'NIFTI_GZ'
-        tstat_source.inputs.options = '-mean'
-
-        fsl_to_itk_conversion.connect(inputspec, 'source_file', tstat_source,
-                'in_file')
-
-        fsl_to_itk_conversion.connect(tstat_source, 'out_file', fsl_reg_2_itk,
-                'source_file')
-
-    fsl_to_itk_conversion.connect(fsl_reg_2_itk, 'itk_transform',
-            change_transform, 'input_affine_file')
-
-    fsl_to_itk_conversion.connect(change_transform, 'updated_affine_file', 
-            outputspec, 'itk_transform')
-
-    return fsl_to_itk_conversion
-
-
-def create_wf_collect_transforms(map_node=False, inverse=False, distcor=False,
-                                 name='create_wf_collect_transforms'):
-    """Collect the list of warps/transforms to be applied using the ANTs apply
-    warp tool into a single string.
-
-    Parameters
-    ----------
-    map_node: bool
-        If map_node is true, allow for multiple functional-to-structural
-        affine transforms for input.
-    inverse: bool
-        If inverse is true, reverse the order of the warps in the string, as
-        ANTs' apply transform tool reads it in as a stack.
-    name: str
-        Name for the sub-workflow.
-
-    Returns
-    -------
-    collect_transforms_wf: Nipype workflow object
-        The connected workflow object.
-    """
-
-    collect_transforms_wf = pe.Workflow(name=name)
-
-    inputspec = pe.Node(util.IdentityInterface(fields=['warp_file',
-            'linear_initial', 'linear_affine', 'linear_rigid',
-            'fsl_to_itk_affine', 'distortion_unwarp']), name='inputspec')
-
-    # converts FSL-format .mat affine xfm into ANTS-format .txt
-    # .mat affine comes from Func->Anat registration
-
-    if map_node:
-        if inverse:
-            collect_transforms = pe.MapNode(util.Merge(5),
-                    name='collect_transforms_mapnode', iterfield=['in1'])
-        else:
-            collect_transforms = pe.MapNode(util.Merge(5),
-                    name='collect_transforms_mapnode', iterfield=['in5'])
-    else:
-        collect_transforms = pe.Node(util.Merge(5), name='collect_transforms')
-
-    outputspec = pe.Node(util.IdentityInterface(
-            fields=['transformation_series']), name='outputspec')
-
-    if inverse:
-        if distcor:
-            # Field file from anatomical nonlinear registration
-            collect_transforms_wf.connect(inputspec, 'warp_file',
-                                          collect_transforms, 'in6')
-
-            # affine transformation from anatomical registration
-            collect_transforms_wf.connect(inputspec, 'linear_affine',
-                                          collect_transforms, 'in5')
-
-            # rigid transformation from anatomical registration
-            collect_transforms_wf.connect(inputspec, 'linear_rigid',
-                                          collect_transforms, 'in4')
-
-            # initial transformation from anatomical registration
-            collect_transforms_wf.connect(inputspec, 'linear_initial',
-                                          collect_transforms, 'in3')
-
-            # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
-            collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
-                                          collect_transforms, 'in2')
-
-            collect_transforms_wf.connect(inputspec, 'distortion_unwarp',
-                                          collect_transforms, 'in1')
-        else:
-            # Field file from anatomical nonlinear registration
-            collect_transforms_wf.connect(inputspec, 'warp_file',
-                                          collect_transforms, 'in5')
-
-            # affine transformation from anatomical registration
-            collect_transforms_wf.connect(inputspec, 'linear_affine',
-                                          collect_transforms, 'in4')
-
-            # rigid transformation from anatomical registration
-            collect_transforms_wf.connect(inputspec, 'linear_rigid',
-                                          collect_transforms, 'in3')
-
-            # initial transformation from anatomical registration
-            collect_transforms_wf.connect(inputspec, 'linear_initial',
-                                          collect_transforms, 'in2')
-
-            # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
-            collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
-                                          collect_transforms, 'in1')
-    else:
-        # Field file from anatomical nonlinear registration
-        collect_transforms_wf.connect(inputspec, 'warp_file',
-                                      collect_transforms, 'in1')
-
-        # affine transformation from anatomical registration
-        collect_transforms_wf.connect(inputspec, 'linear_affine',
-                collect_transforms, 'in2')
-
-        # rigid transformation from anatomical registration
-        collect_transforms_wf.connect(inputspec, 'linear_rigid',
-                collect_transforms, 'in3')
-
-        # initial transformation from anatomical registration
-        collect_transforms_wf.connect(inputspec, 'linear_initial',
-                collect_transforms, 'in4')
-
-        # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
-        collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
-                collect_transforms, 'in5')
-
-        if distcor:
-            collect_transforms_wf.connect(inputspec, 'distortion_unwarp',
-                                          collect_transforms, 'in6')
-
-    collect_transforms_wf.connect(collect_transforms, 'out', outputspec,
-            'transformation_series')
-
-    return collect_transforms_wf
 

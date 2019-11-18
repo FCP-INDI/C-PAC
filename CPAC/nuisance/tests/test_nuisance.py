@@ -102,9 +102,9 @@ def test_nuisance_workflow_type1():
 
         nuisance_regression_workflow.write_graph(graph2use='orig', simple_form=False)
 
-        preprocessed = '/home/anibalsolon/cpac_tests/cpac_runs/ABIDE/working/resting_preproc_sub-0051151_ses-1'
+        preprocessed = '/cc_dev/cpac_working/old_compcor'
 
-        nuisance_regression_workflow.inputs.inputspec.anatomical_file_path = glob.glob(preprocessed + '/anat_preproc_afni_0/anat_skullstrip_orig_vol/*_resample_calc.nii.gz')[0]
+        nuisance_regression_workflow.inputs.inputspec.anatomical_file_path = glob.glob(preprocessed + '/anat_preproc_already_0/anat_reorient/*_resample.nii.gz')[0]
         nuisance_regression_workflow.inputs.inputspec.functional_file_path = glob.glob(preprocessed + '/func_preproc_automask_0/_scan_*/func_normalize/*_calc_tshift_resample_volreg_calc_maths.nii.gz')[0]
         nuisance_regression_workflow.inputs.inputspec.functional_brain_mask_file_path = glob.glob(preprocessed + '/func_preproc_automask_0/_scan_*/func_mask_normalize/*_calc_tshift_resample_volreg_calc_maths_maths.nii.gz')[0]
         nuisance_regression_workflow.inputs.inputspec.wm_mask_file_path = glob.glob(preprocessed + '/seg_preproc_0/WM/WM_mask/segment_seg_2_maths.nii.gz')[0]
