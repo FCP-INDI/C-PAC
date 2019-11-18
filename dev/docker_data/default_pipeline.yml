@@ -533,17 +533,9 @@ n4_correct_mean_EPI : False
 func_reg_input_volume :  0
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
-
-
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
 # Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
-
-
-# Run AFNI 3dDespike after motion correction
-run_despike : [1]
 
 
 # Register functional images to a standard MNI152 template.

@@ -486,6 +486,10 @@ fmap_distcorr_dwell_asym_ratio : [0.93902439]
 fmap_distcorr_pedir :  -y
 
 
+# Run Functional to EPI Template Registration
+runRegisterFuncToEPI :  [0]
+
+
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
@@ -535,17 +539,9 @@ n4_correct_mean_EPI : False
 func_reg_input_volume :  0
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
-
-
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
 # Options: ['AFNI', 'FSL', 'FSL_AFNI']
 functionalMasking :  ['AFNI']
-
-
-# Run AFNI 3dDespike after motion correction
-run_despike : [1]
 
 
 # Register functional images to a standard MNI152 template.
@@ -573,6 +569,10 @@ template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for
 
 # Standard FSL Anatomical Brain Image with Skull
 template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
+
+# EPI template
+template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
