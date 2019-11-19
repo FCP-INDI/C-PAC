@@ -562,7 +562,7 @@ def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation
 
     preproc.connect(input_node, 'anatomical_brain_mask',
                     skullstrip_func, 'inputspec.anatomical_brain_mask')
-                    
+
     preproc.connect(input_node, 'anat_skull',
                     skullstrip_func, 'inputspec.anat_skull')                
 
@@ -755,7 +755,15 @@ def connect_func_preproc(workflow, strat_list, c):
             node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, func_preproc,
                             'inputspec.func')
-                        
+
+            node, out_file = strat['anatomical_reorient']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anat_skull')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anatomical_brain_mask')
+
             func_preproc.inputs.inputspec.twopass = \
                 getattr(c, 'functional_volreg_twopass', True)
 
