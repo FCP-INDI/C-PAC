@@ -1503,6 +1503,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     func_preproc = create_func_preproc(
                         skullstrip_tool=skullstrip_tool,
                         n4_correction=c.n4_correct_mean_EPI,
+                        anatomical_mask_dilation=c.anatomical_mask_dilation,
                         wf_name='func_preproc_before_stc_%s_%d' % (skullstrip_tool, num_strat)
                     )
 
@@ -1612,51 +1613,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         strat_list = new_strat_list
 
         # Functional Image Preprocessing Workflow
-        new_strat_list = []
-
-        for num_strat, strat in enumerate(strat_list):
+        workflow, strat_list = connect_func_preproc(workflow, strat_list, c)
         
-            for tool in c.functionalMasking:
-
-                tool = tool.lower()
-
-                new_strat = strat.fork()
-
-                func_preproc = create_func_preproc(
-                    tool=tool,
-                    anatomical_mask_dilation=c.anatomical_mask_dilation,
-                    wf_name='func_preproc_%s_%d' % (tool, num_strat)
-                )
-                node, out_file = new_strat.get_leaf_properties()
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.func')
-                node, out_file = new_strat['anatomical_reorient']
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.anat_skull')
-                node, out_file = new_strat['anatomical_brain_mask']
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.anatomical_brain_mask')
-                            
-                func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'functional_volreg_twopass', True)
-
-                new_strat.append_name(func_preproc.name)
-                new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-
-                new_strat.update_resource_pool({
-                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
-                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                    'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
-                })
-
-                new_strat_list.append(new_strat)
-        
-        strat_list = new_strat_list   
         # Distortion Correction
         new_strat_list = []
 

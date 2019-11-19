@@ -91,7 +91,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
                         (combine_masks, output_node, [('out_file', 'func_brain_mask')])])
     
     # Refine functional mask by registering anatomical mask to functional space
-    elif tool == 'anatomical_refined':
+    elif skullstrip_tool == 'anatomical_refined':
 
         # Get functional mean to use later as reference, when transform anatomical mask to functional space
         func_skull_mean = pe.Node(interface=afni_utils.TStat(),
@@ -166,7 +166,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
     elif skullstrip_tool == 'fsl_afni':
         wf.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
-    elif tool == 'anatomical_refined':
+    elif skullstrip_tool == 'anatomical_refined':
         wf.connect(linear_trans_mask_anat_to_func, 'out_file',
                         func_edge_detect, 'in_file_b')
 
@@ -265,7 +265,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(skullstrip_tool, motion_correct_tool, n4_correction, run_despike=False, anatomical_mask_dilation=False, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -554,44 +554,18 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, n4_correction, run
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     output_node, 'transform_matrices')
 
-    skullstrip_func = skullstrip_functional(skullstrip_tool,
+    skullstrip_func = skullstrip_functional(skullstrip_tool, anatomical_mask_dilation, 
                                             "{0}_skullstrip".format(wf_name))
 
     preproc.connect(func_motion_correct_A, 'out_file',
                     skullstrip_func, 'inputspec.func')
 
-    preproc.connect([
-        (
-            input_node, func_motion_correct_A, [
-                (
-                    ('twopass', collect_arguments, '-twopass', '-Fourier'),
-                    'args'
-                )]
-        ),
-    ])
-
-    preproc.connect(func_reorient, 'out_file',
-                    func_motion_correct_A, 'in_file')
-    preproc.connect(func_get_mean_motion, 'out_file',
-                    func_motion_correct_A, 'basefile')
-
-    preproc.connect(func_motion_correct_A, 'out_file',
-                    output_node, 'motion_correct')
-    preproc.connect(func_motion_correct_A, 'md1d_file',
-                    output_node, 'max_displacement')
-    preproc.connect(func_motion_correct_A, 'oned_file',
-                    output_node, 'movement_parameters')
-    preproc.connect(func_motion_correct_A, 'oned_matrix_save',
-                    output_node, 'oned_matrix_save')
-
-    skullstrip_func = skullstrip_functional(tool, anatomical_mask_dilation, 
-                                            "{0}_skullstrip".format(wf_name))
     preproc.connect(input_node, 'anatomical_brain_mask',
                     skullstrip_func, 'inputspec.anatomical_brain_mask')
+                    
     preproc.connect(input_node, 'anat_skull',
                     skullstrip_func, 'inputspec.anat_skull')                
-    preproc.connect(func_motion_correct_A, 'out_file',
-                    skullstrip_func, 'inputspec.func')
+
 
     preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     output_node, 'skullstrip')
