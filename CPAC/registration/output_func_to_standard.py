@@ -6,8 +6,17 @@ import nipype.interfaces.c3 as c3
 from CPAC.registration.utils import change_itk_transform_type
 
 # Todo: CC distcor is not implement for fsl apply xform func to mni, why ??
-def fsl_apply_transform_func_to_mni(workflow,output_name, func_key, ref_key,
-        num_strat, strat, interpolation_method, distcor=False, map_node=False):
+def fsl_apply_transform_func_to_mni(
+        workflow,
+        output_name, 
+        func_key, 
+        ref_key,
+        num_strat, 
+        strat, 
+        interpolation_method, 
+        distcor=False, 
+        map_node=False
+    ):
 
     strat_nodes = strat.get_nodes_names()
 
@@ -86,7 +95,7 @@ def fsl_apply_transform_func_to_mni(workflow,output_name, func_key, ref_key,
 
         strat.update_resource_pool({ output_name: (func_mni_warp, 'out_file')}) 
         strat.append_name(func_mni_warp.name)
-
+        
     else:
         raise ValueError(
                 'Could not find flirt or fnirt registration in nodes')
@@ -94,7 +103,6 @@ def fsl_apply_transform_func_to_mni(workflow,output_name, func_key, ref_key,
     return workflow
 
 
-# use preproc
 def ants_apply_warps_func_mni(
         workflow,
         output_name,
@@ -401,7 +409,8 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
             'blip_correct' in nodes else False
 
     if 'anat_mni_fnirt_register' in nodes or \
-            'anat_mni_flirt_register' in nodes:
+        'anat_mni_flirt_register' in nodes:
+        # 'func_to_epi_fsl' in nodes:
 
         if input_image_type == 'map':
             interp = 'nn'

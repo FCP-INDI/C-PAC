@@ -127,7 +127,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants']
+# Options: ['AFNI', 'BET', 'niworkflows-ants']
 skullstrip_option :  ['AFNI']
 
 
@@ -147,8 +147,8 @@ niworkflows_ants_regmask_path : /ants_template/oasis/T_template0_BrainCerebellum
 
 # Options to be used for AFNI 3dSkullStrip only.
 
-# Choice of using monkey option for AFNI 3dskullstrip
-skullstrip_monkey : False
+# Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
+skullstrip_mask_vol: False
 
 
 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
@@ -227,10 +227,6 @@ skullstrip_fac :  1
 skullstrip_blur_fwhm :  0
 
 
-# Set it as True if processing monkey data with AFNI 
-skullstrip_monkey : False
-
-
 # Options to be used for FSL-BET skull-stripping only.
 
 # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
@@ -238,7 +234,7 @@ bet_frac :  0.5
 
 
 # Mask created along with skull stripping
-bet_mask_boolean :  Off
+bet_mask_boolean :  On
 
 
 # Mesh created along with skull stripping
@@ -387,6 +383,10 @@ seg_erosion_prop : 0.6
 runFunctional: [1]
 
 
+# run motion statistics before slice timing correction
+runMotionStatistics : [0]
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -460,6 +460,10 @@ fmap_distcorr_dwell_asym_ratio : [0.93902439]
 fmap_distcorr_pedir :  x
 
 
+# Run Functional to EPI Template Registration
+runRegisterFuncToEPI :  [0]
+
+
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
@@ -497,17 +501,34 @@ funcRegANTSinterpolation: LanczosWindowedSinc
 funcRegFSLinterpolation: sinc
 
 
-# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose. 
+# Options: ['Mean Functional', 'Selected Functional Volume']
 func_reg_input :  ['Mean Functional']
+
+
+# Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
+n4_correct_mean_EPI : False
 
 
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
-# Options: ['AFNI', 'FSL', 'FSL_AFNI']
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space. 
+# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
 functionalMasking :  ['AFNI']
+
+
+# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
+anatomical_mask_dilation : False 
+
+
+# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+motion_correction : ['AFNI']
+
+
+# Run AFNI 3dDespike after motion correction
+run_despike : [1]
 
 
 # Register functional images to a standard MNI152 template.
@@ -533,6 +554,10 @@ template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${res
 
 # Standard FSL Anatomical Brain Image with Skull
 template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
+
+# EPI template
+template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
