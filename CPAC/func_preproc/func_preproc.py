@@ -174,6 +174,63 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
 
     return wf
 
+
+def create_scale_func_wf(runScaling, scaling_factor, wf_name='scale_func'):
+
+    """Workflow to scale func data.
+    Parameters
+    ----------
+        runScaling : boolean
+            Whether scale func data or not. Usually scaling used in rodent raw data.
+        scaling_factor : float
+            Scale the size of the dataset voxels by the factor. 
+        wf_name : string
+            name of the workflow
+    
+    Workflow Inputs::
+        inputspec.func : func file or a list of func/rest nifti file
+            User input functional(T2*) Image
+    Workflow Outputs::
+        outputspec.scaled_func : string (nifti file)
+            Path to Output image with scaled data
+    Order of commands:
+    - Scale the size of the dataset voxels by the factor 'fac'. For details see `3dcalc <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3drefit.html>`_::
+        3drefit -xyzscale fac rest.nii.gz
+    """
+
+    # allocate a workflow object
+    preproc = pe.Workflow(name=wf_name)
+
+    # configure the workflow's input spec
+    inputNode = pe.Node(util.IdentityInterface(fields=['func']),
+                        name='inputspec')
+
+    # configure the workflow's output spec
+    outputNode = pe.Node(util.IdentityInterface(fields=['scaled_func']),
+                         name='outputspec')
+
+    if runScaling == True:
+
+        # allocate a node to edit the functional file
+        func_scale = pe.Node(interface=afni_utils.Refit(),
+                                name='func_scale')
+
+        func_scale.inputs.xyzscale = scaling_factor
+
+        # wire in the func_get_idx node
+        preproc.connect(inputNode, 'func',
+                        func_scale, 'in_file')
+
+        # wire the output
+        preproc.connect(func_scale, 'out_file',
+                        outputNode, 'scaled_func')
+
+    else:
+        preproc.connect(inputNode, 'func',
+                        outputNode, 'scaled_func')
+
+    return preproc
+
     
 def create_wf_edit_func(wf_name="edit_func"):
     """Workflow to edit the scan to the proscribed TRs.
