@@ -1073,7 +1073,7 @@ def create_nuisance_workflow(nuisance_selectors,
                                                                    output_names=['cosfiltered_img'],
                                                                    function=cosine_filter,
                                                                    imports=cosfilter_imports),
-                                                                   name='{}_cosine_filter'.format(regressor_type))
+                                                     name='cosfilter')
                             nuisance_wf.connect(
                                 summary_filter_input[0], summary_filter_input[1],
                                 cosfilter_node, 'input_image_path'
@@ -1081,7 +1081,7 @@ def create_nuisance_workflow(nuisance_selectors,
                             tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
                                                                    output_names=['tr_float'],
                                                                    function=TR_string_to_float),
-                                                     name='{}_tr_string2float'.format(regressor_type))
+                                                     name='tr_string2float')
 
                             nuisance_wf.connect(
                                 inputspec, 'tr',
