@@ -1,10 +1,9 @@
-
+import pandas as pd
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.freesurfer as fs
 import nipype.interfaces.afni as afni
-
 from nipype import logging
 
 
@@ -292,7 +291,11 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = [roi_csv]
 
-    return edited_roi_csv
+    data = pd.read_csv(edited_roi_csv, sep = '\t', header = 1) 
+    data = data.dropna(axis=1)
+    roi_array = np.transpose(data.values)
+
+    return roi_array, edited_roi_csv
 
 
 def write_roi_npz(roi_csv, out_type=None):
@@ -370,7 +373,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     inputnode_roi = pe.Node(util.IdentityInterface(fields=['roi']),
                                 name='input_roi')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['roi_outputs']),
+    outputNode = pe.Node(util.IdentityInterface(fields=['roi_output_array', 'roi_output_npz']),
                         name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
@@ -389,7 +392,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     clean_csv_imports = ['import os']
     clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
-                                      output_names=['edited_roi_csv'],
+                                      output_names=['roi_array', 'edited_roi_csv'],
                                       function=clean_roi_csv,
                                       imports=clean_csv_imports),
                         name='clean_roi_csv')
@@ -399,13 +402,14 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     write_npz_imports = ['import os', 'import numpy as np',
                          'from numpy import genfromtxt']
     write_npz = pe.Node(util.Function(input_names=['roi_csv', 'out_type'],
-                                      output_names=['roi_outputs'],
+                                      output_names=['roi_output_npz'],
                                       function=write_roi_npz,
                                       imports=write_npz_imports),
                         name='write_roi_npz')
     wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
     wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
-    wflow.connect(write_npz, 'roi_outputs', outputNode, 'roi_outputs')
+    wflow.connect(clean_csv, 'roi_array', outputNode, 'roi_output_array')
+    wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_output_npz')
 
     return wflow
 

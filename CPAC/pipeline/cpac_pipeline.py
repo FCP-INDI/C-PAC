@@ -2813,24 +2813,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # create the graphs
                     from CPAC.utils.ndmg_utils import (
-                        ndmg_roi_timeseries,
+                        # ndmg_roi_timeseries,
                         ndmg_create_graphs
                     )
 
-                    ndmg_ts = pe.Node(Function(
-                        input_names=['func_file',
-                                     'label_file'],
-                        output_names=['roi_ts',
-                                      'rois',
-                                      'roits_file'],
-                        function=ndmg_roi_timeseries,
-                        as_module=True
-                    ), name='ndmg_ts_%d' % num_strat)
+                    # ndmg_ts = pe.Node(Function(
+                    #     input_names=['func_file',
+                    #                  'label_file'],
+                    #     output_names=['roi_ts',
+                    #                   'rois',
+                    #                   'roits_file'],
+                    #     function=ndmg_roi_timeseries,
+                    #     as_module=True
+                    # ), name='ndmg_ts_%d' % num_strat)
 
-                    workflow.connect(resample_functional_to_roi, 'out_file',
-                                     ndmg_ts, 'func_file')
-                    workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                     ndmg_ts, 'label_file')
+                    # workflow.connect(resample_functional_to_roi, 'out_file',
+                    #                  ndmg_ts, 'func_file')
+                    # workflow.connect(roi_dataflow, 'outputspec.out_file',
+                    #                  ndmg_ts, 'label_file')
 
                     ndmg_graph = pe.MapNode(Function(
                         input_names=['ts', 'labels'],
@@ -2840,7 +2840,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     ), name='ndmg_graphs_%d' % num_strat,
                         iterfield=['labels'])
 
-                    workflow.connect(ndmg_ts, 'roi_ts', ndmg_graph, 'ts')
+                    workflow.connect(roi_timeseries, 'outputspec.roi_output_array', ndmg_graph, 'ts')
                     workflow.connect(roi_dataflow,
                                      'outputspec.out_file',
                                      ndmg_graph, 'labels')
