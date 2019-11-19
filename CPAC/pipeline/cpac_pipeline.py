@@ -337,19 +337,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     # TODO ASH normalize file paths with schema validator
     template_keys = [
-        ("anat", "template_brain_only_for_anat"),
-        ("anat", "template_skull_for_anat"),
-        ("anat", "ref_mask"),
-        ("anat", "template_symmetric_brain_only"),
-        ("anat", "template_symmetric_skull"),
-        ("anat", "dilated_symmetric_brain_mask"),
         ("anat", "templateSpecificationFile"),
         ("anat", "lateral_ventricles_mask"),
         ("anat", "PRIORS_CSF"),
         ("anat", "PRIORS_GRAY"),
         ("anat", "PRIORS_WHITE"),
-        ("anat", "template_brain_only_for_func"),
-        ("anat", "template_skull_for_func"),
         ("other", "configFileTwomm"),
         ("anat", "template_based_segmenation_CSF"),
         ("anat", "template_based_segmenation_GRAY"),
@@ -447,7 +439,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                               function = resolve_resolution,
                                               as_module = True), 
                                         name = 'resampled_' + template_name) 
-        
+                                        
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
