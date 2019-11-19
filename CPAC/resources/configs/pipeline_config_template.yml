@@ -126,9 +126,13 @@ n4_bias_field_correction: False
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
-# Options: ['AFNI', 'BET', 'niworkflows-ants']
+# Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet'] 
 skullstrip_option :  ['AFNI']
+
+
+# UNet model
+unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 
 
 # Template to be used during niworkflows-ants.
@@ -389,6 +393,7 @@ seg_use_threshold : ['FSL-FAST Thresholding']
 # CSF (cerebrospinal fluid) threshold.
 seg_CSF_threshold_value : 0.95
 
+
 # White matter threshold.
 seg_WM_threshold_value : 0.95
 
@@ -410,7 +415,7 @@ runFunctional: [1]
 
 
 # run motion statistics before slice timing correction
-runMotionStatistics : [0]
+runMotionStatistics : [1]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.
