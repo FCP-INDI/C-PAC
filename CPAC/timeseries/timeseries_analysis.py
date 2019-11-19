@@ -346,6 +346,9 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
             path to ROI mask
         
     Workflow Outputs::
+
+        outputspec.roi_ts : numpy array 
+            Voxel time series stored in numpy array, which is used to create ndmg graphs. 
     
         outputspec.roi_outputs : string (list of files)
             Voxel time series stored in 1D (column wise timeseries for each node), 
@@ -373,7 +376,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     inputnode_roi = pe.Node(util.IdentityInterface(fields=['roi']),
                                 name='input_roi')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['roi_output_array', 'roi_output_npz']),
+    outputNode = pe.Node(util.IdentityInterface(fields=['roi_ts', 'roi_outputs']),
                         name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
@@ -408,8 +411,8 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                         name='write_roi_npz')
     wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
     wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
-    wflow.connect(clean_csv, 'roi_array', outputNode, 'roi_output_array')
-    wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_output_npz')
+    wflow.connect(clean_csv, 'roi_array', outputNode, 'roi_ts')
+    wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_outputs')
 
     return wflow
 

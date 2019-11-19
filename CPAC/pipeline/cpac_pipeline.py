@@ -2270,7 +2270,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type) 
 
                     aroma_preproc = create_aroma(tr=TR,
                                                 wf_name='create_aroma_%d' % num_strat)
@@ -2353,7 +2353,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_standard', 'template_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True) # distcor=blip, 
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True) 
 
         strat_list += new_strat_list
 
@@ -3006,7 +3006,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     ), name='ndmg_graphs_%d' % num_strat,
                         iterfield=['labels'])
 
-                    workflow.connect(roi_timeseries, 'outputspec.roi_output_array', ndmg_graph, 'ts')
+                    workflow.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
                     workflow.connect(roi_dataflow,
                                      'outputspec.out_file',
                                      ndmg_graph, 'labels')
