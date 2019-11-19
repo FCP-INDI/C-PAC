@@ -48,19 +48,19 @@ num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  cpac_default
+pipelineName :  pipe-test_all
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  ./cpac_runs/default/working
+workingDirectory :  ./cpac_runs/work
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  ./cpac_runs/default/crash
+crashLogDirectory :  ./cpac_runs/crash
 
 
-# Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/default/output
+# Directory where CPAC should place run logs.
+logDirectory :  ./cpac_runs/log
 
 
 # Whether to write log details of the pipeline.
