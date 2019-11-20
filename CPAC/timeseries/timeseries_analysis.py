@@ -1,4 +1,3 @@
-import pandas as pd
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
@@ -267,6 +266,8 @@ def clean_roi_csv(roi_csv):
     passes the original file as output, instead of unnecessarily opening and
     re-writing it.
     """
+    
+    import pandas as pd
 
     with open(roi_csv, 'r') as f:
         csv_lines = f.readlines()
