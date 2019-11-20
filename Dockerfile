@@ -162,6 +162,9 @@ RUN conda install -y  \
         wxpython==3.0.0.0 \
         pip
 
+# install torch
+RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
+
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN pip install --upgrade pip==9.0.1

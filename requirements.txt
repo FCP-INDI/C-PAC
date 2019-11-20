@@ -25,5 +25,3 @@ scikit-learn==0.19.1
 traits==4.6.0
 PyBASC==0.4.5
 pathlib==1.0.1
-torch==1.2.0 
-torchvision==0.4.0
