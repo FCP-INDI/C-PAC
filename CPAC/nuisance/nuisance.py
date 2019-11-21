@@ -412,8 +412,9 @@ def create_nuisance_workflow(nuisance_selectors,
             selector = {
                 aCompCor: {
                     summary: {
-                        filter: 'cosine', Principal components are estimated after using a discrete cosine filter with 128s cut-off,
-                        method: 'DetrendPC', aCompCor will always extract the principal components from
+                        filter: 'cosine', Principal components are estimated after using a discrete cosine filter with 128s cut-off, 
+                            Leave filter field blank, if selected aCompcor method is 'DetrendPC'
+                        method: 'DetrendPC', tCompCor will extract the principal components from
                             detrended tissues signal,
                         components: number of components to retain,
                     },
@@ -441,9 +442,10 @@ def create_nuisance_workflow(nuisance_selectors,
                 },
                 tCompCor: {
                     summary: {
-                        filter: 'cosine', Principal components are estimated after using a discrete cosine filter with 128s cut-off,
-                        method: 'PC', tCompCor will always extract the principal components from
-                            BOLD signal,
+                        filter: 'cosine', Principal components are estimated after using a discrete cosine filter with 128s cut-off, 
+                            Leave filter field blank, if selected tCompcor method is 'DetrendPC'
+                        method: 'DetrendPC', tCompCor will extract the principal components from
+                            detrended tissues signal,
                         components: number of components to retain,
                     },
                     threshold:
