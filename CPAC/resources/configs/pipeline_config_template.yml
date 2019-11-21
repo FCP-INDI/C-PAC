@@ -241,7 +241,7 @@ skullstrip_monkey : False
 bet_frac :  0.5
 
 
-# Mask created along with skull stripping
+# Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
 bet_mask_boolean :  On
 
 

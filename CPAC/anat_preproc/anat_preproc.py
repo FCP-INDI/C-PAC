@@ -482,7 +482,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             refined_brain.inputs.op_string = "-mul %s"
             preproc.connect(anat_reorient, 'out_file', refined_brain, 'in_file')
             preproc.connect(refined_mask, 'out_file', refined_brain, 'operand_files')
-
+            
+            preproc.connect(refined_mask, 'out_file', outputnode, 'brain_mask')
             preproc.connect(refined_brain, 'out_file', outputnode, 'brain')
 
     return preproc
