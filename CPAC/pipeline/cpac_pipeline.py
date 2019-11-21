@@ -507,7 +507,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             new_strat_list += [new_strat]
 
         else:
-            if not any(o in c.skullstrip_option for o in ["AFNI", "BET", "niworkflows-ants", "unet"]):
+            if not any(o in c.skullstrip_option for o in ["AFNI", "FSL", "niworkflows-ants", "unet"]):
                 err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
                     'setting does not include either \'AFNI\' or \'FSL\' or \'niworkflows-ants\'.\n\n' \
                     'Options you provided:\nskullstrip_option: {0}' \
