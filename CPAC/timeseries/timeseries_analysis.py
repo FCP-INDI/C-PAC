@@ -1,4 +1,3 @@
-import pandas as pd
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
@@ -268,6 +267,10 @@ def clean_roi_csv(roi_csv):
     re-writing it.
     """
 
+    import os
+    import pandas as pd
+    import numpy as np
+
     with open(roi_csv, 'r') as f:
         csv_lines = f.readlines()
 
@@ -291,7 +294,7 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = [roi_csv]
 
-    data = pd.read_csv(edited_roi_csv, sep = '\t', header = 1) 
+    data = pd.read_csv(edited_roi_csv[0], sep = '\t', header = 1) 
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 
