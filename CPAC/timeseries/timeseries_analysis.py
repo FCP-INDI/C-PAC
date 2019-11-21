@@ -266,6 +266,8 @@ def clean_roi_csv(roi_csv):
     passes the original file as output, instead of unnecessarily opening and
     re-writing it.
     """
+    
+    import pandas as pd
 
     import os
     import pandas as pd
