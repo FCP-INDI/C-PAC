@@ -110,6 +110,10 @@ removeWorkingDir :  False
 reGenerateOutputs :  False
 
 
+# Create a user-friendly, well organized version of the output directory.
+runSymbolicLinks :  [0]
+
+
 # Anatomical preprocessing options.
 # ---------------------------------
 
