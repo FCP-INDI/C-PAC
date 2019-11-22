@@ -231,6 +231,10 @@ skullstrip_fac :  1
 skullstrip_blur_fwhm :  0
 
 
+# Set it as True if processing monkey data with AFNI 
+skullstrip_monkey : False
+
+
 # Options to be used for FSL-BET skull-stripping only.
 
 # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
