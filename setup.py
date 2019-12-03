@@ -71,7 +71,8 @@ def main(**extra_args):
             'CPAC': [
                 'test_data/*',
                 'test/templates/*',
-                'qc/colors/*.txt'
+                'qc/colors/*.txt',
+                'qc/data/index.html',
             ]
         },
         **extra_args
