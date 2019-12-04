@@ -180,7 +180,7 @@
           continue
         }
 
-        let [, derivative, ...rest] = obj.split('/')
+        let [derivative, ...rest] = obj.split('/')
         rest = rest.slice(0, -1)
 
         if (!images[derivative]) {
