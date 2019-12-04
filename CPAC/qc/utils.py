@@ -1043,16 +1043,14 @@ def generate_qc_pages(qc_dir):
 
     qc_dir = os.path.abspath(qc_dir)
 
+    files = []
+    for root, _, fs in os.walk(qc_dir):
+        root = root[len(qc_dir) + 1:]
+        files += [os.path.join(root, f) for f in fs]
+
     with open(p.resource_filename('CPAC.qc', 'data/index.html'), 'rb') as f:
         qc_content = f.read()
-
-        files = []
-        for root, _, files in os.walk(qc_dir):
-            root = root[len(qc_dir) + 1:]
-            files += [os.path.join(root, f) for f in files]
-            
         qc_content = qc_content.replace('/*CPAC*/``/*CPAC*/', '`' + '\n'.join(files) + '`')
-
         with open(os.path.join(qc_dir, 'index.html'), 'wb') as f:
             f.write(qc_content)
 
