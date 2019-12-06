@@ -3418,17 +3418,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     strat = calc_avg(workflow, key, strat,
                                     num_strat, map_node=True)
 
-    # Quality Control
-    qc_montage_id_a = {}
-    qc_montage_id_s = {}
-    qc_plot_id = {}
-    qc_hist_id = {}
-
     raising = None
 
+    # Quality Control
     if 1 in c.generateQualityControlImages:
-        qc_montage_id_a, qc_montage_id_s, qc_hist_id, qc_plot_id = \
-            create_qc_workflow(workflow, c, strat_list, Outputs.qc)
+        create_qc_workflow(workflow, c, strat_list, Outputs.qc)
 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
@@ -3865,14 +3859,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                     'pipeline_%s' % pip_id)
 
                         sub_output_dir = os.path.join(pipeline_base, subject_id)
-                        qc_output_folder = os.path.join(sub_output_dir, 'qc_html')
-
-                        generate_qc_pages(qc_output_folder,
-                                        sub_output_dir,
-                                        qc_montage_id_a,
-                                        qc_montage_id_s,
-                                        qc_plot_id,
-                                        qc_hist_id)
+                        qc_dir = os.path.join(sub_output_dir, 'qc')
+                        generate_qc_pages(qc_dir)
 
                 # have this check in case the user runs cpac_runner from terminal and
                 # the timing parameter list is not supplied as usual by the GUI

@@ -1024,9 +1024,7 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
                   '{1}\n'.format(os.path.join(qc_path, qc_file), e))
 
 
-def generate_qc_pages(qc_path, sub_output_dir,
-                      qc_montage_id_a, qc_montage_id_s,
-                      qc_plot_id, qc_hist_id):
+def generate_qc_pages(qc_dir):
     """Generates the QC HTML files populated with the QC images that were
     created during the CPAC pipeline run.
 
@@ -1034,27 +1032,8 @@ def generate_qc_pages(qc_path, sub_output_dir,
 
     Parameters
     ----------
-    qc_path : string
-        path to qc_html directory
-
-    sub_output_dir : string
-        path to subject's output directory
-
-    qc_montage_id_a : dictionary
-        dictionary of axial montages key : id no
-        value is list of png types 
-
-    qc_montage_id_s : dictionary
-          dictionary of sagittal montages key : id no
-          value is list of png types 
-
-    qc_plot_id : dictionary
-          dictionary of plot pngs key : id no
-          value is list of png types
-
-    qc_hist_id : dictionary
-          dictionary of histogram pngs key : id no
-          value is list of png types
+    qc_dir : string
+        path to qc directory
 
     Returns
     -------
@@ -1062,15 +1041,18 @@ def generate_qc_pages(qc_path, sub_output_dir,
 
     """
 
-    # according to preprocessing strategy combines the files
-    first_pass_organizing_files(qc_path)
+    qc_dir = os.path.abspath(qc_dir)
 
-    # according to bandpass and hp_lp and smoothing iterables combines the
-    # files
-    second_pass_organizing_files(qc_path)
+    files = []
+    for root, _, fs in os.walk(qc_dir):
+        root = root[len(qc_dir) + 1:]
+        files += [os.path.join(root, f) for f in fs]
 
-    make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
-                  qc_plot_id, qc_hist_id)
+    with open(p.resource_filename('CPAC.qc', 'data/index.html'), 'rb') as f:
+        qc_content = f.read()
+        qc_content = qc_content.replace('/*CPAC*/``/*CPAC*/', '`' + '\n'.join(files) + '`')
+        with open(os.path.join(qc_dir, 'index.html'), 'wb') as f:
+            f.write(qc_content)
 
 
 def cal_snr_val(measure_file):
