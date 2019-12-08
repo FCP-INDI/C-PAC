@@ -541,52 +541,37 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
 
         func_to_epi_ants.inputs.inputspec.set(
                 dimension=3,
-                use_histogram_matching=True,
-                winsorize_lower_quantile=0.01,
-                winsorize_upper_quantile=0.99,
-                metric=['MI', 'MI', 'CC'],
-                metric_weight=[[1,32], [1,32], [1,5]],
-                radius_or_number_of_bins=[32, 32, 4],
-                sampling_strategy=['Regular', 'Regular', None],
-                sampling_percentage=[0.25, 0.25, None],
+                metric=['CC', 'CC'],
+                metric_weight=[[1,2], [1,2]],
                 number_of_iterations=[
-                    [1000, 500, 250, 100],
-                    [1000, 500, 250, 100],
-                    [100, 100, 70, 20]
+                    [100, 100, 30],
+                    [100, 100, 30]
                 ],
-                convergence_threshold=[1e-8, 1e-8, 1e-9],
-                convergence_window_size=[10, 10, 15],
-                transforms=['Rigid', 'Affine', 'SyN'],
-                transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
+                transforms=['Affine', 'SyN'],
+                transform_parameters=[[0.25], [0.15, 5, 0]],
                 shrink_factors=[
-                    [8, 4, 2, 1],
-                    [8, 4, 2, 1],
-                    [4, 2, 1]
+                    [5, 3, 0],
+                    [5, 3, 0]
                 ],
                 smoothing_sigmas=[
-                    [3, 2, 1, 0],
-                    [3, 2, 1, 0],
-                    [0.6,0.2,0.0]
+                    [5, 3, 1],
+                    [5, 3, 1]
                 ]
             )
 
         register_func_to_epi.connect([
             (func_to_epi_ants, outputspec, [
-                ('outputspec.ants_initial_xfm', 'ants_initial_xfm'),
-                ('outputspec.ants_rigid_xfm', 'ants_rigid_xfm'),
                 ('outputspec.ants_affine_xfm', 'ants_affine_xfm'),
                 ('outputspec.warp_field', 'ants_nonlinear_xfm'),
             ]),
         ])
 
         # combine transforms
-        collect_transforms = pe.Node(util.Merge(4), name='collect_transforms_ants')
+        collect_transforms = pe.Node(util.Merge(2), name='collect_transforms_ants')
         register_func_to_epi.connect([
             (func_to_epi_ants, collect_transforms, [
-                ('outputspec.ants_initial_xfm', 'in1'),
-                ('outputspec.ants_rigid_xfm', 'in2'),
-                ('outputspec.ants_affine_xfm', 'in3'),
-                ('outputspec.warp_field', 'in4'),
+                ('outputspec.ants_affine_xfm', 'in1'),
+                ('outputspec.warp_field', 'in2'),
             ]),
         ])
 
