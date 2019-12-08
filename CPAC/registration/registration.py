@@ -515,9 +515,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
                                                        'epi']),
                         name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['ants_initial_xfm',
-                                                        'ants_rigid_xfm',
-                                                        'ants_affine_xfm',
+    outputspec = pe.Node(util.IdentityInterface(fields=['ants_affine_xfm',
                                                         'ants_nonlinear_xfm',
                                                         'fsl_flirt_xfm',
                                                         'fsl_fnirt_xfm',

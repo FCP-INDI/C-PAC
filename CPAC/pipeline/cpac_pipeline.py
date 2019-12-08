@@ -826,32 +826,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             ants_reg_anat_mni.inputs.inputspec.set(
                 dimension=3,
-                use_histogram_matching=True,
-                winsorize_lower_quantile=0.01,
-                winsorize_upper_quantile=0.99,
-                metric=['MI', 'MI', 'CC'],
-                metric_weight=[1, 1, 1],
-                radius_or_number_of_bins=[32, 32, 4],
-                sampling_strategy=['Regular', 'Regular', None],
-                sampling_percentage=[0.25, 0.25, None],
+                metric=['CC', 'CC'],
+                metric_weight=[[1,2], [1,2]],
                 number_of_iterations=[
-                    [1000, 500, 250, 100],
-                    [1000, 500, 250, 100],
-                    [100, 100, 70, 20]
+                    [100, 100, 30],
+                    [100, 100, 30]
                 ],
-                convergence_threshold=[1e-8, 1e-8, 1e-9],
-                convergence_window_size=[10, 10, 15],
-                transforms=['Rigid', 'Affine', 'SyN'],
-                transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
+                transforms=['Affine', 'SyN'],
+                transform_parameters=[[0.25], [0.15, 5, 0]],
                 shrink_factors=[
-                    [8, 4, 2, 1],
-                    [8, 4, 2, 1],
-                    [6, 4, 2, 1]
+                    [5, 3, 0],
+                    [5, 3, 0]
                 ],
                 smoothing_sigmas=[
-                    [3, 2, 1, 0],
-                    [3, 2, 1, 0],
-                    [3, 2, 1, 0]
+                    [5, 3, 1],
+                    [5, 3, 1]
                 ]
             )
             # Test if a lesion mask is found for the anatomical image
@@ -896,8 +885,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                       'outputspec.normalized_output_brain')
 
             strat.update_resource_pool({
-                'ants_initial_xfm': (ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
-                'ants_rigid_xfm': (ants_reg_anat_mni, 'outputspec.ants_rigid_xfm'),
                 'ants_affine_xfm': (ants_reg_anat_mni, 'outputspec.ants_affine_xfm'),
                 'anatomical_to_mni_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.warp_field'),
                 'mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.inverse_warp_field'),
@@ -1244,16 +1231,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  'inputspec.standard2highres_mat')
 
             elif 'anat_mni_ants_register' in nodes:
-                node, out_file = strat['ants_initial_xfm']
-                workflow.connect(node, out_file,
-                                 seg_preproc,
-                                 'inputspec.standard2highres_init')
-
-                node, out_file = strat['ants_rigid_xfm']
-                workflow.connect(node, out_file,
-                                 seg_preproc,
-                                 'inputspec.standard2highres_rig')
-
                 node, out_file = strat['ants_affine_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
@@ -1324,15 +1301,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  'inputspec.standard2highres_mat')
 
             elif 'anat_mni_ants_register' in nodes:
-                node, out_file = strat['ants_initial_xfm']
-                workflow.connect(node, out_file,
-                                 seg_preproc_template_based,
-                                 'inputspec.standard2highres_init')
-
-                node, out_file = strat['ants_rigid_xfm']
-                workflow.connect(node, out_file,
-                                 seg_preproc_template_based,
-                                 'inputspec.standard2highres_rig')
 
                 node, out_file = strat['ants_affine_xfm']
                 workflow.connect(node, out_file,
@@ -2133,16 +2101,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file,
                                     seg_preproc_template_based, 'inputspec.brain') 
 
-                    node, out_file = strat['func_to_epi_ants_initial_xfm']
-                    workflow.connect(node, out_file,
-                                    seg_preproc_template_based,
-                                    'inputspec.standard2highres_init')
-
-                    node, out_file = strat['func_to_epi_ants_rigid_xfm']
-                    workflow.connect(node, out_file,
-                                    seg_preproc_template_based,
-                                    'inputspec.standard2highres_rig')
-
                     node, out_file = strat['func_to_epi_ants_affine_xfm']
                     workflow.connect(node, out_file,
                                     seg_preproc_template_based,
@@ -2486,19 +2444,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
 
-                        node, out_file = new_strat['ants_initial_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.anat_to_mni_initial_xfm_file_path'
-                        )
-
-                        node, out_file = new_strat['ants_rigid_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.anat_to_mni_rigid_xfm_file_path'
-                        )
 
                         node, out_file = new_strat['ants_affine_xfm']
                         workflow.connect(

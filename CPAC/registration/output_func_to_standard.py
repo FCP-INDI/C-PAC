@@ -277,8 +277,6 @@ def ants_apply_warps_func_mni(
                 'asymmetric': {
                     'anatomical_to_mni_nonlinear_xfm': 'anatomical_to_mni_nonlinear_xfm',
                     'ants_affine_xfm': 'ants_affine_xfm',
-                    'ants_rigid_xfm': 'ants_rigid_xfm',
-                    'ants_initial_xfm': 'ants_initial_xfm',
                     'blip_warp': 'blip_warp',
                     'blip_warp_inverse': 'blip_warp_inverse',
                     'fsl_mat_as_itk': 'fsl_mat_as_itk',
@@ -286,8 +284,6 @@ def ants_apply_warps_func_mni(
                  'symmetric': {
                     'anatomical_to_mni_nonlinear_xfm': 'ants_symm_warp_field',
                     'ants_affine_xfm': 'ants_symm_affine_xfm',
-                    'ants_rigid_xfm': 'ants_symm_rigid_xfm',
-                    'ants_initial_xfm': 'ants_symm_initial_xfm',
                     'blip_warp': 'blip_warp',
                     'blip_warp_inverse': 'blip_warp_inverse',
                     'fsl_mat_as_itk': 'fsl_mat_as_itk',
@@ -302,26 +298,20 @@ def ants_apply_warps_func_mni(
             if distcor is True:
                 # Field file from anatomical nonlinear registration
                 transforms_to_combine = [\
-                        ('anatomical_to_mni_nonlinear_xfm', 'in6'),
-                        ('ants_affine_xfm', 'in5'),
-                        ('ants_rigid_xfm', 'in4'),
-                        ('ants_initial_xfm', 'in3'),
+                        ('anatomical_to_mni_nonlinear_xfm', 'in4'),
+                        ('ants_affine_xfm', 'in3'),
                         ('fsl_mat_as_itk', 'in2'),
                         ('blip_warp_inverse', 'in1')]
             else:
                 transforms_to_combine = [\
-                        ('anatomical_to_mni_nonlinear_xfm', 'in5'),
-                        ('ants_affine_xfm', 'in4'),
-                        ('ants_rigid_xfm', 'in3'),
-                        ('ants_initial_xfm', 'in2'),
+                        ('anatomical_to_mni_nonlinear_xfm', 'in3'),
+                        ('ants_affine_xfm', 'in2'),
                         ('fsl_mat_as_itk', 'in1')]
         else:
             transforms_to_combine = [\
                     ('anatomical_to_mni_nonlinear_xfm', 'in1'),
                     ('ants_affine_xfm', 'in2'),
-                    ('ants_rigid_xfm', 'in3'),
-                    ('ants_initial_xfm', 'in4'),
-                    ('fsl_mat_as_itk', 'in5')]
+                    ('fsl_mat_as_itk', 'in3')]
 
             if distcor is True:
                 transforms_to_combine.append(('blip_warp', 'in6'))

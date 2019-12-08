@@ -821,9 +821,7 @@ def create_seg_preproc_template_based(use_ants,
 
     preproc = pe.Workflow(name = wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['brain',
-                                                       'standard2highres_init',
                                                        'standard2highres_mat',
-                                                       'standard2highres_rig',
                                                        'CSF_template',
                                                        'WHITE_template',
                                                        'GRAY_template']),
@@ -838,11 +836,6 @@ def create_seg_preproc_template_based(use_ants,
 
     csf_template2t1 = tissue_mask_template_to_t1('CSF', use_ants)
 
-    if use_ants:
-        preproc.connect(inputNode, 'standard2highres_init',
-                        csf_template2t1, 'inputspec.standard2highres_init')
-        preproc.connect(inputNode, 'standard2highres_rig',
-                        csf_template2t1, 'inputspec.standard2highres_rig')
 
     preproc.connect(inputNode, 'brain',
                     csf_template2t1, 'inputspec.brain')
@@ -856,11 +849,6 @@ def create_seg_preproc_template_based(use_ants,
 
     wm_template2t1 = tissue_mask_template_to_t1('WM', use_ants)
 
-    if use_ants:
-        preproc.connect(inputNode, 'standard2highres_init',
-                        wm_template2t1, 'inputspec.standard2highres_init')
-        preproc.connect(inputNode, 'standard2highres_rig',
-                        wm_template2t1, 'inputspec.standard2highres_rig')
 
     preproc.connect(inputNode, 'brain',
                     wm_template2t1, 'inputspec.brain')
@@ -874,11 +862,6 @@ def create_seg_preproc_template_based(use_ants,
 
     gm_template2t1 = tissue_mask_template_to_t1('GM', use_ants)
 
-    if use_ants:
-        preproc.connect(inputNode, 'standard2highres_init',
-                        gm_template2t1, 'inputspec.standard2highres_init')
-        preproc.connect(inputNode, 'standard2highres_rig',
-                        gm_template2t1, 'inputspec.standard2highres_rig')
 
     preproc.connect(inputNode, 'brain',
                     gm_template2t1, 'inputspec.brain')
@@ -900,9 +883,7 @@ def tissue_mask_template_to_t1(wf_name,
     preproc = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(util.IdentityInterface(fields=['brain',
-                                                       'standard2highres_init',
                                                        'standard2highres_mat',
-                                                       'standard2highres_rig',
                                                        'tissue_mask_template']),
                         name='inputspec')
 
@@ -910,8 +891,6 @@ def tissue_mask_template_to_t1(wf_name,
                         name='outputspec')
 
     if use_ants:
-        collect_linear_transforms = pe.Node(util.Merge(3),
-                                            name='{0}_collect_linear_transforms'.format(wf_name))
 
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
                                         name='{0}_mni_to_t1'.format(wf_name))
@@ -920,10 +899,7 @@ def tissue_mask_template_to_t1(wf_name,
 
         # mni to t1
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
-        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
-        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
-        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
-        preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
+        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'transforms')
         preproc.connect(inputNode, 'tissue_mask_template', tissueprior_mni_to_t1, 'input_image')
         
         preproc.connect (tissueprior_mni_to_t1, 'output_image', outputNode, 'segment_mask_temp2t1')
