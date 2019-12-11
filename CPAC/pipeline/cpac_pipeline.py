@@ -605,8 +605,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "unet" in c.skullstrip_option:
 
-                # import pdb; pdb.set_trace()
-
                 anat_preproc = create_anat_preproc(method='unet',
                                                    c=c,
                                                    wf_name='anat_preproc_unet_%d' % num_strat)
