@@ -131,7 +131,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
 
 
         # Dialate anatomical mask, if 'anatomical_mask_dilation : True' in config file
-        if anatomical_mask_dilation :
+        if anatomical_mask_dilation:
             anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
                             name='anat_mask_dilate')
             anat_mask_dilate.inputs.dilate_inputs = '1'
@@ -806,6 +806,7 @@ def connect_func_preproc(workflow, strat_list, c):
             func_preproc = create_func_preproc(
                 skullstrip_tool=skullstrip_tool,
                 n4_correction=c.n4_correct_mean_EPI,
+                anatomical_mask_dilation=c.anatomical_mask_dilation,
                 wf_name='func_preproc_%s_%d' % (skullstrip_tool, num_strat)
             )
 

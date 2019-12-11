@@ -894,7 +894,7 @@ def tissue_mask_template_to_t1(wf_name,
 
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
                                         name='{0}_mni_to_t1'.format(wf_name))
-        tissueprior_mni_to_t1.inputs.invert_transform_flags = [True, True, True]
+        tissueprior_mni_to_t1.inputs.invert_transform_flags = [True]
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
         # mni to t1

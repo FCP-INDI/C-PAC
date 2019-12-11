@@ -7,7 +7,8 @@ import nipype.interfaces.ants as ants
 from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import seperate_warps_list, \
                                     combine_inputs_into_list, \
-                                    hardcoded_reg
+                                    hardcoded_reg, \
+                                    rodent_reg
 
 def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
 
@@ -525,40 +526,55 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
 
     if reg_option == 'ANTS':
         # linear + non-linear registration
-        func_to_epi_ants_affine = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_affine')
-        func_to_epi_ants_affine.inputs.metric = ['CC']
-        func_to_epi_ants_affine.inputs.metric_weight = [1,2]
-        func_to_epi_ants_affine.inputs.transforms = ['Affine']
-        func_to_epi_ants_affine.inputs.transform_parameters = [(0.25,)]
-        func_to_epi_ants_affine.inputs.number_of_iterations = [[100, 100, 30]] 
-        func_to_epi_ants_affine.inputs.smoothing_sigmas = [[5, 3, 0]]
-        func_to_epi_ants_affine.inputs.shrink_factors = [[5, 3, 1]] 
+        # func_to_epi_ants_affine = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_affine')
+        # func_to_epi_ants_affine.inputs.dimension = 3
+        # func_to_epi_ants_affine.inputs.metric = ['CC']
+        # func_to_epi_ants_affine.inputs.metric_weight = [1,2]
+        # func_to_epi_ants_affine.inputs.transforms = ['Affine']
+        # func_to_epi_ants_affine.inputs.transform_parameters = [(0.25,)]
+        # func_to_epi_ants_affine.inputs.number_of_iterations = [[100, 100, 30]] 
+        # func_to_epi_ants_affine.inputs.smoothing_sigmas = [[5, 3, 0]]
+        # func_to_epi_ants_affine.inputs.shrink_factors = [[5, 3, 1]] 
 
-        func_to_epi_ants_syn = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_syn')
-        func_to_epi_ants_syn.inputs.metric = ['CC']
-        func_to_epi_ants_syn.inputs.metric_weight = [1,2]
-        func_to_epi_ants_syn.inputs.transforms = ['SyN']
-        func_to_epi_ants_syn.inputs.transform_parameters = [(0.15, 5, 1)]
-        func_to_epi_ants_syn.inputs.number_of_iterations = [[100, 100, 30]] 
-        func_to_epi_ants_syn.inputs.smoothing_sigmas = [[5, 3, 0]]
-        func_to_epi_ants_syn.inputs.shrink_factors = [[5, 3, 1]] 
+        # func_to_epi_ants_syn = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_syn')
+        # func_to_epi_ants_syn.inputs.dimension = 3
+        # func_to_epi_ants_syn.inputs.metric = ['CC']
+        # func_to_epi_ants_syn.inputs.metric_weight = [1,2]
+        # func_to_epi_ants_syn.inputs.transforms = ['SyN']
+        # func_to_epi_ants_syn.inputs.transform_parameters = [(0.15, 5, 1)]
+        # func_to_epi_ants_syn.inputs.number_of_iterations = [[100, 100, 30]] 
+        # func_to_epi_ants_syn.inputs.smoothing_sigmas = [[5, 3, 0]]
+        # func_to_epi_ants_syn.inputs.shrink_factors = [[5, 3, 1]] 
 
-        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_affine, 'moving_image')
-        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_affine, 'fixed_image')
-        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_syn, 'moving_image')
-        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_syn, 'fixed_image')
-        register_func_to_epi.connect(func_to_epi_ants_affine, 'forward_transforms', outputspec, 'ants_affine_xfm')
-        register_func_to_epi.connect(func_to_epi_ants_syn, 'forward_transforms', outputspec, 'ants_nonlinear_xfm')
+        # register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_affine, 'moving_image')
+        # register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_affine, 'fixed_image')
+        # register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_syn, 'moving_image')
+        # register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_syn, 'fixed_image')
+        # register_func_to_epi.connect(func_to_epi_ants_affine, 'forward_transforms', outputspec, 'ants_affine_xfm')
+        # register_func_to_epi.connect(func_to_epi_ants_syn, 'forward_transforms', outputspec, 'ants_nonlinear_xfm')
+
+        reg_imports = ['import os', 'import subprocess']
+        func_to_epi_ants = pe.Node(interface=util.Function(input_names=['func_3d',
+                                                     'epi'],
+                                        output_names=['xfm',
+                                                      'warp'],
+                                        function=rodent_reg,
+                                        imports=reg_imports),
+                name='func_to_epi_ants')
+
+        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants, 'func_3d')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants, 'epi')
 
         # combine transforms
         collect_transforms = pe.Node(util.Merge(2), name='collect_transforms_ants')
-        register_func_to_epi.connect(func_to_epi_ants_syn, 'forward_transforms',collect_transforms,'in1')
-        register_func_to_epi.connect(func_to_epi_ants_affine, 'forward_transforms',collect_transforms,'in2')
+        register_func_to_epi.connect(func_to_epi_ants,'warp',collect_transforms,'in1')
+        register_func_to_epi.connect(func_to_epi_ants,'xfm',collect_transforms,'in2')
 
         # apply transform
         func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
+        func_in_epi.inputs.dimension = 3
         func_in_epi.inputs.input_image_type = 3
-        func_in_epi.inputs.interpolation = 'LanczosWindowedSinc'
+        # func_in_epi.inputs.interpolation = 'LanczosWindowedSinc'
 
         register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
         register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'reference_image')
@@ -825,13 +841,13 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
             calculate_ants_warp, 'anatomical_brain')
-    # why?
+
     calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
             calculate_ants_warp, 'anatomical_skull')
 
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_brain')
-    # why?
+    
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_skull')
 

@@ -78,6 +78,56 @@ def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull,
     return warp_list, warped_image
 
 
+def rodent_reg(func_3d, epi):
+
+    regcmd = ['antsRegistration', 
+            '-d', '3',
+            '-r', '[{0},{1},1]'.format(epi, func_3d),
+            '-m', 'CC[{0},{1},1,2]'.format(epi, func_3d),
+            '-t', 'Affine[0.25]',
+            '-c', '100x100x30',
+            '-s', '5x3x0',
+            '-f', '5x3x1',
+            '-m', 'CC[{0},{1},1,2]'.format(epi, func_3d),
+            '-t', 'SyN[0.15,5,1]',
+            '-c', '100x100x30',
+            '-s', '5x3x0',
+            '-f', '5x3x1',
+            '-o', 'transform']
+
+    retcode = subprocess.check_output(regcmd)
+    print(retcode)
+
+    # write out the actual command-line entry for testing/validation later
+    command_file = os.path.join(os.getcwd(), 'command.txt')
+    with open(command_file, 'wt') as f:
+        f.write(' '.join(regcmd))
+
+    try:
+        retcode = subprocess.check_output(regcmd)
+    except Exception as e:
+        raise Exception('[!] ANTS registration did not complete successfully.'
+                        '\n\nError details:\n{0}\n{1}\n'.format(e, e.output))
+
+    xfm = None
+    warp = None
+
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+
+    for f in files:
+        if "Affine" in f:
+            xfm = os.getcwd() + "/" + f
+        if "transform1Warp" in f:
+            warp = os.getcwd() + "/" + f
+
+    if not warp:
+        raise Exception("\n\n[!] No registration output file found. ANTS "
+                        "registration may not have completed "
+                        "successfully.\n\n")
+
+    return xfm, warp
+
+
 def change_itk_transform_type(input_affine_file):
     """
     this function takes in the affine.txt produced by the c3d_affine_tool
