@@ -525,53 +525,35 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
 
     if reg_option == 'ANTS':
         # linear + non-linear registration
-        func_to_epi_ants = create_wf_calculate_ants_warp(name='func_to_epi_ants')
-        func_to_epi_ants.inputs.inputspec.interp = 'LanczosWindowedSinc'
+        func_to_epi_ants_affine = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_affine')
+        func_to_epi_ants_affine.inputs.metric = ['CC']
+        func_to_epi_ants_affine.inputs.metric_weight = [1,2]
+        func_to_epi_ants_affine.inputs.transforms = ['Affine']
+        func_to_epi_ants_affine.inputs.transform_parameters = [(0.25,)]
+        func_to_epi_ants_affine.inputs.number_of_iterations = [[100, 100, 30]] 
+        func_to_epi_ants_affine.inputs.smoothing_sigmas = [[5, 3, 0]]
+        func_to_epi_ants_affine.inputs.shrink_factors = [[5, 3, 1]] 
 
-        register_func_to_epi.connect([
-            (inputspec, func_to_epi_ants, [
-                ('func_3d', 'inputspec.anatomical_brain'),
-                ('epi', 'inputspec.reference_brain'),
-                ('func_3d', 'inputspec.anatomical_skull'),
-                ('epi', 'inputspec.reference_skull'),
-            ]),
-        ])
+        func_to_epi_ants_syn = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_syn')
+        func_to_epi_ants_syn.inputs.metric = ['CC']
+        func_to_epi_ants_syn.inputs.metric_weight = [1,2]
+        func_to_epi_ants_syn.inputs.transforms = ['SyN']
+        func_to_epi_ants_syn.inputs.transform_parameters = [(0.15, 5, 1)]
+        func_to_epi_ants_syn.inputs.number_of_iterations = [[100, 100, 30]] 
+        func_to_epi_ants_syn.inputs.smoothing_sigmas = [[5, 3, 0]]
+        func_to_epi_ants_syn.inputs.shrink_factors = [[5, 3, 1]] 
 
-        func_to_epi_ants.inputs.inputspec.set(
-                dimension=3,
-                metric=['CC', 'CC'],
-                metric_weight=[[1,2], [1,2]],
-                number_of_iterations=[
-                    [100, 100, 30],
-                    [100, 100, 30]
-                ],
-                transforms=['Affine', 'SyN'],
-                transform_parameters=[[0.25], [0.15, 5, 0]],
-                shrink_factors=[
-                    [5, 3, 0],
-                    [5, 3, 0]
-                ],
-                smoothing_sigmas=[
-                    [5, 3, 1],
-                    [5, 3, 1]
-                ]
-            )
-
-        register_func_to_epi.connect([
-            (func_to_epi_ants, outputspec, [
-                ('outputspec.ants_affine_xfm', 'ants_affine_xfm'),
-                ('outputspec.warp_field', 'ants_nonlinear_xfm'),
-            ]),
-        ])
+        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_affine, 'moving_image')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_affine, 'fixed_image')
+        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_syn, 'moving_image')
+        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_syn, 'fixed_image')
+        register_func_to_epi.connect(func_to_epi_ants_affine, 'forward_transforms', outputspec, 'ants_affine_xfm')
+        register_func_to_epi.connect(func_to_epi_ants_syn, 'forward_transforms', outputspec, 'ants_nonlinear_xfm')
 
         # combine transforms
         collect_transforms = pe.Node(util.Merge(2), name='collect_transforms_ants')
-        register_func_to_epi.connect([
-            (func_to_epi_ants, collect_transforms, [
-                ('outputspec.ants_affine_xfm', 'in1'),
-                ('outputspec.warp_field', 'in2'),
-            ]),
-        ])
+        register_func_to_epi.connect(func_to_epi_ants_syn, 'forward_transforms',collect_transforms,'in1')
+        register_func_to_epi.connect(func_to_epi_ants_affine, 'forward_transforms',collect_transforms,'in2')
 
         # apply transform
         func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
