@@ -209,7 +209,7 @@ def pick_wm_class_2(tissue_class_files):
 # https://poldracklab.stanford.edu/
 # We are temporarily maintaining our own copy for more granular control.
 
-def mask_erosion(roi_mask, skullstrip_mask, mask_erosion_prop):
+def mask_erosion(roi_mask = None, skullstrip_mask = None, mask_erosion_mm = None, mask_erosion_prop = None):
 
     """
     Returns eroded segment mask and skull-stripped brain mask 
@@ -241,12 +241,19 @@ def mask_erosion(roi_mask, skullstrip_mask, mask_erosion_prop):
 
     roi_mask_img = nb.load(roi_mask)
     roi_mask_data = roi_mask_img.get_fdata()
-    
-    orig_vol = np.sum(skullstrip_mask_data > 0)
-    while np.sum(skullstrip_mask_data > 0) / (orig_vol*1.0) > mask_erosion_prop :
-        skullstrip_mask_data = nd.binary_erosion(skullstrip_mask_data, iterations=1)
-    
-    roi_mask_data[~skullstrip_mask_data] = 0
+    erode_in = (mask_erosion_mm is not None and mask_erosion_mm > 0 or
+                mask_erosion_prop is not None and mask_erosion_prop < 1)
+    if erode_in:
+        if mask_erosion_mm:
+            iter_n = max(int(mask_erosion_mm / max(skullstrip_mask_img.header.get_zooms())), 1)
+            skullstrip_mask_data = nd.binary_erosion(skullstrip_mask_data, iterations=iter_n)
+        else :
+            orig_vol = np.sum(skullstrip_mask_data > 0)
+            while np.sum(skullstrip_mask_data > 0) / (orig_vol*1.0) > mask_erosion_prop :
+                skullstrip_mask_data = nd.binary_erosion(skullstrip_mask_data, iterations=1)
+        
+        roi_mask_data[~skullstrip_mask_data] = 0
+        
     hdr = roi_mask_img.get_header()
     output_roi_mask_img = nb.Nifti1Image(roi_mask_data, header=hdr,
                                  affine=roi_mask_img.get_affine())
@@ -269,7 +276,7 @@ def mask_erosion(roi_mask, skullstrip_mask, mask_erosion_prop):
 # https://poldracklab.stanford.edu/
 # We are temporarily maintaining our own copy for more granular control.
 
-def erosion(roi_mask, erosion_prop):
+def erosion(roi_mask = None, erosion_mm = None, erosion_prop = None):
 
 
     """
@@ -295,9 +302,17 @@ def erosion(roi_mask, erosion_prop):
     roi_mask_img = nb.load(roi_mask)
     roi_mask_data = roi_mask_img.get_fdata()
     orig_vol = np.sum(roi_mask_data > 0)
-    	
-    while np.sum(roi_mask_data > 0) / (orig_vol*1.0) > erosion_prop :
-        roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=1)
+
+    erode_out = (erosion_mm is not None and erosion_mm > 0 or
+                 erosion_prop is not None and erosion_prop < 1)
+    if erode_out:
+        if erosion_mm:
+            iter_n = max(int(erosion_mm / max(roi_mask_img.header.get_zooms())), 1)
+            iter_n = int(erosion_mm / max(roi_mask_img.header.get_zooms()))
+            roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=iter_n)
+        else:
+            while np.sum(roi_mask_data > 0) / (orig_vol*1.0) > erosion_prop :
+                roi_mask_data = nd.binary_erosion(roi_mask_data, iterations=1)
 
     hdr = roi_mask_img.get_header()
     output_img = nb.Nifti1Image(roi_mask_data, header=hdr,
