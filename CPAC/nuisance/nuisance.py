@@ -1032,67 +1032,67 @@ def create_nuisance_workflow(nuisance_selectors,
 
                 if 'DetrendPC' in summary_method:
 
-                        compcor_imports = ['import os',
-                                           'import scipy.signal as signal',
-                                           'import nibabel as nb',
-                                           'import numpy as np',
-                                           'from CPAC.utils import safe_shape']
+                    compcor_imports = ['import os',
+                                        'import scipy.signal as signal',
+                                        'import nibabel as nb',
+                                        'import numpy as np',
+                                        'from CPAC.utils import safe_shape']
 
-                        compcor_node = pe.Node(Function(input_names=['data_filename',
-                                                                     'num_components',
-                                                                      'mask_filename'],
-                                                        output_names=['compcor_file'],
-                                                        function=calc_compcor_components,
-                                                        imports=compcor_imports),
-                                                name='compcor', mem_gb=2.0)
+                    compcor_node = pe.Node(Function(input_names=['data_filename',
+                                                                    'num_components',
+                                                                    'mask_filename'],
+                                                    output_names=['compcor_file'],
+                                                    function=calc_compcor_components,
+                                                    imports=compcor_imports),
+                                            name='compcor', mem_gb=2.0)
 
-                        compcor_node.inputs.num_components = regressor_selector['summary']['components']
+                    compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
-                        nuisance_wf.connect(
-                            summary_method_input[0], summary_method_input[1],
-                            compcor_node, 'data_filename'
-                        )
+                    nuisance_wf.connect(
+                        summary_method_input[0], summary_method_input[1],
+                        compcor_node, 'data_filename'
+                    )
 
-                        nuisance_wf.connect(
-                            union_masks_paths, 'out_file',
-                            compcor_node, 'mask_filename'
-                        )
+                    nuisance_wf.connect(
+                        union_masks_paths, 'out_file',
+                        compcor_node, 'mask_filename'
+                    )
 
-                        summary_method_input = (compcor_node, 'compcor_file')
+                    summary_method_input = (compcor_node, 'compcor_file')
 
                 else:               
                     if 'cosine' in summary_filter:
-                            cosfilter_imports = ['import os',
-                                                'import numpy as np',
-                                                'import nibabel as nb',
-                                                'from nipype import logging']
-                                                
-                            cosfilter_node = pe.Node(util.Function(input_names=['input_image_path',
-                                                                                'timestep'],
-                                                                   output_names=['cosfiltered_img'],
-                                                                   function=cosine_filter,
-                                                                   imports=cosfilter_imports),
-                                                                   name='{}_cosine_filter'.format(regressor_type))
-                            nuisance_wf.connect(
-                                summary_filter_input[0], summary_filter_input[1],
-                                cosfilter_node, 'input_image_path'
-                            )
-                            tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
-                                                                   output_names=['tr_float'],
-                                                                   function=TR_string_to_float),
-                                                     name='{}_tr_string2float'.format(regressor_type))
+                        cosfilter_imports = ['import os',
+                                            'import numpy as np',
+                                            'import nibabel as nb',
+                                            'from nipype import logging']
+                                            
+                        cosfilter_node = pe.Node(util.Function(input_names=['input_image_path',
+                                                                            'timestep'],
+                                                                output_names=['cosfiltered_img'],
+                                                                function=cosine_filter,
+                                                                imports=cosfilter_imports),
+                                                                name='{}_cosine_filter'.format(regressor_type))
+                        nuisance_wf.connect(
+                            summary_filter_input[0], summary_filter_input[1],
+                            cosfilter_node, 'input_image_path'
+                        )
+                        tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
+                                                                output_names=['tr_float'],
+                                                                function=TR_string_to_float),
+                                                    name='{}_tr_string2float'.format(regressor_type))
 
-                            nuisance_wf.connect(
-                                inputspec, 'tr',
-                                tr_string2float_node, 'tr'
-                            )
+                        nuisance_wf.connect(
+                            inputspec, 'tr',
+                            tr_string2float_node, 'tr'
+                        )
 
-                            nuisance_wf.connect(
-                                tr_string2float_node, 'tr_float',
-                                cosfilter_node, 'timestep'
-                            )
+                        nuisance_wf.connect(
+                            tr_string2float_node, 'tr_float',
+                            cosfilter_node, 'timestep'
+                        )
 
-                            summary_method_input = (cosfilter_node, 'cosfiltered_img')
+                        summary_method_input = (cosfilter_node, 'cosfiltered_img')
                             
                     if 'Detrend' in summary_method:
 
