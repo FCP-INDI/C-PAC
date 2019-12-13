@@ -1024,13 +1024,10 @@ def create_nuisance_workflow(nuisance_selectors,
                         regressor_selector['extraction_resolution']
                     )
 
-                summary_filter = regressor_selector['summary']['filter']
-
+                summary_filter = regressor_selector['summary'].get('filter', '')
                 summary_filter_input = pipeline_resource_pool[functional_key]
-                
 
                 summary_method = regressor_selector['summary']['method']
-
                 summary_method_input = pipeline_resource_pool[functional_key]
 
                 if 'DetrendPC' in summary_method:
@@ -1043,11 +1040,11 @@ def create_nuisance_workflow(nuisance_selectors,
 
                         compcor_node = pe.Node(Function(input_names=['data_filename',
                                                                      'num_components',
-                                                                     'mask_filename'],
+                                                                      'mask_filename'],
                                                         output_names=['compcor_file'],
                                                         function=calc_compcor_components,
                                                         imports=compcor_imports),
-                                                name='compcor')
+                                                name='compcor', mem_gb=2.0)
 
                         compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
