@@ -1045,7 +1045,7 @@ def create_nuisance_workflow(nuisance_selectors,
                                                         'compcor_file'],
                                                     function=calc_compcor_components,
                                                     imports=compcor_imports),
-                                           name='compcor', mem_gb=2.0)
+                                           name='{}_DetrendPC'.format(regressor_type), mem_gb=2.0)
 
                     compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
