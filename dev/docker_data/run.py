@@ -183,7 +183,7 @@ parser.add_argument('--mem_gb', type=float,
                     help='Amount of RAM available to the pipeline in gigabytes.'
                          ' if this is specified along with mem_mb, this flag will take precedence.')
 
-parser.add_argument('--save_working_dir', action='store_true',
+parser.add_argument('--save_working_dir', nargs='?',
                     help='Save the contents of the working directory.', default=False)
 parser.add_argument('--disable_file_logging', action='store_true',
                     help='Disable file logging, this is useful for clusters that have disabled file locking.',
@@ -405,10 +405,14 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     c['disable_log'] = args.disable_file_logging
 
-    if args.save_working_dir is True:
-        if "s3://" not in args.output_dir.lower():
-            c['removeWorkingDir'] = False
-            c['workingDirectory'] = os.path.join(args.output_dir, "working")
+    if args.save_working_dir is not False:
+        c['removeWorkingDir'] = False
+        if args.save_working_dir is not None:
+            c['workingDirectory'] = \
+                os.path.abspath(args.save_working_dir)
+        elif "s3://" not in args.output_dir.lower():
+            c['workingDirectory'] = \
+                os.path.join(args.output_dir, "working")
         else:
             print('Cannot write working directory to S3 bucket.'
                 ' Either change the output directory to something'

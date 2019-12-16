@@ -176,6 +176,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             'log_to_file': bool(getattr(c, 'run_logging', True))
         }
     })
+    config.enable_resource_monitor()
 
     logging.update_logging(config)
 
