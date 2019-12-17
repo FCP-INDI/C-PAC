@@ -3338,7 +3338,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for key in sorted(rp.keys()):
                         if 'centrality' in key or key in Outputs.native_nonsmooth + Outputs.native_nonsmooth_mult + \
                                 Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
-                            spatial_smooth_outputs(workflow, key, strat, num_strat, c)
+                            spatial_smooth_outputs(c.smoothing_method,workflow, key, strat, num_strat, c) 
+                            # c.smoothing_mehod can be FSL or AFNI, FSL as default
 
                 if 1 in c.runZScoring:
                     rp = strat.get_resource_pool()
