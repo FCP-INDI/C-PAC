@@ -411,7 +411,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
 
                 lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
-                lat_ven_mni_to_anat.inputs.invert_transform_flags = [True, True, True]
+                lat_ven_mni_to_anat.inputs.invert_transform_flags = [True] # keep only one, cause rodent has one transform
                 lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                 lat_ven_mni_to_anat.inputs.dimension = 3
 

@@ -581,6 +581,10 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
         register_func_to_epi.connect(collect_transforms, 'out', func_in_epi, 'transforms')
         register_func_to_epi.connect(func_in_epi, 'output_image', outputspec, 'func_in_epi')
 
+        register_func_to_epi.connect(func_to_epi_ants,'xfm',outputspec,'ants_affine_xfm')
+        register_func_to_epi.connect(func_to_epi_ants,'warp',outputspec,'ants_nonlinear_xfm')
+
+
     elif reg_option == 'FSL':
         # flirt linear registration 
         func_to_epi_linear = pe.Node(interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')

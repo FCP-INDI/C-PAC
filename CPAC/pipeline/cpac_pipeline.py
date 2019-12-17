@@ -2104,7 +2104,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat['func_to_epi_ants_affine_xfm']
                     workflow.connect(node, out_file,
                                     seg_preproc_template_based,
-                                    'inputspec.standard2highres_mat')                                          
+                                    'inputspec.standard2highres_mat')     
 
                 workflow.connect(c.template_based_segmenation_CSF, 'local_path',
                                     seg_preproc_template_based, 'inputspec.CSF_template')
@@ -2354,7 +2354,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(node, node_out,
                                     nuisance_regression_workflow, 'inputspec.tr')
 
-                    node, out_file = new_strat['anatomical_brain']
+                    node, out_file = strat['mean_functional'] # changed for rodent pipeline, instead of new_strat['anatomical_brain']
                     workflow.connect(
                         node, out_file,
                         nuisance_regression_workflow, 'inputspec.anatomical_file_path'
@@ -2445,13 +2445,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         # within the workflow
 
 
-                        node, out_file = new_strat['ants_affine_xfm']
+                        node, out_file = strat['func_to_epi_ants_affine_xfm'] # pass func_to_epi affine xfm for rodent instead of anat_to_mni_affine
                         workflow.connect(
                             node, out_file,
                             nuisance_regression_workflow,
                             'inputspec.anat_to_mni_affine_xfm_file_path'
                         )
-                    else:
+                    else:  # fsl not changed yet, since rodent does not use fsl registration
                         node, out_file = new_strat['mni_to_anatomical_linear_xfm']
                         workflow.connect(
                             node, out_file,
