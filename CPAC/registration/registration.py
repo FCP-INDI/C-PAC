@@ -507,13 +507,18 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
     return register_bbregister_func_to_anat
     
 
-def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
+def create_register_func_to_epi(strat, name='register_func_to_epi', input_image_type='func_4d', reg_option='ANTS'):
 
     register_func_to_epi = pe.Workflow(name=name)
-    
+
+    nodes = strat.get_nodes_names()
+
     inputspec = pe.Node(util.IdentityInterface(fields=['func_4d',
                                                        'func_3d',
-                                                       'epi']),
+                                                       'func_3d_mask',
+                                                       'epi',
+                                                       'ants_affine_xfm',
+                                                       'ants_nonlinear_xfm']),
                         name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['ants_affine_xfm',
@@ -523,104 +528,89 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
                                                         'invlinear_xfm',
                                                         'func_in_epi']),
                          name='outputspec')
-
+    
     if reg_option == 'ANTS':
-        # linear + non-linear registration
-        # func_to_epi_ants_affine = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_affine')
-        # func_to_epi_ants_affine.inputs.dimension = 3
-        # func_to_epi_ants_affine.inputs.metric = ['CC']
-        # func_to_epi_ants_affine.inputs.metric_weight = [1,2]
-        # func_to_epi_ants_affine.inputs.transforms = ['Affine']
-        # func_to_epi_ants_affine.inputs.transform_parameters = [(0.25,)]
-        # func_to_epi_ants_affine.inputs.number_of_iterations = [[100, 100, 30]] 
-        # func_to_epi_ants_affine.inputs.smoothing_sigmas = [[5, 3, 0]]
-        # func_to_epi_ants_affine.inputs.shrink_factors = [[5, 3, 1]] 
-
-        # func_to_epi_ants_syn = pe.Node(interface=ants.Registration(), name='func_to_epi_ants_syn')
-        # func_to_epi_ants_syn.inputs.dimension = 3
-        # func_to_epi_ants_syn.inputs.metric = ['CC']
-        # func_to_epi_ants_syn.inputs.metric_weight = [1,2]
-        # func_to_epi_ants_syn.inputs.transforms = ['SyN']
-        # func_to_epi_ants_syn.inputs.transform_parameters = [(0.15, 5, 1)]
-        # func_to_epi_ants_syn.inputs.number_of_iterations = [[100, 100, 30]] 
-        # func_to_epi_ants_syn.inputs.smoothing_sigmas = [[5, 3, 0]]
-        # func_to_epi_ants_syn.inputs.shrink_factors = [[5, 3, 1]] 
-
-        # register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_affine, 'moving_image')
-        # register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_affine, 'fixed_image')
-        # register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants_syn, 'moving_image')
-        # register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants_syn, 'fixed_image')
-        # register_func_to_epi.connect(func_to_epi_ants_affine, 'forward_transforms', outputspec, 'ants_affine_xfm')
-        # register_func_to_epi.connect(func_to_epi_ants_syn, 'forward_transforms', outputspec, 'ants_nonlinear_xfm')
-
-        reg_imports = ['import os', 'import subprocess']
-        func_to_epi_ants = pe.Node(interface=util.Function(input_names=['func_3d',
-                                                     'epi'],
-                                        output_names=['xfm',
-                                                      'warp'],
-                                        function=rodent_reg,
-                                        imports=reg_imports),
-                name='func_to_epi_ants')
-
-        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants, 'func_3d')
-        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants, 'epi')
-
-        # combine transforms
+                   
         collect_transforms = pe.Node(util.Merge(2), name='collect_transforms_ants')
-        register_func_to_epi.connect(func_to_epi_ants,'warp',collect_transforms,'in1')
-        register_func_to_epi.connect(func_to_epi_ants,'xfm',collect_transforms,'in2')
 
+        if 'func_to_epi_ants' in nodes :
+            register_func_to_epi.connect(inputspec,'ants_nonlinear_xfm',collect_transforms,'in1')
+            register_func_to_epi.connect(inputspec,'ants_affine_xfm',collect_transforms,'in2')
+            register_func_to_epi.connect(inputspec,'ants_nonlinear_xfm',outputspec,'ants_nonlinear_xfm')
+            register_func_to_epi.connect(inputspec,'ants_affine_xfm',outputspec,'ants_affine_xfm')            
+
+        else:
+            reg_imports = ['import os', 'import subprocess']
+            func_to_epi_ants = pe.Node(interface=util.Function(input_names=['func_3d',
+                                                                            'epi'],
+                                                                output_names=['xfm',
+                                                                            'warp'],
+                                                                function=rodent_reg,
+                                                                imports=reg_imports),
+                                        name='func_to_epi_ants')
+
+            register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_ants, 'func_3d')
+            register_func_to_epi.connect(inputspec, 'epi', func_to_epi_ants, 'epi')
+
+            # combine transforms
+            register_func_to_epi.connect(func_to_epi_ants,'warp',collect_transforms,'in1')
+            register_func_to_epi.connect(func_to_epi_ants,'xfm',collect_transforms,'in2')
+
+            # output matrix
+            register_func_to_epi.connect(func_to_epi_ants,'xfm',outputspec,'ants_affine_xfm')
+            register_func_to_epi.connect(func_to_epi_ants,'warp',outputspec,'ants_nonlinear_xfm')
+        
         # apply transform
         func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
         func_in_epi.inputs.dimension = 3
-        func_in_epi.inputs.input_image_type = 3
-        # func_in_epi.inputs.interpolation = 'LanczosWindowedSinc'
-
-        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
+        
+        if input_image_type == 'func_4d':
+            func_in_epi.inputs.input_image_type = 3
+            register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
+        else:
+            func_in_epi.inputs.input_image_type = 0
+            register_func_to_epi.connect(inputspec, 'func_3d_mask', func_in_epi, 'input_image')
+        
         register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'reference_image')
         register_func_to_epi.connect(collect_transforms, 'out', func_in_epi, 'transforms')
         register_func_to_epi.connect(func_in_epi, 'output_image', outputspec, 'func_in_epi')
 
-        register_func_to_epi.connect(func_to_epi_ants,'xfm',outputspec,'ants_affine_xfm')
-        register_func_to_epi.connect(func_to_epi_ants,'warp',outputspec,'ants_nonlinear_xfm')
+  ## TODO decide later, if we keep fsl for rodent pipeline 
+    # elif reg_option == 'FSL':
+    #     # flirt linear registration 
+    #     func_to_epi_linear = pe.Node(interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')
+    #     func_to_epi_linear.inputs.dof = 6
 
-
-    elif reg_option == 'FSL':
-        # flirt linear registration 
-        func_to_epi_linear = pe.Node(interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')
-        func_to_epi_linear.inputs.dof = 6
-
-        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_linear, 'in_file')
-        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_linear, 'reference')
-        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', outputspec, 'fsl_flirt_xfm')
+    #     register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_linear, 'in_file')
+    #     register_func_to_epi.connect(inputspec, 'epi', func_to_epi_linear, 'reference')
+    #     register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', outputspec, 'fsl_flirt_xfm')
         
-        inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(), name='inv_linear_reg0_xfm')
-        inv_flirt_xfm.inputs.invert_xfm = True
+    #     inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(), name='inv_linear_reg0_xfm')
+    #     inv_flirt_xfm.inputs.invert_xfm = True
 
-        # fnirt non-linear registration
-        func_to_epi_nonlinear = pe.Node(interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
-        func_to_epi_nonlinear.inputs.fieldcoeff_file = True
+    #     # fnirt non-linear registration
+    #     func_to_epi_nonlinear = pe.Node(interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
+    #     func_to_epi_nonlinear.inputs.fieldcoeff_file = True
 
-        register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_nonlinear, 'in_file')
-        register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
-        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_to_epi_nonlinear, 'affine_file')
-        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'fsl_fnirt_xfm')
+    #     register_func_to_epi.connect(inputspec, 'func_3d', func_to_epi_nonlinear, 'in_file')
+    #     register_func_to_epi.connect(inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
+    #     register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_to_epi_nonlinear, 'affine_file')
+    #     register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', outputspec, 'fsl_fnirt_xfm')
 
-        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', inv_flirt_xfm, 'in_file')
-        register_func_to_epi.connect(inv_flirt_xfm, 'out_file', outputspec, 'invlinear_xfm')
+    #     register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', inv_flirt_xfm, 'in_file')
+    #     register_func_to_epi.connect(inv_flirt_xfm, 'out_file', outputspec, 'invlinear_xfm')
 
-        # apply warp
-        func_in_epi = pe.Node(interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
-        func_in_epi.inputs.interp = 'sinc'
+    #     # apply warp
+    #     func_in_epi = pe.Node(interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
+    #     func_in_epi.inputs.interp = 'sinc'
 
-        register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'in_file')
-        register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'ref_file')
-        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
-        register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
-        register_func_to_epi.connect(func_in_epi, 'out_file', outputspec, 'func_in_epi')
+    #     register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'in_file')
+    #     register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'ref_file')
+    #     register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
+    #     register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
+    #     register_func_to_epi.connect(func_in_epi, 'out_file', outputspec, 'func_in_epi')
 
     return register_func_to_epi
-
 
 # TODO: refactor - change anatomical brain/skull to input brain/skull
 def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_threads=1):

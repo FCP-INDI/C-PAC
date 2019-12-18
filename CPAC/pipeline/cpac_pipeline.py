@@ -280,8 +280,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if not hasattr(c, 'anatRegANTSinterpolation'):
             setattr(c, 'anatRegANTSinterpolation', 'LanczosWindowedSinc')
 
-        if c.anatRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+        if c.anatRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc','NearestNeighbor']:
+            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc", "NearestNeighbor"'
             raise Exception(err_msg)
 
         # if someone doesn't have funcRegANTSinterpolation in their pipe config,
@@ -289,8 +289,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if not hasattr(c, 'funcRegANTSinterpolation'):
                setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
 
-        if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+        if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc','NearestNeighbor']:
+            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc","NearestNeighbor"'
             raise Exception(err_msg)
 
     if 'FSL' in c.regOption:
@@ -604,8 +604,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list += [new_strat]
 
             if "unet" in c.skullstrip_option:
-
-                # import pdb; pdb.set_trace()
 
                 anat_preproc = create_anat_preproc(method='unet',
                                                    c=c,
@@ -2018,7 +2016,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     new_strat = strat.fork()
 
-                    func_to_epi = create_register_func_to_epi('func_to_epi_{0}_{1}'.format(reg.lower(), num_strat), reg)
+                    func_to_epi = create_register_func_to_epi(strat=new_strat, name='func_to_epi_{0}_{1}'.format(reg.lower(), num_strat), input_image_type='func_4d', reg_option=reg)
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.func_4d')
@@ -2048,7 +2046,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     elif reg == 'ANTS' :
                         new_strat.update_resource_pool({
-                            'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm')
+                            'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm'),
+                            'func_to_epi_ants_nonlinear_xfm': (func_to_epi, 'outputspec.ants_nonlinear_xfm')
                         })                     
 
                     new_strat.append_name(func_to_epi.name)
@@ -2144,6 +2143,43 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 ]:
                     output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
+            strat_list += new_strat_list
+
+        if 1 in c.runRegisterFuncToEPI:
+
+            for num_strat, strat in enumerate(strat_list): 
+
+                for reg in c.regOption:
+
+                    new_strat = strat.fork()
+
+                    # create func brain mask to standard
+                    functional_brain_mask_to_standard = create_register_func_to_epi(strat=new_strat, name='func_to_standard_mask_{0}_{1}'.format(reg.lower(), num_strat), input_image_type='func_3d_mask', reg_option=reg)
+                    
+                    node, out_file = strat['functional_brain_mask']
+                    workflow.connect(node, out_file, functional_brain_mask_to_standard, 'inputspec.func_3d_mask')
+
+
+                    node, out_file = strat['template_epi']
+                    workflow.connect(node, out_file, functional_brain_mask_to_standard, 'inputspec.epi')
+
+
+                    node, out_file = strat['func_to_epi_ants_affine_xfm']
+                    workflow.connect(node, out_file, functional_brain_mask_to_standard, 'inputspec.ants_affine_xfm')
+
+
+                    node, out_file = strat['func_to_epi_ants_nonlinear_xfm']
+                    workflow.connect(node, out_file, functional_brain_mask_to_standard, 'inputspec.ants_nonlinear_xfm')
+
+                    # update resource pool
+                    new_strat.update_resource_pool({
+                        'functional_brain_mask_to_standard' : (functional_brain_mask_to_standard, 'outputspec.func_in_epi')
+                    })                   
+
+                    new_strat.append_name(functional_brain_mask_to_standard.name)
+
+                    new_strat_list.append(new_strat)
+               
             strat_list += new_strat_list
 
         # Inserting Generate Motion Statistics Workflow
@@ -2567,14 +2603,57 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # Denoised Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp
         new_strat_list = []
+        
+        # TODO change it to output_func_to_standard format, to make it consistent 
+        # at least, connect warp and matrix, instead of recalculating
+        if 1 in c.runRegisterFuncToEPI:
 
-        if 1 in c.runRegisterFuncToMNI:
+            for num_strat, strat in enumerate(strat_list): 
 
-            for num_strat, strat in enumerate(strat_list):
-                for output_name, func_key, ref_key, image_type in [ \
-                        ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
-                ]:
-                    output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+                for reg in c.regOption:
+
+                    new_strat = strat.fork()
+
+                    func_to_standard = create_register_func_to_epi(strat=new_strat, name='func_to_standard_{0}_{1}'.format(reg.lower(), num_strat), input_image_type='func_4d', reg_option=reg)
+                     
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, func_to_standard, 'inputspec.func_4d')
+
+
+                    node, out_file = strat['mean_functional']
+                    workflow.connect(node, out_file, func_to_standard, 'inputspec.func_3d')
+
+
+                    node, out_file = strat['template_epi']
+                    workflow.connect(node, out_file, func_to_standard, 'inputspec.epi')
+
+
+                    node, out_file = strat['func_to_epi_ants_affine_xfm']
+                    workflow.connect(node, out_file, func_to_standard, 'inputspec.ants_affine_xfm')
+
+
+                    node, out_file = strat['func_to_epi_ants_nonlinear_xfm']
+                    workflow.connect(node, out_file, func_to_standard, 'inputspec.ants_nonlinear_xfm')
+
+                    # update resource pool
+                    new_strat.update_resource_pool({
+                        'functional_to_standard': (func_to_standard, 'outputspec.func_in_epi')
+                    })                   
+
+                    new_strat.append_name(func_to_standard.name)
+
+                    new_strat_list.append(new_strat)
+
+            strat_list = new_strat_list
+
+
+        # if 1 in c.runRegisterFuncToMNI:
+
+        #     for num_strat, strat in enumerate(strat_list):
+        #         for output_name, func_key, ref_key, image_type in [ \
+        #                 ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+        #         ]:
+        #             output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
         strat_list += new_strat_list
         

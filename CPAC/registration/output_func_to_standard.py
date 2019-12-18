@@ -352,7 +352,6 @@ def ants_apply_warps_func_mni(
     if inverse is True:
         apply_ants_warp.inputs.invert_transform_flags = \
                 [True, True, True, True, False]
-
     # input_image_type:
     # (0 or 1 or 2 or 3)
     # Option specifying the input image type of scalar
