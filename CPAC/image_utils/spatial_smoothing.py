@@ -1,4 +1,5 @@
 import nipype.interfaces.fsl as fsl
+import nipype.interface.afni as afni
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils import Outputs
@@ -12,9 +13,9 @@ def set_gauss(fwhm):
     op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
     op_string = op
 
-    return op_string
+    return op_string,fwhm
 
-def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config_object):
+def spatial_smooth_outputs(method='FSL',workflow, func_key, strat, num_strat, pipeline_config_object):
 
     # set the mask for the smoothing operation
     if "centrality" in func_key:
@@ -34,14 +35,14 @@ def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config
 
     # insert the smoothing workflow
     if output_name not in strat:
-        workflow, strat = spatial_smooth(workflow, func_key, smoothing_mask_key, output_name,
+        workflow, strat = spatial_smooth(method='FSL',workflow, func_key, smoothing_mask_key, output_name,
                                          strat, num_strat, pipeline_config_object, input_image_type=input_image_type)
     else:
         print('{0} already exists in the resource pool'.format(output_name))
 
     return workflow, strat
 
-def spatial_smooth(workflow, func_key, mask_key, output_name,
+def spatial_smooth(method='FSL',workflow, func_key, mask_key, output_name,
                   strat, num_strat, pipeline_config_object, input_image_type='func_derivative'):
 
     image_types = ['func_derivative', 'func_derivative_multi',
@@ -51,14 +52,29 @@ def spatial_smooth(workflow, func_key, mask_key, output_name,
         raise ValueError('Input image type {0} should be one of {1}'.format(input_image_type,
             ', '.join(image_types)))
 
-    if input_image_type == 'func_derivative_multi':
-        output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+    if method == 'FSL':
+         if input_image_type == 'func_derivative_multi':
+             output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                    name='{0}_multi_{1}'.format(output_name, num_strat),
                                    iterfield=['in_file'])
-    else:
-        output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                name='{0}_{1}'.format(output_name,
-                                                             num_strat))
+         else:
+             output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                                name='{0}_{1}'.format(output_name,num_strat))
+
+    else method == 'AFNI':
+         op_string,fwhm = set_gauss(fwhm)
+         if input_image_type == 'func_derivative_multi':
+             output_smooth = pe.MapNode(interface= afni.preprocess.BlurToFWHM(),
+                                   name='{0}_multi_{1}'.format(output_name, num_strat),
+                                   iterfield=['in_file'])
+             output_smooth.inputs.mask=smoothing_mask_key
+             output.inputs.fwhm = fwhm 
+         else:
+             output_smooth = pe.Node(interface= afni.preprocess.BlurToFWHM(),
+                                   name='{0}_multi_{1}'.format(output_name, num_strat),
+                                   iterfield=['in_file'])
+             output_smooth.inputs.mask=smoothing_mask_key
+             output.inputs.fwhm = fwhm  # default,this can be change
 
     if isinstance(func_key, str):
 
@@ -79,22 +95,24 @@ def spatial_smooth(workflow, func_key, mask_key, output_name,
         mask_node, mask_file = mask_key
     else:
         raise ValueError('mask {0} ({1}) could not be deciphered'.format(mask_key, type(mask_key)))
-
-    # TODO review connetion to config, is the node really necessary?
-    inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
+    
+    
+    if method =='FSL':
+        # TODO review connetion to config, is the node really necessary?
+        inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input_{0}_{1}'.format(output_name, num_strat))
-
-    inputnode_fwhm.iterables = ("fwhm", pipeline_config_object.fwhm)
-
-    # wire in the resource to be smoothed
-    workflow.connect(func_node, func_file, output_smooth, 'in_file')
-
-    # get the parameters for fwhm
-    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+        inputnode_fwhm.iterables = ("fwhm", pipeline_config_object.fwhm)
+         # wire in the resource to be smoothed
+        workflow.connect(func_node, func_file, output_smooth, 'in_file')
+        # get the parameters for fwhm
+        workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                      output_smooth, 'op_string')
-
-    workflow.connect(mask_node, mask_file,
+        workflow.connect(mask_node, mask_file,
                      output_smooth, 'operand_files')
+    if method =='AFNI':
+        workflow.connect(func_node, func_file, output_smooth, 'in_file')
+        workflow.connect(mask_node, mask_file,output_smooth,'in_file')
+
 
     # output the resource
     strat.append_name(output_smooth.name)
