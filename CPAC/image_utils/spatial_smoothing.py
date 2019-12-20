@@ -68,13 +68,13 @@ def spatial_smooth(method='FSL',workflow, func_key, mask_key, output_name,
                                    name='{0}_multi_{1}'.format(output_name, num_strat),
                                    iterfield=['in_file'])
              output_smooth.inputs.mask=smoothing_mask_key
-             output.inputs.fwhm = fwhm 
+             output_smooth.inputs.fwhm = fwhm 
          else:
              output_smooth = pe.Node(interface= afni.preprocess.BlurToFWHM(),
                                    name='{0}_multi_{1}'.format(output_name, num_strat),
                                    iterfield=['in_file'])
              output_smooth.inputs.mask=smoothing_mask_key
-             output.inputs.fwhm = fwhm  # default,this can be change
+             output_smooth.inputs.fwhm = fwhm  # default,this can be change
 
     if isinstance(func_key, str):
 
