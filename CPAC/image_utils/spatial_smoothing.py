@@ -109,7 +109,7 @@ def spatial_smooth(method='FSL',workflow, func_key, mask_key, output_name,
                      output_smooth, 'op_string')
         workflow.connect(mask_node, mask_file,
                      output_smooth, 'operand_files')
-    if method =='AFNI':
+    elif method =='AFNI':
         workflow.connect(func_node, func_file, output_smooth, 'in_file')
         workflow.connect(mask_node, mask_file,output_smooth,'in_file')
 
