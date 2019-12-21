@@ -61,7 +61,7 @@ def spatial_smooth(method='FSL',workflow, func_key, mask_key, output_name,
              output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
                                 name='{0}_{1}'.format(output_name,num_strat))
 
-    else method == 'AFNI':
+    elif method == 'AFNI':
          op_string,fwhm = set_gauss(fwhm)
          if input_image_type == 'func_derivative_multi':
              output_smooth = pe.MapNode(interface= afni.preprocess.BlurToFWHM(),
