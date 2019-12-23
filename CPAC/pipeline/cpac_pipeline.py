@@ -353,9 +353,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         ("anat", "PRIORS_GRAY"),
         ("anat", "PRIORS_WHITE"),
         ("other", "configFileTwomm"),
-        ("anat", "template_based_segmenation_CSF"),
-        ("anat", "template_based_segmenation_GRAY"),
-        ("anat", "template_based_segmenation_WHITE"),
+        ("anat", "template_based_segmentation_CSF"),
+        ("anat", "template_based_segmentation_GRAY"),
+        ("anat", "template_based_segmentation_WHITE"),
     ]
 
     for key_type, key in template_keys:
@@ -1294,17 +1294,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     strat_list += new_strat_list
 
-    if 'T1_template' in c.template_based_segmenation:
+    if 'T1_template' in c.template_based_segmentation:
 
         for num_strat, strat in enumerate(strat_list):
 
             nodes = strat.get_nodes_names()
 
-            if not any(o in c.template_based_segmenation for o in ['EPI_template', 'T1_template', 'None']):
+            if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
                 err = '\n\n[!] C-PAC says: Your template based segmentation ' \
                     'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
-                    'Options you provided:\ntemplate_based_segmenation: {0}' \
-                    '\n\n'.format(str(c.template_based_segmenation))
+                    'Options you provided:\ntemplate_based_segmentation: {0}' \
+                    '\n\n'.format(str(c.template_based_segmentation))
                 raise Exception(err)
 
             # TODO ASH based on config, instead of nodes?
@@ -1346,17 +1346,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  seg_preproc_template_based,
                                  'inputspec.standard2highres_mat')
 
-            workflow.connect(c.template_based_segmenation_CSF, 'local_path',
+            workflow.connect(c.template_based_segmentation_CSF, 'local_path',
                                 seg_preproc_template_based, 'inputspec.CSF_template')
 
-            workflow.connect(c.template_based_segmenation_GRAY, 'local_path',
+            workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
                                 seg_preproc_template_based, 'inputspec.GRAY_template')
 
-            workflow.connect(c.template_based_segmenation_WHITE, 'local_path',
+            workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
                                 seg_preproc_template_based, 'inputspec.WHITE_template')
 
             # TODO ASH review with forking function
-            if 'None' in c.template_based_segmenation:
+            if 'None' in c.template_based_segmentation:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
@@ -2098,17 +2098,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             strat_list = new_strat_list
 
-        if 'EPI_template' in c.template_based_segmenation :
+        if 'EPI_template' in c.template_based_segmentation :
 
             for num_strat, strat in enumerate(strat_list):
 
                 nodes = strat.get_nodes_names()
 
-                if not any(o in c.template_based_segmenation for o in ['EPI_template', 'T1_template', 'None']):
+                if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
                     err = '\n\n[!] C-PAC says: Your template based segmentation ' \
                         'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
-                        'Options you provided:\ntemplate_based_segmenation: {0}' \
-                        '\n\n'.format(str(c.template_based_segmenation))
+                        'Options you provided:\ntemplate_based_segmentation: {0}' \
+                        '\n\n'.format(str(c.template_based_segmentation))
                     raise Exception(err)
 
                 # TODO ASH based on config, instead of nodes?
@@ -2157,17 +2157,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     seg_preproc_template_based,
                                     'inputspec.standard2highres_mat')                                          
 
-                workflow.connect(c.template_based_segmenation_CSF, 'local_path',
+                workflow.connect(c.template_based_segmentation_CSF, 'local_path',
                                     seg_preproc_template_based, 'inputspec.CSF_template')
 
-                workflow.connect(c.template_based_segmenation_GRAY, 'local_path',
+                workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
                                     seg_preproc_template_based, 'inputspec.GRAY_template')
 
-                workflow.connect(c.template_based_segmenation_WHITE, 'local_path',
+                workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
                                     seg_preproc_template_based, 'inputspec.WHITE_template')
 
                 # TODO ASH review with forking function
-                if 'None' in c.template_based_segmenation:
+                if 'None' in c.template_based_segmentation:
                     strat = strat.fork()
                     new_strat_list.append(strat)
 
