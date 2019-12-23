@@ -207,6 +207,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     os.environ['MKL_NUM_THREADS'] = '1'  # str(num_cores_per_sub)
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
 
+    # TODO: TEMPORARY
+    # TODO: solve the UNet model hanging issue during MultiProc
+    if "unet" in c.skullstrip_option:
+        c.maxCoresPerParticipant = 1
+        logger.info("\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "
+                    "MODEL.\n\nThis is a temporary measure due to a known "
+                    "issue preventing Nipype's parallelization from running "
+                    "U-Net properly.\n\n")
+
     # calculate maximum potential use of cores according to current pipeline
     # configuration
     max_core_usage = int(c.maxCoresPerParticipant) * \
@@ -605,9 +614,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list += [new_strat]
 
             if "unet" in c.skullstrip_option:
-
-                # import pdb; pdb.set_trace()
-
                 anat_preproc = create_anat_preproc(method='unet',
                                                    c=c,
                                                    wf_name='anat_preproc_unet_%d' % num_strat)
