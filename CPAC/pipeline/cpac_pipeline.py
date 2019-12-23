@@ -2069,7 +2069,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # update resource pool
                     new_strat.update_resource_pool({
-                        'func_in_epi': (func_to_epi, 'outputspec.func_in_epi')
+                        'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi')
                     })
 
                     if reg == 'FSL' :
