@@ -420,7 +420,7 @@ scaling_factor : 10
 
 
 # run motion statistics before slice timing correction
-runMotionStatistics : [0]
+runMotionStatisticsFirst : [0]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.

@@ -1526,11 +1526,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
-            if 0 in c.runMotionStatistics:
+            if 0 in c.runMotionStatisticsFirst:
 
                 new_strat_list += [strat.fork()]
 
-            if 1 in c.runMotionStatistics:
+            if 1 in c.runMotionStatisticsFirst:
 
                 for skullstrip_tool in c.functionalMasking:
                 
