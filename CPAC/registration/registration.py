@@ -583,10 +583,10 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
         collect_transforms = pe.Node(util.Merge(4), name='collect_transforms_ants')
         register_func_to_epi.connect([
             (func_to_epi_ants, collect_transforms, [
-                ('outputspec.ants_initial_xfm', 'in1'),
-                ('outputspec.ants_rigid_xfm', 'in2'),
-                ('outputspec.ants_affine_xfm', 'in3'),
-                ('outputspec.warp_field', 'in4'),
+                ('outputspec.ants_initial_xfm', 'in4'),
+                ('outputspec.ants_rigid_xfm', 'in3'),
+                ('outputspec.ants_affine_xfm', 'in2'),
+                ('outputspec.warp_field', 'in1'),
             ]),
         ])
 
