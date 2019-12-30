@@ -315,7 +315,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
         if step == 'tissue':
             pass
-
+                
         elif step == 'resolution':
 
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
@@ -330,10 +330,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     (mask_to_epi, 'reference')
                 ))
             else:
-
                 resolution = regressor_selector['extraction_resolution']
-                mask_to_epi.inputs.apply_isoxfm = \
-                    resolution
+                mask_to_epi.inputs.apply_isoxfm = resolution
 
                 nuisance_wf.connect(*(
                     pipeline_resource_pool['Anatomical_{}mm'
@@ -396,7 +394,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
         ventricles_key = 'VentriclesToAnat'
         if 'resolution' in regressor_descriptor:
             ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
-
+    
         if ventricles_key not in pipeline_resource_pool:
 
             transforms = pipeline_resource_pool['Transformations']
@@ -423,14 +421,9 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
             else:
-
                 # perform the transform using FLIRT
                 lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='{}_flirt'.format(ventricles_key))
                 lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
-
-                resolution = regressor_selector['extraction_resolution']
-                lat_ven_mni_to_anat.inputs.apply_isoxfm = \
-                    resolution
 
                 nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
                 nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
