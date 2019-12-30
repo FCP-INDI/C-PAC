@@ -425,9 +425,6 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='{}_flirt'.format(ventricles_key))
                 lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
 
-                # resolution = regressor_selector['extraction_resolution']
-                # lat_ven_mni_to_anat.inputs.apply_isoxfm = resolution
-
                 nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
                 nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
                 nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference')))
