@@ -75,7 +75,6 @@ from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import (
-    create_surface_registration,
     get_roi_timeseries,
     get_voxel_timeseries,
     get_vertices_timeseries,
