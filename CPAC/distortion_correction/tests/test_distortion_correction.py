@@ -98,7 +98,7 @@ def test_blip_distcor():
                                         "test_blip_distcor",
                                         workdirs_to_keep=["func_preproc_automask"])
 
-    func_preproc = create_func_preproc(use_bet=False,
+    func_preproc = create_func_preproc(tool='fsl',
                                        wf_name='func_preproc_automask')
     func_preproc.inputs.inputspec.func = local_paths["func/sub-NDARAB708LM5_task-rest_run-1_bold.nii.gz"]
 
@@ -129,7 +129,7 @@ def test_blip_distcor_only_opposite():
                                         "test_blip_distcor_only_opposite",
                                         workdirs_to_keep = ["func_preproc_automask"])
 
-    func_preproc = create_func_preproc(use_bet=False,
+    func_preproc = create_func_preproc(tool='fsl',
                                        wf_name='func_preproc_automask')
     func_preproc.inputs.inputspec.func = local_paths["func/sub-NDARAB708LM5_task-rest_run-1_bold.nii.gz"]
 
