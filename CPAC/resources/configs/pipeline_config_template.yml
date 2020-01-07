@@ -861,6 +861,10 @@ memoryAllocatedForDegreeCentrality :  3.0
 run_smoothing :  [1]
 
 
+# smoothing method: either FSL or AFNI 
+smoothing_method: ['FSL']
+
+
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
 # Can be a single value or multiple values separated by commas.
 # Note that spatial smoothing is run as the last step in the individual-level analysis pipeline, such that all derivatives are output both smoothed and unsmoothed.
