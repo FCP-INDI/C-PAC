@@ -18,8 +18,14 @@ from CPAC.utils.interfaces.pc import PC
 from CPAC.nuisance.utils import (
     find_offending_time_points,
     generate_summarize_tissue_mask,
-    temporal_variance_mask
+    temporal_variance_mask,
+    calc_compcor_components
 )
+
+from CPAC.nuisance.utils.compcor import (
+    calc_compcor_components,
+    cosine_filter,
+    TR_string_to_float)
 
 
 from CPAC.utils.datasource import check_for_s3
@@ -46,27 +52,27 @@ def gather_nuisance(functional_file_path,
     """
     Gathers the various nuisance regressors together into a single tab separated values file that is an appropriate for
     input into 3dTproject
-                        
+
     :param functional_file_path: path to file that the regressors are being calculated for, is used to calculate
            the length of the regressors for error checking and in particular for calculating spike regressors
     :param output_file_path: path to output TSV that will contain the various nuisance regressors as columns
-    :param grey_matter_summary_file_path: path to TSV that includes summary of grey matter time courses, e.g. output of 
+    :param grey_matter_summary_file_path: path to TSV that includes summary of grey matter time courses, e.g. output of
         mask_summarize_time_course
-    :param white_matter_summary_file_path: path to TSV that includes summary of white matter time courses, e.g. output 
+    :param white_matter_summary_file_path: path to TSV that includes summary of white matter time courses, e.g. output
         of mask_summarize_time_course
-    :param csf_summary_file_path: path to TSV that includes summary of csf time courses, e.g. output 
+    :param csf_summary_file_path: path to TSV that includes summary of csf time courses, e.g. output
         of mask_summarize_time_course
     :param acompcor_file_path: path to TSV that includes acompcor time courses, e.g. output
         of mask_summarize_time_course
     :param tcompcor_file_path: path to TSV that includes tcompcor time courses, e.g. output
         of mask_summarize_time_course
-    :param global_summary_file_path: path to TSV that includes summary of global time courses, e.g. output 
-        of mask_summarize_time_course 
+    :param global_summary_file_path: path to TSV that includes summary of global time courses, e.g. output
+        of mask_summarize_time_course
     :param motion_parameters_file_path: path to TSV that includes motion parameters
     :param custom_file_paths: path to CSV/TSV files to use as regressors
     :param censor_file_path: path to TSV with a single column with 1's for indices that should be retained and 0's
               for indices that should be censored
-    :return: 
+    :return:
     """
 
     # Basic checks for the functional image
@@ -133,7 +139,7 @@ def gather_nuisance(functional_file_path,
         if 'summary' in regressor_selector:
             if type(regressor_selector['summary']) is str:
                 regressor_selector['summary'] = {
-                    'method': regressor_selector['summary']
+                    'method': regressor_selector['summary'],
                 }
 
         if not regressor_file or not os.path.isfile(regressor_file):
@@ -353,14 +359,14 @@ def create_nuisance_workflow(nuisance_selectors,
     :param name: Name of the workflow, defaults to 'nuisance'
     :return: nuisance : nipype.pipeline.engine.Workflow
         Nuisance workflow.
-        
+
     Notes
     -----
 
     Workflow Inputs
     ---------------
     Workflow Inputs::
-    
+
         inputspec.functional_file_path : string (nifti file)
             Path to realigned and motion corrected functional image (nifti) file.
 
@@ -388,10 +394,10 @@ def create_nuisance_workflow(nuisance_selectors,
             ANTS affine (13 parameter, scales and shears) transform from anat to MNI
 
         inputspec.func_to_anat_linear_xfm_file_path: string (nifti file)
-            FLIRT Linear Transform between functional and anatomical spaces 
+            FLIRT Linear Transform between functional and anatomical spaces
 
         inputspec.motion_parameter_file_path : string (text file)
-            Corresponding rigid-body motion parameters. Matrix in the file should be of shape 
+            Corresponding rigid-body motion parameters. Matrix in the file should be of shape
             (`T`, `R`), `T` time points and `R` motion parameters.
         inputspec.fd_j_file_path : string (text file)
             Framewise displacement calculated from the volume alignment.
@@ -402,10 +408,13 @@ def create_nuisance_workflow(nuisance_selectors,
 
         inputspec.selector : Dictionary containing configuration parameters for nuisance regression.
             To not run a type of nuisance regression, it may be ommited from the dictionary.
+
             selector = {
                 aCompCor: {
                     summary: {
-                        method: 'DetrendPC', aCompCor will always extract the principal components from
+                        filter: 'cosine', Principal components are estimated after using a discrete cosine filter with 128s cut-off,
+                            Leave filter field blank, if selected aCompcor method is 'DetrendPC'
+                        method: 'DetrendPC', aCompCor will extract the principal components from
                             detrended tissues signal,
                         components: number of components to retain,
                     },
@@ -433,8 +442,10 @@ def create_nuisance_workflow(nuisance_selectors,
                 },
                 tCompCor: {
                     summary: {
-                        method: 'PC', tCompCor will always extract the principal components from
-                            BOLD signal,
+                        filter: 'cosine', Principal components are estimated after using a discrete cosine filter with 128s cut-off,
+                            Leave filter field blank, if selected tCompcor method is 'DetrendPC'
+                        method: 'DetrendPC', tCompCor will extract the principal components from
+                            detrended tissues signal,
                         components: number of components to retain,
                     },
                     threshold:
@@ -500,7 +511,7 @@ def create_nuisance_workflow(nuisance_selectors,
                     include_backdiff: True | False (same as for aCompCor),
                     include_backdiff_squared: True | False (same as for aCompCor),
                 },
-                Motion: None | { 
+                Motion: None | {
                     include_delayed: True | False (same as for aCompCor),
                     include_squared: True | False (same as for aCompCor),
                     include_delayed_squared: True | False (same as for aCompCor),
@@ -615,6 +626,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
         'creds_path',
         'dl_dir',
+        'tr',
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
@@ -725,7 +737,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
                 pipeline_resource_pool['custom_ort_file_paths'] = \
                     (custom_ort_merge, 'out')
-            
+
                 regressors['Custom'][1] = \
                     pipeline_resource_pool['custom_ort_file_paths']
 
@@ -766,7 +778,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
                 pipeline_resource_pool['custom_dsort_file_paths'] = \
                     (custom_dsort_merge, 'out')
-            
+
                 regressors['VoxelCustom'][1] = \
                     pipeline_resource_pool['custom_dsort_file_paths']
 
@@ -788,9 +800,6 @@ def create_nuisance_workflow(nuisance_selectors,
                                  "but {1} specified"
                                  .format(regressor_type,
                                          regressor_selector['summary']))
-
-            regressor_selector['summary']['method'] = \
-                'DetrendPC' if regressor_type == 'aCompCor' else 'PC'
 
             if not regressor_selector['summary'].get('components'):
                 regressor_selector['summary']['components'] = 1
@@ -841,6 +850,7 @@ def create_nuisance_workflow(nuisance_selectors,
 
             if type(regressor_selector['summary']) is not dict:
                 regressor_selector['summary'] = {
+                    "filter": regressor_selector['summary'],
                     "method": regressor_selector['summary']
                 }
 
@@ -1014,118 +1024,189 @@ def create_nuisance_workflow(nuisance_selectors,
                         regressor_selector['extraction_resolution']
                     )
 
+                summary_filter = regressor_selector['summary'].get('filter', '')
+                summary_filter_input = pipeline_resource_pool[functional_key]
+
                 summary_method = regressor_selector['summary']['method']
-
                 summary_method_input = pipeline_resource_pool[functional_key]
-                if 'Detrend' in summary_method:
 
-                    detrend_node = pe.Node(
-                        afni.Detrend(args='-polort 1', outputtype='NIFTI'),
-                        name='{}_detrend'.format(regressor_type)
-                    )
+                if 'DetrendPC' in summary_method:
+
+                    compcor_imports = ['import os',
+                                       'import scipy.signal as signal',
+                                       'import nibabel as nb',
+                                       'import numpy as np',
+                                       'from CPAC.utils import safe_shape']
+
+                    compcor_node = pe.Node(Function(input_names=['data_filename',
+                                                                 'num_components',
+                                                                 'mask_filename'],
+                                                    output_names=[
+                                                        'compcor_file'],
+                                                    function=calc_compcor_components,
+                                                    imports=compcor_imports),
+                                           name='{}_DetrendPC'.format(regressor_type), mem_gb=2.0)
+
+                    compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
                     nuisance_wf.connect(
                         summary_method_input[0], summary_method_input[1],
-                        detrend_node, 'in_file'
-                    )
-
-                    summary_method_input = (detrend_node, 'out_file')
-
-                if 'Norm' in summary_method:
-
-                    l2norm_node = pe.Node(
-                        afni.TStat(args='-l2norm', outputtype='NIFTI'),
-                        name='{}_l2norm'.format(regressor_type)
-                    )
-                    nuisance_wf.connect(
-                        summary_method_input[0], summary_method_input[1],
-                        l2norm_node, 'in_file'
-                    )
-                    nuisance_wf.connect(
-                        union_masks_paths, 'out_file',
-                        l2norm_node, 'mask'
-                    )
-
-                    norm_node = pe.Node(
-                        afni.Calc(expr='a/b', outputtype='NIFTI'),
-                        name='{}_norm'.format(regressor_type)
-                    )
-                    nuisance_wf.connect(
-                        summary_method_input[0], summary_method_input[1],
-                        norm_node, 'in_file_a'
-                    )
-                    nuisance_wf.connect(
-                        l2norm_node, 'out_file',
-                        norm_node, 'in_file_b'
-                    )
-
-                    summary_method_input = (norm_node, 'out_file')
-
-                if 'Mean' in summary_method:
-
-                    mean_node = pe.Node(
-                        afni.ROIStats(quiet=False, args='-1Dformat'),
-                        name='{}_mean'.format(regressor_type)
-                    )
-                    nuisance_wf.connect(
-                        summary_method_input[0], summary_method_input[1],
-                        mean_node, 'in_file'
+                        compcor_node, 'data_filename'
                     )
 
                     nuisance_wf.connect(
                         union_masks_paths, 'out_file',
-                        mean_node, 'mask'
+                        compcor_node, 'mask_filename'
                     )
 
-                    summary_method_input = (mean_node, 'stats')
+                    summary_method_input = (compcor_node, 'compcor_file')
 
-                if 'PC' in summary_method:
+                else:
+                    if 'cosine' in summary_filter:
+                        cosfilter_imports = ['import os',
+                                             'import numpy as np',
+                                             'import nibabel as nb',
+                                             'from nipype import logging']
 
-                    std_node = pe.Node(
-                        afni.TStat(args='-nzstdev', outputtype='NIFTI'),
-                        name='{}_std'.format(regressor_type)
-                    )
-                    nuisance_wf.connect(
-                        summary_method_input[0], summary_method_input[1],
-                        std_node, 'in_file'
-                    )
-                    nuisance_wf.connect(
-                        union_masks_paths, 'out_file',
-                        std_node, 'mask'
-                    )
+                        cosfilter_node = pe.Node(util.Function(input_names=['input_image_path',
+                                                                            'timestep'],
+                                                               output_names=[
+                                                                   'cosfiltered_img'],
+                                                               function=cosine_filter,
+                                                               imports=cosfilter_imports),
+                                                 name='{}_cosine_filter'.format(regressor_type))
+                        nuisance_wf.connect(
+                            summary_filter_input[0], summary_filter_input[1],
+                            cosfilter_node, 'input_image_path'
+                        )
+                        tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
+                                                                     output_names=[
+                                                                         'tr_float'],
+                                                                     function=TR_string_to_float),
+                                                       name='{}_tr_string2float'.format(regressor_type))
 
-                    standarized_node = pe.Node(
-                        afni.Calc(expr='a/b', outputtype='NIFTI'),
-                        name='{}_standarized'.format(regressor_type)
-                    )
-                    nuisance_wf.connect(
-                        summary_method_input[0], summary_method_input[1],
-                        standarized_node, 'in_file_a'
-                    )
-                    nuisance_wf.connect(
-                        std_node, 'out_file',
-                        standarized_node, 'in_file_b'
-                    )
-                    
-                    pc_node = pe.Node(
-                        PC(args='-vmean -nscale', pcs=regressor_selector['summary']['components'], outputtype='NIFTI_GZ'),
-                        name='{}_pc'.format(regressor_type)
-                    )
+                        nuisance_wf.connect(
+                            inputspec, 'tr',
+                            tr_string2float_node, 'tr'
+                        )
 
-                    nuisance_wf.connect(
-                        standarized_node, 'out_file',
-                        pc_node, 'in_file'
-                    )
-                    nuisance_wf.connect(
-                        union_masks_paths, 'out_file',
-                        pc_node, 'mask'
-                    )
+                        nuisance_wf.connect(
+                            tr_string2float_node, 'tr_float',
+                            cosfilter_node, 'timestep'
+                        )
 
-                    summary_method_input = (pc_node, 'pcs_file')
+                        summary_method_input = (
+                            cosfilter_node, 'cosfiltered_img')
+
+                    if 'Detrend' in summary_method:
+
+                        detrend_node = pe.Node(
+                            afni.Detrend(args='-polort 1', outputtype='NIFTI'),
+                            name='{}_detrend'.format(regressor_type)
+                        )
+
+                        nuisance_wf.connect(
+                            summary_method_input[0], summary_method_input[1],
+                            detrend_node, 'in_file'
+                        )
+
+                        summary_method_input = (detrend_node, 'out_file')
+
+                    if 'Norm' in summary_method:
+
+                        l2norm_node = pe.Node(
+                            afni.TStat(args='-l2norm', outputtype='NIFTI'),
+                            name='{}_l2norm'.format(regressor_type)
+                        )
+                        nuisance_wf.connect(
+                            summary_method_input[0], summary_method_input[1],
+                            l2norm_node, 'in_file'
+                        )
+                        nuisance_wf.connect(
+                            union_masks_paths, 'out_file',
+                            l2norm_node, 'mask'
+                        )
+
+                        norm_node = pe.Node(
+                            afni.Calc(expr='a/b', outputtype='NIFTI'),
+                            name='{}_norm'.format(regressor_type)
+                        )
+                        nuisance_wf.connect(
+                            summary_method_input[0], summary_method_input[1],
+                            norm_node, 'in_file_a'
+                        )
+                        nuisance_wf.connect(
+                            l2norm_node, 'out_file',
+                            norm_node, 'in_file_b'
+                        )
+
+                        summary_method_input = (norm_node, 'out_file')
+
+                    if 'Mean' in summary_method:
+
+                        mean_node = pe.Node(
+                            afni.ROIStats(quiet=False, args='-1Dformat'),
+                            name='{}_mean'.format(regressor_type)
+                        )
+                        nuisance_wf.connect(
+                            summary_method_input[0], summary_method_input[1],
+                            mean_node, 'in_file'
+                        )
+
+                        nuisance_wf.connect(
+                            union_masks_paths, 'out_file',
+                            mean_node, 'mask'
+                        )
+
+                        summary_method_input = (mean_node, 'stats')
+
+                    if 'PC' in summary_method:
+
+                        std_node = pe.Node(
+                            afni.TStat(args='-nzstdev', outputtype='NIFTI'),
+                            name='{}_std'.format(regressor_type)
+                        )
+                        nuisance_wf.connect(
+                            summary_method_input[0], summary_method_input[1],
+                            std_node, 'in_file'
+                        )
+                        nuisance_wf.connect(
+                            union_masks_paths, 'out_file',
+                            std_node, 'mask'
+                        )
+
+                        standarized_node = pe.Node(
+                            afni.Calc(expr='a/b', outputtype='NIFTI'),
+                            name='{}_standarized'.format(regressor_type)
+                        )
+                        nuisance_wf.connect(
+                            summary_method_input[0], summary_method_input[1],
+                            standarized_node, 'in_file_a'
+                        )
+                        nuisance_wf.connect(
+                            std_node, 'out_file',
+                            standarized_node, 'in_file_b'
+                        )
+
+                        pc_node = pe.Node(
+                            PC(args='-vmean -nscale', pcs=regressor_selector['summary']['components'], outputtype='NIFTI_GZ'),
+                            name='{}_pc'.format(regressor_type)
+                        )
+
+                        nuisance_wf.connect(
+                            standarized_node, 'out_file',
+                            pc_node, 'in_file'
+                        )
+                        nuisance_wf.connect(
+                            union_masks_paths, 'out_file',
+                            pc_node, 'mask'
+                        )
+
+                        summary_method_input = (pc_node, 'pcs_file')
 
                 pipeline_resource_pool[regressor_file_resource_key] = \
                     summary_method_input
-                        
+
                 # Add it to internal resource pool
                 regressor_resource[1] = \
                     pipeline_resource_pool[regressor_file_resource_key]
@@ -1170,7 +1251,7 @@ def create_nuisance_workflow(nuisance_selectors,
         for regressor_key, (regressor_arg, regressor_node, regressor_target) in regressors.items():
             if regressor_target != 'ort':
                 continue
-                
+
             if regressor_key in nuisance_selectors:
                 nuisance_wf.connect(
                     regressor_node[0], regressor_node[1],

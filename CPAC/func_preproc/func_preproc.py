@@ -1,10 +1,12 @@
 from nipype import logging
+from nipype.interfaces import ants
 
 logger = logging.getLogger('workflow')
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
+from nipype.interfaces import afni
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 
@@ -19,25 +21,27 @@ def collect_arguments(*args):
     return ' '.join(command_args)
 
 
-def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
+def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False, wf_name='skullstrip_functional'):
 
-    tool = tool.lower()
-    if tool != 'afni' and tool != 'fsl' and tool != 'fsl_afni':
+    skullstrip_tool = skullstrip_tool.lower()
+    if skullstrip_tool != 'afni' and skullstrip_tool != 'fsl' and skullstrip_tool != 'fsl_afni' and skullstrip_tool != 'anatomical_refined':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'skullstrip_functional' workflow must be either "
-                        "'afni' or 'fsl'.\n\nTool input: "
-                        "{0}\n\n".format(tool))
+                        "'afni' or 'fsl' or 'fsl_afni' or 'anatomical_refined'.\n\nTool input: "
+                        "{0}\n\n".format(skullstrip_tool))
                
     wf = pe.Workflow(name=wf_name)
 
-    input_node = pe.Node(util.IdentityInterface(fields=['func']),
+    input_node = pe.Node(util.IdentityInterface(fields=['func',
+                                                        'anatomical_brain_mask',
+                                                        'anat_skull']),
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['func_brain',
                                                          'func_brain_mask']),
                          name='outputspec')
 
-    if tool == 'afni':
+    if skullstrip_tool == 'afni':
         func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
                                       name='func_get_brain_mask_AFNI')
         func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
@@ -47,7 +51,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
         wf.connect(func_get_brain_mask, 'out_file',
                    output_node, 'func_brain_mask')
 
-    elif tool == 'fsl':
+    elif skullstrip_tool == 'fsl':
         func_get_brain_mask = pe.Node(interface=fsl.BET(),
                                       name='func_get_brain_mask_BET')
 
@@ -68,7 +72,7 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
         wf.connect(erode_one_voxel, 'out_file',
                    output_node, 'func_brain_mask')
 
-    elif tool == 'fsl_afni':
+    elif skullstrip_tool == 'fsl_afni':
         skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=True), name='skullstrip_first_pass')
         bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
         bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
@@ -85,6 +89,65 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
                         (skullstrip_first_pass, combine_masks, [('mask_file', 'in_file')]),
                         (skullstrip_second_pass, combine_masks, [('out_file', 'operand_file')]),
                         (combine_masks, output_node, [('out_file', 'func_brain_mask')])])
+    
+    # Refine functional mask by registering anatomical mask to functional space
+    elif skullstrip_tool == 'anatomical_refined':
+
+        # Get functional mean to use later as reference, when transform anatomical mask to functional space
+        func_skull_mean = pe.Node(interface=afni_utils.TStat(),
+                                    name='func_skull_mean')
+        func_skull_mean.inputs.options = '-mean'
+        func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+
+        wf.connect(input_node, 'func', func_skull_mean, 'in_file')
+
+
+        # Register func to anat
+        linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
+                         name='linear_reg_func_to_anat')
+        linear_reg_func_to_anat.inputs.cost = 'mutualinfo'
+        linear_reg_func_to_anat.inputs.dof = 6
+        
+        wf.connect(func_skull_mean, 'out_file', linear_reg_func_to_anat, 'in_file')
+        wf.connect(input_node, 'anat_skull', linear_reg_func_to_anat, 'reference')
+
+
+        # Inverse func to anat affine
+        inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
+                                name='inv_func_to_anat_affine')
+        inv_func_to_anat_affine.inputs.invert_xfm = True
+
+        wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
+                                    inv_func_to_anat_affine, 'in_file')
+
+
+        # Transform anatomical mask to functional space
+        linear_trans_mask_anat_to_func = pe.Node(interface=fsl.FLIRT(),
+                         name='linear_trans_mask_anat_to_func')
+        linear_trans_mask_anat_to_func.inputs.apply_xfm = True
+        linear_trans_mask_anat_to_func.inputs.cost = 'mutualinfo'
+        linear_trans_mask_anat_to_func.inputs.dof = 6
+        linear_trans_mask_anat_to_func.inputs.interp = 'nearestneighbour'
+
+
+        # Dialate anatomical mask, if 'anatomical_mask_dilation : True' in config file
+        if anatomical_mask_dilation :
+            anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
+                            name='anat_mask_dilate')
+            anat_mask_dilate.inputs.dilate_inputs = '1'
+            anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
+
+            wf.connect(input_node, 'anatomical_brain_mask', anat_mask_dilate, 'in_file' )
+            wf.connect(anat_mask_dilate, 'out_file', linear_trans_mask_anat_to_func, 'in_file')
+
+        else: 
+            wf.connect(input_node, 'anatomical_brain_mask', linear_trans_mask_anat_to_func, 'in_file')
+
+        wf.connect(func_skull_mean, 'out_file', linear_trans_mask_anat_to_func, 'reference')
+        wf.connect(inv_func_to_anat_affine, 'out_file',
+                                    linear_trans_mask_anat_to_func, 'in_matrix_file')
+        wf.connect(linear_trans_mask_anat_to_func, 'out_file',
+                                    output_node, 'func_brain_mask')
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
                                name='func_extract_brain')
@@ -94,20 +157,80 @@ def skullstrip_functional(tool='afni', wf_name='skullstrip_functional'):
 
     wf.connect(input_node, 'func', func_edge_detect, 'in_file_a')
 
-    if tool == 'afni':
+    if skullstrip_tool == 'afni':
         wf.connect(func_get_brain_mask, 'out_file',
                    func_edge_detect, 'in_file_b')
-    elif tool == 'fsl':
+    elif skullstrip_tool == 'fsl':
         wf.connect(erode_one_voxel, 'out_file',
                    func_edge_detect, 'in_file_b')
-    elif tool == 'fsl_afni':
+    elif skullstrip_tool == 'fsl_afni':
         wf.connect(combine_masks, 'out_file',
+                        func_edge_detect, 'in_file_b')
+    elif skullstrip_tool == 'anatomical_refined':
+        wf.connect(linear_trans_mask_anat_to_func, 'out_file',
                         func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
 
     return wf
+
+
+def create_scale_func_wf(runScaling, scaling_factor, wf_name='scale_func'):
+
+    """Workflow to scale func data.
+    Parameters
+    ----------
+        runScaling : boolean
+            Whether scale func data or not. Usually scaling used in rodent raw data.
+        scaling_factor : float
+            Scale the size of the dataset voxels by the factor. 
+        wf_name : string
+            name of the workflow
     
+    Workflow Inputs::
+        inputspec.func : func file or a list of func/rest nifti file
+            User input functional(T2*) Image
+    Workflow Outputs::
+        outputspec.scaled_func : string (nifti file)
+            Path to Output image with scaled data
+    Order of commands:
+    - Scale the size of the dataset voxels by the factor 'fac'. For details see `3dcalc <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3drefit.html>`_::
+        3drefit -xyzscale fac rest.nii.gz
+    """
+
+    # allocate a workflow object
+    preproc = pe.Workflow(name=wf_name)
+
+    # configure the workflow's input spec
+    inputNode = pe.Node(util.IdentityInterface(fields=['func']),
+                        name='inputspec')
+
+    # configure the workflow's output spec
+    outputNode = pe.Node(util.IdentityInterface(fields=['scaled_func']),
+                         name='outputspec')
+
+    if runScaling == True:
+
+        # allocate a node to edit the functional file
+        func_scale = pe.Node(interface=afni_utils.Refit(),
+                                name='func_scale')
+
+        func_scale.inputs.xyzscale = scaling_factor
+
+        # wire in the func_get_idx node
+        preproc.connect(inputNode, 'func',
+                        func_scale, 'in_file')
+
+        # wire the output
+        preproc.connect(func_scale, 'out_file',
+                        outputNode, 'scaled_func')
+
+    else:
+        preproc.connect(inputNode, 'func',
+                        outputNode, 'scaled_func')
+
+    return preproc
+
     
 def create_wf_edit_func(wf_name="edit_func"):
     """Workflow to edit the scan to the proscribed TRs.
@@ -199,7 +322,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(tool, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -392,7 +515,9 @@ def create_func_preproc(tool, wf_name='func_preproc'):
 
     preproc = pe.Workflow(name=wf_name)
     input_node = pe.Node(util.IdentityInterface(fields=['func',
-                                                        'twopass']),
+                                                        'twopass',
+                                                        'anatomical_brain_mask',
+                                                        'anat_skull']),
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['refit',
@@ -408,8 +533,7 @@ def create_func_preproc(tool, wf_name='func_preproc'):
                                                          'preprocessed',
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
-                                                         'oned_matrix_save']),
-
+                                                         'transform_matrices']),
                           name='outputspec')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
@@ -442,24 +566,16 @@ def create_func_preproc(tool, wf_name='func_preproc'):
 
     # calculate motion parameters
     func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                  name='func_motion_correct')
+                                name='func_motion_correct_3dvolreg')
     func_motion_correct.inputs.zpad = 4
     func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect([
-        (
-            input_node, func_motion_correct, [
-                (
-                    ('twopass', collect_arguments, '-twopass', '-Fourier'),
-                    'args'
-                )]
-        ),
-    ])
+    preproc.connect([(input_node, func_motion_correct, [(('twopass', collect_arguments, '-twopass', '-Fourier'),'args')]),])
+    preproc.connect(func_get_mean_RPI, 'out_file',
+                func_motion_correct, 'basefile')   
 
     preproc.connect(func_reorient, 'out_file',
                     func_motion_correct, 'in_file')
-    preproc.connect(func_get_mean_RPI, 'out_file',
-                    func_motion_correct, 'basefile')
 
     func_get_mean_motion = func_get_mean_RPI.clone('func_get_mean_motion')
     preproc.connect(func_motion_correct, 'out_file',
@@ -493,15 +609,24 @@ def create_func_preproc(tool, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'oned_file',
                     output_node, 'movement_parameters')
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
-                    output_node, 'oned_matrix_save')
+                    output_node, 'transform_matrices')
 
-    skullstrip_func = skullstrip_functional(tool,
+    skullstrip_func = skullstrip_functional(skullstrip_tool, anatomical_mask_dilation, 
                                             "{0}_skullstrip".format(wf_name))
 
     preproc.connect(func_motion_correct_A, 'out_file',
                     skullstrip_func, 'inputspec.func')
+
+    preproc.connect(input_node, 'anatomical_brain_mask',
+                    skullstrip_func, 'inputspec.anatomical_brain_mask')
+
+    preproc.connect(input_node, 'anat_skull',
+                    skullstrip_func, 'inputspec.anat_skull')                
+
+
     preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     output_node, 'skullstrip')
+
     preproc.connect(skullstrip_func, 'outputspec.func_brain_mask',
                     output_node, 'mask')
 
@@ -511,10 +636,21 @@ def create_func_preproc(tool, wf_name='func_preproc'):
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect(skullstrip_func, 'outputspec.func_brain',
+    preproc.connect(skullstrip_func, 'outputspec.func_brain', 
                     func_mean, 'in_file')
 
-    preproc.connect(func_mean, 'out_file',
+    if n4_correction:
+        func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
+                                        name='func_mean_n4_corrected')
+        func_mean_n4_corrected.inputs.args = '-r True'
+        # func_mean_n4_corrected.inputs.rescale_intensities = True
+        preproc.connect(func_mean, 'out_file', 
+                    func_mean_n4_corrected, 'input_image')
+        preproc.connect(func_mean_n4_corrected, 'output_image',
+                    output_node, 'func_mean')
+
+    else:
+        preproc.connect(func_mean, 'out_file',
                     output_node, 'func_mean')
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
@@ -624,8 +760,6 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 
     """
 
-    # stopidx = None
-    # startidx = None
     # Import packages
     from nibabel import load
 
@@ -660,37 +794,61 @@ def connect_func_preproc(workflow, strat_list, c):
     new_strat_list = []
 
     for num_strat, strat in enumerate(strat_list):
-       
-        for tool in c.functionalMasking:
 
-            tool = tool.lower()
+        nodes = strat.get_nodes_names()
+
+        for skullstrip_tool in c.functionalMasking:
+            
+            skullstrip_tool = skullstrip_tool.lower()
 
             new_strat = strat.fork()
 
             func_preproc = create_func_preproc(
-                tool=tool,
-                wf_name='func_preproc_%s_%d' % (tool, num_strat)
+                skullstrip_tool=skullstrip_tool,
+                n4_correction=c.n4_correct_mean_EPI,
+                wf_name='func_preproc_%s_%d' % (skullstrip_tool, num_strat)
             )
+
             node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, func_preproc,
                             'inputspec.func')
-                        
+
+            node, out_file = strat['anatomical_reorient']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anat_skull')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anatomical_brain_mask')
+
             func_preproc.inputs.inputspec.twopass = \
                 getattr(c, 'functional_volreg_twopass', True)
 
             new_strat.append_name(func_preproc.name)
             new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
-            new_strat.update_resource_pool({
-                'mean_functional': (func_preproc, 'outputspec.func_mean'),
-                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
-                'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save'),
-            })
+            if 'gen_motion_stats_before_stc' in nodes: 
+                
+                new_strat.update_resource_pool({
+                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),                              
+                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),                                
+                })
+                
+            else:
+
+                new_strat.update_resource_pool({
+                    'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                    'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
+                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+                    'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                    'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                    'motion_correct': (func_preproc, 'outputspec.motion_correct'),
+                    'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
+                })
 
             new_strat_list.append(new_strat)
 

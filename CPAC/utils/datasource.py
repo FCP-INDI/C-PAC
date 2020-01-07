@@ -526,12 +526,12 @@ def resolve_resolution(resolution, template, template_name, tag = None):
 
     tagname = None
     local_path = None 
-    # TODO XL think a more general way to check template
+    # TODO XL think a better way to check template
     if "{" in template and tag is not None:
             tagname = "${" + tag + "}"
     try:
         if tagname is not None:
-            local_path = check_for_s3(template.replace(tagname, str(resolution)))
+            local_path = check_for_s3(template.replace(tagname, str(resolution)))     
     except IOError:
         local_path = None
 
@@ -539,6 +539,8 @@ def resolve_resolution(resolution, template, template_name, tag = None):
         if tagname is not None:
             ref_template = template.replace(tagname, '1mm') 
             local_path = check_for_s3(ref_template)
+        elif tagname is None and "s3" in template:
+            local_path = check_for_s3(template)
         else:
             local_path = template    
 

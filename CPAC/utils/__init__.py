@@ -23,7 +23,6 @@ from .utils import (
     safe_shape,
     extract_one_d,
     extract_txt,
-    set_gauss,
     zscore,
     correlation,
     check,

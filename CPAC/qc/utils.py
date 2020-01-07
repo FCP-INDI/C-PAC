@@ -8,6 +8,7 @@ import pkg_resources as p
 import numpy as np
 import nibabel as nb
 import numpy.ma as ma
+import numpy
 
 import matplotlib
 matplotlib.use('Agg')
@@ -1023,9 +1024,7 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
                   '{1}\n'.format(os.path.join(qc_path, qc_file), e))
 
 
-def generate_qc_pages(qc_path, sub_output_dir,
-                      qc_montage_id_a, qc_montage_id_s,
-                      qc_plot_id, qc_hist_id):
+def generate_qc_pages(qc_dir):
     """Generates the QC HTML files populated with the QC images that were
     created during the CPAC pipeline run.
 
@@ -1033,27 +1032,8 @@ def generate_qc_pages(qc_path, sub_output_dir,
 
     Parameters
     ----------
-    qc_path : string
-        path to qc_html directory
-
-    sub_output_dir : string
-        path to subject's output directory
-
-    qc_montage_id_a : dictionary
-        dictionary of axial montages key : id no
-        value is list of png types 
-
-    qc_montage_id_s : dictionary
-          dictionary of sagittal montages key : id no
-          value is list of png types 
-
-    qc_plot_id : dictionary
-          dictionary of plot pngs key : id no
-          value is list of png types
-
-    qc_hist_id : dictionary
-          dictionary of histogram pngs key : id no
-          value is list of png types
+    qc_dir : string
+        path to qc directory
 
     Returns
     -------
@@ -1061,15 +1041,18 @@ def generate_qc_pages(qc_path, sub_output_dir,
 
     """
 
-    # according to preprocessing strategy combines the files
-    first_pass_organizing_files(qc_path)
+    qc_dir = os.path.abspath(qc_dir)
 
-    # according to bandpass and hp_lp and smoothing iterables combines the
-    # files
-    second_pass_organizing_files(qc_path)
+    files = []
+    for root, _, fs in os.walk(qc_dir):
+        root = root[len(qc_dir) + 1:]
+        files += [os.path.join(root, f) for f in fs]
 
-    make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
-                  qc_plot_id, qc_hist_id)
+    with open(p.resource_filename('CPAC.qc', 'data/index.html'), 'rb') as f:
+        qc_content = f.read()
+        qc_content = qc_content.replace('/*CPAC*/``/*CPAC*/', '`' + '\n'.join(files) + '`')
+        with open(os.path.join(qc_dir, 'index.html'), 'wb') as f:
+            f.write(qc_content)
 
 
 def cal_snr_val(measure_file):
@@ -2257,4 +2240,123 @@ def make_resample_1mm(file_):
     commands.getoutput(cmd)
 
     return new_fname
+
+# own modules
+
+# code
+def dc(input1, input2):
+    """
+    Dice coefficient
+
+    Computes the Dice coefficient (also known as Sorensen index) between the binary
+    objects in two images.
+
+    The metric is defined as
+
+    .. math::
+
+        DC=\frac{2|A\cap B|}{|A|+|B|}
+
+    , where :math:`A` is the first and :math:`B` the second set of samples (here: binary objects).
+
+    Parameters
+    ----------
+    input1 : array_like
+        Input data containing objects. Can be any type but will be converted
+        into binary: background where 0, object everywhere else.
+
+    input2 : array_like
+        Input data containing objects. Can be any type but will be converted
+        into binary: background where 0, object everywhere else.
+
+    Returns
+    -------
+    dc : float
+        The Dice coefficient between the object(s) in ```input1``` and the
+        object(s) in ```input2```. It ranges from 0 (no overlap) to 1 (perfect overlap).
+
+    Notes
+    -----
+    This is a real metric.
+    """
+    input1 = numpy.atleast_1d(input1.astype(numpy.bool))
+    input2 = numpy.atleast_1d(input2.astype(numpy.bool))
+
+    intersection = numpy.count_nonzero(input1 & input2)
+
+    size_i1 = numpy.count_nonzero(input1)
+    size_i2 = numpy.count_nonzero(input2)
+
+    try:
+        dc = 2. * intersection / float(size_i1 + size_i2)
+    except ZeroDivisionError:
+        dc = 0.0
+
+    return dc
+
+
+def jc(input1, input2):
+    """
+    Jaccard coefficient
+
+    Computes the Jaccard coefficient between the binary objects in two images.
+
+    Parameters
+    ----------
+    input1: array_like
+            Input data containing objects. Can be any type but will be converted
+            into binary: background where 0, object everywhere else.
+    input2: array_like
+            Input data containing objects. Can be any type but will be converted
+            into binary: background where 0, object everywhere else.
+
+    Returns
+    -------
+    jc: float
+        The Jaccard coefficient between the object(s) in `input1` and the
+        object(s) in `input2`. It ranges from 0 (no overlap) to 1 (perfect overlap).
+
+    Notes
+    -----
+    This is a real metric.
+    """
+    input1 = numpy.atleast_1d(input1.astype(numpy.bool))
+    input2 = numpy.atleast_1d(input2.astype(numpy.bool))
+
+    intersection = numpy.count_nonzero(input1 & input2)
+    union = numpy.count_nonzero(input1 | input2)
+
+    jc = float(intersection) / float(union)
+
+    return jc
+
+def crosscorr(input1,input2):
+
+   """ 
+   cross correlation
+   computer compute cross correction bewteen input mask 
+   """
+
+   input1 = numpy.atleast_1d(input1.astype(numpy.bool))
+   input2 = numpy.atleast_1d(input2.astype(numpy.bool))
+
+   from scipy.stats.stats import pearsonr 
+   cc=pearsonr(input1,input2)
+   return cc 
+
+def coverage(input1,input2):
+    """
+    estimate the coverage between  two mask
+    """
+    input1 = numpy.atleast_1d(input1.astype(numpy.bool))
+    input2 = numpy.atleast_1d(input2.astype(numpy.bool)) 
+     
+    intsec=numpy.count_nonzero(input1 & input2)
+    if numpy.sum(input1)> numpy.sum(input2):
+        smallv=numpy.sum(input2)
+    else:
+        smallv=numpy.sum(input1)
+    cov=float(intsec)/float(smallv)
+    return cov
+
 

@@ -152,7 +152,7 @@ RUN conda install -y \
 # install conda dependencies
 RUN conda install -y  \
         cython==0.26 \
-        matplotlib=2.0.2 \
+        matplotlib==2.0.2 \
         networkx==1.11 \
         nose==1.3.7 \
         numpy==1.13.0 \
@@ -161,6 +161,9 @@ RUN conda install -y  \
         traits==4.6.0 \
         wxpython==3.0.0.0 \
         pip
+
+# install torch
+RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
@@ -185,7 +188,6 @@ RUN mkdir -p /ndmg_atlases/label && \
     git lfs pull -I "atlases/label/Human/*" && \
     cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
     cd -
-
 
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
