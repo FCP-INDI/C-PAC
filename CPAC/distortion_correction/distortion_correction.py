@@ -10,10 +10,10 @@ import nibabel as nb
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni,fsl
 import nipype.interfaces.utility as util
+import nipype.interfaces.ants as ants
 
 from CPAC.utils import function
 from CPAC.func_preproc import skullstrip_functional
-from CPAC.registration.registration import create_wf_apply_ants_warp
 
 
 def createAFNIiterable(shrink_fac):
@@ -99,7 +99,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
                                                         'fieldmapmask']),
                          name='outputspec')
     
-    # Skull-strip
+    # Skull-strip, outputs a masked image file
     if use_BET == False:
         skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac'],output_names=['expr'],function=createAFNIiterable),name='distcorr_skullstrip_arg')
         preproc.connect(inputNode_afni_threshold,'afni_threshold',skullstrip_args,'shrink_fac')
@@ -117,6 +117,8 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
         preproc.connect(bet, 'out_file', outputNode, 'magnitude_image')
 
     # Prepare Fieldmap
+
+    # prepare the field map
     prepare = pe.Node(interface=fsl.epi.PrepareFieldmap(), name='prepare')
     prepare.inputs.output_type = "NIFTI_GZ"
     preproc.connect(inputNode_delTE, 'deltaTE', prepare, 'delta_TE')
@@ -124,35 +126,38 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc.connect(bet, 'out_file', prepare, 'in_magnitude')
     preproc.connect(prepare, 'out_fieldmap', outputNode, 'fieldmap')
 
+    # erode the masked magnitude image
     fslmath_mag = pe.Node(interface=fsl.ErodeImage(),name='fslmath_mag')
     preproc.connect(bet,'out_file',fslmath_mag,'in_file')
     preproc.connect(fslmath_mag,'out_file',outputNode,'fmapmagbrain')
 
-    ##generating mask-step 1#
+    # calculate the absolute value of the eroded and masked magnitude
+    # image
     fslmath_abs = pe.Node(interface=fsl.UnaryMaths(),name = 'fslmath_abs')
     fslmath_abs.inputs.operation = 'abs'
     preproc.connect(fslmath_mag,'out_file',fslmath_abs,'in_file')
     preproc.connect(fslmath_abs,'out_file',outputNode,'fmapmag_abs')
 
-    #generating mask-step 2#
+    # binarize the absolute value of the eroded and masked magnitude
+    # image
     fslmath_bin = pe.Node(interface=fsl.UnaryMaths(),name='fslmath_bin')
     fslmath_bin.inputs.operation = 'bin'
     preproc.connect(fslmath_abs,'out_file',fslmath_bin,'in_file')
     preproc.connect(fslmath_bin,'out_file',outputNode,'fmapmag_bin')
 
-    #generating mask-step 3#
+    # take the absolute value of the fieldmap calculated in the prepare step
     fslmath_mask_1 = pe.Node(interface=fsl.UnaryMaths(),name = 'fslmath_mask_1')
     fslmath_mask_1.inputs.operation = 'abs'
     preproc.connect(prepare,'out_fieldmap',fslmath_mask_1,'in_file')
     preproc.connect(fslmath_mask_1,'out_file',outputNode,'fieldmapmask_abs')
 
-    #generating mask-step 4#
+    # binarize the absolute value of the fieldmap calculated in the prepare step
     fslmath_mask_2 = pe.Node(interface=fsl.UnaryMaths(),name = 'fslmath_mask_2')
     fslmath_mask_2.inputs.operation = 'bin'
     preproc.connect(fslmath_mask_1,'out_file',fslmath_mask_2,'in_file')
     preproc.connect(fslmath_mask_2,'out_file',outputNode,'fieldmapmask_bin')
 
-    #generating mask-step 5#
+    # multiply together the binarized magnitude and fieldmap images
     fslmath_mask = pe.Node(interface=fsl.BinaryMaths(),name='fslmath_mask')
     fslmath_mask.inputs.operation = 'mul'
     preproc.connect(fslmath_mask_2,'out_file',fslmath_mask,'in_file')
@@ -309,23 +314,30 @@ def blip_distcor_wf(wf_name='blip_distcor'):
 
     wf.connect(calc_blip_warp, 'source_warp', convert_afni_warp, 'afni_warp')
 
-    undistort_func_mean = create_wf_apply_ants_warp()
-    undistort_func_mean.inputs.inputspec.interpolation = "LanczosWindowedSinc"
+
+    undistort_func_mean = pe.Node(interface=ants.ApplyTransforms(),
+                              name='undistort_func_mean', mem_gb=.1)
+
+    undistort_func_mean.inputs.out_postfix = '_antswarp'
+    undistort_func_mean.interface.num_threads = 1
+    undistort_func_mean.inputs.interpolation = "LanczosWindowedSinc"
+    undistort_func_mean.inputs.dimension = 3
+    undistort_func_mean.inputs.input_image_type = 0
 
     wf.connect(input_node, 'func_mean',
-               undistort_func_mean, 'inputspec.input_image')
+               undistort_func_mean, 'input_image')
     wf.connect(input_node, 'func_mean',
-               undistort_func_mean, 'inputspec.reference_image')
+               undistort_func_mean, 'reference_image')
     wf.connect(convert_afni_warp, 'ants_warp',
-               undistort_func_mean, 'inputspec.transforms')
+               undistort_func_mean, 'transforms')
 
     create_new_mask = skullstrip_functional("afni", False,
                                             "{0}_new_func_mask".format(wf_name))
-    wf.connect(undistort_func_mean, 'outputspec.output_image',
+    wf.connect(undistort_func_mean, 'output_image',
                create_new_mask, 'inputspec.func')
 
     wf.connect(convert_afni_warp, 'ants_warp', output_node, 'blip_warp')
-    wf.connect(undistort_func_mean, 'outputspec.output_image',
+    wf.connect(undistort_func_mean, 'output_image',
                output_node, 'new_func_mean')
     wf.connect(create_new_mask, 'outputspec.func_brain_mask',
                output_node, 'new_func_mask')

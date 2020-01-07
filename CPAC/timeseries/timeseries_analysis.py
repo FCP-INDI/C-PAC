@@ -1,180 +1,8 @@
-
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import nipype.interfaces.freesurfer as fs
 import nipype.interfaces.afni as afni
-
 from nipype import logging
-
-
-def create_surface_registration(wf_name='surface_registration'):
-    """
-    Workflow to generate surface from anatomical data and register 
-    the structural data to FreeSurfer anatomical and assign it 
-    to a surface vertex. 
-    
-    Parameters
-    ----------
-    wf_name : string
-        name of the workflow
-    
-    Returns 
-    -------
-    wflow : workflow object
-        workflow object
-        
-    Notes
-    -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
-        
-    Workflow Inputs::
-        
-        inputspec.rest : string  (nifti file)
-            path to input functional data
-        inputspec.brain : string (nifti file)
-            path to skull stripped anatomical image
-        inputspec.recon_subjects : string
-            path to subjects directory
-        inputspec.subject_id : string
-            subject id 
-            
-    Workflow Outputs::
-    
-        outputspec.reconall_subjects_dir : string
-            freesurfer subjects directory
-        outputspec.reconall_subjects_id : string
-            subject id for which anatomical data is taken
-        outputspec.out_reg_file : string
-            path to bbregister output registration file
-        outputspec.lh_surface_file : string (mgz file)
-            path to left hemisphere cortical surface file 
-        outputspec.rh_surface_file : string (mgz file)
-            path to right hemisphere cortical surface file 
-    
-    Order of commands:
-     
-    - Generate surfaces and rois of structural data from T1 anatomical Image using FreeSurfer's reconall . For details see `ReconAll <https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all>`_::
-
-        recon-all -all -subjid 0010001 -sd working_dir/SurfaceRegistration/anat_reconall
-        
-    - Register input volume to the FreeSurfer anatomical using FreeSurfer's bbregister. The input is the output of the recon-all command. For details see `BBRegister <http://surfer.nmr.mgh.harvard.edu/fswiki/bbregister>`_::
-        
-        bbregister --t2 --init -fsl --reg structural_bbreg_me.dat --mov structural.nii --s 0010001
-        
-    - Assign values from a volume to each surface vertex using FreeSurfer's mri_vol2surf . For details see `mri_vol2surf <http://surfer.nmr.mgh.harvard.edu/fswiki/mri_vol2surf>`_::
-       
-        For left hemisphere
-        mri_vol2surf --mov structural.nii --reg structural_bbreg_me.dat --interp trilin --projfrac 0.5 --hemi lh --o surface_file.nii.gz 
-
-        For right hemisphere        
-        mri_vol2surf --mov structural.nii --reg structural_bbreg_me.dat --interp trilin --projfrac 0.5 --hemi rh --o surface_file.nii.gz
-    
-    
-    High Level Workflow Graph:
-    
-    .. image:: ../images/surface_registration.dot.png
-       :width: 1000
-    
-    
-    Detailed Workflow Graph:
-    
-    .. image:: ../images/surface_registration_detailed.dot.png
-       :width: 1000
-       
-    Example
-    -------
-    >>> import CPAC.timeseries.timeseries_analysis as t
-    >>> wf = t.create_surface_registration()
-    >>> wf.inputs.inputspec.rest = '/home/data/sub001/rest.nii.gz'
-    >>> wf.inputs.inputspec.brain = '/home/data/sub001/anat.nii.gz'
-    >>> wf.inputs.inputspec.recon_subjects = '/home/data/working_dir/SurfaceRegistration/anat_reconall'
-    >>> wf.inputs.inputspec.subject_id = 'sub001'
-    >>> wf.base_dir = './'
-    >>> wf.run() 
-        
-    """
-    wflow = pe.Workflow(name=wf_name)
-
-    inputNode = pe.Node(util.IdentityInterface(fields=['recon_subjects',
-                                                       'brain',
-                                                       'subject_id',
-                                                       'rest']),
-                        name='inputspec')
-
-    outputNode = pe.Node(util.IdentityInterface(fields=['reconall_subjects_dir',
-                                                         'reconall_subjects_id',
-                                                         'out_reg_file',
-                                                         'lh_surface_file',
-                                                         'rh_surface_file']),
-                         name='outputspec')
-
-    reconall = pe.Node(interface=fs.ReconAll(),
-                       name="reconall")
-    reconall.inputs.directive = 'all'
-
-
-    wflow.connect(inputNode, 'brain',
-                  reconall, 'T1_files')
-    wflow.connect(inputNode, 'subject_id',
-                  reconall, 'subject_id')
-    wflow.connect(inputNode, 'recon_subjects',
-                  reconall, 'subjects_dir')
-
-    wflow.connect(reconall, 'subjects_dir',
-                  outputNode, 'reconall_subjects_dir')
-    wflow.connect(reconall, 'subject_id',
-                  outputNode, 'reconall_subjects_id')
-
-    bbregister = pe.Node(interface=fs.BBRegister(init='fsl',
-                                                 contrast_type='t2',
-                                                 registered_file=True,
-                                                 out_fsl_file=True),
-                        name='bbregister')
-
-    wflow.connect(inputNode, 'rest',
-                  bbregister, 'source_file')
-    wflow.connect(reconall, 'subjects_dir',
-                  bbregister, 'subjects_dir')
-    wflow.connect(reconall, 'subject_id',
-                  bbregister, 'subject_id')
-
-    wflow.connect(bbregister, 'out_reg_file',
-                  outputNode, 'out_reg_file')
-
-    sample_to_surface_lh = pe.Node(interface=fs.SampleToSurface(hemi="lh"),
-                                    name='sample_to_surface_lh')
-    sample_to_surface_lh.inputs.no_reshape = True
-    sample_to_surface_lh.inputs.interp_method = 'trilinear'
-    sample_to_surface_lh.inputs.sampling_method = "point"
-    sample_to_surface_lh.inputs.sampling_range = 0.5
-    sample_to_surface_lh.inputs.sampling_units = "frac"
-
-    wflow.connect(bbregister, 'out_reg_file',
-                  sample_to_surface_lh, 'reg_file')
-    wflow.connect(inputNode, 'rest',
-                  sample_to_surface_lh, 'source_file')
-
-    wflow.connect(sample_to_surface_lh, 'out_file',
-               outputNode, 'lh_surface_file')
-
-    sample_to_surface_rh = pe.Node(interface=fs.SampleToSurface(hemi="rh"),
-                                    name='sample_to_surface_rh')
-    sample_to_surface_rh.inputs.no_reshape = True
-    sample_to_surface_rh.inputs.interp_method = 'trilinear'
-    sample_to_surface_rh.inputs.sampling_method = "point"
-    sample_to_surface_rh.inputs.sampling_range = 0.5
-    sample_to_surface_rh.inputs.sampling_units = "frac"
-
-    wflow.connect(bbregister, 'out_reg_file',
-                  sample_to_surface_rh, 'reg_file')
-    wflow.connect(inputNode, 'rest',
-                  sample_to_surface_rh, 'source_file')
-
-    wflow.connect(sample_to_surface_rh, 'out_file',
-               outputNode, 'rh_surface_file')
-
-    return wflow
 
 
 def get_voxel_timeseries(wf_name='voxel_timeseries'):
@@ -268,6 +96,12 @@ def clean_roi_csv(roi_csv):
     passes the original file as output, instead of unnecessarily opening and
     re-writing it.
     """
+    
+    import pandas as pd
+
+    import os
+    import pandas as pd
+    import numpy as np
 
     with open(roi_csv, 'r') as f:
         csv_lines = f.readlines()
@@ -292,7 +126,11 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = [roi_csv]
 
-    return edited_roi_csv
+    data = pd.read_csv(edited_roi_csv[0], sep = '\t', header = 1) 
+    data = data.dropna(axis=1)
+    roi_array = np.transpose(data.values)
+
+    return roi_array, edited_roi_csv
 
 
 def write_roi_npz(roi_csv, out_type=None):
@@ -343,6 +181,9 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
             path to ROI mask
         
     Workflow Outputs::
+
+        outputspec.roi_ts : numpy array 
+            Voxel time series stored in numpy array, which is used to create ndmg graphs. 
     
         outputspec.roi_outputs : string (list of files)
             Voxel time series stored in 1D (column wise timeseries for each node), 
@@ -370,14 +211,17 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     inputnode_roi = pe.Node(util.IdentityInterface(fields=['roi']),
                                 name='input_roi')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['roi_outputs']),
+    outputNode = pe.Node(util.IdentityInterface(fields=['roi_ts', 'roi_outputs']),
                         name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
                              name='3dROIstats')
     timeseries_roi.inputs.quiet = False
     timeseries_roi.inputs.args = "-1Dformat"
-
+    # TODO: add -mask_f2short for float parcellation mask
+    # if parcellation mask has float values
+    #     timeseries_roi.inputs.mask_f2short = True
+    
     wflow.connect(inputNode, 'rest',
                   timeseries_roi, 'in_file')
 
@@ -386,7 +230,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     clean_csv_imports = ['import os']
     clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
-                                      output_names=['edited_roi_csv'],
+                                      output_names=['roi_array', 'edited_roi_csv'],
                                       function=clean_roi_csv,
                                       imports=clean_csv_imports),
                         name='clean_roi_csv')
@@ -396,13 +240,14 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     write_npz_imports = ['import os', 'import numpy as np',
                          'from numpy import genfromtxt']
     write_npz = pe.Node(util.Function(input_names=['roi_csv', 'out_type'],
-                                      output_names=['roi_outputs'],
+                                      output_names=['roi_output_npz'],
                                       function=write_roi_npz,
                                       imports=write_npz_imports),
                         name='write_roi_npz')
     wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
     wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
-    wflow.connect(write_npz, 'roi_outputs', outputNode, 'roi_outputs')
+    wflow.connect(clean_csv, 'roi_array', outputNode, 'roi_ts')
+    wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_outputs')
 
     return wflow
 

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <style>
+      * { margin:0; padding:0; font-family: Arial, Helvetica, sans-serif; }
+      html, body { }
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+      div[data-name] {
+        padding: 5px;
+      }
+      div[data-name]::before {
+        content: attr(data-name);
+        padding: 5px;
+      }
+      #loading {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+      }
+      .background {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #000000CC;
+      }
+      #loading .modal {
+        position: absolute;
+        font-weight: bold;
+        color: #FFF;
+        padding: 30px;
+      }
+      #images { text-align: center; }
+      #images img { display: block; margin: 0 auto; }
+    </style>
+  </head>
+  <body>
+    <div id="loading">
+      <div class="background"></div>
+      <div class="modal">
+        Loading...
+      </div>
+    </div>
+    <div id="filter">
+      <div data-name="derivative" class="fixed">
+        <select id="derivative">
+        </select>
+      </div>
+    </div>
+    <div id="images"></div>
+    <script>
+
+      var options = {}
+
+      var derivative_descriptions = {
+        'carpet': 'Carpet',
+
+        'alff_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'alff_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'alff_to_standard': 'Amplitude of Low-Frequency Fluctuation',
+        'alff_to_standard_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation',
+        'alff_to_standard_zstd': 'Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+        'alff_to_standard_zstd_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+        'alff_to_standard_smooth': 'Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'alff_to_standard_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'alff_to_standard_smooth_zstd': 'Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+        'alff_to_standard_smooth_zstd_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+
+        'centrality_hist': 'Histogram of Network Centrality',
+        'centrality_smooth_hist': 'Histogram of Network Centrality (smoothed)',
+        'centrality_smooth_zstd_hist': 'Histogram of Network Centrality (smoothed, z-score standardized)',
+        'centrality_smooth_zstd': 'Network Centrality (smoothed, z-score standardized)',
+        'centrality_smooth': 'Network Centrality (smoothed)',
+        'centrality_zstd_hist': 'Histogram of Network Centrality (z-score standardized)',
+        'centrality_zstd_smooth_hist': 'Histogram of Network Centrality (z-score standardized, smoothed)',
+        'centrality_zstd_smooth': 'Network Centrality (z-score standardized, smoothed)',
+        'centrality_zstd': 'Network Centrality (z-score standardized)',
+        'centrality': 'Network Centrality',
+        
+        'csf_gm_wm': 'Grey Matter, White Matter & CSF',
+
+        'falff_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'falff_smooth': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'falff_to_standard': 'Fractional Amplitude of Low-Frequency Fluctuation',
+        'falff_to_standard_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation',
+        'falff_to_standard_smooth': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'falff_to_standard_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
+        'falff_to_standard_smooth_zstd': 'Fractional Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+        'falff_to_standard_smooth_zstd_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed, z-score standardized)',
+        'falff_to_standard_zstd': 'Fractional Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+        'falff_to_standard_zstd_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (z-score standardized)',
+
+        'fd_plot': 'Framewise Displacement Plot',
+        'mean_func_with_mni_edge': 'MNI Edge Overlapped on Mean Functional Image',
+        'mean_func_with_t1_edge': 'T1 Edge Overlapped on Mean Functional Image',
+        'mni_normalized_anatomical': 'MNI Edge Overlapped on Normalized Anatomical',
+        'movement_rot_plot': 'Head Rotation Plot',
+        'movement_trans_plot': 'Head Displacement Plot',
+
+        'reho_smooth': 'Regional Homogeneity (smoothed)',
+        'reho_smooth_hist': 'Histogram of Regional Homogeneity (smoothed)',
+        'reho_to_standard': 'Regional Homogeneity',
+        'reho_to_standard_hist': 'Histogram of Regional Homogeneity',
+        'reho_to_standard_smooth': 'Regional Homogeneity (smoothed)',
+        'reho_to_standard_smooth_hist': 'Histogram of Regional Homogeneity (smoothed)',
+        'reho_to_standard_smooth_zstd': 'Regional Homogeneity (smoothed, z-score standardized)',
+        'reho_to_standard_smooth_zstd_hist': 'Histogram of Regional Homogeneity (smoothed, z-score standardized)',
+        'reho_to_standard_zstd': 'Regional Homogeneity (z-score standardized)',
+        'reho_to_standard_zstd_hist': 'Histogram of Regional Homogeneity (z-score standardized)',
+
+        'sca_roi_smooth': 'Seed-based Correlation Analysis (smoothed)',
+        'sca_roi_smooth_hist': 'Histogram of Seed-based Correlation Analysis (smoothed)',
+        'sca_roi_files_to_standard': 'Seed-based Correlation Analysis',
+        'sca_roi_files_to_standard_fisher_zstd': 'Seed-based Correlation Analysis',
+        'sca_roi_files_to_standard_fisher_zstd_hist': 'Seed-based Correlation Analysis',
+        'sca_roi_files_to_standard_hist': 'Seed-based Correlation Analysis',
+        'sca_roi_files_to_standard_smooth': 'Seed-based Correlation Analysis',
+        'sca_roi_files_to_standard_smooth_fisher_zstd': 'Seed-based Correlation Analysis',
+        'sca_roi_files_to_standard_smooth_fisher_zstd_hist': 'Seed-based Correlation Analysis',
+        'sca_roi_files_to_standard_smooth_hist': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_files': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_files_hist': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_files_smooth': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_files_smooth_hist': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_zstat_files': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_zstat_files_hist': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_zstat_files_smooth': 'Seed-based Correlation Analysis',
+        'sca_tempreg_maps_zstat_files_smooth_hist': 'Seed-based Correlation Analysis',
+
+        
+        'skullstrip_vis': 'Visual Result of Skull Strip',
+        'snr_hist': 'Histogram of Signal to Noise Ratio',
+        'snr': 'Signal to Noise Ratio',
+
+        'temporal_dual_regression_smooth_hist': 'Histogram of Temporal Dual Regression',
+        'temporal_dual_regression_smooth': 'Temporal Dual Regression',
+        
+        'vmhc_smooth': 'Voxel-Mirrored Homotopic Connectivity (smoothed)',
+        'vmhc_smooth_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity (smoothed)',
+        'vmhc_fisher_zstd': 'Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+        'vmhc_fisher_zstd_hist': 'Histogram of Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+        'vmhc_fisher_zstd_zstat_map': 'Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+        'vmhc_fisher_zstd_zstat_map_hist': 'Histogram of Z-Statistic map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
+        'vmhc_raw_score': 'Voxel-Mirrored Homotopic Connectivity',
+        'vmhc_raw_score_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity',
+
+        'dr_tempreg_maps_files_to_standard': 'Spatial Regression',
+        'dr_tempreg_maps_files_to_standard_hist': 'Histogram of Spatial Regression',
+        'dr_tempreg_maps_files_to_standard_smooth': 'Spatial Regression (smoothed)',
+        'dr_tempreg_maps_files_to_standard_smooth_hist': 'Histogram of Spatial Regression (smoothed)',
+        'dr_tempreg_maps_files_to_standard_smooth_zstd': 'Spatial Regression (smoothed, z-score standardized)',
+        'dr_tempreg_maps_files_to_standard_smooth_zstd_hist': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
+        'dr_tempreg_maps_files_to_standard_zstd': 'Spatial Regression (z-score standardized)',
+        'dr_tempreg_maps_files_to_standard_zstd_hist': 'Histogram of Spatial Regression (z-score standardized)',
+        'dr_tempreg_maps_zstat_files_to_standard': 'Spatial Regression (z-score standardized)',
+        'dr_tempreg_maps_zstat_files_to_standard_hist': 'Histogram of Spatial Regression (z-score standardized)',
+        'dr_tempreg_maps_zstat_files_to_standard_smooth': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
+        'dr_tempreg_maps_zstat_files_to_standard_smooth_hist': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
+      }
+
+      const uris_string =
+/*CPAC*/``/*CPAC*/
+      .split(/(\r\n|[\n\v\f\r\x85\u2028\u2029])/)
+          
+      var uris = []
+      for (var uri_i in uris_string) {
+        var uri = uris_string[uri_i].trim()
+        if (uri) {
+          uris.push(uri)
+        }
+      }
+
+      var images = {}
+
+      for (var obj_i in uris) {
+        var obj = uris[obj_i]
+        if (!obj.endsWith('.png')) {
+          continue
+        }
+
+        var obj_parts = obj.split('/')
+        derivative = obj_parts[0]
+        rest = obj_parts.slice(1, -1)
+
+        if (!images[derivative]) {
+          images[derivative] = []
+        }
+
+        var order = []
+        var identifier = {}
+        for(var piece_i in rest) {
+          var piece = rest[piece_i]
+          var piece_pieces = piece.split('_')
+          var key = piece_pieces[1]
+          if (key == 'montage'){
+            continue
+          }
+          var value = piece_pieces.slice(2)
+          order.push(key)
+          identifier[key] = value.join('_')
+        }
+        identifier.image = obj
+
+        images[derivative].push(identifier)
+        images[derivative].order = order
+      }
+
+      function loadImages(derivative) {
+        var currentValues = filters()
+
+        var filteredImages = []
+        for (var image_i in derivative) {
+          var image = derivative[image_i]
+
+          var isFiltered = (function() {
+            for (var field_i in derivative.order) {
+              var field = derivative.order[field_i]
+              if (image[field] !== currentValues[field]) {
+                return false
+              }
+            }
+            return true
+          })
+
+          if (isFiltered) {
+            filteredImages.push(image.image)
+          }
+        }
+        
+        $('#images img').remove()
+
+        for (var image_i in filteredImages) {
+          var image = filteredImages[image_i]
+          $('#images').append(
+            $('<img />').attr('src', image)
+          )
+        }
+
+        $('#loading').hide()
+      }
+
+      function filters() {
+        var selects = $('#filter div:not(.fixed) select').toArray()
+        var entries = {}
+        for (var sel_i in selects) {
+          var sel = selects[sel_i]
+          entries[sel.id] = sel.value
+        }
+        return entries
+      }
+
+      function betterName(derivative) {
+        if (derivative.endsWith('_a') || derivative.endsWith('_s')) {
+          var label = {
+            a: 'Axial',
+            s: 'Sagittal',
+          }
+          return (derivative_descriptions[derivative.slice(0, -2)] || derivative.slice(0, -2)) + ' - ' + label[derivative.slice(-1)]
+        }
+        return derivative_descriptions[derivative]
+      }
+
+      function init() {
+
+        $('#loading').show()
+
+        $('#filter select#derivative option').remove()
+        var image_keys = Object.keys(images).sort()
+        for (var derivative_i in image_keys) {
+          var derivative = image_keys[derivative_i]
+          $('#filter select#derivative').append($('<option />').attr('value', derivative).html(betterName(derivative)))
+        }
+
+        $('#filter select#derivative').off('change').on('change', function () {
+
+          $('#loading').show()
+          var derivative = $('#filter select#derivative').val()
+
+          var selected_filters = filters()
+          options.filters = selected_filters
+          options.filters.derivative = derivative
+
+          $('#filter div:not(.fixed)').remove()
+
+          if (!derivative) {
+            return
+          }
+
+          for (var field_i in images[derivative].order) {
+            var field = images[derivative].order[field_i]
+            var values = []
+            for (var derivative_i in images[derivative]) {
+              var field_val = images[derivative][derivative_i][field]
+              if (values.indexOf(field_val) === -1) {
+                values.push(field_val)
+              }
+            }
+            values = values.sort()
+            var sel = $('<select />').attr('id', field)
+
+            for (var value_i in values) {
+              value = values[value_i]
+              sel.append($('<option />').attr('value', value).html(value))
+            }
+            $('#filter').append($('<div />').attr('data-name', field).append(sel))
+          }
+        
+          $('#filter div:not(.fixed) select').off('change').on('change', function () {
+            $('#loading').show()
+            options.filters = filters()
+            options.filters.derivative = derivative
+            loadImages(images[derivative])
+          })
+
+          if (options.filters) {
+            var filters_keys = Object.keys(options.filters)
+            for (var id_i in filters_keys) {
+              var id = filters_keys[id_i]
+              if (id === 'derivative') {
+                continue
+              }
+              $('#filter select#' + id).val(options.filters[id])
+            }
+          }
+
+          loadImages(images[derivative])
+        })
+
+        if (options.filters) {
+          var filters_keys = Object.keys(options.filters)
+          for (var id_i in filters_keys) {
+            var id = filters_keys[id_i]
+            $('#filter select#' + id).val(options.filters[id])
+          }
+        }
+
+        $('#filter select#derivative').change()
+      }
+
+      $(document).ready(function() {
+        init()
+      })
+    </script>
+  </body>
+</html>

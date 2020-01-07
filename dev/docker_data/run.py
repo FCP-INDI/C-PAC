@@ -183,7 +183,7 @@ parser.add_argument('--mem_gb', type=float,
                     help='Amount of RAM available to the pipeline in gigabytes.'
                          ' if this is specified along with mem_mb, this flag will take precedence.')
 
-parser.add_argument('--save_working_dir', action='store_true',
+parser.add_argument('--save_working_dir', nargs='?',
                     help='Save the contents of the working directory.', default=False)
 parser.add_argument('--disable_file_logging', action='store_true',
                     help='Disable file logging, this is useful for clusters that have disabled file locking.',
@@ -405,10 +405,14 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     c['disable_log'] = args.disable_file_logging
 
-    if args.save_working_dir is True:
-        if "s3://" not in args.output_dir.lower():
-            c['removeWorkingDir'] = False
-            c['workingDirectory'] = os.path.join(args.output_dir, "working")
+    if args.save_working_dir is not False:
+        c['removeWorkingDir'] = False
+        if args.save_working_dir is not None:
+            c['workingDirectory'] = \
+                os.path.abspath(args.save_working_dir)
+        elif "s3://" not in args.output_dir.lower():
+            c['workingDirectory'] = \
+                os.path.join(args.output_dir, "working")
         else:
             print('Cannot write working directory to S3 bucket.'
                 ' Either change the output directory to something'
@@ -557,14 +561,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
 
 
-    if args.analysis_level == "test_config":
-        print(
-            'This has been a test run, the pipeline and data configuration files should'
-            ' have been written to {0} and {1} respectively.'
-            ' CPAC will not be run.'.format(pipeline_config_file, data_config_file)
-        )
-
-    elif args.analysis_level == "participant":
+    if args.analysis_level == "participant" or args.analysis_level == "test_config":
         # build pipeline easy way
         from CPAC.utils.monitoring import monitor_server
         import CPAC.pipeline.cpac_runner
@@ -587,10 +584,17 @@ elif args.analysis_level in ["test_config", "participant"]:
             pipeline_config_file,
             plugin='MultiProc' if plugin_args['n_procs'] > 1 else 'Linear',
             plugin_args=plugin_args,
-            tracking=not args.tracking_opt_out
+            tracking=not args.tracking_opt_out,
+            test_config = 1 if args.analysis_level == "test_config" else 0
         )
 
         if monitoring:
             monitoring.join(10)
+
+        if args.analysis_level == "test_config":
+            print(
+                '\nPipeline and data configuration files should'
+                ' have been written to {0} and {1} respectively.'.format(pipeline_config_file, data_config_file)
+            )
 
 sys.exit(0)
