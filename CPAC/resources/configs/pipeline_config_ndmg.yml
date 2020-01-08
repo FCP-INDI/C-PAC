@@ -87,12 +87,13 @@ write_func_outputs :  [0]
 write_debugging_outputs :  [0]
 
 
+# Output directory format and structure.
+# Options: default, ndmg
+output_tree: "ndmg"
+
+
 # Generate quality control pages containing preprocessing and derivative outputs.
 generateQualityControlImages :  [1]
-
-
-# Generate connectome graphs and write out preprocessing results in the same output format as the ndmg pipeline.
-ndmg_mode :  [1]
 
 
 # Deletes the contents of the Working Directory after running.

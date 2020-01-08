@@ -3454,7 +3454,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # it will default to the regular datasink
             #     TODO: update this when we change to the optionals
             #     TODO: only pipe config
-            if 1 in c.ndmg_mode:
+            if "ndmg" in c.output_tree:
                 ndmg_out = True
         except:
             pass
