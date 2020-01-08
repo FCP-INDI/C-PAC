@@ -562,6 +562,56 @@ func_reg_input_volume :  0
 functionalMasking :  ['AFNI']
 
 
+# Options to be used for FSL skull-stripping of functional masking.
+
+# Set the threshold value controling the brain vs non-brain voxels.
+bold_bet_frac :  0.3
+
+
+# Mesh created along with skull stripping
+bold_bet_mesh_boolean :  Off
+
+
+# Create a surface outline image
+bold_bet_outline :  Off
+
+
+# Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_padding :  Off
+
+
+# Integer value of head radius
+bold_bet_radius :  0
+
+
+# Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_reduce_bias :  Off
+
+
+# Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_remove_eyes :  Off
+
+
+# Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_robust :  Off
+
+
+# Create a skull image
+bold_bet_skull :  Off
+
+
+# Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
+bold_bet_surfaces :  Off
+
+
+# Apply thresholding to segmented brain image and mask
+bold_bet_threshold :  Off
+
+
+# Vertical gradient in fractional intensity threshold (-1,1)
+bold_bet_vertical_gradient : 0.0
+
+
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
 anatomical_mask_dilation : False 
 

@@ -1539,8 +1539,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     func_preproc = create_func_preproc(
                         skullstrip_tool=skullstrip_tool,
-                        n4_correction=c.n4_correct_mean_EPI,
-                        anatomical_mask_dilation=c.anatomical_mask_dilation,
+                        c=c,
                         wf_name='func_preproc_before_stc_%s_%d' % (skullstrip_tool, num_strat)
                     )
 
