@@ -624,10 +624,10 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                   "the participant {0}.\n\n".format(subject_id)
             raise Exception(err)
 
-    if first_tr == '':
+    if first_tr == '' or first_tr == None:
         first_tr = pipeconfig_start_indx
 
-    if last_tr == '':
+    if last_tr == '' or last_tr == None:
         last_tr = pipeconfig_stop_indx
 
     unit = 's'
