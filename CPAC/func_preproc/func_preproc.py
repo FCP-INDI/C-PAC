@@ -67,15 +67,10 @@ def skullstrip_functional(skullstrip_tool='afni', c=None, wf_name='skullstrip_fu
                                             'vertical_gradient']),
             name='BET_options')        
 
-        func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                                    name='func_mean_skull_{0}'.format(wf_name))
-        func_skull_mean.inputs.options = '-mean'
-        func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
-
-
         func_get_brain_mask = pe.Node(interface=fsl.BET(),
-                                      name='func_get_brain_mask_BET')
+                                    name='func_get_brain_mask_BET')
         func_get_brain_mask.inputs.output_type = 'NIFTI_GZ'
+        func_get_brain_mask.inputs.mask = True
 
         inputnode_bet.inputs.set(
                 frac=c.bold_bet_frac, # 0.3
@@ -109,18 +104,28 @@ def skullstrip_functional(skullstrip_tool='afni', c=None, wf_name='skullstrip_fu
             ])
         ])
 
-        func_get_brain_mask.inputs.mask = True
-        # func_get_brain_mask.inputs.functional = True
+        if c.bold_bet_functional_mean_boolean : 
+            func_skull_mean = pe.Node(interface=afni_utils.TStat(),
+                                        name='func_mean_skull_{0}'.format(wf_name))
+            func_skull_mean.inputs.options = '-mean'
+            func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+            
+            wf.connect(input_node, 'func', 
+                        func_skull_mean, 'in_file')
+            wf.connect(func_skull_mean, 'out_file', 
+                        func_get_brain_mask, 'in_file')
 
+        else:
+            func_get_brain_mask.inputs.functional = True
+            wf.connect(input_node, 'func', 
+                        func_get_brain_mask, 'in_file')
+
+        # erode one voxel of functional brian mask
         erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
                                   name='erode_one_voxel')
 
         erode_one_voxel.inputs.kernel_shape = 'box'
         erode_one_voxel.inputs.kernel_size = 1.0
-
-        wf.connect(input_node, 'func', func_skull_mean, 'in_file')
-
-        wf.connect(func_skull_mean, 'out_file', func_get_brain_mask, 'in_file')
 
         wf.connect(func_get_brain_mask, 'mask_file',
                    erode_one_voxel, 'in_file')

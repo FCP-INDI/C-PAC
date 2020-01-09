@@ -557,6 +557,10 @@ functionalMasking :  ['AFNI']
 
 # Options to be used for FSL skull-stripping of functional masking.
 
+# Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : On
+bold_bet_functional_mean_boolean : Off
+
+
 # Set the threshold value controling the brain vs non-brain voxels.
 bold_bet_frac :  0.3
 
