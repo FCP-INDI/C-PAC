@@ -335,6 +335,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     except KeyError:
         input_creds_path = None
 
+    # check if lateral_ventricles_mask exist
+    if 'none' in str(c.lateral_ventricles_mask).lower():
+        ventricle_mask_exist = False
+    else:
+        ventricle_mask_exist = True
+
     # TODO ASH normalize file paths with schema validator
     template_keys = [
         ("anat", "templateSpecificationFile"),
@@ -2403,6 +2409,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     nuisance_regression_workflow = create_nuisance_workflow(
                         regressors_selector,
                         use_ants=use_ants,
+                        ventricle_mask_exist=ventricle_mask_exist,
                         name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 

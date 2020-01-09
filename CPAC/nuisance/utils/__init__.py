@@ -271,7 +271,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                    pipeline_resource_pool,
                                    regressor_descriptor,
                                    regressor_selector,
-                                   use_ants=True):
+                                   use_ants=True,
+                                   ventricle_mask_exist=True):
     """
     Add tissue mask generation into pipeline according to the selector.
 
@@ -356,7 +357,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     regressor_descriptor,
                     regressor_selector,
                     node_mask_key,
-                    use_ants
+                    use_ants,
+                    ventricle_mask_exist
                 )
 
         elif step == 'erosion':
@@ -383,7 +385,8 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       regressor_descriptor,
                                                       regressor_selector,
                                                       mask_key,
-                                                      use_ants=True):
+                                                      use_ants=True,
+                                                      ventricle_mask_exist=True):
 
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
@@ -393,12 +396,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
         mask_csf_with_lat_ven.inputs.expr = 'a*b'
         mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
-        # check if ventricle mask exists
-        ventricle_mask_check = pe.Node(util.Function(input_names = ['local_ventricle_mask'],
-                                                                function = check_ventricle_mask),
-                                                                name='check_ventricle')
-        nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (ventricle_mask_check, 'local_ventricle_mask'))) 
-        if ventricle_mask_check is True:  
+        if ventricle_mask_exist : 
             ventricles_key = 'VentriclesToAnat'
             if 'resolution' in regressor_descriptor:
                 ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
@@ -449,17 +447,11 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
             pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
             pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
-        
-        else :  
+        else :
             pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
-        
+
         return pipeline_resource_pool
 
-def check_ventricle_mask(local_ventricle_mask = None):
-    if local_ventricle_mask == None:
-        return False
-    else :
-        return True
 
 class NuisanceRegressor(object):
 
