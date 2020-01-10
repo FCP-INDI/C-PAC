@@ -14,6 +14,7 @@ import yaml
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
 
+DEFAULT_TMP_DIR = "/tmp"
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
 if not os.path.exists(DEFAULT_PIPELINE):
     DEFAULT_PIPELINE = os.path.join(
@@ -383,8 +384,8 @@ elif args.analysis_level in ["test_config", "participant"]:
         c['crashLogDirectory'] = os.path.join(args.output_dir, "crash")
         c['logDirectory'] = os.path.join(args.output_dir, "log")
     else:
-        c['crashLogDirectory'] = os.path.join("/scratch", "crash")
-        c['logDirectory'] = os.path.join("/scratch", "log")
+        c['crashLogDirectory'] = os.path.join(DEFAULT_TMP_DIR, "crash")
+        c['logDirectory'] = os.path.join(DEFAULT_TMP_DIR, "log")
 
     if args.mem_gb:
         c['maximumMemoryPerParticipant'] = float(args.mem_gb)
@@ -451,7 +452,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         )
     else:
         pipeline_config_file = os.path.join(
-            "/scratch", "cpac_pipeline_config_{0}.yml".format(st)
+            DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
         )
 
     with open(pipeline_config_file, 'w') as f:
@@ -548,11 +549,10 @@ elif args.analysis_level in ["test_config", "participant"]:
         # write out the data configuration file
         data_config_file = "cpac_data_config_{0}.yml".format(st)
 
-
     if "s3://" not in args.output_dir.lower():
         data_config_file = os.path.join(args.output_dir, data_config_file)
     else:
-        data_config_file = os.path.join("/scratch", data_config_file)
+        data_config_file = os.path.join(DEFAULT_TMP_DIR, data_config_file)
 
     with open(data_config_file, 'w') as f:
         noalias_dumper = yaml.dumper.SafeDumper
