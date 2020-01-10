@@ -630,7 +630,11 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
 
         register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'in_file')
         register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'ref_file')
-        register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
+
+        # --premat input disabled because it was throwing off the transform
+        # application quality --- why, though?
+        #register_func_to_epi.connect(func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
+
         register_func_to_epi.connect(func_to_epi_nonlinear, 'fieldcoeff_file', func_in_epi, 'field_file')
         register_func_to_epi.connect(func_in_epi, 'out_file', outputspec, 'func_in_epi')
 

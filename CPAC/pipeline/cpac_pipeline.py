@@ -75,7 +75,6 @@ from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import (
-    create_surface_registration,
     get_roi_timeseries,
     get_voxel_timeseries,
     get_vertices_timeseries,
@@ -176,6 +175,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             'log_to_file': bool(getattr(c, 'run_logging', True))
         }
     })
+    config.enable_resource_monitor()
 
     logging.update_logging(config)
 
@@ -205,6 +205,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     os.environ['OMP_NUM_THREADS'] = '1'  # str(num_cores_per_sub)
     os.environ['MKL_NUM_THREADS'] = '1'  # str(num_cores_per_sub)
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
+
+    # TODO: TEMPORARY
+    # TODO: solve the UNet model hanging issue during MultiProc
+    if "unet" in c.skullstrip_option:
+        c.maxCoresPerParticipant = 1
+        logger.info("\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "
+                    "MODEL.\n\nThis is a temporary measure due to a known "
+                    "issue preventing Nipype's parallelization from running "
+                    "U-Net properly.\n\n")
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
@@ -610,7 +619,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list += [new_strat]
 
             if "unet" in c.skullstrip_option:
+<<<<<<< HEAD
 
+=======
+>>>>>>> a620344541abd36bbb0595434469fd672d906a84
                 anat_preproc = create_anat_preproc(method='unet',
                                                    c=c,
                                                    wf_name='anat_preproc_unet_%d' % num_strat)
@@ -1537,11 +1549,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
-            if 0 in c.runMotionStatistics:
+            if 0 in c.runMotionStatisticsFirst:
 
                 new_strat_list += [strat.fork()]
 
-            if 1 in c.runMotionStatistics:
+            if 1 in c.runMotionStatisticsFirst:
 
                 for skullstrip_tool in c.functionalMasking:
                 
@@ -1996,8 +2008,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # Input segmentation probability maps for white matter
                     # segmentation
-                    node, out_file = strat['seg_probability_maps']
-                    workflow.connect(node, (out_file, pick_wm),
+                    # node, out_file = strat['seg_probability_maps']
+                    # workflow.connect(node, (out_file, pick_wm),
+                    #                 func_to_anat_bbreg,
+                    #                 'inputspec.anat_wm_segmentation')
+                    node, out_file = strat['anatomical_wm_mask']
+                    workflow.connect(node, out_file,
                                     func_to_anat_bbreg,
                                     'inputspec.anat_wm_segmentation')
 
@@ -2086,7 +2102,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # update resource pool
                     new_strat.update_resource_pool({
-                        'func_in_epi': (func_to_epi, 'outputspec.func_in_epi')
+                        'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi')
                     })
 
                     if reg == 'FSL' :
