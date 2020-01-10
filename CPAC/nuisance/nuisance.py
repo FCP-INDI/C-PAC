@@ -1027,10 +1027,6 @@ def create_nuisance_workflow(nuisance_selectors,
                     )
 
                 summary_filter = regressor_selector['summary'].get('filter', '')
-<<<<<<< HEAD
-
-=======
->>>>>>> a620344541abd36bbb0595434469fd672d906a84
                 summary_filter_input = pipeline_resource_pool[functional_key]
 
                 summary_method = regressor_selector['summary']['method']

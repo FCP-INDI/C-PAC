@@ -619,10 +619,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list += [new_strat]
 
             if "unet" in c.skullstrip_option:
-<<<<<<< HEAD
-
-=======
->>>>>>> a620344541abd36bbb0595434469fd672d906a84
                 anat_preproc = create_anat_preproc(method='unet',
                                                    c=c,
                                                    wf_name='anat_preproc_unet_%d' % num_strat)
