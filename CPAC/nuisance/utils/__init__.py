@@ -1,5 +1,6 @@
 import os
 import re
+from collections import OrderedDict
 import numpy as np
 import nibabel as nb
 
@@ -504,33 +505,19 @@ class NuisanceRegressor(object):
 
     @staticmethod
     def encode(selector):
-        regs = {
-            'GreyMatter': 'GM',
-            'WhiteMatter': 'WM',
-            'CerebrospinalFluid': 'CSF',
-            'tCompCor': 'tC',
-            'aCompCor': 'aC',
-            'GlobalSignal': 'G',
-            'Motion': 'M',
-            'Custom': 'T',
-            'PolyOrt': 'P',
-            'Bandpass': 'BP',
-            'Censor': 'C',
-        }
-
-        regs_order = [
-            'GreyMatter',
-            'WhiteMatter',
-            'CerebrospinalFluid',
-            'tCompCor',
-            'aCompCor',
-            'GlobalSignal',
-            'Motion',
-            'Custom',
-            'PolyOrt',
-            'Bandpass',
-            'Censor',
-        ]
+        regs = OrderedDict([
+            ('GreyMatter', 'GM'),
+            ('WhiteMatter', 'WM'),
+            ('CerebrospinalFluid', 'CSF'),
+            ('tCompCor', 'tC'),
+            ('aCompCor', 'aC'),
+            ('GlobalSignal', 'G'),
+            ('Motion', 'M'),
+            ('Custom', 'T'),
+            ('PolyOrt', 'P'),
+            ('Bandpass', 'BP'),
+            ('Censor', 'C')
+        ])
 
         tissues = ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid']
 
@@ -549,7 +536,7 @@ class NuisanceRegressor(object):
         # P-2
         # B-T0.01-B0.1
 
-        for r in regs_order:
+        for r in regs.iterkeys():
             if r not in selector:
                 continue
 
