@@ -1,23 +1,16 @@
 import os
 import re
 from collections import OrderedDict
-import numpy as np
-import nibabel as nb
 
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
+import nipype.interfaces.fsl as fsl
+import nipype.interfaces.utility as util
+import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
 
-from CPAC.utils.interfaces.function import Function
-from CPAC.utils.interfaces.masktool import MaskTool
-from CPAC.utils.interfaces.brickstat import BrickStat
-
-from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.nuisance.utils.compcor import calc_compcor_components
-
-import scipy.signal as signal
+from CPAC.nuisance.utils.crc import encode as crc_encode
+from CPAC.utils.interfaces.function import Function
 
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
