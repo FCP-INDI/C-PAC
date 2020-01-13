@@ -2383,8 +2383,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # to guarantee immutability
                     regressors_selector = NuisanceRegressor(
-                        copy.deepcopy(regressors_selector),
-                        copy.deepcopy(c.Regressors)
+                        copy.deepcopy(regressors_selector)
                     )
 
                     # remove tissue regressors when there is no segmentation

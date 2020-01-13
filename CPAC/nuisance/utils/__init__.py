@@ -442,9 +442,8 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
 class NuisanceRegressor(object):
 
-    def __init__(self, selector, selectors=None):
+    def __init__(self, selector):
         self.selector = selector
-        self.selectors = selectors
 
         if 'Bandpass' in self.selector:
             s = self.selector['Bandpass']
@@ -504,7 +503,7 @@ class NuisanceRegressor(object):
         return rep
 
     @staticmethod
-    def encode(selector, selectors=None):
+    def encode(selector):
         regs = {
             'GreyMatter': 'GM',
             'WhiteMatter': 'WM',
@@ -658,7 +657,4 @@ class NuisanceRegressor(object):
         return "_".join(selectors_representations)
 
     def __repr__(self):
-        return NuisanceRegressor.encode(
-            self.selector,
-            self.selectors,
-        )
+        return NuisanceRegressor.encode(self.selector)
