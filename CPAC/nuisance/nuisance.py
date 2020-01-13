@@ -8,6 +8,7 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
 from nipype.interfaces import afni
+from nipype.interfaces.afni import utils as afni_utils
 
 import CPAC
 import CPAC.utils as utils
@@ -634,10 +635,20 @@ def create_nuisance_workflow(nuisance_selectors,
                                                         'regressors_file_path']),
                          name='outputspec')
 
+    functional_mean = pe.Node(interface=afni_utils.TStat(),
+                        name='functional_mean')
+
+    functional_mean.inputs.options = '-mean'
+    functional_mean.inputs.outputtype = 'NIFTI_GZ'
+
+    nuisance_wf.connect(inputspec, 'functional_file_path',
+                        functional_mean, 'in_file')
+
     # Resources to create regressors
     pipeline_resource_pool = {
         "Anatomical": (inputspec, 'anatomical_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
+        "Functional_mean" : (functional_mean, 'out_file'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
         "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
