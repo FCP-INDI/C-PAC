@@ -35,7 +35,7 @@ def test_representations():
         
     """)
 
-    NuisanceRegressor.encode({
+    assert NuisanceRegressor.encode({
         'tCompCor': selector_test['tCompCor']
     }) == 'tC-S1.5SD-PC5'
 
