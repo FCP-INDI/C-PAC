@@ -1,5 +1,5 @@
 import yaml
-from CPAC.nuisance import NuisanceRegressor
+from CPAC.nuisance.utils import NuisanceRegressor
 
 
 def test_representations():
