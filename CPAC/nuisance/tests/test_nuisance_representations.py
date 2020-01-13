@@ -41,5 +41,5 @@ def test_representations():
 
     assert NuisanceRegressor.encode({
         'aCompCor': selector_test['aCompCor']
-    }) == 'aC-WM+CSF-PC5'
+    }) == 'aC-CSF+WM-2mm-PC5'
 
