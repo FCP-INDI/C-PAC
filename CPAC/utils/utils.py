@@ -1218,3 +1218,39 @@ def check_config_resources(c):
 
     # Return memory and cores
     return sub_mem_gb, num_cores_per_sub, num_ants_cores
+
+
+def load_preconfig(pipeline_label):
+    import os
+    import pkg_resources as p
+
+    avail_configs = \
+        p.resource_filename(
+            "CPAC",
+            os.path.join(
+                "resources",
+                "configs")
+        )
+    avail_configs = os.listdir(avail_configs)
+    avail_configs = [x.split('_')[2].replace('.yml', '') for x \
+                     in avail_configs if 'pipeline_config' in x]
+
+    if pipeline_label not in avail_configs:
+        raise Exception("The pre-configured pipeline name '{0}' you provided "
+                        "is not one of the available pipelines.\n\nAvailable "
+                        "pipelines:\n{1}\n".format(pipeline_label,
+                                                   str(avail_configs)))
+
+    pipeline_file = \
+        p.resource_filename(
+            "CPAC",
+            os.path.join(
+                "resources",
+                "configs",
+                "pipeline_config_{0}.yml".format(pipeline_label)
+            )
+        )
+
+    print("Running the '{0}' pre-configured pipeline.".format(pipeline_label))
+
+    return pipeline_file

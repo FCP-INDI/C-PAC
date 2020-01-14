@@ -13,6 +13,7 @@ import yaml
 
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
+from CPAC.utils.utils import load_preconfig
 
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
 if not os.path.exists(DEFAULT_PIPELINE):
@@ -343,22 +344,8 @@ elif args.analysis_level in ["test_config", "participant"]:
             print("Running BIDS validator")
             run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
-    if args.preconfig == "ndmg":
-        print()
-        print('Running ndmg pipeline.')
-
-        import os
-        import pkg_resources as p
-
-        args.pipeline_file = \
-            p.resource_filename(
-                "CPAC",
-                os.path.join(
-                    "resources",
-                    "configs",
-                    "pipeline_config_ndmg.yml"
-                )
-            )
+    if args.preconfig:
+        args.pipeline_file = load_preconfig(args.preconfig)
 
     # otherwise, if we are running group, participant, or dry run we
     # begin by conforming the configuration
