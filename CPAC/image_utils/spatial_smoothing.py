@@ -3,16 +3,30 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils import Outputs
 
+
 def set_gauss(fwhm):
+    """
+    Compute the sigma value, given Full Width Half Max.
+    Returns an operand string
 
-    fwhm = float(fwhm)
+    Parameters
+    ----------
 
-    sigma = float(fwhm / 2.3548)
+    fwhm : float
 
-    op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
-    op_string = op
+    Returns
+    -------
+
+    op_string : string
+
+    """
+
+    sigma = float(fwhm) / 2.3548
+
+    op_string = "-kernel gauss %f -fmean -mas " % sigma + "%s"
 
     return op_string
+
 
 def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config_object):
 
