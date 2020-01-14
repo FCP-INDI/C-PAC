@@ -6,36 +6,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def set_gauss(fwhm):
-
-    """
-    Compute the sigma value, given Full Width Half Max. 
-    Further it builds an operand string and returns it
-
-    Parameters
-    ----------
-
-    fwhm : float
-
-    Returns
-    -------
-
-    op_string : string
-
-    """
-
-    op_string = ""
-
-    fwhm = float(fwhm)
-
-    sigma = float(fwhm / 2.3548)
-
-    op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
-    op_string = op
-
-    return op_string
-
-
 def get_img_nvols(in_files):
 
     """
