@@ -1,5 +1,5 @@
 import yaml
-from CPAC.nuisance import NuisanceRegressor
+from CPAC.nuisance.utils import NuisanceRegressor
 
 
 def test_representations():
@@ -35,11 +35,11 @@ def test_representations():
         
     """)
 
-    NuisanceRegressor.encode({
+    assert NuisanceRegressor.encode({
         'tCompCor': selector_test['tCompCor']
     }) == 'tC-S1.5SD-PC5'
 
     assert NuisanceRegressor.encode({
         'aCompCor': selector_test['aCompCor']
-    }) == 'aC-WM+CSF-PC5'
+    }) == 'aC-CSF+WM-2mm-PC5'
 
