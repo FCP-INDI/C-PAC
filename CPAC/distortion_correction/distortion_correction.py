@@ -271,7 +271,7 @@ def blip_distcor_wf(wf_name='blip_distcor'):
                                                          'new_func_mask']),
                           name='outputspec')
 
-    skullstrip_opposite_pe = skullstrip_functional("afni",
+    skullstrip_opposite_pe = skullstrip_functional("afni", False,
                                                    "{0}_skullstrip_opp_pe".format(wf_name))
 
     wf.connect(input_node, 'opposite_pe_epi',
@@ -331,7 +331,7 @@ def blip_distcor_wf(wf_name='blip_distcor'):
     wf.connect(convert_afni_warp, 'ants_warp',
                undistort_func_mean, 'transforms')
 
-    create_new_mask = skullstrip_functional("afni",
+    create_new_mask = skullstrip_functional("afni", False,
                                             "{0}_new_func_mask".format(wf_name))
     wf.connect(undistort_func_mean, 'output_image',
                create_new_mask, 'inputspec.func')
