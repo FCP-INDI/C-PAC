@@ -73,14 +73,20 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
                    output_node, 'func_brain_mask')
 
     elif skullstrip_tool == 'fsl_afni':
-        skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=True), name='skullstrip_first_pass')
+        func_skull_mean = pe.Node(interface=afni_utils.TStat(),
+                                    name='func_mean_skull')
+        func_skull_mean.inputs.options = '-mean'
+        func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+
+        skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=False), name='skullstrip_first_pass')
         bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
         bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
         unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ', args='-clfrac 0.2 -rbt 18.3 65.0 90.0', out_file="uni.nii.gz"), name='unifize')
         skullstrip_second_pass = pe.Node(preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'), name='skullstrip_second_pass')
         combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'), name='combine_masks')
 
-        wf.connect([(input_node, skullstrip_first_pass, [('func', 'in_file')]),
+        wf.connect([(input_node, func_skull_mean, [('func', 'in_file')]),
+                        (func_skull_mean, skullstrip_first_pass, [('out_file', 'in_file')]),
                         (skullstrip_first_pass, bet_dilate, [('mask_file', 'in_file')]),
                         (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
                         (skullstrip_first_pass, bet_mask, [('out_file' , 'in_file')]),
@@ -146,7 +152,15 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(func_skull_mean, 'out_file', linear_trans_mask_anat_to_func, 'reference')
         wf.connect(inv_func_to_anat_affine, 'out_file',
                                     linear_trans_mask_anat_to_func, 'in_matrix_file')
-        wf.connect(linear_trans_mask_anat_to_func, 'out_file',
+        
+        # binarize
+        mask_anat_to_func_binarize = pe.Node(interface=fsl.ImageMaths(), 
+                                                name='binarize_func_mask')
+        mask_anat_to_func_binarize.inputs.op_string = '-bin ' 
+        
+        wf.connect(linear_trans_mask_anat_to_func, 'out_file', mask_anat_to_func_binarize, 'in_file')
+        
+        wf.connect(mask_anat_to_func_binarize, 'out_file',
                                     output_node, 'func_brain_mask')
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
@@ -167,7 +181,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
     elif skullstrip_tool == 'anatomical_refined':
-        wf.connect(linear_trans_mask_anat_to_func, 'out_file',
+        wf.connect(mask_anat_to_func_binarize, 'out_file',
                         func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')

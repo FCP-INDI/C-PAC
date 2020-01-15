@@ -271,7 +271,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                    pipeline_resource_pool,
                                    regressor_descriptor,
                                    regressor_selector,
-                                   use_ants=True):
+                                   use_ants=True,
+                                   ventricle_mask_exist=True):
     """
     Add tissue mask generation into pipeline according to the selector.
 
@@ -354,7 +355,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     regressor_descriptor,
                     regressor_selector,
                     node_mask_key,
-                    use_ants
+                    use_ants,
+                    ventricle_mask_exist
                 )
 
         elif step == 'erosion':
@@ -381,7 +383,8 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       regressor_descriptor,
                                                       regressor_selector,
                                                       mask_key,
-                                                      use_ants=True):
+                                                      use_ants=True,
+                                                      ventricle_mask_exist=True):
 
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
@@ -391,51 +394,54 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
         mask_csf_with_lat_ven.inputs.expr = 'a*b'
         mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
-        ventricles_key = 'VentriclesToAnat'
-        if 'resolution' in regressor_descriptor:
-            ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
-    
-        if ventricles_key not in pipeline_resource_pool:
+        if ventricle_mask_exist : 
+            ventricles_key = 'VentriclesToAnat'
+            if 'resolution' in regressor_descriptor:
+                ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
 
-            transforms = pipeline_resource_pool['Transformations']
-            
-            if use_ants is True:
+            if ventricles_key not in pipeline_resource_pool:
 
-                # perform the transform using ANTS
-                collect_linear_transforms = pe.Node(util.Merge(3), name='{}_ants_transforms'.format(ventricles_key))
+                transforms = pipeline_resource_pool['Transformations']
+                
+                if use_ants is True:
 
-                nuisance_wf.connect(*(transforms['anat_to_mni_initial_xfm'] + (collect_linear_transforms, 'in1')))
-                nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
-                nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
+                    # perform the transform using ANTS
+                    collect_linear_transforms = pe.Node(util.Merge(3), name='{}_ants_transforms'.format(ventricles_key))
 
-                lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
-                lat_ven_mni_to_anat.inputs.invert_transform_flags = [True, True, True]
-                lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
-                lat_ven_mni_to_anat.inputs.dimension = 3
+                    nuisance_wf.connect(*(transforms['anat_to_mni_initial_xfm'] + (collect_linear_transforms, 'in1')))
+                    nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
+                    nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
 
-                nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
+                    lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
+                    lat_ven_mni_to_anat.inputs.invert_transform_flags = [True, True, True]
+                    lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
+                    lat_ven_mni_to_anat.inputs.dimension = 3
 
-                nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
-                nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
+                    nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
 
-                pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
+                    nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
+                    nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
 
-            else:
-                # perform the transform using FLIRT
-                lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='{}_flirt'.format(ventricles_key))
-                lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
+                    pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'output_image')
 
-                nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
-                nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
-                nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference')))
+                else:
+                    # perform the transform using FLIRT
+                    lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='{}_flirt'.format(ventricles_key))
+                    lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
 
-                pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'out_file')
+                    nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'in_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference')))
 
-        nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_csf_with_lat_ven, 'in_file_a')))
-        nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (mask_csf_with_lat_ven, 'in_file_b')))
+                    pipeline_resource_pool[ventricles_key] = (lat_ven_mni_to_anat, 'out_file')
 
-        pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
-        pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
+            nuisance_wf.connect(*(pipeline_resource_pool[ventricles_key] + (mask_csf_with_lat_ven, 'in_file_a')))
+            nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (mask_csf_with_lat_ven, 'in_file_b')))
+
+            pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
+            pipeline_resource_pool[mask_key] = (mask_csf_with_lat_ven, 'out_file')
+        else :
+            pipeline_resource_pool['{}_Unmasked'.format(mask_key)] = pipeline_resource_pool[mask_key]
 
         return pipeline_resource_pool
 
