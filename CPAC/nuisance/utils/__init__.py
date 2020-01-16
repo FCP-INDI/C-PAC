@@ -149,7 +149,7 @@ def compute_sd_threshold(in_file, mask, threshold_sd):
     return d.mean() + threshold_sd * d.std()
 
 
-def temporal_variance_mask(threshold, by_slice=False):
+def temporal_variance_mask(threshold, by_slice=False, erosion=False):
 
     threshold_method = "VAR"
 
@@ -190,7 +190,8 @@ def temporal_variance_mask(threshold, by_slice=False):
     input_node = pe.Node(util.IdentityInterface(fields=['functional_file_path', 'mask_file_path']), name='inputspec')
     output_node = pe.Node(util.IdentityInterface(fields=['mask']), name='outputspec')
 
-    detrend = pe.Node(afni.Detrend(args='-polort 1', outputtype='NIFTI'), name='detrend')
+    # nipype performs quadratic regression
+    detrend = pe.Node(afni.Detrend(args='-polort 2', outputtype='NIFTI'), name='detrend')
     wf.connect(input_node, 'functional_file_path', detrend, 'in_file')
 
     std = pe.Node(afni.TStat(args='-nzstdev', outputtype='NIFTI'), name='std')

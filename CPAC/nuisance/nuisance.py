@@ -605,8 +605,8 @@ def create_nuisance_workflow(nuisance_selectors,
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'selector',
         'functional_file_path',
-
         'anatomical_file_path',
+        'anatomical_eroded_brain_mask_file_path',
         'gm_mask_file_path',
         'wm_mask_file_path',
         'csf_mask_file_path',
@@ -637,6 +637,7 @@ def create_nuisance_workflow(nuisance_selectors,
     # Resources to create regressors
     pipeline_resource_pool = {
         "Anatomical": (inputspec, 'anatomical_file_path'),
+        "AnatomicalErodedMask": (inputspec, 'anatomical_eroded_brain_mask_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
@@ -841,7 +842,8 @@ def create_nuisance_workflow(nuisance_selectors,
                     regressor_selector['by_slice'] = False
 
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
-                                                     by_slice=regressor_selector['by_slice'])
+                                                     by_slice=regressor_selector['by_slice'],
+                                                     erosion=regressor_selector['erode_mask'])
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
                 nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
