@@ -605,7 +605,6 @@ def create_func_preproc(skullstrip_tool, config=None, wf_name='func_preproc'):
                                                          'mask',
                                                          'skullstrip',
                                                          'func_mean',
-                                                         'func_despiked',
                                                          'preprocessed',
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
@@ -712,22 +711,8 @@ def create_func_preproc(skullstrip_tool, config=None, wf_name='func_preproc'):
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
 
-    if runDespike:
-        despike = pe.Node(interface=preprocess.Despike(), 
-                        name='func_despiked')
-        despike.inputs.outputtype = 'NIFTI_GZ' 
-
-        preproc.connect(skullstrip_func, 'outputspec.func_brain',
-                        despike, 'in_file')
-
-        preproc.connect(despike, 'out_file',
-                        func_mean, 'in_file')
-
-        preproc.connect(despike, 'out_file',
-                        output_node, 'func_despiked')
-    else: 
-        preproc.connect(skullstrip_func, 'outputspec.func_brain', 
-                        func_mean, 'in_file')
+    preproc.connect(skullstrip_func, 'outputspec.func_brain', 
+                    func_mean, 'in_file')
 
     if config.n4_correct_mean_EPI :
         func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 

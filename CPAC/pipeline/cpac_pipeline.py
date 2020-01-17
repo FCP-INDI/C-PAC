@@ -1632,6 +1632,37 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list = new_strat_list
 
+        # Despike Workflow
+        new_strat_list = []
+
+        for num_strat, strat in enumerate(strat_list):
+
+            if 0 in c.runDespike:
+            
+                new_strat_list += [strat.fork()]
+
+            if 1 in c.runDespike:
+
+                new_strat = strat.fork()
+
+                despike = pe.Node(interface=preprocess.Despike(), 
+                                name='func_despiked')
+                despike.inputs.outputtype = 'NIFTI_GZ' 
+
+                node, out_file = new_strat.get_leaf_properties()
+                workflow.connect(node, out_file, 
+                                despike, 'in_file')
+
+                new_strat.set_leaf_properties(despike, 'out_file')
+
+                new_strat.update_resource_pool({
+                    'despiked': (despike, 'out_file')
+                })
+
+                new_strat_list.append(new_strat)
+
+        strat_list = new_strat_list
+
 
         # Slice Timing Correction Workflow
         new_strat_list = []

@@ -478,6 +478,10 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
+# Run AFNI 3dDespike 
+runDespike : [0,1]
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -662,11 +666,6 @@ bold_bet_threshold :  Off
 
 # Vertical gradient in fractional intensity threshold (-1,1)
 bold_bet_vertical_gradient : 0.0
-
-
-# Run AFNI 3dDespike after motion correction
-runDespike : False
-
 
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
