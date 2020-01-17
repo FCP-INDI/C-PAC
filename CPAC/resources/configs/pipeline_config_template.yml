@@ -610,6 +610,10 @@ func_reg_input_volume :  0
 functionalMasking :  ['AFNI']
 
 
+# Run AFNI 3dDespike after motion correction
+runDespike : False
+
+
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
 anatomical_mask_dilation : False 
 
@@ -907,6 +911,10 @@ memoryAllocatedForDegreeCentrality :  3.0
 # On/Off - Run smoothing and output both the smoothed and non-smoothed outputs.
 # Off - Don't run smoothing.
 run_smoothing :  [1]
+
+
+# smoothing method: either FSL or AFNI 
+smoothing_method: ['FSL']
 
 
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.

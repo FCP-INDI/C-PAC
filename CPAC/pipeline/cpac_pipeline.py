@@ -1561,6 +1561,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         skullstrip_tool=skullstrip_tool,
                         n4_correction=c.n4_correct_mean_EPI,
                         anatomical_mask_dilation=c.anatomical_mask_dilation,
+                        runDespike=c.runDespike,
                         wf_name='func_preproc_before_stc_%s_%d' % (skullstrip_tool, num_strat)
                     )
 
@@ -2403,8 +2404,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # to guarantee immutability
                     regressors_selector = NuisanceRegressor(
-                        copy.deepcopy(regressors_selector),
-                        copy.deepcopy(c.Regressors)
+                        copy.deepcopy(regressors_selector)
                     )
 
                     # remove tissue regressors when there is no segmentation

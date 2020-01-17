@@ -336,7 +336,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation=False, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation=False, runDespike=False, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -544,6 +544,7 @@ def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation
                                                          'mask',
                                                          'skullstrip',
                                                          'func_mean',
+                                                         'func_despiked',
                                                          'preprocessed',
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
@@ -650,14 +651,28 @@ def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect(skullstrip_func, 'outputspec.func_brain', 
-                    func_mean, 'in_file')
+    if runDespike:
+        despike = pe.Node(interface=preprocess.Despike(), 
+                        name='func_despiked')
+        despike.inputs.outputtype = 'NIFTI_GZ' 
+
+        preproc.connect(skullstrip_func, 'outputspec.func_brain',
+                        despike, 'in_file')
+
+        preproc.connect(despike, 'out_file',
+                        func_mean, 'in_file')
+
+        preproc.connect(despike, 'out_file',
+                        output_node, 'func_despiked')
+    else: 
+        preproc.connect(skullstrip_func, 'outputspec.func_brain', 
+                        func_mean, 'in_file')
 
     if n4_correction:
         func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_mean_n4_corrected')
         func_mean_n4_corrected.inputs.args = '-r True'
-        # func_mean_n4_corrected.inputs.rescale_intensities = True
+        
         preproc.connect(func_mean, 'out_file', 
                     func_mean_n4_corrected, 'input_image')
         preproc.connect(func_mean_n4_corrected, 'output_image',
@@ -816,10 +831,11 @@ def connect_func_preproc(workflow, strat_list, c):
             skullstrip_tool = skullstrip_tool.lower()
 
             new_strat = strat.fork()
-
+            
             func_preproc = create_func_preproc(
                 skullstrip_tool=skullstrip_tool,
                 n4_correction=c.n4_correct_mean_EPI,
+                runDespike=c.runDespike,
                 wf_name='func_preproc_%s_%d' % (skullstrip_tool, num_strat)
             )
 
