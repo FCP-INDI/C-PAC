@@ -28,7 +28,7 @@ def load_yaml_config(config_filename, aws_input_creds):
         try:
             header, encoded = config_filename.split(",", 1)
             config_content = b64decode(encoded)
-            config_data = yaml.load(config_content)
+            config_data = yaml.safe_load(config_content)
             return config_data
         except:
             print("Error! Could not find load config from data URI")
@@ -55,7 +55,7 @@ def load_yaml_config(config_filename, aws_input_creds):
 
     try:
         with open(config_filename, 'r') as f:
-            config_data = yaml.load(f)
+            config_data = yaml.safe_load(f)
             return config_data
     except IOError:
         print("Error! Could not find config file {0}".format(config_filename))
@@ -75,7 +75,7 @@ def run(command, env={}):
 
 def parse_yaml(value):
     try:
-        config = yaml.load(value)
+        config = yaml.safe_load(value)
         if type(config) != dict:
             raise
         return config

@@ -370,7 +370,7 @@ def generate_suplimentary_files(output_path):
     from sets import Set
     import csv
 
-    subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_subject_list.yml'), 'r'))
+    subjects_list = yaml.safe_load(open(os.path.join(output_path, 'CPAC_subject_list.yml'), 'r'))
 
     subject_scan_set = Set()
     subject_set = Set()
@@ -487,7 +487,7 @@ def run(data_config):
 
     import sys
 
-    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r')))
+    c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), 'r')))
     
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)

@@ -418,7 +418,7 @@ class ModelConfig(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
 
-            config_map = yaml.load(open(path, 'r'))
+            config_map = yaml.safe_load(open(path, 'r'))
             s_map = dict((v, k) for k, v in substitution_map.iteritems())
 
             # load the group analysis .yml config file (in dictionary form)

@@ -253,7 +253,7 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
 
     try:
         with open(data_config_path, 'r') as f:
-            subjects_list = yaml.load(f)
+            subjects_list = yaml.safe_load(f)
     except:
         err = "\n\n[!] Data configuration file couldn't be read!\nFile " \
               "path: {0}\n".format(data_config_path)
@@ -1700,7 +1700,7 @@ def run(data_settings_yml):
     print "\nGenerating data configuration file.."
 
     with open(data_settings_yml, "r") as f:
-        settings_dct = yaml.load(f)
+        settings_dct = yaml.safe_load(f)
 
     if "awsCredentialsFile" not in settings_dct or \
             not settings_dct["awsCredentialsFile"]:

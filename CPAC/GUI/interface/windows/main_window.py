@@ -259,7 +259,7 @@ class ListBox(wx.Frame):
         import CPAC.pipeline.cpac_runner
         from CPAC.utils import Configuration
 
-        c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
+        c = Configuration(yaml.safe_load(open(os.path.realpath(pipeline), 'r')))
         plugin_args = {'n_procs': c.maxCoresPerParticipant,
                        'memory_gb': c.maximumMemoryPerParticipant}
 
@@ -325,7 +325,7 @@ class ListBox(wx.Frame):
                 if os.path.exists(pipeline):
                     try:
                         import yaml
-                        config = yaml.load(open(pipeline, 'r'))
+                        config = yaml.safe_load(open(pipeline, 'r'))
                     except:
                         raise Exception("Error reading config file- %s", config)
                     if 'pipeline_dir' in config.keys():
@@ -371,7 +371,7 @@ class ListBox(wx.Frame):
                 if os.path.exists(pipeline):
                     try:
                         import yaml
-                        config = yaml.load(open(pipeline, 'r'))
+                        config = yaml.safe_load(open(pipeline, 'r'))
                     except:
                         raise Exception("Error reading config file- %s", config)
                     if 'pipeline_dir' in config.keys():
@@ -459,7 +459,7 @@ class ListBox(wx.Frame):
             if os.path.exists(path):
                 import yaml
                 with open(path, 'r') as f:
-                    config = yaml.load(f)
+                    config = yaml.safe_load(f)
 
                 if 'pipelineName' in config.keys():
                     ind = True
@@ -561,7 +561,7 @@ class ListBox(wx.Frame):
                 path = os.path.realpath(path)
                 # Try and load in file contents
                 try:
-                    f_sl = yaml.load(open(path, 'r'))
+                    f_sl = yaml.safe_load(open(path, 'r'))
                 except Exception as e:
                     print 'Unable to load in the specified file: %s' % path
                     print 'Error:\n%s' % e
@@ -610,7 +610,7 @@ class ListBox(wx.Frame):
             win.Refresh()
 
         try:
-            c = yaml.load(open(config, 'r'))
+            c = yaml.safe_load(open(config, 'r'))
         except:
             dlg = wx.MessageDialog(self, 'Error loading yaml file. Please check the file format',
                                    'Error!', wx.OK | wx.ICON_ERROR)
@@ -722,7 +722,7 @@ class ListBox(wx.Frame):
             if os.path.exists(path):
                 path = os.path.realpath(path)
                 try:
-                    f_cfg = yaml.load(open(path, 'r'))
+                    f_cfg = yaml.safe_load(open(path, 'r'))
                 except Exception as e:
                     print '\n\nUnable to load the specified file: %s' % path
                     print "The YAML file may not be formatted properly."

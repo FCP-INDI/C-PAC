@@ -19,7 +19,7 @@ def create_yaml_from_template(d, template):
     output = ""
 
     with open(template, 'r') as dtf:
-        d_default = yaml.load(dtf)
+        d_default = yaml.safe_load(dtf)
 
     empty_lines = 0
     with open(template, 'r') as f:
@@ -50,7 +50,7 @@ def create_yaml_from_template(d, template):
                 else:
                     output += key + ":\n"
                     continue
-                    
+
                 empty_lines = 0
                 default_flow_style = False
 
@@ -68,6 +68,6 @@ def create_yaml_from_template(d, template):
                     default_flow_style=default_flow_style,
                     Dumper=noalias_dumper
                 ).strip("{}\n\r") + "\n"
-                
+
 
     return output

@@ -390,7 +390,7 @@ class DataConfig(wx.Frame):
         # Try to build subject list from config
         try:
             # Load in configuration file
-            config_map = yaml.load(open(config, 'r'))
+            config_map = yaml.safe_load(open(config, 'r'))
 
             # Extract arguments for supplementary files
             sublist_outdir = config_map.get('outputSubjectListLocation')
@@ -631,7 +631,7 @@ class DataConfig(wx.Frame):
                 path = dlg.GetPath()
                 # Try and load in file contents
                 try:
-                    config_map = yaml.load(open(os.path.realpath(path),'r'))
+                    config_map = yaml.safe_load(open(os.path.realpath(path),'r'))
                 # Otherwise, report error
                 except IOError as exc:
                     err_msg = 'File %s does not exist. Check and try again. '\

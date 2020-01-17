@@ -89,7 +89,7 @@ def test_nuisance_workflow_type1():
     except:
         pass
 
-    selector_test = yaml.load(selector_config)['Regressors']
+    selector_test = yaml.safe_load(selector_config)['Regressors']
 
     for selector in selector_test:
 

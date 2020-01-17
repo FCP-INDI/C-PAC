@@ -15,7 +15,7 @@ def test_representations():
         }
     }) == 'CSF-2mmE-PC5'
 
-    selector_test = yaml.load("""
+    selector_test = yaml.safe_load("""
 
         tCompCor:
             summary:

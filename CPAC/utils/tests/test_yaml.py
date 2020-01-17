@@ -10,7 +10,7 @@ def test_yaml_template():
 
     # Create a new YAML configuration file based on the default_pipeline.yml file.
     with open("./data/default_pipeline.yml", "r") as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
 
     new_config = create_yaml_from_template(config, "./data/default_pipeline.yml")
 
