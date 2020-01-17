@@ -487,6 +487,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                 'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
             })
+            new_strat.update_resource_pool({
+                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask')}, override=True)
 
             new_strat_list += [new_strat]
 
@@ -1569,9 +1571,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file, func_preproc,
                                     'inputspec.func')
 
-                    node, out_file = strat['anatomical_reorient']
+                    node, out_file = strat['anatomical_brain']
                     workflow.connect(node, out_file, func_preproc,
-                                    'inputspec.anat_skull')
+                                    'inputspec.anat_brain')
 
                     node, out_file = strat['anatomical_brain_mask']
                     workflow.connect(node, out_file, func_preproc,
