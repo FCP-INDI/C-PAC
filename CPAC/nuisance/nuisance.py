@@ -7,6 +7,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
+import nipype.interfaces.c3 as c3
 from nipype.interfaces import afni
 
 import CPAC
@@ -639,6 +640,7 @@ def create_nuisance_workflow(nuisance_selectors,
         "Anatomical": (inputspec, 'anatomical_file_path'),
         "AnatomicalErodedMask": (inputspec, 'anatomical_eroded_brain_mask_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
+        # "FunctionalErodedMask": (inputspec, 'functional_eroded_brain_mask_file_path'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
         "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
@@ -843,12 +845,33 @@ def create_nuisance_workflow(nuisance_selectors,
 
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
                                                      by_slice=regressor_selector['by_slice'],
-                                                     erosion=regressor_selector['erode_mask'])
+                                                     erosion=regressor_selector['erode_mask'],
+                                                     degree=regressor_selector['degree'])
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
 
-                if regressor_selector['erode_mask']:
-                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (temporal_wf, 'inputspec.mask_file_path')))
+                if regressor_selector['erode_mask']: # in func/anat space 
+                    # transform eroded anat brain mask to functional space 
+                    # convert_xfm
+                    anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
+                    anat_to_func_linear_xfm.inputs.invert_xfm = True
+                    nuisance_wf.connect(*(pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + (anat_to_func_linear_xfm, 'in_file')))
+
+                    # c3d_affine_tool
+                    anat_to_func_affine = pe.Node(interface=c3.C3dAffineTool(), name='anat_to_func_affine')
+                    anat_to_func_affine.inputs.fsl2ras = True
+                    nuisance_wf.connect(anat_to_func_linear_xfm, 'out_file', anat_to_func_affine, 'source_file')
+
+                    # antsApplyTransforms                
+                    anat_to_func_mask = pe.Node(interface=ants.ApplyTransforms(), name='Functional_eroded_mask')
+                    anat_to_func_mask.inputs.dimension = 3
+                    anat_to_func_mask.inputs.interpolation = 'NearestNeighbor'
+                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (anat_to_func_mask, 'input_image')))
+                    nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (anat_to_func_mask, 'reference_image')))
+                    nuisance_wf.connect(anat_to_func_affine, 'itk_transform', anat_to_func_mask, 'transforms')
+                    
+                    # connect workflow
+                    nuisance_wf.connect(anat_to_func_mask, 'output_image', temporal_wf, 'inputspec.mask_file_path')
                 else:
                     nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
 

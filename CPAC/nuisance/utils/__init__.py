@@ -149,7 +149,7 @@ def compute_sd_threshold(in_file, mask, threshold_sd):
     return d.mean() + threshold_sd * d.std()
 
 
-def temporal_variance_mask(threshold, by_slice=False, erosion=False):
+def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
 
     threshold_method = "VAR"
 
@@ -190,8 +190,8 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False):
     input_node = pe.Node(util.IdentityInterface(fields=['functional_file_path', 'mask_file_path']), name='inputspec')
     output_node = pe.Node(util.IdentityInterface(fields=['mask']), name='outputspec')
 
-    # nipype performs quadratic regression
-    detrend = pe.Node(afni.Detrend(args='-polort 2', outputtype='NIFTI'), name='detrend')
+    # C-PAC default performs linear regression while nipype performs quadratic regression
+    detrend = pe.Node(afni.Detrend(args='-polort %d'.format(degree), outputtype='NIFTI'), name='detrend')
     wf.connect(input_node, 'functional_file_path', detrend, 'in_file')
 
     std = pe.Node(afni.TStat(args='-nzstdev', outputtype='NIFTI'), name='std')
@@ -585,6 +585,11 @@ class NuisanceRegressor(object):
                     if type(t) != str:
                         t = "%.2f" % t
                     threshold += t
+                if s.get('erode_mask'): # ???
+                    threshold += 'E'
+                if s.get('degree'):
+                    d = s.get('degree')
+                    threshold += str(d)
 
                 pieces += [threshold]
                 pieces += [NuisanceRegressor._summary_params(s)]
