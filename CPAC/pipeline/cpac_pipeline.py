@@ -1311,7 +1311,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                 name='erode_skullstrip_brain_mask')
             eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm                                    
             workflow.connect(anat_preproc, 'outputspec.brain_mask', eroded_mask, 'skullstrip_mask')
-            workflow.connect(seg_preproc, 'outputspec.csf_probability_map', eroded_mask, 'roi_mask') # connect csf probability map!!! 
+            workflow.connect(seg_preproc, 'outputspec.csf_probability_map', eroded_mask, 'roi_mask') 
 
             strat.append_name(seg_preproc.name)
             strat.update_resource_pool({

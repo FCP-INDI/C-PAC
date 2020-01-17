@@ -846,7 +846,11 @@ def create_nuisance_workflow(nuisance_selectors,
                                                      erosion=regressor_selector['erode_mask'])
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
-                nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
+
+                if regressor_selector['erode_mask']:
+                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (temporal_wf, 'inputspec.mask_file_path')))
+                else:
+                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
 
                 pipeline_resource_pool[regressor_descriptor['tissue']] = \
                     (temporal_wf, 'outputspec.mask')
