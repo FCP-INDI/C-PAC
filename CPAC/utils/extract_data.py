@@ -390,8 +390,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
     data_config_path = os.path.join(data_config_outdir, data_config_name)
 
     try:
-        with open(data_config_path, 'r') as f:
-            subjects_list = yaml.safe_load(f)
+        subjects_list = yaml.safe_load(open(data_config_path, 'r'))
     except:
         err = "\n\n[!] Data configuration file couldn't be read!\nFile " \
               "path: {0}\n".format(data_config_path)

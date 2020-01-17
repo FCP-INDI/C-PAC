@@ -458,8 +458,7 @@ class ListBox(wx.Frame):
             
             if os.path.exists(path):
                 import yaml
-                with open(path, 'r') as f:
-                    config = yaml.safe_load(f)
+                config = yaml.safe_load(open(path, 'r'))
 
                 if 'pipelineName' in config.keys():
                     ind = True

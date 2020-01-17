@@ -631,7 +631,7 @@ class DataConfig(wx.Frame):
                 path = dlg.GetPath()
                 # Try and load in file contents
                 try:
-                    config_map = yaml.safe_load(open(os.path.realpath(path),'r'))
+                    config_map = yaml.safe_load(open(os.path.realpath(path), 'r'))
                 # Otherwise, report error
                 except IOError as exc:
                     err_msg = 'File %s does not exist. Check and try again. '\

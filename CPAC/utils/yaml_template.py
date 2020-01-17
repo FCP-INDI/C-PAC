@@ -18,8 +18,7 @@ def create_yaml_from_template(d, template):
 
     output = ""
 
-    with open(template, 'r') as dtf:
-        d_default = yaml.safe_load(dtf)
+    d_default = yaml.safe_load(open(template, 'r'))
 
     empty_lines = 0
     with open(template, 'r') as f:

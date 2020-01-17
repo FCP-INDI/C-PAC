@@ -54,9 +54,8 @@ def load_yaml_config(config_filename, aws_input_creds):
     config_filename = os.path.realpath(config_filename)
 
     try:
-        with open(config_filename, 'r') as f:
-            config_data = yaml.safe_load(f)
-            return config_data
+        config_data = yaml.safe_load(open(config_filename, 'r'))
+        return config_data
     except IOError:
         print("Error! Could not find config file {0}".format(config_filename))
         raise

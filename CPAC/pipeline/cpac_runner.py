@@ -266,8 +266,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     # Load in subject list
     try:
         if not sublist:
-            with open(subject_list_file, 'r') as sf:
-                sublist = yaml.safe_load(sf)
+            sublist = yaml.safe_load(open(subject_list_file, 'r'))
     except:
         print "Subject list is not in proper YAML format. Please check " \
               "your file"

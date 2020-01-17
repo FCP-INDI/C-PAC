@@ -9,16 +9,15 @@ def test_yaml_template():
     config_file = tempfile.mkstemp(suffix='test_yaml_template')[1]
 
     # Create a new YAML configuration file based on the default_pipeline.yml file.
-    with open("./data/default_pipeline.yml", "r") as f:
-        config = yaml.safe_load(f)
+    config = yaml.safe_load(open('./data/default_pipeline.yml', 'r'))
 
-    new_config = create_yaml_from_template(config, "./data/default_pipeline.yml")
+    new_config = create_yaml_from_template(config, './data/default_pipeline.yml')
 
-    with open(config_file, "wb") as f:
+    with open(config_file, 'wb') as f:
         f.write(new_config)
 
     # Verify that the output has preserved blank lines, comments
-    with open(config_file, "r") as f:
+    with open(config_file, 'r') as f:
         lines = f.readlines()
         # Assert first lines starts with a comment
         assert lines[0].startswith('# ')
