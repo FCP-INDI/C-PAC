@@ -344,6 +344,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     except KeyError:
         input_creds_path = None
 
+    # check if lateral_ventricles_mask exist
+    if 'none' in str(c.lateral_ventricles_mask).lower():
+        ventricle_mask_exist = False
+    else:
+        ventricle_mask_exist = True
+
     # TODO ASH normalize file paths with schema validator
     template_keys = [
         ("anat", "templateSpecificationFile"),
@@ -1227,12 +1233,26 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             seg_preproc = create_seg_preproc(use_ants=use_ants,
                                              use_priors=c.seg_use_priors,
                                              use_threshold=c.seg_use_threshold,
-                                             use_erosion=c.seg_use_erosion,
-                                             erosion_prop=c.seg_erosion_prop,
+                                             csf_use_erosion=c.seg_csf_use_erosion,
+                                             wm_use_erosion=c.seg_wm_use_erosion,
+                                             gm_use_erosion=c.seg_gm_use_erosion,
                                              wf_name='seg_preproc_{0}'.format(num_strat))
             seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
             seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
             seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+
+            seg_preproc.inputs.csf_erosion_prop.csf_erosion_prop=c.csf_erosion_prop
+            seg_preproc.inputs.wm_erosion_prop.wm_erosion_prop=c.wm_erosion_prop
+            seg_preproc.inputs.gm_erosion_prop.gm_erosion_prop=c.gm_erosion_prop
+
+            seg_preproc.inputs.csf_mask_erosion_mm.csf_mask_erosion_mm=c.csf_mask_erosion_mm
+            seg_preproc.inputs.wm_mask_erosion_mm.wm_mask_erosion_mm=c.wm_mask_erosion_mm
+            seg_preproc.inputs.gm_mask_erosion_mm.gm_mask_erosion_mm=c.gm_mask_erosion_mm
+
+            seg_preproc.inputs.csf_erosion_mm.csf_erosion_mm=c.csf_erosion_mm
+            seg_preproc.inputs.wm_erosion_mm.wm_erosion_mm=c.wm_erosion_mm
+            seg_preproc.inputs.gm_erosion_mm.gm_erosion_mm=c.gm_erosion_mm
+
             workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
                                                                  
             # TODO ASH review
@@ -2382,8 +2402,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # to guarantee immutability
                     regressors_selector = NuisanceRegressor(
-                        copy.deepcopy(regressors_selector),
-                        copy.deepcopy(c.Regressors)
+                        copy.deepcopy(regressors_selector)
                     )
 
                     # remove tissue regressors when there is no segmentation
@@ -2400,6 +2419,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     nuisance_regression_workflow = create_nuisance_workflow(
                         regressors_selector,
                         use_ants=use_ants,
+                        ventricle_mask_exist=ventricle_mask_exist,
                         name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 

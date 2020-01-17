@@ -346,6 +346,7 @@ def gather_nuisance(functional_file_path,
 
 def create_nuisance_workflow(nuisance_selectors,
                              use_ants,
+                             ventricle_mask_exist,
                              name='nuisance'):
     """
     Workflow for the removal of various signals considered to be noise from resting state
@@ -968,7 +969,8 @@ def create_nuisance_workflow(nuisance_selectors,
                         pipeline_resource_pool,
                         tissue_regressor_descriptor,
                         regressor_selector,
-                        use_ants=use_ants
+                        use_ants=use_ants,
+                        ventricle_mask_exist=ventricle_mask_exist
                     )
 
                 regressor_mask_file_resource_keys += \
