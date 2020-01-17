@@ -99,7 +99,8 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
     # Refine functional mask by registering anatomical mask to functional space
     elif skullstrip_tool == 'anatomical_refined':
         
-        # Take first volume of func (motion corrected)
+        # step 1. get a tmp func brain
+        # 1.1 Take first volume of func (motion corrected)
         get_func_first_volume = pe.Node(interface=afni.Calc(),
                                 name='get_func_first_volume')
 
@@ -108,10 +109,11 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
             single_idx=1,
             outputtype='NIFTI_GZ'
         )
+
         wf.connect(input_node, 'func',
                         get_func_first_volume, 'in_file_a')
 
-        # N4BiasFieldCorrection first volume of func 
+        # 1.2 N4BiasFieldCorrection first volume of func 
         func_first_volume_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_first_volume_n4_corrected')
         func_first_volume_n4_corrected.inputs.args = '-r True'
@@ -119,7 +121,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(get_func_first_volume, 'out_file', 
                     func_first_volume_n4_corrected, 'input_image')
         
-        # bet n4 corrected image - generate tmp func brain mask
+        # 1.3 bet n4 corrected image - generate tmp func brain mask
         func_tmp_brain_mask = pe.Node(interface=fsl.BET(),
                                       name='func_tmp_brain_mask')
         func_tmp_brain_mask.inputs.mask = True
@@ -127,7 +129,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(func_first_volume_n4_corrected, 'output_image', 
                     func_tmp_brain_mask, 'in_file')
 
-        # dilate func tmp brain mask <fslmaths bet_mask.nii.gz -dilM bet_mask_dil.nii.gz>
+        # 1.4 dilate func tmp brain mask <fslmaths bet_mask.nii.gz -dilM bet_mask_dil.nii.gz>
         func_tmp_brain_mask_dil = pe.Node(interface=fsl.ImageMaths(), 
                                                 name='func_tmp_brain_mask_dil')
         func_tmp_brain_mask_dil.inputs.op_string = '-dilM ' 
@@ -135,7 +137,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(func_tmp_brain_mask, 'mask_file',   
                     func_tmp_brain_mask_dil, 'in_file')
 
-        # get temporary func brain <3dcalc -a func_first_volume.nii.gz -b func_tmp_brain_mask_dil.nii.gz -expr 'a*b' -prefix func_tmp_brain.nii.gz
+        # 1.5 get temporary func brain <3dcalc -a func_first_volume.nii.gz -b func_tmp_brain_mask_dil.nii.gz -expr 'a*b' -prefix func_tmp_brain.nii.gz
         func_tmp_brain = pe.Node(interface=afni_utils.Calc(),
                                name='func_tmp_brain')
         func_tmp_brain.inputs.expr = 'a*b'
@@ -147,7 +149,8 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(func_tmp_brain_mask_dil, 'out_file',
                    func_tmp_brain, 'in_file_b')
         
-        # Register func tmp brain to anat brain to get func2anat matrix
+        # step 2. get transformation of anat to func
+        # 2.1 Register func tmp brain to anat brain to get func2anat matrix
         linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                          name='func_to_anat_linear_reg')
         linear_reg_func_to_anat.inputs.cost = 'mutualinfo'
@@ -156,7 +159,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(func_tmp_brain, 'out_file', linear_reg_func_to_anat, 'in_file')
         wf.connect(input_node, 'anat_brain', linear_reg_func_to_anat, 'reference')
 
-        # Inverse func to anat affine
+        # 2.2 Inverse func to anat affine
         inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
                                 name='inv_func2anat_affine')
         inv_func_to_anat_affine.inputs.invert_xfm = True
@@ -164,15 +167,24 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
                                     inv_func_to_anat_affine, 'in_file')
 
-        # fill holes of anat mask first <3dmask_tool -input anat_mask.nii.gz -prefix anat_mask_filled.nii.gz -fill_holes>
+        # step 3. anat mask to func space
+        # 3.1 binarize anat mask, in case of inputted anatomical_brain_mask is not a binary mask. 
+        brain_mask_bin = pe.Node(interface=fsl.ImageMaths(),
+                                    name='anat_brain_mask_bin')
+        brain_mask_bin.inputs.op_string = '-bin'
+
+        wf.connect(input_node, 'anatomical_brain_mask',
+                    brain_mask_bin, 'in_file')
+
+        # 3.2 fill holes of anat mask first <3dmask_tool -input anat_mask.nii.gz -prefix anat_mask_filled.nii.gz -fill_holes>
         anat_mask_filled = pe.Node(interface=afni.MaskTool(),
-                        name='anat_mask_filled')
+                        name='anat_brain_mask_filled')
         anat_mask_filled.inputs.fill_holes = True
         anat_mask_filled.inputs.outputtype = 'NIFTI_GZ'
 
-        wf.connect(input_node, 'anatomical_brain_mask', anat_mask_filled, 'in_file' )
+        wf.connect(brain_mask_bin, 'out_file', anat_mask_filled, 'in_file' )
        
-        # Transform anatomical mask to functional space to get BOLD mask : reference func tmp brain
+        # 3.3 Transform anatomical mask to functional space to get BOLD mask : reference func tmp brain
         reg_anat_mask_to_func = pe.Node(interface=fsl.FLIRT(),
                          name='reg_anat_mask_to_func')
         reg_anat_mask_to_func.inputs.apply_xfm = True
@@ -196,7 +208,13 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         else: 
             wf.connect(anat_mask_filled, 'out_file', reg_anat_mask_to_func, 'in_file')
         
-        wf.connect(reg_anat_mask_to_func, 'out_file',output_node, 'func_brain_mask')
+        # 3.4 get final func mask: refine func tmp mask with anat_mask_in_func mask
+        func_mask = pe.Node(interface=fsl.MultiImageMaths(), name='func_mask')
+        func_mask.inputs.op_string = "-mul %s"
+        wf.connect(func_tmp_brain_mask_dil, 'out_file', func_mask, 'in_file')
+        wf.connect(reg_anat_mask_to_func, 'out_file', func_mask, 'operand_files')
+
+        wf.connect(func_mask, 'out_file',output_node, 'func_brain_mask')
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
                                name='func_extract_brain')
@@ -216,7 +234,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         wf.connect(combine_masks, 'out_file',
                         func_edge_detect, 'in_file_b')
     elif skullstrip_tool == 'anatomical_refined':
-        wf.connect(reg_anat_mask_to_func, 'out_file',
+        wf.connect(func_mask, 'out_file',
                         func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
