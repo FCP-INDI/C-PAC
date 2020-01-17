@@ -13,7 +13,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 from CPAC.utils.datasource import check_for_s3
 
 
-def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_name='anat_preproc'):
+def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc'):
     """The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image
     for later use in registration.
@@ -103,19 +103,19 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
     preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')    
     # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
-        c.non_local_means_filtering = False 
-        c.n4_bias_field_correction = False
+        config.non_local_means_filtering = False 
+        config.n4_bias_field_correction = False
         
-    if c.non_local_means_filtering and c.n4_bias_field_correction:
+    if config.non_local_means_filtering and config.n4_bias_field_correction:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
         preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
         preproc.connect(denoise, 'output_image', n4, 'input_image')
-    elif c.non_local_means_filtering and not c.n4_bias_field_correction:
+    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
         preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
-    elif not c.non_local_means_filtering and c.n4_bias_field_correction:
+    elif not config.non_local_means_filtering and config.n4_bias_field_correction:
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
         preproc.connect(anat_deoblique, 'out_file', n4, 'input_image')
@@ -126,9 +126,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
     
-    if c.n4_bias_field_correction:
+    if config.n4_bias_field_correction:
         preproc.connect(n4, 'output_image', anat_reorient, 'in_file')
-    elif c.non_local_means_filtering and not c.n4_bias_field_correction:
+    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
         preproc.connect(denoise, 'output_image', anat_reorient, 'in_file')
     else:
         preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
@@ -334,9 +334,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
 
         elif method == 'niworkflows-ants': 
             # Skull-stripping using niworkflows-ants  
-            anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=c.niworkflows_ants_template_path,
-                                                            tpl_mask_path=c.niworkflows_ants_mask_path,
-                                                            tpl_regmask_path=c.niworkflows_ants_regmask_path,
+            anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=config.niworkflows_ants_template_path,
+                                                            tpl_mask_path=config.niworkflows_ants_mask_path,
+                                                            tpl_regmask_path=config.niworkflows_ants_regmask_path,
                                                             name='anat_skullstrip_ants')
 
             preproc.connect(anat_reorient, 'out_file',
@@ -395,7 +395,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             """
             # TODO: add options to pipeline_config
             train_model = UNet2d(dim_in=3, num_conv_block=5, kernel_root=16)
-            unet_path = check_for_s3(c.unet_model)
+            unet_path = check_for_s3(config.unet_model)
             checkpoint = torch.load(unet_path, map_location={'cuda:0':'cpu'})
             train_model.load_state_dict(checkpoint['state_dict'])
             model = nn.Sequential(train_model, nn.Softmax2d())
@@ -421,7 +421,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
             # TODO change it to ANTs linear transform
             native_brain_to_template_brain = pe.Node(interface=fsl.FLIRT(), name='native_brain_to_template_brain')
-            native_brain_to_template_brain.inputs.reference = c.template_brain_only_for_anat
+            native_brain_to_template_brain.inputs.reference = config.template_brain_only_for_anat
             native_brain_to_template_brain.inputs.dof = 6
             native_brain_to_template_brain.inputs.interp = 'sinc'
             preproc.connect(unet_masked_brain, 'out_file', native_brain_to_template_brain, 'in_file')
@@ -429,21 +429,21 @@ def create_anat_preproc(method='afni', already_skullstripped=False, c=None, wf_n
             # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
             # TODO change it to ANTs linear transform
             native_head_to_template_head = pe.Node(interface=fsl.FLIRT(), name='native_head_to_template_head')
-            native_head_to_template_head.inputs.reference = c.template_skull_for_anat
+            native_head_to_template_head.inputs.reference = config.template_skull_for_anat
             native_head_to_template_head.inputs.apply_xfm = True
             preproc.connect(anat_reorient, 'out_file', native_head_to_template_head, 'in_file')
             preproc.connect(native_brain_to_template_brain, 'out_matrix_file', native_head_to_template_head, 'in_matrix_file')
             
             # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
             template_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), name='template_brain_mask')
-            template_brain_mask.inputs.in_file = c.template_brain_only_for_anat
+            template_brain_mask.inputs.in_file = config.template_brain_only_for_anat
             template_brain_mask.inputs.args = '-bin'
 
             # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
             ants_template_head_to_template = pe.Node(interface=ants.Registration(), name='template_head_to_template')
             ants_template_head_to_template.inputs.metric = ['CC']
             ants_template_head_to_template.inputs.metric_weight = [1,5]
-            ants_template_head_to_template.inputs.moving_image = c.template_skull_for_anat
+            ants_template_head_to_template.inputs.moving_image = config.template_skull_for_anat
             ants_template_head_to_template.inputs.transforms = ['SyN']
             ants_template_head_to_template.inputs.transform_parameters = [(0.25,)]
             ants_template_head_to_template.inputs.interpolation = 'NearestNeighbor'
