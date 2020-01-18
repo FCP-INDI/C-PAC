@@ -479,7 +479,7 @@ runMotionStatisticsFirst : [0]
 
 
 # Run AFNI 3dDespike 
-runDespike : [0,1]
+runDespike : [0]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.
