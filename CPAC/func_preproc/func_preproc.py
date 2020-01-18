@@ -126,7 +126,7 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
 
     wf.connect(inv_func_to_anat_affine, 'out_file',
                 reg_anat_mask_to_func, 'in_matrix_file')
-
+                
     # 5. get final func mask: refine func tmp mask with anat_mask_in_func mask
     func_mask = pe.Node(interface=fsl.MultiImageMaths(), name='func_mask')
     func_mask.inputs.op_string = "-mul %s"
