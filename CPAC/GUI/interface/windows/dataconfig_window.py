@@ -1,20 +1,9 @@
-# CPAC/GUI/interface/windows/dataconfig_window.py
-#
-#
-
-'''
-This module starts the data configuration GUI for building a subject list
-'''
-
-# Import packages
 import wx
 from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
 import os
 import yaml
 import CPAC
-import pkg_resources as p
-import sys
 
 # Init variables
 ID_RUN_EXT = 11
@@ -22,6 +11,9 @@ ID_RUN_MEXT = 12
 
 
 class DataConfig(wx.Frame):
+    """
+    The data configuration GUI for building a subject list
+    """
 
     # Init method
     def __init__(self, parent):

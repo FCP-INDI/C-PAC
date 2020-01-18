@@ -2,13 +2,11 @@
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
-from ..utils.custom_control import FileSelectorCombo, fsl_flame_presets_window
-from ..utils.constants import multiple_value_wfs
-import wx.lib.agw.aquabutton as AB
+from ..utils.custom_control import fsl_flame_presets_window
 import os
 import pkg_resources as p
 import sys
-from CPAC.utils import Configuration
+from CPAC.utils.configuration import Configuration
 import yaml
 
 # Init constants

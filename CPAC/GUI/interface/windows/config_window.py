@@ -21,8 +21,6 @@ from CPAC.GUI.interface.pages import (
     AROMA_ICA, AromaSettings
 )
 
-from ..utils.constants import dtype as data_types
-
 ID_SUBMIT = 6
 
 

@@ -485,8 +485,6 @@ def run(data_config):
     file as the input argument
     """
 
-    import sys
-
     c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), 'r')))
     
     if c.scanParametersCSV is not None:

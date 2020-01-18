@@ -1,11 +1,8 @@
-import nipype.interfaces.utility as util
+import os
+
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
-import re
-import os
-import sys
-import glob
-from CPAC.utils import Configuration
+
 from CPAC.pipeline.cpac_group_runner import load_config_yml
 
 
@@ -41,8 +38,7 @@ def prep_randomise_workflow(c, subject_infos):
     wf.base_dir = c.workingDirectory
 
     from CPAC.randomise import create_randomise
-    import numpy as np
-    
+
     rw = create_randomise()
 
     rw.inputs.inputspec.permutations = c.randopermutations

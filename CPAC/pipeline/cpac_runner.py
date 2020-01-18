@@ -1,12 +1,11 @@
 import os
-import time
 import warnings
 from multiprocessing import Process
 from time import strftime
 
 import yaml
 
-from CPAC.utils import Configuration
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
 
 

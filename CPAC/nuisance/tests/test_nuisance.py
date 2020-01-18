@@ -1,12 +1,11 @@
-import os
 import yaml
 import glob
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from CPAC.utils.interfaces.function import Function
-from CPAC.nuisance import create_nuisance_workflow, NuisanceRegressor
+from CPAC.nuisance import create_nuisance_workflow
+from CPAC.nuisance.utils import NuisanceRegressor
 
 selector_config = """
 Regressors:

@@ -640,7 +640,6 @@ def run(data_config):
     Run method takes data_config
     file as the input argument
     """
-    import CPAC
     root = logging.getLogger()
     if root.handlers:
         for handler in root.handlers:
