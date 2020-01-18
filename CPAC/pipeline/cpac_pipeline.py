@@ -1541,6 +1541,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # replace the leaf node with the output from the recently added
             # workflow
             strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
+            strat.update_resource_pool({
+                            'raw_functional_trunc': (trunc_wf, 'outputspec.edited_func'),
+                        })
 
         # Motion Statistics Workflow
         new_strat_list = []
@@ -1566,6 +1569,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         runDespike=c.runDespike,
                         wf_name='func_preproc_before_stc_%s_%d' % (skullstrip_tool, num_strat)
                     )
+
+                    node, out_file = strat['raw_functional_trunc']
+                    workflow.connect(node, out_file, func_preproc,
+                                    'inputspec.raw_func')
 
                     node, out_file = new_strat.get_leaf_properties()
                     workflow.connect(node, out_file, func_preproc,
