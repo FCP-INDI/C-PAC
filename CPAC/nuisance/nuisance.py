@@ -843,14 +843,24 @@ def create_nuisance_workflow(nuisance_selectors,
                 else:
                     regressor_selector['by_slice'] = False
 
+                if regressor_selector.get('erode_mask'):
+                    erosion = regressor_selector['erode_mask']
+                else: 
+                    erosion = False
+
+                if regressor_selector.get('degree'):
+                    degree = regressor_selector['degree']
+                else: 
+                    degree = 2
+
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
                                                      by_slice=regressor_selector['by_slice'],
-                                                     erosion=regressor_selector['erode_mask'],
-                                                     degree=regressor_selector['degree'])
+                                                     erosion=erosion,
+                                                     degree=degree)
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
 
-                if regressor_selector['erode_mask']: # in func/anat space 
+                if erosion: # TODO: in func/anat space 
                     # transform eroded anat brain mask to functional space 
                     # convert_xfm
                     anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
