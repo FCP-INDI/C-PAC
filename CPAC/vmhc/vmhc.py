@@ -146,7 +146,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
     `fslmaths <http://www.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro/index.htm>`_::
 
         fslmaths rest_res_filt.nii.gz
-        -kernel gauss FWHM/ sqrt(8-ln(2))
+        -kernel gauss FWHM/ sqrt(8*ln(2))
         -fmean -mas rest_mask.nii.gz
         rest_res_filt_FWHM.nii.gz
         

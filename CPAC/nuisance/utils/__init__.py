@@ -1,22 +1,16 @@
 import os
 import re
-import numpy as np
-import nibabel as nb
+from collections import OrderedDict
 
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
+import nipype.interfaces.fsl as fsl
+import nipype.interfaces.utility as util
+import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
 
-from CPAC.utils.interfaces.function import Function
-from CPAC.utils.interfaces.masktool import MaskTool
-from CPAC.utils.interfaces.brickstat import BrickStat
-
-from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.nuisance.utils.compcor import calc_compcor_components
-
-import scipy.signal as signal
+from CPAC.nuisance.utils.crc import encode as crc_encode
+from CPAC.utils.interfaces.function import Function
 
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
@@ -328,7 +322,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
             if regressor_selector['extraction_resolution'] == "Functional":
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool['Functional'] +
+                    pipeline_resource_pool['Functional_mean'] +
                     (mask_to_epi, 'reference')
                 ))
             else:
@@ -449,9 +443,8 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
 class NuisanceRegressor(object):
 
-    def __init__(self, selector, selectors=None):
+    def __init__(self, selector):
         self.selector = selector
-        self.selectors = selectors
 
         if 'Bandpass' in self.selector:
             s = self.selector['Bandpass']
@@ -511,34 +504,20 @@ class NuisanceRegressor(object):
         return rep
 
     @staticmethod
-    def encode(selector, selectors=None):
-        regs = {
-            'GreyMatter': 'GM',
-            'WhiteMatter': 'WM',
-            'CerebrospinalFluid': 'CSF',
-            'tCompCor': 'tC',
-            'aCompCor': 'aC',
-            'GlobalSignal': 'G',
-            'Motion': 'M',
-            'Custom': 'T',
-            'PolyOrt': 'P',
-            'Bandpass': 'BP',
-            'Censor': 'C',
-        }
-
-        regs_order = [
-            'GreyMatter',
-            'WhiteMatter',
-            'CerebrospinalFluid',
-            'tCompCor',
-            'aCompCor',
-            'GlobalSignal',
-            'Motion',
-            'Custom',
-            'PolyOrt',
-            'Bandpass',
-            'Censor',
-        ]
+    def encode(selector):
+        regs = OrderedDict([
+            ('GreyMatter', 'GM'),
+            ('WhiteMatter', 'WM'),
+            ('CerebrospinalFluid', 'CSF'),
+            ('tCompCor', 'tC'),
+            ('aCompCor', 'aC'),
+            ('GlobalSignal', 'G'),
+            ('Motion', 'M'),
+            ('Custom', 'T'),
+            ('PolyOrt', 'P'),
+            ('Bandpass', 'BP'),
+            ('Censor', 'C')
+        ])
 
         tissues = ['GreyMatter', 'WhiteMatter', 'CerebrospinalFluid']
 
@@ -557,7 +536,7 @@ class NuisanceRegressor(object):
         # P-2
         # B-T0.01-B0.1
 
-        for r in regs_order:
+        for r in regs.iterkeys():
             if r not in selector:
                 continue
 
@@ -670,7 +649,4 @@ class NuisanceRegressor(object):
         return "_".join(selectors_representations)
 
     def __repr__(self):
-        return NuisanceRegressor.encode(
-            self.selector,
-            self.selectors,
-        )
+        return NuisanceRegressor.encode(self.selector)

@@ -493,6 +493,10 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
+# Run AFNI 3dDespike 
+runDespike : [0]
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -623,6 +627,62 @@ func_reg_input_volume :  0
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space. 
 # Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
 functionalMasking :  ['AFNI']
+
+
+# Options to be used for FSL skull-stripping of functional masking.
+
+# Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : On. 
+# Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+# It must be 'on' if select 'bold_bet_reduce_bias','bold_bet_robust','bold_bet_padding','bold_bet_remove_eyes',or 'bold_bet_surfaces' on
+bold_bet_functional_mean_boolean : Off
+
+
+# Set the threshold value controling the brain vs non-brain voxels.
+bold_bet_frac :  0.3
+
+
+# Mesh created along with skull stripping
+bold_bet_mesh_boolean :  Off
+
+
+# Create a surface outline image
+bold_bet_outline :  Off
+
+
+# Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_padding :  Off
+
+
+# Integer value of head radius
+bold_bet_radius :  0
+
+
+# Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_reduce_bias :  Off
+
+
+# Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_remove_eyes :  Off
+
+
+# Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_robust :  Off
+
+
+# Create a skull image
+bold_bet_skull :  Off
+
+
+# Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
+bold_bet_surfaces :  Off
+
+
+# Apply thresholding to segmented brain image and mask
+bold_bet_threshold :  Off
+
+
+# Vertical gradient in fractional intensity threshold (-1,1)
+bold_bet_vertical_gradient : 0.0
 
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
@@ -922,6 +982,10 @@ memoryAllocatedForDegreeCentrality :  3.0
 # On/Off - Run smoothing and output both the smoothed and non-smoothed outputs.
 # Off - Don't run smoothing.
 run_smoothing :  [1]
+
+
+# smoothing method: either FSL or AFNI 
+smoothing_method: ['FSL']
 
 
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
