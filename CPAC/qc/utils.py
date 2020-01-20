@@ -1256,8 +1256,8 @@ def gen_motion_plt(motion_parameters):
 
     """
 
-    rotation_plot = os.path.join(os.getcwd(), 'motion_trans_plot.png')
-    translation_plot = os.path.join(os.getcwd(), 'motion_rot_plot.png')
+    rotation_plot = os.path.join(os.getcwd(), 'motion_rot_plot.png')
+    translation_plot = os.path.join(os.getcwd(), 'motion_trans_plot.png')
 
     data = np.loadtxt(motion_parameters).T
 
