@@ -616,7 +616,9 @@ functionalMasking :  ['AFNI']
 
 # Options to be used for FSL skull-stripping of functional masking.
 
-# Apply to 4D FMRI data.
+# Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : On. 
+# Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+# It must be 'on' if select 'bold_bet_reduce_bias','bold_bet_robust','bold_bet_padding','bold_bet_remove_eyes',or 'bold_bet_surfaces' on
 bold_bet_functional_mean_boolean : Off
 
 
