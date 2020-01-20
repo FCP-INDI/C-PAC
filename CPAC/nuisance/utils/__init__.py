@@ -321,7 +321,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
             if regressor_selector['extraction_resolution'] == "Functional":
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool['Functional'] +
+                    pipeline_resource_pool['Functional_mean'] +
                     (mask_to_epi, 'reference')
                 ))
             else:

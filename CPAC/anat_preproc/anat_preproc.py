@@ -145,6 +145,16 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
         preproc.connect(anat_skullstrip, 'out_file',
                         outputnode, 'skullstrip')
+        
+        # binarize skullstripped brain to get brain mask
+        brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), name='brain_mask')
+        brain_mask.inputs.args = '-bin'
+
+        preproc.connect(anat_skullstrip, 'out_file',
+                        brain_mask, 'in_file')
+
+        preproc.connect(brain_mask, 'out_file',
+                        outputnode, 'brain_mask')
 
         preproc.connect(anat_skullstrip, 'out_file',
                         outputnode, 'brain')
