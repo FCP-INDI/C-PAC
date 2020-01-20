@@ -246,7 +246,23 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
         # init_bold_mask : input raw func
         init_bold_mask = anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask')
 
+        func_deoblique = pe.Node(interface=afni_utils.Refit(),
+                                name='raw_func_deoblique')
+        func_deoblique.inputs.deoblique = True
+
         wf.connect(input_node, 'raw_func',
+                    func_deoblique, 'in_file')
+
+        func_reorient = pe.Node(interface=afni_utils.Resample(),
+                                name='raw_func_reorient')
+
+        func_reorient.inputs.orientation = 'RPI'
+        func_reorient.inputs.outputtype = 'NIFTI_GZ'
+
+        wf.connect(func_deoblique, 'out_file',
+                    func_reorient, 'in_file')
+                    
+        wf.connect(func_reorient, 'out_file',
                     init_bold_mask, 'inputspec.func')
 
         wf.connect(anat_mask_filled, 'out_file',
