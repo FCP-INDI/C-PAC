@@ -76,7 +76,7 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
         # 2.1.3 dilate func tmp brain mask 
         func_tmp_brain_mask_dil = pe.Node(interface=fsl.ImageMaths(), 
                                                 name='func_tmp_brain_mask_dil')
-        func_tmp_brain_mask_dil.inputs.op_string = '-dilM ' 
+        func_tmp_brain_mask_dil.inputs.op_string = '-dilM' 
 
         wf.connect(func_tmp_brain_mask, 'mask_file',   
                     func_tmp_brain_mask_dil, 'in_file')
@@ -272,11 +272,10 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
                     init_bold_mask, 'inputspec.anat_brain')
         
         # dilate init func brain mask
-        func_tmp_brain_mask = pe.Node(interface=afni.MaskTool(),
-                        name='func_tmp_brain_mask')
-        func_tmp_brain_mask.inputs.dilate_inputs = '3'
-        func_tmp_brain_mask.inputs.outputtype = 'NIFTI_GZ'
-
+        func_tmp_brain_mask = pe.Node(interface=fsl.ImageMaths(),
+                        name='func_tmp_brain_mask_dil')
+        func_tmp_brain_mask.inputs.op_string = '-dilM' 
+        
         wf.connect(init_bold_mask, 'outputspec.func_brain_mask',
                     func_tmp_brain_mask, 'in_file')
 
