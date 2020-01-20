@@ -191,7 +191,7 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
     output_node = pe.Node(util.IdentityInterface(fields=['mask']), name='outputspec')
 
     # C-PAC default performs linear regression while nipype performs quadratic regression
-    detrend = pe.Node(afni.Detrend(args='-polort %d'.format(degree), outputtype='NIFTI'), name='detrend')
+    detrend = pe.Node(afni.Detrend(args='-polort {0}'.format(degree), outputtype='NIFTI'), name='detrend')
     wf.connect(input_node, 'functional_file_path', detrend, 'in_file')
 
     std = pe.Node(afni.TStat(args='-nzstdev', outputtype='NIFTI'), name='std')

@@ -857,21 +857,17 @@ def create_nuisance_workflow(nuisance_selectors,
                     anat_to_func_linear_xfm.inputs.invert_xfm = True
                     nuisance_wf.connect(*(pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + (anat_to_func_linear_xfm, 'in_file')))
 
-                    # c3d_affine_tool
-                    anat_to_func_affine = pe.Node(interface=c3.C3dAffineTool(), name='anat_to_func_affine')
-                    anat_to_func_affine.inputs.fsl2ras = True
-                    nuisance_wf.connect(anat_to_func_linear_xfm, 'out_file', anat_to_func_affine, 'source_file')
+                    # flirt
+                    anat_to_func_mask = pe.Node(interface=fsl.FLIRT(), name='Functional_eroded_mask')
+                    anat_to_func_mask.inputs.output_type = 'NIFTI_GZ'
+                    anat_to_func_mask.inputs.apply_xfm = True
+                    anat_to_func_mask.inputs.interp = 'nearestneighbour'
+                    nuisance_wf.connect(anat_to_func_linear_xfm, 'out_file', anat_to_func_mask, 'in_matrix_file')
+                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (anat_to_func_mask, 'in_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (anat_to_func_mask, 'reference')))
 
-                    # antsApplyTransforms                
-                    anat_to_func_mask = pe.Node(interface=ants.ApplyTransforms(), name='Functional_eroded_mask')
-                    anat_to_func_mask.inputs.dimension = 3
-                    anat_to_func_mask.inputs.interpolation = 'NearestNeighbor'
-                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (anat_to_func_mask, 'input_image')))
-                    nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (anat_to_func_mask, 'reference_image')))
-                    nuisance_wf.connect(anat_to_func_affine, 'itk_transform', anat_to_func_mask, 'transforms')
-                    
                     # connect workflow
-                    nuisance_wf.connect(anat_to_func_mask, 'output_image', temporal_wf, 'inputspec.mask_file_path')
+                    nuisance_wf.connect(anat_to_func_mask, 'out_file', temporal_wf, 'inputspec.mask_file_path')
                 else:
                     nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
 
