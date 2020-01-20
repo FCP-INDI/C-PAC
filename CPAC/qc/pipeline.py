@@ -176,8 +176,8 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
             if not 2 in qc_montage_id_a:
                 qc_montage_id_a[2] = 'csf_gm_wm_a'
                 qc_montage_id_s[2] = 'csf_gm_wm_s'
-
-            if 'functional_preprocessed' in strat:
+                        
+            if 'functional_to_standard' in strat:
                 preproc, out_file_preproc = strat['functional_to_standard']
                 mean_preproc, out_file_mean_preproc = strat['mean_functional_to_standard']
 

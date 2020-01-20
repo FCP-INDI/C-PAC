@@ -471,7 +471,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if 'anatomical_brain_mask' in strat:
 
             anat_preproc = create_anat_preproc(method='mask', 
-                                               c=c, 
+                                               config=c, 
                                                wf_name='anat_preproc_mask_%d' % num_strat)
 
             new_strat = strat.fork()
@@ -498,7 +498,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             anat_preproc = create_anat_preproc(method=None,
                                                already_skullstripped=True,
-                                               c=c,
+                                               config=c,
                                                wf_name='anat_preproc_already_%d' % num_strat)
 
             new_strat = strat.fork()
@@ -526,7 +526,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             if "AFNI" in c.skullstrip_option:
 
                 anat_preproc = create_anat_preproc(method='afni',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_afni_%d' % num_strat)
 
                 anat_preproc.inputs.AFNI_options.set(
@@ -568,7 +568,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "FSL" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='fsl',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_bet_%d' % num_strat)
 
                 anat_preproc.inputs.BET_options.set(
@@ -603,7 +603,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "niworkflows-ants" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='niworkflows-ants',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_niworkflows_ants_%d' % num_strat)
 
                 new_strat = strat.fork()
@@ -622,7 +622,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "unet" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='unet',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_unet_%d' % num_strat)
             
                 new_strat = strat.fork()
@@ -1564,9 +1564,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     func_preproc = create_func_preproc(
                         skullstrip_tool=skullstrip_tool,
-                        n4_correction=c.n4_correct_mean_EPI,
-                        anatomical_mask_dilation=c.anatomical_mask_dilation,
-                        runDespike=c.runDespike,
+                        config=c,
                         wf_name='func_preproc_before_stc_%s_%d' % (skullstrip_tool, num_strat)
                     )
 
@@ -1640,6 +1638,37 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'power_params': (gen_motion_stats, 'outputspec.power_params'),
                         'motion_params': (gen_motion_stats, 'outputspec.motion_params')
                     })
+
+        strat_list = new_strat_list
+
+        # Despike Workflow
+        new_strat_list = []
+
+        for num_strat, strat in enumerate(strat_list):
+
+            if 0 in c.runDespike:
+            
+                new_strat_list += [strat.fork()]
+
+            if 1 in c.runDespike:
+
+                new_strat = strat.fork()
+
+                despike = pe.Node(interface=preprocess.Despike(), 
+                                name='func_despiked')
+                despike.inputs.outputtype = 'NIFTI_GZ' 
+
+                node, out_file = new_strat.get_leaf_properties()
+                workflow.connect(node, out_file, 
+                                despike, 'in_file')
+
+                new_strat.set_leaf_properties(despike, 'out_file')
+
+                new_strat.update_resource_pool({
+                    'despiked': (despike, 'out_file')
+                })
+
+                new_strat_list.append(new_strat)
 
         strat_list = new_strat_list
 

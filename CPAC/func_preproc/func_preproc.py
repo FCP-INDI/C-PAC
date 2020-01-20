@@ -146,8 +146,8 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
 
     return wf
 
-    
-def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False, wf_name='skullstrip_functional'):
+
+def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstrip_functional'):
 
     skullstrip_tool = skullstrip_tool.lower()
     if skullstrip_tool != 'afni' and skullstrip_tool != 'fsl' and skullstrip_tool != 'fsl_afni' and skullstrip_tool != 'anatomical_refined':
@@ -179,19 +179,80 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
                    output_node, 'func_brain_mask')
 
     elif skullstrip_tool == 'fsl':
+        inputnode_bet = pe.Node(
+            util.IdentityInterface(fields=['frac',
+                                            'mesh_boolean',
+                                            'outline',
+                                            'padding',
+                                            'radius',
+                                            'reduce_bias',
+                                            'remove_eyes',
+                                            'robust',
+                                            'skull',
+                                            'surfaces',
+                                            'threshold',
+                                            'vertical_gradient']),
+            name='BET_options')        
+
         func_get_brain_mask = pe.Node(interface=fsl.BET(),
-                                      name='func_get_brain_mask_BET')
-
+                                    name='func_get_brain_mask_BET')
+        func_get_brain_mask.inputs.output_type = 'NIFTI_GZ'
         func_get_brain_mask.inputs.mask = True
-        func_get_brain_mask.inputs.functional = True
 
+        inputnode_bet.inputs.set(
+                frac=config.bold_bet_frac, # 0.3
+                mesh_boolean=config.bold_bet_mesh_boolean,
+                outline=config.bold_bet_outline,
+                padding=config.bold_bet_padding,
+                radius=config.bold_bet_radius,
+                reduce_bias=config.bold_bet_reduce_bias,
+                remove_eyes=config.bold_bet_remove_eyes,
+                robust=config.bold_bet_robust,
+                skull=config.bold_bet_skull,
+                surfaces=config.bold_bet_surfaces,
+                threshold=config.bold_bet_threshold,
+                vertical_gradient=config.bold_bet_vertical_gradient,
+            )
+
+        wf.connect([
+            (inputnode_bet, func_get_brain_mask, [
+                ('frac', 'frac'),
+                ('mesh_boolean', 'mesh'),
+                ('outline', 'outline'),
+                ('padding', 'padding'),
+                ('radius', 'radius'),
+                ('reduce_bias', 'reduce_bias'),
+                ('remove_eyes', 'remove_eyes'),
+                ('robust', 'robust'),
+                ('skull', 'skull'),
+                ('surfaces', 'surfaces'),
+                ('threshold', 'threshold'),
+                ('vertical_gradient', 'vertical_gradient'),
+            ])
+        ])
+
+        if config.bold_bet_functional_mean_boolean : 
+            func_skull_mean = pe.Node(interface=afni_utils.TStat(),
+                                        name='func_mean_skull_{0}'.format(wf_name))
+            func_skull_mean.inputs.options = '-mean'
+            func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+            
+            wf.connect(input_node, 'func', 
+                        func_skull_mean, 'in_file')
+            wf.connect(func_skull_mean, 'out_file', 
+                        func_get_brain_mask, 'in_file')
+
+        else:
+            func_get_brain_mask.inputs.functional = True
+            wf.connect(input_node, 'func', 
+                        func_get_brain_mask, 'in_file')
+
+        # erode one voxel of functional brian mask
         erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
                                   name='erode_one_voxel')
 
         erode_one_voxel.inputs.kernel_shape = 'box'
         erode_one_voxel.inputs.kernel_size = 1.0
-
-        wf.connect(input_node, 'func', func_get_brain_mask, 'in_file')
 
         wf.connect(func_get_brain_mask, 'mask_file',
                    erode_one_voxel, 'in_file')
@@ -292,7 +353,7 @@ def skullstrip_functional(skullstrip_tool='afni', anatomical_mask_dilation=False
                     refined_bold_mask, 'inputspec.init_func_brain_mask')
 
         # Dialate anatomical mask, if 'anatomical_mask_dilation : True' in config file
-        if anatomical_mask_dilation :
+        if config.anatomical_mask_dilation :
             anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
                             name='anat_mask_dilate')
             anat_mask_dilate.inputs.dilate_inputs = '1'
@@ -493,7 +554,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation=False, runDespike=False, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, config=None, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -702,7 +763,6 @@ def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation
                                                          'mask',
                                                          'skullstrip',
                                                          'func_mean',
-                                                         'func_despiked',
                                                          'preprocessed',
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
@@ -784,8 +844,8 @@ def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     output_node, 'transform_matrices')
 
-    skullstrip_func = skullstrip_functional(skullstrip_tool, anatomical_mask_dilation, 
-                                            "{0}_skullstrip".format(wf_name))
+    skullstrip_func = skullstrip_functional(skullstrip_tool=skullstrip_tool, config=config, 
+                                            wf_name="{0}_skullstrip".format(wf_name))
 
     preproc.connect(input_node, 'raw_func',
                     skullstrip_func, 'inputspec.raw_func')
@@ -812,24 +872,10 @@ def create_func_preproc(skullstrip_tool, n4_correction, anatomical_mask_dilation
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
 
-    if runDespike:
-        despike = pe.Node(interface=preprocess.Despike(), 
-                        name='func_despiked')
-        despike.inputs.outputtype = 'NIFTI_GZ' 
+    preproc.connect(skullstrip_func, 'outputspec.func_brain', 
+                    func_mean, 'in_file')
 
-        preproc.connect(skullstrip_func, 'outputspec.func_brain',
-                        despike, 'in_file')
-
-        preproc.connect(despike, 'out_file',
-                        func_mean, 'in_file')
-
-        preproc.connect(despike, 'out_file',
-                        output_node, 'func_despiked')
-    else: 
-        preproc.connect(skullstrip_func, 'outputspec.func_brain', 
-                        func_mean, 'in_file')
-
-    if n4_correction:
+    if config.n4_correct_mean_EPI :
         func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_mean_n4_corrected')
         func_mean_n4_corrected.inputs.args = '-r True'
@@ -995,8 +1041,7 @@ def connect_func_preproc(workflow, strat_list, c):
             
             func_preproc = create_func_preproc(
                 skullstrip_tool=skullstrip_tool,
-                n4_correction=c.n4_correct_mean_EPI,
-                runDespike=c.runDespike,
+                config=c,
                 wf_name='func_preproc_%s_%d' % (skullstrip_tool, num_strat)
             )
 
