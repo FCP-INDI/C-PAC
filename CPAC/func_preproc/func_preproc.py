@@ -33,7 +33,7 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
     output_node = pe.Node(util.IdentityInterface(fields=['func_brain_mask']),
                          name='outputspec')
 
-    # 1 Take single volume of func (motion corrected)
+    # 1 Take single volume of func 
     func_single_volume = pe.Node(interface=afni.Calc(),
                             name='func_single_volume')
 
