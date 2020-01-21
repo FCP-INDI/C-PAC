@@ -859,7 +859,7 @@ def create_nuisance_workflow(nuisance_selectors,
                 if regressor_selector.get('degree'):
                     degree = regressor_selector['degree']
                 else: 
-                    degree = 2
+                    degree = 1
 
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
                                                      by_slice=regressor_selector['by_slice'],
