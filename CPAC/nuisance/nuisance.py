@@ -612,10 +612,8 @@ def create_nuisance_workflow(nuisance_selectors,
         'gm_mask_file_path',
         'wm_mask_file_path',
         'csf_mask_file_path',
-        'lat_ventricles_mask_file_path',
-
+        'lat_ventricles_mask_file_path'
         'functional_brain_mask_file_path',
-
         'func_to_anat_linear_xfm_file_path',
         'mni_to_anat_linear_xfm_file_path',
         'anat_to_mni_initial_xfm_file_path',
@@ -650,11 +648,7 @@ def create_nuisance_workflow(nuisance_selectors,
         "Anatomical": (inputspec, 'anatomical_file_path'),
         "AnatomicalErodedMask": (inputspec, 'anatomical_eroded_brain_mask_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
-<<<<<<< HEAD
-        # "FunctionalErodedMask": (inputspec, 'functional_eroded_brain_mask_file_path'),
-=======
         "Functional_mean" : (functional_mean, 'out_file'),
->>>>>>> 6365c580af3e73932f1c2248ea6fb6054628e961
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
         "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
