@@ -39,7 +39,7 @@ def bids_decode_fname(file_path, dbg=False):
             f_dict["site"] = "none"
     elif file_path_vals[-1]:
         if dbg:
-            print ("looking for subject id didn't pan out settling for last"+
+            print ("looking for subject id didn't pan out settling for last" +
                    "subdir %s" % (str(file_path_vals[-1])))
         f_dict["site"] = file_path_vals[-1]
     else:
@@ -59,8 +59,9 @@ def bids_decode_fname(file_path, dbg=False):
             f_dict["scantype"] = key_val_pair.split(".")[0]
 
     if not f_dict["scantype"]:
-        raise ValueError("Filename (%s) does not appear to contain" % (fname) +
-                         " scan type, does it conform to the BIDS format?")
+        raise ValueError(
+            "Filename (%s) does not appear to contain" % (fname) +
+            " scan type, does it conform to the BIDS format?")
 
     if 'bold' in f_dict["scantype"] and not f_dict["task"]:
         raise ValueError("Filename (%s) is a BOLD file, but " % (fname) +
@@ -112,7 +113,8 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
         else:
             if dbg:
                 print "Couldn't find %s, so going with %s" % (key,
-                        "-".join([level, "none"]))
+                                                              "-".join([level,
+                                                                        "none"]))
             key = "-".join([level, "none"])
             if key in t_dict:
                 t_dict = t_dict[key]
@@ -205,7 +207,16 @@ def bids_parse_sidecar(config_dict, dbg=False):
         t_config = config_dict[cp]
         if t_config is list:
             t_config = t_config[0]
-        bids_config.update(t_config)
+
+        try:
+            bids_config.update(t_config)
+        except ValueError:
+            err = "\n[!] Could not properly parse the AWS S3 path provided " \
+                  "- please double-check the bucket and the path.\n\nNote: " \
+                  "This could either be an issue with the path or the way " \
+                  "the data is organized in the directory. You can also " \
+                  "try providing a specific site sub-directory.\n\n"
+            raise ValueError(err)
 
         # now put the configuration in the data structure, by first iterating
         # to the location of the key, and then inserting it. When a key isn't
@@ -228,7 +239,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
 
         t_dict.update(bids_config)
 
-    return(bids_config_dict)
+    return (bids_config_dict)
 
 
 def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
@@ -247,7 +258,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     if not base_path.endswith('/'):
         base_path = base_path + '/'
 
-    # output directories are a bit different than standard BIDS, so 
+    # output directories are a bit different than standard BIDS, so
     # we handle things differently
 
     for p in paths_list:
@@ -274,7 +285,8 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             if "funcs" not in subjdict[subj_info]:
                 subjdict[subj_info]["funcs"] = {}
             if run_info not in subjdict[subj_info]["funcs"]:
-                subjdict[subj_info]["funcs"][run_info] = {'run_info': run_info}
+                subjdict[subj_info]["funcs"][run_info] = {
+                    'run_info': run_info}
             if resource in subjdict[subj_info]["funcs"][run_info]:
                 print ("warning resource %s already exists in subjdict ??" %
                        (resource))
@@ -310,7 +322,8 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     return sublist
 
 
-def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=False):
+def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
+                          dbg=False):
     """
     Generates a CPAC formatted subject list from information contained in a
     BIDS formatted set of data.
@@ -334,11 +347,12 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     """
 
     if dbg:
-        print( "gen_bids_sublist called with:")
-        print( "  bids_dir: {0}".format(bids_dir))
-        print( "  # paths: {0}".format(str(len(paths_list))))
-        print( "  config_dict: {0}".format( "missing" if not config_dict else "found"))
-        print( "  creds_path: {0}".format(creds_path))
+        print("gen_bids_sublist called with:")
+        print("  bids_dir: {0}".format(bids_dir))
+        print("  # paths: {0}".format(str(len(paths_list))))
+        print("  config_dict: {0}".format(
+            "missing" if not config_dict else "found"))
+        print("  creds_path: {0}".format(creds_path))
 
     # if configuration information is not desired, config_dict will be empty,
     # otherwise parse the information in the sidecar json files into a dict
@@ -364,10 +378,10 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     print("Did not receive any parameters for %s," % (p) +
                           " is this a problem?")
 
-                task_info = {"scan": os.path.join(bids_dir,p),
+                task_info = {"scan": os.path.join(bids_dir, p),
                              "scan_parameters": t_params.copy()}
             else:
-                task_info = os.path.join(bids_dir ,p)
+                task_info = os.path.join(bids_dir, p)
 
             if "ses" not in f_dict:
                 f_dict["ses"] = "1"
@@ -398,7 +412,8 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                         print("Lesion mask file (%s) already found" %
                               (subdict[f_dict["sub"]]
                                [f_dict["ses"]]
-                               ["lesion_mask"]) + " for (%s:%s) discarding %s" %
+                               [
+                                   "lesion_mask"]) + " for (%s:%s) discarding %s" %
                               (f_dict["sub"], f_dict["ses"], p))
                 # TODO deal with scan parameters anatomical
                 elif "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
@@ -422,19 +437,34 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"] = {}
 
                 if task_key not in \
-                    subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
 
-                    subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = task_info
+                    subdict[f_dict["sub"]][f_dict["ses"]]["func"][
+                        task_key] = task_info
 
                 else:
                     print("Func file (%s)" %
-                        subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] +
-                        " already found for ( % s: %s: % s) discarding % s" % (
-                               f_dict["sub"],
-                               f_dict["ses"],
-                               task_key,
-                               p))
-                    
+                          subdict[f_dict["sub"]][f_dict["ses"]]["func"][
+                              task_key] +
+                          " already found for ( % s: %s: % s) discarding % s" % (
+                              f_dict["sub"],
+                              f_dict["ses"],
+                              task_key,
+                              p))
+
+            if "epi" in f_dict["scantype"]:
+                pe_dir = f_dict["dir"]
+                if "acq" in f_dict:
+                    if "fMRI" in f_dict["acq"]:
+                        if "fmap" not in subdict[f_dict["sub"]][
+                            f_dict["ses"]]:
+                            subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
+                        if "epi_{0}".format(pe_dir) not in \
+                                subdict[f_dict["sub"]][f_dict["ses"]][
+                                    "fmap"].keys():
+                            subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][
+                                "epi_{0}".format(pe_dir)] = task_info
+
     sublist = []
     for ksub, sub in subdict.iteritems():
         for kses, ses in sub.iteritems():
@@ -443,13 +473,15 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
             else:
                 if "anat" not in ses:
                     print("%s %s %s is missing an anat" % (
-                        ses["site_id"] if 'none' not in ses["site_id"] else '',
+                        ses["site_id"] if 'none' not in ses[
+                            "site_id"] else '',
                         ses["subject_id"],
                         ses["unique_id"]
                     ))
                 if "func" not in ses:
                     print("%s %s %s is missing an func" % (
-                        ses["site_id"] if 'none' not in ses["site_id"] else '',
+                        ses["site_id"] if 'none' not in ses[
+                            "site_id"] else '',
                         ses["subject_id"],
                         ses["unique_id"]
                     ))
@@ -459,7 +491,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
 
 def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     """
-
     :param bids_dir:
     :param aws_input_creds:
     :return:
@@ -467,6 +498,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
 
     file_paths = []
     config_dict = {}
+
+    suffixes = ['T1w', 'bold', 'acq-fMRI_epi', 'phasediff', 'magnitude']
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -485,33 +518,38 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         print "gathering files from S3 bucket (%s) for %s" % (bucket, prefix)
 
         for s3_obj in bucket.objects.filter(Prefix=prefix):
-            # we only know how to handle T1w and BOLD files, for now
-            if 'T1w' in str(s3_obj.key) or 'bold' in str(s3_obj.key):
-                if str(s3_obj.key).endswith("json"):
-                    try:
-                        config_dict[s3_obj.key.replace(prefix, "").lstrip('/')] \
-                            = json.loads(s3_obj.get()["Body"].read())
-                    except Exception as e:
-                        print ("Error retrieving %s (%s)" %
-                               (s3_obj.key.replace(prefix, ""),
-                                e.message))
-                        raise
-                elif 'nii' in str(s3_obj.key):
-                    file_paths.append(str(s3_obj.key)
-                                      .replace(prefix,'').lstrip('/'))
+            for suf in suffixes:
+                if suf in str(s3_obj.key):
+                    if str(s3_obj.key).endswith("json"):
+                        try:
+                            config_dict[
+                                s3_obj.key.replace(prefix, "").lstrip('/')] \
+                                = json.loads(s3_obj.get()["Body"].read())
+                        except Exception as e:
+                            print ("Error retrieving %s (%s)" %
+                                   (s3_obj.key.replace(prefix, ""),
+                                    e.message))
+                            raise
+                    elif 'nii' in str(s3_obj.key):
+                        file_paths.append(str(s3_obj.key)
+                                          .replace(prefix, '').lstrip('/'))
 
     else:
         for root, dirs, files in os.walk(bids_dir, topdown=False):
             if files:
-                file_paths += [os.path.join(root, f).replace(bids_dir,'')
-                                   .lstrip('/')
-                               for f in files
-                               if 'nii' in f and ('T1w' in f or 'bold' in f)]
-                config_dict.update(
-                    {os.path.join(root.replace(bids_dir, '').lstrip('/'), f):
-                         json.load(open(os.path.join(root, f), 'r'))
-                     for f in files
-                     if f.endswith('json') and ('T1w' in f or 'bold' in f)})
+                for f in files:
+                    for suf in suffixes:
+                        if 'nii' in f and suf in f:
+                            file_paths += [
+                                os.path.join(root, f).replace(bids_dir, '')
+                                    .lstrip('/')]
+                        if f.endswith('json') and suf in f:
+                            config_dict.update(
+                                {os.path.join(
+                                    root.replace(bids_dir, '').lstrip('/'),
+                                    f):
+                                     json.load(
+                                         open(os.path.join(root, f), 'r'))})
 
     if not file_paths and not config_dict:
         raise IOError("Didn't find any files in {0}. Please verify that the "
@@ -523,26 +561,27 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
 
 
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
-
     (img_files, config) = collect_bids_files_configs(bids_dir, creds_path)
     print("Found %d config files for %d image files" % (len(config),
                                                         len(img_files)))
 
-    sublist = bids_gen_cpac_sublist(bids_dir, img_files, config, creds_path, dbg)
+    sublist = bids_gen_cpac_sublist(bids_dir, img_files, config, creds_path,
+                                    dbg)
 
     with open(test_yml, "w") as ofd:
         yaml.dump(sublist, ofd, encoding='utf-8')
 
-    sublist = bids_gen_cpac_sublist(bids_dir, img_files, None, creds_path, dbg)
+    sublist = bids_gen_cpac_sublist(bids_dir, img_files, None, creds_path,
+                                    dbg)
 
-    test_yml = test_yml.replace(".yml","_no_param.yml")
+    test_yml = test_yml.replace(".yml", "_no_param.yml")
     with open(test_yml, "w") as ofd:
         yaml.dump(sublist, ofd, encoding='utf-8')
 
     assert sublist
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     test_gen_bids_sublist(
         "/Users/cameron.craddock/workspace/git_temp/CPAC"
         "/data/ADHD200/RawDataBIDS/",
@@ -562,13 +601,13 @@ if __name__ == '__main__':
     test_gen_bids_sublist(
         "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/",
         "/Users/cameron.craddock/workspace/git_temp/CPAC/test/"
-           "rs_subject_list_s3.yml",
+        "rs_subject_list_s3.yml",
         "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
         dbg=False)
 
     test_gen_bids_sublist(
         "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/Peking_3",
         "/Users/cameron.craddock/workspace/git_temp/CPAC/test/"
-           "rs_subject_list_pk3_s3.yml",
+        "rs_subject_list_pk3_s3.yml",
         "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
         dbg=False)
