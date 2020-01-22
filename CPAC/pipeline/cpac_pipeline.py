@@ -2343,11 +2343,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'anat_symmetric_mni_ants_register' not in nodes and \
                             'anat_mni_ants_register' not in nodes:
 
-                    for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
-                    ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type) 
-
                     aroma_preproc = create_aroma(tr=TR,
                                                 wf_name='create_aroma_%d' % num_strat)
 
@@ -2398,7 +2393,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # ICA-AROMA de-noising in template space
 
                     for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                            ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
                         output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
@@ -2422,14 +2417,22 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         )
 
                     strat.update_resource_pool({
-                        'ica_aroma_denoised_functional_standard': (node, out_file)
+                        'ica_aroma_denoised_functional_to_standard': (node, out_file)
                         }
                     )
 
                     for output_name, func_key, ref_key, image_type in [ \
-                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_standard', 'template_func_preproc', 'func_4d'),
+                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
                         output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True) 
+
+                    node, out_file = strat["ica_aroma_denoised_functional"]
+                    strat.set_leaf_properties(node, out_file)
+
+                    strat.update_resource_pool({
+                        'ica_aroma_denoised_functional': (node, out_file)
+                        }, override=True
+                    )
 
         strat_list += new_strat_list
 
