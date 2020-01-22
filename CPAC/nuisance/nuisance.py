@@ -32,6 +32,7 @@ from CPAC.utils.datasource import check_for_s3
 
 from scipy.fftpack import fft, ifft
 
+from bandpass import bandpass_voxels
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
@@ -342,6 +343,12 @@ def gather_nuisance(functional_file_path,
         np.savetxt(ofd, nuisance_regressors.T, fmt='%.18f', delimiter='\t')
 
     return output_file_path
+
+
+
+
+
+
 
 
 def create_nuisance_workflow(nuisance_selectors,
@@ -1292,7 +1299,14 @@ def create_nuisance_workflow(nuisance_selectors,
                 node, node_output,
                 voxel_nuisance_regressors_merge, "in{}".format(i + 1)
             )
+    nuisance_wf.connect(build_nuisance_regressors, 'out_file',
+                        outputspec, 'regressors_file_path')
+    return nuisance_wf
 
+
+def nuissance_regression(nuissance_selectors,regressors_file_path,name='nuisance_regression'):
+    
+    nuisance_wf = pe.Workflow(name=name)
     if nuisance_selectors.get('Censor'):
 
         censor_methods = ['Kill', 'Zero', 'Interpolate', 'SpikeRegression']
@@ -1407,23 +1421,42 @@ def create_nuisance_workflow(nuisance_selectors,
             ('functional_brain_mask_file_path', 'mask'),
         ]),
     ])
-
-    if has_nuisance_regressors:
-        nuisance_wf.connect(
-            build_nuisance_regressors, 'out_file',
-            nuisance_regression, 'ort'
-        )
-
-    if has_voxel_nuisance_regressors:
-        nuisance_wf.connect(
-            voxel_nuisance_regressors_merge, 'out',
-            nuisance_regression, 'dsort'
-        )
-
-    nuisance_wf.connect(nuisance_regression, 'out_file',
+    if regressors_file_path.endswith('nii.gz'):
+        nuissance_regression.inputs.dsort=regressors_file_path
+    else:
+        nuissance_regression.inputs.ort=regressors_file_path
+    
+nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
+return nuisance_wf
 
-    nuisance_wf.connect(build_nuisance_regressors, 'out_file',
-                        outputspec, 'regressors_file_path')
-
-    return nuisance_wf
+def filtering_bold_and_regressors(nuissance_selectors,regressors_file_path,functional_file_path,name='bandpass_filtering'):
+    
+    filtering_wf = pe.Workflow(name=name)
+    bandpass_selector = nuisance_selectors.get('Bandpass')
+    
+    frequency_filter = pe.Node(
+                Function(input_names=['realigned_file',
+                                      'regressor_file',
+                                      'bandpass_freqs',
+                                      'sample_period'],
+                         output_names=['bandpassed_file','regressor_file'],
+                         function=bandpass_voxels,
+                         as_module=True),
+                name='frequency_filter'
+            )
+    frequency_filter.inputs.bandpass_freqs = [
+                bandpass_selector.get('bottom_frequency'),
+                bandpass_selector.get('top_frequency')
+            ]
+    filtering_wf.connect([
+        (inputspec, frequency_filter, [
+            ('functional_file_path', 'realigned_file'),
+            ('regressors_file_path', 'regressor_file'),
+        ])
+        
+    filtering_wf.connect(frequency_filter,['bandpassed_file','regressor_file'],
+                        outputspec, ['residual_file_path','residual_regressor'])
+        
+        
+    return filtering_wf
