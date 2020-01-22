@@ -205,7 +205,16 @@ def bids_parse_sidecar(config_dict, dbg=False):
         t_config = config_dict[cp]
         if t_config is list:
             t_config = t_config[0]
-        bids_config.update(t_config)
+
+        try:
+            bids_config.update(t_config)
+        except ValueError:
+            err = "\n[!] Could not properly parse the AWS S3 path provided " \
+                  "- please double-check the bucket and the path.\n\nNote: " \
+                  "This could either be an issue with the path or the way " \
+                  "the data is organized in the directory. You can also " \
+                  "try providing a specific site sub-directory.\n\n"
+            raise ValueError(err)
 
         # now put the configuration in the data structure, by first iterating
         # to the location of the key, and then inserting it. When a key isn't
