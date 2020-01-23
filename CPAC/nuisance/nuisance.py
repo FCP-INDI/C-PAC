@@ -612,7 +612,7 @@ def create_nuisance_workflow(nuisance_selectors,
         'gm_mask_file_path',
         'wm_mask_file_path',
         'csf_mask_file_path',
-        'lat_ventricles_mask_file_path'
+        'lat_ventricles_mask_file_path',
         'functional_brain_mask_file_path',
         'func_to_anat_linear_xfm_file_path',
         'mni_to_anat_linear_xfm_file_path',
