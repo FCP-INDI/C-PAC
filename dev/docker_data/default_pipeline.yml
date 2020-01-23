@@ -95,11 +95,6 @@ ndmg_mode :  [0]
 generateQualityControlImages :  [1]
 
 
-# Create a user-friendly, well organized version of the output directory.
-# We recommend all users enable this option.
-runSymbolicLinks :  [0]
-
-
 # Deletes the contents of the Working Directory after running.
 # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
 removeWorkingDir :  True

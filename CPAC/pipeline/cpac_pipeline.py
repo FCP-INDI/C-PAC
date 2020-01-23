@@ -90,7 +90,6 @@ from CPAC.sca.sca import create_sca, create_temporal_reg
 
 from CPAC.connectome.pipeline import create_connectome
 
-from CPAC.utils.symlinks import create_symlinks
 from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
@@ -3817,42 +3816,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file, ds, resource)
 
                     output_sink_nodes += [(ds, 'out_file')]
-
-
-            if 1 in c.runSymbolicLinks and not ndmg_out and \
-                not c.outputDirectory.lower().startswith('s3://'):
-
-                merge_link_node = pe.Node(
-                    interface=Merge(len(output_sink_nodes)),
-                    name='create_symlinks_paths_{}'.format(num_strat)
-                )
-                merge_link_node.inputs.ravel_inputs = True
-
-                link_node = pe.Node(
-                    interface=Function(
-                        input_names=[
-                            'output_dir',
-                            'symlink_dir',
-                            'pipeline_id',
-                            'subject_id',
-                            'paths',
-                        ],
-                        output_names=[],
-                        function=create_symlinks,
-                        as_module=True
-                    ),
-                    name='create_symlinks_{}'.format(num_strat)
-                )
-
-                link_node.inputs.output_dir = c.outputDirectory
-                link_node.inputs.subject_id = subject_id
-                link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
-
-                for i, (node, node_input) in enumerate(output_sink_nodes):
-                    workflow.connect(node, node_input,
-                                     merge_link_node, 'in{}'.format(i))
-
-                workflow.connect(merge_link_node, 'out', link_node, 'paths')
 
             try:
                 G = nx.DiGraph()
