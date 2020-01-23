@@ -64,7 +64,7 @@ derivative_descriptions = {
     'fd_plot': 'Framewise Displacement Plot',
     'mean_func_with_mni_edge': 'MNI Edge Overlapped on Mean Functional Image',
     'mean_func_with_t1_edge': 'T1 Edge Overlapped on Mean Functional Image',
-    'mni_normalized_anatomical': 'MNI Edge Overlapped on Normalized Anatomical',
+    'anatomical_to_standard': 'MNI Edge Overlapped on Normalized Anatomical',
     'movement_rot_plot': 'Head Rotation Plot',
     'movement_trans_plot': 'Head Displacement Plot',
 
