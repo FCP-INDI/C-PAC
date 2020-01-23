@@ -3946,15 +3946,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 with open(subject_info_file, 'wb') as info:
                     pickle.dump(subject_info, info)
 
-                if 1 in c.generateQualityControlImages and not ndmg_out:
-                    for pip_id in pipeline_ids:
-                        pipeline_base = os.path.join(c.outputDirectory,
-                                                    'pipeline_%s' % pip_id)
-
-                        sub_output_dir = os.path.join(pipeline_base, subject_id)
-                        qc_dir = os.path.join(sub_output_dir, 'qc')
-                        generate_qc_pages(qc_dir)
-
                 # have this check in case the user runs cpac_runner from terminal and
                 # the timing parameter list is not supplied as usual by the GUI
                 if pipeline_timing_info != None:
@@ -4103,6 +4094,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 """
 
             finally:
+
+                if 1 in c.generateQualityControlImages and not ndmg_out:
+                    for pip_id in pipeline_ids:
+                        pipeline_base = os.path.join(c.outputDirectory,
+                                                    'pipeline_{0}'.format(pip_id))
+
+                        sub_output_dir = os.path.join(pipeline_base, subject_id)
+                        qc_dir = os.path.join(sub_output_dir, 'qc')
+                        generate_qc_pages(qc_dir)
 
                 logger.info(execution_info.format(
                     workflow=workflow_name,

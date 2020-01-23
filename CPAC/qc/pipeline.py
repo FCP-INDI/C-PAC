@@ -163,35 +163,6 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                 qc_montage_id_a[5] = 'mni_normalized_anatomical_a'
                 qc_montage_id_s[5] = 'mni_normalized_anatomical_s'
 
-        if 'mean_functional_in_anat' in strat:
-
-            # make QC montages for mean functional in anatomical space
-            mni_anat_underlay, out_file = strat['mean_functional_in_anat']
-
-            montage_mni_anat = create_montage(
-                'montage_mni_anat_{0}'.format(num_strat),
-                'red',
-                'mni_anat')
-
-            workflow.connect(mni_anat_underlay, out_file,
-                             montage_mni_anat, 'inputspec.underlay')
-            montage_mni_anat.inputs.inputspec.overlay = os.path.abspath(
-                p.resource_filename(
-                    'CPAC',
-                    'resources/templates/MNI152_Edge_AllTissues.nii.gz'
-                )
-            )
-
-            strat.update_resource_pool({'qc___mean_functional_in_anat_a': (
-            montage_mni_anat, 'outputspec.axial_png'),
-                                        'qc___mean_functional_in_anat_s': (
-                                        montage_mni_anat,
-                                        'outputspec.sagittal_png')})
-
-            if not 6 in qc_montage_id_a:
-                qc_montage_id_a[6] = 'mean_functional_in_anat_a'
-                qc_montage_id_s[6] = 'mean_functional_in_anat_s'
-
         # make QC montages for CSF WM GM
         if 'seg_preproc' in nodes:
 
