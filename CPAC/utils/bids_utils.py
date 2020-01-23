@@ -439,6 +439,8 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                 if task_key not in \
                         subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
 
+                    if not isinstance(task_info, dict):
+                        task_info = {"scan": task_info}
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"][
                         task_key] = task_info
 
