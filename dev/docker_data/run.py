@@ -13,6 +13,7 @@ import yaml
 
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
+from CPAC.utils.utils import load_preconfig
 
 DEFAULT_TMP_DIR = "/tmp"
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
@@ -159,6 +160,10 @@ parser.add_argument('--data_config_file', help='Yaml file containing the locatio
                                                ' --aws_input_creds option.',
                     default=None)
 
+
+parser.add_argument('--preconfig', help='Name of the pre-configured pipeline to run.',
+                    default=None)
+
 parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
                     help='Override specific options from the pipeline configuration. E.g.: "maximumMemoryPerParticipant: 10"')
 
@@ -215,9 +220,7 @@ parser.add_argument('--skip_bids_validator',
                     help='Skips bids validation.',
                     action='store_true')
 
-parser.add_argument('--ndmg_mode', help='Produce ndmg connectome graphs in the ndmg output format.',
-                    action='store_true')
-parser.add_argument('--anat_only', help='Run only the anatomical preprocessing.',
+parser.add_argument('--anat_only', help='run only the anatomical preprocessing',
                     action='store_true')
 
 parser.add_argument('--tracking_opt-out', action='store_true',
@@ -342,22 +345,8 @@ elif args.analysis_level in ["test_config", "participant"]:
             print("Running BIDS validator")
             run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
-    if args.ndmg_mode:
-        print()
-        print('Running ndmg mode')
-
-        import os
-        import pkg_resources as p
-
-        args.pipeline_file = \
-            p.resource_filename(
-                "CPAC",
-                os.path.join(
-                    "resources",
-                    "configs",
-                    "pipeline_config_ndmg.yml"
-                )
-            )
+    if args.preconfig:
+        args.pipeline_file = load_preconfig(args.preconfig)
 
     # otherwise, if we are running group, participant, or dry run we
     # begin by conforming the configuration
