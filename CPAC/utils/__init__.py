@@ -1,5 +1,4 @@
 import extract_data_multiscan
-import create_fsl_model
 import extract_parameters
 import build_data_config
 from .interfaces import function, masktool
@@ -13,7 +12,6 @@ from .datasource import create_spatial_map_dataflow
 from .configuration import Configuration
 from .strategy import Strategy
 from .outputs import Outputs
-from CPAC.func_preproc.utils import add_afni_prefix
 from .utils import (
     get_zscore,
     get_fisher_zscore,
