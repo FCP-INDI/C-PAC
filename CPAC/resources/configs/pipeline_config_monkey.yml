@@ -36,7 +36,7 @@ maximumMemoryPerParticipant :  9
 
 
 # The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid) to allocate per participant. Setting this above 1 will parallelize each participant's workflow where possible. If you wish to dedicate multiple cores to ANTS-based anatomical registration (below), this value must be equal or higher than the amount of cores provided to ANTS. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of participants set to run in parallel (the 'Number ofParticipants to Run Simultaneously' setting).
-maxCoresPerParticipant :  4
+maxCoresPerParticipant :  1
 
 
 # The number of participant workflows to run at the same time. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
@@ -44,7 +44,7 @@ numParticipantsAtOnce :  3
 
 
 # The number of cores to allocate to ANTS-based anatomical registration per participant. Multiple cores can greatly speed up this preprocessing step. This number cannot be greater than the number of cores per participant.
-num_ants_threads :  3
+num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
@@ -122,9 +122,9 @@ n4_bias_field_correction: True
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants']
-skullstrip_option :  ['AFNI']
+# Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
+skullstrip_option :  ['unet']
 
 
 # Template to be used during niworkflows-ants.
@@ -230,7 +230,7 @@ bet_frac :  0.5
 
 
 # Mask created along with skull stripping
-bet_mask_boolean :  Off
+bet_mask_boolean :  On
 
 
 # Mesh created along with skull stripping

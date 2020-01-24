@@ -7,7 +7,9 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
+import nipype.interfaces.c3 as c3
 from nipype.interfaces import afni
+from nipype.interfaces.afni import utils as afni_utils
 
 import CPAC
 import CPAC.utils as utils
@@ -346,6 +348,7 @@ def gather_nuisance(functional_file_path,
 
 def create_nuisance_workflow(nuisance_selectors,
                              use_ants,
+                             ventricle_mask_exist,
                              name='nuisance'):
     """
     Workflow for the removal of various signals considered to be noise from resting state
@@ -604,15 +607,13 @@ def create_nuisance_workflow(nuisance_selectors,
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'selector',
         'functional_file_path',
-
         'anatomical_file_path',
+        'anatomical_eroded_brain_mask_file_path',
         'gm_mask_file_path',
         'wm_mask_file_path',
         'csf_mask_file_path',
         'lat_ventricles_mask_file_path',
-
         'functional_brain_mask_file_path',
-
         'func_to_anat_linear_xfm_file_path',
         'mni_to_anat_linear_xfm_file_path',
         'anat_to_mni_initial_xfm_file_path',
@@ -633,10 +634,21 @@ def create_nuisance_workflow(nuisance_selectors,
                                                         'regressors_file_path']),
                          name='outputspec')
 
+    functional_mean = pe.Node(interface=afni_utils.TStat(),
+                        name='functional_mean')
+
+    functional_mean.inputs.options = '-mean'
+    functional_mean.inputs.outputtype = 'NIFTI_GZ'
+
+    nuisance_wf.connect(inputspec, 'functional_file_path',
+                        functional_mean, 'in_file')
+
     # Resources to create regressors
     pipeline_resource_pool = {
         "Anatomical": (inputspec, 'anatomical_file_path'),
+        "AnatomicalErodedMask": (inputspec, 'anatomical_eroded_brain_mask_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
+        "Functional_mean" : (functional_mean, 'out_file'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
         "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
@@ -839,11 +851,43 @@ def create_nuisance_workflow(nuisance_selectors,
                 else:
                     regressor_selector['by_slice'] = False
 
+                if regressor_selector.get('erode_mask'):
+                    erosion = regressor_selector['erode_mask']
+                else: 
+                    erosion = False
+
+                if regressor_selector.get('degree'):
+                    degree = regressor_selector['degree']
+                else: 
+                    degree = 1
+
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
-                                                     by_slice=regressor_selector['by_slice'])
+                                                     by_slice=regressor_selector['by_slice'],
+                                                     erosion=erosion,
+                                                     degree=degree)
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
-                nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
+
+                if erosion: # TODO: in func/anat space 
+                    # transform eroded anat brain mask to functional space 
+                    # convert_xfm
+                    anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
+                    anat_to_func_linear_xfm.inputs.invert_xfm = True
+                    nuisance_wf.connect(*(pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + (anat_to_func_linear_xfm, 'in_file')))
+
+                    # flirt
+                    anat_to_func_mask = pe.Node(interface=fsl.FLIRT(), name='Functional_eroded_mask')
+                    anat_to_func_mask.inputs.output_type = 'NIFTI_GZ'
+                    anat_to_func_mask.inputs.apply_xfm = True
+                    anat_to_func_mask.inputs.interp = 'nearestneighbour'
+                    nuisance_wf.connect(anat_to_func_linear_xfm, 'out_file', anat_to_func_mask, 'in_matrix_file')
+                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (anat_to_func_mask, 'in_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (anat_to_func_mask, 'reference')))
+
+                    # connect workflow
+                    nuisance_wf.connect(anat_to_func_mask, 'out_file', temporal_wf, 'inputspec.mask_file_path')
+                else:
+                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
 
                 pipeline_resource_pool[regressor_descriptor['tissue']] = \
                     (temporal_wf, 'outputspec.mask')
@@ -968,7 +1012,8 @@ def create_nuisance_workflow(nuisance_selectors,
                         pipeline_resource_pool,
                         tissue_regressor_descriptor,
                         regressor_selector,
-                        use_ants=use_ants
+                        use_ants=use_ants,
+                        ventricle_mask_exist=ventricle_mask_exist
                     )
 
                 regressor_mask_file_resource_keys += \

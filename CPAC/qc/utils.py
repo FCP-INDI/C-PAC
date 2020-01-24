@@ -64,7 +64,7 @@ derivative_descriptions = {
     'fd_plot': 'Framewise Displacement Plot',
     'mean_func_with_mni_edge': 'MNI Edge Overlapped on Mean Functional Image',
     'mean_func_with_t1_edge': 'T1 Edge Overlapped on Mean Functional Image',
-    'mni_normalized_anatomical': 'MNI Edge Overlapped on Normalized Anatomical',
+    'anatomical_to_standard': 'MNI Edge Overlapped on Normalized Anatomical',
     'movement_rot_plot': 'Head Rotation Plot',
     'movement_trans_plot': 'Head Displacement Plot',
 
@@ -1256,12 +1256,12 @@ def gen_motion_plt(motion_parameters):
 
     """
 
-    rotation_plot = os.path.join(os.getcwd(), 'motion_trans_plot.png')
-    translation_plot = os.path.join(os.getcwd(), 'motion_rot_plot.png')
+    rotation_plot = os.path.join(os.getcwd(), 'motion_rot_plot.png')
+    translation_plot = os.path.join(os.getcwd(), 'motion_trans_plot.png')
 
     data = np.loadtxt(motion_parameters).T
 
-    plt.gca().set_color_cycle(['red', 'green', 'blue'])
+    plt.gca().set_prop_cycle(color=['red', 'green', 'blue'])
     plt.plot(data[0])
     plt.plot(data[1])
     plt.plot(data[2])
@@ -1271,7 +1271,7 @@ def gen_motion_plt(motion_parameters):
     plt.savefig(rotation_plot)
     plt.close()
 
-    plt.gca().set_color_cycle(['red', 'green', 'blue'])
+    plt.gca().set_prop_cycle(color=['red', 'green', 'blue'])
     plt.plot(data[3])
     plt.plot(data[4])
     plt.plot(data[5])
