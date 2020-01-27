@@ -33,6 +33,8 @@ def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config
     # set the mask for the smoothing operation
     if "centrality" in func_key:
         smoothing_mask_key = (pipeline_config_object.templateSpecificationFile, 'local_path')
+    elif func_key in Outputs.functional_timeseries:
+        smoothing_mask_key = "functional_brain_mask_to_standard"
     elif func_key in Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
         smoothing_mask_key = "functional_brain_mask_to_standard_derivative"
     else:
@@ -55,11 +57,13 @@ def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config
 
     return workflow, strat
 
-def spatial_smooth(workflow, func_key, mask_key, output_name,
-                  strat, num_strat, pipeline_config_object, input_image_type='func_derivative'):
 
-    image_types = ['func_derivative', 'func_derivative_multi',
-            'func_4d', 'func_mask']
+def spatial_smooth(workflow, func_key, mask_key, output_name, strat,
+                   num_strat, pipeline_config_object,
+                   input_image_type='func_derivative'):
+
+    image_types = ['func_derivative', 'func_derivative_multi', 'func_4d',
+                   'func_mask']
 
     if input_image_type not in image_types:
         raise ValueError('Input image type {0} should be one of {1}'.format(input_image_type,
