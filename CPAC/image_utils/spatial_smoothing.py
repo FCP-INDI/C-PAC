@@ -33,7 +33,7 @@ def spatial_smooth_outputs(workflow, func_key, strat, num_strat, pipeline_config
     # set the mask for the smoothing operation
     if "centrality" in func_key:
         smoothing_mask_key = (pipeline_config_object.templateSpecificationFile, 'local_path')
-    elif func_key in Outputs.functional_timeseries:
+    elif func_key in Outputs.functional_timeseries or "sca_tempreg" in func_key:
         smoothing_mask_key = "functional_brain_mask_to_standard"
     elif func_key in Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
         smoothing_mask_key = "functional_brain_mask_to_standard_derivative"
