@@ -398,7 +398,7 @@ seg_WM_threshold_value : 0.95
 seg_GM_threshold_value : 0.95
 
 
-# Erode binarized anatomical brain mask.
+# Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
 brain_use_erosion: False
 
 

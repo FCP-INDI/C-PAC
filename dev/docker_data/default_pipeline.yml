@@ -401,7 +401,7 @@ seg_GM_threshold_value : 0.95
 seg_csf_use_erosion : False
 
 
-# Erode binarized anatomical brain mask.
+# Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
 brain_use_erosion: False
 
 
@@ -419,6 +419,9 @@ brain_mask_erosion_mm : 30
 # Erode binarized brain mask in millimeter
 brain_erosion_mm: 0
 
+
+# Erode binarized csf tissue mask.
+seg_csf_use_erosion: true
 
 
 # Erosion proportion, if use erosion. 
