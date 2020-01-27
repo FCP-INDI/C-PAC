@@ -1304,22 +1304,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
-            ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
-            eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_mm', 'mask_erosion_prop'], 
-                                                output_names = ['output_roi_mask', 'eroded_skullstrip_mask'], 
-                                                function = mask_erosion,
-                                                imports = ero_imports),                                    
-                                                name='erode_skullstrip_brain_mask')
-            eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm                                    
-            workflow.connect(anat_preproc, 'outputspec.brain_mask', eroded_mask, 'skullstrip_mask')
-            workflow.connect(seg_preproc, 'outputspec.csf_probability_map', eroded_mask, 'roi_mask') 
+            if c.brain_use_erosion: 
+                ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
+                eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_mm', 'mask_erosion_prop'], 
+                                                    output_names = ['output_roi_mask', 'eroded_skullstrip_mask'], 
+                                                    function = mask_erosion,
+                                                    imports = ero_imports),                                    
+                                                    name='erode_skullstrip_brain_mask')
+                eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm                                    
+                workflow.connect(anat_preproc, 'outputspec.brain_mask', eroded_mask, 'skullstrip_mask')
+                workflow.connect(seg_preproc, 'outputspec.csf_probability_map', eroded_mask, 'roi_mask')
+
+                strat.update_resource_pool({'anatomical_eroded_brain_mask': (eroded_mask, 'eroded_skullstrip_mask')})
 
             strat.append_name(seg_preproc.name)
             strat.update_resource_pool({
                 'anatomical_gm_mask': (seg_preproc, 'outputspec.gm_mask'),
                 'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask'),
                 'anatomical_wm_mask': (seg_preproc, 'outputspec.wm_mask'),
-                'anatomical_eroded_brain_mask': (eroded_mask, 'eroded_skullstrip_mask'),
                 'seg_probability_maps': (seg_preproc, 'outputspec.probability_maps'),
                 'seg_mixeltype': (seg_preproc, 'outputspec.mixeltype'),
                 'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
@@ -2563,11 +2565,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'inputspec.functional_brain_mask_file_path'
                     )
 
-                    node, out_file = new_strat['anatomical_eroded_brain_mask']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_workflow, 'inputspec.anatomical_eroded_brain_mask_file_path'
-                    )
+                    if c.brain_use_erosion:
+                        node, out_file = new_strat['anatomical_eroded_brain_mask']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow, 'inputspec.anatomical_eroded_brain_mask_file_path'
+                        )
 
                     nuisance_regression_workflow.get_node('inputspec').iterables = ([
                         ('selector', [regressors_selector]),

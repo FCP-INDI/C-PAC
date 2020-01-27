@@ -398,6 +398,10 @@ seg_WM_threshold_value : 0.95
 seg_GM_threshold_value : 0.95
 
 
+# Erode binarized anatomical brain mask.
+brain_use_erosion: False
+
+
 # Erosion proportion, if use erosion. 
 # Default proportion is 0 for anatomical brain mask.
 # Recommend that do not use erosion in both proportion and millimeter method.
