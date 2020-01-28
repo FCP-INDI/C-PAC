@@ -347,12 +347,6 @@ def gather_nuisance(functional_file_path,
     return output_file_path
 
 
-
-
-
-
-
-
 def create_nuisance_workflow(nuisance_selectors,
                              use_ants,
                              ventricle_mask_exist,
@@ -1349,7 +1343,8 @@ def create_nuisance_workflow(nuisance_selectors,
     return nuisance_wf
 
 
-def nuissance_regression(nuissance_selectors,regressors_file_path,name='nuisance_regression'):
+def nuisance_regression(nuisance_selectors,
+                        regressors_file_path,name='nuisance_regression'):
     
     nuisance_wf = pe.Workflow(name=name)
     if nuisance_selectors.get('Censor'):
@@ -1471,9 +1466,10 @@ def nuissance_regression(nuissance_selectors,regressors_file_path,name='nuisance
     else:
         nuissance_regression.inputs.ort=regressors_file_path
     
-nuisance_wf.connect(nuisance_regression, 'out_file',
+    nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
-return nuisance_wf
+    return nuisance_wf
+
 
 def filtering_bold_and_regressors(nuissance_selectors,regressors_file_path,functional_file_path,name='bandpass_filtering'):
     
