@@ -851,10 +851,10 @@ def create_nuisance_workflow(nuisance_selectors,
                 else:
                     regressor_selector['by_slice'] = False
 
-                if regressor_selector.get('erode_mask'):
-                    erosion = regressor_selector['erode_mask']
+                if regressor_selector.get('erode_mask_mm'):
+                    erosion_mm = regressor_selector['erode_mask_mm']
                 else: 
-                    erosion = False
+                    erosion_mm = False
 
                 if regressor_selector.get('degree'):
                     degree = regressor_selector['degree']
@@ -863,12 +863,12 @@ def create_nuisance_workflow(nuisance_selectors,
 
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
                                                      by_slice=regressor_selector['by_slice'],
-                                                     erosion=erosion,
+                                                     erosion=erosion_mm,
                                                      degree=degree)
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
 
-                if erosion: # TODO: in func/anat space 
+                if erosion_mm: # TODO: in func/anat space 
                     # transform eroded anat brain mask to functional space 
                     # convert_xfm
                     anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
@@ -1220,17 +1220,17 @@ def create_nuisance_workflow(nuisance_selectors,
                             std_node, 'mask'
                         )
 
-                        standarized_node = pe.Node(
+                        standardized_node = pe.Node(
                             afni.Calc(expr='a/b', outputtype='NIFTI'),
-                            name='{}_standarized'.format(regressor_type)
+                            name='{}_standardized'.format(regressor_type)
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
-                            standarized_node, 'in_file_a'
+                            standardized_node, 'in_file_a'
                         )
                         nuisance_wf.connect(
                             std_node, 'out_file',
-                            standarized_node, 'in_file_b'
+                            standardized_node, 'in_file_b'
                         )
 
                         pc_node = pe.Node(
@@ -1239,7 +1239,7 @@ def create_nuisance_workflow(nuisance_selectors,
                         )
 
                         nuisance_wf.connect(
-                            standarized_node, 'out_file',
+                            standardized_node, 'out_file',
                             pc_node, 'in_file'
                         )
                         nuisance_wf.connect(
