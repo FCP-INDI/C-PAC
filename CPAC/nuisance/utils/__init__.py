@@ -564,7 +564,7 @@ class NuisanceRegressor(object):
                     if type(t) != str:
                         t = "%.2f" % t
                     threshold += t
-                if s.get('erode_mask'): # ???
+                if s.get('erode_mask'): 
                     threshold += 'E'
                 if s.get('degree'):
                     d = s.get('degree')
