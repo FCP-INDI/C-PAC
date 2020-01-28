@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.6.0
+# Version 1.6.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -421,7 +421,7 @@ brain_erosion_mm: 0
 
 
 # Erode binarized csf tissue mask.
-seg_csf_use_erosion: true
+seg_csf_use_erosion: False
 
 
 # Erosion proportion, if use erosion. 
@@ -996,6 +996,12 @@ memoryAllocatedForDegreeCentrality :  1.0
 # On/Off - Run smoothing and output both the smoothed and non-smoothed outputs.
 # Off - Don't run smoothing.
 run_smoothing :  [1]
+
+
+# Tool to use for smoothing.
+# ['FSL'] for FSL MultiImageMaths for FWHM provided
+# ['AFNI'] for AFNI 3dBlurToFWHM for FWHM provided
+smoothing_method : ['FSL']
 
 
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
