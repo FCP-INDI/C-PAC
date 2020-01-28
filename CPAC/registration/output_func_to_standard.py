@@ -390,6 +390,7 @@ def ants_apply_warps_func_mni(
 
     return workflow
 
+
 def output_func_to_standard(workflow, func_key, ref_key, output_name,
         strat, num_strat, pipeline_config_obj, input_image_type='func_derivative',
         symmetry='asymmetric', inverse=False):
