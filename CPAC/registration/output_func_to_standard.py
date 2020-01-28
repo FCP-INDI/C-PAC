@@ -413,7 +413,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         'anat_mni_flirt_register' in nodes:
         # 'func_to_epi_fsl' in nodes:
 
-        if input_image_type == 'map':
+        if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'nn'
         else:
             interp = pipeline_config_obj.funcRegFSLinterpolation
@@ -424,8 +424,8 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
 
     elif 'ANTS' in pipeline_config_obj.regOption:
 
-        if input_image_type == 'map':
-            interp = 'nn'
+        if input_image_type == 'map' or 'mask' in input_image_type:
+            interp = 'NearestNeighbor'
         else:
             interp = pipeline_config_obj.funcRegANTSinterpolation
 

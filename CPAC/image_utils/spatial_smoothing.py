@@ -4,22 +4,37 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils import Outputs
 
+
 def set_gauss(fwhm):
+    """
+    Compute the sigma value, given Full Width Half Max.
+    Returns an operand string
 
-    fwhm = float(fwhm)
+    Parameters
+    ----------
 
-    sigma = float(fwhm / 2.3548)
+    fwhm : float
 
-    op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
-    op_string = op
+    Returns
+    -------
+
+    op_string : string
+
+    """
+
+    sigma = float(fwhm) / 2.3548
+
+    op_string = "-kernel gauss %f -fmean -mas " % sigma + "%s"
 
     return op_string,fwhm
 
-def spatial_smooth_outputs(method='FSL',workflow, func_key, strat, num_strat, pipeline_config_object):
 
+def spatial_smooth_outputs(method='FSL',workflow, func_key, strat, num_strat, pipeline_config_object):
     # set the mask for the smoothing operation
     if "centrality" in func_key:
         smoothing_mask_key = (pipeline_config_object.templateSpecificationFile, 'local_path')
+    elif func_key in Outputs.functional_timeseries or "sca_tempreg" in func_key:
+        smoothing_mask_key = "functional_brain_mask_to_standard"
     elif func_key in Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
         smoothing_mask_key = "functional_brain_mask_to_standard_derivative"
     else:
@@ -42,11 +57,12 @@ def spatial_smooth_outputs(method='FSL',workflow, func_key, strat, num_strat, pi
 
     return workflow, strat
 
-def spatial_smooth(method='FSL',workflow, func_key, mask_key, output_name,
-                  strat, num_strat, pipeline_config_object, input_image_type='func_derivative'):
 
-    image_types = ['func_derivative', 'func_derivative_multi',
-            'func_4d', 'func_mask']
+def spatial_smooth(method='FSL',workflow, func_key, mask_key, output_name,
+                   strat, num_strat, pipeline_config_object, input_image_type='func_derivative'):
+
+    image_types = ['func_derivative', 'func_derivative_multi', 'func_4d',
+                   'func_mask']
 
     if input_image_type not in image_types:
         raise ValueError('Input image type {0} should be one of {1}'.format(input_image_type,

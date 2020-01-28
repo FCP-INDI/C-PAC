@@ -146,7 +146,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
     `fslmaths <http://www.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro/index.htm>`_::
 
         fslmaths rest_res_filt.nii.gz
-        -kernel gauss FWHM/ sqrt(8-ln(2))
+        -kernel gauss FWHM/ sqrt(8*ln(2))
         -fmean -mas rest_mask.nii.gz
         rest_res_filt_FWHM.nii.gz
         
@@ -230,7 +230,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
     # we begin by smoothing the input file, which should be the current leaf node
     smooth_key = '{0}_smooth'.format(func_key)
     if smooth_key not in strat:
-        spatial_smooth(workflow, func_key, 'functional_brain_mask', smooth_key, 
+        spatial_smooth(workflow, 'leaf', 'functional_brain_mask', smooth_key, 
             strat, num_strat, pipeline_config_object, input_image_type='func_4d')
 
     # next write it to symmetric MNI space

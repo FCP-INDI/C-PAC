@@ -61,9 +61,9 @@
     <div id="images"></div>
     <script>
 
-      const options = {}
+      var options = {}
 
-      const derivative_descriptions = {
+      var derivative_descriptions = {
         'carpet': 'Carpet',
 
         'alff_smooth_hist': 'Histogram of Amplitude of Low-Frequency Fluctuation (smoothed)',
@@ -169,63 +169,100 @@
         'dr_tempreg_maps_zstat_files_to_standard_smooth_hist': 'Histogram of Spatial Regression (smoothed, z-score standardized)',
       }
 
-      const uris =
+      const uris_string =
 /*CPAC*/``/*CPAC*/
-      .split(/(\r\n|[\n\v\f\r\x85\u2028\u2029])/).map((url) => url.trim()).filter((t) => t)
+      .split(/(\r\n|[\n\v\f\r\x85\u2028\u2029])/)
           
-      const images = {}
+      var uris = []
+      for (var uri_i in uris_string) {
+        var uri = uris_string[uri_i].trim()
+        if (uri) {
+          uris.push(uri)
+        }
+      }
 
-      for (const obj of uris) {
+      var images = {}
+
+      for (var obj_i in uris) {
+        var obj = uris[obj_i]
         if (!obj.endsWith('.png')) {
           continue
         }
 
-        let [derivative, ...rest] = obj.split('/')
-        rest = rest.slice(0, -1)
+        var obj_parts = obj.split('/')
+        derivative = obj_parts[0]
+        rest = obj_parts.slice(1, -1)
 
         if (!images[derivative]) {
           images[derivative] = []
         }
 
-        let order = []
-        const identifier = Object.fromEntries(
-          rest
-            .filter((r) => {
-              const [, key, ...value] = r.split('_')
-              return key !== 'montage'
-            })
-            .map((r) => {
-              const [, key, ...value] = r.split('_')
-              order.push(key)
-              return [key, value.join('_')]
-            })
-        )
+        var order = []
+        var identifier = {}
+        for(var piece_i in rest) {
+          var piece = rest[piece_i]
+          var piece_pieces = piece.split('_')
+          var key = piece_pieces[1]
+          if (key == 'montage'){
+            continue
+          }
+          var value = piece_pieces.slice(2)
+          order.push(key)
+          identifier[key] = value.join('_')
+        }
         identifier.image = obj
+
         images[derivative].push(identifier)
         images[derivative].order = order
       }
 
       function loadImages(derivative) {
-        const currentValues = filters()
-        const filteredImages = derivative.filter((image) =>
-          derivative.order.every((field) => image[field] === currentValues[field])
-        ).map((image) => image.image)
+        var currentValues = filters()
+
+        var filteredImages = []
+        for (var image_i in derivative) {
+          var image = derivative[image_i]
+
+          var isFiltered = (function() {
+            for (var field_i in derivative.order) {
+              var field = derivative.order[field_i]
+              if (image[field] !== currentValues[field]) {
+                return false
+              }
+            }
+            return true
+          })()
+
+          if (isFiltered) {
+            filteredImages.push(image.image)
+          }
+        }
+        
         $('#images img').remove()
-        filteredImages.map(img => {
+
+        for (var image_i in filteredImages) {
+          var image = filteredImages[image_i]
           $('#images').append(
-            $('<img />').attr('src', img)
+            $('<img />').attr('src', image)
           )
-        })
+        }
+
         $('#loading').hide()
       }
 
       function filters() {
-        return Object.fromEntries($('#filter div:not(.fixed) select').toArray().map((f) => { return [f.id, f.value] }))
+        var selects = $('#filter div:not(.fixed) select').toArray()
+        var entries = {}
+        for (var sel_i in selects) {
+          var sel = selects[sel_i]
+          entries[sel.id] = sel.value
+        }
+        return entries
       }
 
       function betterName(derivative) {
         if (derivative.endsWith('_a') || derivative.endsWith('_s')) {
-          const label = {
+          var label = {
             a: 'Axial',
             s: 'Sagittal',
           }
@@ -239,19 +276,20 @@
         $('#loading').show()
 
         $('#filter select#derivative option').remove()
-        for (let derivative of Object.keys(images).sort()) {
+        var image_keys = Object.keys(images).sort()
+        for (var derivative_i in image_keys) {
+          var derivative = image_keys[derivative_i]
           $('#filter select#derivative').append($('<option />').attr('value', derivative).html(betterName(derivative)))
         }
 
-        $('#filter select#derivative').off('change').on('change', () => {
+        $('#filter select#derivative').off('change').on('change', function () {
 
           $('#loading').show()
-          const derivative = $('#filter select#derivative').val()
+          var derivative = $('#filter select#derivative').val()
 
-          options.filters = {
-            ...filters(),
-            derivative
-          }
+          var selected_filters = filters()
+          options.filters = selected_filters
+          options.filters.derivative = derivative
 
           $('#filter div:not(.fixed)').remove()
 
@@ -259,24 +297,36 @@
             return
           }
 
-          for (let field of images[derivative].order) {
-            const values = [...new Set(images[derivative].map((d) => d[field]))]
-            const sel = $('<select />').attr('id', field)
-            values.sort().map((v) => sel.append($('<option />').attr('value', v).html(v)))
+          for (var field_i in images[derivative].order) {
+            var field = images[derivative].order[field_i]
+            var values = []
+            for (var derivative_i in images[derivative]) {
+              var field_val = images[derivative][derivative_i][field]
+              if (values.indexOf(field_val) === -1) {
+                values.push(field_val)
+              }
+            }
+            values = values.sort()
+            var sel = $('<select />').attr('id', field)
+
+            for (var value_i in values) {
+              value = values[value_i]
+              sel.append($('<option />').attr('value', value).html(value))
+            }
             $('#filter').append($('<div />').attr('data-name', field).append(sel))
           }
         
-          $('#filter div:not(.fixed) select').off('change').on('change', () => {
+          $('#filter div:not(.fixed) select').off('change').on('change', function () {
             $('#loading').show()
-            options.filters = {
-              ...filters(),
-              derivative
-            }
+            options.filters = filters()
+            options.filters.derivative = derivative
             loadImages(images[derivative])
           })
 
           if (options.filters) {
-            for (let id of Object.keys(options.filters)) {
+            var filters_keys = Object.keys(options.filters)
+            for (var id_i in filters_keys) {
+              var id = filters_keys[id_i]
               if (id === 'derivative') {
                 continue
               }
@@ -288,7 +338,9 @@
         })
 
         if (options.filters) {
-          for (let id of Object.keys(options.filters)) {
+          var filters_keys = Object.keys(options.filters)
+          for (var id_i in filters_keys) {
+            var id = filters_keys[id_i]
             $('#filter select#' + id).val(options.filters[id])
           }
         }

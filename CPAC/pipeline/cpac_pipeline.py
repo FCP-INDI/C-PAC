@@ -52,6 +52,8 @@ from CPAC.seg_preproc.seg_preproc import (
     create_seg_preproc_template_based
 )
 
+from CPAC.seg_preproc.utils import mask_erosion
+
 from CPAC.image_utils import (
     spatial_smooth_outputs,
     z_score_standardize,
@@ -75,7 +77,6 @@ from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import (
-    create_surface_registration,
     get_roi_timeseries,
     get_voxel_timeseries,
     get_vertices_timeseries,
@@ -89,7 +90,6 @@ from CPAC.sca.sca import create_sca, create_temporal_reg
 
 from CPAC.connectome.pipeline import create_connectome
 
-from CPAC.utils.symlinks import create_symlinks
 from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
@@ -206,6 +206,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     os.environ['OMP_NUM_THREADS'] = '1'  # str(num_cores_per_sub)
     os.environ['MKL_NUM_THREADS'] = '1'  # str(num_cores_per_sub)
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
+
+    # TODO: TEMPORARY
+    # TODO: solve the UNet model hanging issue during MultiProc
+    if "unet" in c.skullstrip_option:
+        c.maxCoresPerParticipant = 1
+        logger.info("\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "
+                    "MODEL.\n\nThis is a temporary measure due to a known "
+                    "issue preventing Nipype's parallelization from running "
+                    "U-Net properly.\n\n")
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
@@ -336,6 +345,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     except KeyError:
         input_creds_path = None
 
+    # check if lateral_ventricles_mask exist
+    if 'none' in str(c.lateral_ventricles_mask).lower():
+        ventricle_mask_exist = False
+    else:
+        ventricle_mask_exist = True
+
     # TODO ASH normalize file paths with schema validator
     template_keys = [
         ("anat", "templateSpecificationFile"),
@@ -344,9 +359,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         ("anat", "PRIORS_GRAY"),
         ("anat", "PRIORS_WHITE"),
         ("other", "configFileTwomm"),
-        ("anat", "template_based_segmenation_CSF"),
-        ("anat", "template_based_segmenation_GRAY"),
-        ("anat", "template_based_segmenation_WHITE"),
+        ("anat", "template_based_segmentation_CSF"),
+        ("anat", "template_based_segmentation_GRAY"),
+        ("anat", "template_based_segmentation_WHITE"),
     ]
 
     for key_type, key in template_keys:
@@ -457,7 +472,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if 'anatomical_brain_mask' in strat:
 
             anat_preproc = create_anat_preproc(method='mask', 
-                                               c=c, 
+                                               config=c, 
                                                wf_name='anat_preproc_mask_%d' % num_strat)
 
             new_strat = strat.fork()
@@ -473,6 +488,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                 'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
             })
+            new_strat.update_resource_pool({
+                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask')}, override=True)
 
             new_strat_list += [new_strat]
 
@@ -482,7 +499,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             anat_preproc = create_anat_preproc(method=None,
                                                already_skullstripped=True,
-                                               c=c,
+                                               config=c,
                                                wf_name='anat_preproc_already_%d' % num_strat)
 
             new_strat = strat.fork()
@@ -510,7 +527,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             if "AFNI" in c.skullstrip_option:
 
                 anat_preproc = create_anat_preproc(method='afni',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_afni_%d' % num_strat)
 
                 anat_preproc.inputs.AFNI_options.set(
@@ -552,7 +569,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "FSL" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='fsl',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_bet_%d' % num_strat)
 
                 anat_preproc.inputs.BET_options.set(
@@ -587,7 +604,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "niworkflows-ants" in c.skullstrip_option:
                 anat_preproc = create_anat_preproc(method='niworkflows-ants',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_niworkflows_ants_%d' % num_strat)
 
                 new_strat = strat.fork()
@@ -605,11 +622,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list += [new_strat]
 
             if "unet" in c.skullstrip_option:
-
-                # import pdb; pdb.set_trace()
-
                 anat_preproc = create_anat_preproc(method='unet',
-                                                   c=c,
+                                                   config=c,
                                                    wf_name='anat_preproc_unet_%d' % num_strat)
             
                 new_strat = strat.fork()
@@ -1199,12 +1213,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     new_strat_list = []
 
     if 1 in c.runSegmentationPreprocessing:
+
         for num_strat, strat in enumerate(strat_list):
 
             nodes = strat.get_nodes_names()
 
             seg_preproc = None
-
 
             if not any(o in c.seg_use_threshold for o in ["FSL-FAST Thresholding", "Customized Thresholding"]):
                 err = '\n\n[!] C-PAC says: Your segmentation thresholding options ' \
@@ -1222,12 +1236,27 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             seg_preproc = create_seg_preproc(use_ants=use_ants,
                                              use_priors=c.seg_use_priors,
                                              use_threshold=c.seg_use_threshold,
-                                             use_erosion=c.seg_use_erosion,
-                                             erosion_prop=c.seg_erosion_prop,
+                                             csf_use_erosion=c.seg_csf_use_erosion,
+                                             wm_use_erosion=c.seg_wm_use_erosion,
+                                             gm_use_erosion=c.seg_gm_use_erosion,
                                              wf_name='seg_preproc_{0}'.format(num_strat))
+
             seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
             seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
             seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+
+            seg_preproc.inputs.csf_erosion_prop.csf_erosion_prop=c.csf_erosion_prop
+            seg_preproc.inputs.wm_erosion_prop.wm_erosion_prop=c.wm_erosion_prop
+            seg_preproc.inputs.gm_erosion_prop.gm_erosion_prop=c.gm_erosion_prop
+
+            seg_preproc.inputs.csf_mask_erosion_mm.csf_mask_erosion_mm=c.csf_mask_erosion_mm
+            seg_preproc.inputs.wm_mask_erosion_mm.wm_mask_erosion_mm=c.wm_mask_erosion_mm
+            seg_preproc.inputs.gm_mask_erosion_mm.gm_mask_erosion_mm=c.gm_mask_erosion_mm
+
+            seg_preproc.inputs.csf_erosion_mm.csf_erosion_mm=c.csf_erosion_mm
+            seg_preproc.inputs.wm_erosion_mm.wm_erosion_mm=c.wm_erosion_mm
+            seg_preproc.inputs.gm_erosion_mm.gm_erosion_mm=c.gm_erosion_mm
+
             workflow.connect(anat_preproc, 'outputspec.brain_mask', seg_preproc, 'inputspec.brain_mask')
                                                                  
             # TODO ASH review
@@ -1275,6 +1304,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
+            if c.brain_use_erosion: 
+                ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
+                eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_mm', 'mask_erosion_prop'], 
+                                                    output_names = ['output_roi_mask', 'eroded_skullstrip_mask'], 
+                                                    function = mask_erosion,
+                                                    imports = ero_imports),                                    
+                                                    name='erode_skullstrip_brain_mask')
+                eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm                                    
+                workflow.connect(anat_preproc, 'outputspec.brain_mask', eroded_mask, 'skullstrip_mask')
+                workflow.connect(seg_preproc, 'outputspec.csf_probability_map', eroded_mask, 'roi_mask')
+
+                strat.update_resource_pool({'anatomical_eroded_brain_mask': (eroded_mask, 'eroded_skullstrip_mask')})
+
             strat.append_name(seg_preproc.name)
             strat.update_resource_pool({
                 'anatomical_gm_mask': (seg_preproc, 'outputspec.gm_mask'),
@@ -1288,17 +1330,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     strat_list += new_strat_list
 
-    if 'T1_template' in c.template_based_segmenation:
+    if 'T1_template' in c.template_based_segmentation:
 
         for num_strat, strat in enumerate(strat_list):
 
             nodes = strat.get_nodes_names()
 
-            if not any(o in c.template_based_segmenation for o in ['EPI_template', 'T1_template', 'None']):
+            if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
                 err = '\n\n[!] C-PAC says: Your template based segmentation ' \
                     'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
-                    'Options you provided:\ntemplate_based_segmenation: {0}' \
-                    '\n\n'.format(str(c.template_based_segmenation))
+                    'Options you provided:\ntemplate_based_segmentation: {0}' \
+                    '\n\n'.format(str(c.template_based_segmentation))
                 raise Exception(err)
 
             # TODO ASH based on config, instead of nodes?
@@ -1340,17 +1382,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                  seg_preproc_template_based,
                                  'inputspec.standard2highres_mat')
 
-            workflow.connect(c.template_based_segmenation_CSF, 'local_path',
+            workflow.connect(c.template_based_segmentation_CSF, 'local_path',
                                 seg_preproc_template_based, 'inputspec.CSF_template')
 
-            workflow.connect(c.template_based_segmenation_GRAY, 'local_path',
+            workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
                                 seg_preproc_template_based, 'inputspec.GRAY_template')
 
-            workflow.connect(c.template_based_segmenation_WHITE, 'local_path',
+            workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
                                 seg_preproc_template_based, 'inputspec.WHITE_template')
 
             # TODO ASH review with forking function
-            if 'None' in c.template_based_segmenation:
+            if 'None' in c.template_based_segmentation:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
@@ -1514,17 +1556,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # replace the leaf node with the output from the recently added
             # workflow
             strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
+            strat.update_resource_pool({
+                            'raw_functional_trunc': (trunc_wf, 'outputspec.edited_func'),
+                        })
 
         # Motion Statistics Workflow
         new_strat_list = []
 
         for num_strat, strat in enumerate(strat_list):
 
-            if 0 in c.runMotionStatistics:
+            if 0 in c.runMotionStatisticsFirst:
 
                 new_strat_list += [strat.fork()]
 
-            if 1 in c.runMotionStatistics:
+            if 1 in c.runMotionStatisticsFirst:
 
                 for skullstrip_tool in c.functionalMasking:
                 
@@ -1534,18 +1579,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     func_preproc = create_func_preproc(
                         skullstrip_tool=skullstrip_tool,
-                        n4_correction=c.n4_correct_mean_EPI,
-                        anatomical_mask_dilation=c.anatomical_mask_dilation,
+                        config=c,
                         wf_name='func_preproc_before_stc_%s_%d' % (skullstrip_tool, num_strat)
                     )
+
+                    node, out_file = strat['raw_functional_trunc']
+                    workflow.connect(node, out_file, func_preproc,
+                                    'inputspec.raw_func')
 
                     node, out_file = new_strat.get_leaf_properties()
                     workflow.connect(node, out_file, func_preproc,
                                     'inputspec.func')
 
-                    node, out_file = strat['anatomical_reorient']
+                    node, out_file = strat['anatomical_brain']
                     workflow.connect(node, out_file, func_preproc,
-                                    'inputspec.anat_skull')
+                                    'inputspec.anat_brain')
 
                     node, out_file = strat['anatomical_brain_mask']
                     workflow.connect(node, out_file, func_preproc,
@@ -1605,6 +1653,37 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'power_params': (gen_motion_stats, 'outputspec.power_params'),
                         'motion_params': (gen_motion_stats, 'outputspec.motion_params')
                     })
+
+        strat_list = new_strat_list
+
+        # Despike Workflow
+        new_strat_list = []
+
+        for num_strat, strat in enumerate(strat_list):
+
+            if 0 in c.runDespike:
+            
+                new_strat_list += [strat.fork()]
+
+            if 1 in c.runDespike:
+
+                new_strat = strat.fork()
+
+                despike = pe.Node(interface=preprocess.Despike(), 
+                                name='func_despiked')
+                despike.inputs.outputtype = 'NIFTI_GZ' 
+
+                node, out_file = new_strat.get_leaf_properties()
+                workflow.connect(node, out_file, 
+                                despike, 'in_file')
+
+                new_strat.set_leaf_properties(despike, 'out_file')
+
+                new_strat.update_resource_pool({
+                    'despiked': (despike, 'out_file')
+                })
+
+                new_strat_list.append(new_strat)
 
         strat_list = new_strat_list
 
@@ -1979,8 +2058,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # Input segmentation probability maps for white matter
                     # segmentation
-                    node, out_file = strat['seg_probability_maps']
-                    workflow.connect(node, (out_file, pick_wm),
+                    # node, out_file = strat['seg_probability_maps']
+                    # workflow.connect(node, (out_file, pick_wm),
+                    #                 func_to_anat_bbreg,
+                    #                 'inputspec.anat_wm_segmentation')
+                    node, out_file = strat['anatomical_wm_mask']
+                    workflow.connect(node, out_file,
                                     func_to_anat_bbreg,
                                     'inputspec.anat_wm_segmentation')
 
@@ -2069,7 +2152,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # update resource pool
                     new_strat.update_resource_pool({
-                        'func_in_epi': (func_to_epi, 'outputspec.func_in_epi')
+                        'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi')
                     })
 
                     if reg == 'FSL' :
@@ -2092,17 +2175,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             strat_list = new_strat_list
 
-        if 'EPI_template' in c.template_based_segmenation :
+        if 'EPI_template' in c.template_based_segmentation :
 
             for num_strat, strat in enumerate(strat_list):
 
                 nodes = strat.get_nodes_names()
 
-                if not any(o in c.template_based_segmenation for o in ['EPI_template', 'T1_template', 'None']):
+                if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
                     err = '\n\n[!] C-PAC says: Your template based segmentation ' \
                         'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
-                        'Options you provided:\ntemplate_based_segmenation: {0}' \
-                        '\n\n'.format(str(c.template_based_segmenation))
+                        'Options you provided:\ntemplate_based_segmentation: {0}' \
+                        '\n\n'.format(str(c.template_based_segmentation))
                     raise Exception(err)
 
                 # TODO ASH based on config, instead of nodes?
@@ -2151,17 +2234,17 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     seg_preproc_template_based,
                                     'inputspec.standard2highres_mat')                                          
 
-                workflow.connect(c.template_based_segmenation_CSF, 'local_path',
+                workflow.connect(c.template_based_segmentation_CSF, 'local_path',
                                     seg_preproc_template_based, 'inputspec.CSF_template')
 
-                workflow.connect(c.template_based_segmenation_GRAY, 'local_path',
+                workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
                                     seg_preproc_template_based, 'inputspec.GRAY_template')
 
-                workflow.connect(c.template_based_segmenation_WHITE, 'local_path',
+                workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
                                     seg_preproc_template_based, 'inputspec.WHITE_template')
 
                 # TODO ASH review with forking function
-                if 'None' in c.template_based_segmenation:
+                if 'None' in c.template_based_segmentation:
                     strat = strat.fork()
                     new_strat_list.append(strat)
 
@@ -2261,11 +2344,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'anat_symmetric_mni_ants_register' not in nodes and \
                             'anat_mni_ants_register' not in nodes:
 
-                    for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
-                    ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type) 
-
                     aroma_preproc = create_aroma(tr=TR,
                                                 wf_name='create_aroma_%d' % num_strat)
 
@@ -2316,7 +2394,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # ICA-AROMA de-noising in template space
 
                     for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                            ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
                         output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
@@ -2340,14 +2418,22 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         )
 
                     strat.update_resource_pool({
-                        'ica_aroma_denoised_functional_standard': (node, out_file)
+                        'ica_aroma_denoised_functional_to_standard': (node, out_file)
                         }
                     )
 
                     for output_name, func_key, ref_key, image_type in [ \
-                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_standard', 'template_func_preproc', 'func_4d'),
+                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
                         output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True) 
+
+                    node, out_file = strat["ica_aroma_denoised_functional"]
+                    strat.set_leaf_properties(node, out_file)
+
+                    strat.update_resource_pool({
+                        'ica_aroma_denoised_functional': (node, out_file)
+                        }, override=True
+                    )
 
         strat_list += new_strat_list
 
@@ -2374,8 +2460,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # to guarantee immutability
                     regressors_selector = NuisanceRegressor(
-                        copy.deepcopy(regressors_selector),
-                        copy.deepcopy(c.Regressors)
+                        copy.deepcopy(regressors_selector)
                     )
 
                     # remove tissue regressors when there is no segmentation
@@ -2392,6 +2477,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     nuisance_regression_workflow = create_nuisance_workflow(
                         regressors_selector,
                         use_ants=use_ants,
+                        ventricle_mask_exist=ventricle_mask_exist,
                         name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
                     )
 
@@ -2478,6 +2564,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         nuisance_regression_workflow,
                         'inputspec.functional_brain_mask_file_path'
                     )
+
+                    if c.brain_use_erosion:
+                        node, out_file = new_strat['anatomical_eroded_brain_mask']
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow, 'inputspec.anatomical_eroded_brain_mask_file_path'
+                        )
 
                     nuisance_regression_workflow.get_node('inputspec').iterables = ([
                         ('selector', [regressors_selector]),
@@ -3446,7 +3539,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             # it will default to the regular datasink
             #     TODO: update this when we change to the optionals
             #     TODO: only pipe config
-            if 1 in c.ndmg_mode:
+            if "ndmg" in c.output_tree:
                 ndmg_out = True
         except:
             pass
@@ -3728,42 +3821,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     output_sink_nodes += [(ds, 'out_file')]
 
-
-            if 1 in c.runSymbolicLinks and not ndmg_out and \
-                not c.outputDirectory.lower().startswith('s3://'):
-
-                merge_link_node = pe.Node(
-                    interface=Merge(len(output_sink_nodes)),
-                    name='create_symlinks_paths_{}'.format(num_strat)
-                )
-                merge_link_node.inputs.ravel_inputs = True
-
-                link_node = pe.Node(
-                    interface=Function(
-                        input_names=[
-                            'output_dir',
-                            'symlink_dir',
-                            'pipeline_id',
-                            'subject_id',
-                            'paths',
-                        ],
-                        output_names=[],
-                        function=create_symlinks,
-                        as_module=True
-                    ),
-                    name='create_symlinks_{}'.format(num_strat)
-                )
-
-                link_node.inputs.output_dir = c.outputDirectory
-                link_node.inputs.subject_id = subject_id
-                link_node.inputs.pipeline_id = 'pipeline_%s' % pipeline_id
-
-                for i, (node, node_input) in enumerate(output_sink_nodes):
-                    workflow.connect(node, node_input,
-                                     merge_link_node, 'in{}'.format(i))
-
-                workflow.connect(merge_link_node, 'out', link_node, 'paths')
-
             try:
                 G = nx.DiGraph()
                 strat_name = strat.get_name()
@@ -3855,15 +3912,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 )
                 with open(subject_info_file, 'wb') as info:
                     pickle.dump(subject_info, info)
-
-                if 1 in c.generateQualityControlImages and not ndmg_out:
-                    for pip_id in pipeline_ids:
-                        pipeline_base = os.path.join(c.outputDirectory,
-                                                    'pipeline_%s' % pip_id)
-
-                        sub_output_dir = os.path.join(pipeline_base, subject_id)
-                        qc_dir = os.path.join(sub_output_dir, 'qc')
-                        generate_qc_pages(qc_dir)
 
                 # have this check in case the user runs cpac_runner from terminal and
                 # the timing parameter list is not supplied as usual by the GUI
@@ -4013,6 +4061,15 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 """
 
             finally:
+
+                if 1 in c.generateQualityControlImages and not ndmg_out:
+                    for pip_id in pipeline_ids:
+                        pipeline_base = os.path.join(c.outputDirectory,
+                                                    'pipeline_{0}'.format(pip_id))
+
+                        sub_output_dir = os.path.join(pipeline_base, subject_id)
+                        qc_dir = os.path.join(sub_output_dir, 'qc')
+                        generate_qc_pages(qc_dir)
 
                 logger.info(execution_info.format(
                     workflow=workflow_name,
