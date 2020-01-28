@@ -32,6 +32,11 @@ class Outputs():
     extra_functional = list(
         reference[reference['Optional outputs: Extra functionals'] == 'yes']['Resource'])
 
+    # functional data that are 4D time series, instead of derivatives
+    functional_timeseries = list(
+        reference[reference['Functional timeseries'] == 'yes']['Resource']
+    )
+
     # outputs to send into smoothing, if smoothing is enabled, and
     # outputs to write out if the user selects to write non-smoothed outputs
     # "_mult" is for items requiring mapnodes
