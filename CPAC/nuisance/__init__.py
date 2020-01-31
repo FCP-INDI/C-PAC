@@ -6,7 +6,9 @@ from .utils import (
 )
 
 from .nuisance import (
-    create_nuisance_workflow
+    create_regressor_workflow,
+    create_nuisance_regression_workflow,
+    filtering_bold_and_regressors
 )
 
 from .bandpass import (

@@ -347,10 +347,24 @@ def gather_nuisance(functional_file_path,
     return output_file_path
 
 
-def create_nuisance_workflow(nuisance_selectors,
-                             use_ants,
-                             ventricle_mask_exist,
-                             name='nuisance'):
+def check_regressors_file_type(regressor_file):
+
+    dsort = None
+    ort = None
+
+    if regressor_file.endswith('nii.gz'):
+        dsort = regressor_file
+    else:
+        ort = regressor_file
+
+    return (dsort, ort)
+
+
+
+def create_regressor_workflow(nuisance_selectors,
+                              use_ants,
+                              ventricle_mask_exist,
+                              name='nuisance_regressors'):
     """
     Workflow for the removal of various signals considered to be noise from resting state
     fMRI data.  The residual signals for linear regression denoising is performed in a single
@@ -620,19 +634,16 @@ def create_nuisance_workflow(nuisance_selectors,
         'anat_to_mni_initial_xfm_file_path',
         'anat_to_mni_rigid_xfm_file_path',
         'anat_to_mni_affine_xfm_file_path',
-
         'motion_parameters_file_path',
         'fd_j_file_path',
         'fd_p_file_path',
         'dvars_file_path',
-
         'creds_path',
         'dl_dir',
         'tr',
     ]), name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
-                                                        'regressors_file_path']),
+    outputspec = pe.Node(util.IdentityInterface(fields=['regressors_file_path']),
                          name='outputspec')
 
     functional_mean = pe.Node(interface=afni_utils.TStat(),
@@ -1338,14 +1349,28 @@ def create_nuisance_workflow(nuisance_selectors,
                 node, node_output,
                 voxel_nuisance_regressors_merge, "in{}".format(i + 1)
             )
+
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')
+
     return nuisance_wf
 
 
-def nuisance_regression(nuisance_selectors,
-                        regressors_file_path,name='nuisance_regression'):
-    
+def create_nuisance_regression_workflow(nuisance_selectors,
+                                        name='nuisance_regression'):
+
+    inputspec = pe.Node(util.IdentityInterface(fields=[
+        'functional_file_path',
+        'functional_brain_mask_file_path',
+        'regressor_file',
+        'fd_j_file_path',
+        'fd_p_file_path',
+        'dvars_file_path'
+    ]), name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path']),
+                         name='outputspec')
+
     nuisance_wf = pe.Workflow(name=name)
     if nuisance_selectors.get('Censor'):
 
@@ -1433,7 +1458,7 @@ def nuisance_regression(nuisance_selectors,
     if nuisance_selectors.get('Censor'):
         if nuisance_selectors['Censor']['method'] == 'SpikeRegression':
             nuisance_wf.connect(find_censors, 'out_file',
-                                build_nuisance_regressors, 'censor_file_path')
+                                nuisance_regression, 'censor')
         else:
             if nuisance_selectors['Censor']['method'] == 'Interpolate':
                 nuisance_regression.inputs.cenmode = 'NTRP'
@@ -1461,18 +1486,40 @@ def nuisance_regression(nuisance_selectors,
             ('functional_brain_mask_file_path', 'mask'),
         ]),
     ])
-    if regressors_file_path.endswith('nii.gz'):
-        nuissance_regression.inputs.dsort=regressors_file_path
-    else:
-        nuissance_regression.inputs.ort=regressors_file_path
+
+    check_regressor_filetype = pe.Node(Function(
+            input_names=['regressor_file'],
+            output_names=['dsort', 'ort'],
+            function=check_regressors_file_type
+        ), name="check_regressors_file_type")
+
+    nuisance_wf.connect(inputspec, 'regressor_file',
+                        check_regressor_filetype, 'regressor_file')
+
+    nuisance_wf.connect(check_regressor_filetype, 'dsort',
+                        nuisance_regression, 'dsort')
+
+    nuisance_wf.connect(check_regressor_filetype, 'ort',
+                        nuisance_regression, 'ort')
     
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
+
     return nuisance_wf
 
 
-def filtering_bold_and_regressors(nuissance_selectors,regressors_file_path,functional_file_path,name='bandpass_filtering'):
-    
+def filtering_bold_and_regressors(nuisance_selectors,
+                                  name='filtering_bold_and_regressors'):
+
+    inputspec = pe.Node(util.IdentityInterface(fields=[
+        'functional_file_path',
+        'regressors_file_path'
+    ]), name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
+                                                        'residual_regressor']),
+                         name='outputspec')
+
     filtering_wf = pe.Workflow(name=name)
     bandpass_selector = nuisance_selectors.get('Bandpass')
     
@@ -1481,23 +1528,27 @@ def filtering_bold_and_regressors(nuissance_selectors,regressors_file_path,funct
                                       'regressor_file',
                                       'bandpass_freqs',
                                       'sample_period'],
-                         output_names=['bandpassed_file','regressor_file'],
+                         output_names=['bandpassed_file', 'regressor_file'],
                          function=bandpass_voxels,
                          as_module=True),
                 name='frequency_filter'
             )
+
     frequency_filter.inputs.bandpass_freqs = [
                 bandpass_selector.get('bottom_frequency'),
                 bandpass_selector.get('top_frequency')
             ]
-    filtering_wf.connect([
-        (inputspec, frequency_filter, [
-            ('functional_file_path', 'realigned_file'),
-            ('regressors_file_path', 'regressor_file'),
-        ])
+
+    filtering_wf.connect(inputspec, 'functional_file_path',
+                         frequency_filter, 'realigned_file')
+
+    filtering_wf.connect(inputspec, 'regressors_file_path',
+                         frequency_filter, 'regressor_file')
         
-    filtering_wf.connect(frequency_filter,['bandpassed_file','regressor_file'],
-                        outputspec, ['residual_file_path','residual_regressor'])
-        
-        
+    filtering_wf.connect(frequency_filter, 'bandpassed_file',
+                         outputspec, 'regressor_file')
+
+    filtering_wf.connect(frequency_filter, 'residual_file_path',
+                         outputspec, 'residual_regressor')
+
     return filtering_wf

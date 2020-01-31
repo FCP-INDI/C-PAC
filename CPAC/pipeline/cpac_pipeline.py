@@ -71,7 +71,11 @@ from CPAC.registration import (
     output_func_to_standard
 )
 
-from CPAC.nuisance import create_nuisance_workflow, bandpass_voxels, NuisanceRegressor
+from CPAC.nuisance import create_regressor_workflow, \
+    create_nuisance_regression_workflow, \
+    filtering_bold_and_regressors, \
+    bandpass_voxels, \
+    NuisanceRegressor
 from CPAC.aroma import create_aroma
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
@@ -2438,103 +2442,236 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         strat_list += new_strat_list
 
 
-        # Inserting Nuisance Workflow
-        if 1 in c.runNuisance:
+        # Inserting Nuisance Regressor Workflow
+        new_strat_list = []
 
-            new_strat_list = []
+        for num_strat, strat in enumerate(strat_list):
 
-            for num_strat, strat in enumerate(strat_list):
+            # for each strategy, create a new one without nuisance
+            if 0 in c.runNuisance or 1 in c.run_pypeer:
+                new_strat_list.append(strat.fork())
 
-                # for each strategy, create a new one without nuisance
-                if 0 in c.runNuisance or 1 in c.run_pypeer:
-                    new_strat_list.append(strat.fork())
+            nodes = strat.get_nodes_names()
 
-                nodes = strat.get_nodes_names()
+            has_segmentation = 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes or 'seg_preproc_epi_template' in nodes
+            use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
 
-                has_segmentation = 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes or 'seg_preproc_epi_template' in nodes
-                use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
+            for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
 
-                for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
+                new_strat = strat.fork()
 
-                    new_strat = strat.fork()
+                # to guarantee immutability
+                regressors_selector = NuisanceRegressor(
+                    copy.deepcopy(regressors_selector)
+                )
 
-                    # to guarantee immutability
-                    regressors_selector = NuisanceRegressor(
-                        copy.deepcopy(regressors_selector)
+                # remove tissue regressors when there is no segmentation
+                # on the strategy
+                if not has_segmentation:
+                    for reg in ['aCompCor',
+                                'WhiteMatter',
+                                'GreyMatter',
+                                'CerebrospinalFluid']:
+
+                        if reg in regressors_selector:
+                            del regressors_selector[reg]
+
+                regressor_workflow = create_regressor_workflow(
+                    regressors_selector,
+                    use_ants=use_ants,
+                    ventricle_mask_exist=ventricle_mask_exist,
+                    name='nuisance_regressor_{0}_{1}'.format(regressors_selector_i, num_strat)
+                )
+
+                node, node_out = strat['tr']
+                workflow.connect(node, node_out,
+                                 regressor_workflow, 'inputspec.tr')
+
+                node, out_file = new_strat['anatomical_brain']
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow, 'inputspec.anatomical_file_path'
+                )
+
+                if has_segmentation:
+
+                    workflow.connect(
+                        c.lateral_ventricles_mask, 'local_path',
+                        regressor_workflow, 'inputspec.lat_ventricles_mask_file_path'
                     )
 
-                    # remove tissue regressors when there is no segmentation
-                    # on the strategy
-                    if not has_segmentation:
-                        for reg in ['aCompCor',
-                                    'WhiteMatter',
-                                    'GreyMatter',
-                                    'CerebrospinalFluid']:
+                    node, out_file = new_strat['anatomical_gm_mask']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow, 'inputspec.gm_mask_file_path'
+                    )
 
-                            if reg in regressors_selector:
-                                del regressors_selector[reg]
+                    node, out_file = new_strat['anatomical_wm_mask']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow, 'inputspec.wm_mask_file_path'
+                    )
 
-                    nuisance_regression_workflow = create_nuisance_workflow(
+                    node, out_file = new_strat['anatomical_csf_mask']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow, 'inputspec.csf_mask_file_path'
+                    )
+
+                node, out_file = new_strat['movement_parameters']
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow,
+                    'inputspec.motion_parameters_file_path'
+                )
+
+                node, out_file= new_strat['functional_to_anat_linear_xfm']
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow,
+                    'inputspec.func_to_anat_linear_xfm_file_path'
+                )
+
+                node, out_file = new_strat.get_leaf_properties()
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow,
+                    'inputspec.functional_file_path'
+                )
+
+                node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow,
+                    'inputspec.fd_j_file_path'
+                )
+
+                node, out_file = new_strat['frame_wise_displacement_power']
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow,
+                    'inputspec.fd_p_file_path'
+                )
+
+                node, out_file = new_strat['dvars']
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow,
+                    'inputspec.dvars_file_path'
+                )
+
+                node, out_file = new_strat['functional_brain_mask']
+                workflow.connect(
+                    node, out_file,
+                    regressor_workflow,
+                    'inputspec.functional_brain_mask_file_path'
+                )
+
+                if c.brain_use_erosion:
+                    node, out_file = new_strat['anatomical_eroded_brain_mask']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow, 'inputspec.anatomical_eroded_brain_mask_file_path'
+                    )
+
+                regressor_workflow.get_node('inputspec').iterables = ([
+                    ('selector', [regressors_selector]),
+                ])
+
+                if use_ants:
+
+                    # pass the ants_affine_xfm to the input for the
+                    # INVERSE transform, but ants_affine_xfm gets inverted
+                    # within the workflow
+
+                    node, out_file = new_strat['ants_initial_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow,
+                        'inputspec.anat_to_mni_initial_xfm_file_path'
+                    )
+
+                    node, out_file = new_strat['ants_rigid_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow,
+                        'inputspec.anat_to_mni_rigid_xfm_file_path'
+                    )
+
+                    node, out_file = new_strat['ants_affine_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow,
+                        'inputspec.anat_to_mni_affine_xfm_file_path'
+                    )
+                else:
+                    node, out_file = new_strat['mni_to_anatomical_linear_xfm']
+                    workflow.connect(
+                        node, out_file,
+                        regressor_workflow,
+                        'inputspec.mni_to_anat_linear_xfm_file_path'
+                    )
+
+                # Inserting Nuisance REGRESSION Workflow
+                if 1 in c.runNuisance:
+
+                    nuisance_regression_workflow = create_nuisance_regression_workflow(
                         regressors_selector,
-                        use_ants=use_ants,
-                        ventricle_mask_exist=ventricle_mask_exist,
-                        name='nuisance_{0}_{1}'.format(regressors_selector_i, num_strat)
-                    )
+                        name='nuisance_regression_{0}_'
+                             '{1}'.format(regressors_selector_i, num_strat))
 
-                    node, node_out = strat['tr']
-                    workflow.connect(node, node_out,
-                                    nuisance_regression_workflow, 'inputspec.tr')
-
-                    node, out_file = new_strat['anatomical_brain']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_workflow, 'inputspec.anatomical_file_path'
-                    )
-
-                    if has_segmentation:
-
-                        workflow.connect(
-                            c.lateral_ventricles_mask, 'local_path',
-                            nuisance_regression_workflow, 'inputspec.lat_ventricles_mask_file_path'
-                        )
-
-                        node, out_file = new_strat['anatomical_gm_mask']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow, 'inputspec.gm_mask_file_path'
-                        )
-
-                        node, out_file = new_strat['anatomical_wm_mask']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow, 'inputspec.wm_mask_file_path'
-                        )
-
-                        node, out_file = new_strat['anatomical_csf_mask']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow, 'inputspec.csf_mask_file_path'
-                        )
-
-                    node, out_file = new_strat['movement_parameters']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_workflow,
-                        'inputspec.motion_parameters_file_path'
-                    )
-
-                    node, out_file= new_strat['functional_to_anat_linear_xfm']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_workflow,
-                        'inputspec.func_to_anat_linear_xfm_file_path'
-                    )
+                    filtering = filtering_bold_and_regressors(regressors_selector,
+                                                              name='frequency_filtering_{0}_{1}'.format(regressors_selector_i, num_strat))
 
                     node, out_file = new_strat.get_leaf_properties()
+
+                    if 'Before' in c.filtering_order:
+                        workflow.connect(
+                            node, out_file,
+                            filtering,
+                            'inputspec.functional_file_path'
+                        )
+
+                        workflow.connect(
+                            regressor_workflow,
+                            'outputspec.regressors_file_path',
+                            filtering,
+                            'inputspec.regressors_file_path'
+                        )
+
+                        workflow.connect(
+                            filtering,
+                            'outputspec.residual_file_path',
+                            nuisance_regression_workflow,
+                            'inputspec.functional_file_path'
+                        )
+
+                    elif 'After' in c.filtering_order:
+                        workflow.connect(
+                            node, out_file,
+                            nuisance_regression_workflow,
+                            'inputspec.functional_file_path'
+                        )
+
+                        workflow.connect(
+                            regressor_workflow,
+                            'outputspec.regressors_file_path',
+                            nuisance_regression_workflow,
+                            'inputspec.regressor_file'
+                        )
+
+                        workflow.connect(
+                            nuisance_regression_workflow,
+                            'outputspec.residual_file_path',
+                            filtering,
+                            'inputspec.functional_file_path'
+                        )
+
+                    node, out_file = new_strat['functional_brain_mask']
                     workflow.connect(
                         node, out_file,
                         nuisance_regression_workflow,
-                        'inputspec.functional_file_path'
+                        'inputspec.functional_brain_mask_file_path'
                     )
 
                     node, out_file = new_strat['frame_wise_displacement_jenkinson']
@@ -2558,84 +2695,29 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'inputspec.dvars_file_path'
                     )
 
-                    node, out_file = new_strat['functional_brain_mask']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_workflow,
-                        'inputspec.functional_brain_mask_file_path'
-                    )
+                new_strat.set_leaf_properties(
+                    regressor_workflow,
+                    'outputspec.residual_file_path'
+                )
 
-                    if c.brain_use_erosion:
-                        node, out_file = new_strat['anatomical_eroded_brain_mask']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow, 'inputspec.anatomical_eroded_brain_mask_file_path'
-                        )
-
-                    nuisance_regression_workflow.get_node('inputspec').iterables = ([
-                        ('selector', [regressors_selector]),
-                    ])
-
-                    if use_ants:
-
-                        # pass the ants_affine_xfm to the input for the
-                        # INVERSE transform, but ants_affine_xfm gets inverted
-                        # within the workflow
-
-                        node, out_file = new_strat['ants_initial_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.anat_to_mni_initial_xfm_file_path'
-                        )
-
-                        node, out_file = new_strat['ants_rigid_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.anat_to_mni_rigid_xfm_file_path'
-                        )
-
-                        node, out_file = new_strat['ants_affine_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.anat_to_mni_affine_xfm_file_path'
-                        )
-                    else:
-                        node, out_file = new_strat['mni_to_anatomical_linear_xfm']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.mni_to_anat_linear_xfm_file_path'
-                        )
-
-
-                    new_strat.append_name(nuisance_regression_workflow.name)
-
-                    new_strat.set_leaf_properties(
-                        nuisance_regression_workflow,
+                new_strat.update_resource_pool({
+                    'functional_nuisance_residuals': (
+                        regressor_workflow,
                         'outputspec.residual_file_path'
-                    )
+                    ),
+                })
 
-                    new_strat.update_resource_pool({
-                        'nuisance_regression_selector': regressors_selector,
-                        
-                        'functional_nuisance_residuals': (
-                            nuisance_regression_workflow,
-                            'outputspec.residual_file_path')
-                        ,
-                        'functional_nuisance_regressors': (
-                            nuisance_regression_workflow,
-                            'outputspec.regressors_file_path'
-                        ),
-                    })
+            new_strat.append_name(regressor_workflow.name)
 
-                    new_strat_list.append(new_strat)
+            new_strat.update_resource_pool({
+                'nuisance_regression_selector': regressors_selector,
+                'functional_nuisance_regressors': (
+                    regressor_workflow,
+                    'outputspec.regressors_file_path'
+                ),
+            })
 
-            # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
-            # Each regressor forks the strategy, instead of reusing it, to keep the code simple
-            strat_list = new_strat_list
+            new_strat_list.append(new_strat)
 
 
         # Inserting Median Angle Correction Workflow

@@ -721,6 +721,11 @@ Regressors:
     degree: 2
 
 
+# Whether to run frequency filtering before or after nuisance regression.
+# ['Before'] or ['After']
+filtering_order: ['After']
+
+
 # Correct for the global signal using Median Angle Correction.
 runMedianAngleCorrection: [0]
 

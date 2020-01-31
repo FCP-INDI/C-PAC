@@ -44,9 +44,9 @@ def ideal_bandpass(data, sample_period, bandpass_freqs):
     return data_bp
 
 
-def bandpass_voxels(realigned_file,regressor_file,bandpass_freqs, sample_period=None):
-    """
-    Performs ideal bandpass filtering on each voxel time-series.
+def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
+                    sample_period=None):
+    """Performs ideal bandpass filtering on each voxel time-series.
     
     Parameters
     ----------
@@ -103,15 +103,16 @@ def bandpass_voxels(realigned_file,regressor_file,bandpass_freqs, sample_period=
         regressor_bandpassed_file = os.path.join(os.getcwd(),
                                    'regressor_bandpassed_demeaned_filtered.nii.gz')
         img.to_filename(regressor_bandpassed_file)
+
     else:
         regressor=np.loadtxt(regressor_file)
         Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
         Y_bp = np.zeros_like(Yc)
-             for j in range(regressor.shape[1]):
-                 Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
+        for j in range(regressor.shape[1]):
+            Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
         regressor_bandpassed_file = os.path.join(os.getcwd(),
                                    'regressor_bandpassed_demeaned_filtered.tsv')
         np.savetxt(regressor_bandpassed_file,Y_bp)
 
-    return bandpassed_file,regressor_bandpassed_file
+    return bandpassed_file, regressor_bandpassed_file
     
