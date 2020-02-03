@@ -48,43 +48,83 @@ num_ants_threads :  4
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  analysis
+pipeline_name :  cpac-default-pipeline
+
+
+# Directory where C-PAC should write out processed data, logs, and crash reports.
+# - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
+#   name like '/output', and then map (-B/-v) your desired output directory to that label.
+# - If running outside a container, this should be a full path to a directory.
+output_directory:  /output
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  /tmp
+# - This directory must be saved if you wish to re-run your pipeline from where you left off (if not completed).
+# - NOTE: As it stores all intermediate files, this directory can grow to become very
+#   large, especially for data with a large amount of TRs.
+# - If running in a container (Singularity/Docker), you can simply set this to an arbitrary
+#   name like '/work', and then map (-B/-v) your desired output directory to that label.
+# - If running outside a container, this should be a full path to a directory.
+# - This can be written to '/tmp' if you do not intend to save your working directory.
+working_directory:  /tmp
 
 
-# Directory where CPAC should write crash logs.
-crashLogDirectory :  /tmp
+# The maximum amount of memory each participant's workflow can allocate.
+# Use this to place an upper bound of memory usage.
+# - Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously'
+#   must not be more than the total amount of RAM.
+# - Conversely, using too little RAM can impede the speed of a pipeline run.
+# - It is recommended that you set this to a value that when multiplied by
+#   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
+maximum_memory_per_participant :  1
 
 
-# Directory where CPAC should place processed data.
-outputDirectory :  /output
+# The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid)
+# to allocate per participant.
+# - Setting this above 1 will parallelize each participant's workflow where possible.
+#   If you wish to dedicate multiple cores to ANTS-based anatomical registration (below),
+#   this value must be equal or higher than the amount of cores provided to ANTS.
+# - The maximum number of cores your run can possibly employ will be this setting multiplied
+#   by the number of participants set to run in parallel (the 'Number of Participants to Run
+#   Simultaneously' setting).
+max_cores_per_participant :  1
+
+
+# The number of cores to allocate to ANTS-based anatomical registration per participant.
+# - Multiple cores can greatly speed up this preprocessing step.
+# - This number cannot be greater than the number of cores per participant.
+num_ants_threads :  4
+
+
+# The number of participant workflows to run at the same time.
+# - The maximum number of cores your run can possibly employ will be this setting
+#   multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
+num_participants_at_once :  1
 
 
 # Whether to write log details of the pipeline. run to the logging files.
-run_logging :  True
-
-
-# Directory where CPAC should place run logs.
-logDirectory :  /tmp
+run_logging:  True
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
-awsOutputBucketCredentials :
+aws_output_bucket_credentials:
 
 
 # Enable server-side 256-AES encryption on data to the S3 bucket
-s3Encryption :  [0]
+s3_encryption:  False
+
+
+# Deletes the contents of the Working Directory after running.
+# This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
+remove_working_dir:  True
 
 
 # Include extra versions and intermediate steps of functional preprocessing in the output directory.
-write_func_outputs :  [0]
+write_func_outputs:  False
 
 
 # Include extra outputs in the output directory that may be of interest when more information is needed.
-write_debugging_outputs :  [0]
+write_debugging_outputs:  False
 
 
 # Output directory format and structure.
@@ -93,17 +133,7 @@ output_tree: "default"
 
 
 # Generate quality control pages containing preprocessing and derivative outputs.
-generateQualityControlImages :  [1]
-
-
-# Deletes the contents of the Working Directory after running.
-# This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
-removeWorkingDir :  True
-
-
-# Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
-# Requires an intact Working Directory from a previous CPAC run.
-reGenerateOutputs :  False
+generate_quality_control_images :  True
 
 
 # Anatomical preprocessing options.
