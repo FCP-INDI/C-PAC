@@ -287,17 +287,17 @@ bet_vertical_gradient: 0.0
 
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
-resolution_for_anat: 2mm
+resolution_for_anat: 1mm
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat: /templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+template_skull_for_anat: /templates/skull_mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -627,10 +627,6 @@ functionalMasking: [FSL_AFNI]
 anatomical_mask_dilation: false
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction: [AFNI]
-
-
 # Register functional images to a standard MNI152 template.
 # This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
 runRegisterFuncToMNI: [1]
@@ -692,7 +688,6 @@ Regressors:
     extraction_resolution: 2
   GlobalSignal:
     summary: Mean
-    extraction_resolution: 2
   Motion:
     include_delayed: true
     include_delayed_squared: true
@@ -702,6 +697,7 @@ Regressors:
   WhiteMatter:
     erode_mask: false
     summary: Mean
+    extraction_resolution: 2
   aCompCor:
     summary:
       components: 5
