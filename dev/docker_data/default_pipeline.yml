@@ -782,6 +782,8 @@ wm_erosion_prop : 0.6
         # Recommend to do not use erosion in both proportion and millimeter method.
         gm_erosion_prop : 0.6
 
+    # Set scaling factor, if runScaling : True. Scale the size of the dataset voxels by the factor.
+    scaling_factor : 10
 
 # Erosion proportion, if use erosion.
 # Recommend to do not use erosion in both proportion and millimeter method.
@@ -1062,11 +1064,18 @@ runRegisterFuncToAnat :  [1]
     # Run Functional to Anatomical Registration with BB Register
     runBBReg :  [1]
 
+    # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
+    # It is not necessary to change this path unless you intend to use non-standard MNI registration.
+    boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
     # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
     # It is not necessary to change this path unless you intend to use non-standard MNI registration.
     boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
+    # Interpolation method for writing out transformed anatomical images.
+    # ANTS registration tools only.
+    # Possible values: Linear, BSpline, LanczosWindowedSinc
+    anatRegANTSinterpolation: LanczosWindowedSinc
 
     # Interpolation method for writing out transformed anatomical images.
     # ANTS registration tools only.
