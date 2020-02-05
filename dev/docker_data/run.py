@@ -215,7 +215,7 @@ parser.add_argument('--participant_ndx', help='The index of the participant'
 parser.add_argument('-v', '--version', action='version',
                     version='C-PAC BIDS-App version {}'.format(__version__))
 parser.add_argument('--bids_validator_config', help='JSON file specifying configuration of '
-                    'bids-validator: See https://github.com/INCF/bids-validator for more info.')
+                    'bids-validator: See https://github.com/bids-standard/bids-validator for more info.')
 parser.add_argument('--skip_bids_validator',
                     help='Skips bids validation.',
                     action='store_true')
