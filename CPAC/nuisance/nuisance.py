@@ -1480,12 +1480,11 @@ def create_nuisance_regression_workflow(nuisance_selectors,
     else:
         nuisance_regression.inputs.polort = 0
 
-    nuisance_wf.connect([
-        (inputspec, nuisance_regression, [
-            ('functional_file_path', 'in_file'),
-            ('functional_brain_mask_file_path', 'mask'),
-        ]),
-    ])
+    nuisance_wf.connect(inputspec, 'functional_file_path',
+                        nuisance_regression, 'in_file')
+    
+    nuisance_wf.connect(inputspec, 'functional_brain_mask_file_path',
+                        nuisance_regression, 'mask')
 
     check_regressor_filetype = pe.Node(Function(
             input_names=['regressor_file'],

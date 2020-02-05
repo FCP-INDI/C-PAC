@@ -2539,6 +2539,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'inputspec.functional_file_path'
                 )
 
+                new_strat.update_resource_pool({
+                    'functional_freq_unfiltered': (
+                        node, out_file
+                    ),
+                })
+
                 node, out_file = new_strat['frame_wise_displacement_jenkinson']
                 workflow.connect(
                     node, out_file,
@@ -2615,99 +2621,170 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # Inserting Nuisance REGRESSION Workflow
                 if 1 in c.runNuisance:
 
-                    nuisance_regression_workflow = create_nuisance_regression_workflow(
+                    nuisance_regression_before_workflow = create_nuisance_regression_workflow(
                         regressors_selector,
-                        name='nuisance_regression_{0}_'
+                        name='nuisance_regression_before-filt_{0}_'
+                             '{1}'.format(regressors_selector_i, num_strat))
+
+                    nuisance_regression_after_workflow = create_nuisance_regression_workflow(
+                        regressors_selector,
+                        name='nuisance_regression_after-filt_{0}_'
                              '{1}'.format(regressors_selector_i, num_strat))
 
                     filtering = filtering_bold_and_regressors(regressors_selector,
-                                                              name='frequency_filtering_{0}_{1}'.format(regressors_selector_i, num_strat))
+                                                              name='frequency_filtering_'
+                                                                   '{0}_{1}'.format(regressors_selector_i, num_strat))
 
                     node, out_file = new_strat.get_leaf_properties()
 
-                    if 'Before' in c.filtering_order:
-                        workflow.connect(
-                            node, out_file,
-                            filtering,
-                            'inputspec.functional_file_path'
-                        )
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_before_workflow,
+                        'inputspec.functional_file_path'
+                    )
 
-                        workflow.connect(
-                            regressor_workflow,
-                            'outputspec.regressors_file_path',
-                            filtering,
-                            'inputspec.regressors_file_path'
-                        )
+                    workflow.connect(
+                        regressor_workflow,
+                        'outputspec.regressors_file_path',
+                        filtering,
+                        'inputspec.regressors_file_path'
+                    )
 
-                        workflow.connect(
-                            filtering,
-                            'outputspec.residual_file_path',
-                            nuisance_regression_workflow,
-                            'inputspec.functional_file_path'
-                        )
+                    workflow.connect(
+                        filtering,
+                        'outputspec.residual_file_path',
+                        nuisance_regression_after_workflow,
+                        'inputspec.functional_file_path'
+                    )
 
-                    elif 'After' in c.filtering_order:
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_workflow,
-                            'inputspec.functional_file_path'
-                        )
+                    workflow.connect(
+                        regressor_workflow,
+                        'outputspec.regressors_file_path',
+                        nuisance_regression_before_workflow,
+                        'inputspec.regressor_file'
+                    )
 
-                        workflow.connect(
-                            regressor_workflow,
-                            'outputspec.regressors_file_path',
-                            nuisance_regression_workflow,
-                            'inputspec.regressor_file'
-                        )
-
-                        workflow.connect(
-                            nuisance_regression_workflow,
-                            'outputspec.residual_file_path',
-                            filtering,
-                            'inputspec.functional_file_path'
-                        )
+                    workflow.connect(
+                        filtering,
+                        'outputspec.residual_regressor',
+                        nuisance_regression_after_workflow,
+                        'inputspec.regressor_file'
+                    )
 
                     node, out_file = new_strat['functional_brain_mask']
                     workflow.connect(
                         node, out_file,
-                        nuisance_regression_workflow,
+                        nuisance_regression_before_workflow,
+                        'inputspec.functional_brain_mask_file_path'
+                    )
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_after_workflow,
                         'inputspec.functional_brain_mask_file_path'
                     )
 
                     node, out_file = new_strat['frame_wise_displacement_jenkinson']
                     workflow.connect(
                         node, out_file,
-                        nuisance_regression_workflow,
+                        nuisance_regression_before_workflow,
+                        'inputspec.fd_j_file_path'
+                    )
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_after_workflow,
                         'inputspec.fd_j_file_path'
                     )
 
                     node, out_file = new_strat['frame_wise_displacement_power']
                     workflow.connect(
                         node, out_file,
-                        nuisance_regression_workflow,
+                        nuisance_regression_before_workflow,
+                        'inputspec.fd_p_file_path'
+                    )
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_after_workflow,
                         'inputspec.fd_p_file_path'
                     )
 
                     node, out_file = new_strat['dvars']
                     workflow.connect(
                         node, out_file,
-                        nuisance_regression_workflow,
+                        nuisance_regression_before_workflow,
+                        'inputspec.dvars_file_path'
+                    )
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_after_workflow,
                         'inputspec.dvars_file_path'
                     )
 
-                new_strat.set_leaf_properties(
-                    regressor_workflow,
-                    'outputspec.residual_file_path'
-                )
+                if 'Before' in c.filtering_order:
+                    node, out_file = new_strat.get_leaf_properties()
+                    workflow.connect(
+                        node, out_file,
+                        filtering,
+                        'inputspec.functional_file_path'
+                    )
+
+                    new_strat.set_leaf_properties(
+                        nuisance_regression_after_workflow,
+                        'outputspec.residual_file_path'
+                    )
+
+                    new_strat.update_resource_pool({
+                        'functional_freq_filtered': (
+                            filtering,
+                            'outputspec.residual_file_path'
+                        ),
+                    })
+
+                    new_strat.update_resource_pool({
+                        'functional_nuisance_residuals': (
+                            nuisance_regression_after_workflow,
+                            'outputspec.residual_file_path'
+                        ),
+                    })
+
+
+                elif 'After' in c.filtering_order:
+                    workflow.connect(
+                        nuisance_regression_before_workflow,
+                        'outputspec.residual_file_path',
+                        filtering,
+                        'inputspec.functional_file_path'
+                    )
+
+                    new_strat.set_leaf_properties(
+                        filtering,
+                        'outputspec.residual_file_path'
+                    )
+
+                    new_strat.update_resource_pool({
+                        'functional_nuisance_residuals': (
+                            nuisance_regression_before_workflow,
+                            'outputspec.residual_file_path'
+                        ),
+                    })
+
+                    new_strat.update_resource_pool({
+                        'functional_freq_filtered': (
+                            filtering,
+                            'outputspec.residual_file_path'
+                        ),
+                    })
 
                 new_strat.update_resource_pool({
-                    'functional_nuisance_residuals': (
-                        regressor_workflow,
+                    'functional_freq_unfiltered': (
+                        nuisance_regression_before_workflow,
                         'outputspec.residual_file_path'
                     ),
-                })
+                }, override=True)
 
             new_strat.append_name(regressor_workflow.name)
+            new_strat.append_name(nuisance_regression_before_workflow.name)
+            new_strat.append_name(nuisance_regression_after_workflow.name)
+            new_strat.append_name(filtering.name)
 
             new_strat.update_resource_pool({
                 'nuisance_regression_selector': regressors_selector,
@@ -2719,6 +2796,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             new_strat_list.append(new_strat)
 
+        strat_list += new_strat_list
 
         # Inserting Median Angle Correction Workflow
         new_strat_list = []
@@ -2753,49 +2831,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         strat_list += new_strat_list
 
-        for num_strat, strat in enumerate(strat_list):
-            # Keep non-bandpassed version of the output for ALFF
-            strat.update_resource_pool({
-                'functional_freq_unfiltered': strat.get_leaf_properties()
-            })
-
-        # Inserting Bandpassing Workflow
-        for num_strat, strat in enumerate(strat_list):
-
-            if 'nuisance_regression_selector' not in strat:
-                continue
-
-            if not strat['nuisance_regression_selector'].get('Bandpass'):
-                continue
-
-            bandpass_selector = strat['nuisance_regression_selector']['Bandpass']
-
-            frequency_filter = pe.Node(
-                Function(input_names=['realigned_file',
-                                      'bandpass_freqs',
-                                      'sample_period'],
-                         output_names=['bandpassed_file'],
-                         function=bandpass_voxels,
-                         as_module=True),
-                name='frequency_filter_%d' % num_strat
-            )
-
-            frequency_filter.inputs.bandpass_freqs = [
-                bandpass_selector.get('bottom_frequency'),
-                bandpass_selector.get('top_frequency')
-            ]
-
-            node, out_file = strat.get_leaf_properties()
-            workflow.connect(node, out_file,
-                             frequency_filter, 'realigned_file')
-
-            strat.append_name(frequency_filter.name)
-
-            strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
-            strat.update_resource_pool({
-                'functional_freq_filtered': (frequency_filter, 'bandpassed_file')
-            })
-
 
         # Denoised Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
         #  apply the warp; also includes mean functional warp
@@ -2807,7 +2842,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard( workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
         strat_list += new_strat_list
         
