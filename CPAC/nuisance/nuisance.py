@@ -1372,6 +1372,7 @@ def create_nuisance_regression_workflow(nuisance_selectors,
                          name='outputspec')
 
     nuisance_wf = pe.Workflow(name=name)
+
     if nuisance_selectors.get('Censor'):
 
         censor_methods = ['Kill', 'Zero', 'Interpolate', 'SpikeRegression']
@@ -1482,7 +1483,7 @@ def create_nuisance_regression_workflow(nuisance_selectors,
 
     nuisance_wf.connect(inputspec, 'functional_file_path',
                         nuisance_regression, 'in_file')
-    
+
     nuisance_wf.connect(inputspec, 'functional_brain_mask_file_path',
                         nuisance_regression, 'mask')
 
