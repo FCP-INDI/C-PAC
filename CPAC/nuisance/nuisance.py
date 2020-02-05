@@ -1357,6 +1357,7 @@ def create_regressor_workflow(nuisance_selectors,
 
 
 def create_nuisance_regression_workflow(nuisance_selectors,
+                                        filtering_order='After',
                                         name='nuisance_regression'):
 
     inputspec = pe.Node(util.IdentityInterface(fields=[
@@ -1496,11 +1497,12 @@ def create_nuisance_regression_workflow(nuisance_selectors,
     nuisance_wf.connect(inputspec, 'regressor_file',
                         check_regressor_filetype, 'regressor_file')
 
-    nuisance_wf.connect(check_regressor_filetype, 'dsort',
-                        nuisance_regression, 'dsort')
-
-    nuisance_wf.connect(check_regressor_filetype, 'ort',
-                        nuisance_regression, 'ort')
+    if filtering_order == 'Before':
+        nuisance_wf.connect(check_regressor_filetype, 'dsort',
+                            nuisance_regression, 'dsort')
+    elif filtering_order == 'After':
+        nuisance_wf.connect(check_regressor_filetype, 'ort',
+                            nuisance_regression, 'ort')
     
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
@@ -1546,9 +1548,9 @@ def filtering_bold_and_regressors(nuisance_selectors,
                          frequency_filter, 'regressor_file')
         
     filtering_wf.connect(frequency_filter, 'bandpassed_file',
-                         outputspec, 'regressor_file')
+                         outputspec, 'residual_file_path')
 
-    filtering_wf.connect(frequency_filter, 'residual_file_path',
+    filtering_wf.connect(frequency_filter, 'regressor_file',
                          outputspec, 'residual_regressor')
 
     return filtering_wf

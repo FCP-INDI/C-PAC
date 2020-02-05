@@ -2427,7 +2427,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     )
 
                     for output_name, func_key, ref_key, image_type in [ \
-                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'template_brain_for_func_preproc', 'func_4d'),
+                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
                     ]:
                         output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True) 
 
@@ -2622,12 +2622,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if 1 in c.runNuisance:
 
                     nuisance_regression_before_workflow = create_nuisance_regression_workflow(
-                        regressors_selector,
+                        regressors_selector, 'After',
                         name='nuisance_regression_before-filt_{0}_'
                              '{1}'.format(regressors_selector_i, num_strat))
 
                     nuisance_regression_after_workflow = create_nuisance_regression_workflow(
-                        regressors_selector,
+                        regressors_selector, 'Before',
                         name='nuisance_regression_after-filt_{0}_'
                              '{1}'.format(regressors_selector_i, num_strat))
 
