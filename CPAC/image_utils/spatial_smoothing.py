@@ -81,23 +81,24 @@ def spatial_smooth(workflow, func_key, mask_key, output_name, strat,
             ', '.join(image_types)))
 
     if method == 'FSL':
-         if input_image_type == 'func_derivative_multi':
-             output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                   name='{0}_multi_{1}'.format(output_name, num_strat),
-                                   iterfield=['in_file'])
-         else:
-             output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                name='{0}_{1}'.format(output_name,num_strat))
+        if input_image_type == 'func_derivative_multi':
+            output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                       name='{0}_multi_{1}'.format(output_name, num_strat),
+                                       iterfield=['in_file'])
+        else:
+            output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                                    name='{0}_{1}'.format(output_name,num_strat))
 
     elif method == 'AFNI':
-         if input_image_type == 'func_derivative_multi':
-             output_smooth = pe.MapNode(interface= afni.BlurToFWHM(),
-                                   name='{0}_multi_{1}'.format(output_name, num_strat),
-                                   iterfield=['in_file'])
-         else:
-             output_smooth = pe.Node(interface= afni.BlurToFWHM(),
-                                   name='{0}_multi_{1}'.format(output_name, num_strat),
-                                   iterfield=['in_file'])
+        if input_image_type == 'func_derivative_multi':
+            output_smooth = pe.MapNode(interface= afni.BlurToFWHM(),
+                                       name='{0}_multi_{1}'.format(output_name, num_strat),
+                                       iterfield=['in_file'])
+        else:
+            output_smooth = pe.Node(interface= afni.BlurToFWHM(),
+                                    name='{0}_multi_{1}'.format(output_name, num_strat),
+                                    iterfield=['in_file'])
+        output_smooth.inputs.outputtype = 'NIFTI_GZ'
 
     if isinstance(func_key, str):
         if func_key == 'leaf':

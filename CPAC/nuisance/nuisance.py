@@ -352,7 +352,7 @@ def check_regressors_file_type(regressor_file):
     dsort = None
     ort = None
 
-    if regressor_file.endswith('nii.gz'):
+    if regressor_file.endswith('.tsv'):
         dsort = regressor_file
     else:
         ort = regressor_file
@@ -1554,3 +1554,4 @@ def filtering_bold_and_regressors(nuisance_selectors,
                          outputspec, 'residual_regressor')
 
     return filtering_wf
+

@@ -2626,11 +2626,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         name='nuisance_regression_before-filt_{0}_'
                              '{1}'.format(regressors_selector_i, num_strat))
 
-                    nuisance_regression_after_workflow = create_nuisance_regression_workflow(
-                        regressors_selector, 'Before',
-                        name='nuisance_regression_after-filt_{0}_'
-                             '{1}'.format(regressors_selector_i, num_strat))
-
                     filtering = filtering_bold_and_regressors(regressors_selector,
                                                               name='frequency_filtering_'
                                                                    '{0}_{1}'.format(regressors_selector_i, num_strat))
@@ -2651,17 +2646,52 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     )
 
                     workflow.connect(
-                        filtering,
-                        'outputspec.residual_file_path',
-                        nuisance_regression_after_workflow,
-                        'inputspec.functional_file_path'
-                    )
-
-                    workflow.connect(
                         regressor_workflow,
                         'outputspec.regressors_file_path',
                         nuisance_regression_before_workflow,
                         'inputspec.regressor_file'
+                    )
+
+                    node, out_file = new_strat['functional_brain_mask']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_before_workflow,
+                        'inputspec.functional_brain_mask_file_path'
+                    )
+
+                    node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_before_workflow,
+                        'inputspec.fd_j_file_path'
+                    )
+
+                    node, out_file = new_strat['frame_wise_displacement_power']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_before_workflow,
+                        'inputspec.fd_p_file_path'
+                    )
+
+                    node, out_file = new_strat['dvars']
+                    workflow.connect(
+                        node, out_file,
+                        nuisance_regression_before_workflow,
+                        'inputspec.dvars_file_path'
+                    )
+
+                if 'Before' in c.filtering_order:
+
+                    nuisance_regression_after_workflow = create_nuisance_regression_workflow(
+                        regressors_selector, 'Before',
+                        name='nuisance_regression_after-filt_{0}_'
+                             '{1}'.format(regressors_selector_i, num_strat))
+
+                    workflow.connect(
+                        filtering,
+                        'outputspec.residual_file_path',
+                        nuisance_regression_after_workflow,
+                        'inputspec.functional_file_path'
                     )
 
                     workflow.connect(
@@ -2674,21 +2704,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = new_strat['functional_brain_mask']
                     workflow.connect(
                         node, out_file,
-                        nuisance_regression_before_workflow,
-                        'inputspec.functional_brain_mask_file_path'
-                    )
-                    workflow.connect(
-                        node, out_file,
                         nuisance_regression_after_workflow,
                         'inputspec.functional_brain_mask_file_path'
                     )
 
                     node, out_file = new_strat['frame_wise_displacement_jenkinson']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_before_workflow,
-                        'inputspec.fd_j_file_path'
-                    )
                     workflow.connect(
                         node, out_file,
                         nuisance_regression_after_workflow,
@@ -2698,11 +2718,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = new_strat['frame_wise_displacement_power']
                     workflow.connect(
                         node, out_file,
-                        nuisance_regression_before_workflow,
-                        'inputspec.fd_p_file_path'
-                    )
-                    workflow.connect(
-                        node, out_file,
                         nuisance_regression_after_workflow,
                         'inputspec.fd_p_file_path'
                     )
@@ -2710,16 +2725,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = new_strat['dvars']
                     workflow.connect(
                         node, out_file,
-                        nuisance_regression_before_workflow,
-                        'inputspec.dvars_file_path'
-                    )
-                    workflow.connect(
-                        node, out_file,
                         nuisance_regression_after_workflow,
                         'inputspec.dvars_file_path'
                     )
 
-                if 'Before' in c.filtering_order:
                     node, out_file = new_strat.get_leaf_properties()
                     workflow.connect(
                         node, out_file,
@@ -2746,6 +2755,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         ),
                     })
 
+                    new_strat.append_name(nuisance_regression_after_workflow.name)
 
                 elif 'After' in c.filtering_order:
                     workflow.connect(
@@ -2783,7 +2793,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             new_strat.append_name(regressor_workflow.name)
             new_strat.append_name(nuisance_regression_before_workflow.name)
-            new_strat.append_name(nuisance_regression_after_workflow.name)
             new_strat.append_name(filtering.name)
 
             new_strat.update_resource_pool({
