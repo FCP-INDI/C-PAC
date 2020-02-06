@@ -52,23 +52,23 @@ pipelineName :  benchmark-FNIRT
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  ./cpac_runs/benchmark-FNIRT/w
+workingDirectory :  /tmp
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  ./cpac_runs/benchmark-FNIRT/c
+crashLogDirectory :  /output
 
 
 # Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/benchmark-FNIRT/o
+outputDirectory :  /output
 
 
-# Whether to write log details of the pipeline. run to the logging files.
+# Whether to write log details of the pipeline.
 run_logging :  True
 
 
 # Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/benchmark-FNIRT/l
+logDirectory :  /output
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.

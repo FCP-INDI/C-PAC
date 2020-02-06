@@ -1043,6 +1043,15 @@ def generate_qc_pages(qc_dir):
 
     qc_dir = os.path.abspath(qc_dir)
 
+    try:
+        if not os.path.exists(qc_dir):
+            os.makedirs(qc_dir)
+    except IOError:
+        print("\n\n[!] Could not create a directory for the QC dashboard. "
+              "Please check write permissions.\n\nDirectory attempted:\n "
+              "{0}".format(qc_dir))
+        raise IOError
+
     files = []
     for root, _, fs in os.walk(qc_dir):
         root = root[len(qc_dir) + 1:]
