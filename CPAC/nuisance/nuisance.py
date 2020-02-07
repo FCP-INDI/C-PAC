@@ -352,7 +352,7 @@ def check_regressors_file_type(regressor_file):
     dsort = None
     ort = None
 
-    if regressor_file.endswith('.tsv'):
+    if regressor_file.endswith('.nii') or regressor_file.endswith('.nii.gz'):
         dsort = regressor_file
     else:
         ort = regressor_file
@@ -1530,7 +1530,8 @@ def filtering_bold_and_regressors(nuisance_selectors,
                                       'regressor_file',
                                       'bandpass_freqs',
                                       'sample_period'],
-                         output_names=['bandpassed_file', 'regressor_file'],
+                         output_names=['bandpassed_file', 
+                                       'regressor_file'],
                          function=bandpass_voxels,
                          as_module=True),
                 name='frequency_filter'

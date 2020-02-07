@@ -52,7 +52,7 @@ pipelineName :  benchmark-FNIRT
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  /output
+workingDirectory :  /tmp
 
 
 # Directory where CPAC should write crash logs.
@@ -63,7 +63,7 @@ crashLogDirectory :  /output
 outputDirectory :  /output
 
 
-# Whether to write log details of the pipeline. run to the logging files.
+# Whether to write log details of the pipeline.
 run_logging :  True
 
 

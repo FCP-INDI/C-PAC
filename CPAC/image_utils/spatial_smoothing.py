@@ -21,12 +21,12 @@ def set_gauss(fwhm):
     op_string : string
 
     """
-    print(fwhm)
+
     sigma = float(fwhm) / 2.3548
 
     op_string = "-kernel gauss %f -fmean -mas " % sigma + "%s"
 
-    return op_string,fwhm
+    return op_string
 
 
 def spatial_smooth_outputs(workflow, func_key, strat, num_strat,

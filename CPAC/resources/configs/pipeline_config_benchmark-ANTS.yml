@@ -52,7 +52,7 @@ pipelineName :  benchmark-ANTS
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  /output
+workingDirectory :  /tmp
 
 
 # Directory where CPAC should write crash logs.
