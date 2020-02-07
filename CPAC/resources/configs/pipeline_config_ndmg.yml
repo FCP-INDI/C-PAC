@@ -722,7 +722,7 @@ targetAngleDeg : [90]
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [0]
+runROITimeseries :  [1]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.

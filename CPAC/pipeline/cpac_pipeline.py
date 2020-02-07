@@ -3875,7 +3875,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'
                             .format(id_tag, func_template_tag, func_res_tag)
                         ),
-                        'functional_mask_to_standard': (
+                        'functional_brain_mask_to_standard': (
                             'func',
                             'registered',
                             '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'
