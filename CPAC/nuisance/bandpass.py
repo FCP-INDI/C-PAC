@@ -111,7 +111,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
         for j in range(regressor.shape[1]):
             Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
         regressor_bandpassed_file = os.path.join(os.getcwd(),
-                                   'regressor_bandpassed_demeaned_filtered.tsv')
+                                   'regressor_bandpassed_demeaned_filtered.1D')
         np.savetxt(regressor_bandpassed_file,Y_bp)
 
     return bandpassed_file, regressor_bandpassed_file
