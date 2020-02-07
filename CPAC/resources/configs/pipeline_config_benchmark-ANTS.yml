@@ -52,23 +52,23 @@ pipelineName :  benchmark-ANTS
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  ./cpac_runs/benchmark-ANTS/w
+workingDirectory :  /output
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  ./cpac_runs/benchmark-ANTS/c
+crashLogDirectory :  /output
 
 
 # Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/benchmark-ANTS/o
+outputDirectory :  /output
 
 
-# Whether to write log details of the pipeline.
+# Whether to write log details of the pipeline. run to the logging files.
 run_logging :  True
 
 
 # Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/benchmark-ANTS/l
+logDirectory :  /output
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
