@@ -2476,7 +2476,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         if reg in regressors_selector:
                             del regressors_selector[reg]
 
-                regressor_workflow = create_regressor_workflow(
+                regressor_workflow, target = create_regressor_workflow(
                     regressors_selector,
                     use_ants=use_ants,
                     ventricle_mask_exist=ventricle_mask_exist,
@@ -2630,7 +2630,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if 1 in c.runNuisance:
 
                     nuisance_regression_before_workflow = create_nuisance_regression_workflow(
-                        regressors_selector, 'After',
+                        regressors_selector, target,
                         name='nuisance_regression_before-filt_{0}_'
                              '{1}'.format(regressors_selector_i, num_strat))
 
@@ -2690,7 +2690,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     if 'Before' in c.filtering_order:
                         nuisance_regression_after_workflow = create_nuisance_regression_workflow(
-                            regressors_selector, 'Before',
+                            regressors_selector, target,
                             name='nuisance_regression_after-filt_{0}_'
                                  '{1}'.format(regressors_selector_i, num_strat))
 
