@@ -347,20 +347,6 @@ def gather_nuisance(functional_file_path,
     return output_file_path
 
 
-def check_regressors_file_type(regressor_file):
-
-    dsort = None
-    ort = None
-
-    if regressor_file.endswith('.nii') or regressor_file.endswith('.nii.gz'):
-        dsort = regressor_file
-    else:
-        ort = regressor_file
-
-    return (dsort, ort)
-
-
-
 def create_regressor_workflow(nuisance_selectors,
                               use_ants,
                               ventricle_mask_exist,
@@ -1353,11 +1339,10 @@ def create_regressor_workflow(nuisance_selectors,
     nuisance_wf.connect(build_nuisance_regressors, 'out_file',
                         outputspec, 'regressors_file_path')
 
-    return (nuisance_wf, regressor_target)
+    return nuisance_wf
 
 
 def create_nuisance_regression_workflow(nuisance_selectors,
-                                        target='ort',
                                         name='nuisance_regression'):
 
     inputspec = pe.Node(util.IdentityInterface(fields=[
@@ -1488,22 +1473,23 @@ def create_nuisance_regression_workflow(nuisance_selectors,
     nuisance_wf.connect(inputspec, 'functional_brain_mask_file_path',
                         nuisance_regression, 'mask')
 
-    check_regressor_filetype = pe.Node(Function(
-            input_names=['regressor_file'],
-            output_names=['dsort', 'ort'],
-            function=check_regressors_file_type
-        ), name="check_regressors_file_type")
-
-    nuisance_wf.connect(inputspec, 'regressor_file',
-                        check_regressor_filetype, 'regressor_file')
-
-    if target == 'dsort':
-        nuisance_wf.connect(check_regressor_filetype, 'dsort',
-                            nuisance_regression, 'dsort')
-    elif target == 'ort':
-        nuisance_wf.connect(check_regressor_filetype, 'ort',
+    if nuisance_selectors.get('Custom'):
+        if nuisance_selectors['Custom'].get('file'):
+            if nuisance_selectors['Custom']['file'].endswith('.nii') or \
+                    nuisance_selectors['Custom']['file'].endswith('.nii.gz'):
+                nuisance_wf.connect(inputspec, 'regressor_file',
+                                    nuisance_regression, 'dsort')
+            else:
+                nuisance_wf.connect(inputspec, 'regressor_file',
+                                    nuisance_regression, 'ort')
+        else:
+            nuisance_wf.connect(inputspec, 'regressor_file',
+                                nuisance_regression, 'ort')
+    else:
+        nuisance_wf.connect(inputspec, 'regressor_file',
                             nuisance_regression, 'ort')
-    
+
+
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
 
