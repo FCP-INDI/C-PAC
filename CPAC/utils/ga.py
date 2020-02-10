@@ -27,7 +27,12 @@ def get_or_create_config():
 
 
 def get_uid():
-    if os.environ.get('CPAC_TRACKING', '').lower() not in ['', '0', 'false', 'off']:
+    if os.environ.get('CPAC_TRACKING', '').lower() not in [
+        '',
+        '0',
+        'false',
+        'off'
+    ]:
         return os.environ.get('CPAC_TRACKING')
 
     parser = get_or_create_config()
@@ -39,8 +44,17 @@ def get_uid():
 
 def do_it(data, timeout):
     try:
-        headers = { 'User-Agent': 'C-PAC/{} (https://fcp-indi.github.io)'.format(__version__) }
-        response = requests.post('https://www.google-analytics.com/collect', data=data, timeout=timeout, headers=headers)
+        headers = {
+            'User-Agent': 'C-PAC/{} (https://fcp-indi.github.io)'.format(
+                __version__
+            )
+        }
+        response = requests.post(
+            'https://www.google-analytics.com/collect',
+            data=data,
+            timeout=timeout,
+            headers=headers
+        )
         return response
     except:
         return False
@@ -108,9 +122,10 @@ def track_event(category, action, uid=None, label=None, value=0,
         'aid': "CPAC",
         'an': "CPAC",
         'av': __version__,
-        'aip': 1, # anonymize IP by removing last octet, slightly worse geolocation
+        'aip': 1, # anonymize IP by removing last octet, slightly worse
+                  # geolocation
     }
-    
+
     if thread:
         t = threading.Thread(target=do_it, args=(data, timeout))
         t.start()
@@ -120,4 +135,10 @@ def track_event(category, action, uid=None, label=None, value=0,
 
 def track_run(level='participant', participants=0):
     assert level in ['participant', 'group']
-    track_event('run', level, label='participants', value=participants, thread=False)
+    track_event(
+        'run',
+        level,
+        label='participants',
+        value=participants,
+        thread=False
+    )
