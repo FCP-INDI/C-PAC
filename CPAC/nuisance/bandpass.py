@@ -105,14 +105,24 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
         img.to_filename(regressor_bandpassed_file)
 
     else:
-        regressor=np.loadtxt(regressor_file)
+        with open(regressor_file, 'r') as f:
+            header = [f.readline() for x in range(0,3)]
+        regressor = np.loadtxt(regressor_file)
         Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
         Y_bp = np.zeros_like(Yc)
         for j in range(regressor.shape[1]):
             Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
         regressor_bandpassed_file = os.path.join(os.getcwd(),
                                    'regressor_bandpassed_demeaned_filtered.1D')
-        np.savetxt(regressor_bandpassed_file,Y_bp)
+
+        with open(regressor_bandpassed_file, "w") as ofd:
+            # write out the header information
+            for line in header:
+                ofd.write(line)
+
+            nuisance_regressors = np.array(Y_bp)
+            np.savetxt(ofd, nuisance_regressors.T, fmt='%.18f',
+                       delimiter='\t')
 
     return bandpassed_file, regressor_bandpassed_file
     

@@ -337,7 +337,7 @@ def gather_nuisance(functional_file_path,
     with open(output_file_path, "w") as ofd:
 
         # write out the header information
-        ofd.write("# CPAC {0}\n".format(CPAC.__version__))
+        ofd.write("# C-PAC {0}\n".format(CPAC.__version__))
         ofd.write("# Nuisance regressors:\n")
         ofd.write("# " + "\t".join(column_names) + "\n")
 
