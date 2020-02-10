@@ -7,7 +7,9 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
+import nipype.interfaces.c3 as c3
 from nipype.interfaces import afni
+from nipype.interfaces.afni import utils as afni_utils
 
 import CPAC
 import CPAC.utils as utils
@@ -32,6 +34,7 @@ from CPAC.utils.datasource import check_for_s3
 
 from scipy.fftpack import fft, ifft
 
+from bandpass import bandpass_voxels
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
@@ -334,7 +337,7 @@ def gather_nuisance(functional_file_path,
     with open(output_file_path, "w") as ofd:
 
         # write out the header information
-        ofd.write("# CPAC {0}\n".format(CPAC.__version__))
+        ofd.write("# C-PAC {0}\n".format(CPAC.__version__))
         ofd.write("# Nuisance regressors:\n")
         ofd.write("# " + "\t".join(column_names) + "\n")
 
@@ -344,9 +347,10 @@ def gather_nuisance(functional_file_path,
     return output_file_path
 
 
-def create_nuisance_workflow(nuisance_selectors,
-                             use_ants,
-                             name='nuisance'):
+def create_regressor_workflow(nuisance_selectors,
+                              use_ants,
+                              ventricle_mask_exist,
+                              name='nuisance_regressors'):
     """
     Workflow for the removal of various signals considered to be noise from resting state
     fMRI data.  The residual signals for linear regression denoising is performed in a single
@@ -604,39 +608,45 @@ def create_nuisance_workflow(nuisance_selectors,
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'selector',
         'functional_file_path',
-
         'anatomical_file_path',
+        'anatomical_eroded_brain_mask_file_path',
         'gm_mask_file_path',
         'wm_mask_file_path',
         'csf_mask_file_path',
         'lat_ventricles_mask_file_path',
-
         'functional_brain_mask_file_path',
-
         'func_to_anat_linear_xfm_file_path',
         'mni_to_anat_linear_xfm_file_path',
         'anat_to_mni_initial_xfm_file_path',
         'anat_to_mni_rigid_xfm_file_path',
         'anat_to_mni_affine_xfm_file_path',
-
         'motion_parameters_file_path',
         'fd_j_file_path',
         'fd_p_file_path',
         'dvars_file_path',
-
         'creds_path',
         'dl_dir',
         'tr',
     ]), name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
-                                                        'regressors_file_path']),
+    outputspec = pe.Node(util.IdentityInterface(fields=['regressors_file_path']),
                          name='outputspec')
+
+    functional_mean = pe.Node(interface=afni_utils.TStat(),
+                        name='functional_mean')
+
+    functional_mean.inputs.options = '-mean'
+    functional_mean.inputs.outputtype = 'NIFTI_GZ'
+
+    nuisance_wf.connect(inputspec, 'functional_file_path',
+                        functional_mean, 'in_file')
 
     # Resources to create regressors
     pipeline_resource_pool = {
         "Anatomical": (inputspec, 'anatomical_file_path'),
+        "AnatomicalErodedMask": (inputspec, 'anatomical_eroded_brain_mask_file_path'),
         "Functional": (inputspec, 'functional_file_path'),
+        "Functional_mean" : (functional_mean, 'out_file'),
         "GlobalSignal": (inputspec, 'functional_brain_mask_file_path'),
         "WhiteMatter": (inputspec, 'wm_mask_file_path'),
         "CerebrospinalFluid": (inputspec, 'csf_mask_file_path'),
@@ -839,11 +849,43 @@ def create_nuisance_workflow(nuisance_selectors,
                 else:
                     regressor_selector['by_slice'] = False
 
+                if regressor_selector.get('erode_mask_mm'):
+                    erosion_mm = regressor_selector['erode_mask_mm']
+                else: 
+                    erosion_mm = False
+
+                if regressor_selector.get('degree'):
+                    degree = regressor_selector['degree']
+                else: 
+                    degree = 1
+
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
-                                                     by_slice=regressor_selector['by_slice'])
+                                                     by_slice=regressor_selector['by_slice'],
+                                                     erosion=erosion_mm,
+                                                     degree=degree)
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
-                nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
+
+                if erosion_mm: # TODO: in func/anat space 
+                    # transform eroded anat brain mask to functional space 
+                    # convert_xfm
+                    anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
+                    anat_to_func_linear_xfm.inputs.invert_xfm = True
+                    nuisance_wf.connect(*(pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + (anat_to_func_linear_xfm, 'in_file')))
+
+                    # flirt
+                    anat_to_func_mask = pe.Node(interface=fsl.FLIRT(), name='Functional_eroded_mask')
+                    anat_to_func_mask.inputs.output_type = 'NIFTI_GZ'
+                    anat_to_func_mask.inputs.apply_xfm = True
+                    anat_to_func_mask.inputs.interp = 'nearestneighbour'
+                    nuisance_wf.connect(anat_to_func_linear_xfm, 'out_file', anat_to_func_mask, 'in_matrix_file')
+                    nuisance_wf.connect(*(pipeline_resource_pool['AnatomicalErodedMask'] + (anat_to_func_mask, 'in_file')))
+                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (anat_to_func_mask, 'reference')))
+
+                    # connect workflow
+                    nuisance_wf.connect(anat_to_func_mask, 'out_file', temporal_wf, 'inputspec.mask_file_path')
+                else:
+                    nuisance_wf.connect(*(pipeline_resource_pool['GlobalSignal'] + (temporal_wf, 'inputspec.mask_file_path')))
 
                 pipeline_resource_pool[regressor_descriptor['tissue']] = \
                     (temporal_wf, 'outputspec.mask')
@@ -968,7 +1010,8 @@ def create_nuisance_workflow(nuisance_selectors,
                         pipeline_resource_pool,
                         tissue_regressor_descriptor,
                         regressor_selector,
-                        use_ants=use_ants
+                        use_ants=use_ants,
+                        ventricle_mask_exist=ventricle_mask_exist
                     )
 
                 regressor_mask_file_resource_keys += \
@@ -1175,17 +1218,17 @@ def create_nuisance_workflow(nuisance_selectors,
                             std_node, 'mask'
                         )
 
-                        standarized_node = pe.Node(
+                        standardized_node = pe.Node(
                             afni.Calc(expr='a/b', outputtype='NIFTI'),
-                            name='{}_standarized'.format(regressor_type)
+                            name='{}_standardized'.format(regressor_type)
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
-                            standarized_node, 'in_file_a'
+                            standardized_node, 'in_file_a'
                         )
                         nuisance_wf.connect(
                             std_node, 'out_file',
-                            standarized_node, 'in_file_b'
+                            standardized_node, 'in_file_b'
                         )
 
                         pc_node = pe.Node(
@@ -1194,7 +1237,7 @@ def create_nuisance_workflow(nuisance_selectors,
                         )
 
                         nuisance_wf.connect(
-                            standarized_node, 'out_file',
+                            standardized_node, 'out_file',
                             pc_node, 'in_file'
                         )
                         nuisance_wf.connect(
@@ -1293,6 +1336,29 @@ def create_nuisance_workflow(nuisance_selectors,
                 voxel_nuisance_regressors_merge, "in{}".format(i + 1)
             )
 
+    nuisance_wf.connect(build_nuisance_regressors, 'out_file',
+                        outputspec, 'regressors_file_path')
+
+    return nuisance_wf
+
+
+def create_nuisance_regression_workflow(nuisance_selectors,
+                                        name='nuisance_regression'):
+
+    inputspec = pe.Node(util.IdentityInterface(fields=[
+        'functional_file_path',
+        'functional_brain_mask_file_path',
+        'regressor_file',
+        'fd_j_file_path',
+        'fd_p_file_path',
+        'dvars_file_path'
+    ]), name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path']),
+                         name='outputspec')
+
+    nuisance_wf = pe.Workflow(name=name)
+
     if nuisance_selectors.get('Censor'):
 
         censor_methods = ['Kill', 'Zero', 'Interpolate', 'SpikeRegression']
@@ -1379,7 +1445,7 @@ def create_nuisance_workflow(nuisance_selectors,
     if nuisance_selectors.get('Censor'):
         if nuisance_selectors['Censor']['method'] == 'SpikeRegression':
             nuisance_wf.connect(find_censors, 'out_file',
-                                build_nuisance_regressors, 'censor_file_path')
+                                nuisance_regression, 'censor')
         else:
             if nuisance_selectors['Censor']['method'] == 'Interpolate':
                 nuisance_regression.inputs.cenmode = 'NTRP'
@@ -1401,29 +1467,78 @@ def create_nuisance_workflow(nuisance_selectors,
     else:
         nuisance_regression.inputs.polort = 0
 
-    nuisance_wf.connect([
-        (inputspec, nuisance_regression, [
-            ('functional_file_path', 'in_file'),
-            ('functional_brain_mask_file_path', 'mask'),
-        ]),
-    ])
+    nuisance_wf.connect(inputspec, 'functional_file_path',
+                        nuisance_regression, 'in_file')
 
-    if has_nuisance_regressors:
-        nuisance_wf.connect(
-            build_nuisance_regressors, 'out_file',
-            nuisance_regression, 'ort'
-        )
+    nuisance_wf.connect(inputspec, 'functional_brain_mask_file_path',
+                        nuisance_regression, 'mask')
 
-    if has_voxel_nuisance_regressors:
-        nuisance_wf.connect(
-            voxel_nuisance_regressors_merge, 'out',
-            nuisance_regression, 'dsort'
-        )
+    if nuisance_selectors.get('Custom'):
+        if nuisance_selectors['Custom'].get('file'):
+            if nuisance_selectors['Custom']['file'].endswith('.nii') or \
+                    nuisance_selectors['Custom']['file'].endswith('.nii.gz'):
+                nuisance_wf.connect(inputspec, 'regressor_file',
+                                    nuisance_regression, 'dsort')
+            else:
+                nuisance_wf.connect(inputspec, 'regressor_file',
+                                    nuisance_regression, 'ort')
+        else:
+            nuisance_wf.connect(inputspec, 'regressor_file',
+                                nuisance_regression, 'ort')
+    else:
+        nuisance_wf.connect(inputspec, 'regressor_file',
+                            nuisance_regression, 'ort')
+
 
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
 
-    nuisance_wf.connect(build_nuisance_regressors, 'out_file',
-                        outputspec, 'regressors_file_path')
-
     return nuisance_wf
+
+
+def filtering_bold_and_regressors(nuisance_selectors,
+                                  name='filtering_bold_and_regressors'):
+
+    inputspec = pe.Node(util.IdentityInterface(fields=[
+        'functional_file_path',
+        'regressors_file_path'
+    ]), name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
+                                                        'residual_regressor']),
+                         name='outputspec')
+
+    filtering_wf = pe.Workflow(name=name)
+    bandpass_selector = nuisance_selectors.get('Bandpass')
+    
+    frequency_filter = pe.Node(
+                Function(input_names=['realigned_file',
+                                      'regressor_file',
+                                      'bandpass_freqs',
+                                      'sample_period'],
+                         output_names=['bandpassed_file', 
+                                       'regressor_file'],
+                         function=bandpass_voxels,
+                         as_module=True),
+                name='frequency_filter'
+            )
+
+    frequency_filter.inputs.bandpass_freqs = [
+                bandpass_selector.get('bottom_frequency'),
+                bandpass_selector.get('top_frequency')
+            ]
+
+    filtering_wf.connect(inputspec, 'functional_file_path',
+                         frequency_filter, 'realigned_file')
+
+    filtering_wf.connect(inputspec, 'regressors_file_path',
+                         frequency_filter, 'regressor_file')
+        
+    filtering_wf.connect(frequency_filter, 'bandpassed_file',
+                         outputspec, 'residual_file_path')
+
+    filtering_wf.connect(frequency_filter, 'regressor_file',
+                         outputspec, 'residual_regressor')
+
+    return filtering_wf
+

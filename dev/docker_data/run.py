@@ -13,7 +13,9 @@ import yaml
 
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
+from CPAC.utils.utils import load_preconfig
 
+DEFAULT_TMP_DIR = "/tmp"
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
 if not os.path.exists(DEFAULT_PIPELINE):
     DEFAULT_PIPELINE = os.path.join(
@@ -116,14 +118,14 @@ parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
                                      'Use the format'
                                      ' s3://bucket/path/to/bidsdir to read data directly from an S3 bucket.'
-                                     ' This may require AWS S3 credentials specificied via the'
+                                     ' This may require AWS S3 credentials specified via the'
                                      ' --aws_input_creds option.')
 parser.add_argument('output_dir', help='The directory where the output files '
                                        'should be stored. If you are running group level analysis '
                                        'this folder should be prepopulated with the results of the '
-                                       'participant level analysis. Us the format '
+                                       'participant level analysis. Use the format '
                                        ' s3://bucket/path/to/bidsdir to write data directly to an S3 bucket.'
-                                       ' This may require AWS S3 credentials specificied via the'
+                                       ' This may require AWS S3 credentials specified via the'
                                        ' --aws_output_creds option.')
 parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' be performed. Multiple participant level analyses can be run '
@@ -137,12 +139,12 @@ parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' configuration file to use. '
                                             'Use the format'
                                             ' s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket.'
-                                            ' This may require AWS S3 credentials specificied via the'
+                                            ' This may require AWS S3 credentials specified via the'
                                             ' --aws_input_creds option.',
                     default=DEFAULT_PIPELINE)
 parser.add_argument('--group_file', help='Path for the group analysis configuration file to use. '
                                          'Use the format s3://bucket/path/to/pipeline_file to read data directly from an S3 bucket. '
-                                         'This may require AWS S3 credentials specificied via the --aws_input_creds option. '
+                                         'This may require AWS S3 credentials specified via the --aws_input_creds option. '
                                          'The output directory needs to refer to the output of a preprocessing individual pipeline.',
                     default=None)
 parser.add_argument('--data_config_file', help='Yaml file containing the location'
@@ -154,8 +156,12 @@ parser.add_argument('--data_config_file', help='Yaml file containing the locatio
                                                ' using this option, but its value will be ignored.'
                                                ' Use the format'
                                                ' s3://bucket/path/to/data_config_file to read data directly from an S3 bucket.'
-                                               ' This may require AWS S3 credentials specificied via the'
+                                               ' This may require AWS S3 credentials specified via the'
                                                ' --aws_input_creds option.',
+                    default=None)
+
+
+parser.add_argument('--preconfig', help='Name of the pre-configured pipeline to run.',
                     default=None)
 
 parser.add_argument('--pipeline_override', type=parse_yaml, action='append',
@@ -175,7 +181,7 @@ parser.add_argument('--aws_output_creds', help='Credentials for writing to S3.'
                     default=None)
 parser.add_argument('--n_cpus', type=int, default=1,
                     help='Number of execution '
-                         ' resources available for the pipeline')
+                         ' resources available for the pipeline.')
 parser.add_argument('--mem_mb', type=float,
                     help='Amount of RAM available to the pipeline in megabytes.'
                          ' Included for compatibility with BIDS-Apps standard, but mem_gb is preferred')
@@ -194,14 +200,14 @@ parser.add_argument('--participant_label', help='The label of the participant'
                                                 '(so it does not include "sub-"). If this parameter is not '
                                                 'provided all participants should be analyzed. Multiple '
                                                 'participants can be specified with a space separated list. To work'
-                                                ' correctly this should come at the end of the command line',
+                                                ' correctly this should come at the end of the command line.',
                     nargs="+")
 parser.add_argument('--participant_ndx', help='The index of the participant'
                                               ' that should be analyzed. This corresponds to the index of the'
                                               ' participant in the data config file. This was added to make it easier'
-                                              ' to accomodate SGE array jobs. Only a single participant will be'
+                                              ' to accommodate SGE array jobs. Only a single participant will be'
                                               ' analyzed. Can be used with participant label, in which case it is the'
-                                              ' index into the list that follows the particpant_label flag.'
+                                              ' index into the list that follows the participant_label flag.'
                                               ' Use the value "-1" to indicate that the participant index should'
                                               ' be read from the AWS_BATCH_JOB_ARRAY_INDEX environment variable.',
                     default=None, type=int)
@@ -209,14 +215,11 @@ parser.add_argument('--participant_ndx', help='The index of the participant'
 parser.add_argument('-v', '--version', action='version',
                     version='C-PAC BIDS-App version {}'.format(__version__))
 parser.add_argument('--bids_validator_config', help='JSON file specifying configuration of '
-                    'bids-validator: See https://github.com/INCF/bids-validator for more info')
+                    'bids-validator: See https://github.com/bids-standard/bids-validator for more info.')
 parser.add_argument('--skip_bids_validator',
-                    help='skips bids validation',
+                    help='Skips bids validation.',
                     action='store_true')
 
-parser.add_argument('--ndmg_mode', help='produce ndmg connectome graphs and '
-                    'write out in the ndmg output format',
-                    action='store_true')
 parser.add_argument('--anat_only', help='run only the anatomical preprocessing',
                     action='store_true')
 
@@ -342,22 +345,8 @@ elif args.analysis_level in ["test_config", "participant"]:
             print("Running BIDS validator")
             run("bids-validator {bids_dir}".format(bids_dir=args.bids_dir))
 
-    if args.ndmg_mode:
-        print()
-        print('Running ndmg mode')
-
-        import os
-        import pkg_resources as p
-
-        args.pipeline_file = \
-            p.resource_filename(
-                "CPAC",
-                os.path.join(
-                    "resources",
-                    "configs",
-                    "pipeline_config_ndmg.yml"
-                )
-            )
+    if args.preconfig:
+        args.pipeline_file = load_preconfig(args.preconfig)
 
     # otherwise, if we are running group, participant, or dry run we
     # begin by conforming the configuration
@@ -384,8 +373,8 @@ elif args.analysis_level in ["test_config", "participant"]:
         c['crashLogDirectory'] = os.path.join(args.output_dir, "crash")
         c['logDirectory'] = os.path.join(args.output_dir, "log")
     else:
-        c['crashLogDirectory'] = os.path.join("/scratch", "crash")
-        c['logDirectory'] = os.path.join("/scratch", "log")
+        c['crashLogDirectory'] = os.path.join(DEFAULT_TMP_DIR, "crash")
+        c['logDirectory'] = os.path.join(DEFAULT_TMP_DIR, "log")
 
     if args.mem_gb:
         c['maximumMemoryPerParticipant'] = float(args.mem_gb)
@@ -452,7 +441,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         )
     else:
         pipeline_config_file = os.path.join(
-            "/scratch", "cpac_pipeline_config_{0}.yml".format(st)
+            DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
         )
 
     with open(pipeline_config_file, 'w') as f:
@@ -549,11 +538,10 @@ elif args.analysis_level in ["test_config", "participant"]:
         # write out the data configuration file
         data_config_file = "cpac_data_config_{0}.yml".format(st)
 
-
     if "s3://" not in args.output_dir.lower():
         data_config_file = os.path.join(args.output_dir, data_config_file)
     else:
-        data_config_file = os.path.join("/scratch", data_config_file)
+        data_config_file = os.path.join(DEFAULT_TMP_DIR, data_config_file)
 
     with open(data_config_file, 'w') as f:
         noalias_dumper = yaml.dumper.SafeDumper

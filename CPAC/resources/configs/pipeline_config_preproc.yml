@@ -48,19 +48,19 @@ num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  cpac_default
+pipelineName :  cpac_preproc
 
 
 # Directory where CPAC should store temporary and intermediate files.
-workingDirectory :  ./cpac_runs/default/working
+workingDirectory :  ./cpac_runs/preproc/working
 
 
 # Directory where CPAC should write crash logs.
-crashLogDirectory :  ./cpac_runs/default/crash
+crashLogDirectory :  ./cpac_runs/preproc/crash
 
 
 # Directory where CPAC should place processed data.
-outputDirectory :  ./cpac_runs/default/output
+outputDirectory :  ./cpac_runs/preproc/output
 
 
 # Whether to write log details of the pipeline.
@@ -68,7 +68,7 @@ run_logging :  True
 
 
 # Directory where CPAC should place run logs.
-logDirectory :  ./cpac_runs/default/log
+logDirectory :  ./cpac_runs/preproc/log
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
@@ -123,7 +123,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet'] 
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
 skullstrip_option :  ['AFNI']
 
 
@@ -227,7 +227,7 @@ skullstrip_fac :  1
 skullstrip_blur_fwhm :  0
 
 
-# Set it as True if processing monkey data with AFNI 
+# Set it as True if processing monkey data with AFNI
 skullstrip_monkey : False
 
 
@@ -287,19 +287,17 @@ bet_vertical_gradient : 0.0
 
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
-# If three dimensions are identical, enter only one number (integer or floating point number), eg. 2mm or 1.5mm; 
-# if three dimensions are different, enter: num1xnum2xnum3, eg. 2mmx2mmx1.5mm
-resolution_for_anat :  2mm 
+resolution_for_anat :  2mm
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -322,11 +320,11 @@ fnirtConfig :  T1_2_MNI152_2mm
 
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
 
 # Register skull-on anatomical image to a template.
-regWithSkull :  [0]
+regWithSkull :  [1]
 
 
 # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
@@ -493,10 +491,6 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
-# Run AFNI 3dDespike 
-runDespike : [0]
-
-
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -567,7 +561,7 @@ fmap_distcorr_dwell_asym_ratio : [0.93902439]
 
 
 # Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir :  -y
+fmap_distcorr_pedir :  x
 
 
 # Run Functional to EPI Template Registration
@@ -584,7 +578,7 @@ runBBReg :  [1]
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  $FSLDIR/etc/flirtsch/bbr.sch
+boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
 
 # Interpolation method for writing out transformed anatomical images.
@@ -611,7 +605,7 @@ funcRegANTSinterpolation: LanczosWindowedSinc
 funcRegFSLinterpolation: sinc
 
 
-# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose. 
+# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
 # Options: ['Mean Functional', 'Selected Functional Volume']
 func_reg_input :  ['Mean Functional']
 
@@ -624,69 +618,13 @@ n4_correct_mean_EPI : False
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space. 
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space.
 # Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
 functionalMasking :  ['AFNI']
 
 
-# Options to be used for FSL skull-stripping of functional masking.
-
-# Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off. 
-# Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-# It must be 'on' if select 'bold_bet_reduce_bias','bold_bet_robust','bold_bet_padding','bold_bet_remove_eyes',or 'bold_bet_surfaces' on
-bold_bet_functional_mean_boolean : Off
-
-
-# Set the threshold value controling the brain vs non-brain voxels.
-bold_bet_frac :  0.3
-
-
-# Mesh created along with skull stripping
-bold_bet_mesh_boolean :  Off
-
-
-# Create a surface outline image
-bold_bet_outline :  Off
-
-
-# Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-bold_bet_padding :  Off
-
-
-# Integer value of head radius
-bold_bet_radius :  0
-
-
-# Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-bold_bet_reduce_bias :  Off
-
-
-# Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-bold_bet_remove_eyes :  Off
-
-
-# Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-bold_bet_robust :  Off
-
-
-# Create a skull image
-bold_bet_skull :  Off
-
-
-# Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
-bold_bet_surfaces :  Off
-
-
-# Apply thresholding to segmented brain image and mask
-bold_bet_threshold :  Off
-
-
-# Vertical gradient in fractional intensity threshold (-1,1)
-bold_bet_vertical_gradient : 0.0
-
-
-# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
-anatomical_mask_dilation : False 
+# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True
+anatomical_mask_dilation : False
 
 
 # Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
@@ -699,25 +637,23 @@ runRegisterFuncToMNI :  [1]
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
-# If three dimensions are identical, enter only one number (integer or floating point number), eg. 3mm or 2.5mm; if three dimensions are different, enter: num1xnum2xnum3, eg. 3mmx2.5mmx2.5mm
 resolution_for_func_preproc :  3mm
 
 
 # The resolution (in mm) to which the registered derivative outputs are written into.
-# If three dimensions are identical, enter only one number (integer or floating point number), eg. 3mm or 2.5mm; if three dimensions are different, enter: num1xnum2xnum3, eg. 3mmx2.5mmx2.5mm
 resolution_for_func_derivative :  3mm
 
 
-# A standard template for resampling if using float resolution 
+# A standard template for resampling if using float resolution
 template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 
 # EPI template
@@ -726,14 +662,14 @@ template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-identityMatrix :  $FSLDIR/etc/flirtsch/ident.mat
+identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
 runICA :  [0]
 
 
-# Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
+# Types of denoising strategy:i)nonaggr-patial component regression,ii)aggr-aggressive denoising
 aroma_denoise_type :  nonaggr
 
 
@@ -755,7 +691,6 @@ Regressors :
 
    aCompCor:
      summary:
-       filter:
        method: DetrendPC
        components: 5
      tissues:
@@ -767,7 +702,7 @@ Regressors :
      summary: Mean
      extraction_resolution: 2
      erode_mask: true
-     
+
    GlobalSignal:
      summary: Mean
 
@@ -778,15 +713,13 @@ Regressors :
      bottom_frequency: 0.01
      top_frequency: 0.1
 
-
  - Motion:
      include_delayed: true
      include_squared: true
      include_delayed_squared: true
- 
+
    aCompCor:
      summary:
-       filter:
        method: DetrendPC
        components: 5
      tissues:
@@ -821,21 +754,42 @@ targetAngleDeg : [90]
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [1]
+runROITimeseries :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
-# Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
+# Available analyses: ['Avg', 'Voxel', 'SpatialReg', 'PearsonCorr', 'PartialCorr'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
 tsa_roi_paths:
-  - s3://fcp-indi/resources/cpac/resources/CC400.nii.gz: Avg
-    s3://fcp-indi/resources/cpac/resources/ez_mask_pad.nii.gz: Avg
-    s3://fcp-indi/resources/cpac/resources/aal_mask_pad.nii.gz: Avg
-    s3://fcp-indi/resources/cpac/resources/CC200.nii.gz: Avg
-    s3://fcp-indi/resources/cpac/resources/tt_mask_pad.nii.gz: Avg
-    s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: SpatialReg
-    s3://fcp-indi/resources/cpac/resources/ho_mask_pad.nii.gz: Avg
-    s3://fcp-indi/resources/cpac/resources/rois_3mm.nii.gz: Avg
+  - /cpac_templates/CC400.nii.gz: Avg
+    /cpac_templates/aal_mask_pad.nii.gz: Avg
+    /cpac_templates/CC200.nii.gz: Avg
+    /cpac_templates/tt_mask_pad.nii.gz: Avg
+    /cpac_templates/PNAS_Smith09_rsn10.nii.gz: SpatialReg
+    /cpac_templates/ho_mask_pad.nii.gz: Avg
+    /cpac_templates/rois_3mm.nii.gz: Avg
+    /ndmg_atlases/label/Human/AAL2zourioMazoyer2002.nii.gz: Avg
+    /ndmg_atlases/label/Human/CorticalAreaParcellationfromRestingStateCorrelationsGordon2014.nii.gz: Avg
+    /ndmg_atlases/label/Human/DKT_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/DesikanKlein2012.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Juelichgmthr252mmEickhoff2005.nii.gz: Avg
+    /ndmg_atlases/label/Human/MICCAI2012MultiAtlasLabelingWorkshopandChallengeNeuromorphometrics.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer2018-1000-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer2018-200-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer2018-300-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer2018-400-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Talairach_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/aal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/desikan_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
@@ -844,21 +798,21 @@ roiTSOutputs :  [True, True]
 
 # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
 # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-runSCA :  [1]
+runSCA :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'DualReg', 'MultReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
 sca_roi_paths:
-  - s3://fcp-indi/resources/cpac/resources/PNAS_Smith09_rsn10.nii.gz: DualReg
-    s3://fcp-indi/resources/cpac/resources/CC400.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/ez_mask_pad.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/aal_mask_pad.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/CC200.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/tt_mask_pad.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/ho_mask_pad.nii.gz: Avg, MultReg
-    s3://fcp-indi/resources/cpac/resources/rois_3mm.nii.gz: Avg, MultReg
+  - /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
+    /cpac_templates/CC400.nii.gz: Avg, MultReg
+    /cpac_templates/ez_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/aal_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/CC200.nii.gz: Avg, MultReg
+    /cpac_templates/tt_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/ho_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/rois_3mm.nii.gz: Avg, MultReg
 
 
 # Normalize each time series before running Dual Regression SCA.
@@ -902,7 +856,7 @@ configFileTwomm :  $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
 
 
 # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-runALFF :  [1]
+runALFF :  [0]
 
 
 # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
@@ -914,7 +868,7 @@ lowPassFreqALFF : [0.1]
 
 
 # Calculate Regional Homogeneity (ReHo) for all voxels.
-runReHo :  [1]
+runReHo :  [0]
 
 
 # Number of neighboring voxels used when calculating ReHo
@@ -925,11 +879,11 @@ clusterSize :  27
 
 
 # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-runNetworkCentrality :  [1]
+runNetworkCentrality :  [0]
 
 
 # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
-templateSpecificationFile :  s3://fcp-indi/resources/cpac/resources/mask-thr50-3mm.nii.gz
+templateSpecificationFile :  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
 
 
 # Enable/Disable degree centrality by selecting the connectivity weights
@@ -948,7 +902,7 @@ degCorrelationThreshold :  0.001
 
 
 # Enable/Disable eigenvector centrality by selecting the connectivity weights
-eigWeightOptions :  [True, True]
+eigWeightOptions :  [False, True]
 
 
 # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
@@ -967,19 +921,19 @@ lfcdWeightOptions :  [True, True]
 
 
 # Select the type of threshold used when creating the lFCD adjacency matrix.
-lfcdCorrelationThresholdOption :  ['Significance threshold']
+lfcdCorrelationThresholdOption :  ['Correlation threshold']
 
 
 # Based on the Threshold Type selected above, enter a Threshold Value.
 # P-value for Significance Threshold
 # Sparsity value for Sparsity Threshold
 # Pearson's r value for Correlation Threshold
-lfcdCorrelationThreshold :  0.001
+lfcdCorrelationThreshold :  0.6
 
 
 # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
 # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
-memoryAllocatedForDegreeCentrality :  3.0
+memoryAllocatedForDegreeCentrality :  1.0
 
 
 # Smooth the derivative outputs.

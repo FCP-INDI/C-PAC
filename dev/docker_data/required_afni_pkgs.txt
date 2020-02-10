@@ -1,8 +1,10 @@
 linux_openmp_64/3dAutomask
 linux_openmp_64/3dBandpass
+linux_openmp_64/3dBlurToFWHM
 linux_openmp_64/3dBrickStat
 linux_openmp_64/3dcalc
 linux_openmp_64/3dDegreeCentrality
+linux_openmp_64/3dDespike
 linux_openmp_64/3dDetrend
 linux_openmp_64/3dUnifize
 linux_openmp_64/3dECM

@@ -68,6 +68,7 @@ def fisher_z_score_standardize(workflow, output_name, timeseries_oned_file,
 
     return strat
 
+
 def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
     """Calculate the average of an output using AFNI 3dmaskave."""
 
