@@ -321,7 +321,8 @@ def crash(crash_file):
 
 @utils.group()
 def data_config():
-    pass
+    from CPAC.utils.ga import track_config
+    track_config('cli')
 
 
 @data_config.command()
