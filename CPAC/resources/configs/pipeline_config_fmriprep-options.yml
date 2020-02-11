@@ -670,7 +670,7 @@ aroma_denoise_type: nonaggr
 
 
 # Run Nuisance Signal Regression
-runNuisance: [1]
+runNuisance: [0]
 
 
 # Standard Lateral Ventricles Binary Mask
