@@ -292,12 +292,12 @@ resolution_for_anat: 1mm
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat: /fmriprep-template/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
+template_brain_only_for_anat: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat: /fmriprep-template/skull_mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
+template_skull_for_anat: /code/CPAC/resources/templates/skull_mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -641,15 +641,15 @@ resolution_for_func_derivative: 3.438mmx3.438mmx3.4mm
 
 
 # A standard template for resampling if using float resolution
-template_for_resample: /fmriprep-template/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
+template_for_resample: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func: /fmriprep-template/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
+template_brain_only_for_func: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func: /fmriprep-template/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
+template_skull_for_func: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
 
 
 # EPI template
