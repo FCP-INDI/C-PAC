@@ -390,8 +390,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
     data_config_path = os.path.join(data_config_outdir, data_config_name)
 
     try:
-        with open(data_config_path, 'r') as f:
-            subjects_list = yaml.load(f)
+        subjects_list = yaml.safe_load(open(data_config_path, 'r'))
     except:
         err = "\n\n[!] Data configuration file couldn't be read!\nFile " \
               "path: {0}\n".format(data_config_path)
@@ -641,7 +640,6 @@ def run(data_config):
     Run method takes data_config
     file as the input argument
     """
-    import CPAC
     root = logging.getLogger()
     if root.handlers:
         for handler in root.handlers:
@@ -652,7 +650,7 @@ def run(data_config):
     print "For any errors or messages check the log file - %s"\
            % os.path.join(os.getcwd(), 'extract_data_logs.log')
     
-    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r')))
+    c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), 'r')))
 
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)

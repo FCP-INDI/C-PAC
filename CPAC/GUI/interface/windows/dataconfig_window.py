@@ -1,20 +1,9 @@
-# CPAC/GUI/interface/windows/dataconfig_window.py
-#
-#
-
-'''
-This module starts the data configuration GUI for building a subject list
-'''
-
-# Import packages
 import wx
 from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
 import os
 import yaml
 import CPAC
-import pkg_resources as p
-import sys
 
 # Init variables
 ID_RUN_EXT = 11
@@ -22,6 +11,9 @@ ID_RUN_MEXT = 12
 
 
 class DataConfig(wx.Frame):
+    """
+    The data configuration GUI for building a subject list
+    """
 
     # Init method
     def __init__(self, parent):
@@ -390,7 +382,7 @@ class DataConfig(wx.Frame):
         # Try to build subject list from config
         try:
             # Load in configuration file
-            config_map = yaml.load(open(config, 'r'))
+            config_map = yaml.safe_load(open(config, 'r'))
 
             # Extract arguments for supplementary files
             sublist_outdir = config_map.get('outputSubjectListLocation')
@@ -631,7 +623,7 @@ class DataConfig(wx.Frame):
                 path = dlg.GetPath()
                 # Try and load in file contents
                 try:
-                    config_map = yaml.load(open(os.path.realpath(path),'r'))
+                    config_map = yaml.safe_load(open(os.path.realpath(path), 'r'))
                 # Otherwise, report error
                 except IOError as exc:
                     err_msg = 'File %s does not exist. Check and try again. '\

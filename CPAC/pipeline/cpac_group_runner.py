@@ -2,6 +2,7 @@ import os
 import fnmatch
 import pandas
 
+
 def load_config_yml(config_file, individual=False):
 
     # loads a configuration YAML file
@@ -19,14 +20,13 @@ def load_config_yml(config_file, individual=False):
     try:
         config_path = os.path.realpath(config_file)
 
-        with open(config_path,"r") as f:
-            config_dict = yaml.load(f)
+        config_dict = yaml.safe_load(open(config_path, 'r'))
 
         config = Configuration(config_dict)
 
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \
-        	  "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
+              "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
         raise Exception(err)
 
     if individual:
@@ -1321,8 +1321,7 @@ def run_cwas(pipeline_config):
 
     pipeline_config = os.path.abspath(pipeline_config)
 
-    with open(pipeline_config, "r") as f:
-        pipeconfig_dct = yaml.load(f)
+    pipeconfig_dct = yaml.safe_load(open(pipeline_config, 'r'))
 
     pipeline = pipeconfig_dct["pipeline_dir"]
     output_dir = pipeconfig_dct["output_dir"]
@@ -1526,8 +1525,7 @@ def run_basc(pipeline_config):
 
     pipeline_config = os.path.abspath(pipeline_config)
 
-    with open(pipeline_config, "r") as f:
-        pipeconfig_dct = yaml.load(f)
+    pipeconfig_dct = yaml.safe_load(open(pipeline_config, 'r'))
 
     output_dir = os.path.abspath(pipeconfig_dct["output_dir"])
     working_dir = os.path.abspath(pipeconfig_dct['work_dir'])
@@ -1854,8 +1852,7 @@ def run_isc(pipeline_config):
 
     pipeline_config = os.path.abspath(pipeline_config)
 
-    with open(pipeline_config, "r") as f:
-        pipeconfig_dct = yaml.load(f)
+    pipeconfig_dct = yaml.safe_load(open(pipeline_config, 'r'))
 
     pipeline_dir = pipeconfig_dct["pipeline_dir"]
 
