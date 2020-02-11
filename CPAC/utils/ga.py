@@ -17,7 +17,6 @@ tracking_path = op.join(udir, '.cpac')
 
 
 def get_or_create_config():
-    print(tracking_path)
     if not op.exists(tracking_path):
         parser = configparser.ConfigParser()
         parser.read_dict(dict(user=dict(uid=uuid.uuid1().hex,
@@ -48,7 +47,6 @@ def get_uid():
 
 
 def do_it(data, timeout):
-    print("\n".join(["tracking data", str(data)]))
     try:
         headers = {
             'User-Agent': 'C-PAC/{} (https://fcp-indi.github.io)'.format(
@@ -99,7 +97,6 @@ def track_event(category, action, uid=None, label=None, value=0,
         event. After this duration has elapsed with no response (e.g., on a
         slow network connection), the tracking is dropped.
     """
-    print("initiate tracking")
     if os.environ.get('CPAC_TRACKING', '').lower() in ['0', 'false', 'off']:
         return
 
@@ -146,7 +143,6 @@ def track_event(category, action, uid=None, label=None, value=0,
         t.start()
     else:
         do_it(data, timeout)
-    print("finished tracking")
 
 
 def track_config(cpac_interface):
