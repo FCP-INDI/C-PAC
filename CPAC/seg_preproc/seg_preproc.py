@@ -2,7 +2,7 @@
 
 import os
 import sys
-import commands
+import subprocess
 from nipype.interfaces.utility import Function
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni

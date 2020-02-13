@@ -9,7 +9,7 @@ import pkg_resources as p
 class AROMA_ICA(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
+        from urllib.request import urlopen
         wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
         

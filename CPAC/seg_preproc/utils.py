@@ -2,7 +2,7 @@
 import os
 import sys
 import re
-import commands
+import subprocess
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import scipy.ndimage as nd

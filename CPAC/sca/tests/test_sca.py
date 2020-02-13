@@ -1,7 +1,7 @@
 import sys
 #import e_afni
 import os
-import commands
+import subprocess
 import nipype.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni

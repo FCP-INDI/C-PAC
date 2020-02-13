@@ -1,12 +1,12 @@
 import sys
 import os
-import commands
+import subprocess
 import nipype.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from utils import *
+from .utils import *
 from CPAC.vmhc import *
 from nipype.interfaces.afni import preprocess
 from CPAC.registration import create_wf_calculate_ants_warp, \

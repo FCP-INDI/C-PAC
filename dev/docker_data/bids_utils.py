@@ -16,30 +16,30 @@ def bids_decode_fname(file_path, dbg=False):
                       "a nifti or json file")
 
     if dbg:
-        print "parsing %s" % file_path
+        print("parsing %s" % file_path)
 
     # first figure out if there is a site directory level, this isn't
     # specified in BIDS currently, but hopefully will be in the future
     file_path_vals = os.path.dirname(file_path).split('/')
     sub = [s for s in file_path_vals if 'sub-' in s]
     if dbg:
-        print "found subject %s in %s" % (sub, str(file_path_vals))
+        print("found subject %s in %s" % (sub, str(file_path_vals)))
 
     if len(sub) > 1:
-        print ("Odd that there is more than one subject directory" +
+        print("Odd that there is more than one subject directory" +
                "in (%s), does the filename conform to" % file_path +
                " BIDS format?")
     if sub:
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
             if dbg:
-                print "setting site to %s" % (file_path_vals[sub_ndx - 1])
+                print("setting site to %s" % (file_path_vals[sub_ndx - 1]))
             f_dict["site"] = file_path_vals[sub_ndx - 1]
         else:
             f_dict["site"] = "none"
     elif file_path_vals[-1]:
         if dbg:
-            print ("looking for subject id didn't pan out settling for last"+
+            print("looking for subject id didn't pan out settling for last"+
                    "subdir %s" % (str(file_path_vals[-1])))
         f_dict["site"] = file_path_vals[-1]
     else:
@@ -104,15 +104,15 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
             key = "-".join([level, "none"])
 
         if dbg:
-            print key
+            print(key)
         # if the key doesn't exist in the config dictionary, check to see if
         # the generic key exists and return that
         if key in t_dict:
             t_dict = t_dict[key]
         else:
             if dbg:
-                print "Couldn't find %s, so going with %s" % (key,
-                        "-".join([level, "none"]))
+                print("Couldn't find %s, so going with %s" % (key,
+                        "-".join([level, "none"])))
             key = "-".join([level, "none"])
             if key in t_dict:
                 t_dict = t_dict[key]
@@ -123,15 +123,15 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # sidecare files
 
     if dbg:
-        print t_dict
+        print(t_dict)
 
     for key in t_dict.keys():
-        if u'RepetitionTime' in key:
+        if 'RepetitionTime' in key:
             params = t_dict
             break
 
     for k, v in params.items():
-        if isinstance(v, unicode):
+        if isinstance(v, str):
             params[k] = v.encode('ascii', errors='ignore')
 
     return params
@@ -166,7 +166,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
         t_dict = t_dict[key]
 
     if dbg:
-        print bids_config_dict
+        print(bids_config_dict)
 
     # get the paths to the json yaml files in config_dict, the paths contain
     # the information needed to map the parameters from the jsons (the vals
@@ -174,15 +174,18 @@ def bids_parse_sidecar(config_dict, dbg=False):
     # by the number of path components, so that we can iterate from the outer
     # most path to inner-most, which will help us address the BIDS inheritance
     # principle
-    config_paths = sorted(config_dict.keys(), key=lambda p: len(p.split('/')))
+    config_paths = sorted(
+        list(config_dict.keys()),
+        key=lambda p: len(p.split('/'))
+    )
 
     if dbg:
-        print config_paths
+        print(config_paths)
 
     for cp in config_paths:
 
         if dbg:
-            print "processing %s" % (cp)
+            print("processing %s" % (cp))
 
         # decode the filepath into its various components as defined by  BIDS
         f_dict = bids_decode_fname(cp)
@@ -248,15 +251,15 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     top_keys = list(set(key_list) - set(func_keys))
     bot_keys = list(set(key_list).intersection(func_keys))
 
-    print top_keys
-    print bot_keys
+    print(top_keys)
+    print(bot_keys)
 
     subjdict = {}
 
     if not base_path.endswith('/'):
         base_path = base_path + '/'
 
-    # output directories are a bit different than standard BIDS, so 
+    # output directories are a bit different than standard BIDS, so
     # we handle things differently
 
     for p in paths_list:
@@ -285,33 +288,33 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             if run_info not in subjdict[subj_info]["funcs"]:
                 subjdict[subj_info]["funcs"][run_info] = {'run_info': run_info}
             if resource in subjdict[subj_info]["funcs"][run_info]:
-                print ("warning resource %s already exists in subjdict ??" %
-                       (resource))
+                print("warning resource %s already exists in subjdict ??" %
+                      (resource))
             subjdict[subj_info]["funcs"][run_info][resource] = p
         else:
             subjdict[subj_info][resource] = p
 
     sublist = []
-    for subj_info, subj_res in subjdict.iteritems():
+    for subj_info, subj_res in subjdict.items():
         missing = 0
         for tkey in top_keys:
             if tkey not in subj_res:
-                print "%s not found for %s" % (tkey, subj_info)
+                print("%s not found for %s" % (tkey, subj_info))
                 missing += 1
                 break
 
         if missing == 0:
-            for func_key, func_res in subj_res["funcs"].iteritems():
+            for func_key, func_res in subj_res["funcs"].items():
                 for bkey in bot_keys:
                     if bkey not in func_res:
-                        print "%s not found for %s" % (bkey,
-                                                       func_key)
+                        print("%s not found for %s" % (bkey,
+                                                       func_key))
                         missing += 1
                         break
                 if missing == 0:
-                    print "adding: %s, %s, %d" % (subj_info,
+                    print("adding: %s, %s, %d" % (subj_info,
                                                   func_key,
-                                                  len(sublist))
+                                                  len(sublist)))
                     tdict = copy.deepcopy(subj_res)
                     del tdict["funcs"]
                     tdict.update(func_res)
@@ -343,11 +346,13 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
     """
 
     if dbg:
-        print( "gen_bids_sublist called with:")
-        print( "  bids_dir: {0}".format(bids_dir))
-        print( "  # paths: {0}".format(str(len(paths_list))))
-        print( "  config_dict: {0}".format( "missing" if not config_dict else "found"))
-        print( "  creds_path: {0}".format(creds_path))
+        print("gen_bids_sublist called with:")
+        print("  bids_dir: {0}".format(bids_dir))
+        print("  # paths: {0}".format(str(len(paths_list))))
+        print("  config_dict: {0}".format(
+            "missing" if not config_dict else "found")
+        )
+        print("  creds_path: {0}".format(creds_path))
 
     # if configuration information is not desired, config_dict will be empty,
     # otherwise parse the information in the sidecar json files into a dict
@@ -369,7 +374,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                 t_params = bids_retrieve_params(bids_config_dict,
                                                 f_dict)
                 if not t_params:
-                    print f_dict
+                    print(f_dict)
                     print("Did not receive any parameters for %s," % (p) +
                           " is this a problem?")
 
@@ -452,13 +457,17 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                     if "fMRI" in f_dict["acq"]:
                         if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                        if "epi_{0}".format(pe_dir) not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"].keys():
+                        if "epi_{0}".format(
+                            pe_dir
+                        ) not in subdict[f_dict["sub"]][f_dict["ses"]][
+                            "fmap"
+                        ].keys():
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["epi_{0}".format(pe_dir)] = task_info
 
-                    
+
     sublist = []
-    for ksub, sub in subdict.iteritems():
-        for kses, ses in sub.iteritems():
+    for ksub, sub in subdict.items():
+        for kses, ses in sub.items():
             if "anat" in ses and "func" in ses:
                 sublist.append(ses)
             else:
@@ -504,7 +513,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         from indi_aws import fetch_creds
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
 
-        print "gathering files from S3 bucket (%s) for %s" % (bucket, prefix)
+        print("gathering files from S3 bucket (%s) for %s" % (bucket, prefix))
 
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
@@ -514,9 +523,9 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                             config_dict[s3_obj.key.replace(prefix, "").lstrip('/')] \
                                 = json.loads(s3_obj.get()["Body"].read())
                         except Exception as e:
-                            print ("Error retrieving %s (%s)" %
-                                   (s3_obj.key.replace(prefix, ""),
-                                    e.message))
+                            print("Error retrieving %s (%s)" %
+                                  (s3_obj.key.replace(prefix, ""),
+                                  e.message))
                             raise
                     elif 'nii' in str(s3_obj.key):
                         file_paths.append(str(s3_obj.key)

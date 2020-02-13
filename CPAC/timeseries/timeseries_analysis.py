@@ -9,39 +9,39 @@ def get_voxel_timeseries(wf_name='voxel_timeseries'):
     """
     Workflow to extract time series for each voxel
     in the data that is present in the input mask
-    
+
     Parameters
     ----------
     wf_name : string
         name of the workflow
-    
-    Returns 
+
+    Returns
     -------
     wflow : workflow object
         workflow object
-    
+
     Notes
     -----
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
-    
+
     Workflow Inputs::
-        
+
         inputspec.rest : string  (nifti file)
             path to input functional data
         inputspec.output_type : string (list of boolean)
             list of boolean for csv and npz file formats
         input_mask.masks : string (nifti file)
             path to ROI mask
-        
+
     Workflow Outputs::
-    
+
         outputspec.mask_outputs: string (1D, csv and/or npz files)
             list of time series matrices stored in csv and/or
-            npz files.By default it outputs mean of voxels 
+            npz files.By default it outputs mean of voxels
             across each time point in a afni compatible 1D file.
-    
+
         High Level Workflow Graph:
-    
+
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
@@ -51,7 +51,7 @@ def get_voxel_timeseries(wf_name='voxel_timeseries'):
     >>> wf.inputs.inputspec.output_type = [True,True]
     >>> wf.base_dir = './'
     >>> wf.run()
-    
+
     """
 
     wflow = pe.Workflow(name=wf_name)
@@ -96,7 +96,7 @@ def clean_roi_csv(roi_csv):
     passes the original file as output, instead of unnecessarily opening and
     re-writing it.
     """
-    
+
     import pandas as pd
 
     import os
@@ -126,7 +126,7 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = [roi_csv]
 
-    data = pd.read_csv(edited_roi_csv[0], sep = '\t', header = 1) 
+    data = pd.read_csv(edited_roi_csv[0], sep = '\t', header = 1)
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 
@@ -154,42 +154,42 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     """
     Workflow to extract timeseries for each node in the ROI mask.
-    For each node, mean across all the timepoint is calculated and stored 
+    For each node, mean across all the timepoint is calculated and stored
     in csv and npz format.
-    
+
     Parameters
     ----------
     wf_name : string
         name of the workflow
-    
-    Returns 
+
+    Returns
     -------
     wflow : workflow object
         workflow object
-    
+
     Notes
     -----
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
-    
+
     Workflow Inputs::
-        
+
         inputspec.rest : string  (nifti file)
             path to input functional data
         inputspec.output_type : string (list of boolean)
             list of boolean for csv and npz file formats
         input_roi.roi : string (nifti file)
             path to ROI mask
-        
+
     Workflow Outputs::
 
-        outputspec.roi_ts : numpy array 
-            Voxel time series stored in numpy array, which is used to create ndmg graphs. 
-    
+        outputspec.roi_ts : numpy array
+            Voxel time series stored in numpy array, which is used to create ndmg graphs.
+
         outputspec.roi_outputs : string (list of files)
-            Voxel time series stored in 1D (column wise timeseries for each node), 
+            Voxel time series stored in 1D (column wise timeseries for each node),
             csv and/or npz files. By default it outputs timeseries in a 1D file.
             The 1D file is compatible with afni interfaces.
-            
+
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
@@ -199,7 +199,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     >>> wf.inputs.inputspec.output_type = [True,True]
     >>> wf.base_dir = './'
     >>> wf.run()
-    
+
     """
 
     wflow = pe.Workflow(name=wf_name)
@@ -221,7 +221,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     # TODO: add -mask_f2short for float parcellation mask
     # if parcellation mask has float values
     #     timeseries_roi.inputs.mask_f2short = True
-    
+
     wflow.connect(inputNode, 'rest',
                   timeseries_roi, 'in_file')
 
@@ -334,35 +334,35 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
 def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
     """
-    Workflow to get vertices time series from a FreeSurfer surface file 
-    
+    Workflow to get vertices time series from a FreeSurfer surface file
+
     Parameters
     ----------
     wf_name : string
         name of the workflow
-    
-    Returns 
+
+    Returns
     -------
     wflow : workflow object
         workflow object
-    
+
     Notes
     -----
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
-    
+
     Workflow Inputs::
-            
+
         inputspec.lh_surface_file : string (nifti file)
             left hemishpere surface file
         inputspec.rh_surface_file : string (nifti file)
             right hemisphere surface file
-        
+
     Workflow Outputs::
-        
+
         outputspec.surface_outputs: string (csv and/or npz files)
             list of timeseries matrices stored in csv and/or
             npz files
-        
+
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
@@ -397,37 +397,37 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
                   outputNode, 'surface_outputs')
 
     return wflow
-    
-    
+
+
 def get_normalized_moments(wf_name='normalized_moments'):
 
     """
     Workflow to calculate the normalized moments for skewedness calculations
-    
+
     Parameters
     ----------
     wf_name : string
         name of the workflow
-    
-    Returns 
+
+    Returns
     -------
     wflow : workflow object
         workflow object
-    
+
     Notes
     -----
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
-    
+
     Workflow Inputs::
-            
+
         inputspec.spatial_timeseries : string (nifti file)
             spatial map timeseries
-        
+
     Workflow Outputs::
-        
+
         outputspec.moments: list
             list of moment values
-        
+
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
@@ -513,7 +513,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     txt_file = os.path.abspath('roi_' + tmp_file + '.txt')
     csv_file = os.path.abspath('roi_' + tmp_file + '.csv')
     numpy_file = os.path.abspath('roi_' + tmp_file + '.npz')
-    
+
     nodes.sort()
     for n in nodes:
         if n > 0:
@@ -533,7 +533,9 @@ def gen_roi_timeseries(data_file, template, output_type):
 
     value_list = []
 
-    new_keys = sorted([int(float(key.split('node_')[1])) for key in node_dict.keys()])
+    new_keys = sorted([
+        int(float(key.split('node_')[1])) for key in node_dict.keys()
+    ])
 
     roi_number_list = [str(n) for n in new_keys]
 
@@ -544,7 +546,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     for key in new_keys:
         value_list.append(str('{0}\n'.format(node_dict['node_{0}'.format(key)])))
 
-    column_list = zip(*value_list)
+    column_list = list(zip(*value_list))
 
     writer.writerow(roi_number_str)
 
@@ -560,7 +562,7 @@ def gen_roi_timeseries(data_file, template, output_type):
 
     # if csv is required
     if output_type[0]:
-        print "writing csv file.."
+        print("writing csv file..")
         f = open(csv_file, 'wt')
         writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
         headers = ['node/volume'] + np.arange(vol).tolist()
@@ -571,7 +573,7 @@ def gen_roi_timeseries(data_file, template, output_type):
 
     # if npz file is required
     if output_type[1]:
-        print "writing npz file.."
+        print("writing npz file..")
         np.savez(numpy_file, roi_data=value_list, roi_numbers=roi_number_list)
         out_list.append(numpy_file)
 
@@ -582,32 +584,32 @@ def gen_voxel_timeseries(data_file, template, output_type):
     """
     Method to extract timeseries for each voxel
     in the data that is present in the input mask
-    
+
     Parameters
     ----------
     datafile : string (nifti file)
         path to input functional data
-    template : string (nifti file) 
+    template : string (nifti file)
         path to input mask in functional native space
     output_type :list
         list of two boolean values suggesting
-        the output types - numpy npz file and csv 
+        the output types - numpy npz file and csv
         format
-        
+
     Returns
     -------
     out_list : list of files
-        Based on ouput_type options method returns a list containing 
-        path to npz and csv file having timeseries of each voxel in 
-        the data that is present in the input mask.The row header 
-        corresponds to voxel's xyz cordinates and column headers corresponds 
-        to the volume index in the csv. By default it outputs afni compatible 
+        Based on ouput_type options method returns a list containing
+        path to npz and csv file having timeseries of each voxel in
+        the data that is present in the input mask.The row header
+        corresponds to voxel's xyz cordinates and column headers corresponds
+        to the volume index in the csv. By default it outputs afni compatible
         1D file with mean of timeseries of voxels across timepoints.
-        
+
     Raises
     ------
     Exception
-        
+
     """
     import nibabel as nib
     import numpy as np
@@ -679,20 +681,20 @@ def gen_vertices_timeseries(rh_surface_file,
 
     """
     Method to extract timeseries from vertices
-    of a freesurfer surface file 
-    
+    of a freesurfer surface file
+
     Parameters
     ----------
     rh_surface_file : string (mgz/mgh file)
         left hemisphere FreeSurfer surface file
     lh_surface_file : string (mgz/mgh file)
         right hemisphere FreeSurfer surface file
-        
+
     Returns
     -------
     out_list : string (list of file)
-        list of vertices timeseries csv files  
-    
+        list of vertices timeseries csv files
+
     """
 
     import gradunwarp

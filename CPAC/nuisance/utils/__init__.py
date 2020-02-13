@@ -19,7 +19,7 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
                                number_of_subsequent_trs_to_censor=0):
     """
     Applies criterion in method to find time points whose FD or DVARS (or both)
-    are above threshold. 
+    are above threshold.
 
     :param fd_j_file_path: path to TSV containing framewise displacement as a
         single column. If not specified, it will not be used.
@@ -96,10 +96,9 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
 
     extended_censors = []
     for censor in offending_time_points:
-        extended_censors += range(
+        extended_censors += list(range(
             (censor - number_of_previous_trs_to_censor),
-            (censor + number_of_subsequent_trs_to_censor + 1)
-        )
+            (censor + number_of_subsequent_trs_to_censor + 1)))
 
     extended_censors = [
         censor
@@ -311,7 +310,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
         if step == 'tissue':
             pass
-                
+
         elif step == 'resolution':
 
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
@@ -389,7 +388,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
         mask_csf_with_lat_ven.inputs.expr = 'a*b'
         mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
-        if ventricle_mask_exist : 
+        if ventricle_mask_exist :
             ventricles_key = 'VentriclesToAnat'
             if 'resolution' in regressor_descriptor:
                 ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
@@ -397,7 +396,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
             if ventricles_key not in pipeline_resource_pool:
 
                 transforms = pipeline_resource_pool['Transformations']
-                
+
                 if use_ants is True:
 
                     # perform the transform using ANTS
@@ -451,7 +450,7 @@ class NuisanceRegressor(object):
             if type(s) is not dict or \
                (not s.get('bottom_frequency') and \
                 not s.get('top_frequency')):
-                
+
                 del self.selector['Bandpass']
 
     def get(self, key, default=None):
@@ -529,14 +528,14 @@ class NuisanceRegressor(object):
         # WM-2mmE-PC5-SDB
         # CSF-2mmE-M-SDB
         # GM-2mmE-DNM-SDB
- 
+
         # G-PC5-SDB
         # M-SDB
         # C-S-FD1.5SD-D1.5SD
         # P-2
         # B-T0.01-B0.1
 
-        for r in regs.iterkeys():
+        for r in regs.keys():
             if r not in selector:
                 continue
 
@@ -564,7 +563,7 @@ class NuisanceRegressor(object):
                     if type(t) != str:
                         t = "%.2f" % t
                     threshold += t
-                if s.get('erode_mask'): 
+                if s.get('erode_mask'):
                     threshold += 'E'
                 if s.get('degree'):
                     d = s.get('degree')
@@ -644,7 +643,7 @@ class NuisanceRegressor(object):
 
                     pieces += [thresh]
 
-            selectors_representations += ['-'.join(filter(None, pieces))]
+            selectors_representations += ['-'.join([_f for _f in pieces if _f])]
 
         return "_".join(selectors_representations)
 

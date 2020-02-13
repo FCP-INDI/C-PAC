@@ -33,7 +33,7 @@ def ctrl_enable(ctrl):
         pass
     ctrl.Enable()
     ctrl.SetBackgroundColour(wx.WHITE)
-    
+
     evt = EnableEvent()
     wx.PostEvent(ctrl, evt)
 
@@ -45,7 +45,7 @@ def ctrl_disable(ctrl):
     ctrl.Disable()
     color = wx.SystemSettings.GetColour(wx.SYS_COLOUR_BACKGROUND)
     ctrl.SetBackgroundColour(color)
-    
+
     evt = DisableEvent()
     wx.PostEvent(ctrl, evt)
 
@@ -62,7 +62,7 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
 class Nuisance(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
+        from urllib.request import urlopen
         wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
 
@@ -329,7 +329,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
 
         def iterate(value, d):
             if isinstance(d, dict):
-                d = d.values()
+                d = list(d.values())
             for c in d:
                 if c == value:
                     continue
@@ -366,7 +366,11 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             selector_summary = {'method': selector_summary}
         selector_summary_method = selector_summary.get('method', 'Mean')
 
-        control = wx.ComboBox(summary, choices=selector_summary_method_renaming.values(), style=wx.CB_READONLY)
+        control = wx.ComboBox(
+            summary,
+            choices=list(selector_summary_method_renaming.values()),
+            style=wx.CB_READONLY
+        )
         control.SetValue(selector_summary_method_renaming[selector_summary_method])
         summary_sizer.Add(control, flag=wx.EXPAND | wx.ALL)
 
@@ -384,7 +388,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
                         continue
                     c.Destroy()
                     del controls['summary'][l]
-            
+
             # summary.Layout()
             summary.Parent.Layout()
 
@@ -442,7 +446,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
 
         self.titles += [self.render_selectors_title('Regressors', main=True)]
         sizer.AddGrowableCol(1)
-        
+
 
         self.titles += [self.render_selectors_title('Motion')]
 
@@ -502,7 +506,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
 
         self.data_controls['aCompCor']['enabled'] = self.add_enabled_row('Enabled', has_acompcor, self.data_controls['aCompCor'])
 
-        acompcor_tissues_label = wx.StaticText(self.editor, label='Tissues') 
+        acompcor_tissues_label = wx.StaticText(self.editor, label='Tissues')
         acompcor_tissues_control = CheckListCtrl(self.editor, size=(-1, 80))
         acompcor_tissues_control.InsertColumn(0, 'Tissues')
         acompcor_tissues_control.InsertStringItem(0, 'White Matter')
@@ -515,7 +519,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         acompcor_components_control.SetValue(str(self.selectors.get('aCompCor', {}).get('summary', {}).get('components', 1)))
         self.add_to_new_row(acompcor_components_label, acompcor_components_control)
         self.data_controls['aCompCor']['summary']['components'] = acompcor_components_control
-        
+
         self.data_controls['aCompCor'].update(self.add_tissue_parameters(self.selectors.get('aCompCor')))
         self.data_controls['aCompCor'].update(self.add_derivatives(self.selectors.get('aCompCor')))
         self.data_controls['aCompCor']['enabled'].UpdateState()
@@ -598,7 +602,7 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         bandpass_freq_top_control.SetValue(str(self.selectors.get('Bandpass', {}).get('top_frequency', 9999.9)))
         self.add_to_new_row(bandpass_freq_top_label, bandpass_freq_top_control)
         self.data_controls['Bandpass']['top_frequency'] = bandpass_freq_top_control
-        
+
         self.data_controls['Bandpass']['enabled'].UpdateState()
 
 
@@ -613,7 +617,11 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
         self.data_controls['Censor']['enabled'] = self.add_enabled_row('Enabled', has_censoring, self.data_controls['Censor'])
 
         censoring_method_label = wx.StaticText(self.editor, label='Method')
-        censoring_method_control = wx.ComboBox(self.editor, choices=selector_censor_method_renaming.values(), style=wx.CB_READONLY)
+        censoring_method_control = wx.ComboBox(
+            self.editor,
+            choices=list(selector_censor_method_renaming.values()),
+            style=wx.CB_READONLY
+        )
         if censoring_method:
             censoring_method_control.SetValue(selector_censor_method_renaming[censoring_method])
         self.add_to_new_row(censoring_method_label, censoring_method_control)
@@ -799,19 +807,19 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             selector['CerebrospinalFluid'].update(self.compile_selector_tissue_parameters(self.data_controls['CerebrospinalFluid']))
             selector['CerebrospinalFluid'].update(self.compile_selector_summary(self.data_controls['CerebrospinalFluid']))
             selector['CerebrospinalFluid'].update(self.compile_selector_derivatives(self.data_controls['CerebrospinalFluid']))
-            
+
         if self.data_controls['WhiteMatter']['enabled'].GetValue():
             selector['WhiteMatter'] = {}
             selector['WhiteMatter'].update(self.compile_selector_tissue_parameters(self.data_controls['WhiteMatter']))
             selector['WhiteMatter'].update(self.compile_selector_summary(self.data_controls['WhiteMatter']))
             selector['WhiteMatter'].update(self.compile_selector_derivatives(self.data_controls['WhiteMatter']))
-            
+
         if self.data_controls['GreyMatter']['enabled'].GetValue():
             selector['GreyMatter'] = {}
             selector['GreyMatter'].update(self.compile_selector_tissue_parameters(self.data_controls['GreyMatter']))
             selector['GreyMatter'].update(self.compile_selector_summary(self.data_controls['GreyMatter']))
             selector['GreyMatter'].update(self.compile_selector_derivatives(self.data_controls['GreyMatter']))
-            
+
         if self.data_controls['GlobalSignal']['enabled'].GetValue():
             selector['GlobalSignal'] = {}
             selector['GlobalSignal'].update(self.compile_selector_summary(self.data_controls['GlobalSignal']))
@@ -828,19 +836,19 @@ class NuisanceRegressionRegressorEditor(wx.Frame):
             for t in range(self.data_controls['aCompCor']['tissues'].GetItemCount()):
                 item = self.data_controls['aCompCor']['tissues'].GetItem(t).GetText()
                 selector['aCompCor']['tissues'].append(selector_renaming_inverse[item])
-            
+
         if self.data_controls['tCompCor']['enabled'].GetValue():
             selector['tCompCor'] = {}
             selector['tCompCor'].update(self.compile_selector_summary(self.data_controls['tCompCor']))
             selector['tCompCor'].update(self.compile_selector_derivatives(self.data_controls['tCompCor']))
             selector['tCompCor']['by_slice'] = self.data_controls['tCompCor']['by_slice'].GetValue()
             selector['tCompCor']['threshold'] = self.data_controls['tCompCor']['threshold'].GetValue()
-            
+
         if self.data_controls['PolyOrt']['enabled'].GetValue():
             selector['PolyOrt'] = {
                 'degree': int(self.data_controls['PolyOrt']['degree'].GetValue()),
             }
-        
+
         if self.data_controls['Bandpass']['enabled'].GetValue():
             selector['Bandpass'] = {}
 
@@ -939,7 +947,7 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
     def duplicate_regressor(self, event, regressor_i):
 
         cp = copy.deepcopy(self.regressor_selectors[regressor_i])
-        regressor_i += 1 
+        regressor_i += 1
 
         self.regressor_selectors = \
             self.regressor_selectors[0:regressor_i] + [cp] + self.regressor_selectors[regressor_i:]
@@ -1003,7 +1011,7 @@ class NuisanceRegressionRegressorsGrid(wx.Panel):
             button.SetToolTip(wx.ToolTip("Duplicate regressors"))
             button.Bind(wx.EVT_BUTTON, (lambda i: lambda event: self.duplicate_regressor(event, i))(i))
             buttons_sizer.Add(button, 1, wx.CENTER | wx.ALL, border=3)
-            
+
             bmp = wx.ArtProvider.GetBitmap(wx.ART_DELETE, wx.ART_OTHER, (16, 16))
             button = wx.BitmapButton(buttons_panel, wx.ID_ANY, bmp)
             button.SetToolTip(wx.ToolTip("Remove regressors"))

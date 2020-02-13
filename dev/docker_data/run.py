@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 import argparse
 import datetime
@@ -7,9 +6,9 @@ import os
 import subprocess
 import sys
 import time
-from base64 import b64decode
 import shutil
 import yaml
+from base64 import b64decode
 
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
@@ -64,7 +63,8 @@ def load_yaml_config(config_filename, aws_input_creds):
 
 
 def run(command, env={}):
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT,
                                shell=True, env=env)
     while True:
         line = process.stdout.readline()
@@ -87,13 +87,15 @@ def parse_yaml(value):
 def resolve_aws_credential(source):
 
     if source == "env":
-        import urllib2
+        from urllib.request import urlopen
         aws_creds_address = "169.254.170.2{}".format(
             os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         )
-        aws_creds = urllib2.urlopen(aws_creds_address).read()
+        aws_creds = urlopen(aws_creds_address).read()
 
-        aws_input_creds = "/tmp/aws_input_creds_%d.csv" % int(round(time.time() * 1000))
+        aws_input_creds = "/tmp/aws_input_creds_%d.csv" % int(
+            round(time.time() * 1000)
+        )
         with open(aws_input_creds) as ofd:
             for key, vname in [
                 ("AccessKeyId", "AWSAcessKeyId"),
@@ -280,14 +282,15 @@ elif args.analysis_level == "group":
 
             if not os.path.exists(output_group):
                 shutil.copyfile(args.group_file, output_group)
-        except Exception, IOError:
+        except (Exception, IOError) as e:
             print("Could not create group analysis configuration file.")
-            print("Please refer to the C-PAC documentation for group analysis set up.")
+            print("Please refer to the C-PAC documentation for group analysis "
+                  "setup.")
             print()
         else:
             print(
-                "Please refer to the output directory for a template of the file "
-                "and, after customizing to your analysis, add the flag"
+                "Please refer to the output directory for a template of the "
+                "file and, after customizing to your analysis, add the flag"
                 "\n\n"
                 "    --group_file {0}"
                 "\n\n"
@@ -324,7 +327,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         try:
             os.makedirs(args.output_dir)
         except:
-            print("Error! Could not find/create output dir {0}".format(args.output_dir))
+            print("Error! Could not find/create output dir {0}".format(
+                args.output_dir
+            ))
             sys.exit(1)
 
     # validate input dir (if skip_bids_validator is not set)
@@ -364,7 +369,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         c['awsCredentialsFile'] = resolve_aws_credential(args.aws_input_creds)
 
     if args.aws_output_creds:
-        c['awsOutputBucketCredentials'] = resolve_aws_credential(args.aws_output_creds)
+        c['awsOutputBucketCredentials'] = resolve_aws_credential(
+            args.aws_output_creds
+        )
 
     c['outputDirectory'] = os.path.join(args.output_dir, "output")
 
@@ -530,8 +537,10 @@ elif args.analysis_level in ["test_config", "participant"]:
             data_config_file = "cpac_data_config_idx-%s_%s.yml" % (
                 args.participant_ndx, st)
         else:
-            print("Participant ndx {0} is out of bounds [0, {1})".format(participant_ndx,
-                                                                        len(sub_list)))
+            print("Participant ndx {0} is out of bounds [0, {1})".format(
+                participant_ndx,
+                str(len(sub_list))
+            ))
             sys.exit(1)
     else:
         # write out the data configuration file
@@ -548,7 +557,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
 
 
-    if args.analysis_level == "participant" or args.analysis_level == "test_config":
+    if args.analysis_level in ["participant", "test_config"]:
         # build pipeline easy way
         from CPAC.utils.monitoring import monitor_server
         import CPAC.pipeline.cpac_runner
@@ -556,7 +565,10 @@ elif args.analysis_level in ["test_config", "participant"]:
         monitoring = None
         if args.monitoring:
             try:
-                monitoring = monitor_server(c['pipelineName'], c['logDirectory'])
+                monitoring = monitor_server(
+                    c['pipelineName'],
+                    c['logDirectory']
+                )
             except:
                 pass
 
@@ -581,7 +593,10 @@ elif args.analysis_level in ["test_config", "participant"]:
         if args.analysis_level == "test_config":
             print(
                 '\nPipeline and data configuration files should'
-                ' have been written to {0} and {1} respectively.'.format(pipeline_config_file, data_config_file)
+                ' have been written to {0} and {1} respectively.'.format(
+                    pipeline_config_file,
+                    data_config_file
+                )
             )
 
 sys.exit(0)

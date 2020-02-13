@@ -2,7 +2,7 @@ import os
 import re
 import math
 import base64
-import commands
+import subprocess
 import pkg_resources as p
 
 import numpy as np
@@ -47,7 +47,7 @@ derivative_descriptions = {
     'centrality_zstd_smooth': 'Network Centrality (z-score standardized, smoothed)',
     'centrality_zstd': 'Network Centrality (z-score standardized)',
     'centrality': 'Network Centrality',
-    
+
     'csf_gm_wm': 'Grey Matter, White Matter & CSF',
 
     'falff_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
@@ -98,14 +98,14 @@ derivative_descriptions = {
     'sca_tempreg_maps_zstat_files_smooth': 'Seed-based Correlation Analysis',
     'sca_tempreg_maps_zstat_files_smooth_hist': 'Seed-based Correlation Analysis',
 
-    
+
     'skullstrip_vis': 'Visual Result of Skull Strip',
     'snr_hist': 'Histogram of Signal to Noise Ratio',
     'snr': 'Signal to Noise Ratio',
 
     'temporal_dual_regression_smooth_hist': 'Histogram of Temporal Dual Regression',
     'temporal_dual_regression_smooth': 'Temporal Dual Regression',
-    
+
     'vmhc_smooth': 'Voxel-Mirrored Homotopic Connectivity (smoothed)',
     'vmhc_smooth_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity (smoothed)',
     'vmhc_fisher_zstd': 'Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
@@ -170,7 +170,7 @@ def append_to_files_in_dict_way(list_files, file_):
                     two_dict[key] = 1
 
         for key in two_dict:
-            print >> f_2, key
+            print(key, file=f_2)
 
         f_2.close
 
@@ -225,7 +225,7 @@ def first_pass_organizing_files(qc_path):
 
             qc_filename = qc_filename + fwhm_val + hp_lp_
 
-        if strat_dict.keys() == []:
+        if list(strat_dict.keys()) == []:
             strat_dict[qc_filename] = [qc_file]
         else:
             flag_ = 0
@@ -254,7 +254,7 @@ def second_pass_organizing_files(qc_path):
 
     Notes
     -----
-    Combines files with same strategy. combines files for derivative 
+    Combines files with same strategy. combines files for derivative
     falff , alff with others
 
     """
@@ -283,8 +283,8 @@ def second_pass_organizing_files(qc_path):
             if not str_ in strat_dict:
                 strat_dict[str_] = [file_]
             else:
-                print 'Error: duplicate keys for files in QC 2nd file_org ' \
-                      'pass: %s %s' % (strat_dict[str_], file_)
+                print('Error: duplicate keys for files in QC 2nd file_org ' \
+                      'pass: %s %s' % (strat_dict[str_], file_))
                 raise
 
         # organize alff falff
@@ -319,8 +319,8 @@ def second_pass_organizing_files(qc_path):
             if not str_ in strat_dict:
                 strat_dict[str_] = [file_]
             else:
-                print 'Error: duplicate keys for files in QC 2nd file_org ' \
-                      'pass: %s %s' % (strat_dict[str_], file_)
+                print('Error: duplicate keys for files in QC 2nd file_org ' \
+                      'pass: %s %s' % (strat_dict[str_], file_))
                 raise
 
 
@@ -374,11 +374,11 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
 
     qc_montage_id_a : dictionary
         dictionary of axial montages key : id no
-        value is list of png types 
+        value is list of png types
 
     qc_montage_id_s : dictionary
           dictionary of sagittal montages key : id no
-          value is list of png types 
+          value is list of png types
 
     qc_plot_id : dictionary
           dictionary of plot pngs key : id no
@@ -525,7 +525,7 @@ def add_head(frameset_html_fd, menu_html_fd, content_html_fd, name):
         <h3>C-PAC Support Forum: <a href=\"https://groups.google.com/forum/#!forum/cpax_forum\" target=\"forum\">https://groups.google.com/forum/#!forum/cpax_forum</a></h3>
         <hr>
         <h3>Scan and strategy identifiers: {name}</h3>
-    
+
 """
 
     content_html_fd.write(content_html.format(
@@ -555,7 +555,7 @@ def add_tail(frameset_html_fd, menu_html_fd, content_html_fd):
     """
 
     menu_html_fd.write("""
-    
+
                 </ul>
             </div>
         </div>
@@ -568,7 +568,7 @@ def add_tail(frameset_html_fd, menu_html_fd, content_html_fd):
 
     </body>
 </html>
-    
+
 """)
 
 
@@ -582,7 +582,7 @@ def feed_line_nav(image_name, anchor, menu_html_fd, content_html_fd):
 
     image_name : string
         name of image
-    
+
     menu_html_fd : string
         path to navigation bar html file
 
@@ -596,7 +596,7 @@ def feed_line_nav(image_name, anchor, menu_html_fd, content_html_fd):
     """
 
     image_readable = derivative_descriptions[image_name]
-        
+
     html_content_relative_name = os.path.join('qc_html', os.path.basename(content_html_fd.name))
     menu_html = """
                     <li><a href="{page}#{anchor}">{description}</a></li>
@@ -656,7 +656,7 @@ def feed_line_body(image_name, anchor, image, content_html_fd):
                 description=image_readable
             )
         )
-        
+
     content_html_fd.write(
         image_html.format(
             image=image_rel,
@@ -790,11 +790,11 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
 
     qc_montage_id_a : dictionary
         dictionary of axial montages key : id no
-        value is list of png types 
+        value is list of png types
 
     qc_montage_id_s : dictionary
           dictionary of sagittal montages key : id no
-          value is list of png types 
+          value is list of png types
 
     qc_plot_id : dictionary
           dictionary of plot pngs key : id no
@@ -853,7 +853,7 @@ def feed_lines_html(montage_id, montages_a, montages_s, histograms, dict_plot,
             image_name_a_nav = re.sub('_a$', '', qc_montage_id_a[montage_id])
             if montage_id in qc_hist_id:
                 image_name_h_nav = qc_hist_id[montage_id]
-                
+
             if map_name is not None:
                 image_name_a = "Measure: {measure}; Mask: {mask}; Map: {map}".format(
                     measure=image_name_a_nav,
@@ -913,11 +913,11 @@ def make_page(qc_file, sub_output_dir,
 
     qc_montage_id_a : dictionary
         dictionary of axial montages key : id no
-        value is list of png types 
+        value is list of png types
 
     qc_montage_id_s : dictionary
           dictionary of sagittal montages key : id no
-          value is list of png types 
+          value is list of png types
 
     qc_plot_id : dictionary
           dictionary of plot pngs key : id no
@@ -974,7 +974,7 @@ def make_page(qc_file, sub_output_dir,
     menu_html_fd.close()
     content_html_fd.close()
 
-    
+
 def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
                   qc_plot_id, qc_hist_id):
     """Generates a QC HTML file for each text file in the 'qc_html'
@@ -990,11 +990,11 @@ def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
 
     qc_montage_id_a : dictionary
         dictionary of axial montages key : id no
-        value is list of png types 
+        value is list of png types
 
     qc_montage_id_s : dictionary
           dictionary of sagittal montages key : id no
-          value is list of png types 
+          value is list of png types
 
     qc_plot_id : dictionary
           dictionary of plot pngs key : id no
@@ -1107,7 +1107,7 @@ def drange(min_, max_):
     -------
     range_ : list
         list of float values in the min_ max_ range
-    
+
     """
 
     step = float(max_ - min_) /8.0
@@ -1159,7 +1159,7 @@ def gen_plot_png(arr, measure, ex_vol=None):
     ex_vol = np.array(del_el)
 
     fig = plt.figure(figsize=(10, 6))
-    plt.plot([i for i in xrange(len(arr))], arr, '-')
+    plt.plot([i for i in range(len(arr))], arr, '-')
     fig.suptitle('%s plot with Mean %s = %0.4f' % (measure, measure,
                                                    arr.mean()))
     if measure == 'FD' and len(ex_vol) > 0:
@@ -1180,9 +1180,9 @@ def gen_plot_png(arr, measure, ex_vol=None):
 
 
 def gen_carpet_plt(gm_mask, wm_mask, csf_mask, functional_to_standard, output):
-    
+
     size = (950, 800)
-    
+
     carpet_plot_path = os.path.join(os.getcwd(), output + '.png')
 
     func = nb.load(functional_to_standard).get_data()
@@ -1206,7 +1206,7 @@ def gen_carpet_plt(gm_mask, wm_mask, csf_mask, functional_to_standard, output):
     t_dec = 1 + data.shape[1] // size[1]
     if t_dec:
         data = data[:, ::t_dec]
-        
+
     interval = max((int(data.shape[-1] + 1) // 10, int(data.shape[-1] + 1) // 5, 1))
     xticks = list(range(0, data.shape[-1])[::interval])
 
@@ -1384,8 +1384,8 @@ def make_histogram(measure_file, measure):
 
     """
 
-    import matplotlib 
-    from matplotlib import pyplot as plt 
+    import matplotlib
+    from matplotlib import pyplot as plt
     import numpy as np
     import nibabel as nb
     import os
@@ -1433,7 +1433,7 @@ def drop_percent(measure_file, percent):
 
     percent : percentage of the voxels to keep
 
-    
+
     Returns
     -------
 
@@ -1447,12 +1447,12 @@ def drop_percent(measure_file, percent):
 
     img = nb.load(measure_file)
     data = img.get_data()
-    
+
     max_val = np.percentile(data[data != 0.0], percent)
     data[data >= max_val] = 0.0
 
     save_img = nb.Nifti1Image(data, header=img.get_header(), affine=img.get_affine())
-   
+
     if '.nii.gz' in measure_file:
         ext = '.nii.gz'
     else:
@@ -1605,7 +1605,7 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
             Nifti for Anatomical Brain
 
     cbar_name : string
-            name of the cbar 
+            name of the cbar
 
     png_name : string
             Proposed name of the montage plot
@@ -1646,7 +1646,7 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             Nifti for Anatomical Brain
 
     cbar_name : string
-            name of the cbar 
+            name of the cbar
 
     png_name : string
             Proposed name of the montage plot
@@ -1704,7 +1704,7 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             im = grid[i].imshow(np.rot90(Y[:, :, zz]), cmap=cm.Greys_r)
         except IndexError as e:
             # TODO: send this to the logger instead
-            print("\n[!] QC Interface: Had a problem with creating the "      
+            print("\n[!] QC Interface: Had a problem with creating the "
                   "axial montage for {0}\n\nDetails:{1}. This error might occur because of a registration error encountered while using ANTs.\
                   Please refer to the png image located in your working directory for more insight."
                   "\n".format(png_name, e))
@@ -1781,7 +1781,7 @@ def montage_sagittal(overlay, underlay, png_name, cbar_name):
             Nifti for Anatomical Brain
 
     cbar_name : string
-            name of the cbar 
+            name of the cbar
 
     png_name : string
             Proposed name of the montage plot
@@ -1821,7 +1821,7 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
             Nifti for Anatomical Brain
 
     cbar_name : string
-            name of the cbar 
+            name of the cbar
 
     png_name : string
             Proposed name of the montage plot
@@ -1840,7 +1840,7 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     matplotlib.rcParams.update({'font.size': 5})
 
     try:
-        from mpl_toolkits.axes_grid1 import ImageGrid   
+        from mpl_toolkits.axes_grid1 import ImageGrid
     except:
         from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.cm as cm
@@ -2034,7 +2034,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
             break
         im = grid[i].imshow(np.rot90(X_csf[:, :, zz]), cmap=cm.get_cmap('green'), alpha=0.82, vmin=0, vmax=max_csf)
         im = grid[i].imshow(np.rot90(X_wm[:, :, zz]), cmap=cm.get_cmap('blue'), alpha=0.82, vmin=0, vmax=max_wm)
-        im = grid[i].imshow(np.rot90(X_gm[:, :, zz]), cmap=cm.get_cmap('red'), alpha=0.82, vmin=0, vmax=max_gm)   
+        im = grid[i].imshow(np.rot90(X_gm[:, :, zz]), cmap=cm.get_cmap('red'), alpha=0.82, vmin=0, vmax=max_gm)
 
         grid[i].axes.get_xaxis().set_visible(False)
         grid[i].axes.get_yaxis().set_visible(False)
@@ -2179,7 +2179,7 @@ def register_pallete(colors_file, cbar_name):
 
     import matplotlib.colors as col
     import matplotlib.cm as cm
-    
+
     with open(colors_file, 'r') as f:
         colors = [c.rstrip('\r\n') for c in reversed(f.readlines())]
         cmap3 = col.ListedColormap(colors, cbar_name)
@@ -2235,7 +2235,7 @@ def make_resample_1mm(file_):
     """
 
     import os
-    import commands
+    import subprocess
 
     remainder, ext_ = os.path.splitext(file_)
     remainder, ext1_ = os.path.splitext(remainder)
@@ -2246,7 +2246,7 @@ def make_resample_1mm(file_):
     new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
     cmd = " 3dresample -dxyz 1.0 1.0 1.0 -prefix %s " \
           "-inset %s " % (new_fname, file_)
-    commands.getoutput(cmd)
+    subprocess.getoutput(cmd)
 
     return new_fname
 
@@ -2341,25 +2341,25 @@ def jc(input1, input2):
 
 def crosscorr(input1,input2):
 
-   """ 
+   """
    cross correlation
-   computer compute cross correction bewteen input mask 
+   computer compute cross correction bewteen input mask
    """
 
    input1 = numpy.atleast_1d(input1.astype(numpy.bool))
    input2 = numpy.atleast_1d(input2.astype(numpy.bool))
 
-   from scipy.stats.stats import pearsonr 
+   from scipy.stats.stats import pearsonr
    cc=pearsonr(input1,input2)
-   return cc 
+   return cc
 
 def coverage(input1,input2):
     """
     estimate the coverage between  two mask
     """
     input1 = numpy.atleast_1d(input1.astype(numpy.bool))
-    input2 = numpy.atleast_1d(input2.astype(numpy.bool)) 
-     
+    input2 = numpy.atleast_1d(input2.astype(numpy.bool))
+
     intsec=numpy.count_nonzero(input1 & input2)
     if numpy.sum(input1)> numpy.sum(input2):
         smallv=numpy.sum(input2)
@@ -2367,5 +2367,3 @@ def coverage(input1,input2):
         smallv=numpy.sum(input1)
     cov=float(intsec)/float(smallv)
     return cov
-
-
