@@ -2,6 +2,8 @@
 FROM neurodebian:bionic-non-free
 MAINTAINER The C-PAC Team <cnl@childmind.org>
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update
 
 # Install the validator
