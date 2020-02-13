@@ -1,5 +1,5 @@
 #using neurodebian runtime as parent image
-FROM neurodebian:xenial-non-free
+FROM neurodebian:bionic-non-free
 MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 RUN apt-get update
