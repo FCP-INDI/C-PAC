@@ -97,20 +97,20 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                 qc_plot_id[2] = 'movement_rot_plot'
 
             # make FD plot and volumes removed
-            if 'gen_motion_stats' in nodes and 1 in c.runNuisance:
-                fd, out_file = strat['frame_wise_displacement_jenkinson']
+            # if 'gen_motion_stats' in nodes and 1 in c.runNuisance:
+            #     fd, out_file = strat['frame_wise_displacement_jenkinson']
 
-                qc_workflow = create_qc_fd('qc_fd_{0}'.format(num_strat))
+            #     qc_workflow = create_qc_fd('qc_fd_{0}'.format(num_strat))
 
-                workflow.connect(fd, out_file, qc_workflow, 'inputspec.fd')
+            #     workflow.connect(fd, out_file, qc_workflow, 'inputspec.fd')
 
-                strat.update_resource_pool({
-                    'qc___fd_plot': (
-                    qc_workflow, 'outputspec.fd_histogram_plot')
-                })
+            #     strat.update_resource_pool({
+            #         'qc___fd_plot': (
+            #         qc_workflow, 'outputspec.fd_histogram_plot')
+            #     })
 
-                if not 3 in qc_plot_id:
-                    qc_plot_id[3] = 'fd_plot'
+            #     if not 3 in qc_plot_id:
+            #         qc_plot_id[3] = 'fd_plot'
 
         # make QC montages for Skull Stripping Visualization
         anat_underlay, out_file = strat['anatomical_brain']
