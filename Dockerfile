@@ -6,6 +6,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
 
+RUN apt-get install apt-utils -y
+
 # Install the validator
 RUN apt-get install -y curl && \
      curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
@@ -140,9 +142,9 @@ RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install miniconda
-RUN curl -sO https://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh && \
-    bash Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda-3.8.3-Linux-x86_64.sh
+RUN curl -sO https://repo.continuum.io/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh && \
+    bash Miniconda3-4.7.12.1-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda3-4.7.12.1-Linux-x86_64.sh
 
 # update path to include conda
 ENV PATH=/usr/local/miniconda/bin:$PATH
@@ -153,23 +155,23 @@ RUN conda install -y \
 
 # install conda dependencies
 RUN conda install -y  \
-        cython==0.26 \
-        matplotlib==2.0.2 \
-        networkx==1.11 \
-        nose==1.3.7 \
-        numpy==1.13.0 \
-        pandas==0.23.4 \
-        scipy==1.2.1 \
-        traits==4.6.0 \
-        wxpython==3.0.0.0 \
+        matplotlib \
+        networkx \
+        nose \
+        numpy \
+        pandas \
+        scipy \
+        traits \
+        wxpython \
         pip
 
 # install torch
-RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install torch torchvision -f https://download.pytorch.org/whl/torch_stable.html
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
-RUN pip install --upgrade pip==9.0.1
+RUN pip install --upgrade setuptools
+RUN pip install --upgrade pip
 RUN pip install -r /opt/requirements.txt
 RUN pip install xvfbwrapper
 
@@ -187,6 +189,7 @@ RUN git lfs install
 RUN mkdir -p /ndmg_atlases/label && \
     GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/neurodata/neuroparc.git /tmp/neuroparc && \
     cd /tmp/neuroparc && \
+    git lfs install --skip-smudge && \
     git lfs pull -I "atlases/label/Human/*" && \
     cp -r /tmp/neuroparc/atlases/label/Human /ndmg_atlases/label && \
     cd -

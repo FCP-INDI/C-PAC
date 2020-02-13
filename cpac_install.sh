@@ -79,36 +79,36 @@ ubuntu1604_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev" "libgsl-dev")
 
 conda_packages=(
-    "cython==0.26"
-    "matplotlib=2.0.2"
-    "networkx==1.11"
-    "nose==1.3.7"
-    "numpy==1.13.0"
-    "pandas==0.23.4"
-    "pyyaml==3.12"
-    "scipy==1.2.1"
-    "traits==4.6.0"
-    "wxpython==3.0.0.0"
-    "pip==18.0"
+    "cython"
+    "matplotlib"
+    "networkx"
+    "nose"
+    "numpy"
+    "pandas"
+    "pyyaml"
+    "scipy"
+    "traits"
+    "wxpython"
+    "pip"
 )
 
 pip_packages=(
-    "boto3==1.7.37"
-    "configparser==3.7.4"
-    "future==0.16.0"
-    "INDI-Tools==0.0.6"
-    "lockfile==0.12.2"
-    "nibabel==2.3.0"
-    "nilearn==0.4.1"
-    "nipype==1.1.2"
-    "patsy==0.5.0"
-    "prov==1.5.0"
-    "psutil==5.4.6"
-    "pygraphviz==1.3.1"
-    "simplejson==3.15.0"
-    "python-dateutil==2.7.3"
-    "PyBASC==0.4.5"
-    "pathlib==1.0.1"
+    "boto3"
+    "configparser"
+    "future"
+    "INDI-Tools"
+    "lockfile"
+    "nibabel"
+    "nilearn"
+    "nipype"
+    "patsy"
+    "prov"
+    "psutil"
+    "pygraphviz"
+    "simplejson"
+    "python-dateutil"
+    "PyBASC"
+    "pathlib"
 )
 
 ##### Helper functions for installing system dependencies.
@@ -246,21 +246,21 @@ function install_system_dependencies {
             yum install -y wget
             cd /tmp && wget ${epel_url} && rpm -Uvh ${epel_rpm}
 
-            yum install -y ${missing_system_dependencies[@]} 
+            yum install -y ${missing_system_dependencies[@]}
             # Note: On CentOS 5, yum does not exit with non-zero status if a package fails to download.
             if [ $? -ne 0 ]
             then
                 system_dependencies_installed=0
                 echo "[ $(date) ] yum failed to install packages: ${missing_system_dependencies[@]}" | tee -a ~/cpac.log
-            else	
+            else
                 echo "[ $(date) ] : yum Installed C-PAC system dependency"\
                     "${missing_system_dependencies[@]}" | tee -a ~/cpac.log
             fi
         elif [ $DISTRO == 'UBUNTU' ]
         then
             apt-get update
-            apt-get install -y wget	
-            apt-get install -y ${missing_system_dependencies[@]} 
+            apt-get install -y wget
+            apt-get install -y ${missing_system_dependencies[@]}
             aptgetfail=$?
             # >= Ubuntu 16.04 no longer has libxp in the repos so it must be compiled
             case ${VERSION} in
@@ -277,7 +277,7 @@ function install_system_dependencies {
             then
                 system_dependencies_installed=0
                 echo "[ $(date) ] apt-get failed to install packages: ${missing_system_dependencies[@]}" | tee -a ~/cpac.log
-            else	
+            else
                 echo "[ $(date) ] : apt-get Installed C-PAC system dependency"\
                     "${missing_system_dependencies[@]}" | tee -a ~/cpac.log
             fi
@@ -435,7 +435,7 @@ function install_python_dependencies {
         exit 1
     fi
 
-    # for now always install miniconda, in the future should only install 
+    # for now always install miniconda, in the future should only install
     # if not there
     echo "[ $(date) ] Installing miniconda!" | tee -a ~/cpac.log
 
@@ -446,7 +446,7 @@ function install_python_dependencies {
         if [ $? -ne 0 ]
         then
             echo "[ $(date) ] Could not download miniconda installation script!" | tee -a ~/cpac.log
-            return 
+            return
         fi
     fi
     chmod +x Miniconda-3.8.3-Linux-x86_64.sh
@@ -456,7 +456,7 @@ function install_python_dependencies {
         if [ $? -ne 0 ]
         then
             echo "[ $(date) ] Miniconda installation failed!" | tee -a ~/cpac.log
-            #return 
+            #return
         fi
         chmod -R 775 /usr/local/bin/miniconda
         chmod g+s /usr/local/bin/miniconda
@@ -468,7 +468,7 @@ function install_python_dependencies {
         if [ $? -ne 0 ]
         then
             echo "[ $(date) ] Miniconda installation failed!" | tee -a ~/cpac.log
-            return 
+            return
         fi
         export PATH=~/miniconda/bin:${PATH}
         echo 'export PATH=~/miniconda/bin:${PATH}' >> ~/cpac_env.sh
@@ -480,14 +480,14 @@ function install_python_dependencies {
     if [ $? -ne 0 ]
     then
         echo "[ $(date) ] Conda install ${p} failed!" | tee -a ~/cpac.log
-        exit 1 
+        exit 1
     fi
 
     pip install ${missing_pip_dependencies[@]}
     if [ $? -ne 0 ]
     then
         echo "[ $(date) ] Pip install ${missing_pip_dependencies[@]} failed!" | tee -a ~/cpac.log
-        exit 1 
+        exit 1
     fi
 
     echo 'source activate cpac' >> ~/cpac_env.sh
@@ -602,7 +602,7 @@ function install_fsl {
         then
             echo FSL cannot be installed without root privileges on Ubuntu Linux.
             echo "[ $(date) ] : FSL installation failed - need root privileges" \
-                "on Ubuntu." >> ~/cpac.log 
+                "on Ubuntu." >> ~/cpac.log
             cd $INIT_DIR
             install_cpac_env
             exit 1
@@ -972,7 +972,7 @@ function install_cpac_env {
         then
             if [ -f /etc/profile.d/cpac_env.sh ]
             then
-                # Since functions will not re-install already installed 
+                # Since functions will not re-install already installed
                 # software, this should only append
                 # packages that weren't already in cpac_env.sh.
                 cat ~/cpac_env.sh >> /etc/profile.d/cpac_env.sh
@@ -1006,8 +1006,8 @@ fi
 if [ -f /etc/redhat-release ]
 then
     DISTRO=CENTOS
-    VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release) 
-elif [ -f /etc/lsb-release ] 
+    VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release)
+elif [ -f /etc/lsb-release ]
 then
     source /etc/lsb-release
     DISTRO=${DISTRIB_ID^^}
@@ -1055,7 +1055,7 @@ then
     # get an accounting of the missing dependencies
     get_missing_system_dependencies
     get_missing_python_dependencies
-    
+
     if [ ${system_dependencies_installed} -eq 1 ]
     then
         echo "All required system dependencies are installed."
