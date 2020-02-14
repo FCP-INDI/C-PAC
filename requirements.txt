@@ -3,7 +3,7 @@ click
 configparser
 cython
 future
-INDI-Tools
+git+git://github.com/shnizzedy/INDI-Tools.git@3a7b80558bd866bf57e2d911f75aeb8bd62b2723
 lockfile
 matplotlib
 networkx
