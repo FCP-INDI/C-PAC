@@ -205,14 +205,12 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='afni'):
                output_node, 'DVARS_1D')
 
     # Calculating mean Framewise Displacement as per power et al., 2012
-    calculate_FDP = pe.Node(Function(input_names=['in_file',
-                                                  'motion_correct_tool'],
+    calculate_FDP = pe.Node(Function(input_names=['in_file'],
                                      output_names=['out_file'],
                                      function=calculate_FD_P,
                                      as_module=True),
                             name='calculate_FD')
 
-    calculate_FDP.inputs.motion_correct_tool = motion_correct_tool
     wf.connect(input_node, 'movement_parameters',
                calculate_FDP, 'in_file')
     wf.connect(calculate_FDP, 'out_file',
@@ -285,7 +283,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='afni'):
     return wf
 
 
-def calculate_FD_P(in_file, motion_correct_tool='afni'):
+def calculate_FD_P(in_file):
     """
     Method to calculate Framewise Displacement (FD)  as per Power et al., 2012
 
@@ -303,14 +301,6 @@ def calculate_FD_P(in_file, motion_correct_tool='afni'):
     """
 
     motion_params = np.genfromtxt(in_file).T
-
-    if motion_correct_tool=='fsl':
-        motion_params = np.vstack((motion_params[2,:]*180/np.pi,
-                                    motion_params[0,:]*180/np.pi,
-                                    -motion_params[1,:]*180/np.pi,
-                                    motion_params[5,:],
-                                    motion_params[3,:],
-                                    -motion_params[4,:]))
 
     rotations = np.transpose(np.abs(np.diff(motion_params[0:3, :])))
     translations = np.transpose(np.abs(np.diff(motion_params[3:6, :])))
@@ -398,14 +388,6 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     """
 
     mot = np.genfromtxt(movement_parameters).T
-
-    if motion_correct_tool=='fsl':
-        mot = np.vstack((mot[2,:]*180/np.pi,
-                        mot[0,:]*180/np.pi,
-                        -mot[1,:]*180/np.pi,
-                        mot[5,:],
-                        mot[3,:],
-                        -mot[4,:]))
 
     # Relative RMS of translation
     rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)

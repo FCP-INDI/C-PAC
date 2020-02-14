@@ -11,6 +11,7 @@ from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 
 from CPAC.func_preproc.utils import add_afni_prefix, nullify
+from CPAC.utils.interfaces.function import Function
 
 
 def collect_arguments(*args):
@@ -19,6 +20,7 @@ def collect_arguments(*args):
         command_args += [args[1]]
     command_args += args[2:]
     return ' '.join(command_args)
+
 
 def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
                
@@ -145,6 +147,26 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
                 output_node, 'func_brain_mask')
 
     return wf
+
+
+def normalize_motion_parameters(in_file):
+    # Convert FSL mcflirt motion params to AFNI space  
+    import os 
+    import numpy as np
+
+    motion_params = np.genfromtxt(in_file).T
+    motion_params = np.vstack((motion_params[2,:]*180/np.pi,
+                                motion_params[0,:]*180/np.pi,
+                                -motion_params[1,:]*180/np.pi,
+                                motion_params[5,:],
+                                motion_params[3,:],
+                                -motion_params[4,:]))
+    motion_params = np.transpose(motion_params)
+
+    out_file = os.path.join(os.getcwd(), 'motion_params.1D')
+    np.savetxt(out_file, motion_params)                                
+
+    return out_file
 
 
 def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstrip_functional'):
@@ -873,8 +895,22 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, config=None, wf_na
 
         preproc.connect(func_motion_correct_A, 'out_file',
                         skullstrip_func, 'inputspec.func')
+        
+        normalize_motion_params = pe.Node(Function(input_names=['in_file'],
+                                     output_names=['out_file'],
+                                     function=normalize_motion_parameters,
+                                     as_module=True),
+                            name='norm_motion_params')
+
         preproc.connect(func_motion_correct_A, 'par_file',
+                        normalize_motion_params, 'in_file')
+
+        preproc.connect(normalize_motion_params, 'out_file',
                         output_node, 'movement_parameters')
+
+        # preproc.connect(func_motion_correct_A, 'par_file',
+        #                 output_node, 'movement_parameters')
+
         preproc.connect(func_motion_correct_A, 'mat_file',
                          output_node, 'transform_matrices')
         preproc.connect(func_motion_correct_A, 'rms_files',
