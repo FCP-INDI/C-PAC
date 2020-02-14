@@ -4,9 +4,15 @@ MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+
 RUN apt-get update
 
-RUN apt-get install apt-utils -y
+RUN apt-get install apt-utils software-properties-common -y
+
+RUN add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'
+
+RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y curl && \
@@ -66,6 +72,28 @@ RUN apt-get install -y \
       x11proto-print-dev \
       xutils-dev
 
+# Install 18.04 dependencies
+RUN apt-get install -y \
+      eog \
+      evince \
+      firefox \
+      gedit \
+      gnome-icon-theme-symbolic \
+      gnome-terminal \
+      gnome-tweak-tool \
+      gsl-bin \
+      libcurl4-openssl-dev \
+      libgfortran3 \
+      libjpeg62 \
+      libssl-dev \
+      libxm4 \
+      nautilus \
+      python-qt4 \
+      r-base \
+      xfonts-base \
+      xfonts-100dpi \
+      xterm
+
 # Compiles libxp- this is necessary for some newer versions of Ubuntu
 # where the is no Debian package available.
 RUN git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
@@ -90,13 +118,23 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
     if [ -f $libs_path/libgsl.so.19 ]; then \
         ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
     fi && \
+    ln -s $libs_path/libgsl.so.23 /$libs_path/libgsl.so.19 && \
     mkdir -p /opt/afni && \
-    curl -sO http://s3.amazonaws.com/fcp-indi/resources/linux_openmp_64.zip && \
-    unzip -j linux_openmp_64.zip $(cat /opt/required_afni_pkgs.txt) -d /opt/afni && \
-    rm -rf linux_openmp_64.zip
+    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries && \
+    tcsh @update.afni.binaries -package linux_ubuntu_16_64  -do_extras
+ENV PATH /root/abin:$PATH
+RUN rPkgsInstall -pkgs ALL && \
+    rm -rf @update.afni.binaries && \
+    cp $HOME/abin/AFNI.afnirc $HOME/.afnirc && \
+    suma -update_env && \
+    @update.afni.binaries -d
+RUN curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz && \
+    tar xvzf CD.tgz && \
+    cd CD && \
+    tcsh s2.cp.files . ~ && \
+    cd ..
+RUN afni_system_check.py -check_all
 
-# set up AFNI
-ENV PATH=/opt/afni:$PATH
 
 # install FSL
 RUN apt-get install -y --no-install-recommends \
