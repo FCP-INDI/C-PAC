@@ -493,6 +493,10 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
+# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+motion_correction : ['AFNI']
+
+
 # Run AFNI 3dDespike 
 runDespike : [0]
 
@@ -687,10 +691,6 @@ bold_bet_vertical_gradient : 0.0
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
 anatomical_mask_dilation : False 
-
-
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
 
 
 # Register functional images to a standard MNI152 template.
