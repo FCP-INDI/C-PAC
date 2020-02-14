@@ -491,6 +491,14 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
+# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+motion_correction : ['AFNI']
+
+
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+functional_volreg_twopass :  On
+
+
 # Run AFNI 3dDespike
 runDespike : [0]
 
@@ -524,9 +532,6 @@ startIdx :  0
 # Note: the selection here applies to all scans of all participants.
 stopIdx :  None
 
-
-# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-functional_volreg_twopass :  On
 
 
 # Perform distortion correction.
@@ -684,11 +689,7 @@ bold_bet_vertical_gradient : 0.0
 
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
-anatomical_mask_dilation : False 
-
-
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
+anatomical_mask_dilation : False
 
 
 # Register functional images to a standard MNI152 template.
