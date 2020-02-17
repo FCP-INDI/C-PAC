@@ -50,9 +50,12 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
     offending_time_points = set()
     time_course_len = 0
 
-    types = ['FDJ', 'FDP', 'DVARS']
-    file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
-    thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
+    # types = ['FDJ', 'FDP', 'DVARS']
+    # file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
+    # thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
+    types = ['FDP', 'DVARS']
+    file_paths = [fd_p_file_path, dvars_file_path]
+    thresholds = [fd_p_threshold, dvars_threshold]
 
     for type, file_path, threshold in zip(types, file_paths, thresholds):
 

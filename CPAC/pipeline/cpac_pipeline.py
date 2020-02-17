@@ -1579,84 +1579,98 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     skullstrip_tool = skullstrip_tool.lower()
 
-                    new_strat = strat.fork()
+                    for motion_correct_tool in c.motion_correction:
 
-                    func_preproc = create_func_preproc(
-                        skullstrip_tool=skullstrip_tool,
-                        config=c,
-                        wf_name='func_preproc_before_stc_%s_%d' % (skullstrip_tool, num_strat)
-                    )
+                        motion_correct_tool = motion_correct_tool.lower()
 
-                    node, out_file = strat['raw_functional_trunc']
-                    workflow.connect(node, out_file, func_preproc,
-                                    'inputspec.raw_func')
+                        new_strat = strat.fork()
 
-                    node, out_file = new_strat.get_leaf_properties()
-                    workflow.connect(node, out_file, func_preproc,
-                                    'inputspec.func')
+                        func_preproc = create_func_preproc(
+                            skullstrip_tool=skullstrip_tool,
+                            motion_correct_tool=motion_correct_tool,
+                            config=c,
+                            wf_name='func_preproc_before_stc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
+                        )
 
-                    node, out_file = strat['anatomical_brain']
-                    workflow.connect(node, out_file, func_preproc,
-                                    'inputspec.anat_brain')
+                        node, out_file = strat['raw_functional_trunc']
+                        workflow.connect(node, out_file, func_preproc,
+                                        'inputspec.raw_func')
 
-                    node, out_file = strat['anatomical_brain_mask']
-                    workflow.connect(node, out_file, func_preproc,
-                                    'inputspec.anatomical_brain_mask')
+                        node, out_file = new_strat.get_leaf_properties()
+                        workflow.connect(node, out_file, func_preproc,
+                                        'inputspec.func')
 
-                    func_preproc.inputs.inputspec.twopass = \
-                        getattr(c, 'functional_volreg_twopass', True)
+                        node, out_file = strat['anatomical_brain']
+                        workflow.connect(node, out_file, func_preproc,
+                                        'inputspec.anat_brain')
 
-                    new_strat.update_resource_pool({
-                            'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                            'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                            'functional_brain_mask_before_stc': (func_preproc, 'outputspec.mask'),
-                            'motion_correct_before_stc': (func_preproc, 'outputspec.motion_correct'),
-                            'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
-                        })
+                        node, out_file = strat['anatomical_brain_mask']
+                        workflow.connect(node, out_file, func_preproc,
+                                        'inputspec.anatomical_brain_mask')
 
-                    new_strat_list.append(new_strat)
+                        func_preproc.inputs.inputspec.twopass = \
+                            getattr(c, 'functional_volreg_twopass', True)
 
-                    gen_motion_stats = motion_power_statistics(
-                        'gen_motion_stats_before_stc_%d' % num_strat)
+                        new_strat.update_resource_pool({
+                                'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
+                                'max_displacement': (func_preproc, 'outputspec.max_displacement'),
+                                'functional_brain_mask_before_stc': (func_preproc, 'outputspec.mask'),
+                                'motion_correct_before_stc': (func_preproc, 'outputspec.motion_correct'),
+                                'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
+                            })
 
-                    # Special case where the workflow is not getting outputs from
-                    # resource pool but is connected to functional datasource
-                    workflow.connect(func_wf, 'outputspec.subject',
-                                    gen_motion_stats, 'inputspec.subject_id')
+                        new_strat_list.append(new_strat)
 
-                    workflow.connect(func_wf, 'outputspec.scan',
-                                    gen_motion_stats, 'inputspec.scan_id')
+                        gen_motion_stats = motion_power_statistics(
+                            name = 'gen_motion_stats_before_stc_%d' % num_strat, 
+                            motion_correct_tool = motion_correct_tool)              
 
-                    node, out_file = new_strat['motion_correct_before_stc']
-                    workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.motion_correct')
+                        # Special case where the workflow is not getting outputs from
+                        # resource pool but is connected to functional datasource
+                        workflow.connect(func_wf, 'outputspec.subject',
+                                        gen_motion_stats, 'inputspec.subject_id')
 
-                    node, out_file = new_strat['movement_parameters']
-                    workflow.connect(node, out_file,
-                                    gen_motion_stats,
-                                    'inputspec.movement_parameters')
+                        workflow.connect(func_wf, 'outputspec.scan',
+                                        gen_motion_stats, 'inputspec.scan_id')
 
-                    node, out_file = new_strat['max_displacement']
-                    workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.max_displacement')
+                        node, out_file = new_strat['motion_correct_before_stc']
+                        workflow.connect(node, out_file,
+                                        gen_motion_stats, 'inputspec.motion_correct')
 
-                    node, out_file = new_strat['functional_brain_mask_before_stc']
-                    workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.mask')
+                        node, out_file = new_strat['movement_parameters']
+                        workflow.connect(node, out_file,
+                                        gen_motion_stats,
+                                        'inputspec.movement_parameters')
 
-                    node, out_file = new_strat['coordinate_transformation']
-                    workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.transformations')
+                        node, out_file = new_strat['max_displacement']
+                        workflow.connect(node, out_file,
+                                        gen_motion_stats, 'inputspec.max_displacement')
 
-                    new_strat.append_name(gen_motion_stats.name)
+                        node, out_file = new_strat['functional_brain_mask_before_stc']
+                        workflow.connect(node, out_file,
+                                        gen_motion_stats, 'inputspec.mask')
 
-                    new_strat.update_resource_pool({
-                        'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
-                        'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
-                        'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
-                        'power_params': (gen_motion_stats, 'outputspec.power_params'),
-                        'motion_params': (gen_motion_stats, 'outputspec.motion_params')
-                    })
+                        node, out_file = new_strat['coordinate_transformation']
+                        workflow.connect(node, out_file,
+                                        gen_motion_stats, 'inputspec.transformations')
+
+                        new_strat.append_name(gen_motion_stats.name)
+
+                        if motion_correct_tool == 'afni':
+                            new_strat.update_resource_pool({
+                                'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
+                                'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
+                                'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
+                                'power_params': (gen_motion_stats, 'outputspec.power_params'),
+                                'motion_params': (gen_motion_stats, 'outputspec.motion_params')
+                            })
+                        else: 
+                            new_strat.update_resource_pool({
+                                'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
+                                'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
+                                'power_params': (gen_motion_stats, 'outputspec.power_params'),
+                                'motion_params': (gen_motion_stats, 'outputspec.motion_params')
+                            })
 
         strat_list = new_strat_list
 
@@ -2285,47 +2299,90 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if 'gen_motion_stats_before_stc' not in nodes:
 
-                gen_motion_stats = motion_power_statistics(
-                    'gen_motion_stats_%d' % num_strat)
+                if 'func_preproc_afni_fsl' not in nodes and 'func_preproc_fsl_fsl' not in nodes and 'func_preproc_fsl_afni_fsl' not in nodes and 'func_preproc_anatomical_refined_fsl' not in nodes:
 
-                # Special case where the workflow is not getting outputs from
-                # resource pool but is connected to functional datasource
-                workflow.connect(func_wf, 'outputspec.subject',
-                                gen_motion_stats, 'inputspec.subject_id')
+                    gen_motion_stats = motion_power_statistics(
+                        'gen_motion_stats_{0}'.format(num_strat))              
 
-                workflow.connect(func_wf, 'outputspec.scan',
-                                gen_motion_stats, 'inputspec.scan_id')
+                    # Special case where the workflow is not getting outputs from
+                    # resource pool but is connected to functional datasource
+                    workflow.connect(func_wf, 'outputspec.subject',
+                                    gen_motion_stats, 'inputspec.subject_id')
 
-                node, out_file = strat['motion_correct']
-                workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.motion_correct')
+                    workflow.connect(func_wf, 'outputspec.scan',
+                                    gen_motion_stats, 'inputspec.scan_id')
 
-                node, out_file = strat['movement_parameters']
-                workflow.connect(node, out_file,
-                                gen_motion_stats,
-                                'inputspec.movement_parameters')
+                    node, out_file = strat['motion_correct']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats, 'inputspec.motion_correct')
 
-                node, out_file = strat['max_displacement']
-                workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.max_displacement')
+                    node, out_file = strat['movement_parameters']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats,
+                                    'inputspec.movement_parameters')
 
-                node, out_file = strat['functional_brain_mask']
-                workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.mask')
+                    node, out_file = strat['max_displacement']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats, 'inputspec.max_displacement')
 
-                node, out_file = strat['coordinate_transformation']
-                workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.transformations')
+                    node, out_file = strat['functional_brain_mask']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats, 'inputspec.mask')
 
-                strat.append_name(gen_motion_stats.name)
+                    node, out_file = strat['coordinate_transformation']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats, 'inputspec.transformations')
 
-                strat.update_resource_pool({
-                    'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
-                    'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
-                    'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
-                    'power_params': (gen_motion_stats, 'outputspec.power_params'),
-                    'motion_params': (gen_motion_stats, 'outputspec.motion_params')
-                })
+                    strat.append_name(gen_motion_stats.name)
+
+                    strat.update_resource_pool({
+                        'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
+                        'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
+                        'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
+                        'power_params': (gen_motion_stats, 'outputspec.power_params'),
+                        'motion_params': (gen_motion_stats, 'outputspec.motion_params')
+                    })
+
+                else:
+
+                    gen_motion_stats = motion_power_statistics(
+                        name = 'gen_motion_stats_{0}'.format(num_strat), 
+                        motion_correct_tool = 'fsl')              
+
+                    # Special case where the workflow is not getting outputs from
+                    # resource pool but is connected to functional datasource
+                    workflow.connect(func_wf, 'outputspec.subject',
+                                    gen_motion_stats, 'inputspec.subject_id')
+
+                    workflow.connect(func_wf, 'outputspec.scan',
+                                    gen_motion_stats, 'inputspec.scan_id')
+
+                    node, out_file = strat['motion_correct']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats, 'inputspec.motion_correct')
+
+                    node, out_file = strat['movement_parameters']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats,
+                                    'inputspec.movement_parameters')
+
+                    node, out_file = strat['max_displacement']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats, 'inputspec.max_displacement')
+
+                    node, out_file = strat['functional_brain_mask']
+                    workflow.connect(node, out_file,
+                                    gen_motion_stats, 'inputspec.mask')
+
+                    strat.append_name(gen_motion_stats.name)
+
+                    strat.update_resource_pool({
+                        'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
+                        'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
+                        'power_params': (gen_motion_stats, 'outputspec.power_params'),
+                        'motion_params': (gen_motion_stats, 'outputspec.motion_params')
+                    })
+
 
         new_strat_list = []
 
@@ -2545,12 +2602,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     ),
                 })
 
-                node, out_file = new_strat['frame_wise_displacement_jenkinson']
-                workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.fd_j_file_path'
-                )
+                # node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                # workflow.connect(
+                #     node, out_file,
+                #     regressor_workflow,
+                #     'inputspec.fd_j_file_path'
+                # )
 
                 node, out_file = new_strat['frame_wise_displacement_power']
                 workflow.connect(
@@ -2667,12 +2724,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         'inputspec.functional_brain_mask_file_path'
                     )
 
-                    node, out_file = new_strat['frame_wise_displacement_jenkinson']
-                    workflow.connect(
-                        node, out_file,
-                        nuisance_regression_before_workflow,
-                        'inputspec.fd_j_file_path'
-                    )
+                    # node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                    # workflow.connect(
+                    #     node, out_file,
+                    #     nuisance_regression_before_workflow,
+                    #     'inputspec.fd_j_file_path'
+                    # )
 
                     node, out_file = new_strat['frame_wise_displacement_power']
                     workflow.connect(
@@ -2715,12 +2772,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             'inputspec.functional_brain_mask_file_path'
                         )
 
-                        node, out_file = new_strat['frame_wise_displacement_jenkinson']
-                        workflow.connect(
-                            node, out_file,
-                            nuisance_regression_after_workflow,
-                            'inputspec.fd_j_file_path'
-                        )
+                        # node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                        # workflow.connect(
+                        #     node, out_file,
+                        #     nuisance_regression_after_workflow,
+                        #     'inputspec.fd_j_file_path'
+                        # )
 
                         node, out_file = new_strat['frame_wise_displacement_power']
                         workflow.connect(

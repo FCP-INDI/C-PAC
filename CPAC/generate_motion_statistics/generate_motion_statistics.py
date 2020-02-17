@@ -6,7 +6,7 @@ import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 
 
-def motion_power_statistics(name='motion_stats'):
+def motion_power_statistics(name='motion_stats', motion_correct_tool='afni'):
 
     """
     The main purpose of this workflow is to get various statistical measures
@@ -217,26 +217,29 @@ def motion_power_statistics(name='motion_stats'):
                output_node, 'FDP_1D')
 
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
-    calculate_FDJ = pe.Node(Function(input_names=['in_file'],
-                                     output_names=['out_file'],
-                                     function=calculate_FD_J,
-                                     as_module=True),
-                            name='calculate_FDJ')
+    if motion_correct_tool == 'afni':
+        calculate_FDJ = pe.Node(Function(input_names=['in_file'],
+                                        output_names=['out_file'],
+                                        function=calculate_FD_J,
+                                        as_module=True),
+                                name='calculate_FDJ')
 
-    wf.connect(input_node, 'transformations',
-               calculate_FDJ, 'in_file')
-    wf.connect(calculate_FDJ, 'out_file',
-               output_node, 'FDJ_1D')
+        wf.connect(input_node, 'transformations',
+                calculate_FDJ, 'in_file')
+        wf.connect(calculate_FDJ, 'out_file',
+                output_node, 'FDJ_1D')
 
-    calc_motion_parameters = pe.Node(Function(input_names=["subject_id",
-                                                           "scan_id",
-                                                           "movement_parameters",
-                                                           "max_displacement"],
+    calc_motion_parameters = pe.Node(Function(input_names=['subject_id',
+                                                           'scan_id',
+                                                           'movement_parameters',
+                                                           'max_displacement',
+                                                           'motion_correct_tool'],
                                               output_names=['out_file'],
                                               function=gen_motion_parameters,
                                               as_module=True),
                                      name='calc_motion_parameters')
 
+    calc_motion_parameters.inputs.motion_correct_tool = motion_correct_tool
     wf.connect(input_node, 'subject_id',
                calc_motion_parameters, 'subject_id')
     wf.connect(input_node, 'scan_id',
@@ -249,16 +252,18 @@ def motion_power_statistics(name='motion_stats'):
     wf.connect(calc_motion_parameters, 'out_file',
                output_node, 'motion_params')
 
-    calc_power_parameters = pe.Node(Function(input_names=["subject_id",
-                                                          "scan_id",
-                                                          "fdp",
-                                                          "fdj",
-                                                          "dvars"],
+    calc_power_parameters = pe.Node(Function(input_names=['subject_id',
+                                                          'scan_id',
+                                                          'fdp',
+                                                          'fdj',
+                                                          'dvars',
+                                                          'motion_correct_tool'],
                                              output_names=['out_file'],
                                              function=gen_power_parameters,
                                              as_module=True),
                                     name='calc_power_parameters')
 
+    calc_power_parameters.inputs.motion_correct_tool = motion_correct_tool
     wf.connect(input_node, 'subject_id',
                calc_power_parameters, 'subject_id')
     wf.connect(input_node, 'scan_id',
@@ -267,8 +272,10 @@ def motion_power_statistics(name='motion_stats'):
                calc_power_parameters, 'dvars')
     wf.connect(calculate_FDP, 'out_file',
                calc_power_parameters, 'fdp')
-    wf.connect(calculate_FDJ, 'out_file',
-               calc_power_parameters, 'fdj')
+
+    if motion_correct_tool == 'afni':
+        wf.connect(calculate_FDJ, 'out_file',
+                calc_power_parameters, 'fdj')
 
     wf.connect(calc_power_parameters, 'out_file',
                output_node, 'power_params')
@@ -357,7 +364,7 @@ def calculate_FD_J(in_file):
 
 
 def gen_motion_parameters(subject_id, scan_id, movement_parameters,
-                          max_displacement):
+                          max_displacement, motion_correct_tool):
     """
     Method to calculate all the movement parameters
 
@@ -387,7 +394,12 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
 
     # remove any other information other than matrix from
     # max displacement file. AFNI adds information to the file
-    maxdisp = np.loadtxt(max_displacement)
+    if motion_correct_tool=='afni':
+        maxdisp = np.loadtxt(max_displacement)
+
+    elif motion_correct_tool=='fsl':
+        maxdisp = np.loadtxt(max_displacement[0]) # TODO: mcflirt outputs absdisp, instead of maxdisp
+        reldisp = np.loadtxt(max_displacement[1]) 
 
     abs_relative = lambda v: np.abs(np.diff(v))
     max_relative = lambda v: np.max(abs_relative(v))
@@ -402,9 +414,9 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
         ('Max_Relative_RMS_Displacement', max_relative(rms)),
         ('Movements_gt_threshold', np.sum(abs_relative(rms) > 0.1)),
         ('Mean_Relative_Mean_Rotation', avg_relative(np.abs(mot[0:3]).mean(axis=0))),
-        ('Mean_Relative_Maxdisp', avg_relative(maxdisp)),
-        ('Max_Relative_Maxdisp', max_relative(maxdisp)),
-        ('Max_Abs_Maxdisp', max_abs(maxdisp)),
+        ('Mean_Relative_Maxdisp', avg_relative(maxdisp)), # to be updated 
+        ('Max_Relative_Maxdisp', max_relative(maxdisp)), # to be updated 
+        ('Max_Abs_Maxdisp', max_abs(maxdisp)), # to be updated 
         ('Max Relative_Roll', max_relative(mot[0])),
         ('Max_Relative_Pitch', max_relative(mot[1])),
         ('Max_Relative_Yaw', max_relative(mot[2])),
@@ -441,7 +453,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, fdp, fdj, dvars):
+def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, motion_correct_tool='afni'):
 
     """
     Method to generate Power parameters for scrubbing
@@ -469,36 +481,47 @@ def gen_power_parameters(subject_id, scan_id, fdp, fdj, dvars):
     """
 
     fdp_data = np.loadtxt(fdp)
-    fdj_data = np.loadtxt(fdj)
     dvars_data = np.loadtxt(dvars)
 
     # Mean (across time/frames) of the absolute values
     # for Framewise Displacement (FD)
     meanFD_Power  = np.mean(fdp_data)
 
-    # Mean FD Jenkinson
-    meanFD_Jenkinson = np.mean(fdj_data)
-
-    # Root mean square (RMS; across time/frames)
-    # of the absolute values for FD
-    rmsFDJ = np.sqrt(np.mean(fdj_data))
-
-    # Mean of the top quartile of FD is $FDquartile
-    quat = int(len(fdj_data) / 4)
-    FDJquartile = np.mean(np.sort(fdj_data)[::-1][:quat])
-
     # Mean DVARS
     meanDVARS = np.mean(dvars_data)
 
-    info = [
-        ('Subject', subject_id),
-        ('Scan', scan_id),
-        ('MeanFD_Power', meanFD_Power),
-        ('MeanFD_Jenkinson', meanFD_Jenkinson),
-        ('rootMeanSquareFD', rmsFDJ),
-        ('FDquartile(top1/4thFD)', FDJquartile),
-        ('MeanDVARS', meanDVARS),
-    ]
+    if motion_correct_tool == 'afni':
+
+        fdj_data = np.loadtxt(fdj)
+        
+        # Mean FD Jenkinson
+        meanFD_Jenkinson = np.mean(fdj_data)
+
+        # Root mean square (RMS; across time/frames)
+        # of the absolute values for FD
+        rmsFDJ = np.sqrt(np.mean(fdj_data))
+
+        # Mean of the top quartile of FD is $FDquartile
+        quat = int(len(fdj_data) / 4)
+        FDJquartile = np.mean(np.sort(fdj_data)[::-1][:quat])
+
+        info = [
+            ('Subject', subject_id),
+            ('Scan', scan_id),
+            ('MeanFD_Power', meanFD_Power),
+            ('MeanFD_Jenkinson', meanFD_Jenkinson),
+            ('rootMeanSquareFD', rmsFDJ),
+            ('FDquartile(top1/4thFD)', FDJquartile),
+            ('MeanDVARS', meanDVARS),
+        ]
+
+    elif motion_correct_tool == 'fsl':
+        info = [
+            ('Subject', subject_id),
+            ('Scan', scan_id),
+            ('MeanFD_Power', meanFD_Power),
+            ('MeanDVARS', meanDVARS),
+        ]
 
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
     with open(out_file, 'w') as f:
