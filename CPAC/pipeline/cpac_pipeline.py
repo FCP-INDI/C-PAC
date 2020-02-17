@@ -4029,22 +4029,32 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         logger.info(forks)
 
         if test_config:
-
             logger.info('This has been a test of the pipeline configuration file, the pipeline was built successfully, but was not run')
-
         else:
 
+            if hasattr(c, 'trim') and c.trim:
+
+                logger.warn("""
+    Trimming is an experimental feature, and if used wrongly, it can lead to unreproducible results.
+    It is useful for performance optimization, but only if used correctly.
+    Please, make yourself aware of how it works and its assumptions:
+     - The pipeline configuration has not changed;
+     - The data configuration / BIDS directory has not changed;
+     - The files from the output directory has not changed;
+     - Your softwares versions has not changed;
+     - Your C-PAC version has not changed;
+     - You do not have access to the working directory.
+""")
+
+                workflow, _ = the_trimmer(
+                    workflow,
+                    output_dir=c.outputDirectory,
+                    s3_creds_path=input_creds_path,
+                )
+
+            pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+
             try:
-
-                if hasattr(c, 'trim') and c.trim:
-                    workflow = the_trimmer(
-                        workflow,
-                        output_dir=c.outputDirectory,
-                        s3_creds_path=input_creds_path,
-                    )
-
-                pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
-
                 subject_info['resource_pool'] = []
 
                 for strat_no, strat in enumerate(strat_list):
