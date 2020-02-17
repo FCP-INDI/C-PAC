@@ -104,6 +104,7 @@ from CPAC.utils.datasource import (
     resolve_resolution,
     match_epi_fmaps
 )
+from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, Strategy, Outputs, find_files
 from CPAC.utils.interfaces.function import Function
 
@@ -4034,6 +4035,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         else:
 
             try:
+
+                if hasattr(c, 'trim') and c.trim:
+                    workflow = the_trimmer(
+                        workflow,
+                        output_dir=c.outputDirectory,
+                        s3_creds_path=input_creds_path,
+                    )
 
                 pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
