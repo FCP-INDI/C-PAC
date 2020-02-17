@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import glob
 from copy import deepcopy
 import nipype.pipeline.engine as pe
@@ -25,6 +27,103 @@ def list_files(path, s3_creds_path=None):
     
 
 def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
+    """
+    The trimmer: trimming your workflow based on its datasinks.
+
+    The assumption here is that all your desired outputs will be placed in an
+    output directory by using a DataSink node.
+
+    By analysing a specific output directory, and comparing what is in it with
+    the DataSinks of a workflow, it is possible to audit which Datasinks have
+    already outputted to the output directory. If the DataSink has already
+    fulfilled its function, we infer that previous nodes also had, since they
+    are prerequisites for the DataSink to run. This is the simplest case in which
+    we can prune nodes (i.e. do not execute them), optimizing the execution
+    time.
+
+    A brief syntax note:
+    [node] is a node
+    → is a connection, disconsidering which field/attribute
+    →(field)→ indicates a connection considering the field
+    ✓ is a datasink with an existing file
+    ❌ is a datasing witn an missing file
+
+    E.g.
+
+    [node1] → [node2] → [node3] → [datasink to file.txt ✓]
+
+    since file.txt already exist, there is no need to execute the [node3].
+    Since [node2] only outputs to [node3], and [node3] will not be executed,
+    we can prune [node2]. Same for [node1]. In this case, our workflow will
+    not have any more nodes to run.
+
+    There are more complex cases:
+
+    1) A node outputs for several nodes, and some of their results are not
+    in the output directory.
+
+    [node1] → [node2] → [node3] → [datasink to file1.txt ✔]
+            ↳ [node4] → [datasink to file2.txt ❌]
+
+    for this case, we cannot prune [node1], since its output is used in
+    another branch, for [node4], that is not cached. After trimming,
+    the remaining workflow is:
+
+    [node1] 
+            ↳ [node4] → [datasink to file2.txt ❌]
+
+    2) The node has several outputs, and an uncached branch down the
+    graph requires one of its outputs.
+
+    [registration] →(warped image)→ [datasink to warped.nii.gz ✔]
+                   ↳(transforms)→ [apply transforms] → [datasink to func_warped.nii.gz ❌]
+                   [functional] ↗
+
+    given func_warped.nii.gz is not cached, we need to perform "apply transforms", that
+    requires the transforms from the [registration] node. In this case, even that warped.nii.gz
+    is cached, we will reexecute the [registration] again to get the transforms. After trimming,
+    the remaining workflow is:
+
+    [registration] 
+                   ↳(transforms)→ [apply transforms] → [datasink to func_warped.nii.gz ❌]
+                   [functional] ↗
+
+
+    For this implementation, we disregard MapNodes, as their outputs is harder to check.
+
+    Iterables are considered in the implementation by expanding the original workflow
+    into what is called an execution graph, creating a node for each iterable value.
+
+    Parameters
+    ----------
+    wf : Workflow
+        A Nipype workflow to be pruned.
+
+    output_dir : Path
+        The directory in which the outputs are stored. If not provided, value is inferred
+        from the DataSink nodes.
+
+    container : Path
+        The subdirectory from the output_dir in which the output are stored. If not provided,
+        value is inferred from the DataSink nodes.
+    
+    s3_creds_path : Path
+        Path to S3 credentials, in case output_dir is in a S3 bucket.
+    
+    Returns
+    -------
+    wf_new : Workflow
+        Prunned workflow
+
+    (replacement_mapping, deletions): (Dict, List)
+        
+        replacement_mapping contains the nodes replaces with input nodes, pointing to
+        files from the output_dir
+
+        deletions contains the nodes removed from the workflow, as they do not need to be
+        executed
+    
+    """
 
     # Expand graph, to flatten out sub-workflows and iterables
     execgraph = generate_expanded_graph(deepcopy(wf._create_flat_graph()))
