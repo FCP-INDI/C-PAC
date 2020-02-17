@@ -97,7 +97,7 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                 qc_plot_id[2] = 'movement_rot_plot'
 
             # make FD plot and volumes removed
-            # if 'gen_motion_stats' in nodes and 1 in c.runNuisance:
+            # if ('gen_motion_stats' in nodes or 'gen_motion_stats_before_stc' in nodes) and 1 in c.runNuisance:
             #     fd, out_file = strat['frame_wise_displacement_jenkinson']
 
             #     qc_workflow = create_qc_fd('qc_fd_{0}'.format(num_strat))
