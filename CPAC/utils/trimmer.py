@@ -4,9 +4,25 @@ import nipype.pipeline.engine as pe
 from nipype.interfaces.utility import Function
 from nipype.pipeline.engine.utils import generate_expanded_graph
 
+from indi_aws import fetch_creds
+
 from CPAC.utils.datasource import (
     create_check_for_s3_node,
 )
+
+
+def list_files(path, s3_creds_path=None):
+    if path.startswith('s3://'):
+        pieces = path[5:].split('/')
+        bucket_name, path = pieces[0], '/'.join(pieces[1:])
+        bucket = fetch_creds.return_bucket(s3_creds_path, bucket_name)
+        return [
+            's3://%s/%s' % (bucket, obj['Key'])
+            for obj in bucket.objects.filter(Prefix=path)
+        ]
+    else:
+        return list(glob.glob(path + '/*'))
+    
 
 def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
 
@@ -49,7 +65,7 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
                 path = '/'.join([datasink_output_dir, datasink_container, path])
 
                 # TODO support S3
-                files = glob.glob(path + '/*')
+                files = list_files(path, s3_creds_path=None)
                 if len(files) == 1:  # Ignore multi-file nodes
                     if src not in replacements:
                         replacements[src] = {}
