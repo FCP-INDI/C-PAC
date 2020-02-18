@@ -1151,7 +1151,6 @@ def check_system_deps(check_ants=False,
             missing_string = missing_string + string + "\n"
         err = "\n\n[!] CPAC says: It appears the following software " \
               "packages are not installed or configured properly:\n\n%s\n" \
-              "Consult the CPAC Installation Guide for instructions.\n\n" \
               % missing_string
         raise Exception(err)
 

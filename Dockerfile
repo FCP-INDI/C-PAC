@@ -14,6 +14,7 @@ RUN npm install -g bids-validator
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
+      apt-utils \
       build-essential \
       cmake \
       git \
@@ -45,9 +46,11 @@ RUN apt-get install -y \
       mesa-utils \
       netpbm \
       pkg-config \
+      rsync \
       tcsh \
       unzip \
       vim \
+      wget \
       xvfb \
       xauth \
       zlib1g-dev
@@ -63,6 +66,11 @@ RUN apt-get install -y \
       x11proto-xext-dev \
       x11proto-print-dev \
       xutils-dev
+
+# Install libpng12
+RUN wget -q -O /tmp/libpng12.deb http://mirrors.kernel.org/ubuntu/pool/main/libp/libpng/libpng12-0_1.2.54-1ubuntu1_amd64.deb && \
+    dpkg -i /tmp/libpng12.deb && \
+    rm /tmp/libpng12.deb
 
 # Compiles libxp- this is necessary for some newer versions of Ubuntu
 # where the is no Debian package available.
@@ -88,7 +96,6 @@ RUN libs_path=/usr/lib/x86_64-linux-gnu && \
     if [ -f $libs_path/libgsl.so.23 ]; then \
         ln $libs_path/libgsl.so.23 $libs_path/libgsl.so.0; \
     fi && \
-    mkdir -p /opt/afni && \
     curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries && \
     tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt)
 
