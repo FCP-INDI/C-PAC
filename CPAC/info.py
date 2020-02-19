@@ -145,7 +145,7 @@ REQUIREMENTS        = [
     "nilearn==0.4.1",
     "nipype==1.1.2",
     "nose==1.3.7",
-    "numpy==1.13.0",
+    "numpy",
     "pandas==0.23.4",
     "patsy==0.5.0",
     "prov==1.5.0",

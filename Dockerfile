@@ -162,11 +162,11 @@ RUN conda install -y  \
         matplotlib==2.0.2 \
         networkx==1.11 \
         nose==1.3.7 \
-        numpy==1.13.0 \
+        numpy \
         pandas==0.23.4 \
         scipy==1.2.1 \
         traits==4.6.0 \
-        wxpython=3.0.0.0 \
+        wxpython \
         pip
 
 # install torch
