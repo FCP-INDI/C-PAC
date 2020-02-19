@@ -80,13 +80,13 @@ ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 
 conda_packages=(
     "cython"
-    "matplotlib==2.0.2"
-    "networkx==1.11"
+    "matplotlib==3.1.3"
+    "networkx==2.4"
     "nose==1.3.7"
     "numpy"
-    "pandas==0.23.4"
+    "pandas==1.0.1"
     "pyyaml==3.12"
-    "scipy==1.2.1"
+    "scipy==1.4.1"
     "traits==4.6.0"
     "wxpython"
     "pip"
