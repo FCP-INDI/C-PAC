@@ -8,9 +8,15 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y curl && \
-     curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
-     apt-get install -y nodejs
-RUN npm install -g bids-validator
+     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
+
+RUN export NVM_DIR=$HOME/.nvm && \
+     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
+     nvm install 11.15.0 && \
+     nvm use 11.15.0 && \
+     nvm alias default 11.15.0 && \
+     npm install -g bids-validator
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
