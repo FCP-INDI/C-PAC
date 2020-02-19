@@ -159,18 +159,18 @@ RUN conda install -y \
 
 # install conda dependencies
 RUN conda install -y  \
-        matplotlib \
-        networkx \
-        nose \
-        numpy \
-        pandas \
-        scipy \
-        traits \
-        wxpython \
+        matplotlib==2.0.2 \
+        networkx==1.11 \
+        nose==1.3.7 \
+        numpy==1.13.0 \
+        pandas==0.23.4 \
+        scipy==1.2.1 \
+        traits==4.6.0 \
+        wxpython=3.0.0.0 \
         pip
 
 # install torch
-RUN pip install torch torchvision -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install torch==1.2.0 torchvision==0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # install python dependencies
 COPY requirements.txt /opt/requirements.txt
