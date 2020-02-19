@@ -97,7 +97,7 @@ pip_packages=(
     "future==0.16.0"
     "INDI-Tools"
     "lockfile==0.12.2"
-    "nibabel==2.3.0"
+    "nibabel==3.0.2"
     "nilearn==0.4.1"
     "nipype==1.1.2"
     "patsy==0.5.0"
