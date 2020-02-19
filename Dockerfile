@@ -167,7 +167,7 @@ RUN conda install -y  \
         matplotlib==3.1.3 \
         networkx==2.4 \
         nose==1.3.7 \
-        pandas==1.0.1 \
+        pandas==0.23.4 \
         scipy==1.4.1 \
         traits==4.6.0 \
         wxpython \
