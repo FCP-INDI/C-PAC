@@ -141,7 +141,7 @@ REQUIREMENTS        = [
     "lockfile==0.12.2",
     "matplotlib==3.1.3",
     "networkx==2.4",
-    "nibabel==2.3.0",
+    "nibabel==2.3.3",
     "nilearn==0.4.1",
     "nipype==1.1.2",
     "nose==1.3.7",
