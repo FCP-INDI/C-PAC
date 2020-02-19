@@ -7,7 +7,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 
 # Install the validator
-RUN apt-get install -y curl && \
+RUN apt-get install -y apt-utils curl && \
      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
 
 RUN export NVM_DIR=$HOME/.nvm && \
@@ -17,7 +17,6 @@ RUN export NVM_DIR=$HOME/.nvm && \
      nvm use 11.15.0 && \
      nvm alias default 11.15.0 && \
      npm install -g bids-validator
-
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
@@ -172,7 +171,7 @@ RUN conda install -y  \
         pandas==1.0.1 \
         scipy==1.4.1 \
         traits==4.6.0 \
-        wxpython==4.0.7.post2 \
+        wxpython \
         pip
 
 # install torch
