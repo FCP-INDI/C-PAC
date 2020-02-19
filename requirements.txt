@@ -21,7 +21,7 @@ pyyaml==5.3
 requests==2.21.0
 scipy==1.4.1
 simplejson==3.15.0
-scikit-learn
+scikit-learn==0.22.1
 traits==4.6.0
 PyBASC==0.4.5
 pathlib==1.0.1

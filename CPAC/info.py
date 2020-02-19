@@ -153,7 +153,7 @@ REQUIREMENTS        = [
     "pygraphviz==1.3.1",
     "python-dateutil==2.7.3",
     "pyyaml==5.3",
-    "scikit-learn==0.19.1",
+    "scikit-learn==0.22.1",
     "scipy==1.4.1",
     "simplejson==3.15.0",
     "traits==4.6.0",
