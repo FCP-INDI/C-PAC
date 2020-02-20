@@ -459,10 +459,10 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
                         if "epi_{0}".format(
                             pe_dir
-                        ) not in subdict[f_dict["sub"]][f_dict["ses"]][
-                            "fmap"
-                        ].keys():
-                            subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]["epi_{0}".format(pe_dir)] = task_info
+                        ) not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
+                            subdict[f_dict["sub"]][
+                                f_dict["ses"]
+                            ]["fmap"]["epi_{0}".format(pe_dir)] = task_info
 
 
     sublist = []
