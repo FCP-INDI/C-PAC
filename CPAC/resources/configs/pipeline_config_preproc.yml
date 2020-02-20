@@ -627,8 +627,8 @@ functionalMasking :  ['AFNI']
 anatomical_mask_dilation : False
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
+# # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['3dvolreg']
 
 
 # Register functional images to a standard MNI152 template.

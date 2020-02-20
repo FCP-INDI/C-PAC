@@ -487,7 +487,7 @@ scaling_factor: 10
 runMotionStatisticsFirst: [1]
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
+# # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
 motion_correction : ['FSL']
 
 

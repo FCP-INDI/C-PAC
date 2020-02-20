@@ -492,7 +492,7 @@ runMotionStatisticsFirst : [0]
 
 
 # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
-motion_correction : ['3dvolreg', 'mcflirt']
+motion_correction : ['3dvolreg']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume 
