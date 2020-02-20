@@ -8,7 +8,7 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y apt-utils curl && \
-     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
+     curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
 
 RUN export NVM_DIR=$HOME/.nvm && \
      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
@@ -55,7 +55,6 @@ RUN apt-get install -y \
       tcsh \
       unzip \
       vim \
-      wget \
       xvfb \
       xauth \
       zlib1g-dev
@@ -73,7 +72,7 @@ RUN apt-get install -y \
       xutils-dev
 
 # Install libpng12
-RUN wget -q -O /tmp/libpng12.deb http://mirrors.kernel.org/ubuntu/pool/main/libp/libpng/libpng12-0_1.2.54-1ubuntu1_amd64.deb && \
+RUN curl --silent --output /tmp/libpng12.deb http://mirrors.kernel.org/ubuntu/pool/main/libp/libpng/libpng12-0_1.2.54-1ubuntu1_amd64.deb && \
     dpkg -i /tmp/libpng12.deb && \
     rm /tmp/libpng12.deb
 
