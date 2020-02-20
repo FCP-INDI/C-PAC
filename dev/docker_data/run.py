@@ -14,6 +14,9 @@ from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
 from CPAC.utils.utils import load_preconfig
 
+from warnings import simplefilter
+simplefilter(action='ignore', category=FutureWarning)
+
 DEFAULT_TMP_DIR = "/tmp"
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
 if not os.path.exists(DEFAULT_PIPELINE):
