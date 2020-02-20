@@ -127,7 +127,7 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     if dbg:
         print(t_dict)
 
-    for key in t_dict.keys():
+    for key in t_dict:
         if 'RepetitionTime' in key:
             params = t_dict
             break
@@ -403,7 +403,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                      "unique_id": "-".join(["ses", f_dict["ses"]])}
 
             if "T1w" in f_dict["scantype"]:
-                if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
+                if "lesion" in f_dict and "mask" in f_dict['lesion']:
                     if "lesion_mask" not in \
                             subdict[f_dict["sub"]][f_dict["ses"]]:
                         subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"] = \
@@ -463,7 +463,7 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
                         if "epi_{0}".format(pe_dir) not in subdict[
                             f_dict["sub"]
-                        ][f_dict["ses"]]["fmap"].keys():
+                        ][f_dict["ses"]]["fmap"]:
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][
                                 "epi_{0}".format(pe_dir)] = task_info
 
