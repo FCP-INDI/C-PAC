@@ -106,8 +106,8 @@ def get_file_list(base_directory, creds_path=None, write_txt=None,
         if ".pkl" not in write_pkl:
             write_pkl = "{0}.pkl".format(write_pkl)
         write_pkl = os.path.abspath(write_pkl)
-        with open(write_pkl, "wt") as f:
-            pickle.dump(file_list, f)
+        with open(write_pkl, "wb") as f:
+            pickle.dump(list(file_list), f)
         print("\nFilepath list pickle file written:\n" \
               "{0}".format(write_pkl))
 

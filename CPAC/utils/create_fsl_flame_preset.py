@@ -293,7 +293,7 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
             # contrast_dct is a dictionary with each column name mapped to its
             # contrast vector value, like this:
             #     {contrast: "Group Mean", "Group Mean": 1, "age": 0}
-            if (len(contrast_dct.keys()) - 1) != len(contrast_cols):
+            if (len(contrast_dct) - 1) != len(contrast_cols):
                 # it's -1 because of the "contrast" column in contrast_dct
                 # TODO: message
                 raise Exception("number of columns in the contrast vector "

@@ -603,10 +603,13 @@ def read_csv(csv_input):
         dict_labels = defaultdict(list)
         for line in reader:
             csv_dict = dict((k.lower(), v) for k, v in line.items())
-            dict_labels[csv_dict.get('site')] = [csv_dict[key] for key in sorted(csv_dict.keys()) \
-                                                 if key != 'site' and key != 'scan']
+            dict_labels[csv_dict.get('site')] = [
+                csv_dict[key] for key in sorted(list(
+                    csv_dict.keys()
+                )) if key != 'site' and key != 'scan'
+            ]
 
-        if len(dict_labels.keys()) < 1:
+        if len(dict_labels) < 1:
             msg ="Scan Parameters File is either empty"\
                  "or missing header"
             logging.exception(msg)

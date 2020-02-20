@@ -176,7 +176,10 @@ def bids_parse_sidecar(config_dict, dbg=False):
     # by the number of path components, so that we can iterate from the outer
     # most path to inner-most, which will help us address the BIDS inheritance
     # principle
-    config_paths = sorted(list(config_dict.keys()), key=lambda p: len(p.split('/')))
+    config_paths = sorted(
+        list(config_dict.keys()),
+        key=lambda p: len(p.split('/'))
+    )
 
     if dbg:
         print(config_paths)

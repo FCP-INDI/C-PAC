@@ -1429,7 +1429,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 dl_dir=c.workingDirectory
             )
             func_wf.get_node('inputnode').iterables = \
-                ("scan", func_paths_dict.keys())
+                ("scan", list(func_paths_dict.keys()))
 
             if "fmap" in sub_dict:
                 fmap_rp_list = []
@@ -4096,7 +4096,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     log_dir, 'subject_info_%s.pkl' % subject_id
                 )
                 with open(subject_info_file, 'wb') as info:
-                    pickle.dump(subject_info, info)
+                    pickle.dump(list(subject_info), info)
 
                 # have this check in case the user runs cpac_runner from terminal and
                 # the timing parameter list is not supplied as usual by the GUI
@@ -4136,7 +4136,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         elapsedTimeBin.append(0)
 
                         with open(timing_temp_file_path, 'wb') as handle:
-                            pickle.dump(elapsedTimeBin, handle)
+                            pickle.dump(list(elapsedTimeBin), handle)
 
                     with open(timing_temp_file_path, 'rb') as handle:
                         elapsedTimeBin = pickle.loads(handle.read())
@@ -4145,7 +4145,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     elapsedTimeBin[1] = elapsedTimeBin[1] + 1
 
                     with open(timing_temp_file_path, 'wb') as handle:
-                        pickle.dump(elapsedTimeBin, handle)
+                        pickle.dump(list(elapsedTimeBin), handle)
 
                     # this happens once the last subject has finished running!
                     if elapsedTimeBin[1] == num_subjects:
