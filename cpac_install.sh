@@ -83,6 +83,7 @@ conda_packages=(
     "matplotlib==3.1.3"
     "networkx==2.4"
     "nose==1.3.7"
+    "numpy==1.16.4"
     "pandas==0.23.4"
     "pyyaml==3.12"
     "scipy==1.4.1"
