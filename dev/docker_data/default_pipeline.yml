@@ -491,8 +491,16 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['3dvolreg', 'mcflirt']
+
+
+# Choose motion correction reference. Options: mean, median, selected volume 
+motion_correction_reference: ['mean', 'median', 'selected volume']
+
+
+# Choose motion correction reference volume
+motion_correction_reference_volume :  0
 
 
 # This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
