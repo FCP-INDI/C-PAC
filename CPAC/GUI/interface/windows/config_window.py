@@ -943,10 +943,10 @@ class MainFrame(wx.Frame):
                      c.runNetworkCentrality)
 
         if c.tsa_roi_paths and type(c.tsa_roi_paths[0]) == dict:
-            for roi_path in c.tsa_roi_paths[0].keys():
+            for roi_path in c.tsa_roi_paths[0]:
                 testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
         if c.sca_roi_paths and type(c.sca_roi_paths[0]) == dict:
-            for roi_path in c.sca_roi_paths[0].keys():
+            for roi_path in c.sca_roi_paths[0]:
                 testFile(roi_path, "sca_roi_paths", c.runSCA)
         try:
             # Run the pipeline building

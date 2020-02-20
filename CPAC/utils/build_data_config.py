@@ -272,7 +272,7 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
                 subject_id = sub['subject_id']
 
             try:
-                for scan in sub['func'].keys():
+                for scan in sub['func']:
                     subject_scan_set.add((subject_id, scan))
                     subID_set.add(sub['subject_id'])
                     session_set.add(sub['unique_id'])
@@ -280,7 +280,7 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
                     scan_set.add(scan)
             except KeyError:
                 try:
-                    for scan in sub['rest'].keys():
+                    for scan in sub['rest']:
                         subject_scan_set.add((subject_id, scan))
                         subID_set.add(sub['subject_id'])
                         session_set.add(sub['unique_id'])
@@ -421,7 +421,7 @@ def extract_scan_params_csv(scan_params_csv):
             # for session-specific scan parameters
             if site not in site_dict.keys():
                 site_dict[site] = {}
-            if sub not in site_dict[site].keys():
+            if sub not in site_dict[site]:
                 site_dict[site][sub] = {}
 
             site_dict[site][sub][ses] = {
@@ -440,7 +440,7 @@ def extract_scan_params_csv(scan_params_csv):
             # participant-specific scan parameters
             if site not in site_dict.keys():
                 site_dict[site] = {}
-            if sub not in site_dict[site].keys():
+            if sub not in site_dict[site]:
                 site_dict[site][sub] = {}
 
             site_dict[site][sub][ses] = {
@@ -459,7 +459,7 @@ def extract_scan_params_csv(scan_params_csv):
             # site-specific scan parameters only
             if site not in site_dict.keys():
                 site_dict[site] = {}
-            if sub not in site_dict[site].keys():
+            if sub not in site_dict[site]:
                 site_dict[site][sub] = {}
 
             site_dict[site][sub][ses] = {
@@ -825,9 +825,9 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
-            if sub_id not in scan_params_dct[site_id].keys():
+            if sub_id not in scan_params_dct[site_id]:
                 scan_params_dct[site_id][sub_id] = {}
-            if ses_id not in scan_params_dct[site_id][sub_id].keys():
+            if ses_id not in scan_params_dct[site_id][sub_id]:
                 scan_params_dct[site_id][sub_id][ses_id] = {}
 
             scan_params_dct[site_id][sub_id][ses_id][scan_id] = json_file
@@ -881,9 +881,9 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
-            if sub_id not in scan_params_dct[site_id].keys():
+            if sub_id not in scan_params_dct[site_id]:
                 scan_params_dct[site_id][sub_id] = {}
-            if ses_id not in scan_params_dct[site_id][sub_id].keys():
+            if ses_id not in scan_params_dct[site_id][sub_id]:
                 scan_params_dct[site_id][sub_id][ses_id] = {}
 
             scan_params_dct[site_id][sub_id][ses_id][scan_id] = json_file
@@ -929,12 +929,12 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
 
     if site_id not in scan_params_dct.keys():
         site_id = "All"
-    if sub_id not in scan_params_dct[site_id].keys():
+    if sub_id not in scan_params_dct[site_id]:
         sub_id = "All"
-    if ses_id not in scan_params_dct[site_id][sub_id].keys():
+    if ses_id not in scan_params_dct[site_id][sub_id]:
         ses_id = "All"
-    if scan_id not in scan_params_dct[site_id][sub_id][ses_id].keys():
-        for key in scan_params_dct[site_id][sub_id][ses_id].keys():
+    if scan_id not in scan_params_dct[site_id][sub_id][ses_id]:
+        for key in scan_params_dct[site_id][sub_id][ses_id]:
             # scan_id (incoming file path) might have run- or acq-, if
             # this is a BIDS dataset, such as "acq-inv1_run-1_BOLD"
             #     however, the scan ID keys here in scan_params_dct might
@@ -1212,9 +1212,9 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
 
         if site_id not in data_dct.keys():
             data_dct[site_id] = {}
-        if sub_id not in data_dct[site_id].keys():
+        if sub_id not in data_dct[site_id]:
             data_dct[site_id][sub_id] = {}
-        if ses_id not in data_dct[site_id][sub_id].keys():
+        if ses_id not in data_dct[site_id][sub_id]:
             data_dct[site_id][sub_id][ses_id] = temp_sub_dct
         else:
             # doubt this ever happens, but just be safe
@@ -1233,12 +1233,12 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                       "site {0}:" \
                       "\n{1}\n".format(site_id, file_path))
             return data_dct
-        if sub_id not in data_dct[site_id].keys():
+        if sub_id not in data_dct[site_id]:
             if verbose:
                 print("No anatomical found for brain mask for participant " \
                       "{0}:\n{1}\n".format(sub_id, file_path))
             return data_dct
-        if ses_id not in data_dct[site_id][sub_id].keys():
+        if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
                 print("No anatomical found for brain mask for session {0}:" \
                       "\n{1}\n".format(ses_id, file_path))
@@ -1264,18 +1264,18 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                       "site {0}:" \
                       "\n{1}\n".format(site_id, file_path))
             return data_dct
-        if sub_id not in data_dct[site_id].keys():
+        if sub_id not in data_dct[site_id]:
             if verbose:
                 print("No anatomical found for functional for participant " \
                       "{0}:\n{1}\n".format(sub_id, file_path))
             return data_dct
-        if ses_id not in data_dct[site_id][sub_id].keys():
+        if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
                 print("No anatomical found for functional for session {0}:" \
                       "\n{1}\n".format(ses_id, file_path))
             return data_dct
 
-        if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
+        if 'func' not in data_dct[site_id][sub_id][ses_id]:
             data_dct[site_id][sub_id][ses_id]['func'] = temp_func_dct
         else:
             data_dct[site_id][sub_id][ses_id]['func'].update(temp_func_dct)
@@ -1325,15 +1325,15 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 print("No anatomical entries found for field map file for " \
                       "site {0}:\n{1}\n".format(site_id, file_path))
             return data_dct
-        if sub_id not in data_dct[site_id].keys():
+        if sub_id not in data_dct[site_id]:
             if verbose:
                 print("No anatomical found for field map file for " \
                       "participant {0}:\n{1}\n".format(sub_id, file_path))
             return data_dct
-        if ses_id not in data_dct[site_id][sub_id].keys():
+        if ses_id not in data_dct[site_id][sub_id]:
             if verbose:
-                for temp_ses in data_dct[site_id][sub_id].keys():
-                    if 'anat' in data_dct[site_id][sub_id][temp_ses].keys():
+                for temp_ses in data_dct[site_id][sub_id]:
+                    if 'anat' in data_dct[site_id][sub_id][temp_ses]:
                         warn = "Field map file found for session {0}, but " \
                                "the anatomical scan chosen for this " \
                                "participant-session is for session {1}, " \
@@ -1354,15 +1354,15 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 print(warn)
             return data_dct
 
-        if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
+        if 'func' not in data_dct[site_id][sub_id][ses_id]:
             # would this ever fire? the way we're using this function now
             data_dct[site_id][sub_id][ses_id]['func'] = temp_fmap_dct
         elif not scan_id:
             # TODO: re-visit in the future (same reason above)
             # if no scan ID specified, add it to all scans for that session
-            for scan in data_dct[site_id][sub_id][ses_id]['func'].keys():
+            for scan in data_dct[site_id][sub_id][ses_id]['func']:
                 data_dct[site_id][sub_id][ses_id]['func'][scan].update(temp_fmap_dct)
-        elif scan_id not in data_dct[site_id][sub_id][ses_id]['func'].keys():
+        elif scan_id not in data_dct[site_id][sub_id][ses_id]['func']:
             # same- would this ever fire?
             data_dct[site_id][sub_id][ses_id]['func'][scan_id] = temp_fmap_dct
         else:
@@ -1821,14 +1821,14 @@ def run(data_settings_yml):
         num_sess = num_scan = 0
 
         for site in sorted(data_dct.keys()):
-            for sub in sorted(data_dct[site].keys()):
-                for ses in sorted(data_dct[site][sub].keys()):
+            for sub in sorted(data_dct[site]):
+                for ses in sorted(data_dct[site][sub]):
                     # if there are scans, get some numbers
                     included['site'].append(site)
                     included['sub'].append(sub)
                     num_sess += 1
                     if 'func' in data_dct[site][sub][ses]:
-                        for scan in data_dct[site][sub][ses]['func'].keys():
+                        for scan in data_dct[site][sub][ses]['func']:
                             num_scan += 1
 
                     data_list.append(data_dct[site][sub][ses])

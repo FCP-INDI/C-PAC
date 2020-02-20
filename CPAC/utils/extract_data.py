@@ -410,7 +410,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
                 subject_id = sub['subject_id']
 
             try:
-                for scan in sub['func'].keys():
+                for scan in sub['func']:
                     subject_scan_set.add((subject_id, scan))
                     subID_set.add(sub['subject_id'])
                     session_set.add(sub['unique_id'])
@@ -418,7 +418,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
                     scan_set.add(scan)
             except KeyError:
                 try:
-                    for scan in sub['rest'].keys():
+                    for scan in sub['rest']:
                         subject_scan_set.add((subject_id, scan))
                         subID_set.add(sub['subject_id'])
                         session_set.add(sub['unique_id'])

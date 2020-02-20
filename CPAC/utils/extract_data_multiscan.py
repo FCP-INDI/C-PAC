@@ -384,7 +384,7 @@ def generate_suplimentary_files(output_path):
         else:
             subject_id = sub['subject_id']
 
-        for scan in list(sub['rest'].keys()):
+        for scan in list(sub['rest']):
             subject_scan_set.add((subject_id, scan))
             subject_set.add(subject_id)
             scan_set.add(scan)

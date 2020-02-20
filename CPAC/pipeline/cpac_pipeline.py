@@ -1433,7 +1433,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if "fmap" in sub_dict:
                 fmap_rp_list = []
-                for key in sub_dict["fmap"].keys():
+                for key in sub_dict["fmap"]:
                     if "epi_" in key:
                         gather_fmap = create_fmap_datasource(sub_dict["fmap"],
                                                              "fmap_gather_{0}".format(key))
@@ -1760,7 +1760,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         if "fmap" in sub_dict.keys():
             phase = False
             magnitude = False
-            for scan_name in sub_dict["fmap"].keys():
+            for scan_name in sub_dict["fmap"]:
                 if "phasediff" in scan_name:
                     phase = True
                 if "magnitude" in scan_name:
@@ -1829,7 +1829,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         blip = False
         blip_fmap = False
         if "fmap" in sub_dict:
-            for scan_name in sub_dict["fmap"].keys():
+            for scan_name in sub_dict["fmap"]:
                 if "epi" in scan_name:
                     blip_fmap = True
 
