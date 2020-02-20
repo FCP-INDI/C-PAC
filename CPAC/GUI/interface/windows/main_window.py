@@ -524,7 +524,7 @@ class ListBox(wx.Frame):
                     dlg = wx.lib.dialogs.ScrolledMessageDialog(self, msg, name, size = (800,800))
                     dlg.ShowModal()
                 except:
-                    print("Cannot open file %s"%(name))
+                    print(f"Cannot open file {name}")
 
     def OnDisplay(self, event):
         import wx.lib.dialogs
@@ -540,7 +540,7 @@ class ListBox(wx.Frame):
                     dlg = wx.lib.dialogs.ScrolledMessageDialog(self, msg, name, size = (800,1000))
                     dlg.ShowModal()
                 except:
-                    print("Cannot open file %s"%(name))
+                    print(f"Cannot open file {name}")
 
     def AddItem(self, event):
 
