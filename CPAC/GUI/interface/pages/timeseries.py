@@ -10,13 +10,17 @@ import pkg_resources as p
 class TimeSeries(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter=0):
-        from urllib.request import urlopen
         wx.html.HtmlWindow.__init__(
-            self, parent, style=wx.html.HW_SCROLLBAR_AUTO)
+            self,
+            parent,
+            style=wx.html.HW_SCROLLBAR_AUTO
+        )
         self.SetStandardFonts()
 
         self.counter = counter
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/tse.html'))
+        self.LoadFile(
+            p.resource_filename('CPAC', 'GUI/resources/html/tse.html')
+        )
 
     def get_counter(self):
         return self.counter
@@ -32,7 +36,7 @@ class GenerateSeeds(wx.ScrolledWindow):
         self.counter = counter
 
         self.page = GenericClass(self, "Define New Seeds")
-        
+
         self.page.add(label="Seed Specification File ",
                       control=control.COMBO_BOX,
                       name="seedSpecificationFile",
@@ -49,10 +53,10 @@ class GenerateSeeds(wx.ScrolledWindow):
                       values=os.getcwd(),
                       validation_req = False)
 
-        self.page.add(label="Use New Seeds In ", 
-         control=control.CHECKLIST_BOX, 
-         name='useSeedInAnalysis', 
-         type=dtype.LSTR, 
+        self.page.add(label="Use New Seeds In ",
+         control=control.CHECKLIST_BOX,
+         name='useSeedInAnalysis',
+         type=dtype.LSTR,
          comment="It is possible to use the newly generated seeds when running a number of the analyses included in CPAC. Note that these analyses will be run using all new seeds.\n\nIf you wish to use these new seeds to run Seed-based Correlation Analysis, select ROI Average Timeseries Extraction.\n\nIf you do not wish to use new seeds in these analyses, select none.",
          values=[ "None", "ROI Average Time Series Extraction", "ROI Voxelwise Time Series Extraction", "Network Centrality"],
          size = (310,90),
@@ -98,7 +102,7 @@ class ROITimeseries(wx.ScrolledWindow):
                               "time-series extraction, and then select " \
                               "which types of analyses to run.",
                       size = (600, -1))
-        
+
         '''
         self.page.add(label="ROI Specification File (TSE only) ",
                       control=control.COMBO_BOX,
@@ -162,7 +166,7 @@ class VOXELTimeseries(wx.ScrolledWindow):
                       comment="Extract the time series of all voxels within one or more ROIs/seeds.",
                       values=["Off", "On"],
                       wkf_switch=True)
-        
+
         self.page.add(label="ROI Specification File (TSE only)",
                       control=control.COMBO_BOX,
                       name="maskSpecificationFile",
@@ -282,4 +286,3 @@ class VerticesTimeSeries(wx.ScrolledWindow):
     def get_counter(self):
             return self.counter
 '''
-

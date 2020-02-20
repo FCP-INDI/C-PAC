@@ -15,15 +15,20 @@ import os
 import pkg_resources as p
 
 class SkullStripProcessing(wx.html.HtmlWindow):
-    
+
     def __init__(self,parent,counter = 0):
-        from urllib.request import urlopen
-        wx.html.HtmlWindow.__init__(self,parent,style = wx.html.HW_SCROLLBAR_AUTO)
+        wx.html.HtmlWindow.__init__(
+            self,
+            parent,
+            style=wx.html.HW_SCROLLBAR_AUTO
+        )
         self.SetStandardFonts()
-        
+
         self.counter = counter
-        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/anat.html'))
-    
+        self.LoadPage(
+            p.resource_filename('CPAC', 'GUI/resources/html/anat.html')
+        )
+
     def get_counter(self):
         return self.counter
 
@@ -59,13 +64,13 @@ class SkullStripOptions(wx.html.HtmlWindow):
 
 
 class AFNI_options(wx.ScrolledWindow):
-    
+
     def __init__(self,parent,counter = 0):
         wx.ScrolledWindow.__init__(self,parent)
-        
+
         self.counter = counter
         self.page = GenericClass(self, "AFNI options")
-        
+
         self.page.add(label="Shrink factor",
                       control=control.TEXT_BOX,
                       name='skullstrip_shrink_factor',
@@ -74,7 +79,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "brain vs non-brain voxels. Default is 0.6.",
                       validator=CharValidator("no-alpha"),
                       values="0.6")
-                      
+
         self.page.add(label="Vary Shrink Factor?",
                       control=control.CHOICE_BOX,
                       name='skullstrip_var_shrink_fac',
@@ -85,7 +90,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "CSF before reaching the outer surface of "
                               "the brain. Default is On.",
                       values=["On","Off"])
-                      
+
         self.page.add(label="Shrink Factor Bottom Limit",
                       control=control.TEXT_BOX,
                       name='skullstrip_shrink_factor_bot_lim',
@@ -104,7 +109,7 @@ class AFNI_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       comment="Avoids ventricles while skullstripping.",
                       values=["On","Off"])
-                      
+
         self.page.add(label="Number of iterations",
                       control=control.TEXT_BOX,
                       name='skullstrip_n_iterations',
@@ -114,7 +119,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "the density of your mesh.",
                       validator=CharValidator("no-alpha"),
                       values="250")
-                      
+
         self.page.add(label="Pushout",
                       control=control.CHOICE_BOX,
                       name='skullstrip_pushout',
@@ -122,7 +127,7 @@ class AFNI_options(wx.ScrolledWindow):
                       comment="While expanding, consider the voxels above "
                               "and not only the voxels below",
                       values=["On","Off"])
-                      
+
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
                       name='skullstrip_touchup',
@@ -131,7 +136,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "include areas not covered by surface "
                               "expansion.",
                       values=["On","Off"])
-                      
+
         self.page.add(label="Fill hole option",
                       control=control.TEXT_BOX,
                       name='skullstrip_fill_hole',
@@ -142,7 +147,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "otherwise, the default is 0.",
                       validator = CharValidator("no-alpha"),
                       values = "10")
-                      
+
         self.page.add(label="NN smooth",
                       control=control.TEXT_BOX,
                       name='skullstrip_NN_smooth',
@@ -152,7 +157,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "is 72.",
                       validator=CharValidator("no-alpha"),
                       values="72")
-                      
+
         self.page.add(label="Smooth final",
                       control=control.TEXT_BOX,
                       name='skullstrip_smooth_final',
@@ -161,7 +166,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "iterations. Default is 20.",
                       validator=CharValidator("no-alpha"),
                       values="20")
-                      
+
         self.page.add(label="Avoid eyes",
                       control=control.CHOICE_BOX,
                       name='skullstrip_avoid_eyes',
@@ -169,7 +174,7 @@ class AFNI_options(wx.ScrolledWindow):
                       comment="Avoid eyes while skull stripping. Default is "
                               "On.",
                       values = ["On","Off"])
-                      
+
         self.page.add(label="Use edge",
                       control=control.CHOICE_BOX,
                       name='skullstrip_use_edge',
@@ -177,7 +182,7 @@ class AFNI_options(wx.ScrolledWindow):
                       comment="Use edge detection to reduce leakage into "
                               "meninges and eyes. Default is On.",
                       values=["On","Off"])
-        
+
         self.page.add(label="Fractional expansion",
                       control=control.TEXT_BOX,
                       name='skullstrip_exp_frac',
@@ -185,7 +190,7 @@ class AFNI_options(wx.ScrolledWindow):
                       comment="Speed of expansion.",
                       validator=CharValidator("no-alpha"),
                       values="0.1")
-                      
+
         self.page.add(label="Push to edge",
                       control=control.CHOICE_BOX,
                       name='skullstrip_push_to_edge',
@@ -193,7 +198,7 @@ class AFNI_options(wx.ScrolledWindow):
                       comment="Perform aggressive push to edge. This might "
                               "cause leakage. Default is Off.",
                       values=["Off","On"])
-        
+
         self.page.add(label="Use skull",
                       control=control.CHOICE_BOX,
                       name='skullstrip_use_skull',
@@ -203,7 +208,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "artifacts. Use this only if you have leakage "
                               "into the skull.",
                       values=["Off","On"])
-                      
+
         self.page.add(label="Perc_int",
                       control=control.TEXT_BOX,
                       name='skullstrip_perc_int',
@@ -214,7 +219,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "(which implies no testing for intersection).",
                       validator=CharValidator("no-alpha"),
                       values="0")
-                      
+
         self.page.add(label="Max_inter_iter",
                       control=control.TEXT_BOX,
                       name='skullstrip_max_inter_iter',
@@ -226,7 +231,7 @@ class AFNI_options(wx.ScrolledWindow):
                               "Default is 4.",
                       validator=CharValidator("no-alpha"),
                       values="4")
-                      
+
         self.page.add(label="Fac",
                       control=control.TEXT_BOX,
                       name='skullstrip_fac',
@@ -250,7 +255,7 @@ class AFNI_options(wx.ScrolledWindow):
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
-            
+
 
     def get_counter(self):
         return self.counter
@@ -258,7 +263,7 @@ class AFNI_options(wx.ScrolledWindow):
 class BET_options(wx.ScrolledWindow):
     def __init__(self,parent,counter = 0):
         wx.ScrolledWindow.__init__(self,parent)
-        
+
         self.counter = counter
         self.page = GenericClass(self,"BET_options")
 
@@ -270,7 +275,7 @@ class BET_options(wx.ScrolledWindow):
                               default is 0.5",
                       validator=CharValidator("no-alpha"),
                       values="0.5")
-        
+
         self.page.add(label="mask",
                       control=control.CHOICE_BOX,
                       name='bet_mask_boolean',
@@ -278,7 +283,7 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
+
         self.page.add(label="mesh",
                       control=control.CHOICE_BOX,
                       name='bet_mesh_boolean',
@@ -294,8 +299,8 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
-                      
+
+
         self.page.add(label="padding",
                       control=control.CHOICE_BOX,
                       name='bet_padding',
@@ -303,8 +308,8 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
-                      
+
+
         self.page.add(label="radius",
                       control=control.TEXT_BOX,
                       name='bet_radius',
@@ -312,8 +317,8 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.NUM,
                       validator=CharValidator("no-alpha"),
                       values="0")
-                      
-                      
+
+
         self.page.add(label="reduce_bias",
                       control=control.CHOICE_BOX,
                       name='bet_reduce_bias',
@@ -321,7 +326,7 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
+
         self.page.add(label="remove_eyes",
                       control=control.CHOICE_BOX,
                       name='bet_remove_eyes',
@@ -329,8 +334,8 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
-                      
+
+
         self.page.add(label="robust",
                       control=control.CHOICE_BOX,
                       name='bet_robust',
@@ -338,8 +343,8 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
-                      
+
+
         self.page.add(label="skull",
                       control=control.CHOICE_BOX,
                       name='bet_skull',
@@ -347,8 +352,8 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
-                      
+
+
         self.page.add(label="surfaces",
                       control=control.CHOICE_BOX,
                       name='bet_surfaces',
@@ -356,8 +361,8 @@ class BET_options(wx.ScrolledWindow):
                       comment="Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes",
                       values=["Off","On"],
                       wkf_switch = True)
-                      
-                      
+
+
         self.page.add(label="threshold",
                       control=control.CHOICE_BOX,
                       name='bet_threshold',
@@ -365,7 +370,7 @@ class BET_options(wx.ScrolledWindow):
                       comment="Apply thresholding to segmented brain image and mask",
                       values=["Off","On"],
                       wkf_switch = True)
-                      
+
         self.page.add(label="Vertical_gradient",
                       control=control.TEXT_BOX,
                       name='bet_vertical_gradient',
@@ -375,11 +380,7 @@ class BET_options(wx.ScrolledWindow):
                       values="0.000")
         self.page.set_sizer()
         parent.get_page_list().append(self)
-            
+
 
     def get_counter(self):
         return self.counter
-        
-                
-
-                
