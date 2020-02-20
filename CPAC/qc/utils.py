@@ -2233,10 +2233,6 @@ def make_resample_1mm(file_):
     new_fname : string
             Input Nifti resampled to 1mm space
     """
-
-    import os
-    import subprocess
-
     remainder, ext_ = os.path.splitext(file_)
     remainder, ext1_ = os.path.splitext(remainder)
 

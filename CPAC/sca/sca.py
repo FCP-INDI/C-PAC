@@ -1,7 +1,4 @@
-import sys
 from nipype.interfaces.afni import preprocess
-import os
-import subprocess
 import nipype.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
@@ -29,7 +26,7 @@ def create_sca(name_sca='sca'):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_ 
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_
 
     Workflow Inputs::
         inputspec.rest_res_filt : string (existing nifti file)
@@ -42,10 +39,10 @@ def create_sca(name_sca='sca'):
 
     Workflow Outputs::
         outputspec.correlation_file : string (nifti file)
-            Correlations of the functional file and the input time series 
+            Correlations of the functional file and the input time series
 
         outputspec.Z_score : string (nifti file)
-            Fisher Z transformed correlations of the seed 
+            Fisher Z transformed correlations of the seed
 
     SCA Workflow Procedure:
 
@@ -53,26 +50,26 @@ def create_sca(name_sca='sca'):
        Use 3dTcorr1D to compute that. Input timeseries can be a 1D file containing parcellation ROI's
        or a 3D mask
 
-    2. Compute Fisher Z score of the correlation computed in step above. If a mask is provided then a 
-       a single Z score file is returned, otherwise z-scores for all ROIs are returned as a list of 
-       nifti files 
+    2. Compute Fisher Z score of the correlation computed in step above. If a mask is provided then a
+       a single Z score file is returned, otherwise z-scores for all ROIs are returned as a list of
+       nifti files
 
     Workflow:
-    
+
     .. image:: ../images/sca_graph.dot.png
-        :width: 500 
-    
+        :width: 500
+
     Detailed Workflow:
-    
+
     .. image:: ../images/sca_detailed_graph.dot.png
         :width: 500
 
     Examples
     --------
-    
+
     >>> sca_w = create_sca("sca_wf")
     >>> sca_w.inputs.inputspec.functional_file = '/home/data/subject/func/rest_bandpassed.nii.gz'
-    >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D' 
+    >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D'
     >>> sca_w.run() # doctest: +SKIP
 
     """
@@ -150,9 +147,9 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     """
     Temporal multiple regression workflow
-    Provides a spatial map of parameter estimates corresponding to each 
+    Provides a spatial map of parameter estimates corresponding to each
     provided timeseries in a timeseries.txt file as regressors
-    
+
     Parameters
     ----------
 
@@ -161,14 +158,14 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     which: a string
         SR: Spatial Regression, RT: ROI Timeseries
-        
+
         NOTE: If you set (which = 'RT'), the output of this workflow will be
         renamed based on the header information provided in the
         timeseries.txt file.
-        If you run the temporal regression workflow manually, don\'t set 
+        If you run the temporal regression workflow manually, don\'t set
         (which = 'RT') unless you provide a timeseries.txt file with a header
         containing the names of the timeseries.
-        
+
     Returns
     -------
 
@@ -191,15 +188,15 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
         inputspec.subject_timeseries : string (existing txt file)
             text file containing the timeseries to be regressed on the subjects
-            functional file 
+            functional file
             timeseries are organized by columns, timepoints by rows
-        
+
         inputspec.subject_mask : string (existing nifti file)
             path to subject functional mask
-            
+
         inputspec.demean : Boolean
             control whether to demean model and data
-            
+
         inputspec.normalize : Boolean
             control whether to normalize the input timeseries to unit standard deviation
 
@@ -215,11 +212,11 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
 
     Temporal Regression Workflow Procedure:
-    
-    Enter all timeseries into a general linear model and regress these 
+
+    Enter all timeseries into a general linear model and regress these
     timeseries to the subjects functional file to get spatial maps of voxels
     showing activation patterns related to those in the timeseries.
-    
+
 
     Workflow:
 
@@ -229,7 +226,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     Detailed Workflow:
 
     .. image:: ../images/detailed_graph_create_temporal_regression.png
-        :width: 500    
+        :width: 500
 
     References
     ----------
@@ -247,7 +244,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     >>> tr_wf.run() # doctest: +SKIP
 
     """
-    
+
     wflow = pe.Workflow(name=wflow_name)
 
     inputNode = pe.Node(util.IdentityInterface

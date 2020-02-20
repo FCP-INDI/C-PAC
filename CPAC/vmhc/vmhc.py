@@ -1,6 +1,4 @@
-import sys
 import os
-import subprocess
 import nipype.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.fsl as fsl
@@ -39,7 +37,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
     Notes
     -----
 
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/vmhc/vmhc.py>`_ 
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/vmhc/vmhc.py>`_
 
     Workflow Inputs::
 
@@ -48,9 +46,9 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
 
         inputspec.symmetric_brain : string (existing nifti file)
             MNI152_T1_2mm_symmetric_brain.nii.gz
- 
+
         inputspec.rest_res_filt : string (existing nifti file)
-            Band passed Image with nuisance signal regressed out(and optionally scrubbed). Recommended 
+            Band passed Image with nuisance signal regressed out(and optionally scrubbed). Recommended
             bandpass filter (0.001,0.1) )
 
         inputspec.reorient : string (existing nifti file)
@@ -74,7 +72,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
         inputspec.rest_mask : string (existing nifti file)
             A mask functional volume(derived by dilation from motion corrected functional volume)
 
-        fwhm_input.fwhm : list (float) 
+        fwhm_input.fwhm : list (float)
             For spatial smoothing the Z-transformed correlations in MNI space.
             Generally the value of this parameter is 1.5 or 2 times the voxel size of the input Image.
 
@@ -82,7 +80,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
             The mean functional image for use in the func-to-anat registration matrix conversion
             to ITK (ANTS) format, if the user selects to use ANTS.
 
-        
+
     Workflow Outputs::
 
         outputspec.highres2symmstandard : string (nifti file)
@@ -114,7 +112,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
 
     Order of commands:
 
-    - Perform linear registration of Anatomical brain in T1 space to symmetric standard space. For details 
+    - Perform linear registration of Anatomical brain in T1 space to symmetric standard space. For details
     see `flirt <http://www.fmrib.ox.ac.uk/fsl/flirt/index.html>`_::
 
         flirt
@@ -125,11 +123,11 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
         -cost corratio
         -searchcost corratio
         -dof 12
-        -interp trilinear    
-        
-    - Perform nonlinear registration (higres to standard) to symmetric standard brain. For details 
+        -interp trilinear
+
+    - Perform nonlinear registration (higres to standard) to symmetric standard brain. For details
     see `fnirt <http://fsl.fmrib.ox.ac.uk/fsl/fnirt/>`_::
-    
+
         fnirt
         --in=head.nii.gz
         --aff=highres2symmstandard.mat
@@ -139,29 +137,29 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
         --config=T1_2_MNI152_2mm_symmetric.cnf
         --ref=MNI152_T1_2mm_symmetric.nii.gz
         --refmask=MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz
-        --warpres=10,10,10 
+        --warpres=10,10,10
 
-    - Perform spatial smoothing on the input functional image(inputspec.rest_res_filt).  For details 
-    see `PrinciplesSmoothing <http://imaging.mrc-cbu.cam.ac.uk/imaging/PrinciplesSmoothing>`_ 
+    - Perform spatial smoothing on the input functional image(inputspec.rest_res_filt).  For details
+    see `PrinciplesSmoothing <http://imaging.mrc-cbu.cam.ac.uk/imaging/PrinciplesSmoothing>`_
     `fslmaths <http://www.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro/index.htm>`_::
 
         fslmaths rest_res_filt.nii.gz
         -kernel gauss FWHM/ sqrt(8*ln(2))
         -fmean -mas rest_mask.nii.gz
         rest_res_filt_FWHM.nii.gz
-        
-    - Apply nonlinear registration (func to standard). For details see  
+
+    - Apply nonlinear registration (func to standard). For details see
     `applywarp <http://www.fmrib.ox.ac.uk/fsl/fnirt/warp_utils.html#applywarp>`_::
-        
+
         applywarp
         --ref=MNI152_T1_2mm_symmetric.nii.gz
         --in=rest_res_filt_FWHM.nii.gz
         --out=rest_res_2symmstandard.nii.gz
         --warp=highres2symmstandard_warp.nii.gz
         --premat=example_func2highres.mat
-        
-        
-    - Copy and L/R swap the output of applywarp command (rest_res_2symmstandard.nii.gz). For details 
+
+
+    - Copy and L/R swap the output of applywarp command (rest_res_2symmstandard.nii.gz). For details
     see  `fslswapdim <http://fsl.fmrib.ox.ac.uk/fsl/fsl4.0/avwutils/index.html>`_::
 
         fslswapdim
@@ -170,41 +168,41 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
         tmp_LRflipped.nii.gz
 
 
-    - Calculate pearson correlation between rest_res_2symmstandard.nii.gz and flipped 
-    rest_res_2symmstandard.nii.gz(tmp_LRflipped.nii.gz). For details see  
+    - Calculate pearson correlation between rest_res_2symmstandard.nii.gz and flipped
+    rest_res_2symmstandard.nii.gz(tmp_LRflipped.nii.gz). For details see
     `3dTcorrelate <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTcorrelate.html>`_::
-        
+
         3dTcorrelate
         -pearson
         -polort -1
         -prefix VMHC_FWHM.nii.gz
         rest_res_2symmstandard.nii.gz
         tmp_LRflipped.nii.gz
-    
+
     Workflow:
-    
+
     .. image:: ../images/vmhc_graph.dot.png
-        :width: 500 
-    
+        :width: 500
+
     Workflow Detailed:
-    
+
     .. image:: ../images/vmhc_detailed_graph.dot.png
-        :width: 500 
-    
+        :width: 500
+
 
     References
     ----------
-    
-    .. [1] Zuo, X.-N., Kelly, C., Di Martino, A., Mennes, M., Margulies, D. S., Bangaru, S., 
-           Grzadzinski, R., et al. (2010). Growing together and growing apart: regional and 
-           sex differences in the lifespan developmental trajectories of functional homotopy. 
-           The Journal of neuroscience : the official journal of the Society for Neuroscience, 
+
+    .. [1] Zuo, X.-N., Kelly, C., Di Martino, A., Mennes, M., Margulies, D. S., Bangaru, S.,
+           Grzadzinski, R., et al. (2010). Growing together and growing apart: regional and
+           sex differences in the lifespan developmental trajectories of functional homotopy.
+           The Journal of neuroscience : the official journal of the Society for Neuroscience,
            30(45), 15034-43. doi:10.1523/JNEUROSCI.2612-10.2010
 
 
     Examples
     --------
-    
+
     >>> vmhc_w = create_vmhc()
     >>> vmhc_w.inputs.inputspec.symmetric_brain = 'MNI152_T1_2mm_symmetric_brain.nii.gz'
     >>> vmhc_w.inputs.inputspec.symmetric_skull = 'MNI152_T1_2mm_symmetric.nii.gz'
@@ -230,7 +228,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
     # we begin by smoothing the input file, which should be the current leaf node
     smooth_key = '{0}_smooth'.format(func_key)
     if smooth_key not in strat:
-        spatial_smooth(workflow, 'leaf', 'functional_brain_mask', smooth_key, 
+        spatial_smooth(workflow, 'leaf', 'functional_brain_mask', smooth_key,
             strat, num_strat, pipeline_config_object, input_image_type='func_4d')
 
     # next write it to symmetric MNI space
