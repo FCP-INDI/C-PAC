@@ -225,7 +225,7 @@ def first_pass_organizing_files(qc_path):
 
             qc_filename = qc_filename + fwhm_val + hp_lp_
 
-        if list(strat_dict.keys()) == []:
+        if len(strat_dict):
             strat_dict[qc_filename] = [qc_file]
         else:
             flag_ = 0
