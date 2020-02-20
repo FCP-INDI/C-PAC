@@ -487,8 +487,8 @@ scaling_factor: 10
 runMotionStatisticsFirst: [1]
 
 
-# # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
-motion_correction : ['FSL']
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['mcflirt']
 
 
 # This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
