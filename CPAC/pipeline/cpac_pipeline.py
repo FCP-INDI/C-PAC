@@ -1622,8 +1622,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         new_strat_list.append(new_strat)
 
                         gen_motion_stats = motion_power_statistics(
-                            name = 'gen_motion_stats_before_stc_%d' % num_strat, 
-                            motion_correct_tool = motion_correct_tool)              
+                            name = 'gen_motion_stats_before_stc_%d' % num_strat,
+                            motion_correct_tool = motion_correct_tool)
 
                         # Special case where the workflow is not getting outputs from
                         # resource pool but is connected to functional datasource
@@ -1664,7 +1664,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 'power_params': (gen_motion_stats, 'outputspec.power_params'),
                                 'motion_params': (gen_motion_stats, 'outputspec.motion_params')
                             })
-                        else: 
+                        else:
                             new_strat.update_resource_pool({
                                 'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
                                 'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
@@ -2302,7 +2302,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 if 'func_preproc_afni_fsl' not in nodes and 'func_preproc_fsl_fsl' not in nodes and 'func_preproc_fsl_afni_fsl' not in nodes and 'func_preproc_anatomical_refined_fsl' not in nodes:
 
                     gen_motion_stats = motion_power_statistics(
-                        'gen_motion_stats_{0}'.format(num_strat))              
+                        'gen_motion_stats_{0}'.format(num_strat))
 
                     # Special case where the workflow is not getting outputs from
                     # resource pool but is connected to functional datasource
@@ -2346,8 +2346,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 else:
 
                     gen_motion_stats = motion_power_statistics(
-                        name = 'gen_motion_stats_{0}'.format(num_strat), 
-                        motion_correct_tool = 'fsl')              
+                        name = 'gen_motion_stats_{0}'.format(num_strat),
+                        motion_correct_tool = 'fsl')
 
                     # Special case where the workflow is not getting outputs from
                     # resource pool but is connected to functional datasource
@@ -3798,8 +3798,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             if c.write_debugging_outputs:
                 workdir = os.path.join(c.workingDirectory, workflow_name)
                 rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
-                with open(rp_pkl, 'wt') as f:
-                    pickle.dump(rp, f)
+                with open(rp_pkl, 'wb') as f:
+                    pickle.dump(list(rp), f)
 
             output_sink_nodes = []
 
