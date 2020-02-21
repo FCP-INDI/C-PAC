@@ -420,10 +420,6 @@ brain_mask_erosion_mm : 30
 brain_erosion_mm: 0
 
 
-# Erode binarized csf tissue mask.
-seg_csf_use_erosion: False
-
-
 # Erosion proportion, if use erosion. 
 # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
 # Recommend to do not use erosion in both proportion and millimeter method.
@@ -491,8 +487,16 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['3dvolreg']
+
+
+# Choose motion correction reference. Options: mean, median, selected volume 
+motion_correction_reference: ['mean', 'median', 'selected volume']
+
+
+# Choose motion correction reference volume
+motion_correction_reference_volume :  0
 
 
 # This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.

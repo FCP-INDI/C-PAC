@@ -100,7 +100,7 @@ class Strategy(object):
         # fork_points is a list of lists, each list containing node names of
         # nodes run in that strat/fork that are unique to that strat/fork
         fork_points = Strategy.get_forking_points(strategies)
-        
+
         for fork_point in fork_points:
             
             fork_point.sort()
@@ -112,6 +112,7 @@ class Strategy(object):
                 fork_label = ''
 
                 # TODO: reorganize labels
+                # registration 
                 if 'anat_mni_ants_register' in fork:
                     fork_label = 'anat-ants'
                 if 'anat_mni_fnirt_register' in fork:
@@ -122,18 +123,25 @@ class Strategy(object):
                     fork_label = 'func-ants'
                 if 'func_to_epi_fsl' in fork:
                     fork_label = 'func-fsl'
+                # skullstripping 
                 if 'func_preproc_afni' in fork:
                     fork_label = 'func-3dautomask'
                 if 'func_preproc_fsl' in fork:
                     fork_label = 'func-bet'
                 if 'func_preproc_fsl_afni' in fork:
-                    fork_label = 'func-bet-3dautomask'    
+                    fork_label = 'func-bet-3dautomask'
+                # motion correction
+                if 'mcflirt' in fork:
+                    fork_label = 'func-mcflirt' 
+                if '3dvolreg' in fork:
+                    fork_label = 'func-3dvolreg'     
                 if 'anat_refined' in fork:
-                    fork_label = 'func-anat-refined'   
+                    fork_label = 'func-anat-refined' 
+                # distortion correction
                 if 'epi_distcorr' in fork:
                     fork_label = 'dist-corr'
                 if 'bbreg' in fork:
-                    fork_label = 'bbreg'
+                    fork_label = 'bbreg' 
                 
                 if 'aroma' in fork:
                     fork_label = 'aroma'
@@ -144,8 +152,8 @@ class Strategy(object):
                 
                 if 'median' in fork:
                     fork_label = 'median'
-                if 'motion_stats' in fork:
-                    fork_label = 'motion'
+                if 'gen_motion_stats_before_stc' in fork:
+                    fork_label = 'motion_stats_before_stc' 
                 if 'slice' in fork:
                     fork_label = 'slice'
                 if 'anat_preproc_afni' in fork:

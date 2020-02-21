@@ -621,7 +621,7 @@ def create_regressor_workflow(nuisance_selectors,
         'anat_to_mni_rigid_xfm_file_path',
         'anat_to_mni_affine_xfm_file_path',
         'motion_parameters_file_path',
-        # 'fd_j_file_path',
+        'fd_j_file_path',
         'fd_p_file_path',
         'dvars_file_path',
         'creds_path',
@@ -1354,7 +1354,7 @@ def create_nuisance_regression_workflow(nuisance_selectors,
         'functional_file_path',
         'functional_brain_mask_file_path',
         'regressor_file',
-        # 'fd_j_file_path',
+        'fd_j_file_path',
         'fd_p_file_path',
         'dvars_file_path'
     ]), name='inputspec')
@@ -1376,9 +1376,9 @@ def create_nuisance_regression_workflow(nuisance_selectors,
                                      censor_methods))
 
         find_censors = pe.Node(Function(
-            # input_names=['fd_j_file_path',
-            #              'fd_j_threshold',
-            input_names=['fd_p_file_path',
+            input_names=['fd_j_file_path',
+                         'fd_j_threshold',
+                         'fd_p_file_path',
                          'fd_p_threshold',
                          'dvars_file_path',
                          'dvars_threshold',
@@ -1406,10 +1406,10 @@ def create_nuisance_regression_workflow(nuisance_selectors,
                     'Censoring requested, but threshold not provided.'
                 )
 
-            # if threshold['type'] == 'FD_J':
-            #     find_censors.inputs.fd_j_threshold = threshold['value']
-            #     nuisance_wf.connect(inputspec, "fd_j_file_path",
-            #                         find_censors, "fd_j_file_path")
+            if threshold['type'] == 'FD_J':
+                find_censors.inputs.fd_j_threshold = threshold['value']
+                nuisance_wf.connect(inputspec, "fd_j_file_path",
+                                    find_censors, "fd_j_file_path")
 
             if threshold['type'] == 'FD_P':
                 find_censors.inputs.fd_p_threshold = threshold['value']
