@@ -1592,7 +1592,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             wf_name='func_preproc_before_stc_{0}_{1}_{2}'.format(skullstrip_tool, motion_correct_tool, num_strat)
                         )
 
-                        node, out_file = strat['raw_functional_trunc']
+                        node, out_file = new_strat['raw_functional_trunc']
                         workflow.connect(node, out_file, func_preproc,
                                         'inputspec.raw_func')
 
@@ -1600,11 +1600,11 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file, func_preproc,
                                         'inputspec.func')
 
-                        node, out_file = strat['anatomical_brain']
+                        node, out_file = new_strat['anatomical_brain']
                         workflow.connect(node, out_file, func_preproc,
                                         'inputspec.anat_brain')
 
-                        node, out_file = strat['anatomical_brain_mask']
+                        node, out_file = new_strat['anatomical_brain_mask']
                         workflow.connect(node, out_file, func_preproc,
                                         'inputspec.anatomical_brain_mask')
 
@@ -1618,8 +1618,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                 'motion_correct_before_stc': (func_preproc, 'outputspec.motion_correct'),
                                 'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
                             })
-
-                        new_strat_list.append(new_strat)
 
                         gen_motion_stats = motion_power_statistics(
                             name = 'gen_motion_stats_before_stc_{0}_{1}_{2}'.format(skullstrip_tool, motion_correct_tool, num_strat), 
@@ -1663,6 +1661,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             'power_params': (gen_motion_stats, 'outputspec.power_params'),
                             'motion_params': (gen_motion_stats, 'outputspec.motion_params')
                         })
+
+                        new_strat_list.append(new_strat)
 
         strat_list = new_strat_list
 

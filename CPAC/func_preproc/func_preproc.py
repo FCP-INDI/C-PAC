@@ -1101,55 +1101,104 @@ def connect_func_preproc(workflow, strat_list, c):
 
         nodes = strat.get_nodes_names()
 
-        for skullstrip_tool in c.functionalMasking:
-            
-            skullstrip_tool = skullstrip_tool.lower()
+        if any("gen_motion_stats_before_stc" in node for node in nodes):
 
-            for motion_correct_tool in c.motion_correction:
+            motion_stats_node = filter(lambda x: "gen_motion_stats_before_stc" in x, nodes)[0]
 
-                motion_correct_tool = motion_correct_tool.lower()
+            if "fsl_afni" in motion_stats_node:
+                skullstrip_tool = 'fsl_afni' 
+            elif "fsl" in motion_stats_node:
+                skullstrip_tool = 'fsl'
+            elif "afni" in motion_stats_node:
+                skullstrip_tool = 'afni'
+            elif "anatomical_refined" in motion_stats_node:
+                skullstrip_tool = 'anatomical_refined'
 
-                new_strat = strat.fork()
+            if "3dvolreg" in motion_stats_node:
+                motion_correct_tool = "3dvolreg"
+            elif "mcflirt" in motion_stats_node:
+                motion_correct_tool = "mcflirt"
+
+            func_preproc = create_func_preproc(
+                skullstrip_tool=skullstrip_tool,
+                motion_correct_tool=motion_correct_tool,
+                config=c,
+                wf_name='func_preproc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
+            )
+
+            node, out_file = strat['raw_functional_trunc']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.raw_func')
+
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.func')
+
+            node, out_file = strat['anatomical_brain']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anat_brain')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anatomical_brain_mask')
+
+            func_preproc.inputs.inputspec.twopass = \
+                getattr(c, 'functional_volreg_twopass', True)
+
+            strat.append_name(func_preproc.name)
+            strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+
+            strat.update_resource_pool({
+                'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),                              
+                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
+                'functional_brain_mask': (func_preproc, 'outputspec.mask'),
+                'motion_correct': (func_preproc, 'outputspec.motion_correct'),                                
+            })
+
+            new_strat_list.append(strat)
+
+        else:
+
+            for skullstrip_tool in c.functionalMasking:
                 
-                func_preproc = create_func_preproc(
-                    skullstrip_tool=skullstrip_tool,
-                    motion_correct_tool=motion_correct_tool,
-                    config=c,
-                    wf_name='func_preproc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
-                )
+                skullstrip_tool = skullstrip_tool.lower()
 
-                node, out_file = strat['raw_functional_trunc']
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.raw_func')
+                for motion_correct_tool in c.motion_correction:
 
-                node, out_file = new_strat.get_leaf_properties()
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.func')
+                    motion_correct_tool = motion_correct_tool.lower()
 
-                node, out_file = strat['anatomical_brain']
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.anat_brain')
-
-                node, out_file = strat['anatomical_brain_mask']
-                workflow.connect(node, out_file, func_preproc,
-                                'inputspec.anatomical_brain_mask')
-
-                func_preproc.inputs.inputspec.twopass = \
-                    getattr(c, 'functional_volreg_twopass', True)
-
-                new_strat.append_name(func_preproc.name)
-                new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-
-                if any("gen_motion_stats_before_stc" in node for node in nodes):
-                    new_strat.update_resource_pool({
-                        'mean_functional': (func_preproc, 'outputspec.func_mean'),
-                        'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),                              
-                        'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                        'functional_brain_mask': (func_preproc, 'outputspec.mask'),
-                        'motion_correct': (func_preproc, 'outputspec.motion_correct'),                                
-                    })
+                    new_strat = strat.fork()
                     
-                else:
+                    func_preproc = create_func_preproc(
+                        skullstrip_tool=skullstrip_tool,
+                        motion_correct_tool=motion_correct_tool,
+                        config=c,
+                        wf_name='func_preproc_%s_%s_%d' % (skullstrip_tool, motion_correct_tool, num_strat)
+                    )
+
+                    node, out_file = new_strat['raw_functional_trunc']
+                    workflow.connect(node, out_file, func_preproc,
+                                    'inputspec.raw_func')
+
+                    node, out_file = new_strat.get_leaf_properties()
+                    workflow.connect(node, out_file, func_preproc,
+                                    'inputspec.func')
+
+                    node, out_file = new_strat['anatomical_brain']
+                    workflow.connect(node, out_file, func_preproc,
+                                    'inputspec.anat_brain')
+
+                    node, out_file = new_strat['anatomical_brain_mask']
+                    workflow.connect(node, out_file, func_preproc,
+                                    'inputspec.anatomical_brain_mask')
+
+                    func_preproc.inputs.inputspec.twopass = \
+                        getattr(c, 'functional_volreg_twopass', True)
+
+                    new_strat.append_name(func_preproc.name)
+                    new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+
                     new_strat.update_resource_pool({
                         'mean_functional': (func_preproc, 'outputspec.func_mean'),
                         'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
@@ -1161,6 +1210,6 @@ def connect_func_preproc(workflow, strat_list, c):
                         'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
                     })
 
-                new_strat_list.append(new_strat)
+                    new_strat_list.append(new_strat)
 
     return workflow, new_strat_list
