@@ -1664,7 +1664,7 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     import matplotlib
     matplotlib.rcParams.update({'font.size': 5})
     import matplotlib.cm as cm
-    from mpl_toolkits.axes_grid import ImageGrid
+    from mpl_toolkits.axes_grid1 import ImageGrid
     import matplotlib.pyplot as plt
     import nibabel as nb
     import numpy as np
@@ -1845,7 +1845,7 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     try:
         from mpl_toolkits.axes_grid1 import ImageGrid
     except:
-        from mpl_toolkits.axes_grid import ImageGrid
+        from mpl_toolkits.axes_grid1 import ImageGrid
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     import nibabel as nb
@@ -1987,7 +1987,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
 
     """
     import numpy as np
-    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    from mpl_toolkits.axes_grid1 import ImageGrid as ImageGrid
     import matplotlib.pyplot as plt
     import nibabel as nb
     import matplotlib.cm as cm
@@ -2083,7 +2083,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     """
 
     import numpy as np
-    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    from mpl_toolkits.axes_grid1 import ImageGrid as ImageGrid
     import matplotlib.pyplot as plt
     import matplotlib.cm as cm
     import nibabel as nb
