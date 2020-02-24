@@ -2072,10 +2072,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(node, (out_file, pick_wm),
                                     func_to_anat_bbreg,
                                     'inputspec.anat_wm_segmentation')
-                    # node, out_file = strat['anatomical_wm_mask']
-                    # workflow.connect(node, out_file,
-                    #                 func_to_anat_bbreg,
-                    #                 'inputspec.anat_wm_segmentation')
 
                     if dist_corr and phase_diff:
                         # apply field map distortion correction outputs to
