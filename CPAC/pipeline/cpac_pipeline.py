@@ -2081,7 +2081,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                          func_to_anat_bbreg,
                                          'inputspec.anat_wm_segmentation')
 
-
                     if dist_corr and phase_diff:
                         # apply field map distortion correction outputs to
                         # the func->anat registration
