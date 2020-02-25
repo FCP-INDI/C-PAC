@@ -2066,7 +2066,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     func_to_anat_bbreg,
                                     'inputspec.linear_reg_matrix')
                     if 'T1_template' in c.template_based_segmentation or 'EPI_template' in c.template_based_segmentation:
-                        # Input segmentation probability maps for white matter mask,
+                        # Input segmentation mask,
                         # since template_based_segmentation cannot generate probability maps
                         node, out_file = strat['anatomical_wm_mask']
                         workflow.connect(node, out_file,	
