@@ -436,7 +436,7 @@ csf_erosion_mm: 0
 
 
 # Erode WM binarized tissue mask. 
-seg_wm_use_erosion: false
+seg_wm_use_erosion: true
 
 
 # Erosion proportion, if use erosion. 
