@@ -2301,14 +2301,34 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if not any("gen_motion_stats_before_stc" in node for node in nodes):
 
+                motion_stats_node = filter(lambda x: "func_preproc" in x, nodes)[0]
+
+                # skullstripping tool
+                if "fsl_afni" in motion_stats_node:
+                    skullstrip_tool = 'fsl_afni' 
+                elif "fsl" in motion_stats_node:
+                    skullstrip_tool = 'fsl'
+                elif "afni" in motion_stats_node:
+                    skullstrip_tool = 'afni'
+                elif "anatomical_refined" in motion_stats_node:
+                    skullstrip_tool = 'anatomical_refined'
+
+                # motion correction reference
+                if "mean" in motion_stats_node:
+                    motion_correct_ref = "mean"
+                elif "median" in motion_stats_node:
+                    motion_correct_ref = "median"
+                elif "selected_volume" in motion_stats_node:
+                    motion_correct_ref = "selected_volume"     
+
                 # motion correction tool
-                if any("3dvolreg" in node for node in nodes):
+                if "3dvolreg" in motion_stats_node:
                     motion_correct_tool = "3dvolreg"
-                elif any("mcflirt" in node for node in nodes):
+                elif "mcflirt" in motion_stats_node:
                     motion_correct_tool = "mcflirt"
 
                 gen_motion_stats = motion_power_statistics(
-                                name='gen_motion_stats_{0}'.format(num_strat),
+                                name='gen_motion_stats_{0}_{1}_{2}_{3}'.format(skullstrip_tool, motion_correct_ref, motion_correct_tool, num_strat),
                                 motion_correct_tool=motion_correct_tool)      
 
                 # Special case where the workflow is not getting outputs from
