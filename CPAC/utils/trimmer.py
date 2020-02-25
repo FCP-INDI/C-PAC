@@ -5,6 +5,7 @@ from copy import deepcopy
 import nipype.pipeline.engine as pe
 from nipype.interfaces.utility import Function
 from nipype.pipeline.engine.utils import generate_expanded_graph
+import networkx as nx
 
 from indi_aws import fetch_creds
 
@@ -12,6 +13,9 @@ from CPAC.utils.datasource import (
     create_check_for_s3_node,
 )
 
+
+def is_datasink(n):
+    return type(n).__name__ == 'Node' and type(n.interface).__name__ == 'DataSink'
 
 def list_files(path, s3_creds_path=None):
     if path.startswith('s3://'):
@@ -24,7 +28,6 @@ def list_files(path, s3_creds_path=None):
         ]
     else:
         return list(glob.glob(path + '/*'))
-    
 
 def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     """
@@ -132,11 +135,11 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     deletions = []
     
     # Check out for datasinks (i.e. the ones who throws things at the output dir)
-    execnodes = [
+    datasinks = [
         n for n in execgraph.nodes()
-        if type(n).__name__ == 'Node' and type(n.interface).__name__ == 'DataSink'
+        if is_datasink(n)
     ]
-    for datasink in execnodes:
+    for datasink in datasinks:
 
         # For each input node (DataSink may have several, but C-PAC usually uses one)
         for inp in execgraph.in_edges(datasink):
@@ -171,8 +174,8 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
 
                     replacements[src][src_field] = files[0]
         
-        # if the replacements have all the fields from the datasink, datasink can be deleted
-        # (we do not want to output again the same file :))
+        # if the replacements have all the fields from the datasink, datasink 
+        # can be deleted (we do not want to output again the same file :))
         if all(
             any(
                 field in replacements.get(src, {})
@@ -182,7 +185,8 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
         ):
             deletions += [datasink]
 
-    # Delete nodes that gives other output for other nodes, since it seems like not all fields are cached
+    # Remove from replacement list the nodes that gives other output
+    # for other nodes, since it seems like not all fields are cached
     for node, cached_fields in replacements.items():
         for edge in execgraph.out_edges(node):
             if any(
@@ -191,52 +195,39 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
             ):
                 del replacements[node]
                 break
-
-    def recurse_predecessors(execgraph, cached_node):
-
-        # for each predecessor of a cached node
-        for node, _ in execgraph.in_edges(cached_node):
-
-            # if it only points to the cached node
-            if any(outnode != cached_node for _, outnode in execgraph.out_edges(node)):
-                continue
-
-            # we dont need to run it
-            yield node
-            # ... and we can check if there are other nodes to remove
-            for n in recurse_predecessors(execgraph, node):
-                yield n
-
-    # Recurse nodes that generates the replacement inputs and delete them
-    # whenever possible i.e. there is no other connections down the line
-    for node, cached_fields in replacements.items():
-        deletions += recurse_predecessors(execgraph, node)
-    
-    # Delete them! It also removes the edges
-    for deletion in deletions:
-        execgraph.remove_node(deletion)
-        
+            
+    # Delete them! It also removes the edges, and recursively delete nodes
+    # before rationalizing about replacements
+    for node in reversed(nx.topological_sort(execgraph)):
+        if node in deletions:
+            execgraph.remove_node(node)
+        if not is_datasink(node):
+            if len(execgraph.out_edges(node)) == 0:
+                deletions += [node]
+                if node in replacements:
+                    del replacements[node]
+                execgraph.remove_node(node)
+                    
+    # And now we replace the cached with a data input node, from the 
+    # output directory.
     replacement_mapping = {}
-    
-    _input_nodes = []
     for replacement, cached_files in replacements.items():
+        out_edges_data = execgraph.edge[replacement]
         
+        # Get this cached node, and replace all the out-connections
+        # from this node with a data input node
         out_edges = execgraph.successors(replacement)
         if out_edges:
-            out_edges_data = execgraph.edge[replacement]
-
             for to_node in out_edges:
-                
                 for from_field, to_field in out_edges_data[to_node]['connect']:
                     
+                    # Reuse the data input node for this field
                     if replacement not in replacement_mapping:
                         replacement_mapping[replacement] = {}
-                    
-                    # Reuse input fields
                     if from_field not in replacement_mapping[replacement]:
                 
                         new_node = create_check_for_s3_node(
-                            name='%s_%s_input' % (replacement.name, from_field),
+                            name='%s_%s_triminput' % (replacement.name, from_field),
                             file_path=cached_files[from_field],
                             img_type='other',
                             creds_path=s3_creds_path,
@@ -247,23 +238,27 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
                         execgraph.add_node(new_node)
                         replacement_mapping[replacement][from_field] = new_node
                 
-                        _input_nodes += [new_node]
-
+                    # Connect the new data input node to the node
+                    # it was connected
                     execgraph.add_edge(
                         replacement_mapping[replacement][from_field],
                         to_node,
-                        connect=[('file', to_field)]
+                        connect=[('local_path', to_field)]
                     )
 
         execgraph.remove_node(replacement)
         
-    # Double check to assess if input nodes are really required
-    for node in _input_nodes:
-        out_edges = execgraph.successors(node)
-        if not out_edges:
-            execgraph.remove_node(node)
+    # Second round of backtrack deletion, affected by replacements
+    for node in reversed(nx.topological_sort(execgraph)):
+        if not is_datasink(node):
+            if len(execgraph.out_edges(node)) == 0:
+                deletions += [node]
+                if node in replacements:
+                    del replacements[node]
+                execgraph.remove_node(node)
         
     wf_new = wf.clone(wf.name + '_trimmed')
+    wf_new.name = wf.name
     wf_new._graph = execgraph
     
     return wf_new, (replacement_mapping, deletions)
