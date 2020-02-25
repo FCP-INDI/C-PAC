@@ -150,7 +150,9 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
 
 
 def normalize_motion_parameters(in_file):
-    # Convert FSL mcflirt motion params to AFNI space  
+    """
+    Convert FSL mcflirt motion params to AFNI space  
+    """
     import os 
     import numpy as np
 
@@ -839,7 +841,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, config=None, wf_na
                     output_node, 'motion_correct_ref')                
 
     # calculate motion parameters
-    if motion_correct_tool == 'afni':
+    if motion_correct_tool == '3dvolreg':
         func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
         func_motion_correct_A.inputs.md1d_file = 'max_displacement.1D'
 
@@ -873,7 +875,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, config=None, wf_na
         preproc.connect(func_motion_correct_A, 'out_file',
                     skullstrip_func, 'inputspec.func')
 
-    elif motion_correct_tool == 'fsl':
+    elif motion_correct_tool == 'mcflirt':
         func_motion_correct_A = pe.Node(interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
                                     name='func_motion_correct_mcflirt')
         
@@ -1138,8 +1140,7 @@ def connect_func_preproc(workflow, strat_list, c):
                 new_strat.append_name(func_preproc.name)
                 new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
-                if 'gen_motion_stats_before_stc' in nodes: 
-                    
+                if any("gen_motion_stats_before_stc" in node for node in nodes):
                     new_strat.update_resource_pool({
                         'mean_functional': (func_preproc, 'outputspec.func_mean'),
                         'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),                              
@@ -1149,7 +1150,6 @@ def connect_func_preproc(workflow, strat_list, c):
                     })
                     
                 else:
-
                     new_strat.update_resource_pool({
                         'mean_functional': (func_preproc, 'outputspec.func_mean'),
                         'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
