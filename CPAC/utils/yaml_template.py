@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import re
 import yaml
+import yamlordereddictloader
 
 noalias_dumper = yaml.dumper.SafeDumper
 noalias_dumper.ignore_aliases = lambda self, data: True
@@ -18,7 +19,7 @@ def create_yaml_from_template(d, template):
 
     output = ""
 
-    d_default = yaml.safe_load(open(template, 'r'))
+    d_default = yaml.load(open(template, 'r'), Loader=yamlordereddictloader.Loader)
 
     empty_lines = 0
     with open(template, 'r') as f:

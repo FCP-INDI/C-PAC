@@ -142,7 +142,7 @@ def test_registration_lesion():
 
     wf.connect(
         anat_preproc, 'outputspec.reorient',
-        ants_reg_anat_mni, 'inputspec.anatomical_brain'
+        ants_reg_anat_mni, 'inputspec.moving_brain'
     )
 
     wf.connect(

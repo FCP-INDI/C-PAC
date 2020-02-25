@@ -4,7 +4,7 @@ import glob
 import string
 import logging
 import yaml
-
+import yamlordereddictloader
 
 def extract_data(c, param_map):
     """
@@ -650,7 +650,8 @@ def run(data_config):
     print "For any errors or messages check the log file - %s"\
            % os.path.join(os.getcwd(), 'extract_data_logs.log')
     
-    c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), 'r')))
+    c = Configuration(yaml.load(open(os.path.realpath(
+        data_config), 'r'), Loader=yamlordereddictloader.Loader))
 
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)

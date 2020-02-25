@@ -1426,15 +1426,15 @@ def run(group_config, current_output, param_file=None, \
     import os
     import csv
     import numpy as np
-
+    import yamlordereddictloader
     # open the GROUP ANALYSIS FSL .YML CONFIG FILE, not the main pipeline
     # config .yml file!
     if CPAC_run:
         c = group_config
     else:
         try:
-            c = Configuration(yaml.safe_load(open(os.path.realpath(group_config), \
-                                  'r')))
+            c = Configuration(yaml.load(open(os.path.realpath(group_config), \
+                                  'r'), Loader=yamlordereddictloader.Loader))
         except:
             raise Exception("Error in reading %s configuration file" \
                                 % group_config)

@@ -777,12 +777,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
                     'anat_mni_ants_register_%d' % num_strat,
-                    num_threads=num_ants_cores
+                    num_threads=num_ants_cores,
+                    reg_ants_skull = c.regWithSkull
                 )
 
             # Input registration parameters
+            if c.ANTs_para_T1_registration is None:
+                err_msg = 'ANTs parameters specified: %d, is not supported. ' \
+                    'Please specify ANTs parameters properly and try again' % c.ANTs_para_T1_registration
+                raise Exception(err_msg)
+            else: 
+                ants_reg_anat_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
+
             ants_reg_anat_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
-            
+
             # calculating the transform with the skullstripped is
             # reported to be better, but it requires very high
             # quality skullstripping. If skullstripping is imprecise
@@ -809,7 +817,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
                                  ants_reg_anat_mni,
-                                 'inputspec.anatomical_brain')
+                                 'inputspec.moving_brain')
 
                 # pass the reference file
                 node, out_file = strat['template_brain_for_anat']
@@ -822,7 +830,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
                                  ants_reg_anat_mni,
-                                 'inputspec.anatomical_skull')
+                                 'inputspec.moving_skull')
 
                 # pass the reference file
                 node, out_file = strat['template_skull_for_anat']
@@ -836,43 +844,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 node, out_file = strat['anatomical_brain']
 
                 workflow.connect(node, out_file, ants_reg_anat_mni,
-                                 'inputspec.anatomical_brain')
+                                 'inputspec.moving_brain')
 
                 # pass the reference file
                 node, out_file = strat['template_brain_for_anat']
                 workflow.connect(node, out_file,
                     ants_reg_anat_mni, 'inputspec.reference_brain')
 
-            ants_reg_anat_mni.inputs.inputspec.set(
-                dimension=3,
-                use_histogram_matching=True,
-                winsorize_lower_quantile=0.01,
-                winsorize_upper_quantile=0.99,
-                metric=['MI', 'MI', 'CC'],
-                metric_weight=[1, 1, 1],
-                radius_or_number_of_bins=[32, 32, 4],
-                sampling_strategy=['Regular', 'Regular', None],
-                sampling_percentage=[0.25, 0.25, None],
-                number_of_iterations=[
-                    [1000, 500, 250, 100],
-                    [1000, 500, 250, 100],
-                    [100, 100, 70, 20]
-                ],
-                convergence_threshold=[1e-8, 1e-8, 1e-9],
-                convergence_window_size=[10, 10, 15],
-                transforms=['Rigid', 'Affine', 'SyN'],
-                transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
-                shrink_factors=[
-                    [8, 4, 2, 1],
-                    [8, 4, 2, 1],
-                    [6, 4, 2, 1]
-                ],
-                smoothing_sigmas=[
-                    [3, 2, 1, 0],
-                    [3, 2, 1, 0],
-                    [3, 2, 1, 0]
-                ]
-            )
+
             # Test if a lesion mask is found for the anatomical image
             if 'lesion_mask' in sub_dict and c.use_lesion_mask \
                     and 'lesion_preproc' not in nodes:
@@ -1067,11 +1046,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
                         'anat_symmetric_mni_ants_register_%d' % num_strat,
-                        num_threads=num_ants_cores
+                        num_threads=num_ants_cores,                    
+                        reg_ants_skull = c.regWithSkull
                     )
             
                 # Input registration parameters
-                ants_reg_anat_symm_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
+                ants_reg_anat_symm_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
 
                 # calculating the transform with the skullstripped is
                 # reported to be better, but it requires very high
@@ -1097,7 +1077,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni,
-                                     'inputspec.anatomical_brain')
+                                     'inputspec.moving_brain')
 
                     # pass the reference file
                     node, out_file = strat['template_symmetric_brain']
@@ -1111,7 +1091,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni,
-                                     'inputspec.anatomical_skull')
+                                     'inputspec.moving_skull')
 
                     # pass the reference file
                     node, out_file = strat['template_symmetric_skull']
@@ -1125,37 +1105,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni,
-                                     'inputspec.anatomical_brain')
+                                     'inputspec.moving_brain')
 
                     # pass the reference file
                     node, out_file = strat['template_symmetric_brain']
                     workflow.connect(node, out_file,
                                     ants_reg_anat_symm_mni, 'inputspec.reference_brain')
-
-                ants_reg_anat_symm_mni.inputs.inputspec.set(
-                    dimension=3,
-                    use_histogram_matching=True,
-                    winsorize_lower_quantile=0.01,
-                    winsorize_upper_quantile=0.99,
-                    metric=['MI', 'MI', 'CC'],
-                    metric_weight=[1, 1, 1],
-                    radius_or_number_of_bins=[32, 32, 4],
-                    sampling_strategy=['Regular', 'Regular', None],
-                    sampling_percentage=[0.25, 0.25, None],
-                    number_of_iterations=[[1000, 500, 250, 100],
-                                          [1000, 500, 250, 100],
-                                          [100, 100, 70, 20]],
-                    convergence_threshold=[1e-8, 1e-8, 1e-9],
-                    convergence_window_size=[10, 10, 15],
-                    transforms=['Rigid', 'Affine', 'SyN'],
-                    transform_parameters=[[0.1], [0.1], [0.1, 3, 0]],
-                    shrink_factors=[[8, 4, 2, 1],
-                                    [8, 4, 2, 1],
-                                    [6, 4, 2, 1]],
-                    smoothing_sigmas=[[3, 2, 1, 0],
-                                      [3, 2, 1, 0],
-                                      [3, 2, 1, 0]]
-                )
+                                    
 
                 if 'lesion_mask' in sub_dict and c.use_lesion_mask\
                         and 'lesion_preproc' not in nodes:
@@ -2168,6 +2124,16 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat['template_epi']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
 
+                    # Input registration parameters
+                    if c.ANTs_para_EPI_registration is None:
+                        err_msg = 'ANTs parameters specified: %d, is not supported. ' \
+                            'Please specify ANTs parameters properly and try again' % c.ANTs_para_EPI_registration
+                        raise Exception(err_msg)
+                    else:
+                        func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
+
+                    func_to_epi.inputs.inputspec.interp = c.anatRegANTSinterpolation
+
                     # update resource pool
                     new_strat.update_resource_pool({
                         'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi')
@@ -2516,6 +2482,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
 
                 new_strat = strat.fork()
+
+                # Before start nuisance_wf, covert OrderedDict(regressors_selector) to dict
+                from CPAC.utils.utils import ordereddict_to_dict
+                regressors_selector = ordereddict_to_dict(regressors_selector)
 
                 # to guarantee immutability
                 regressors_selector = NuisanceRegressor(

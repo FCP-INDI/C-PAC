@@ -4,7 +4,7 @@ from multiprocessing import Process
 from time import strftime
 
 import yaml
-
+import yamlordereddictloader
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
 
@@ -65,7 +65,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
     # Load in pipeline config
     try:
-        pipeline_dict = yaml.safe_load(open(os.path.realpath(config_file), 'r'))
+        pipeline_dict = yaml.load(open(os.path.realpath(config_file), 'r'), Loader=yamlordereddictloader.Loader)
         pipeline_config = Configuration(pipeline_dict)
     except:
         raise Exception('Pipeline config is not in proper YAML format. '\
@@ -212,7 +212,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         if not os.path.exists(config_file):
             raise IOError
         else:
-            c = Configuration(yaml.safe_load(open(config_file, 'r')))
+            c = Configuration(yaml.load(open(config_file, 'r'), Loader=yamlordereddictloader.Loader))
     except IOError:
         print "config file %s doesn't exist" % config_file
         raise

@@ -15,6 +15,8 @@ from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
 from CPAC.utils.utils import load_preconfig
 
+import yamlordereddictloader
+
 DEFAULT_TMP_DIR = "/tmp"
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
 if not os.path.exists(DEFAULT_PIPELINE):
@@ -76,7 +78,7 @@ def run(command, env={}):
 
 def parse_yaml(value):
     try:
-        config = yaml.safe_load(value)
+        config = yaml.load(value, Loader=yamlordereddictloader.Loader)
         if type(config) != dict:
             raise
         return config

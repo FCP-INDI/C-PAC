@@ -256,8 +256,8 @@ class ListBox(wx.Frame):
         
         import CPAC.pipeline.cpac_runner
         from CPAC.utils import Configuration
-
-        c = Configuration(yaml.safe_load(open(os.path.realpath(pipeline), 'r')))
+        import yamlordereddictloader
+        c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r'), Loader=yamlordereddictloader.Loader))
         plugin_args = {'n_procs': c.maxCoresPerParticipant,
                        'memory_gb': c.maximumMemoryPerParticipant}
 

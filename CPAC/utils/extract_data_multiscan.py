@@ -2,6 +2,7 @@ import os
 import glob
 import string
 import yaml
+import yamlordereddictloader
 
 def extract_data(c, param_map):
     """
@@ -485,8 +486,7 @@ def run(data_config):
     file as the input argument
     """
 
-    c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), 'r')))
-    
+    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r'), Loader=yamlordereddictloader.Loader))
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
