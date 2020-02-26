@@ -201,12 +201,14 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     for node in reversed(nx.topological_sort(execgraph)):
         if node in deletions:
             execgraph.remove_node(node)
-        if not is_datasink(node):
-            if len(execgraph.out_edges(node)) == 0:
-                deletions += [node]
-                if node in replacements:
-                    del replacements[node]
-                execgraph.remove_node(node)
+        if is_datasink(node):
+            continue
+        
+        if len(execgraph.out_edges(node)) == 0:
+            deletions += [node]
+            if node in replacements:
+                del replacements[node]
+            execgraph.remove_node(node)
                     
     # And now we replace the cached with a data input node, from the 
     # output directory.
@@ -250,12 +252,14 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
         
     # Second round of backtrack deletion, affected by replacements
     for node in reversed(nx.topological_sort(execgraph)):
-        if not is_datasink(node):
-            if len(execgraph.out_edges(node)) == 0:
-                deletions += [node]
-                if node in replacements:
-                    del replacements[node]
-                execgraph.remove_node(node)
+        if is_datasink(node):
+            continue
+
+        if len(execgraph.out_edges(node)) == 0:
+            deletions += [node]
+            if node in replacements:
+                del replacements[node]
+            execgraph.remove_node(node)
         
     wf_new = wf.clone(wf.name + '_trimmed')
     wf_new.name = wf.name
