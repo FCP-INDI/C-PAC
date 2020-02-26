@@ -330,6 +330,22 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
         logger.info('This has been a test of the pipeline configuration file, the pipeline was built successfully, but was not run')
     else:
 
+        if c.write_debugging_outputs:
+            with open(os.path.join(c.workingDirectory, workflow.name, 'resource_pool.pkl'), 'wb') as f:
+                pickle.dump(strat_list, f)
+
+        if c.reGenerateOutputs is True:
+            working_dir = os.path.join(c.workingDirectory, workflow.name)
+            erasable = list(find_files(working_dir, '*sink*')) + \
+                list(find_files(working_dir, '*link*')) + \
+                list(find_files(working_dir, '*log*'))
+
+            for f in erasable:
+                if os.path.isfile(f):
+                    os.remove(f)
+                else:
+                    shutil.rmtree(f)
+
         if hasattr(c, 'trim') and c.trim:
 
             logger.warn("""
@@ -687,26 +703,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         setattr(c, key, node)
 
-    if c.reGenerateOutputs is True:
-        working_dir = os.path.join(c.workingDirectory, workflow_name)
-        erasable = list(find_files(working_dir, '*sink*')) + \
-            list(find_files(working_dir, '*link*')) + \
-            list(find_files(working_dir, '*log*'))
-
-        for f in erasable:
-            if os.path.isfile(f):
-                os.remove(f)
-            else:
-                shutil.rmtree(f)
-
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
     strat_initial = Strategy()
+
     # The list of strategies that will be shared all along the pipeline creation
     strat_list = []
-
     num_strat = 0
 
     anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
@@ -762,18 +766,20 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     # update resampled template to resource pool
     for resolution, template, template_name, tag in templates_for_resampling:
-        resampled_template = pe.Node(Function(input_names = ['resolution', 'template', 'template_name', 'tag'], 
-                                              output_names = ['resampled_template'], 
-                                              function = resolve_resolution,
-                                              as_module = True), 
-                                        name = 'resampled_' + template_name) 
+        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'], 
+                                              output_names=['resampled_template'], 
+                                              function=resolve_resolution,
+                                              as_module=True), 
+                                        name='resampled_' + template_name) 
 
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag 
 
-        strat_initial.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
+        strat_initial.update_resource_pool({
+            template_name: (resampled_template, 'resampled_template')
+        })
 
     strat_list += [strat_initial]
 
@@ -2504,7 +2510,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             strat_list = new_strat_list
 
-        if 'EPI_template' in c.template_based_segmentation :
+        if 'EPI_template' in c.template_based_segmentation:
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -2518,9 +2524,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     raise Exception(err)
 
                 # TODO ASH based on config, instead of nodes?
-                if 'func_to_epi_fsl' in nodes : 
+                if 'func_to_epi_fsl' in nodes: 
                     use_ants = False
-                elif 'func_to_epi_ants' in nodes :
+                elif 'func_to_epi_ants' in nodes:
                     use_ants = True
 
                 seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
@@ -2529,7 +2535,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # TODO ASH review
                 if seg_preproc_template_based is None:
                     continue
-                
 
                 if 'func_to_epi_fsl' in nodes :
 
@@ -2621,31 +2626,30 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     # Special case where the workflow is not getting outputs from
                     # resource pool but is connected to functional datasource
                     workflow.connect(func_wf, 'outputspec.subject',
-                                    gen_motion_stats, 'inputspec.subject_id')
+                                     gen_motion_stats, 'inputspec.subject_id')
 
                     workflow.connect(func_wf, 'outputspec.scan',
-                                    gen_motion_stats, 'inputspec.scan_id')
+                                     gen_motion_stats, 'inputspec.scan_id')
 
                     node, out_file = strat['motion_correct']
                     workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.motion_correct')
+                                     gen_motion_stats, 'inputspec.motion_correct')
 
                     node, out_file = strat['movement_parameters']
                     workflow.connect(node, out_file,
-                                    gen_motion_stats,
-                                    'inputspec.movement_parameters')
+                                     gen_motion_stats, 'inputspec.movement_parameters')
 
                     node, out_file = strat['max_displacement']
                     workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.max_displacement')
+                                     gen_motion_stats, 'inputspec.max_displacement')
 
                     node, out_file = strat['functional_brain_mask']
                     workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.mask')
+                                     gen_motion_stats, 'inputspec.mask')
 
                     node, out_file = strat['coordinate_transformation']
                     workflow.connect(node, out_file,
-                                    gen_motion_stats, 'inputspec.transformations')
+                                     gen_motion_stats, 'inputspec.transformations')
 
                     strat.append_name(gen_motion_stats.name)
 
@@ -4012,13 +4016,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     strat = calc_avg(workflow, key, strat,
                                     num_strat, map_node=True)
 
-    raising = None
-
     # Quality Control
     if 1 in c.generateQualityControlImages:
         create_qc_workflow(workflow, c, strat_list, Outputs.qc)
 
-    logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
     ndmg_out = False
     try:
@@ -4092,12 +4093,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         pipeline_ids.append(pipeline_id)
 
         rp = strat.get_resource_pool()
-
-        if c.write_debugging_outputs:
-            workdir = os.path.join(c.workingDirectory, workflow_name)
-            rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
-            with open(rp_pkl, 'wt') as f:
-                pickle.dump(rp, f)
 
         output_sink_nodes = []
 
@@ -4304,5 +4299,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 output_sink_nodes += [(ds, 'out_file')]
 
+    logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
     return workflow, strat_list, pipeline_ids
