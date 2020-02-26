@@ -6,7 +6,7 @@ import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 
 
-def motion_power_statistics(name='motion_stats', motion_correct_tool='afni'):
+def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg'):
 
     """
     The main purpose of this workflow is to get various statistical measures
@@ -217,17 +217,23 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='afni'):
                output_node, 'FDP_1D')
 
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
-    if motion_correct_tool == 'afni':
-        calculate_FDJ = pe.Node(Function(input_names=['in_file'],
-                                        output_names=['out_file'],
-                                        function=calculate_FD_J,
-                                        as_module=True),
-                                name='calculate_FDJ')
-
+    calculate_FDJ = pe.Node(Function(input_names=['in_file',
+                                                  'motion_correct_tool'],
+                                    output_names=['out_file'],
+                                    function=calculate_FD_J,
+                                    as_module=True),
+                            name='calculate_FDJ')
+    
+    calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
+    if motion_correct_tool == '3dvolreg':
         wf.connect(input_node, 'transformations',
                 calculate_FDJ, 'in_file')
-        wf.connect(calculate_FDJ, 'out_file',
-                output_node, 'FDJ_1D')
+    elif motion_correct_tool == 'mcflirt':
+        wf.connect(input_node, 'max_displacement',
+                calculate_FDJ, 'in_file')
+
+    wf.connect(calculate_FDJ, 'out_file',
+            output_node, 'FDJ_1D')
 
     calc_motion_parameters = pe.Node(Function(input_names=['subject_id',
                                                            'scan_id',
@@ -273,7 +279,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='afni'):
     wf.connect(calculate_FDP, 'out_file',
                calc_power_parameters, 'fdp')
 
-    if motion_correct_tool == 'afni':
+    if motion_correct_tool == '3dvolreg':
         wf.connect(calculate_FDJ, 'out_file',
                 calc_power_parameters, 'fdj')
 
@@ -316,7 +322,7 @@ def calculate_FD_P(in_file):
     return out_file
 
 
-def calculate_FD_J(in_file):
+def calculate_FD_J(in_file, motion_correct_tool='3dvolreg'):
     """
     Method to calculate framewise displacement as per Jenkinson et al. 2002
 
@@ -332,34 +338,40 @@ def calculate_FD_J(in_file):
 
     """
 
-    pm_ = np.genfromtxt(in_file)
+    if motion_correct_tool == '3dvolreg':
+        pm_ = np.genfromtxt(in_file)
 
-    pm = np.zeros((pm_.shape[0], pm_.shape[1] + 4))
-    pm[:, :12] = pm_
-    pm[:, 12:] = [0.0, 0.0, 0.0, 1.0]
+        pm = np.zeros((pm_.shape[0], pm_.shape[1] + 4))
+        pm[:, :12] = pm_
+        pm[:, 12:] = [0.0, 0.0, 0.0, 1.0]
 
-    # The default radius (as in FSL) of a sphere represents the brain
-    rmax = 80.0
+        # The default radius (as in FSL) of a sphere represents the brain
+        rmax = 80.0
 
-    T_rb_prev = pm[0].reshape(4, 4)
+        T_rb_prev = pm[0].reshape(4, 4)
 
-    fd = np.zeros(pm.shape[0])
+        fd = np.zeros(pm.shape[0])
 
-    for i in range(1, pm.shape[0]):
-        T_rb = pm[i].reshape(4, 4)
+        for i in range(1, pm.shape[0]):
+            T_rb = pm[i].reshape(4, 4)
 
-        M = np.dot(T_rb, np.linalg.inv(T_rb_prev)) - np.eye(4)
-        A = M[0:3, 0:3]
-        b = M[0:3, 3]
+            M = np.dot(T_rb, np.linalg.inv(T_rb_prev)) - np.eye(4)
+            A = M[0:3, 0:3]
+            b = M[0:3, 3]
 
-        fd[i] = np.sqrt(
-            (rmax * rmax / 5) * np.trace(np.dot(A.T, A)) + np.dot(b.T, b)
-        )
+            fd[i] = np.sqrt(
+                (rmax * rmax / 5) * np.trace(np.dot(A.T, A)) + np.dot(b.T, b)
+            )
 
-        T_rb_prev = T_rb
+            T_rb_prev = T_rb
+
+    elif motion_correct_tool == 'mcflirt':
+        rel_rms = np.loadtxt(in_file[1])
+        fd = np.append(0, rel_rms)
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     np.savetxt(out_file, fd, fmt='%.8f')
+
     return out_file
 
 
@@ -394,10 +406,10 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
 
     # remove any other information other than matrix from
     # max displacement file. AFNI adds information to the file
-    if motion_correct_tool=='afni':
+    if motion_correct_tool=='3dvolreg':
         maxdisp = np.loadtxt(max_displacement)
 
-    elif motion_correct_tool=='fsl':
+    elif motion_correct_tool=='mcflirt':
         maxdisp = np.loadtxt(max_displacement[0]) # TODO: mcflirt outputs absdisp, instead of maxdisp
         reldisp = np.loadtxt(max_displacement[1]) 
 
@@ -453,7 +465,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, motion_correct_tool='afni'):
+def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, motion_correct_tool='3dvolreg'):
 
     """
     Method to generate Power parameters for scrubbing
@@ -490,7 +502,7 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, mo
     # Mean DVARS
     meanDVARS = np.mean(dvars_data)
 
-    if motion_correct_tool == 'afni':
+    if motion_correct_tool == '3dvolreg':
 
         fdj_data = np.loadtxt(fdj)
         
@@ -515,7 +527,7 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, mo
             ('MeanDVARS', meanDVARS),
         ]
 
-    elif motion_correct_tool == 'fsl':
+    elif motion_correct_tool == 'mcflirt':
         info = [
             ('Subject', subject_id),
             ('Scan', scan_id),
