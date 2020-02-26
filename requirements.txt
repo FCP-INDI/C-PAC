@@ -3,7 +3,7 @@ click==6.7
 configparser==3.7.4
 cython
 future==0.16.0
-git+git://github.com/shnizzedy/INDI-Tools.git@3a7b80558bd866bf57e2d911f75aeb8bd62b2723
+git+git://github.com/FCP-INDI/INDI-Tools.git@master
 lockfile==0.12.2
 matplotlib==3.1.3
 networkx==2.4
