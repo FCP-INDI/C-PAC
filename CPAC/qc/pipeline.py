@@ -2,7 +2,7 @@ import os
 import pkg_resources as p
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
-
+from nipype.interfaces import fsl
 from CPAC.utils.interfaces.function import Function
 
 from CPAC.qc.qc import (
@@ -147,19 +147,15 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
             workflow.connect(mni_anat_underlay, out_file,
                              montage_mni_anat, 'inputspec.underlay')
 
-            # TODO: resample to same space, update template 
-            if 'MNI152' in c.template_brain_only_for_anat: 
-                montage_mni_anat.inputs.inputspec.overlay = os.path.abspath(
-                    p.resource_filename(
-                        'CPAC',
-                        'resources/templates/MNI152_Edge_AllTissues.nii.gz'
-                    )
-                )
-            else:
-                anat_edge = pe.Node(interface = afni.Edge3(), name = 'anat_edge')
-                anat_edge.inputs.in_file = c.template_brain_only_for_anat
+            template_brain_for_anat, out_file = strat['template_brain_for_anat']
+            anat_template_edge = pe.Node(Function(input_names=['in_file'],
+                                         output_names=['out_file'],
+                                         function=afni_Edge3,
+                                         as_module=True),
+                                name='anat_template_edge_{0}'.format(num_strat))
 
-                workflow.connect(anat_edge, out_file,
+            workflow.connect(template_brain_for_anat, out_file, anat_template_edge, 'in_file')
+            workflow.connect(anat_template_edge, 'out_file',
                              montage_mni_anat, 'inputspec.overlay')
 
             strat.update_resource_pool({'qc___mni_normalized_anatomical_a': (
@@ -284,19 +280,16 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
             workflow.connect(m_f_i, out_file, montage_mfi,
                              'inputspec.underlay')
 
-            if 'MNI152' in c.template_brain_only_for_func: 
-                montage_mfi.inputs.inputspec.overlay = os.path.abspath(
-                    p.resource_filename(
-                        'CPAC',
-                        'resources/templates/MNI152_Edge_AllTissues.nii.gz'
-                    )
-                )
-            else:
-                func_edge = pe.Node(interface = afni.Edge3(), name = 'func_edge')
-                func_edge.inputs.in_file = c.template_brain_only_for_func 
+            template_brain_for_func, out_file = strat['template_brain_for_func_preproc']
+            func_template_edge = pe.Node(Function(input_names=['in_file'],
+                                         output_names=['out_file'],
+                                         function=afni_Edge3,
+                                         as_module=True),
+                                name='func_template_edge_{0}'.format(num_strat))
 
-                workflow.connect(func_edge, out_file,
-                            montage_mfi, 'inputspec.overlay')
+            workflow.connect(template_brain_for_func, out_file, func_template_edge, 'in_file')
+            workflow.connect(func_template_edge, 'out_file',
+                             montage_mfi, 'inputspec.overlay')
 
             strat.update_resource_pool({'qc___mean_func_with_mni_edge_a': (
             montage_mfi, 'outputspec.axial_png'),
