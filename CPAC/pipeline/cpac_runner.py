@@ -174,7 +174,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     import pickle
     import time
 
-    from CPAC.pipeline.cpac_pipeline import prep_workflow
+    from CPAC.pipeline.cpac_pipeline import run_workflow
 
     print('Run called with config file {0}'.format(config_file))
 
@@ -337,7 +337,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         # If it only allows one, run it linearly
         if c.numParticipantsAtOnce == 1:
             for sub in sublist:
-                prep_workflow(sub, c, True, pipeline_timing_info,
+                run_workflow(sub, c, True, pipeline_timing_info,
                               p_name, plugin, plugin_args, test_config)
             return
                 
@@ -348,7 +348,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
         # Allocate processes
         processes = [
-            Process(target=prep_workflow,
+            Process(target=run_workflow,
                     args=(sub, c, True, pipeline_timing_info,
                           p_name, plugin, plugin_args, test_config))
             for sub in sublist

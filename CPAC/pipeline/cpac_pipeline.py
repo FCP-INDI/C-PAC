@@ -130,8 +130,8 @@ from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
 logger = logging.getLogger('nipype.workflow')
 # config.enable_debug_mode()
 
-def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
-                  p_name=None, plugin='MultiProc', plugin_args=None, test_config=False):
+def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
+                 p_name=None, plugin='MultiProc', plugin_args=None, test_config=False):
     '''
     Function to prepare and, optionally, run the C-PAC workflow
 
@@ -226,6 +226,35 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
     max_core_usage = int(c.maxCoresPerParticipant) * \
         int(c.numParticipantsAtOnce)
 
+    ndmg_out = False
+    try:
+        if "ndmg" in c.output_tree:
+            ndmg_out = True
+    except:
+        pass
+
+    try:
+        creds_path = sub_dict['creds_path']
+        if creds_path and 'none' not in creds_path.lower():
+            if os.path.exists(creds_path):
+                input_creds_path = os.path.abspath(creds_path)
+            else:
+                err_msg = 'Credentials path: "%s" for subject "%s" was not ' \
+                          'found. Check this path and try again.' % (
+                              creds_path, subject_id)
+                raise Exception(err_msg)
+        else:
+            input_creds_path = None
+    except KeyError:
+        input_creds_path = None
+
+    # TODO enforce value with schema validation
+    try:
+        encrypt_data = bool(c.s3Encryption[0])
+    except:
+        encrypt_data = False
+
+
     information = """
 
     C-PAC version: {cpac_version}
@@ -263,13 +292,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         max_cores=max_core_usage
     ))
 
-    # TODO ASH temporary code, remove
-    # TODO ASH maybe scheme validation/normalization
-    already_skullstripped = c.already_skullstripped[0]
-    if already_skullstripped == 2:
-        already_skullstripped = 0
-    elif already_skullstripped == 3:
-        already_skullstripped = 1
 
     subject_info = {}
     subject_info['subject_id'] = subject_id
@@ -287,6 +309,297 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                       check_ica_aroma='1' in str(c.runICA[0]),
                       check_centrality_degree=check_centrality_degree,
                       check_centrality_lfcd=check_centrality_lfcd)
+
+
+    # absolute paths of the dirs
+    c.workingDirectory = os.path.abspath(c.workingDirectory)
+    if 's3://' not in c.outputDirectory:
+        c.outputDirectory = os.path.abspath(c.outputDirectory)
+
+    workflow, strat_list, pipeline_ids = build_workflow(
+        subject_id, sub_dict, c, p_name, num_ants_cores
+    )
+
+    forks = "\n\nStrategy forks:\n" + \
+            "\n".join(["- " + pipe for pipe in sorted(set(pipeline_ids))]) + \
+            "\n\n"
+
+    logger.info(forks)
+
+    if test_config:
+        logger.info('This has been a test of the pipeline configuration file, the pipeline was built successfully, but was not run')
+    else:
+
+        if hasattr(c, 'trim') and c.trim:
+
+            logger.warn("""
+Trimming is an experimental feature, and if used wrongly, it can lead to unreproducible results.
+It is useful for performance optimization, but only if used correctly.
+Please, make yourself aware of how it works and its assumptions:
+    - The pipeline configuration has not changed;
+    - The data configuration / BIDS directory has not changed;
+    - The files from the output directory has not changed;
+    - Your softwares versions has not changed;
+    - Your C-PAC version has not changed;
+    - You do not have access to the working directory.
+""")
+
+            workflow, _ = the_trimmer(
+                workflow,
+                output_dir=c.outputDirectory,
+                s3_creds_path=input_creds_path,
+            )
+
+        pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+
+        try:
+            subject_info['resource_pool'] = []
+
+            for strat_no, strat in enumerate(strat_list):
+                strat_label = 'strat_%d' % strat_no
+                subject_info[strat_label] = strat.get_name()
+                subject_info['resource_pool'].append(strat.get_resource_pool())
+
+            subject_info['status'] = 'Running'
+
+            # Create callback logger
+            cb_log_filename = os.path.join(log_dir,
+                                        'callback.log')
+
+            try:
+                if not os.path.exists(os.path.dirname(cb_log_filename)):
+                    os.makedirs(os.path.dirname(cb_log_filename))
+            except IOError:
+                pass
+
+            # Add handler to callback log file
+            cb_logger = cb_logging.getLogger('callback')
+            cb_logger.setLevel(cb_logging.DEBUG)
+            handler = cb_logging.FileHandler(cb_log_filename)
+            cb_logger.addHandler(handler)
+
+            # Log initial information from all the nodes
+            log_nodes_initial(workflow)
+
+            # Add status callback function that writes in callback log
+            if nipype.__version__ not in ('1.1.2'):
+                err_msg = "This version of Nipype may not be compatible with " \
+                            "CPAC v%s, please install Nipype version 1.1.2\n" \
+                            % (CPAC.__version__)
+                logger.error(err_msg)
+            else:
+                plugin_args['status_callback'] = log_nodes_cb
+
+            if plugin_args['n_procs'] == 1:
+                plugin = 'Linear'
+
+            # Actually run the pipeline now, for the current subject
+            workflow.run(plugin=plugin, plugin_args=plugin_args)
+
+            # PyPEER kick-off
+            if 1 in c.run_pypeer:
+                from CPAC.pypeer.peer import prep_for_pypeer
+                prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
+                                c.eye_mask_path, c.outputDirectory, subject_id, 
+                                pipeline_ids, c.peer_stimulus_path, c.peer_gsr,
+                                c.peer_scrub, c.peer_scrub_thresh)
+
+            # Dump subject info pickle file to subject log dir
+            subject_info['status'] = 'Completed'
+
+            subject_info_file = os.path.join(
+                log_dir, 'subject_info_%s.pkl' % subject_id
+            )
+            with open(subject_info_file, 'wb') as info:
+                pickle.dump(subject_info, info)
+
+            # have this check in case the user runs cpac_runner from terminal and
+            # the timing parameter list is not supplied as usual by the GUI
+            if pipeline_timing_info != None:
+
+                # pipeline_timing_info list:
+                #  [0] - unique pipeline ID
+                #  [1] - pipeline start time stamp (first click of 'run' from GUI)
+                #  [2] - number of subjects in subject list
+                unique_pipeline_id = pipeline_timing_info[0]
+                pipeline_start_stamp = pipeline_timing_info[1]
+                num_subjects = pipeline_timing_info[2]
+
+                # elapsed time data list:
+                #  [0] - elapsed time in minutes
+                elapsed_time_data = []
+
+                elapsed_time_data.append(
+                    int(((time.time() - pipeline_start_time) / 60)))
+
+                # elapsedTimeBin list:
+                #  [0] - cumulative elapsed time (minutes) across all subjects
+                #  [1] - number of times the elapsed time has been appended
+                #        (effectively a measure of how many subjects have run)
+
+                # TODO
+                # write more doc for all this
+                # warning in .csv that some runs may be partial
+                # code to delete .tmp file
+
+                timing_temp_file_path = os.path.join(c.logDirectory,
+                                                    '%s_pipeline_timing.tmp' % unique_pipeline_id)
+
+                if not os.path.isfile(timing_temp_file_path):
+                    elapsedTimeBin = []
+                    elapsedTimeBin.append(0)
+                    elapsedTimeBin.append(0)
+
+                    with open(timing_temp_file_path, 'wb') as handle:
+                        pickle.dump(elapsedTimeBin, handle)
+
+                with open(timing_temp_file_path, 'rb') as handle:
+                    elapsedTimeBin = pickle.loads(handle.read())
+
+                elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
+                elapsedTimeBin[1] = elapsedTimeBin[1] + 1
+
+                with open(timing_temp_file_path, 'wb') as handle:
+                    pickle.dump(elapsedTimeBin, handle)
+
+                # this happens once the last subject has finished running!
+                if elapsedTimeBin[1] == num_subjects:
+
+                    pipelineTimeDict = {}
+                    pipelineTimeDict['Pipeline'] = c.pipelineName
+                    pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
+                    pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
+                    pipelineTimeDict['Number_of_Subjects'] = num_subjects
+                    pipelineTimeDict['Start_Time'] = pipeline_start_stamp
+                    pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+                    pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
+                    pipelineTimeDict['Status'] = 'Complete'
+
+                    gpaTimeFields = [
+                        'Pipeline', 'Cores_Per_Subject',
+                        'Simultaneous_Subjects',
+                        'Number_of_Subjects', 'Start_Time',
+                        'End_Time', 'Elapsed_Time_(minutes)',
+                        'Status'
+                    ]
+                    timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
+
+                    with open(os.path.join(
+                        c.logDirectory,
+                        'cpac_individual_timing_%s.csv' % c.pipelineName
+                    ), 'a') as timeCSV, open(os.path.join(
+                        c.logDirectory,
+                        'cpac_individual_timing_%s.csv' % c.pipelineName
+                    ), 'rb') as readTimeCSV:
+
+                        timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                        timeReader = csv.DictReader(readTimeCSV)
+
+                        headerExists = False
+                        for line in timeReader:
+                            if 'Start_Time' in line:
+                                headerExists = True
+
+                        if headerExists == False:
+                            timeWriter.writerow(timeHeader)
+
+                        timeWriter.writerow(pipelineTimeDict)
+
+                    # remove the temp timing file now that it is no longer needed
+                    os.remove(timing_temp_file_path)
+
+            # Upload logs to s3 if s3_str in output directory
+            if c.outputDirectory.lower().startswith('s3://'):
+
+                try:
+                    # Store logs in s3 output director/logs/...
+                    s3_log_dir = os.path.join(
+                        c.outputDirectory,
+                        'logs',
+                        os.path.basename(log_dir)
+                    )
+                    bucket_name = c.outputDirectory.split('/')[2]
+                    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+
+                    # Collect local log files
+                    local_log_files = []
+                    for root, _, files in os.walk(log_dir):
+                        local_log_files.extend([os.path.join(root, fil)
+                                                for fil in files])
+                    # Form destination keys
+                    s3_log_files = [loc.replace(log_dir, s3_log_dir)
+                                    for loc in local_log_files]
+                    # Upload logs
+                    aws_utils.s3_upload(bucket,
+                                        (local_log_files, s3_log_files),
+                                        encrypt=encrypt_data)
+                    # Delete local log files
+                    for log_f in local_log_files:
+                        os.remove(log_f)
+
+                except Exception as exc:
+                    err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
+                    logger.error(err_msg, log_dir, exc)
+
+        except Exception as e:
+
+            execution_info = """
+
+Error of subject workflow {workflow}
+
+CPAC run error:
+
+    Pipeline configuration: {pipeline}
+    Subject workflow: {workflow}
+    Elapsed run time (minutes): {elapsed}
+    Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
+    System time of start:      {run_start}
+
+"""
+
+        finally:
+
+            if 1 in c.generateQualityControlImages and not ndmg_out:
+                for pip_id in pipeline_ids:
+                    pipeline_base = os.path.join(c.outputDirectory,
+                                                'pipeline_{0}'.format(pip_id))
+
+                    sub_output_dir = os.path.join(pipeline_base, subject_id)
+                    qc_dir = os.path.join(sub_output_dir, 'qc')
+                    generate_qc_pages(qc_dir)
+                
+            if workflow:
+
+                logger.info(execution_info.format(
+                    workflow=workflow.name,
+                    pipeline=c.pipelineName,
+                    log_dir=c.logDirectory,
+                    elapsed=(time.time() - pipeline_start_time) / 60,
+                    run_start=pipeline_start_datetime,
+                    run_finish=strftime("%Y-%m-%d %H:%M:%S")
+                ))
+
+                # Remove working directory when done
+                if c.removeWorkingDir:
+                    try:
+                        subject_wd = os.path.join(c.workingDirectory, workflow.na,e)
+                        if os.path.exists(subject_wd):
+                            logger.info("Removing working dir: %s" % subject_wd)
+                            shutil.rmtree(subject_wd)
+                    except:
+                        logger.warn('Could not remove subjects %s working directory',
+                                    workflow.na,e)
+
+
+def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1):
+
+    # TODO ASH temporary code, remove
+    # TODO ASH maybe scheme validation/normalization
+    already_skullstripped = c.already_skullstripped[0]
+    if already_skullstripped == 2:
+        already_skullstripped = 0
+    elif already_skullstripped == 3:
+        already_skullstripped = 1
 
     if 'ANTS' in c.regOption:
 
@@ -320,11 +633,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             raise Exception(err_msg)
             
 
-    # absolute paths of the dirs
-    c.workingDirectory = os.path.abspath(c.workingDirectory)
-    if 's3://' not in c.outputDirectory:
-        c.outputDirectory = os.path.abspath(c.outputDirectory)
-
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=workflow_name)
@@ -351,7 +659,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         input_creds_path = None
 
     # check if lateral_ventricles_mask exist
-    if 'none' in str(c.lateral_ventricles_mask).lower():
+    if str(c.lateral_ventricles_mask).lower() in ['none', 'false']:
         ventricle_mask_exist = False
     else:
         ventricle_mask_exist = True
@@ -424,8 +732,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             })
 
     if 'lesion_mask' in sub_dict.keys():
-        lesion_datasource = create_anat_datasource(
-            'lesion_gather_%d' % num_strat)
+        lesion_datasource = create_anat_datasource('lesion_gather_%d' % num_strat)
         lesion_datasource.inputs.inputnode.subject = subject_id
         lesion_datasource.inputs.inputnode.anat = sub_dict['lesion_mask']
         lesion_datasource.inputs.inputnode.creds_path = input_creds_path
@@ -483,10 +790,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             new_strat = strat.fork()
             node, out_file = new_strat['anatomical']
             workflow.connect(node, out_file,
-                            anat_preproc, 'inputspec.anat')
+                             anat_preproc, 'inputspec.anat')
+
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file,
                              anat_preproc, 'inputspec.brain_mask')
+                             
             new_strat.append_name(anat_preproc.name)
             new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
             new_strat.update_resource_pool({
@@ -494,7 +803,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
             })
             new_strat.update_resource_pool({
-                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask')}, override=True)
+                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask')
+            }, override=True)
 
             new_strat_list += [new_strat]
 
@@ -536,7 +846,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                    wf_name='anat_preproc_afni_%d' % num_strat)
 
                 anat_preproc.inputs.AFNI_options.set(
-                    mask_vol = c.skullstrip_mask_vol,
+                    mask_vol=c.skullstrip_mask_vol,
                     shrink_factor=c.skullstrip_shrink_factor,
                     var_shrink_fac=c.skullstrip_var_shrink_fac,
                     shrink_fac_bot_lim=c.skullstrip_shrink_factor_bot_lim,
@@ -561,7 +871,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat = strat.fork()
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
-                                anat_preproc, 'inputspec.anat')
+                                 anat_preproc, 'inputspec.anat')
                 new_strat.append_name(anat_preproc.name)
                 new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                 new_strat.update_resource_pool({
@@ -2300,7 +2610,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             if 'gen_motion_stats_before_stc' not in nodes:
 
-                if 'func_preproc_afni_fsl' not in nodes and 'func_preproc_fsl_fsl' not in nodes and 'func_preproc_fsl_afni_fsl' not in nodes and 'func_preproc_anatomical_refined_fsl' not in nodes:
+                if 'func_preproc_afni_fsl' not in nodes and \
+                    'func_preproc_fsl_fsl' not in nodes and \
+                    'func_preproc_fsl_afni_fsl' not in nodes and \
+                    'func_preproc_anatomical_refined_fsl' not in nodes:
 
                     gen_motion_stats = motion_power_statistics(
                         'gen_motion_stats_{0}'.format(num_strat))              
@@ -3707,593 +4020,289 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
-    # Run the pipeline only if the user signifies.
-    # otherwise, only construct the pipeline (above)
-    if run == 1:
-
-        try:
-            workflow.write_graph(graph2use='hierarchical')
-        except:
-            pass
+    ndmg_out = False
+    try:
+        if "ndmg" in c.output_tree:
+            ndmg_out = True
+    except:
+        pass
 
 
-        ndmg_out = False
-        try:
-            # let's encapsulate this inside a Try..Except block so if
-            # someone doesn't have ndmg_outputs in their pipe config,
-            # it will default to the regular datasink
-            #     TODO: update this when we change to the optionals
-            #     TODO: only pipe config
-            if "ndmg" in c.output_tree:
-                ndmg_out = True
-        except:
-            pass
+    # TODO enforce value with schema validation
+    try:
+        encrypt_data = bool(c.s3Encryption[0])
+    except:
+        encrypt_data = False
 
 
-        # TODO enforce value with schema validation
-        try:
-            encrypt_data = bool(c.s3Encryption[0])
-        except:
-            encrypt_data = False
+    # TODO enforce value with schema validation
+    # Extract credentials path for output if it exists
+    try:
+        # Get path to creds file
+        creds_path = ''
+        if c.awsOutputBucketCredentials:
+            creds_path = str(c.awsOutputBucketCredentials)
+            creds_path = os.path.abspath(creds_path)
+
+        if c.outputDirectory.lower().startswith('s3://'):
+            # Test for s3 write access
+            s3_write_access = \
+                aws_utils.test_bucket_access(creds_path,
+                                                c.outputDirectory)
+
+            if not s3_write_access:
+                raise Exception('Not able to write to bucket!')
+
+    except Exception as e:
+        if c.outputDirectory.lower().startswith('s3://'):
+            err_msg = 'There was an error processing credentials or ' \
+                        'accessing the S3 bucket. Check and try again.\n' \
+                        'Error: %s' % e
+            raise Exception(err_msg)
 
 
-        # TODO enforce value with schema validation
-        # Extract credentials path for output if it exists
-        try:
-            # Get path to creds file
-            creds_path = ''
-            if c.awsOutputBucketCredentials:
-                creds_path = str(c.awsOutputBucketCredentials)
-                creds_path = os.path.abspath(creds_path)
+    # this section creates names for the different branched strategies.
+    # it identifies where the pipeline has forked and then appends the
+    # name of the forked nodes to the branch name in the output directory
 
-            if c.outputDirectory.lower().startswith('s3://'):
-                # Test for s3 write access
-                s3_write_access = \
-                    aws_utils.test_bucket_access(creds_path,
-                                                    c.outputDirectory)
+    fork_points_labels = Strategy.get_forking_labels(strat_list)
 
-                if not s3_write_access:
-                    raise Exception('Not able to write to bucket!')
+    # DataSinks
+    pipeline_ids = []
 
-        except Exception as e:
-            if c.outputDirectory.lower().startswith('s3://'):
-                err_msg = 'There was an error processing credentials or ' \
-                            'accessing the S3 bucket. Check and try again.\n' \
-                            'Error: %s' % e
-                raise Exception(err_msg)
+    scan_ids = ['scan_anat']
+    if 'func' in sub_dict:
+        scan_ids += ['scan_' + str(scan_id)
+                        for scan_id in sub_dict['func']]
+    if 'rest' in sub_dict:
+        scan_ids += ['scan_' + str(scan_id)
+                        for scan_id in sub_dict['rest']]
 
 
-        # this section creates names for the different branched strategies.
-        # it identifies where the pipeline has forked and then appends the
-        # name of the forked nodes to the branch name in the output directory
+    for num_strat, strat in enumerate(strat_list):
 
-        fork_points_labels = Strategy.get_forking_labels(strat_list)
+        if pipeline_name is None or pipeline_name == 'None':
+            pipeline_id = c.pipelineName
+        else:
+            pipeline_id = pipeline_name
 
-        # DataSink
-        pipeline_ids = []
+        if fork_points_labels[strat]:
+            pipeline_id += '_' + fork_points_labels[strat]
 
-        scan_ids = ['scan_anat']
-        if 'func' in sub_dict:
-            scan_ids += ['scan_' + str(scan_id)
-                         for scan_id in sub_dict['func']]
-        if 'rest' in sub_dict:
-            scan_ids += ['scan_' + str(scan_id)
-                         for scan_id in sub_dict['rest']]
+        pipeline_ids.append(pipeline_id)
 
+        rp = strat.get_resource_pool()
 
-        for num_strat, strat in enumerate(strat_list):
+        if c.write_debugging_outputs:
+            workdir = os.path.join(c.workingDirectory, workflow_name)
+            rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
+            with open(rp_pkl, 'wt') as f:
+                pickle.dump(rp, f)
 
-            if p_name is None or p_name == 'None':
-                pipeline_id = c.pipelineName
-            else:
-                pipeline_id = p_name
+        output_sink_nodes = []
 
-            if fork_points_labels[strat]:
-                pipeline_id += '_' + fork_points_labels[strat]
+        for resource_i, resource in enumerate(sorted(rp.keys())):
 
-            pipeline_ids.append(pipeline_id)
+            if not resource.startswith('qc___') and resource not in Outputs.any:
+                continue
 
-            rp = strat.get_resource_pool()
+            if resource not in Outputs.override_optional and not ndmg_out:
 
-            if c.write_debugging_outputs:
-                workdir = os.path.join(c.workingDirectory, workflow_name)
-                rp_pkl = os.path.join(workdir, 'resource_pool.pkl')
-                with open(rp_pkl, 'wt') as f:
-                    pickle.dump(rp, f)
-
-            output_sink_nodes = []
-
-            for resource_i, resource in enumerate(sorted(rp.keys())):
-
-                if not resource.startswith('qc___') and resource not in Outputs.any:
-                    continue
-
-                if resource not in Outputs.override_optional and not ndmg_out:
-
-                    if 1 not in c.write_func_outputs:
-                        if resource in Outputs.extra_functional:
-                            continue
-
-                    if 1 not in c.write_debugging_outputs:
-                        if resource in Outputs.debugging:
-                            continue
-
-                    if 0 not in c.runRegisterFuncToMNI:
-                        if resource in Outputs.native_nonsmooth or \
-                            resource in Outputs.native_nonsmooth_mult or \
-                                resource in Outputs.native_smooth:
-                            continue
-
-                    if 0 not in c.runZScoring:
-                        # write out only the z-scored outputs
-                        if resource in Outputs.template_raw or \
-                                resource in Outputs.template_raw_mult:
-                            continue
-
-                    if 0 not in c.run_smoothing:
-                        # write out only the smoothed outputs
-                        if resource in Outputs.native_nonsmooth or \
-                            resource in Outputs.template_nonsmooth or \
-                                resource in Outputs.native_nonsmooth_mult or \
-                                resource in Outputs.template_nonsmooth_mult:
-                            continue
-
-                if ndmg_out:
-                    ds = pe.Node(DataSink(),
-                                 name='sinker_{}_{}'.format(num_strat,
-                                                            resource_i))
-                    ds.inputs.base_directory = c.outputDirectory
-                    ds.inputs.creds_path = creds_path
-                    ds.inputs.encrypt_bucket_keys = encrypt_data
-                    ds.inputs.parameterization = True
-                    ds.inputs.regexp_substitutions = [
-                        (r'_rename_(.)*/', ''),
-                        (r'_scan_', 'scan-'),
-                        (r'/_mask_', '/roi-'),
-                        (r'file_s3(.)*/', ''),
-                        (r'ndmg_atlases', ''),
-                        (r'func_atlases', ''),
-                        (r'label', ''),
-                        (r'res-.+\/', ''),
-                        (r'_mask_', 'roi-'),
-                        (r'mask_sub-', 'sub-'),
-                        (r'/_selector_', '_nuis-'),
-                        (r'_selector_pc', ''),
-                        (r'.linear', ''),
-                        (r'.wm', ''),
-                        (r'.global', ''),
-                        (r'.motion', ''),
-                        (r'.quadratic', ''),
-                        (r'.gm', ''),
-                        (r'.compcor', ''),
-                        (r'.csf', ''),
-                        (r'_sub-', '/sub-'),
-                        (r'(\.\.)', '')
-                    ]
-
-                    container = 'pipeline_{0}'.format(pipeline_id)
-
-                    sub_ses_id = subject_id.split('_')
-
-                    if 'sub-' not in sub_ses_id[0]:
-                        sub_tag = 'sub-{0}'.format(sub_ses_id[0])
-                    else:
-                        sub_tag = sub_ses_id[0]
-
-                    ses_tag = 'ses-1'
-                    if len(sub_ses_id) > 1:
-                        if 'ses-' not in sub_ses_id[1]:
-                            ses_tag = 'ses-{0}'.format(sub_ses_id[1])
-                        else:
-                            ses_tag = sub_ses_id[1]
-
-                    id_tag = '_'.join([sub_tag, ses_tag])
-
-                    anat_template_tag = 'standard'
-                    func_template_tag = 'standard'
-
-                    try:
-                        if 'FSL' in c.regOption and 'ANTS' not in c.regOption:
-                            if 'MNI152' in c.fnirtConfig:
-                                anat_template_tag = 'MNI152'
-                                func_template_tag = 'MNI152'
-                    except:
-                        pass
-
-                    anat_res_tag = c.resolution_for_anat.replace('mm','')
-                    func_res_tag = c.resolution_for_func_preproc.replace('mm','')
-
-                    ndmg_key_dct = {
-                        'anatomical_brain': (
-                            'anat',
-                            'preproc',
-                            '{0}_T1w_preproc_brain'.format(id_tag)
-                        ),
-                        'anatomical_to_standard': (
-                            'anat',
-                            'registered',
-                            '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'
-                            .format(id_tag, anat_template_tag, anat_res_tag)
-                        ),
-                        'functional_preprocessed': (
-                            'func',
-                            'preproc',
-                            '{0}_bold_preproc'
-                            .format(id_tag)
-                        ),
-                        'functional_nuisance_residuals': (
-                            'func',
-                            'clean',
-                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'
-                            .format(id_tag, func_template_tag, func_res_tag)
-                        ),
-                        'functional_to_standard': (
-                            'func',
-                            'registered',
-                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'
-                            .format(id_tag, func_template_tag, func_res_tag)
-                        ),
-                        'functional_brain_mask_to_standard': (
-                            'func',
-                            'registered',
-                            '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'
-                            .format(id_tag, func_template_tag, func_res_tag)
-                        ),
-                        'roi_timeseries': (
-                            'func',
-                            'roi-timeseries',
-                            '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'
-                            .format(id_tag, func_res_tag)
-                        ),
-                        'ndmg_graph': (
-                            'func',
-                            'roi-connectomes',
-                            '{0}_bold_res-{1}x{1}x{1}_measure-correlation'
-                            .format(id_tag, func_res_tag)
-                        )
-                    }
-
-                    if resource not in ndmg_key_dct.keys():
+                if 1 not in c.write_func_outputs:
+                    if resource in Outputs.extra_functional:
                         continue
 
-                    ds.inputs.container = '{0}/{1}'.format(container,
-                                                           ndmg_key_dct[resource][0])
-                    node, out_file = rp[resource]
+                if 1 not in c.write_debugging_outputs:
+                    if resource in Outputs.debugging:
+                        continue
 
-                    # rename the file
-                    if 'roi_' in resource or 'ndmg_graph' in resource:
-                        rename_file = pe.MapNode(
-                            interface=util.Rename(),
-                            name='rename__{}_{}'.format(num_strat, resource_i),
-                            iterfield=['in_file']
-                        )
-                    else:
-                        rename_file = pe.Node(
-                            interface=util.Rename(),
-                            name='rename_{}_{}'.format(num_strat, resource_i)
-                        )
-                    rename_file.inputs.keep_ext = True
-                    rename_file.inputs.format_string = ndmg_key_dct[resource][2]
+                if 0 not in c.runRegisterFuncToMNI:
+                    if resource in Outputs.native_nonsmooth or \
+                        resource in Outputs.native_nonsmooth_mult or \
+                            resource in Outputs.native_smooth:
+                        continue
 
-                    workflow.connect(node, out_file,
-                                     rename_file, 'in_file')
-                    workflow.connect(rename_file, 'out_file',
-                                     ds, ndmg_key_dct[resource][1])
+                if 0 not in c.runZScoring:
+                    # write out only the z-scored outputs
+                    if resource in Outputs.template_raw or \
+                            resource in Outputs.template_raw_mult:
+                        continue
 
+                if 0 not in c.run_smoothing:
+                    # write out only the smoothed outputs
+                    if resource in Outputs.native_nonsmooth or \
+                        resource in Outputs.template_nonsmooth or \
+                            resource in Outputs.native_nonsmooth_mult or \
+                            resource in Outputs.template_nonsmooth_mult:
+                        continue
+
+            if ndmg_out:
+                ds = pe.Node(DataSink(),
+                                name='sinker_{}_{}'.format(num_strat,
+                                                        resource_i))
+                ds.inputs.base_directory = c.outputDirectory
+                ds.inputs.creds_path = creds_path
+                ds.inputs.encrypt_bucket_keys = encrypt_data
+                ds.inputs.parameterization = True
+                ds.inputs.regexp_substitutions = [
+                    (r'_rename_(.)*/', ''),
+                    (r'_scan_', 'scan-'),
+                    (r'/_mask_', '/roi-'),
+                    (r'file_s3(.)*/', ''),
+                    (r'ndmg_atlases', ''),
+                    (r'func_atlases', ''),
+                    (r'label', ''),
+                    (r'res-.+\/', ''),
+                    (r'_mask_', 'roi-'),
+                    (r'mask_sub-', 'sub-'),
+                    (r'/_selector_', '_nuis-'),
+                    (r'_selector_pc', ''),
+                    (r'.linear', ''),
+                    (r'.wm', ''),
+                    (r'.global', ''),
+                    (r'.motion', ''),
+                    (r'.quadratic', ''),
+                    (r'.gm', ''),
+                    (r'.compcor', ''),
+                    (r'.csf', ''),
+                    (r'_sub-', '/sub-'),
+                    (r'(\.\.)', '')
+                ]
+
+                container = 'pipeline_{0}'.format(pipeline_id)
+
+                sub_ses_id = subject_id.split('_')
+
+                if 'sub-' not in sub_ses_id[0]:
+                    sub_tag = 'sub-{0}'.format(sub_ses_id[0])
                 else:
-                    # regular datasink
-                    ds = pe.Node(
-                        DataSink(),
-                        name='sinker_{}_{}'.format(num_strat, resource_i)
-                    )
-                    ds.inputs.base_directory = c.outputDirectory
-                    ds.inputs.creds_path = creds_path
-                    ds.inputs.encrypt_bucket_keys = encrypt_data
-                    ds.inputs.container = os.path.join(
-                        'pipeline_%s' % pipeline_id, subject_id
-                    )
-                    ds.inputs.regexp_substitutions = [
-                        (r"/_sca_roi(.)*[/]", '/'),
-                        (r"/_smooth_centrality_(\d)+[/]", '/'),
-                        (r"/_z_score(\d)+[/]", "/"),
-                        (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                        (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                        (r"/qc___", '/qc/')
-                    ]
+                    sub_tag = sub_ses_id[0]
 
-                    node, out_file = rp[resource]
-                    workflow.connect(node, out_file, ds, resource)
+                ses_tag = 'ses-1'
+                if len(sub_ses_id) > 1:
+                    if 'ses-' not in sub_ses_id[1]:
+                        ses_tag = 'ses-{0}'.format(sub_ses_id[1])
+                    else:
+                        ses_tag = sub_ses_id[1]
 
-                    output_sink_nodes += [(ds, 'out_file')]
+                id_tag = '_'.join([sub_tag, ses_tag])
 
-            try:
-                G = nx.DiGraph()
-                strat_name = strat.get_name()
-                G.add_edges_from([
-                    (strat_name[s], strat_name[s + 1])
-                    for s in range(len(strat_name) - 1)
-                ])
-
-                dotfilename = os.path.join(log_dir, 'strategy.dot')
-                nx.drawing.nx_pydot.write_dot(G, dotfilename)
-                format_dot(dotfilename, 'png')
-            except:
-                logger.warn('Cannot Create the strategy and pipeline '
-                            'graph, dot or/and pygraphviz is not installed')
-
-
-        forks = "\n\nStrategy forks:\n" + \
-                "\n".join(["- " + pipe for pipe in sorted(set(pipeline_ids))]) + \
-                "\n\n"
-
-        logger.info(forks)
-
-        if test_config:
-            logger.info('This has been a test of the pipeline configuration file, the pipeline was built successfully, but was not run')
-        else:
-
-            if hasattr(c, 'trim') and c.trim:
-
-                logger.warn("""
-    Trimming is an experimental feature, and if used wrongly, it can lead to unreproducible results.
-    It is useful for performance optimization, but only if used correctly.
-    Please, make yourself aware of how it works and its assumptions:
-     - The pipeline configuration has not changed;
-     - The data configuration / BIDS directory has not changed;
-     - The files from the output directory has not changed;
-     - Your softwares versions has not changed;
-     - Your C-PAC version has not changed;
-     - You do not have access to the working directory.
-""")
-
-                workflow, _ = the_trimmer(
-                    workflow,
-                    output_dir=c.outputDirectory,
-                    s3_creds_path=input_creds_path,
-                )
-
-            pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
-
-            try:
-                subject_info['resource_pool'] = []
-
-                for strat_no, strat in enumerate(strat_list):
-                    strat_label = 'strat_%d' % strat_no
-                    subject_info[strat_label] = strat.get_name()
-                    subject_info['resource_pool'].append(strat.get_resource_pool())
-
-                subject_info['status'] = 'Running'
-
-                # Create callback logger
-                cb_log_filename = os.path.join(log_dir,
-                                            'callback.log')
+                anat_template_tag = 'standard'
+                func_template_tag = 'standard'
 
                 try:
-                    if not os.path.exists(os.path.dirname(cb_log_filename)):
-                        os.makedirs(os.path.dirname(cb_log_filename))
-                except IOError:
+                    if 'FSL' in c.regOption and 'ANTS' not in c.regOption:
+                        if 'MNI152' in c.fnirtConfig:
+                            anat_template_tag = 'MNI152'
+                            func_template_tag = 'MNI152'
+                except:
                     pass
 
-                # Add handler to callback log file
-                cb_logger = cb_logging.getLogger('callback')
-                cb_logger.setLevel(cb_logging.DEBUG)
-                handler = cb_logging.FileHandler(cb_log_filename)
-                cb_logger.addHandler(handler)
+                anat_res_tag = c.resolution_for_anat.replace('mm','')
+                func_res_tag = c.resolution_for_func_preproc.replace('mm','')
 
-                # Log initial information from all the nodes
-                log_nodes_initial(workflow)
+                ndmg_key_dct = {
+                    'anatomical_brain': (
+                        'anat',
+                        'preproc',
+                        '{0}_T1w_preproc_brain'.format(id_tag)
+                    ),
+                    'anatomical_to_standard': (
+                        'anat',
+                        'registered',
+                        '{0}_T1w_space-{1}_res-{2}x{2}x{2}_registered'
+                        .format(id_tag, anat_template_tag, anat_res_tag)
+                    ),
+                    'functional_preprocessed': (
+                        'func',
+                        'preproc',
+                        '{0}_bold_preproc'
+                        .format(id_tag)
+                    ),
+                    'functional_nuisance_residuals': (
+                        'func',
+                        'clean',
+                        '{0}_bold_space-{1}_res-{2}x{2}x{2}_clean'
+                        .format(id_tag, func_template_tag, func_res_tag)
+                    ),
+                    'functional_to_standard': (
+                        'func',
+                        'registered',
+                        '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered'
+                        .format(id_tag, func_template_tag, func_res_tag)
+                    ),
+                    'functional_brain_mask_to_standard': (
+                        'func',
+                        'registered',
+                        '{0}_bold_space-{1}_res-{2}x{2}x{2}_registered_mask'
+                        .format(id_tag, func_template_tag, func_res_tag)
+                    ),
+                    'roi_timeseries': (
+                        'func',
+                        'roi-timeseries',
+                        '{0}_bold_res-{1}x{1}x{1}_variant-mean_timeseries'
+                        .format(id_tag, func_res_tag)
+                    ),
+                    'ndmg_graph': (
+                        'func',
+                        'roi-connectomes',
+                        '{0}_bold_res-{1}x{1}x{1}_measure-correlation'
+                        .format(id_tag, func_res_tag)
+                    )
+                }
 
-                # Add status callback function that writes in callback log
-                if nipype.__version__ not in ('1.1.2'):
-                    err_msg = "This version of Nipype may not be compatible with " \
-                                "CPAC v%s, please install Nipype version 1.1.2\n" \
-                                % (CPAC.__version__)
-                    logger.error(err_msg)
+                if resource not in ndmg_key_dct.keys():
+                    continue
+
+                ds.inputs.container = '{0}/{1}'.format(container,
+                                                        ndmg_key_dct[resource][0])
+                node, out_file = rp[resource]
+
+                # rename the file
+                if 'roi_' in resource or 'ndmg_graph' in resource:
+                    rename_file = pe.MapNode(
+                        interface=util.Rename(),
+                        name='rename__{}_{}'.format(num_strat, resource_i),
+                        iterfield=['in_file']
+                    )
                 else:
-                    plugin_args['status_callback'] = log_nodes_cb
+                    rename_file = pe.Node(
+                        interface=util.Rename(),
+                        name='rename_{}_{}'.format(num_strat, resource_i)
+                    )
+                rename_file.inputs.keep_ext = True
+                rename_file.inputs.format_string = ndmg_key_dct[resource][2]
 
-                if plugin_args['n_procs'] == 1:
-                    plugin = 'Linear'
+                workflow.connect(node, out_file,
+                                    rename_file, 'in_file')
+                workflow.connect(rename_file, 'out_file',
+                                    ds, ndmg_key_dct[resource][1])
 
-                # Actually run the pipeline now, for the current subject
-                workflow.run(plugin=plugin, plugin_args=plugin_args)
-
-                # PyPEER kick-off
-                if 1 in c.run_pypeer:
-                    from CPAC.pypeer.peer import prep_for_pypeer
-                    prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
-                                    c.eye_mask_path, c.outputDirectory, subject_id, 
-                                    pipeline_ids, c.peer_stimulus_path, c.peer_gsr,
-                                    c.peer_scrub, c.peer_scrub_thresh)
-
-                # Dump subject info pickle file to subject log dir
-                subject_info['status'] = 'Completed'
-    
-                subject_info_file = os.path.join(
-                    log_dir, 'subject_info_%s.pkl' % subject_id
+            else:
+                # regular datasink
+                ds = pe.Node(
+                    DataSink(),
+                    name='sinker_{}_{}'.format(num_strat, resource_i)
                 )
-                with open(subject_info_file, 'wb') as info:
-                    pickle.dump(subject_info, info)
+                ds.inputs.base_directory = c.outputDirectory
+                ds.inputs.creds_path = creds_path
+                ds.inputs.encrypt_bucket_keys = encrypt_data
+                ds.inputs.container = os.path.join(
+                    'pipeline_%s' % pipeline_id, subject_id
+                )
+                ds.inputs.regexp_substitutions = [
+                    (r"/_sca_roi(.)*[/]", '/'),
+                    (r"/_smooth_centrality_(\d)+[/]", '/'),
+                    (r"/_z_score(\d)+[/]", "/"),
+                    (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                    (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                    (r"/qc___", '/qc/')
+                ]
 
-                # have this check in case the user runs cpac_runner from terminal and
-                # the timing parameter list is not supplied as usual by the GUI
-                if pipeline_timing_info != None:
+                node, out_file = rp[resource]
+                workflow.connect(node, out_file, ds, resource)
 
-                    # pipeline_timing_info list:
-                    #  [0] - unique pipeline ID
-                    #  [1] - pipeline start time stamp (first click of 'run' from GUI)
-                    #  [2] - number of subjects in subject list
-                    unique_pipeline_id = pipeline_timing_info[0]
-                    pipeline_start_stamp = pipeline_timing_info[1]
-                    num_subjects = pipeline_timing_info[2]
+                output_sink_nodes += [(ds, 'out_file')]
 
-                    # elapsed time data list:
-                    #  [0] - elapsed time in minutes
-                    elapsed_time_data = []
 
-                    elapsed_time_data.append(
-                        int(((time.time() - pipeline_start_time) / 60)))
-
-                    # elapsedTimeBin list:
-                    #  [0] - cumulative elapsed time (minutes) across all subjects
-                    #  [1] - number of times the elapsed time has been appended
-                    #        (effectively a measure of how many subjects have run)
-
-                    # TODO
-                    # write more doc for all this
-                    # warning in .csv that some runs may be partial
-                    # code to delete .tmp file
-
-                    timing_temp_file_path = os.path.join(c.logDirectory,
-                                                        '%s_pipeline_timing.tmp' % unique_pipeline_id)
-
-                    if not os.path.isfile(timing_temp_file_path):
-                        elapsedTimeBin = []
-                        elapsedTimeBin.append(0)
-                        elapsedTimeBin.append(0)
-
-                        with open(timing_temp_file_path, 'wb') as handle:
-                            pickle.dump(elapsedTimeBin, handle)
-
-                    with open(timing_temp_file_path, 'rb') as handle:
-                        elapsedTimeBin = pickle.loads(handle.read())
-
-                    elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
-                    elapsedTimeBin[1] = elapsedTimeBin[1] + 1
-
-                    with open(timing_temp_file_path, 'wb') as handle:
-                        pickle.dump(elapsedTimeBin, handle)
-
-                    # this happens once the last subject has finished running!
-                    if elapsedTimeBin[1] == num_subjects:
-
-                        pipelineTimeDict = {}
-                        pipelineTimeDict['Pipeline'] = c.pipelineName
-                        pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
-                        pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
-                        pipelineTimeDict['Number_of_Subjects'] = num_subjects
-                        pipelineTimeDict['Start_Time'] = pipeline_start_stamp
-                        pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
-                        pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
-                        pipelineTimeDict['Status'] = 'Complete'
-    
-                        gpaTimeFields = [
-                            'Pipeline', 'Cores_Per_Subject',
-                            'Simultaneous_Subjects',
-                            'Number_of_Subjects', 'Start_Time',
-                            'End_Time', 'Elapsed_Time_(minutes)',
-                            'Status'
-                        ]
-                        timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
-
-                        with open(os.path.join(
-                            c.logDirectory,
-                            'cpac_individual_timing_%s.csv' % c.pipelineName
-                        ), 'a') as timeCSV, open(os.path.join(
-                            c.logDirectory,
-                            'cpac_individual_timing_%s.csv' % c.pipelineName
-                        ), 'rb') as readTimeCSV:
-
-                            timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-                            timeReader = csv.DictReader(readTimeCSV)
-
-                            headerExists = False
-                            for line in timeReader:
-                                if 'Start_Time' in line:
-                                    headerExists = True
-
-                            if headerExists == False:
-                                timeWriter.writerow(timeHeader)
-
-                            timeWriter.writerow(pipelineTimeDict)
-
-                        # remove the temp timing file now that it is no longer needed
-                        os.remove(timing_temp_file_path)
-
-                # Upload logs to s3 if s3_str in output directory
-                if c.outputDirectory.lower().startswith('s3://'):
-    
-                    try:
-                        # Store logs in s3 output director/logs/...
-                        s3_log_dir = os.path.join(
-                            c.outputDirectory,
-                            'logs',
-                            os.path.basename(log_dir)
-                        )
-                        bucket_name = c.outputDirectory.split('/')[2]
-                        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-    
-                        # Collect local log files
-                        local_log_files = []
-                        for root, _, files in os.walk(log_dir):
-                            local_log_files.extend([os.path.join(root, fil)
-                                                    for fil in files])
-                        # Form destination keys
-                        s3_log_files = [loc.replace(log_dir, s3_log_dir)
-                                        for loc in local_log_files]
-                        # Upload logs
-                        aws_utils.s3_upload(bucket,
-                                            (local_log_files, s3_log_files),
-                                            encrypt=encrypt_data)
-                        # Delete local log files
-                        for log_f in local_log_files:
-                            os.remove(log_f)
-    
-                    except Exception as exc:
-                        err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s'
-                        logger.error(err_msg, log_dir, exc)
-    
-            except Exception as e:
-    
-                import traceback
-                traceback.print_exc()
-    
-                execution_info = """
-
-    Error of subject workflow {workflow}
-
-    CPAC run error:
-
-        Pipeline configuration: {pipeline}
-        Subject workflow: {workflow}
-        Elapsed run time (minutes): {elapsed}
-        Timing information saved in {log_dir}/cpac_individual_timing_{pipeline}.csv
-        System time of start:      {run_start}
-
-"""
-
-            finally:
-
-                if 1 in c.generateQualityControlImages and not ndmg_out:
-                    for pip_id in pipeline_ids:
-                        pipeline_base = os.path.join(c.outputDirectory,
-                                                    'pipeline_{0}'.format(pip_id))
-
-                        sub_output_dir = os.path.join(pipeline_base, subject_id)
-                        qc_dir = os.path.join(sub_output_dir, 'qc')
-                        generate_qc_pages(qc_dir)
-
-                logger.info(execution_info.format(
-                    workflow=workflow_name,
-                    pipeline=c.pipelineName,
-                    log_dir=c.logDirectory,
-                    elapsed=(time.time() - pipeline_start_time) / 60,
-                    run_start=pipeline_start_datetime,
-                    run_finish=strftime("%Y-%m-%d %H:%M:%S")
-                ))
-
-                # Remove working directory when done
-                if c.removeWorkingDir:
-                    try:
-                        subject_wd = os.path.join(c.workingDirectory, workflow_name)
-                        if os.path.exists(subject_wd):
-                            logger.info("Removing working dir: %s" % subject_wd)
-                            shutil.rmtree(subject_wd)
-                    except:
-                        logger.warn('Could not remove subjects %s working directory',
-                                    workflow_name)
-
-                # if raising:
-                #     raise raising
-
-    return workflow
+    return workflow, strat_list, pipeline_ids

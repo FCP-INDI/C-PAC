@@ -707,7 +707,7 @@ class MainFrame(wx.Frame):
         import yaml
         from CPAC.utils import Configuration
 
-        from CPAC.pipeline.cpac_pipeline import prep_workflow
+        from CPAC.pipeline.cpac_pipeline import run_workflow
         from CPAC.pipeline.cpac_runner import build_strategies
 
         def display(win, msg, changeBg=True):
@@ -950,7 +950,7 @@ class MainFrame(wx.Frame):
                 testFile(roi_path, "sca_roi_paths", c.runSCA)
         try:
             # Run the pipeline building
-            prep_workflow(sublist[0], c, strategies, 0)
+            run_workflow(sublist[0], c, strategies, 0)
 
         except Exception as xxx:
             print xxx
