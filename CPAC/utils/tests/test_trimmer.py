@@ -7,8 +7,7 @@ from copy import copy
 def accept_all(object, name, value):
     return value
 
-@mock.patch('nipype.interfaces.base.traits_extension.File.validate', side_effect=accept_all)
-def test_trimmer(_):
+def test_trimmer():
 
     from CPAC.utils.trimmer import the_trimmer, is_datasink, expand_workflow, compute_datasink_dirs
     from CPAC.pipeline.cpac_pipeline import build_workflow
@@ -65,7 +64,7 @@ def test_trimmer(_):
     for datasink in datasinks:
         paths = compute_datasink_dirs(exec_graph, datasink)
         anat_derivatives.update(paths)
-        for derivative, path in paths.items():
+        for (node, derivative), path in paths.items():
             os.makedirs(path)
             open(os.path.join(path, '%s.txt' % derivative), 'a').close()
 

@@ -13,9 +13,37 @@ from CPAC.utils.datasource import (
     create_check_for_s3_node,
 )
 
+def expand_workflow(wf):
+    return generate_expanded_graph(deepcopy(wf._create_flat_graph()))
 
 def is_datasink(n):
     return type(n).__name__ == 'Node' and type(n.interface).__name__ == 'DataSink'
+
+def compute_datasink_dirs(graph, datasink, output_dir=None, container=None):
+    directories = {}
+    for inp in graph.in_edges(datasink):
+        src, _ = inp
+        for edge in graph.get_edge_data(*inp)['connect']:
+            _, derivative_name = edge
+
+            datasink_output_dir = datasink.interface.inputs.base_directory
+            if output_dir is not None:
+                datasink_output_dir = output_dir
+
+            datasink_container = datasink.interface.inputs.container
+            if container is not None:
+                datasink_container = container
+
+            # Look if there is an output in this datasink directory
+
+            iterables = datasink.parameterization
+            path = '/'.join(['', derivative_name] + iterables)
+            path = datasink.interface._substitute(path)[1:]
+            path = '/'.join([datasink_output_dir, datasink_container, path])
+
+            directories[(src, derivative_name)] = path
+
+    return directories
 
 def list_files(path, s3_creds_path=None):
     if path.startswith('s3://'):
@@ -129,7 +157,7 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     """
 
     # Expand graph, to flatten out sub-workflows and iterables
-    execgraph = generate_expanded_graph(deepcopy(wf._create_flat_graph()))
+    execgraph = expand_workflow(wf)
 
     replacements = {}
     deletions = []
@@ -141,38 +169,18 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     ]
     for datasink in datasinks:
 
-        # For each input node (DataSink may have several, but C-PAC usually uses one)
-        for inp in execgraph.in_edges(datasink):
+        for (src, derivative_name), path in \
+            compute_datasink_dirs(execgraph,
+                                  datasink,
+                                  output_dir=output_dir,
+                                  container=container).items():
 
-            src, _ = inp
+            files = list_files(path, s3_creds_path=s3_creds_path)
+            if len(files) == 1:  # Ignore multi-file nodes
+                if src not in replacements:
+                    replacements[src] = {}
 
-            # ... and it can have several fields per node
-            for edge in execgraph.get_edge_data(*inp)['connect']:
-
-                src_field, derivative_name = edge
-
-                datasink_output_dir = datasink.interface.inputs.base_directory
-                if output_dir is not None:
-                    datasink_output_dir = output_dir
-
-                datasink_container = datasink.interface.inputs.container
-                if container is not None:
-                    datasink_container = container
-
-                # Look if there is an output in this datasink directory
-
-                iterables = datasink.parameterization
-                path = '/'.join(['', derivative_name] + iterables)
-                path = datasink.interface._substitute(path)[1:]
-                path = '/'.join([datasink_output_dir, datasink_container, path])
-
-                # TODO support S3
-                files = list_files(path, s3_creds_path=None)
-                if len(files) == 1:  # Ignore multi-file nodes
-                    if src not in replacements:
-                        replacements[src] = {}
-
-                    replacements[src][src_field] = files[0]
+                replacements[src][src_field] = files[0]
         
         # if the replacements have all the fields from the datasink, datasink 
         # can be deleted (we do not want to output again the same file :))
