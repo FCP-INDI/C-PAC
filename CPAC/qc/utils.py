@@ -1835,20 +1835,19 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     png_name : Path to generated PNG
 
     """
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
     import matplotlib
     import os
     import numpy as np
 
     matplotlib.rcParams.update({'font.size': 5})
 
-    try:
-        from mpl_toolkits.axes_grid1 import ImageGrid
-    except:
-        from mpl_toolkits.axes_grid1 import ImageGrid
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     import nibabel as nb
+
+    from mpl_toolkits.axes_grid1 import ImageGrid
+
+    from CPAC.qc.utils import determine_start_and_end, get_spacing
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
