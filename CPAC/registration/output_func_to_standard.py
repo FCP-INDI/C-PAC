@@ -3,8 +3,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
-from CPAC.registration.utils import change_itk_transform_type
-
+from CPAC.registration.utils import change_itk_transform_type, check_transforms, generate_inverse_transform_flags
 # Todo: CC distcor is not implement for fsl apply xform func to mni, why ??
 def fsl_apply_transform_func_to_mni(
         workflow,
@@ -302,7 +301,7 @@ def ants_apply_warps_func_mni(
             if distcor is True:
                 # Field file from anatomical nonlinear registration
                 transforms_to_combine = [\
-                        ('anatomical_to_mni_nonlinear_xfm', 'in6'),
+                        ('mni_to_anatomical_nonlinear_xfm', 'in6'),
                         ('ants_affine_xfm', 'in5'),
                         ('ants_rigid_xfm', 'in4'),
                         ('ants_initial_xfm', 'in3'),
@@ -310,7 +309,7 @@ def ants_apply_warps_func_mni(
                         ('blip_warp_inverse', 'in1')]
             else:
                 transforms_to_combine = [\
-                        ('anatomical_to_mni_nonlinear_xfm', 'in5'),
+                        ('mni_to_anatomical_nonlinear_xfm', 'in5'),
                         ('ants_affine_xfm', 'in4'),
                         ('ants_rigid_xfm', 'in3'),
                         ('ants_initial_xfm', 'in2'),
@@ -336,12 +335,29 @@ def ants_apply_warps_func_mni(
              workflow.connect(node, out_file,
                  collect_transforms, input_port)
 
+        # check transform list (if missing any init/rig/affine) and exclude Nonetype
+        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
+                                                output_names=['checked_transform_list', 'list_length'],
+                                                function=check_transforms), name='check_transforms{0}_{1}'.format(inverse_string, num_strat))
+        
+        workflow.connect(collect_transforms, 'out', check_transform, 'transform_list')
+
+        # generate inverse transform flags, which depends on the number of transforms
+        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_number'], 
+                                                        output_names=['inverse_transform_flags'],
+                                                        function=generate_inverse_transform_flags), 
+                                                        name='inverse_transform_flags{0}_{1}'.format(inverse_string, num_strat))
+
+        workflow.connect(check_transform, 'list_length', inverse_transform_flags, 'transform_number')
+
+
         # set the output
         strat.update_resource_pool({
-            collect_transforms_key: (collect_transforms, 'out')
+            collect_transforms_key: (check_transform, 'checked_transform_list')
         })
 
-        strat.append_name(collect_transforms.name)
+        strat.append_name(check_transform.name)
+        strat.append_name(inverse_transform_flags.name)
 
     #### now we add in the apply ants warps node
     if map_node:
@@ -361,7 +377,7 @@ def ants_apply_warps_func_mni(
 
     if inverse is True:
         apply_ants_warp.inputs.invert_transform_flags = \
-                [True, True, True, True, False]
+                [True, True, True, False] # have to change
 
     # input_image_type:
     # (0 or 1 or 2 or 3)

@@ -11,7 +11,7 @@ from nipype.interfaces import afni
 from CPAC.nuisance.utils.compcor import calc_compcor_components
 from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.utils.interfaces.function import Function
-
+from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
                                fd_j_threshold=None, fd_p_threshold=None, dvars_threshold=None,
@@ -410,12 +410,26 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
                     nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
 
+                    # check transform list to exclude Nonetype (missing) init/rig/affine
+                    check_transform = pe.Node(util.Function(input_names=['transform_list'], 
+                                                            output_names=['checked_transform_list', 'list_length'],
+                                                            function=check_transforms), name='{0}_check_transforms'.format(ventricles_key))
+                    
+                    nuisance_wf.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
+
+                    # generate inverse transform flags, which depends on the number of transforms
+                    inverse_transform_flags = pe.Node(util.Function(input_names=['transform_number'], 
+                                                                    output_names=['inverse_transform_flags'],
+                                                                    function=generate_inverse_transform_flags), 
+                                                                    name='{0}_inverse_transform_flags'.format(ventricles_key))
+                    nuisance_wf.connect(check_transform, 'list_length', inverse_transform_flags, 'transform_number')
+
                     lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
-                    lat_ven_mni_to_anat.inputs.invert_transform_flags = [True, True, True]
+                    lat_ven_mni_to_anat.inputs.invert_transform_flags = inverse_transform_flags.outputs.inverse_transform_flags
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
-                    nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
+                    nuisance_wf.connect(check_transform, 'checked_transform_list', lat_ven_mni_to_anat, 'transforms')
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
                     nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))

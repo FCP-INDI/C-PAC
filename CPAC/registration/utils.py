@@ -1,14 +1,31 @@
 
 def combine_inputs_into_list(input1, input2, input3):
-    inputs_list = [input1, input2, input3]
-    return inputs_list
+    outputs_list = [input1, input2, input3]
+    return outputs_list
 
 
 def seperate_warps_list(warp_list, selection):
+    selected_warp = None
     for warp in warp_list:
         if selection in warp:
             selected_warp = warp
     return selected_warp
+
+def check_warp_file(in_file):
+    if in_file is None: 
+        pass
+    else:
+        return in_file
+
+def check_transforms(transform_list):
+    transform_number = filter(None, transform_list)
+    return[(transform_number[index]) for index in range(len(transform_number))], len(transform_number)
+
+def generate_inverse_transform_flags(transform_number):
+    inverse_transform_flags=[]
+    for i in range(transform_number):
+        inverse_transform_flags.append(True)
+    return inverse_transform_flags
 
 def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                   reference_skull, ants_para, fixed_image_mask=None, interp=None):

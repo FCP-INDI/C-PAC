@@ -6,7 +6,8 @@ import nipype.interfaces.ants as ants
 
 from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import seperate_warps_list, \
-                                    combine_inputs_into_list, \
+                                    check_transforms, \
+                                    generate_inverse_transform_flags, \
                                     hardcoded_reg
 
 def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
@@ -506,12 +507,13 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
     return register_bbregister_func_to_anat
     
 
-def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
+def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', reg_ants_skull=1):
 
     register_func_to_epi = pe.Workflow(name=name)
     
     inputspec = pe.Node(util.IdentityInterface(fields=['func_4d',
                                                        'func_3d',
+                                                       'func_3d_mask',
                                                        'epi',
                                                        'interp',
                                                        'ants_para']),
@@ -524,12 +526,17 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
                                                         'fsl_flirt_xfm',
                                                         'fsl_fnirt_xfm',
                                                         'invlinear_xfm',
-                                                        'func_in_epi']),
+                                                        'func_in_epi',
+                                                        'func_mask_in_epi']),
                          name='outputspec')
 
     if reg_option == 'ANTS':
         # linear + non-linear registration
-        func_to_epi_ants = create_wf_calculate_ants_warp(name='func_to_epi_ants', num_threads=1, reg_ants_skull=1)
+        func_to_epi_ants = \
+            create_wf_calculate_ants_warp(
+                name='func_to_epi_ants', 
+                num_threads=1, 
+                reg_ants_skull=1)
 
         register_func_to_epi.connect([
             (inputspec, func_to_epi_ants, [
@@ -562,15 +569,31 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS'):
             ]),
         ])
 
-        # apply transform
-        func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
-        func_in_epi.inputs.input_image_type = 3
-        func_in_epi.inputs.interpolation = 'LanczosWindowedSinc'
+        # check transform list to exclude Nonetype (missing) init/rig/affine
+        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
+                                                output_names=['checked_transform_list', 'list_length'],
+                                                function=check_transforms), name='{0}_check_transforms'.format(wf_name))
+        
+        register_func_to_epi.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
+
+        # apply transform to func 
+        func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
+        func_in_epi.inputs.dimension = 3
+        func_in_epi.inputs.input_image_type = 3
         register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')
         register_func_to_epi.connect(inputspec, 'epi', func_in_epi, 'reference_image')
-        register_func_to_epi.connect(collect_transforms, 'out', func_in_epi, 'transforms')
+        register_func_to_epi.connect(check_transform, 'checked_transform_list', func_in_epi, 'transforms')
         register_func_to_epi.connect(func_in_epi, 'output_image', outputspec, 'func_in_epi')
+
+        # apply transform to functional mask
+        func_mask_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_mask_in_epi_ants')
+        func_mask_in_epi.inputs.dimension = 3
+        func_mask_in_epi.inputs.input_image_type = 0
+        register_func_to_epi.connect(inputspec, 'func_3d_mask', func_mask_in_epi, 'input_image')
+        register_func_to_epi.connect(inputspec, 'epi', func_mask_in_epi, 'reference_image')
+        register_func_to_epi.connect(check_transform, 'checked_transform_list', func_mask_in_epi, 'transforms')
+        register_func_to_epi.connect(func_mask_in_epi, 'output_image', outputspec, 'func_mask_in_epi')
 
     elif reg_option == 'FSL':
         # flirt linear registration 
@@ -818,7 +841,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_brain')
 
-    if reg_ants_skull==1:
+    if 1 in reg_ants_skull and 0 not in reg_ants_skull:
         calc_ants_warp_wf.connect(inputspec, 'moving_skull',
                 calculate_ants_warp, 'moving_skull')
 

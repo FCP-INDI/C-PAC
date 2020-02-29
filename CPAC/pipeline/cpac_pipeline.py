@@ -780,17 +780,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     num_threads=num_ants_cores,
                     reg_ants_skull = c.regWithSkull
                 )
-
-            # Input registration parameters
-            if c.ANTs_para_T1_registration is None:
-                err_msg = 'ANTs parameters specified: %d, is not supported. ' \
-                    'Please specify ANTs parameters properly and try again' % c.ANTs_para_T1_registration
-                raise Exception(err_msg)
-            else: 
-                ants_reg_anat_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
-
-            ants_reg_anat_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
-
             # calculating the transform with the skullstripped is
             # reported to be better, but it requires very high
             # quality skullstripping. If skullstripping is imprecise
@@ -811,46 +800,43 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     logger.info(err_msg)
                     raise Exception
 
-                # get the skull-stripped anatomical from resource pool
-                node, out_file = strat['anatomical_brain']
+            # Input ANTs registration parameters
+            if c.ANTs_para_T1_registration is None:
+                err_msg = 'ANTs parameters specified: %d, is not supported. ' \
+                    'Please specify ANTs parameters properly and try again' % c.ANTs_para_T1_registration
+                raise Exception(err_msg)
+            else: 
+                ants_reg_anat_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
 
-                # pass the anatomical to the workflow
-                workflow.connect(node, out_file,
-                                 ants_reg_anat_mni,
-                                 'inputspec.moving_brain')
+            ants_reg_anat_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
 
-                # pass the reference file
-                node, out_file = strat['template_brain_for_anat']
-                workflow.connect(node, out_file,
-                    ants_reg_anat_mni, 'inputspec.reference_brain')
+            # get the skull-stripped anatomical from resource pool
+            node, out_file = strat['anatomical_brain']
 
-                # get the reorient skull-on anatomical from resource pool
-                node, out_file = strat['anatomical_reorient']
+            # pass the anatomical to the workflow
+            workflow.connect(node, out_file,
+                                ants_reg_anat_mni,
+                                'inputspec.moving_brain')
 
-                # pass the anatomical to the workflow
-                workflow.connect(node, out_file,
-                                 ants_reg_anat_mni,
-                                 'inputspec.moving_skull')
+            # pass the reference file
+            node, out_file = strat['template_brain_for_anat']
+            workflow.connect(node, out_file,
+                ants_reg_anat_mni, 'inputspec.reference_brain')
 
-                # pass the reference file
-                node, out_file = strat['template_skull_for_anat']
-                workflow.connect(
-                    node, out_file,
-                    ants_reg_anat_mni, 'inputspec.reference_skull'
+            # get the reorient skull-on anatomical from resource pool
+            node, out_file = strat['anatomical_reorient']
+
+            # pass the anatomical to the workflow
+            workflow.connect(node, out_file,
+                                ants_reg_anat_mni,
+                                'inputspec.moving_skull')
+
+            # pass the reference file
+            node, out_file = strat['template_skull_for_anat']
+            workflow.connect(
+                node, out_file,
+                ants_reg_anat_mni, 'inputspec.reference_skull'
                 )
-
-            else:
-                
-                node, out_file = strat['anatomical_brain']
-
-                workflow.connect(node, out_file, ants_reg_anat_mni,
-                                 'inputspec.moving_brain')
-
-                # pass the reference file
-                node, out_file = strat['template_brain_for_anat']
-                workflow.connect(node, out_file,
-                    ants_reg_anat_mni, 'inputspec.reference_brain')
-
 
             # Test if a lesion mask is found for the anatomical image
             if 'lesion_mask' in sub_dict and c.use_lesion_mask \
@@ -1052,6 +1038,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             
                 # Input registration parameters
                 ants_reg_anat_symm_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
+                ants_reg_anat_symm_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
 
                 # calculating the transform with the skullstripped is
                 # reported to be better, but it requires very high
@@ -1071,47 +1058,33 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         logger.info(err_msg)
                         raise Exception
 
-                    # get the skullstripped anatomical from resource pool
-                    node, out_file = strat['anatomical_brain']
+                # get the skullstripped anatomical from resource pool
+                node, out_file = strat['anatomical_brain']
 
-                    # pass the anatomical to the workflow
-                    workflow.connect(node, out_file,
-                                     ants_reg_anat_symm_mni,
-                                     'inputspec.moving_brain')
+                # pass the anatomical to the workflow
+                workflow.connect(node, out_file,
+                                    ants_reg_anat_symm_mni,
+                                    'inputspec.moving_brain')
 
-                    # pass the reference file
-                    node, out_file = strat['template_symmetric_brain']
-                    workflow.connect(node, out_file,
-                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
+                # pass the reference file
+                node, out_file = strat['template_symmetric_brain']
+                workflow.connect(node, out_file,
+                                ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                    # get the reorient skull-on anatomical from resource
-                    # pool
-                    node, out_file = strat['anatomical_reorient']
+                # get the reorient skull-on anatomical from resource
+                # pool
+                node, out_file = strat['anatomical_reorient']
 
-                    # pass the anatomical to the workflow
-                    workflow.connect(node, out_file,
-                                     ants_reg_anat_symm_mni,
-                                     'inputspec.moving_skull')
+                # pass the anatomical to the workflow
+                workflow.connect(node, out_file,
+                                    ants_reg_anat_symm_mni,
+                                    'inputspec.moving_skull')
 
-                    # pass the reference file
-                    node, out_file = strat['template_symmetric_skull']
-                    workflow.connect(node, out_file,
-                                     ants_reg_anat_symm_mni, 'inputspec.reference_skull')
+                # pass the reference file
+                node, out_file = strat['template_symmetric_skull']
+                workflow.connect(node, out_file,
+                                    ants_reg_anat_symm_mni, 'inputspec.reference_skull')
 
-
-                else:
-                    # get the skullstripped anatomical from resource pool
-                    node, out_file = strat['anatomical_brain']
-
-                    workflow.connect(node, out_file,
-                                     ants_reg_anat_symm_mni,
-                                     'inputspec.moving_brain')
-
-                    # pass the reference file
-                    node, out_file = strat['template_symmetric_brain']
-                    workflow.connect(node, out_file,
-                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
-                                    
 
                 if 'lesion_mask' in sub_dict and c.use_lesion_mask\
                         and 'lesion_preproc' not in nodes:
@@ -2096,7 +2069,22 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     new_strat = strat.fork()
 
-                    func_to_epi = create_register_func_to_epi('func_to_epi_{0}_{1}'.format(reg.lower(), num_strat), reg)
+                    func_to_epi = \
+                        create_register_func_to_epi(
+                            name='func_to_epi_{0}_{1}'.format(reg.lower(), num_strat), 
+                            reg_option=reg, 
+                            reg_ants_skull=c.regWithSkull
+                        )
+
+                    # Input registration parameters
+                    if c.ANTs_para_EPI_registration is None:
+                        err_msg = 'ANTs parameters specified: %d, is not supported. ' \
+                            'Please specify ANTs parameters properly and try again' % c.ANTs_para_EPI_registration
+                        raise Exception(err_msg)
+                    else:
+                        func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
+                    
+                    func_to_epi.inputs.inputspec.interp = c.funcRegANTSinterpolation
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.func_4d')
@@ -2112,19 +2100,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = strat['template_epi']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
 
-                    # Input registration parameters
-                    if c.ANTs_para_EPI_registration is None:
-                        err_msg = 'ANTs parameters specified: %d, is not supported. ' \
-                            'Please specify ANTs parameters properly and try again' % c.ANTs_para_EPI_registration
-                        raise Exception(err_msg)
-                    else:
-                        func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
-
-                    func_to_epi.inputs.inputspec.interp = c.anatRegANTSinterpolation
+                    node, out_file = strat['functional_brain_mask']
+                    workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d_mask')
 
                     # update resource pool
                     new_strat.update_resource_pool({
-                        'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi')
+                        'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi'),
+                        'functional_mask_to_epi-standard': (func_to_epi, 'outputspec.func_mask_in_epi')
                     })
 
                     if reg == 'FSL' :
