@@ -576,12 +576,12 @@ def process_segment_map(wf_name,
         preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
         # generate inverse transform flags, which depends on the number of transforms
-        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_number'], 
+        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
                                                         output_names=['inverse_transform_flags'],
                                                         function=generate_inverse_transform_flags), 
                                                         name='{0}_inverse_transform_flags'.format(wf_name))
 
-        preproc.connect(check_transform, 'list_length', inverse_transform_flags, 'transform_number')
+        preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
         # mni to t1
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
@@ -923,17 +923,33 @@ def tissue_mask_template_to_t1(wf_name,
         collect_linear_transforms = pe.Node(util.Merge(3),
                                             name='{0}_collect_linear_transforms'.format(wf_name))
 
+        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
+        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
+        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
+
+        # check transform list to exclude Nonetype (missing) init/rig/affine
+        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
+                                                output_names=['checked_transform_list', 'list_length'],
+                                                function=check_transforms), name='{0}_check_transforms'.format(wf_name))
+        
+        preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
+
+        # generate inverse transform flags, which depends on the number of transforms
+        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
+                                                        output_names=['inverse_transform_flags'],
+                                                        function=generate_inverse_transform_flags), 
+                                                        name='{0}_inverse_transform_flags'.format(wf_name))
+
+        preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
+
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
                                         name='{0}_mni_to_t1'.format(wf_name))
-        tissueprior_mni_to_t1.inputs.invert_transform_flags = [True, True, True]
+        tissueprior_mni_to_t1.inputs.invert_transform_flags = inverse_transform_flags.outputs.inverse_transform_flags
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
         # mni to t1
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
-        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
-        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
-        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
-        preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
+        preproc.connect(check_transform, 'checked_transform_list', tissueprior_mni_to_t1, 'transforms')
         preproc.connect(inputNode, 'tissue_mask_template', tissueprior_mni_to_t1, 'input_image')
         
         preproc.connect (tissueprior_mni_to_t1, 'output_image', outputNode, 'segment_mask_temp2t1')

@@ -267,6 +267,7 @@ def blip_distcor_wf(wf_name='blip_distcor'):
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['blip_warp',
+                                                         'blip_warp_inverse',
                                                          'new_func_mean',
                                                          'new_func_mask']),
                           name='outputspec')
@@ -314,6 +315,9 @@ def blip_distcor_wf(wf_name='blip_distcor'):
 
     wf.connect(calc_blip_warp, 'source_warp', convert_afni_warp, 'afni_warp')
 
+    # TODO: inverse source_warp (node:source_warp_inverse)
+        # wf.connect(###
+                # output_node, 'blip_warp_inverse')
 
     undistort_func_mean = pe.Node(interface=ants.ApplyTransforms(),
                               name='undistort_func_mean', mem_gb=.1)
@@ -336,7 +340,9 @@ def blip_distcor_wf(wf_name='blip_distcor'):
     wf.connect(undistort_func_mean, 'output_image',
                create_new_mask, 'inputspec.func')
 
-    wf.connect(convert_afni_warp, 'ants_warp', output_node, 'blip_warp')
+    wf.connect(convert_afni_warp, 'ants_warp', 
+                output_node, 'blip_warp')
+
     wf.connect(undistort_func_mean, 'output_image',
                output_node, 'new_func_mean')
     wf.connect(create_new_mask, 'outputspec.func_brain_mask',

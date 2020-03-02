@@ -11,20 +11,27 @@ def seperate_warps_list(warp_list, selection):
             selected_warp = warp
     return selected_warp
 
-def check_warp_file(in_file):
-    if in_file is None: 
-        pass
-    else:
-        return in_file
-
 def check_transforms(transform_list):
     transform_number = filter(None, transform_list)
     return[(transform_number[index]) for index in range(len(transform_number))], len(transform_number)
 
-def generate_inverse_transform_flags(transform_number):
+def generate_inverse_transform_flags(transform_list):
     inverse_transform_flags=[]
-    for i in range(transform_number):
-        inverse_transform_flags.append(True)
+    for transform in transform_list:
+        # check `blip_warp_inverse` file name and rename it
+        if 'WARPINV' in transform:    
+            inverse_transform_flags.append(False)
+            
+        if 'updated_affine' in transform:
+            inverse_transform_flags.append(True)
+        if 'Initial' in transform:
+            inverse_transform_flags.append(True)
+        if 'Rigid' in transform: 
+            inverse_transform_flags.append(True)
+        if 'Affine' in transform:
+            inverse_transform_flags.append(True)
+        if 'InverseWarp' in transform:
+            inverse_transform_flags.append(False)
     return inverse_transform_flags
 
 def hardcoded_reg(moving_brain, reference_brain, moving_skull,

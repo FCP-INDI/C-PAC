@@ -343,12 +343,12 @@ def ants_apply_warps_func_mni(
         workflow.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
         # generate inverse transform flags, which depends on the number of transforms
-        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_number'], 
+        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
                                                         output_names=['inverse_transform_flags'],
                                                         function=generate_inverse_transform_flags), 
                                                         name='inverse_transform_flags{0}_{1}'.format(inverse_string, num_strat))
 
-        workflow.connect(check_transform, 'list_length', inverse_transform_flags, 'transform_number')
+        workflow.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
 
         # set the output
@@ -376,8 +376,7 @@ def ants_apply_warps_func_mni(
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
 
     if inverse is True:
-        apply_ants_warp.inputs.invert_transform_flags = \
-                [True, True, True, False] # have to change
+        apply_ants_warp.inputs.invert_transform_flags = inverse_transform_flags.outputs.inverse_transform_flags
 
     # input_image_type:
     # (0 or 1 or 2 or 3)
