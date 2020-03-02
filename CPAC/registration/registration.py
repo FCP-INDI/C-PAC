@@ -572,7 +572,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
         # check transform list to exclude Nonetype (missing) init/rig/affine
         check_transform = pe.Node(util.Function(input_names=['transform_list'], 
                                                 output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms), name='{0}_check_transforms'.format(wf_name))
+                                                function=check_transforms), name='{0}_check_transforms'.format(name))
         
         register_func_to_epi.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -841,7 +841,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
     calc_ants_warp_wf.connect(inputspec, 'reference_brain',
             calculate_ants_warp, 'reference_brain')
 
-    if 1 in reg_ants_skull and 0 not in reg_ants_skull:
+    if reg_ants_skull == 1 and not reg_ants_skull == 0:
         calc_ants_warp_wf.connect(inputspec, 'moving_skull',
                 calculate_ants_warp, 'moving_skull')
 
