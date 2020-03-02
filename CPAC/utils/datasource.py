@@ -805,3 +805,45 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
                 outputnode, 'con')
 
     return wf
+
+def resample_func_to_roi(func, s3_roi_path_dict, identity_matrix):
+
+    import os, subprocess
+    import nibabel as nb    
+
+    roi_func_dict = {} # key: shape, value: roi path
+    roi_path_list = []
+    count=0 
+    s3_roi_path_list = s3_roi_path_dict[0].keys()
+
+    # check_for_s3, ROI templates will go to ./fcp-indi/resources/cpac/resources/roi_template.nii.gz
+    for roi_path in s3_roi_path_list:
+        roi_path_list.append(check_for_s3(roi_path))
+
+    roi_path_list.sort()
+
+    # check dimension
+    for roi_path in roi_path_list:
+        roi_img = nb.load(roi_path)
+        roi_shape = roi_img.shape # what if template with same dimension but different brain parcel size? 
+        print(roi_shape, roi_path)
+
+        if not roi_shape in roi_func_dict.keys():
+            # update dictionary 
+            func_path = os.path.join(os.getcwd(), 'resample_func_'+str(count)+'.nii.gz')
+            roi_func_dict.update({roi_shape: [[roi_path],[func_path]]})
+            count+=1
+            # resample func to roi
+            cmd = ['flirt', '-in', func, 
+                    '-ref', roi_path, 
+                    '-out', func_path, 
+                    '-interp', 'trilinear', 
+                    '-applyxfm', '-init', identity_matrix]
+            subprocess.check_output(cmd)
+
+        else:
+            roi_func_dict[roi_shape] = [roi_func_dict[roi_shape][0]+[roi_path], roi_func_dict[roi_shape][1]]
+
+    # print(roi_func_dict)
+
+    return roi_func_dict

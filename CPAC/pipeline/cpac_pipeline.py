@@ -102,6 +102,7 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     create_check_for_s3_node,
     resolve_resolution,
+    resample_func_to_roi,
     match_epi_fmaps
 )
 from CPAC.utils import Configuration, Strategy, Outputs, find_files
@@ -3192,7 +3193,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      resample_functional_to_roi, 'reference')
 
-                    # connect it to the roi_timeseries
+                    # find unique ROI dimension
+                    resample_func_to_roi_template = pe.Node(Function(input_names = ['func', 's3_roi_path_dict', 'identity_matrix'], 
+                                              output_names = ['out_file'], 
+                                              function = resample_func_to_roi,
+                                              as_module = True), 
+                                        name = 'resampled_func_to_roi_{0}'.format(num_strat)) 
+                    
+                    resample_func_to_roi_template.inputs.roi_paths = c.tsa_roi_paths
+                    resample_func_to_roi_template.inputs.identity_matrix = c.identityMatrix
+
+                    node, out_file = strat['functional_to_standard']
+                    workflow.connect(node, out_file,
+                                     resample_func_to_roi_template, 'func')
+                    
+                    # TODO connect it to the roi_timeseries
                     workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      roi_timeseries, 'input_roi.roi')
                     workflow.connect(resample_functional_to_roi, 'out_file',
