@@ -587,10 +587,9 @@ def process_segment_map(wf_name,
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
                                         name='{0}_prior_mni_to_t1'.format(wf_name))
 
-        tissueprior_mni_to_t1.inputs.invert_transform_flags = inverse_transform_flags.outputs.inverse_transform_flags
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
-
+        preproc.connect(inverse_transform_flags, 'inverse_transform_flags', tissueprior_mni_to_t1, 'invert_transform_flags')
         preproc.connect(inputNode, 'tissue_prior', tissueprior_mni_to_t1, 'input_image')
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
         preproc.connect(check_transform, 'checked_transform_list', tissueprior_mni_to_t1, 'transforms')
@@ -942,12 +941,13 @@ def tissue_mask_template_to_t1(wf_name,
 
         preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
+        # mni to t1
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
                                         name='{0}_mni_to_t1'.format(wf_name))
-        tissueprior_mni_to_t1.inputs.invert_transform_flags = inverse_transform_flags.outputs.inverse_transform_flags
+
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
-        # mni to t1
+        preproc.connect(inverse_transform_flags, 'inverse_transform_flags', tissueprior_mni_to_t1, 'invert_transform_flags')
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
         preproc.connect(check_transform, 'checked_transform_list', tissueprior_mni_to_t1, 'transforms')
         preproc.connect(inputNode, 'tissue_mask_template', tissueprior_mni_to_t1, 'input_image')
