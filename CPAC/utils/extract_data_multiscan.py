@@ -486,7 +486,7 @@ def run(data_config):
     file as the input argument
     """
 
-    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r'), Loader=yamlordereddictloader.Loader))
+    c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), 'r')))
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:

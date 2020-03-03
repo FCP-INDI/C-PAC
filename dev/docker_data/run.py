@@ -78,7 +78,7 @@ def run(command, env={}):
 
 def parse_yaml(value):
     try:
-        config = yaml.load(value, Loader=yamlordereddictloader.Loader)
+        config = yaml.safe_load(value)
         if type(config) != dict:
             raise
         return config

@@ -376,7 +376,7 @@ def ants_apply_warps_func_mni(
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
 
     if inverse is True:
-        apply_ants_warp.inputs.invert_transform_flags = inverse_transform_flags.outputs.inverse_transform_flags
+        workflow.connect(inverse_transform_flags, 'inverse_transform_flags', apply_ants_warp, 'invert_transform_flags')
 
     # input_image_type:
     # (0 or 1 or 2 or 3)

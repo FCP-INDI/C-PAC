@@ -19,7 +19,7 @@ def create_yaml_from_template(d, template):
 
     output = ""
 
-    d_default = yaml.load(open(template, 'r'), Loader=yamlordereddictloader.Loader)
+    d_default = yaml.safe_load(open(template, 'r'))
 
     empty_lines = 0
     with open(template, 'r') as f:

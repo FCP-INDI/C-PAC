@@ -49,7 +49,7 @@ def run(config, subject_infos):
     import yaml
     import yamlordereddictloader
 
-    c = Configuration(yaml.load(open(os.path.realpath(config), 'r'), Loader=yamlordereddictloader.Loader))
+    c = Configuration(yaml.safe_load(open(os.path.realpath(config), 'r')))
 
     prep_cwas_workflow(c, pickle.load(open(subject_infos, 'r') ))
 
