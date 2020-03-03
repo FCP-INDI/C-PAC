@@ -10,7 +10,7 @@ def test_yaml_template():
     config_file = tempfile.mkstemp(suffix='test_yaml_template')[1]
 
     # Create a new YAML configuration file based on the default_pipeline.yml file.
-    config = yaml.load(open('./data/default_pipeline.yml', 'r'), Loader=yamlordereddictloader.Loader)
+    config = yaml.safe_load(open('./data/default_pipeline.yml', 'r'))
 
     new_config = create_yaml_from_template(config, './data/default_pipeline.yml')
 
