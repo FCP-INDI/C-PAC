@@ -3161,14 +3161,23 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             for num_strat, strat in enumerate(strat_list):
 
                 if "Avg" in ts_analysis_dict.keys():
-                    resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                                                        name='resample_functional_to_roi_%d' % num_strat)
+                    # compare ROI with func
+                    resample_functional_to_roi = pe.Node(Function(input_names = ['in_file', 'reference', 'identity_matrix'], 
+                                              output_names = ['out_file'], 
+                                              function = resample_func_to_roi,
+                                              as_module = True), 
+                                        name = 'resample_func_to_roi_{0}'.format(num_strat)) 
+                    
+                    resample_functional_to_roi.inputs.identity_matrix = c.identityMatrix
+                    
+                    # resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
+                    #                                     name='resample_functional_to_roi_%d' % num_strat)
 
-                    resample_functional_to_roi.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                    # resample_functional_to_roi.inputs.set(
+                    #     interp='trilinear',
+                    #     apply_xfm=True,
+                    #     in_matrix_file=c.identityMatrix
+                    # )
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -3192,22 +3201,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                      resample_functional_to_roi, 'in_file')
                     workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      resample_functional_to_roi, 'reference')
-
-                    # find unique ROI dimension
-                    resample_func_to_roi_template = pe.Node(Function(input_names = ['func', 's3_roi_path_dict', 'identity_matrix'], 
-                                              output_names = ['out_file'], 
-                                              function = resample_func_to_roi,
-                                              as_module = True), 
-                                        name = 'resampled_func_to_roi_{0}'.format(num_strat)) 
                     
-                    resample_func_to_roi_template.inputs.roi_paths = c.tsa_roi_paths
-                    resample_func_to_roi_template.inputs.identity_matrix = c.identityMatrix
-
-                    node, out_file = strat['functional_to_standard']
-                    workflow.connect(node, out_file,
-                                     resample_func_to_roi_template, 'func')
-                    
-                    # TODO connect it to the roi_timeseries
+                    # connect it to the roi_timeseries
                     workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      roi_timeseries, 'input_roi.roi')
                     workflow.connect(resample_functional_to_roi, 'out_file',
