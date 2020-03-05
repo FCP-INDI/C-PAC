@@ -3161,23 +3161,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             for num_strat, strat in enumerate(strat_list):
 
                 if "Avg" in ts_analysis_dict.keys():
-                    # compare ROI with func
                     resample_functional_to_roi = pe.Node(Function(input_names = ['in_file', 'reference', 'identity_matrix'], 
                                               output_names = ['out_file'], 
                                               function = resample_func_to_roi,
                                               as_module = True), 
-                                        name = 'resample_func_to_roi_{0}'.format(num_strat)) 
+                                        name = 'resample_functional_to_roi_{0}'.format(num_strat)) 
                     
                     resample_functional_to_roi.inputs.identity_matrix = c.identityMatrix
-                    
-                    # resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                    #                                     name='resample_functional_to_roi_%d' % num_strat)
-
-                    # resample_functional_to_roi.inputs.set(
-                    #     interp='trilinear',
-                    #     apply_xfm=True,
-                    #     in_matrix_file=c.identityMatrix
-                    # )
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -3238,16 +3228,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # same workflow, except to run TSE and send it to the resource
                     # pool so that it will not get sent to SCA
-                    resample_functional_to_roi_for_sca = pe.Node(
-                        interface=fsl.FLIRT(),
-                        name='resample_functional_to_roi_for_sca_%d' % num_strat
-                    )
+                    resample_functional_to_roi_for_sca = pe.Node(Function(input_names = ['in_file', 'reference', 'identity_matrix'], 
+                                              output_names = ['out_file'], 
+                                              function = resample_func_to_roi,
+                                              as_module = True), 
+                                        name = 'resample_functional_to_roi_for_sca_{0}'.format(num_strat)) 
+                    
+                    resample_functional_to_roi_for_sca.inputs.identity_matrix = c.identityMatrix
 
-                    resample_functional_to_roi_for_sca.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                    # resample_functional_to_roi_for_sca = pe.Node(
+                    #     interface=fsl.FLIRT(),
+                    #     name='resample_functional_to_roi_for_sca_%d' % num_strat
+                    # )
+
+                    # resample_functional_to_roi_for_sca.inputs.set(
+                    #     interp='trilinear',
+                    #     apply_xfm=True,
+                    #     in_matrix_file=c.identityMatrix
+                    # )
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
@@ -3293,16 +3291,24 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # same workflow, except to run TSE and send it to the resource
                     # pool so that it will not get sent to SCA
-                    resample_functional_to_roi_for_multreg = pe.Node(
-                        interface=fsl.FLIRT(),
-                        name='resample_functional_to_roi_for_mult_reg_%d' % num_strat
-                    )
+                    resample_functional_to_roi_for_multreg = pe.Node(Function(input_names = ['in_file', 'reference', 'identity_matrix'], 
+                                              output_names = ['out_file'], 
+                                              function = resample_func_to_roi,
+                                              as_module = True), 
+                                        name = 'resample_functional_to_roi_for_multreg_{0}'.format(num_strat)) 
+                    
+                    resample_functional_to_roi_for_multreg.inputs.identity_matrix = c.identityMatrix
 
-                    resample_functional_to_roi_for_multreg.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                    # resample_functional_to_roi_for_multreg = pe.Node(
+                    #     interface=fsl.FLIRT(),
+                    #     name='resample_functional_to_roi_for_mult_reg_%d' % num_strat
+                    # )
+
+                    # resample_functional_to_roi_for_multreg.inputs.set(
+                    #     interp='trilinear',
+                    #     apply_xfm=True,
+                    #     in_matrix_file=c.identityMatrix
+                    # )
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
                         sca_analysis_dict["MultReg"],
@@ -3391,13 +3397,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             for num_strat, strat in enumerate(strat_list):
 
-                resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
-                                                    name='resample_functional_to_mask_%d' % num_strat)
-                resample_functional_to_mask.inputs.set(
-                    interp='trilinear',
-                    apply_xfm=True,
-                    in_matrix_file=c.identityMatrix
-                )
+                resample_functional_to_mask = pe.Node(Function(input_names = ['in_file', 'reference', 'identity_matrix'], 
+                                              output_names = ['out_file'], 
+                                              function = resample_func_to_roi,
+                                              as_module = True), 
+                                        name = 'resample_functional_to_mask_{0}'.format(num_strat)) 
+                    
+                resample_functional_to_mask.inputs.identity_matrix = c.identityMatrix
+
+                # resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
+                #                                     name='resample_functional_to_mask_%d' % num_strat)
+                # resample_functional_to_mask.inputs.set(
+                #     interp='trilinear',
+                #     apply_xfm=True,
+                #     in_matrix_file=c.identityMatrix
+                # )
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
                                                         'mask_dataflow_%d' % num_strat)

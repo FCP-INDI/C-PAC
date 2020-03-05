@@ -817,6 +817,7 @@ def resample_func_to_roi(in_file, reference, identity_matrix):
     func_img = nb.load(in_file)
     func_shape = func_img.shape 
 
+    # TODO resample a lower resolution space if high template resolution 
     if roi_shape != func_shape:
         # resample func to roi
         out_file = os.path.join(os.getcwd(), 'resampled_func.nii.gz')
