@@ -667,7 +667,7 @@ Regressors :
      
    aCompCor:
      summary:
-       method: PC
+       method: DetrendPC
        components: 5
      tissues:
        - WhiteMatter

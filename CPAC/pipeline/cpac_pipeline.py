@@ -3366,7 +3366,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     })
 
         # Voxel Based Time Series
-
         new_strat_list = []
 
         if "Voxel" in ts_analysis_dict.keys():
