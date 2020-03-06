@@ -2979,17 +2979,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         ts_analysis_dict[analysis_type] = []
                     ts_analysis_dict[analysis_type].append(roi_path)
 
-            # c.tsa_roi_paths and c.sca_roi_paths come in a format as such:
-            # a list containing a dictionary
-            # [
-            #     {
-            #         '/path/to/rois1.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois2.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois3.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois4.nii.gz': 'DualReg'
-            #     }
-            # ]
-
         # TODO ASH normalize w schema val
         if 1 in c.runROITimeseries:
 
@@ -3236,17 +3225,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     
                     resample_functional_to_roi_for_sca.inputs.identity_matrix = c.identityMatrix
 
-                    # resample_functional_to_roi_for_sca = pe.Node(
-                    #     interface=fsl.FLIRT(),
-                    #     name='resample_functional_to_roi_for_sca_%d' % num_strat
-                    # )
-
-                    # resample_functional_to_roi_for_sca.inputs.set(
-                    #     interp='trilinear',
-                    #     apply_xfm=True,
-                    #     in_matrix_file=c.identityMatrix
-                    # )
-
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
                         'roi_dataflow_for_sca_%d' % num_strat
@@ -3298,17 +3276,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                         name = 'resample_functional_to_roi_for_multreg_{0}'.format(num_strat)) 
                     
                     resample_functional_to_roi_for_multreg.inputs.identity_matrix = c.identityMatrix
-
-                    # resample_functional_to_roi_for_multreg = pe.Node(
-                    #     interface=fsl.FLIRT(),
-                    #     name='resample_functional_to_roi_for_mult_reg_%d' % num_strat
-                    # )
-
-                    # resample_functional_to_roi_for_multreg.inputs.set(
-                    #     interp='trilinear',
-                    #     apply_xfm=True,
-                    #     in_matrix_file=c.identityMatrix
-                    # )
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
                         sca_analysis_dict["MultReg"],
@@ -3404,14 +3371,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                         name = 'resample_functional_to_mask_{0}'.format(num_strat)) 
                     
                 resample_functional_to_mask.inputs.identity_matrix = c.identityMatrix
-
-                # resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
-                #                                     name='resample_functional_to_mask_%d' % num_strat)
-                # resample_functional_to_mask.inputs.set(
-                #     interp='trilinear',
-                #     apply_xfm=True,
-                #     in_matrix_file=c.identityMatrix
-                # )
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
                                                         'mask_dataflow_%d' % num_strat)
