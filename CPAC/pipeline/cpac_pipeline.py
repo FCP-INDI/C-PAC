@@ -443,7 +443,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'), # derivative resolution?  # no difference of skull and only brain
+        (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
+        (c.resolution_for_func_derivative, c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
@@ -2054,16 +2055,13 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # func preproc, such as the brain mask and mean EPI. Doing it any later
         # might result in multiple versions of these files being needlessly generated
         # do to strategies created by denoising, which do not impact the mean or brainmask
-        
-        # preproc Func -> EPI Template
-        new_strat_list = []
 
-        for registration_template in c.runRegisterFuncToTemplate:
+        if 'EPI_template' in c.runRegisterFuncToTemplate:
+
+            new_strat_list = []
             
-            registration_template = registration_template.lower()
-
-            if 'epi_template' in registration_template:
-        
+            for num_strat, strat in enumerate(strat_list):
+                
                 for reg in c.regOption:
 
                     new_strat = strat.fork()
@@ -2105,7 +2103,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # update resource pool
                     new_strat.update_resource_pool({
                         'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi'),
-                        'functional_brain_mask_to_standard': (func_to_epi, 'outputspec.func_mask_in_epi')
                     })
 
                     if reg == 'FSL' :
@@ -2124,14 +2121,35 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             'epi_to_func_nonlinear_xfm': (func_to_epi, 'outputspec.inverse_warp_field'), # rename
                         })                     
 
-
                     new_strat.append_name(func_to_epi.name)
+
+            strat_list = new_strat_list
+
+        # preproc Func -> EPI Template
+        new_strat_list = []
+
+        for registration_template in c.runRegisterFuncToTemplate:
+            
+            registration_template = registration_template.lower()
+
+            new_strat = strat.fork()
+
+            if 'epi_template' in registration_template:
+
+                for num_strat, strat in enumerate(strat_list):
+
+                    for output_name, func_key, ref_key, image_type in [ \
+                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
+                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
+                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
+                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
+                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
+                    ]:
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi')
 
                     new_strat_list.append(new_strat)
 
             if 't1_template' in registration_template:
-
-                new_strat = strat.fork()
 
                 for num_strat, strat in enumerate(strat_list):
 
@@ -2143,8 +2161,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                             ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
                         output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='t1')
-                
-                new_strat_list.append(new_strat)
+                    
+                    new_strat_list.append(new_strat)
 
         strat_list = new_strat_list
 
@@ -2362,10 +2380,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # we don't have the FNIRT warp file, so we need to calculate
                     # ICA-AROMA de-noising in template space
 
-                    for output_name, func_key, ref_key, image_type in [ \
-                            ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
-                    ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                    if 'func_to_epi_ants' in nodes:
+
+                        for output_name, func_key, ref_key, image_type in [ \
+                                ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                        ]:
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi')
+
+                    elif 'T1_template' in c.runRegisterFuncToTemplate:
+
+                        for output_name, func_key, ref_key, image_type in [ \
+                                ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                        ]:
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+
 
                     aroma_preproc = create_aroma(tr=TR, wf_name='create_aroma_{0}'.format(num_strat))
 
@@ -2391,10 +2419,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         }
                     )
 
-                    for output_name, func_key, ref_key, image_type in [ \
-                            ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
-                    ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1') 
+
+                    if 'func_to_epi_ants' in nodes:
+
+                        for output_name, func_key, ref_key, image_type in [ \
+                                ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
+                        ]:
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='epi') 
+
+                    else:
+
+                        for output_name, func_key, ref_key, image_type in [ \
+                                ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
+                        ]:
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1') 
+
 
                     node, out_file = strat["ica_aroma_denoised_functional"]
                     strat.set_leaf_properties(node, out_file)
@@ -3554,8 +3593,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     output_name = '{0}_to_standard'.format(key)
                     if output_name not in strat:
-                        output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
-                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                        output_func_to_standard(workflow, key, 'template_epi_derivative',
+                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='epi')
 
             elif 'T1_template' in c.runRegisterFuncToTemplate:
                 

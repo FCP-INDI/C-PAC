@@ -527,8 +527,8 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
                                                         'fsl_flirt_xfm',
                                                         'fsl_fnirt_xfm',
                                                         'invlinear_xfm',
-                                                        'func_in_epi',
-                                                        'func_mask_in_epi']),
+                                                        'func_in_epi']),
+                                                        # 'func_mask_in_epi']),
                          name='outputspec')
 
     if reg_option == 'ANTS':
@@ -588,14 +588,14 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
         register_func_to_epi.connect(check_transform, 'checked_transform_list', func_in_epi, 'transforms')
         register_func_to_epi.connect(func_in_epi, 'output_image', outputspec, 'func_in_epi')
 
-        # apply transform to functional mask
-        func_mask_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_mask_in_epi_ants')
-        func_mask_in_epi.inputs.dimension = 3
-        func_mask_in_epi.inputs.input_image_type = 0
-        register_func_to_epi.connect(inputspec, 'func_3d_mask', func_mask_in_epi, 'input_image')
-        register_func_to_epi.connect(inputspec, 'epi', func_mask_in_epi, 'reference_image')
-        register_func_to_epi.connect(check_transform, 'checked_transform_list', func_mask_in_epi, 'transforms')
-        register_func_to_epi.connect(func_mask_in_epi, 'output_image', outputspec, 'func_mask_in_epi')
+        # # apply transform to functional mask
+        # func_mask_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_mask_in_epi_ants')
+        # func_mask_in_epi.inputs.dimension = 3
+        # func_mask_in_epi.inputs.input_image_type = 0
+        # register_func_to_epi.connect(inputspec, 'func_3d_mask', func_mask_in_epi, 'input_image')
+        # register_func_to_epi.connect(inputspec, 'epi', func_mask_in_epi, 'reference_image')
+        # register_func_to_epi.connect(check_transform, 'checked_transform_list', func_mask_in_epi, 'transforms')
+        # register_func_to_epi.connect(func_mask_in_epi, 'output_image', outputspec, 'func_mask_in_epi')
 
     elif reg_option == 'FSL':
         # flirt linear registration 
