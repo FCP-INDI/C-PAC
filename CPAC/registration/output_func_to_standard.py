@@ -115,7 +115,8 @@ def ants_apply_warps_func_mni(
         inverse=False,
         symmetry='asymmetric',
         input_image_type=0,
-        num_ants_cores=1
+        num_ants_cores=1,
+        registration_template='t1'
     ):
 
     """
@@ -269,61 +270,116 @@ def ants_apply_warps_func_mni(
                 'collect_transforms{0}{1}'.format('_distcor',
                         inverse_string)
 
-    if collect_transforms_key not in strat:
+    if collect_transforms_key not in strat:      
+        if registration_template == 't1':
+            # handle both symmetric and asymmetric transforms
+            ants_transformation_dict =  {
+                    'asymmetric': {
+                        'anatomical_to_mni_nonlinear_xfm': 'anatomical_to_mni_nonlinear_xfm',
+                        'ants_affine_xfm': 'ants_affine_xfm',
+                        'ants_rigid_xfm': 'ants_rigid_xfm',
+                        'ants_initial_xfm': 'ants_initial_xfm',
+                        'blip_warp': 'blip_warp',
+                        'blip_warp_inverse': 'blip_warp_inverse',
+                        'fsl_mat_as_itk': 'fsl_mat_as_itk',
+                        },
+                    'symmetric': {
+                        'anatomical_to_mni_nonlinear_xfm': 'ants_symm_warp_field',
+                        'ants_affine_xfm': 'ants_symm_affine_xfm',
+                        'ants_rigid_xfm': 'ants_symm_rigid_xfm',
+                        'ants_initial_xfm': 'ants_symm_initial_xfm',
+                        'blip_warp': 'blip_warp',
+                        'blip_warp_inverse': 'blip_warp_inverse',
+                        'fsl_mat_as_itk': 'fsl_mat_as_itk',
+                        }
+                    }
 
-        # handle both symmetric and asymmetric transforms
-        ants_transformation_dict =  {
-                'asymmetric': {
-                    'anatomical_to_mni_nonlinear_xfm': 'anatomical_to_mni_nonlinear_xfm',
-                    'ants_affine_xfm': 'ants_affine_xfm',
-                    'ants_rigid_xfm': 'ants_rigid_xfm',
-                    'ants_initial_xfm': 'ants_initial_xfm',
-                    'blip_warp': 'blip_warp',
-                    'blip_warp_inverse': 'blip_warp_inverse',
-                    'fsl_mat_as_itk': 'fsl_mat_as_itk',
-                    },
-                 'symmetric': {
-                    'anatomical_to_mni_nonlinear_xfm': 'ants_symm_warp_field',
-                    'ants_affine_xfm': 'ants_symm_affine_xfm',
-                    'ants_rigid_xfm': 'ants_symm_rigid_xfm',
-                    'ants_initial_xfm': 'ants_symm_initial_xfm',
-                    'blip_warp': 'blip_warp',
-                    'blip_warp_inverse': 'blip_warp_inverse',
-                    'fsl_mat_as_itk': 'fsl_mat_as_itk',
-                     }
-                }
-
-        # transforms to be concatenated, the first element of each tuple is
-        # the resource pool key related to the resource that should be 
-        # connected in, and the second element is the input to which it 
-        # should be connected
-        if inverse is True:
-            if distcor is True:
-                # Field file from anatomical nonlinear registration
-                transforms_to_combine = [\
-                        ('mni_to_anatomical_nonlinear_xfm', 'in6'),
-                        ('ants_affine_xfm', 'in5'),
-                        ('ants_rigid_xfm', 'in4'),
-                        ('ants_initial_xfm', 'in3'),
-                        ('fsl_mat_as_itk', 'in2'),
-                        ('blip_warp_inverse', 'in1')]
+            # transforms to be concatenated, the first element of each tuple is
+            # the resource pool key related to the resource that should be 
+            # connected in, and the second element is the input to which it 
+            # should be connected
+            if inverse is True:
+                if distcor is True:
+                    # Field file from anatomical nonlinear registration
+                    transforms_to_combine = [\
+                            ('mni_to_anatomical_nonlinear_xfm', 'in6'),
+                            ('ants_affine_xfm', 'in5'),
+                            ('ants_rigid_xfm', 'in4'),
+                            ('ants_initial_xfm', 'in3'),
+                            ('fsl_mat_as_itk', 'in2'),
+                            ('blip_warp_inverse', 'in1')]
+                else:
+                    transforms_to_combine = [\
+                            ('mni_to_anatomical_nonlinear_xfm', 'in5'),
+                            ('ants_affine_xfm', 'in4'),
+                            ('ants_rigid_xfm', 'in3'),
+                            ('ants_initial_xfm', 'in2'),
+                            ('fsl_mat_as_itk', 'in1')]
             else:
                 transforms_to_combine = [\
-                        ('mni_to_anatomical_nonlinear_xfm', 'in5'),
-                        ('ants_affine_xfm', 'in4'),
+                        ('anatomical_to_mni_nonlinear_xfm', 'in1'),
+                        ('ants_affine_xfm', 'in2'),
                         ('ants_rigid_xfm', 'in3'),
-                        ('ants_initial_xfm', 'in2'),
-                        ('fsl_mat_as_itk', 'in1')]
-        else:
-            transforms_to_combine = [\
-                    ('anatomical_to_mni_nonlinear_xfm', 'in1'),
-                    ('ants_affine_xfm', 'in2'),
-                    ('ants_rigid_xfm', 'in3'),
-                    ('ants_initial_xfm', 'in4'),
-                    ('fsl_mat_as_itk', 'in5')]
+                        ('ants_initial_xfm', 'in4'),
+                        ('fsl_mat_as_itk', 'in5')]
 
-            if distcor is True:
-                transforms_to_combine.append(('blip_warp', 'in6'))
+                if distcor is True:
+                    transforms_to_combine.append(('blip_warp', 'in6'))
+
+        if registration_template == 'epi':
+            # handle both symmetric and asymmetric transforms
+            ants_transformation_dict =  {
+                    'asymmetric': {
+                        'func_to_epi_nonlinear_xfm': 'func_to_epi_nonlinear_xfm',
+                        'func_to_epi_ants_affine_xfm': 'func_to_epi_ants_affine_xfm',
+                        'func_to_epi_ants_rigid_xfm': 'func_to_epi_ants_rigid_xfm',
+                        'func_to_epi_ants_initial_xfm': 'func_to_epi_ants_initial_xfm',
+                        # 'blip_warp': 'blip_warp',
+                        # 'blip_warp_inverse': 'blip_warp_inverse',
+                        # 'fsl_mat_as_itk': 'fsl_mat_as_itk',
+                        },
+                    # 'symmetric': {
+                        # 'func_to_epi_nonlinear_xfm': 'anatomical_to_mni_nonlinear_xfm',
+                        # 'func_to_epi_ants_affine_xfm': 'func_to_epi_ants_affine_xfm',
+                        # 'func_to_epi_ants_rigid_xfm': 'func_to_epi_ants_rigid_xfm',
+                        # 'func_to_epi_ants_initial_xfm': 'ants_initial_xfm',
+                        # 'blip_warp': 'blip_warp',
+                        # 'blip_warp_inverse': 'blip_warp_inverse',
+                        # 'fsl_mat_as_itk': 'fsl_mat_as_itk',
+                        # }
+                    }
+
+            # transforms to be concatenated, the first element of each tuple is
+            # the resource pool key related to the resource that should be 
+            # connected in, and the second element is the input to which it 
+            # should be connected
+            if inverse is True:
+                if distcor is True:
+                    # Field file from anatomical nonlinear registration
+                    transforms_to_combine = [\
+                            ('epi_to_func_nonlinear_xfm', 'i5'),
+                            ('func_to_epi_ants_affine_xfm', 'in4'),
+                            ('func_to_epi_ants_rigid_xfm', 'in3'),
+                            ('func_to_epi_ants_initial_xfm', 'in2'),
+                            # ('fsl_mat_as_itk', 'in2'),
+                            ('blip_warp_inverse', 'in1')]
+                else:
+                    transforms_to_combine = [\
+                            ('epi_to_func_nonlinear_xfm', 'in5'),
+                            ('func_to_epi_ants_affine_xfm', 'in4'),
+                            ('func_to_epi_ants_rigid_xfm', 'in3'),
+                            ('func_to_epi_ants_initial_xfm', 'in2')]
+                            # ('fsl_mat_as_itk', 'in1')]
+            else:
+                transforms_to_combine = [\
+                        ('func_to_epi_nonlinear_xfm', 'in1'),
+                        ('func_to_epi_ants_affine_xfm', 'in2'),
+                        ('func_to_epi_ants_rigid_xfm', 'in3'),
+                        ('func_to_epi_ants_initial_xfm', 'in4')]
+                        # ('fsl_mat_as_itk', 'in5')]
+
+                if distcor is True:
+                    transforms_to_combine.append(('blip_warp', 'in5'))
 
         # define the node
         collect_transforms = pe.Node(util.Merge(num_transforms),
@@ -408,7 +464,7 @@ def ants_apply_warps_func_mni(
 
 def output_func_to_standard(workflow, func_key, ref_key, output_name,
         strat, num_strat, pipeline_config_obj, input_image_type='func_derivative',
-        symmetry='asymmetric', inverse=False):
+        symmetry='asymmetric', inverse=False, registration_template='t1'):
 
     image_types = ['func_derivative', 'func_derivative_multi',
             'func_4d', 'func_mask']
@@ -425,8 +481,8 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
             'blip_correct' in nodes else False
 
     if 'anat_mni_fnirt_register' in nodes or \
-        'anat_mni_flirt_register' in nodes:
-        # 'func_to_epi_fsl' in nodes:
+        'anat_mni_flirt_register' in nodes or \
+        'func_to_epi_fsl' in nodes:
 
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'nn'
@@ -450,7 +506,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 num_strat, strat, interpolation_method=interp,
                 distcor=distcor, map_node=map_node, inverse=inverse,
                 symmetry=symmetry, input_image_type=image_type,
-                num_ants_cores=pipeline_config_obj.num_ants_threads)
+                num_ants_cores=pipeline_config_obj.num_ants_threads, registration_template=registration_template)
 
     else:
         raise ValueError('Cannot determine whether a ANTS or FSL registration' \

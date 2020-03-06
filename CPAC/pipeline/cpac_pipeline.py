@@ -443,7 +443,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'), # derivative resolution?
+        (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'), # derivative resolution?  # no difference of skull and only brain
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
@@ -2058,13 +2058,12 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # preproc Func -> EPI Template
         new_strat_list = []
 
-        # TODO: forking runRegisterFuncToEPI
-        if 1 in c.runRegisterFuncToEPI:
+        for registration_template in c.runRegisterFuncToTemplate:
+            
+            registration_template = registration_template.lower()
 
-            new_strat_list = []
-
-            for num_strat, strat in enumerate(strat_list): 
-
+            if 'epi_template' in registration_template:
+        
                 for reg in c.regOption:
 
                     new_strat = strat.fork()
@@ -2106,28 +2105,51 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     # update resource pool
                     new_strat.update_resource_pool({
                         'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi'),
-                        'functional_mask_to_epi-standard': (func_to_epi, 'outputspec.func_mask_in_epi')
+                        'functional_brain_mask_to_standard': (func_to_epi, 'outputspec.func_mask_in_epi')
                     })
 
                     if reg == 'FSL' :
                         new_strat.update_resource_pool({
-                            'func_to_epi_flirt_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),
-                            'func_to_epi_fnirt_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
-                            'func_to_epi_invlinear_xfm': (func_to_epi, 'outputspec.invlinear_xfm')
+                            'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),  
+                            'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
+                            'epi_to_func_linear_xfm': (func_to_epi, 'outputspec.invlinear_xfm'),
                         })     
 
                     elif reg == 'ANTS' :
                         new_strat.update_resource_pool({
                             'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
                             'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
-                            'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm')
+                            'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm'),
+                            'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.warp_field'), 
+                            'epi_to_func_nonlinear_xfm': (func_to_epi, 'outputspec.inverse_warp_field'), # rename
                         })                     
+
 
                     new_strat.append_name(func_to_epi.name)
 
                     new_strat_list.append(new_strat)
 
-            strat_list = new_strat_list
+            if 't1_template' in registration_template:
+
+                new_strat = strat.fork()
+
+                for num_strat, strat in enumerate(strat_list):
+
+                    for output_name, func_key, ref_key, image_type in [ \
+                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
+                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
+                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
+                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
+                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
+                    ]:
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                
+                new_strat_list.append(new_strat)
+
+        strat_list = new_strat_list
+
+        # Inserting epi-template-based-segmentation Workflow
+        new_strat_list = []
 
         if 'EPI_template' in c.template_based_segmentation :
 
@@ -2174,16 +2196,19 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     seg_preproc_template_based, 'inputspec.brain') 
 
                     node, out_file = strat['func_to_epi_ants_initial_xfm']
+                    # node, out_file = strat['ants_initial_xfm']
                     workflow.connect(node, out_file,
                                     seg_preproc_template_based,
                                     'inputspec.standard2highres_init')
 
                     node, out_file = strat['func_to_epi_ants_rigid_xfm']
+                    # node, out_file = strat['ants_rigid_xfm']
                     workflow.connect(node, out_file,
                                     seg_preproc_template_based,
                                     'inputspec.standard2highres_rig')
 
                     node, out_file = strat['func_to_epi_ants_affine_xfm']
+                    # node, out_file = strat['ants_affine_xfm']
                     workflow.connect(node, out_file,
                                     seg_preproc_template_based,
                                     'inputspec.standard2highres_mat')                                          
@@ -2204,27 +2229,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                 strat.append_name(seg_preproc_template_based.name)
                 strat.update_resource_pool({
-                    'anatomical_gm_mask': (seg_preproc_template_based, 'outputspec.gm_mask'),
-                    'anatomical_csf_mask': (seg_preproc_template_based, 'outputspec.csf_mask'),
-                    'anatomical_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
+                    'epi_gm_mask': (seg_preproc_template_based, 'outputspec.gm_mask'),
+                    'epi_csf_mask': (seg_preproc_template_based, 'outputspec.csf_mask'),
+                    'epi_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
                 })
-                
-        # preproc Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
-        #  apply the warp
-        new_strat_list = []
-
-        if 1 in c.runRegisterFuncToMNI:
-
-            for num_strat, strat in enumerate(strat_list):
-
-                for output_name, func_key, ref_key, image_type in [ \
-                        ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
-                        ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
-                        ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
-                        ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
-                        ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
-                ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
 
             strat_list += new_strat_list
 
@@ -2357,7 +2365,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1')
 
                     aroma_preproc = create_aroma(tr=TR, wf_name='create_aroma_{0}'.format(num_strat))
 
@@ -2386,7 +2394,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     for output_name, func_key, ref_key, image_type in [ \
                             ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
                     ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True) 
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1') 
 
                     node, out_file = strat["ica_aroma_denoised_functional"]
                     strat.set_leaf_properties(node, out_file)
@@ -2411,7 +2419,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
             nodes = strat.get_nodes_names()
 
             has_segmentation = 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes or 'seg_preproc_epi_template' in nodes
-            use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes
+            use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes and 'func_to_epi_fsl' not in nodes
 
             for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
 
@@ -2461,23 +2469,45 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         regressor_workflow, 'inputspec.lat_ventricles_mask_file_path'
                     )
 
-                    node, out_file = new_strat['anatomical_gm_mask']
-                    workflow.connect(
-                        node, out_file,
-                        regressor_workflow, 'inputspec.gm_mask_file_path'
-                    )
+                    if 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes :
 
-                    node, out_file = new_strat['anatomical_wm_mask']
-                    workflow.connect(
-                        node, out_file,
-                        regressor_workflow, 'inputspec.wm_mask_file_path'
-                    )
+                        node, out_file = new_strat['anatomical_gm_mask']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow, 'inputspec.gm_mask_file_path'
+                        )
 
-                    node, out_file = new_strat['anatomical_csf_mask']
-                    workflow.connect(
-                        node, out_file,
-                        regressor_workflow, 'inputspec.csf_mask_file_path'
-                    )
+                        node, out_file = new_strat['anatomical_wm_mask']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow, 'inputspec.wm_mask_file_path'
+                        )
+
+                        node, out_file = new_strat['anatomical_csf_mask']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow, 'inputspec.csf_mask_file_path'
+                        )
+
+                    if 'seg_preproc_epi_template' in nodes :
+
+                        node, out_file = new_strat['epi_gm_mask']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow, 'inputspec.gm_mask_file_path'
+                        )
+
+                        node, out_file = new_strat['epi_wm_mask']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow, 'inputspec.wm_mask_file_path'
+                        )
+
+                        node, out_file = new_strat['epi_csf_mask']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow, 'inputspec.csf_mask_file_path'
+                        )
 
                 node, out_file = new_strat['movement_parameters']
                 workflow.connect(
@@ -2807,16 +2837,30 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         #  apply the warp; also includes mean functional warp
         new_strat_list = []
 
-        if 1 in c.runRegisterFuncToMNI:
+        for num_strat, strat in enumerate(strat_list):
 
-            for num_strat, strat in enumerate(strat_list):
+            nodes = strat.get_nodes_names()
+
+            if 'func_to_epi_fsl' in nodes or 'func_to_epi_ants' in nodes :
+
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type)
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi')
 
-        strat_list += new_strat_list
-        
+                new_strat_list += [strat]
+
+            elif 'T1_template' in c.runRegisterFuncToTemplate:
+
+                for output_name, func_key, ref_key, image_type in [ \
+                        ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                ]:
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                
+                new_strat_list += [strat]
+            
+        strat_list = new_strat_list
+
         # Derivatives
 
         # Inserting ALFF/fALFF workflow
@@ -3493,8 +3537,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
         for num_strat, strat in enumerate(strat_list):
 
-            if 1 in c.runRegisterFuncToMNI:
+            nodes = strat.get_nodes_names()
 
+            if 'func_to_epi_fsl' in nodes or 'func_to_epi_ants' in nodes :
+                
                 rp = strat.get_resource_pool()
 
                 for key in sorted(rp.keys()):
@@ -3509,7 +3555,25 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     output_name = '{0}_to_standard'.format(key)
                     if output_name not in strat:
                         output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
-                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type)
+                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+
+            elif 'T1_template' in c.runRegisterFuncToTemplate:
+                
+                rp = strat.get_resource_pool()
+
+                for key in sorted(rp.keys()):
+
+                    if key in Outputs.native_nonsmooth:
+                        image_type = 'func_derivative'
+                    elif key in Outputs.native_nonsmooth_mult:
+                        image_type = 'func_derivative_multi'
+                    else:
+                        continue
+
+                    output_name = '{0}_to_standard'.format(key)
+                    if output_name not in strat:
+                        output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
+                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='t1')
 
             if "Before" in c.smoothing_order:
 
@@ -3721,7 +3785,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         if resource in Outputs.debugging:
                             continue
 
-                    if 0 not in c.runRegisterFuncToMNI:
+                    if 'Off' not in c.runRegisterFuncToTemplate:
                         if resource in Outputs.native_nonsmooth or \
                             resource in Outputs.native_nonsmooth_mult or \
                                 resource in Outputs.native_smooth:
