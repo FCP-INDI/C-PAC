@@ -175,8 +175,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
 
             glob_string = os.path.join(glob_string, "*")
             prog_string = prog_string + "."
-            print
-            prog_string
+            print(prog_string)
 
     if len(nifti_globs) == 0:
         err = "\n\n[!] No output filepaths found in the pipeline output " \
@@ -342,8 +341,8 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
 
-    print "\n\nGathering the output file paths from %s..." \
-          % pipeline_output_folder
+    print("\n\nGathering the output file paths from "
+          "{0}...".format(pipeline_output_folder))
 
     # this is just to keep the fsl feat config file derivatives entries
     # nice and lean
@@ -471,8 +470,8 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
 
 
 def gather_outputs(pipeline_folder, resource_list, inclusion_list,
-                   get_motion, get_raw_score, get_func=False, derivatives=None,
-                   exts=['nii', 'nii.gz']):
+                   get_motion, get_raw_score, get_func=False,
+                   derivatives=None):
 
     nifti_globs, search_dir = gather_nifti_globs(
         pipeline_folder,
@@ -2027,7 +2026,7 @@ def manage_processes(procss, output_dir, num_parallel=1):
             else:
                 for job in jobQueue:
                     if not job.is_alive():
-                        print 'found dead job ', job
+                        print('found dead job {0}'.format(job))
                         loc = jobQueue.index(job)
                         del jobQueue[loc]
                         procss[idx].start()
