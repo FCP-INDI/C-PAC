@@ -2123,46 +2123,46 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     new_strat.append_name(func_to_epi.name)
 
+                new_strat_list.append(new_strat)
+
             strat_list = new_strat_list
 
         # preproc Func -> EPI Template
         new_strat_list = []
-
-        for registration_template in c.runRegisterFuncToTemplate:
+   
+        for num_strat, new_strat in enumerate(strat_list):            
             
-            registration_template = registration_template.lower()
+            nodes = strat.get_nodes_names()
 
-            new_strat = strat.fork()
+            if 'func_to_epi_ants' in nodes or 'func_to_epi_fsl' in nodes :
 
-            if 'epi_template' in registration_template:
+                new_strat = strat.fork()
 
-                for num_strat, strat in enumerate(strat_list):
+                for output_name, func_key, ref_key, image_type in [ \
+                        ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
+                        ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
+                        ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
+                        ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
+                        ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
+                ]:
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi')
 
-                    for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
-                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
-                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
-                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
-                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
-                    ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi')
+                new_strat_list.append(new_strat)
 
-                    new_strat_list.append(new_strat)
+            elif 'T1_template' in c.runRegisterFuncToTemplate:
 
-            if 't1_template' in registration_template:
+                new_strat = strat.fork()
 
-                for num_strat, strat in enumerate(strat_list):
-
-                    for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
-                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
-                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
-                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
-                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
-                    ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='t1')
-                    
-                    new_strat_list.append(new_strat)
+                for output_name, func_key, ref_key, image_type in [ \
+                        ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
+                        ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
+                        ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
+                        ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
+                        ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
+                ]:
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                
+                new_strat_list.append(new_strat)
 
         strat_list = new_strat_list
 
