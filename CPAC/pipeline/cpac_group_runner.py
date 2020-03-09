@@ -473,7 +473,7 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
                    get_motion, get_raw_score, get_func=False,
                    derivatives=None):
 
-    nifti_globs, search_dir = gather_nifti_globs(
+    nifti_globs = gather_nifti_globs(
         pipeline_folder,
         resource_list,
         get_func
@@ -486,8 +486,7 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
         get_motion,
         get_raw_score,
         get_func,
-        derivatives,
-        exts
+        derivatives
     )
 
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
