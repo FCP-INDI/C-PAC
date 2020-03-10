@@ -2127,10 +2127,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             strat_list = new_strat_list
 
-        # preproc Func -> EPI Template
+        # preproc Func -> T1/EPI Template
         new_strat_list = []
    
-        for num_strat, new_strat in enumerate(strat_list):            
+        for num_strat, strat in enumerate(strat_list):            
             
             nodes = strat.get_nodes_names()
 
