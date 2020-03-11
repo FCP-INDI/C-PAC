@@ -21,8 +21,6 @@ from CPAC.GUI.interface.pages import (
     AROMA_ICA, AromaSettings
 )
 
-from ..utils.constants import dtype as data_types
-
 ID_SUBMIT = 6
 
 
@@ -338,7 +336,7 @@ class MainFrame(wx.Frame):
         import yaml
 
         try:
-            config_file_map = yaml.load(open(self.path, 'r'))
+            config_file_map = yaml.safe_load(open(self.path, 'r'))
         except:
             raise Exception("Error importing file - %s , Make"
                             " sure it is in correct yaml format")
@@ -741,7 +739,7 @@ class MainFrame(wx.Frame):
         
         # Load and test the subject list
         print('Checking data configuration: {0}...'.format(subListPath))
-        sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
+        sublist = yaml.safe_load(open(os.path.realpath(subListPath), 'r'))
         sub_flg = self.test_sublist(sublist)
         if not sub_flg:
             raise Exception
@@ -824,7 +822,7 @@ class MainFrame(wx.Frame):
         try:
             test_cfg_yml = '/tmp/test_config.yml'
             self.write(test_cfg_yml, config_list)
-            c = Configuration(yaml.load(open(os.path.realpath(test_cfg_yml), 'r')))
+            c = Configuration(yaml.safe_load(open(os.path.realpath(test_cfg_yml), 'r')))
             os.remove(test_cfg_yml)
         except:
             errDlg2 = wx.MessageDialog(

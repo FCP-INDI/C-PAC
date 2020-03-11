@@ -1,12 +1,11 @@
 import os
-import time
 import warnings
 from multiprocessing import Process
 from time import strftime
 
 import yaml
 
-from CPAC.utils import Configuration
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
 
 
@@ -20,7 +19,7 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     from time import strftime
 
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception("Subject list is not in proper YAML format. Please check your file")
 
@@ -34,7 +33,6 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     print >>f, "getenv = True"
     print >>f, "log = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S")))
 
-    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     for sidx in range(1,len(sublist)+1):
         print >>f, "error = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
         print >>f, "output = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
@@ -67,14 +65,14 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
     # Load in pipeline config
     try:
-        pipeline_dict = yaml.load(open(os.path.realpath(config_file), 'r'))
+        pipeline_dict = yaml.safe_load(open(os.path.realpath(config_file), 'r'))
         pipeline_config = Configuration(pipeline_dict)
     except:
         raise Exception('Pipeline config is not in proper YAML format. '\
                         'Please check your file')
     # Load in the subject list
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception('Subject list is not in proper YAML format. '\
                         'Please check your file')
@@ -214,7 +212,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         if not os.path.exists(config_file):
             raise IOError
         else:
-            c = Configuration(yaml.load(open(config_file, 'r')))
+            c = Configuration(yaml.safe_load(open(config_file, 'r')))
     except IOError:
         print "config file %s doesn't exist" % config_file
         raise
@@ -267,8 +265,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     # Load in subject list
     try:
         if not sublist:
-            with open(subject_list_file, 'r') as sf:
-                sublist = yaml.load(sf)
+            sublist = yaml.safe_load(open(subject_list_file, 'r'))
     except:
         print "Subject list is not in proper YAML format. Please check " \
               "your file"

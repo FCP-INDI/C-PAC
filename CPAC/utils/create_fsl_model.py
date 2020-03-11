@@ -1433,7 +1433,7 @@ def run(group_config, current_output, param_file=None, \
         c = group_config
     else:
         try:
-            c = Configuration(yaml.load(open(os.path.realpath(group_config), \
+            c = Configuration(yaml.safe_load(open(os.path.realpath(group_config), \
                                   'r')))
         except:
             raise Exception("Error in reading %s configuration file" \

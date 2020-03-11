@@ -8,16 +8,27 @@ def test_yaml_template():
 
     config_file = tempfile.mkstemp(suffix='test_yaml_template')[1]
 
-    with open("./default_pipeline.yml", "r") as f:
-        config = yaml.load(f)
+    # Create a new YAML configuration file based on the default_pipeline.yml file.
+    config = yaml.safe_load(open('./data/default_pipeline.yml', 'r'))
 
-    new_config = create_yaml_from_template(config, "./default_pipeline.yml")
+    new_config = create_yaml_from_template(config, './data/default_pipeline.yml')
 
-    with open(config_file, "wb") as f:
+    with open(config_file, 'wb') as f:
         f.write(new_config)
 
-    # TODO test cases
-    # Test lists, dicts and list of dicts
-    # Look for who is in flow style and who is not
-    # Check for default values
-    # Check for comments
+    # Verify that the output has preserved blank lines, comments
+    with open(config_file, 'r') as f:
+        lines = f.readlines()
+        # Assert first lines starts with a comment
+        assert lines[0].startswith('# ')
+
+        # Assert that there are blank lines
+        assert lines[6].isspace()
+        assert lines[7].isspace()
+
+        # Assert that regressors configuration written in block style
+        assert lines[669].startswith('Regressors:')
+        assert lines[670].startswith('- Bandpass:')
+
+        # Assert that other configurations that are lists of values are written in flow style
+        assert lines[764].startswith('roiTSOutputs: [true, true]')

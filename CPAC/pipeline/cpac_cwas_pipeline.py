@@ -1,11 +1,10 @@
-import nipype.interfaces.utility as util
+import os
+
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
-import re
-import os
-import sys
-import glob
-from CPAC.utils import Configuration
+
+from CPAC.utils.configuration import Configuration
+
 
 def prep_cwas_workflow(c, subject_infos):
     print 'Preparing CWAS workflow'
@@ -38,24 +37,20 @@ def prep_cwas_workflow(c, subject_infos):
     wf.connect(cw, 'outputspec.p_map',
                ds, 'p_map')
 
-
     wf.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
 
-
 def run(config, subject_infos):
-    import re
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
-    import sys
     import pickle
     import yaml
 
-    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
-
+    c = Configuration(yaml.safe_load(open(os.path.realpath(config), 'r')))
 
     prep_cwas_workflow(c, pickle.load(open(subject_infos, 'r') ))
+
 
 
