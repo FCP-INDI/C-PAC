@@ -2615,31 +2615,57 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 ])
 
                 if use_ants:
+                    if 'func_to_epi_ants' in nodes:
+                        # pass the ants_affine_xfm to the input for the
+                        # INVERSE transform, but ants_affine_xfm gets inverted
+                        # within the workflow
 
-                    # pass the ants_affine_xfm to the input for the
-                    # INVERSE transform, but ants_affine_xfm gets inverted
-                    # within the workflow
+                        node, out_file = new_strat['func_to_epi_ants_initial_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow,
+                            'inputspec.anat_to_mni_initial_xfm_file_path'
+                        )
 
-                    node, out_file = new_strat['ants_initial_xfm']
-                    workflow.connect(
-                        node, out_file,
-                        regressor_workflow,
-                        'inputspec.anat_to_mni_initial_xfm_file_path'
-                    )
+                        node, out_file = new_strat['func_to_epi_ants_rigid_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow,
+                            'inputspec.anat_to_mni_rigid_xfm_file_path'
+                        )
 
-                    node, out_file = new_strat['ants_rigid_xfm']
-                    workflow.connect(
-                        node, out_file,
-                        regressor_workflow,
-                        'inputspec.anat_to_mni_rigid_xfm_file_path'
-                    )
+                        node, out_file = new_strat['func_to_epi_ants_affine_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow,
+                            'inputspec.anat_to_mni_affine_xfm_file_path'
+                        )
 
-                    node, out_file = new_strat['ants_affine_xfm']
-                    workflow.connect(
-                        node, out_file,
-                        regressor_workflow,
-                        'inputspec.anat_to_mni_affine_xfm_file_path'
-                    )
+                    elif 'T1_template' in c.runRegisterFuncToTemplate:
+                        # pass the ants_affine_xfm to the input for the
+                        # INVERSE transform, but ants_affine_xfm gets inverted
+                        # within the workflow
+
+                        node, out_file = new_strat['ants_initial_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow,
+                            'inputspec.anat_to_mni_initial_xfm_file_path'
+                        )
+
+                        node, out_file = new_strat['ants_rigid_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow,
+                            'inputspec.anat_to_mni_rigid_xfm_file_path'
+                        )
+
+                        node, out_file = new_strat['ants_affine_xfm']
+                        workflow.connect(
+                            node, out_file,
+                            regressor_workflow,
+                            'inputspec.anat_to_mni_affine_xfm_file_path'
+                        )
                 else:
                     node, out_file = new_strat['mni_to_anatomical_linear_xfm']
                     workflow.connect(
@@ -4008,7 +4034,37 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     ]
 
                     node, out_file = rp[resource]
-                    workflow.connect(node, out_file, ds, resource)
+                    
+                    # exclue Nonetype transforms
+                    if resource == 'ants_initial_xfm' or resource == 'ants_rigid_xfm' or resource == 'ants_affine_xfm':
+                        ants_para = c.ANTs_para_T1_registration
+                        for para_index in range(len(ants_para)):
+                            for para_type in ants_para[para_index]:
+                                if para_type == 'initial-moving-transform':
+                                    if ants_para[para_index][para_type]['initializationFeature'] == 0 and resource == 'ants_initial_xfm':
+                                        workflow.connect(node, out_file, ds, resource)
+                                elif para_type == 'transforms':
+                                    for trans_index in range(len(ants_para[para_index][para_type])):
+                                        for trans_type in ants_para[para_index][para_type][trans_index]:
+                                            if trans_type == 'Rigid' and resource == 'ants_rigid_xfm':
+                                                workflow.connect(node, out_file, ds, resource)
+                                            if trans_type == 'Affine' and resource == 'ants_affine_xfm':
+                                                workflow.connect(node, out_file, ds, resource)
+                    # exclue Nonetype transforms
+                    if resource == 'func_to_epi_ants_initial_xfm' or resource == 'func_to_epi_ants_rigid_xfm' or resource == 'func_to_epi_ants_affine_xfm':
+                        ants_para = c.ANTs_para_EPI_registration
+                        for para_index in range(len(ants_para)):
+                            for para_type in ants_para[para_index]:
+                                if para_type == 'initial-moving-transform':
+                                    if ants_para[para_index][para_type]['initializationFeature'] == 0 and resource == 'func_to_epi_ants_initial_xfm':
+                                        workflow.connect(node, out_file, ds, resource)
+                                elif para_type == 'transforms':
+                                    for trans_index in range(len(ants_para[para_index][para_type])):
+                                        for trans_type in ants_para[para_index][para_type][trans_index]:
+                                            if trans_type == 'Rigid' and resource == 'func_to_epi_ants_rigid_xfm':
+                                                workflow.connect(node, out_file, ds, resource)
+                                            if trans_type == 'Affine' and resource == 'func_to_epi_ants_affine_xfm':
+                                                workflow.connect(node, out_file, ds, resource)
 
                     output_sink_nodes += [(ds, 'out_file')]
 
