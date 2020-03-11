@@ -2060,16 +2060,21 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                     func_to_anat_bbreg,
                                     'inputspec.linear_reg_matrix')
 
-                    # Input segmentation probability maps for white matter
-                    # segmentation
-                    # node, out_file = strat['seg_probability_maps']
-                    # workflow.connect(node, (out_file, pick_wm),
-                    #                 func_to_anat_bbreg,
-                    #                 'inputspec.anat_wm_segmentation')
-                    node, out_file = strat['anatomical_wm_mask']
-                    workflow.connect(node, out_file,
-                                    func_to_anat_bbreg,
-                                    'inputspec.anat_wm_segmentation')
+                    if 'T1_template' in c.template_based_segmentation or 'EPI_template' in c.template_based_segmentation:
+                        # Input segmentation mask,
+                        # since template_based_segmentation cannot generate probability maps
+                        node, out_file = strat['anatomical_wm_mask']
+                        workflow.connect(node, out_file,	
+                                        func_to_anat_bbreg,	
+                                        'inputspec.anat_wm_segmentation')
+
+                    else:
+                        # Input segmentation probability maps for white matter
+                        # segmentation
+                        node, out_file = strat['seg_probability_maps']
+                        workflow.connect(node, (out_file, pick_wm),
+                                         func_to_anat_bbreg,
+                                         'inputspec.anat_wm_segmentation')
 
                     if dist_corr and phase_diff:
                         # apply field map distortion correction outputs to
@@ -3361,7 +3366,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     })
 
         # Voxel Based Time Series
-
         new_strat_list = []
 
         if "Voxel" in ts_analysis_dict.keys():

@@ -689,7 +689,7 @@ lateral_ventricles_mask :  /usr/share/fsl/5.0/data/atlases/HarvardOxford/Harvard
 Regressors :
  - aCompCor:
      summary:
-       method: PC
+       method: DetrendPC
        components: 5
      tissues:
        - WhiteMatter
