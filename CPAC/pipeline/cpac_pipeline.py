@@ -2153,8 +2153,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list.append(new_strat)
 
         strat_list = new_strat_list
-        import pdb
-        pdb.set_trace()
+
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
 
