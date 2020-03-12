@@ -2055,12 +2055,14 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
         # func preproc, such as the brain mask and mean EPI. Doing it any later
         # might result in multiple versions of these files being needlessly generated
         # do to strategies created by denoising, which do not impact the mean or brainmask
-
-        if 'EPI_template' in c.runRegisterFuncToTemplate:
-
-            new_strat_list = []
+        # preproc Func -> T1/EPI Template
+        new_strat_list = []
+   
+        for num_strat, strat in enumerate(strat_list):            
             
-            for num_strat, strat in enumerate(strat_list):
+            nodes = strat.get_nodes_names()
+
+            if 'EPI_template' in c.runRegisterFuncToTemplate:
                 
                 for reg in c.regOption:
 
@@ -2123,34 +2125,20 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     new_strat.append_name(func_to_epi.name)
 
-                new_strat_list.append(new_strat)
-
-            strat_list = new_strat_list
-
-        # preproc Func -> T1/EPI Template
-        new_strat_list = []
-   
-        for num_strat, strat in enumerate(strat_list):            
-            
-            nodes = strat.get_nodes_names()
-
-            if 'func_to_epi_ants' in nodes or 'func_to_epi_fsl' in nodes :
-
-                new_strat = strat.fork()
-
-                for output_name, func_key, ref_key, image_type in [ \
-                        ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
-                        ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
-                        ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
-                        ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
-                        ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
-                ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi')
+                    for output_name, func_key, ref_key, image_type in [ \
+                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
+                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
+                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
+                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
+                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
+                    ]:
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi')
 
                 new_strat_list.append(new_strat)
 
-            elif 'T1_template' in c.runRegisterFuncToTemplate:
-
+            if 'T1_template' in c.runRegisterFuncToTemplate:
+                
+                num_strat += 1
                 new_strat = strat.fork()
 
                 for output_name, func_key, ref_key, image_type in [ \
@@ -2165,7 +2153,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 new_strat_list.append(new_strat)
 
         strat_list = new_strat_list
-
+        import pdb
+        pdb.set_trace()
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
 
