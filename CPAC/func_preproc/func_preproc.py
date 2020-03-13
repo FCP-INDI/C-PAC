@@ -813,7 +813,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref
                     output_node, 'reorient')
 
     func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                        name='func_motion_correct_3dvolreg')
+                                        name='func_generate_ref')
     func_motion_correct.inputs.zpad = 4
     func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
 
@@ -887,7 +887,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref
 
     # Calculate motion parameters
     if motion_correct_tool == '3dvolreg':
-        func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
+        func_motion_correct_A = func_motion_correct.clone('func_motion_correct_3dvolreg')
         func_motion_correct_A.inputs.md1d_file = 'max_displacement.1D'
 
         preproc.connect([
