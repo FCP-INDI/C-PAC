@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-import torch 
-import torch.nn as nn
-from CPAC.unet.model import UNet2d
-from CPAC.unet.function import predict_volumes
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
@@ -10,7 +6,8 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
-from CPAC.utils.datasource import check_for_s3
+from CPAC.utils.datasource import create_check_for_s3_node
+from CPAC.unet.function import predict_volumes
 
 
 def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc'):
@@ -404,19 +401,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             rescale_dim: 256
             """
             # TODO: add options to pipeline_config
-            train_model = UNet2d(dim_in=3, num_conv_block=5, kernel_root=16)
-            unet_path = check_for_s3(config.unet_model)
-            checkpoint = torch.load(unet_path, map_location={'cuda:0':'cpu'})
-            train_model.load_state_dict(checkpoint['state_dict'])
-            model = nn.Sequential(train_model, nn.Softmax2d())
-
-            # create a node called unet_mask
-            unet_mask = pe.Node(util.Function(input_names=['model', 'cimg_in'], 
+            unet_check_for_s3 = create_check_for_s3_node('unet', config.unet_model)
+            unet_mask = pe.Node(util.Function(input_names=['model_path', 'cimg_in'], 
                                               output_names=['out_path'],
                                               function=predict_volumes),                        
                                 name='unet_mask')
             
-            unet_mask.inputs.model = model
+            preproc.connect(unet_check_for_s3, 'local_path', unet_mask, 'model_path')
             preproc.connect(anat_reorient, 'out_file', unet_mask, 'cimg_in')
 
             """
@@ -429,7 +420,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             preproc.connect(unet_mask, 'out_path', unet_masked_brain, 'operand_files')
 
             # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
-            # TODO change it to ANTs linear transform
+            # TODO: antsRegistration -z 0 -d 3 -r [NMT_SS_0.5mm.nii.gz,brain.nii.gz,0] -o [transform,brain_rot2atl.nii.gz,brain_inv_rot2atl.nii.gz] -t Rigid[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1 -t Affine[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1
             native_brain_to_template_brain = pe.Node(interface=fsl.FLIRT(), name='native_brain_to_template_brain')
             native_brain_to_template_brain.inputs.reference = config.template_brain_only_for_anat
             native_brain_to_template_brain.inputs.dof = 6
@@ -437,7 +428,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             preproc.connect(unet_masked_brain, 'out_file', native_brain_to_template_brain, 'in_file')
             
             # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
-            # TODO change it to ANTs linear transform
+            # TODO: antsApplyTransforms -d 3 -i head.nii.gz -r NMT_0.5mm.nii.gz -n Linear -o head_rot2atl.nii.gz -v -t transform1Rigid.mat -t transform2Affine.mat -t transform0DerivedInitialMovingTranslation.mat 
             native_head_to_template_head = pe.Node(interface=fsl.FLIRT(), name='native_head_to_template_head')
             native_head_to_template_head.inputs.reference = config.template_skull_for_anat
             native_head_to_template_head.inputs.apply_xfm = True
@@ -470,6 +461,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             preproc.connect(native_brain_to_template_brain, 'out_file', template_head_transform_to_template, 'reference_image')
             preproc.connect(ants_template_head_to_template, 'forward_transforms', template_head_transform_to_template, 'transforms')
 
+            # TODO: replace convert_xfm and flirt with: 
+            # antsApplyTransforms -d 3 -i brain_rot2atl_mask.nii.gz -r brain.nii.gz -n linear -o brain_mask.nii.gz -t [transform0DerivedInitialMovingTranslation.mat,1] -t [transform2Affine.mat,1] -t [transform1Rigid.mat,1] 
             # convert_xfm -omat brain_rot2native.mat -inverse brain_rot2atl.mat 
             invt = pe.Node(interface=fsl.ConvertXFM(), name='convert_xfm')
             invt.inputs.invert_xfm = True
