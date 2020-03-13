@@ -489,8 +489,16 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
-# # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
 motion_correction : ['3dvolreg']
+
+
+# Choose motion correction reference. Options: mean, median, selected volume 
+motion_correction_reference: ['mean']
+
+
+# Choose motion correction reference volume
+motion_correction_reference_volume :  0
 
 
 # Run AFNI 3dDespike 

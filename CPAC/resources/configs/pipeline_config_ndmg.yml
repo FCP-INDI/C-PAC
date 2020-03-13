@@ -491,6 +491,18 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['3dvolreg']
+
+
+# Choose motion correction reference. Options: mean, median, selected volume 
+motion_correction_reference: ['mean']
+
+
+# Choose motion correction reference volume
+motion_correction_reference_volume :  0
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -624,10 +636,6 @@ functionalMasking :  ['AFNI']
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True
 anatomical_mask_dilation : False
-
-
-# # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
-motion_correction : ['3dvolreg']
 
 
 # Register functional images to a standard MNI152 template.
