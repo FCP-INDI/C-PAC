@@ -4053,6 +4053,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                 workflow.connect(node, out_file, ds, resource)
                                             if trans_type == 'Affine' and resource == 'func_to_epi_ants_affine_xfm':
                                                 workflow.connect(node, out_file, ds, resource)
+                    if resource not in ['ants_initial_xfm', 'ants_rigid_xfm', 'ants_affine_xfm', 'func_to_epi_ants_initial_xfm', 'func_to_epi_ants_rigid_xfm', 'func_to_epi_ants_affine_xfm']:
+                        workflow.connect(node, out_file, ds, resource)
 
                     output_sink_nodes += [(ds, 'out_file')]
 
