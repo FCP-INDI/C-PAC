@@ -3968,6 +3968,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     workflow.connect(rename_file, 'out_file',
                                      ds, ndmg_key_dct[resource][1])
 
+                    output_sink_nodes += [(ds, 'out_file')]
+
                 else:
                     # regular datasink
                     ds = pe.Node(
@@ -3978,7 +3980,7 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     ds.inputs.creds_path = creds_path
                     ds.inputs.encrypt_bucket_keys = encrypt_data
                     ds.inputs.container = os.path.join(
-                        'pipeline_%s' % pipeline_id, subject_id
+                        'pipeline_{0}'.format(pipeline_id), subject_id
                     )
                     ds.inputs.regexp_substitutions = [
                         (r"/_sca_roi(.)*[/]", '/'),
