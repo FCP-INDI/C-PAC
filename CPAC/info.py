@@ -10,8 +10,8 @@ This script was borrowed from and inspired by nipype's info.py file.
 # version
 _version_major = 1
 _version_minor = 6
-_version_micro = 1
-_version_extra = 'a'
+_version_micro = 2
+_version_extra = ''
 
 
 def get_cpac_gitversion():
