@@ -1395,7 +1395,12 @@ def make_histogram(measure_file, measure):
 
     data = nb.load(measure_file).get_data()
     data_flat = data.flatten(order='F')
-    y, binEdges = np.histogram(data_flat[data_flat != 0], bins=100)
+    y, binEdges = np.histogram(
+        data_flat[
+            (np.isfinite(data_flat)) & (data_flat != 0)
+        ],
+        bins=100
+    )
     bincenters = 0.5*(binEdges[1:]+binEdges[:-1])
 
     fig = plt.figure()
@@ -1841,6 +1846,10 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     matplotlib.rcParams.update({'font.size': 5})
 
+    try:
+        from mpl_toolkits.axes_grid1 import ImageGrid
+    except:
+        from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     import nibabel as nb
