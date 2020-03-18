@@ -803,8 +803,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
             # Input ANTs registration parameters
             if c.ANTs_para_T1_registration is None:
-                err_msg = 'ANTs parameters specified: %s, is not supported. ' \
-                    'Please specify ANTs parameters properly and try again' % c.ANTs_para_T1_registration
+                err_msg = '\n\n[!] C-PAC says: \n'\
+                    'You have selected \'regOption: [ANTS]\' as your anatomical registration method. \n'\
+                            'However, ANTs parameters specified: {0}, is not supported. ' \
+                            'Please specify ANTs parameters properly and try again'.format(str(c.ANTs_para_T1_registration))
                 raise Exception(err_msg)
             else: 
                 ants_reg_anat_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
@@ -2077,8 +2079,10 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
 
                     # Input registration parameters
                     if c.ANTs_para_EPI_registration is None:
-                        err_msg = 'ANTs parameters for Functional To EPI Template Registration specified: %s, is not supported. ' \
-                            'Please specify ANTs parameters (ANTs_para_EPI_registration in pipeline config file) properly and try again ' % c.ANTs_para_EPI_registration
+                        err_msg = '\n\n[!] C-PAC says: \n'\
+                            "You have selected \'regOption: [ANTS]\' and \'runRegisterFuncToTemplate :  ['EPI_template']\'. \n"\
+                                 'However, ANTs parameters specified: {0}, is not supported. ' \
+                                    'Please specify ANTs parameters properly and try again'.format(str(c.ANTs_para_EPI_registration))
                         raise Exception(err_msg)
                     else:
                         func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
