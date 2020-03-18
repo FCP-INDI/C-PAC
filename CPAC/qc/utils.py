@@ -2,7 +2,7 @@ import os
 import re
 import math
 import base64
-import commands
+import subprocess
 import pkg_resources as p
 
 import numpy as np
@@ -170,7 +170,7 @@ def append_to_files_in_dict_way(list_files, file_):
                     two_dict[key] = 1
 
         for key in two_dict:
-            print >> f_2, key
+            print(key, file=f_2)
 
         f_2.close
 
@@ -225,7 +225,7 @@ def first_pass_organizing_files(qc_path):
 
             qc_filename = qc_filename + fwhm_val + hp_lp_
 
-        if strat_dict.keys() == []:
+        if len(strat_dict):
             strat_dict[qc_filename] = [qc_file]
         else:
             flag_ = 0
@@ -283,8 +283,8 @@ def second_pass_organizing_files(qc_path):
             if not str_ in strat_dict:
                 strat_dict[str_] = [file_]
             else:
-                print 'Error: duplicate keys for files in QC 2nd file_org ' \
-                      'pass: %s %s' % (strat_dict[str_], file_)
+                print('Error: duplicate keys for files in QC 2nd file_org ' \
+                      'pass: %s %s' % (strat_dict[str_], file_))
                 raise
 
         # organize alff falff
@@ -319,8 +319,8 @@ def second_pass_organizing_files(qc_path):
             if not str_ in strat_dict:
                 strat_dict[str_] = [file_]
             else:
-                print 'Error: duplicate keys for files in QC 2nd file_org ' \
-                      'pass: %s %s' % (strat_dict[str_], file_)
+                print('Error: duplicate keys for files in QC 2nd file_org ' \
+                      'pass: %s %s' % (strat_dict[str_], file_))
                 raise
 
 
@@ -1059,7 +1059,10 @@ def generate_qc_pages(qc_dir):
 
     with open(p.resource_filename('CPAC.qc', 'data/index.html'), 'rb') as f:
         qc_content = f.read()
-        qc_content = qc_content.replace('/*CPAC*/``/*CPAC*/', '`' + '\n'.join(files) + '`')
+        qc_content = qc_content.replace(
+            b'/*CPAC*/``/*CPAC*/',
+            ('`' + '\n'.join(files) + '`').encode()
+        )
         with open(os.path.join(qc_dir, 'index.html'), 'wb') as f:
             f.write(qc_content)
 
@@ -1159,7 +1162,7 @@ def gen_plot_png(arr, measure, ex_vol=None):
     ex_vol = np.array(del_el)
 
     fig = plt.figure(figsize=(10, 6))
-    plt.plot([i for i in xrange(len(arr))], arr, '-')
+    plt.plot([i for i in range(len(arr))], arr, '-')
     fig.suptitle('%s plot with Mean %s = %0.4f' % (measure, measure,
                                                    arr.mean()))
     if measure == 'FD' and len(ex_vol) > 0:
@@ -1666,7 +1669,7 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     import matplotlib
     matplotlib.rcParams.update({'font.size': 5})
     import matplotlib.cm as cm
-    from mpl_toolkits.axes_grid import ImageGrid
+    from mpl_toolkits.axes_grid1 import ImageGrid
     import matplotlib.pyplot as plt
     import nibabel as nb
     import numpy as np
@@ -1837,7 +1840,6 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     png_name : Path to generated PNG
 
     """
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
     import matplotlib
     import os
     import numpy as np
@@ -1851,6 +1853,10 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     import nibabel as nb
+
+    from mpl_toolkits.axes_grid1 import ImageGrid
+
+    from CPAC.qc.utils import determine_start_and_end, get_spacing
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
@@ -1989,7 +1995,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
 
     """
     import numpy as np
-    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    from mpl_toolkits.axes_grid1 import ImageGrid as ImageGrid
     import matplotlib.pyplot as plt
     import nibabel as nb
     import matplotlib.cm as cm
@@ -2085,7 +2091,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     """
 
     import numpy as np
-    from mpl_toolkits.axes_grid import ImageGrid as ImageGrid
+    from mpl_toolkits.axes_grid1 import ImageGrid as ImageGrid
     import matplotlib.pyplot as plt
     import matplotlib.cm as cm
     import nibabel as nb
@@ -2238,10 +2244,6 @@ def make_resample_1mm(file_):
     new_fname : string
             Input Nifti resampled to 1mm space
     """
-
-    import os
-    import commands
-
     remainder, ext_ = os.path.splitext(file_)
     remainder, ext1_ = os.path.splitext(remainder)
 
@@ -2251,7 +2253,7 @@ def make_resample_1mm(file_):
     new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
     cmd = " 3dresample -dxyz 1.0 1.0 1.0 -prefix %s " \
           "-inset %s " % (new_fname, file_)
-    commands.getoutput(cmd)
+    subprocess.getoutput(cmd)
 
     return new_fname
 

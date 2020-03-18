@@ -6,7 +6,7 @@ Requirements
 
 System Requirements
 """"""""""""""""""
-C-PAC is **designed to run in a \*nix-like environment** and thus does not support Windows.  The C-PAC team actively tests C-PAC in Ubuntu Linux, although older versions of that distribution and other \*nixes (such as Mac OS X) should work as well.   As a general rule, C-PAC can operate on any machine capable of reliably running AFNI . 
+C-PAC is **designed to run in a \*nix-like environment** and thus does not support Windows.  The C-PAC team actively tests C-PAC in Ubuntu Linux, although older versions of that distribution and other \*nixes (such as Mac OS X) should work as well.   As a general rule, C-PAC can operate on any machine capable of reliably running AFNI .
 
 Hardware Requirements
 """"""""""""""""""""
@@ -18,11 +18,11 @@ A Note About the \*nix Command Line
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 **This user guide assumes a basic level of experience using the command line.** If you are new to the command line (also known as the terminal), the resources below will help you get started:
 
-* Getting to Know the Command Line 
+* Getting to Know the Command Line
 * Terminals for Absolute Beginners (Part 1 )
-* Learning the Shell 
-* Unix Tutorial for Beginners 
-* Unix for the Beginning Mage 
+* Learning the Shell
+* Unix Tutorial for Beginners
+* Unix for the Beginning Mage
 
 Installation Overview
 ^^^^^^^^^^^^^^^^^^^^^
@@ -33,15 +33,15 @@ If you are using Ubuntu (version 12/14) you can download  and run cpac_install.s
     wget https://github.com/FCP-INDI/C-PAC/blob/master/scripts/cpac_install.sh?raw=true -O cpac_install.sh
     chmod +x cpac_install.sh
     sudo ./cpac_install.sh -r
-   
-This will install all of the prerequisites and resources listed below. If you have previously installed versions of these, they will not be reinstalled, and the script will not check the release version to match the requirements of C-PAC. 
- 
+
+This will install all of the prerequisites and resources listed below. If you have previously installed versions of these, they will not be reinstalled, and the script will not check the release version to match the requirements of C-PAC.
+
 **Note**: This script is intended for Ubuntu Linux 12/14,  but it may work for older releases of Ubuntu.
 
 **For other operating systems**, this page will guide you through the following C-PAC installation steps:
 
 * Installing the required system-level dependencies
-* Installing the required Python dependencies 
+* Installing the required Python dependencies
 * Installing AFNI and FSL
 * Installing C3D and ANTS (optional, but recommended)
 * Installing the required C-PAC image resources
@@ -84,13 +84,13 @@ A complete installation of C-PAC requires that the following dependencies be ins
 The command to install all of these on Ubuntu 12/14 is:
 
 .. code-block:: bash
-    
+
     sudo apt-get install -y cmake git make unzip libcanberra-gtk-module libxp6 netpbm libglu1-mesa gsl-bin zlib1g-dev graphviz graphviz-dev pkg-config build-essential libxml2-dev libxslt-dev python-dev xvfb
 
-OS-Specific Instructions 
+OS-Specific Instructions
 ''''''''''''''''''''''''
 
-**Mac OS X:** 
+**Mac OS X:**
 
 * Installing system-level and Python dependencies will be made much easier if you download the Xcode Command Line Tools from Apple  (requires a free Apple account), which includes (among other things) Git and gcc.
 * You may want to consider using a package manager such as Homebrew .
@@ -114,26 +114,26 @@ Installing Python Dependencies
 """"""""""""""""""""""""""""""
 Please ensure that you are using Python 2.7 and above, but not Python 3 (since it is not backwards-compatible). Though many computers come with Python pre-installed, C-PAC relies on a number of special-purpose packages, which are listed below. Packages with an asterisk can be installed through `easy_install <https://pythonhosted.org/setuptools/easy_install.html>`_ or pip.  Installing `Anaconda <https://store.continuum.io/cshop/anaconda/>`_ (**64-bit version only**), `Miniconda <http://conda.pydata.org/miniconda.html>`_ or  `Enthought Canopy <https://www.enthought.com/products/canopy/>`_ and using a package manager can simplify installation greatly.  Instructions for Miniconda are given below.
 
-* SciPy and NumPy  
+* SciPy and NumPy
 * Nipype (version 0.11 is compatible with C-PAC 0.3.9; version 0.10 is compatible with versions of C-PAC after 0.3.7, version 0.9.2  for C-PAC versions 0.3.4b, 0.3.5, and 0.3.6; version 0.12 of nipype is not compatible with the currently release versions of C-PAC)
 * Nibabel
-* NetworkX  * 
-* Traits  * 
+* NetworkX  *
+* Traits  *
 * Matplotlib  *
-* wxPython 
-* PyYAML  * 
+* wxPython
+* PyYAML  *
 * PyLockfile  *
 * Cython  (version 12.1 or greater)  *
 * iPython  (optional)
 * PyGraphviz  (optional; required for workflow graphs)
-* Patsy 
-* Boto 3 
-* psutil 
-* INDI-tools 
-* future 
-* prov 
-* simplejson 
-* pandas 
+* Patsy
+* Boto 3
+* psutil
+* INDI-tools
+* future
+* prov
+* simplejson
+* pandas
 
 Miniconda
 ''''''''
@@ -150,20 +150,20 @@ The following commands will install all the Python dependencies within a Minicon
    conda create -y -n cpac python
    source activate cpac
    conda install -y cython numpy scipy matplotlib networkx traits pyyaml nose ipython pip wxpython pandas
-   pip install lockfile pygraphviz nibabel nipype patsy psutil boto3 INDI-tools future prov simplejson
+   pip install lockfile pygraphviz nibabel nipype patsy psutil boto3 git+git://github.com/shnizzedy/INDI-Tools.git@3a7b80558bd866bf57e2d911f75aeb8bd62b2723 future prov simplejson
    source deactivate
- 
-OS-Specific Instructions 
+
+OS-Specific Instructions
 ''''''''''''''''''''''''
 
-**Mac OS X:** 
+**Mac OS X:**
 
-* It is highly recommended that you use either Canopy or Anaconda/Miniconda to install Python packages such as wxPython, SciPy and NumPy.  Manually installing these packages on OS X can be difficult and error-prone.  If you use Anaconda/Conda, the commands above should install all packages seamlessly (assuming you download the Mac OS X Miniconda install script instead of the Linux script when using `wget`).  
+* It is highly recommended that you use either Canopy or Anaconda/Miniconda to install Python packages such as wxPython, SciPy and NumPy.  Manually installing these packages on OS X can be difficult and error-prone.  If you use Anaconda/Conda, the commands above should install all packages seamlessly (assuming you download the Mac OS X Miniconda install script instead of the Linux script when using `wget`).
 
 
 Installing AFNI and FSL
 """""""""""""""""""""""
-C-PAC harnesses the power of two leading neuroimaging software packages (AFNI ) to perform key analyses. These packages must be installed before running C-PAC. 
+C-PAC harnesses the power of two leading neuroimaging software packages (AFNI ) to perform key analyses. These packages must be installed before running C-PAC.
 
 To install AFNI on a non-Fedora 21 64-bit Linux machine you may run the follow commands as the super user:
 
@@ -207,7 +207,7 @@ For FSL to be available globally on your machine, you should then add the follow
 
 For more details about installing FSL (including instructions for other architectures) please refer to the FSL documentation here .
 
-OS-Specific Instructions 
+OS-Specific Instructions
 ''''''''''''''''''''''''
 
 **Mac OS X:**
@@ -220,17 +220,17 @@ OS-Specific Instructions
             source ~/.bashrc
         fi
 
-Installing C3D and ANTS (optional, but recommended) 
+Installing C3D and ANTS (optional, but recommended)
 """"""""""""""""""""""""""""""""""""""""""""""""""
 ANTS is an optional, but recommended package for performing image registration / normalization.  ANTS depends upon C3D, which can be installed by following the steps below.  If you do not want to install ANTS, you may skip this step.  You can always install ANTS later.
 
 Installing C3D
 '''''''''''''
 
-#. Download C3D from here  (for Mac users). 
-#. Unzip the downloaded archive, and place the extracted folder in the location of your choosing. 
+#. Download C3D from here  (for Mac users).
+#. Unzip the downloaded archive, and place the extracted folder in the location of your choosing.
 
-#. Add the following text to your :file:`.bashrc` file: 
+#. Add the following text to your :file:`.bashrc` file:
 
 .. code-block:: bash
 
@@ -250,7 +250,7 @@ Where :file:`/path_to/C3D` is the location of the extracted folder.
 Installing ANTS
 ''''''''''''''
 
-To install ANTS, follow the instructions below. 
+To install ANTS, follow the instructions below.
 
 For Debian-based platforms, install the Neurodebian keys (see the FSL installation instructions above) and run the following command as the super user:
 
@@ -263,7 +263,7 @@ For other platforms, download ANTS from Github and compile from source:
 .. code-block:: bash
 
     cd /tmp
-    git clone https://github.com/stnava/ANTs.git 
+    git clone https://github.com/stnava/ANTs.git
 
 This will create a folder named "ANTS" in the directory where you ran the command from.
 
@@ -283,7 +283,7 @@ Next, run these commands from this directory to build your ANTS install:
 
 Where <number> is how many cores you wish to dedicate to building your install - the more you use, the sooner it will complete. For example, if you want to use four cores, you would run 'make -j 4'.
 
-Once this is complete, you will need to modify your environment. Add the following text to your :file:`.bashrc` file: 
+Once this is complete, you will need to modify your environment. Add the following text to your :file:`.bashrc` file:
 
 .. code-block:: bash
 
@@ -298,12 +298,12 @@ You can test the installation by opening a new terminal window and running this 
 
 If this returns a help page with a list of parameters, your ANTS installation was a success.
 
-OS-Specific Instructions 
+OS-Specific Instructions
 ''''''''''''''''''''''''
 
 **Mac OS X:**
 
-* Similar to the AFNI and FSL path setup, you must also add the C3D and ANTS paths to your :file:`.bash_profile` file. 
+* Similar to the AFNI and FSL path setup, you must also add the C3D and ANTS paths to your :file:`.bash_profile` file.
 
 Installing C-PAC Image Resources
 """""""""""""""""""""""""""""""
@@ -327,7 +327,7 @@ These files are included in the C-PAC Image Resources package, available here . 
     cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
     cp -nr tissuepriors/4mm $FSLDIR/data/standard/tissuepriors
     cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
- 
+
 These commands perform the following steps:
 
 * The image resources are downloaded.
@@ -345,7 +345,7 @@ Congratulations, you are now ready to install C-PAC itself!
 C-PAC is available for download from the C-PAC Homepage . Click the button labeled "Download as tar.gz". Unpack the downloaded archive and navigate to the new directory. To install C-PAC, run the command ``sudo python setup.py install``. C-PAC will be installed alongside your other python packages. If this fails, check to make sure that you have all the dependencies installed.  You may also install C-PAC using the commands below:
 
  .. code-block:: bash
-   
+
    cd /tmp
    git clone https://github.com/FCP-INDI/C-PAC.git
    cd C-PAC
@@ -359,7 +359,7 @@ Once you are able to successfully ``import CPAC`` it is safe to delete any setup
 
 **Note:** The test process described here only acts to confirm that the C-PAC python package has been correctly installed. To fully test C-PAC on your system, please see the :doc:`Benchmark Page </benchmark>`.
 
-Updating C-PAC 
+Updating C-PAC
 """"""""""""""
 C-PAC is being actively developed, and new versions (containing bug fixes and new features) are often released. To update to the latest version, simply download it from the C-PAC Homepage  and repeat the instructions in the `Installing C-PAC` section above. A list of previous versions and the changes they contain is available on the :doc:`Release Notes Page </rnotes>`.
 

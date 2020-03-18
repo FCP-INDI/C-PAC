@@ -1,5 +1,5 @@
 import wx
-import generic_class
+from . import generic_class
 from .constants import control, dtype, substitution_map
 import os
 import yaml
@@ -135,7 +135,7 @@ class ModelConfig(wx.Frame):
                       values=self.gpa_settings['participant_id_label'],
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
-        
+
         load_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
         load_pheno_btn = wx.Button(self.window, 2, 'Load Phenotype File',
                                    (220,10), wx.DefaultSize, 0)
@@ -202,32 +202,32 @@ class ModelConfig(wx.Frame):
                               "series.",
                     size = (350,180))
 
-        self.page.add(label="Coding Scheme ", 
-                     control=control.CHOICE_BOX, 
-                     name="coding_scheme", 
-                     type=dtype.LSTR, 
-                     comment="Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.", 
+        self.page.add(label="Coding Scheme ",
+                     control=control.CHOICE_BOX,
+                     name="coding_scheme",
+                     type=dtype.LSTR,
+                     comment="Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.",
                      values=["Treatment", "Sum"])
 
-        self.page.add(label="Mask for Means Calculation ", 
-                 control=control.CHOICE_BOX, 
-                 name='mean_mask', 
-                 type=dtype.LSTR, 
-                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.\n\nThis only takes effect if you include the 'Measure_Mean' or 'Custom_ROI_Mean' regressors in your Design Matrix Formula.", 
+        self.page.add(label="Mask for Means Calculation ",
+                 control=control.CHOICE_BOX,
+                 name='mean_mask',
+                 type=dtype.LSTR,
+                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.\n\nThis only takes effect if you include the 'Measure_Mean' or 'Custom_ROI_Mean' regressors in your Design Matrix Formula.",
                  values=["Group Mask","Individual Mask"])
 
-        self.page.add(label="Z threshold ", 
-                     control=control.FLOAT_CTRL, 
-                     name='z_threshold', 
-                     type=dtype.NUM, 
-                     comment="Only voxels with a Z-score higher than this value will be considered significant.", 
+        self.page.add(label="Z threshold ",
+                     control=control.FLOAT_CTRL,
+                     name='z_threshold',
+                     type=dtype.NUM,
+                     comment="Only voxels with a Z-score higher than this value will be considered significant.",
                      values=2.3)
 
-        self.page.add(label="Cluster Significance Threshold ", 
-                     control=control.FLOAT_CTRL, 
-                     name='p_threshold', 
-                     type=dtype.NUM, 
-                     comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
+        self.page.add(label="Cluster Significance Threshold ",
+                     control=control.FLOAT_CTRL,
+                     name='p_threshold',
+                     type=dtype.NUM,
+                     comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.",
                      values=0.05)
 
         self.page.add(label="Model Group Variances Separately ",
@@ -303,12 +303,12 @@ class ModelConfig(wx.Frame):
             220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, flag=wx.LEFT | wx.BOTTOM, border=5)
-        
+
         load = wx.Button(btnPanel, wx.ID_ADD, "Load Config", (
             200, -1), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.load, id=wx.ID_ADD)
         hbox.Add(load, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
-        
+
         next = wx.Button(btnPanel, 3, "Build Models", (200, -1), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.build_models, id=3)
         hbox.Add(next, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
@@ -358,7 +358,7 @@ class ModelConfig(wx.Frame):
 
                 if name == 'p_threshold':
                     ctrl.set_value(self.gpa_settings['p_threshold'])
-                    
+
                 if name == 'group_sep':
                     ctrl.set_value(self.gpa_settings['group_sep'])
 
@@ -417,7 +417,7 @@ class ModelConfig(wx.Frame):
             path = dlg.GetPath()
 
             config_map = yaml.safe_load(open(path, 'r'))
-            s_map = dict((v, k) for k, v in substitution_map.iteritems())
+            s_map = dict((v, k) for k, v in substitution_map.items())
 
             # load the group analysis .yml config file (in dictionary form)
             # into the self.gpa_settings dictionary which holds all settings
@@ -432,7 +432,7 @@ class ModelConfig(wx.Frame):
                 errDlgFileTest.ShowModal()
                 errDlgFileTest.Destroy()
                 raise Exception
-            
+
             # repopulate the model setup checkbox grid, since this has to be
             # done specially
             if 'pheno_file' in self.gpa_settings.keys():
@@ -485,7 +485,7 @@ class ModelConfig(wx.Frame):
                     except TypeError:
                         # if the user has put it in as a float and not a list
                         ctrl.set_value(str(value))
-                    
+
                 elif name == 'group_sep':
                     value = s_map.get(value)
                     ctrl.set_value(value)
@@ -510,18 +510,18 @@ class ModelConfig(wx.Frame):
         phenoHeaderString = pheno_file_obj.readline().rstrip('\r\n')
         phenoHeaderString = phenoHeaderString.replace(" ", "_")
         phenoHeaderString = phenoHeaderString.replace("/","_")
-        
+
         if ',' in phenoHeaderString:
             self.phenoHeaderItems = phenoHeaderString.split(',')
-            
-        
+
+
         elif '\t' in phenoHeaderString:
             self.phenoHeaderItems = phenoHeaderString.split('\t')
-            
-        
+
+
         else:
             self.phenoHeaderItems = [phenoHeaderString]
-        
+
         if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
             self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
         else:
@@ -640,7 +640,7 @@ class ModelConfig(wx.Frame):
                             v = substitution_map[v]
                         new_val.append(v)
                     val = new_val
-                    
+
             self.gpa_settings[name] = val
 
         group_config_path = os.path.join(self.gpa_settings['output_dir'],

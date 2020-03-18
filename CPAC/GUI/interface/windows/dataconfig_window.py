@@ -431,12 +431,12 @@ class DataConfig(wx.Frame):
         except ImportError as exc:
             wx.MessageBox("Error importing CPAC. Unable to run extract data "
                           "tool.", "Error")
-            print "Error importing CPAC"
-            print exc
+            print("Error importing CPAC")
+            print(exc)
             return -1
         # Problem reading in data from disk
         except IOError as exc:
-            print "Error loading data config file", exc
+            print("Error loading data config file", exc)
             return -1
 
     def save(self, event, flag):
@@ -550,7 +550,7 @@ class DataConfig(wx.Frame):
                     err.Destroy()
                     return
                 
-        except Exception, e:
+        except Exception as e:
             errdlg = wx.MessageDialog(self, "Could not save your "
                                             "participant list information."
                                             "\n\n%s" % e,
@@ -558,7 +558,7 @@ class DataConfig(wx.Frame):
                            wx.OK | wx.ICON_ERROR)
             errdlg.ShowModal()
             errdlg.Destroy()
-            print e
+            print(e)
             return
             
         else:
@@ -601,7 +601,7 @@ class DataConfig(wx.Frame):
                         f.write("# {0}\n".format(help))
                         f.write("{0}: {1}\n\n\n".format(key, value))
 
-                print "\nSaving data settings file:\n{0}\n".format(path)
+                print("\nSaving data settings file:\n{0}\n".format(path))
                 
                 if flag == 'run':
                     if self.run(path) > 0:
@@ -636,7 +636,7 @@ class DataConfig(wx.Frame):
 
                 # If it's a dictionary, check it has anat template key
                 if type(config_map) == dict:
-                    if not config_map.has_key('anatomicalTemplate'):
+                    if 'anatomicalTemplate' not in config_map:
                         err_msg = 'File is not a data settings '\
                                   'file. It might be a pipeline '\
                                   'configuration file.'

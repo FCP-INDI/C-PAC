@@ -2,11 +2,11 @@
 
 try:
     import wx
-    from interface.windows.main_window import ListBox
+    from .interface.windows.main_window import ListBox
 except ImportError as e:
-    print 'CPAC was imported and can be used, but wxPython was not '\
-          'found. In order to use the GUI, wxPython must be installed.'
-    print 'Error: %s' % e
+    print('CPAC was imported and can be used, but wxPython was not '\
+          'found. In order to use the GUI, wxPython must be installed.')
+    print('Error: %s' % e)
 
 
 def run():

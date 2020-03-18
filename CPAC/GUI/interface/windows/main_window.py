@@ -1,7 +1,7 @@
 # Import packages
 import wx
-from config_window import MainFrame
-from dataconfig_window import DataConfig
+from .config_window import MainFrame
+from .dataconfig_window import DataConfig
 from ..utils.custom_control import fsl_flame_presets_window
 import os
 import pkg_resources as p
@@ -32,55 +32,55 @@ class ListBox(wx.Frame):
 
         # Import packages
         import CPAC
-        
+
         self.CreateStatusBar()
         self.SetStatusText("The Configurable Pipeline for the Analysis of "
                            "Connectomes (C-PAC) v" + CPAC.__version__)
-    
+
         self.pipeline_map = {}
         self.sublist_map= {}
 
         self.pids = []
-        
+
         mainPanel = wx.Panel(self)
         mainPanel.SetBackgroundColour('#E9E3DB')
         mainSizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         outerPanel1 = wx.Panel(mainPanel)
         outerSizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         outerPanel2 = wx.Panel(mainPanel)
         outerSizer2 = wx.BoxSizer(wx.HORIZONTAL)
 
         outerPanel3 = wx.Panel(mainPanel)
         outerSizer3 = wx.BoxSizer(wx.HORIZONTAL)
-              
+
         innerPanel1 = wx.Panel(outerPanel1)
         innerSizer1 = wx.BoxSizer(wx.HORIZONTAL)
-         
+
         innerPanel2 = wx.Panel(outerPanel1, )
         innerSizer2 = wx.BoxSizer(wx.HORIZONTAL)
-                
+
         lboxPanel1 = wx.Panel(innerPanel1)
         lboxSizer1 = wx.BoxSizer(wx.VERTICAL)
         btnPanel1 = wx.Panel(innerPanel1, -1)
         btnSizer1 = wx.BoxSizer(wx.VERTICAL)
-        
+
         label = wx.StaticText(lboxPanel1, -1, "Pipelines")
-        
+
         if 'linux' in sys.platform:
             label.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD))
         else:
             label.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.BOLD))
-            
+
         self.listbox = wx.CheckListBox(lboxPanel1, -1, size = (160,400))
-        
+
         lboxSizer1.Add(label, 0, wx.ALIGN_CENTER)
         lboxSizer1.Add(self.listbox, 1, wx.EXPAND | wx.ALL, 10)
         lboxPanel1.SetSizer(lboxSizer1)
-        
+
         lboxPanel1.SetBackgroundColour('#E9E3DB')
-        
+
         new = wx.Button(btnPanel1, ID_NEW, 'New', size=(90, 30))
         group = wx.Button(btnPanel1, ID_GROUP, 'New Group',
                           size=(90, 30))
@@ -90,7 +90,7 @@ class ListBox(wx.Frame):
         edit = wx.Button(btnPanel1, ID_EDIT, 'Edit', size=(90,30))
         shw = wx.Button(btnPanel1, ID_DISPLAY, 'View', size=(90,30))
         clr = wx.Button(btnPanel1, ID_CLEAR, 'Clear', size=(90, 30))
-    
+
         self.Bind(wx.EVT_BUTTON, self.NewItem, id=ID_NEW)
         self.Bind(wx.EVT_BUTTON, self.NewGroup, id=ID_GROUP)
         self.Bind(wx.EVT_BUTTON, self.OnRename, id=ID_RENAME)
@@ -100,13 +100,13 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnDisplay, id=ID_DISPLAY)
         self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 1),
                   id=ID_CLEAR)
-        self.Bind(wx.EVT_LISTBOX_DCLICK, self.OnDisplay)        
+        self.Bind(wx.EVT_LISTBOX_DCLICK, self.OnDisplay)
 
         if 'linux' in sys.platform:
             btnSizer1.Add((-1,30))
         else:
             btnSizer1.Add((-1, 27))
-        
+
         btnSizer1.Add(new, 0, wx.TOP)
         btnSizer1.Add(group, 0, wx.TOP)
         btnSizer1.Add(load, 0, wx.TOP)
@@ -116,39 +116,39 @@ class ListBox(wx.Frame):
         btnSizer1.Add(dlt, 0, wx.TOP)
         btnSizer1.Add(clr, 0, wx.TOP)
         btnPanel1.SetSizer(btnSizer1)
-        
+
         btnPanel1.SetBackgroundColour('#E9E3DB')
-                
+
         innerSizer1.Add(lboxPanel1, 1, wx.EXPAND | wx.ALL)
-        
+
         if 'linux' in sys.platform:
             innerSizer1.Add(btnPanel1, 1, wx.EXPAND | wx.ALL, 5)
         else:
             innerSizer1.Add(btnPanel1, 1, wx.EXPAND | wx.ALL)
-        
+
         innerPanel1.SetSizer(innerSizer1)
         innerPanel1.SetBackgroundColour('#E9E3DB')
-        
+
         lboxPanel2 = wx.Panel(innerPanel2)
         lboxSizer2 = wx.BoxSizer(wx.VERTICAL)
         btnPanel2 = wx.Panel(innerPanel2, -1)
         btnSizer2 = wx.BoxSizer(wx.VERTICAL)
 
         label2 = wx.StaticText(lboxPanel2, -1, "Data Configurations")
-        
+
         if 'linux' in sys.platform:
             label2.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD))
         else:
             label2.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.BOLD))
-            
-        self.listbox2 = wx.CheckListBox(lboxPanel2, -1, size= (160,400)) 
+
+        self.listbox2 = wx.CheckListBox(lboxPanel2, -1, size= (160,400))
         self.listbox2.Bind(wx.EVT_LISTBOX_DCLICK, self.OnShow)
         lboxSizer2.Add(label2, 0,wx.ALIGN_CENTER)
         lboxSizer2.Add(self.listbox2, 1, wx.EXPAND | wx.ALL, 10)
         lboxPanel2.SetSizer(lboxSizer2)
-        
+
         lboxPanel2.SetBackgroundColour('#E9E3DB')
-                
+
         create = wx.Button(btnPanel2, ID_CREATE, 'New', size=(90, 30))
         add = wx.Button(btnPanel2, ID_ADD, 'Load', size= (90,30))
         show = wx.Button(btnPanel2, ID_SHOW, 'View', size= (90,30))
@@ -158,7 +158,7 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnShow, id= ID_SHOW)
         self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 2),
                   id=ID_CLEARALL)
-        
+
         if 'linux' in sys.platform:
             btnSizer2.Add((-1,30))
         else:
@@ -171,20 +171,20 @@ class ListBox(wx.Frame):
         btnSizer2.Add(clr2, 0, wx.TOP)
         btnPanel2.SetSizer(btnSizer2)
         btnPanel2.SetBackgroundColour('#E9E3DB')
-        
+
         innerSizer2.Add(lboxPanel2, 1, wx.EXPAND | wx.ALL)
-        
+
         if 'linux' in sys.platform:
             innerSizer2.Add(btnPanel2, 1, wx.EXPAND | wx.ALL, 5)
         else:
             innerSizer2.Add(btnPanel2, 1, wx.EXPAND | wx.ALL)
-        
+
         innerPanel2.SetSizer(innerSizer2)
         innerPanel2.SetBackgroundColour('#E9E3DB')
-        
+
         outerSizer1.Add(innerPanel2, 1, wx.EXPAND | wx.ALL)
         outerSizer1.Add(innerPanel1, 1, wx.EXPAND | wx.ALL)
-        
+
         outerPanel1.SetSizer(outerSizer1)
         outerPanel1.SetBackgroundColour('#E9E3DB')
 
@@ -216,15 +216,15 @@ class ListBox(wx.Frame):
 
         outerPanel3.SetSizer(outerSizer3)
         outerPanel3.SetBackgroundColour('#E9E3DB')
-        
+
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         text1 = wx.StaticText(mainPanel, -1, "Configure CPAC")
-        
+
         if 'linux' in sys.platform:
             text1.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
         else:
             text1.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
-            
+
         img = wx.Image(p.resource_filename('CPAC',
                                            'GUI/resources/images/cpac_new_logo.png'),
                        wx.BITMAP_TYPE_PNG).ConvertToBitmap()
@@ -232,28 +232,28 @@ class ListBox(wx.Frame):
         logo = wx.StaticBitmap(mainPanel, -1, img)
         hbox.Add(text1, 1, wx.TOP | wx.EXPAND, 15)
         hbox.Add(logo, 0,wx.ALIGN_RIGHT | wx.RIGHT)
-        
+
         text2 = wx.StaticText(mainPanel, -1, "Run CPAC")
-        
+
         if 'linux' in sys.platform:
             text2.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
         else:
             text2.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
-        
+
         mainSizer.Add(hbox, 0, wx.EXPAND | wx.ALL, 10)
         mainSizer.Add(outerPanel1, 1, wx.EXPAND | wx.ALL, 20)
         mainSizer.Add(wx.StaticLine(mainPanel), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
         mainSizer.Add(text2, 0, wx.EXPAND| wx.ALL, 5)
         mainSizer.Add(outerPanel2, 0, wx.EXPAND | wx.ALL, 5)
         mainSizer.Add(outerPanel3, 0, wx.EXPAND | wx.ALL, 5)
-        
+
         mainPanel.SetSizer(mainSizer)
 
         self.Centre()
         self.Show(True)
 
     def runAnalysis1(self, pipeline, sublist, p):
-        
+
         import CPAC.pipeline.cpac_runner
         from CPAC.utils import Configuration
 
@@ -275,10 +275,10 @@ class ListBox(wx.Frame):
         try:
             if (self.listbox.GetChecked() or self.listbox.GetSelection() != -1) \
                     and (self.listbox2.GetChecked() or self.listbox2.GetSelection() != -1):
-                
-                import thread
+
+                import _thread
                 import CPAC
-                    
+
                 pipelines = self.listbox.GetCheckedStrings()
                 sublists = self.listbox2.GetCheckedStrings()
 
@@ -286,10 +286,10 @@ class ListBox(wx.Frame):
                     sublist = self.sublist_map.get(s)
                     for p in pipelines:
                         pipeline = self.pipeline_map.get(p)
-                        pid = thread.start_new_thread(self.runAnalysis1,
+                        pid = _thread.start_new_thread(self.runAnalysis1,
                                                       (pipeline, sublist, p))
                         self.pids.append(pid)
-                    
+
             else:
                 errmsg = 'CPAC says: No pipeline or subject list ' \
                       'selected.'
@@ -298,15 +298,15 @@ class ListBox(wx.Frame):
                 errSubID.ShowModal()
                 errSubID.Destroy()
 
-                print '\n\n[!] ' + errmsg + '\n\n'
+                print('\n\n[!] ' + errmsg + '\n\n')
 
-        except Exception, e:
+        except Exception as e:
             errSubID = wx.MessageDialog(self, str(e), 'Error',
                  wx.OK | wx.ICON_ERROR)
             errSubID.ShowModal()
             errSubID.Destroy()
 
-            print e
+            print(e)
 
     def openFSLPresets(self, event):
         fsl_flame_presets_window.FlamePresetsOne(self)
@@ -315,7 +315,7 @@ class ListBox(wx.Frame):
         from CPAC.pipeline.cpac_group_runner import build_feat_models
 
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
-            
+
             pipelines = self.listbox.GetCheckedStrings()
             group_config = False
             for p in pipelines:
@@ -332,7 +332,7 @@ class ListBox(wx.Frame):
                         dialog_msg = 'Building your FSL-FEAT models. Check the terminal ' \
                                      'window for details and progress.'
                         dialog_title = 'Building models..'
-                        bld_dialog = wx.MessageDialog(self, dialog_msg, 
+                        bld_dialog = wx.MessageDialog(self, dialog_msg,
                                                       dialog_title,
                                       wx.OK | wx.ICON_INFORMATION)
                         bld_dialog.ShowModal()
@@ -351,17 +351,17 @@ class ListBox(wx.Frame):
                 os.kill(pid, 9)
             except OverflowError:
                 pass
-        print "\n\nCPAC run terminating...\n\n"
+        print("\n\nCPAC run terminating...\n\n")
         self.pids = []
 
     def runGroupLevelAnalysis(self, event):
 
         import CPAC.pipeline.cpac_group_runner
-        
+
         # Runs group analysis when user clicks "Run Group Level Analysis" in
         # GUI
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
-            
+
             pipelines = self.listbox.GetCheckedStrings()
             group_config = False
             for p in pipelines:
@@ -376,7 +376,7 @@ class ListBox(wx.Frame):
                         group_config = True
                         CPAC.pipeline.cpac_group_runner.run(pipeline)
                 else:
-                    print "pipeline doesn't exist"
+                    print("pipeline doesn't exist")
             if not group_config:
                 dlg = wx.MessageDialog(self, 'None of the pipeline '
                                        'configuration files had group config'
@@ -385,14 +385,14 @@ class ListBox(wx.Frame):
                 dlg.ShowModal()
                 dlg.Destroy()
         else:
-            print "No pipeline selected"
+            print("No pipeline selected")
 
     def get_pipeline_map(self):
         return self.pipeline_map
-    
+
     def get_sublist_map(self):
         return self.sublist_map
-    
+
     def get_pipeline_path(self, idx):
         path = self.pipeline_map.get(idx)
         return path
@@ -428,32 +428,32 @@ class ListBox(wx.Frame):
                 text = self.listbox.GetString(sel)
                 dlg = wx.MessageDialog(self, 'Do you also want to delete the configuration file from your system?',
                                        text, wx.YES | wx.NO | wx.ICON_INFORMATION)
-    
+
                 result = dlg.ShowModal()
-                
+
                 if  result == wx.ID_YES:
                     file_path = self.pipeline_map.get(text)
-                
+
                     if file_path and os.path.exists(file_path):
                         os.remove(file_path)
-                        
+
                 self.listbox.Delete(sel)
-                self.pipeline_map = removekey(self.pipeline_map, text)    
-                
+                self.pipeline_map = removekey(self.pipeline_map, text)
+
                 dlg.Destroy()
-        
+
     def OnEdit(self, event):
-        
+
         # get 'sel' integer of listbox selection
         sel = self.listbox.GetSelection()
-        
+
         if sel != -1:
             # 'text' - name of pipeline config displayed in listbox
             text = str(self.listbox.GetString(sel))
-            
+
             # 'path' - path of pipeline_config.yml
             path = self.get_pipeline_path(text)
-            
+
             if os.path.exists(path):
                 import yaml
                 config = yaml.safe_load(open(path, 'r'))
@@ -470,8 +470,8 @@ class ListBox(wx.Frame):
                 MainFrame(self, option="edit", path=path, pipeline_id=text,
                           ind=ind)
             else:
-                print "Couldn't find the config file %s "%path
-     
+                print("Couldn't find the config file %s "%path)
+
     def OnLoad(self, event):
 
         # Does this code do anything?? If you are looking for the code that
@@ -479,14 +479,14 @@ class ListBox(wx.Frame):
 
         dlg = wx.FileDialog(
             self, message="Choose the config yaml file",
-                defaultDir=os.getcwd(), 
+                defaultDir=os.getcwd(),
                 defaultFile="",
                 wildcard= "YAML files(*.yaml, *.yml)|*.yaml;*.yml",
                 style=wx.OPEN | wx.CHANGE_DIR)
-        
+
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
-                
+
             if len(path)>0 and os.path.exists(path):
                 MainFrame(self, option ="load", path=path)
 
@@ -496,7 +496,7 @@ class ListBox(wx.Frame):
                                    'Error!',
                                    wx.OK | wx.ICON_ERROR)
                 dlg.Destroy()
-            
+
             dlg.Destroy()
 
     def OnClear(self, event, flag):
@@ -524,7 +524,7 @@ class ListBox(wx.Frame):
                     dlg = wx.lib.dialogs.ScrolledMessageDialog(self, msg, name, size = (800,800))
                     dlg.ShowModal()
                 except:
-                    print "Cannot open file %s"%(name)
+                    print(f"Cannot open file {name}")
 
     def OnDisplay(self, event):
         import wx.lib.dialogs
@@ -540,17 +540,17 @@ class ListBox(wx.Frame):
                     dlg = wx.lib.dialogs.ScrolledMessageDialog(self, msg, name, size = (800,1000))
                     dlg.ShowModal()
                 except:
-                    print "Cannot open file %s"%(name)
+                    print(f"Cannot open file {name}")
 
     def AddItem(self, event):
-        
+
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Subject list file",
-            defaultDir=os.getcwd(), 
+            defaultDir=os.getcwd(),
             defaultFile="CPAC_subject_list.yml",
             wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
             style=wx.OPEN | wx.CHANGE_DIR)
-        
+
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
             # Check tfor path existence
@@ -560,8 +560,8 @@ class ListBox(wx.Frame):
                 try:
                     f_sl = yaml.safe_load(open(path, 'r'))
                 except Exception as e:
-                    print 'Unable to load in the specified file: %s' % path
-                    print 'Error:\n%s' % e
+                    print('Unable to load in the specified file: %s' % path)
+                    print('Error:\n%s' % e)
                 # If it's not a list, we know it's not a subject list
                 if type(f_sl) != list:
                     err_msg = 'File is not a subject list file. It might be a '\
@@ -576,7 +576,7 @@ class ListBox(wx.Frame):
             while True:
                 dlg2 = wx.TextEntryDialog(self, 'Please enter a alias name for the Subject List',
                                      'Sublist Name', os.path.splitext(os.path.basename(path))[0])
-            
+
                 if dlg2.ShowModal() == wx.ID_OK:
                     if len(dlg2.GetValue()) >0:
                         if self.sublist_map.get(dlg2.GetValue()) == None:
@@ -594,11 +594,11 @@ class ListBox(wx.Frame):
                     dlg2.Destroy()
                     dlg.Destroy
                     break
-                            
+
     def check_config(self, config):
 
         ret_val = 1
-        
+
         def display(win, msg, changeBg=True):
             wx.MessageBox(msg, "Error")
             if changeBg:
@@ -627,7 +627,7 @@ class ListBox(wx.Frame):
         try:
             params_file = open(p.resource_filename('CPAC', 'GUI/resources/config_parameters.txt'), "r")
         except:
-            print "Error: Could not open configuration parameter file.", "\n"
+            print("Error: Could not open configuration parameter file.", "\n")
             raise Exception
 
         paramInfo = params_file.read().split('\n')
@@ -685,7 +685,7 @@ class ListBox(wx.Frame):
             if os.path.exists(config):
                 MainFrame(self, option ="load", path=config)
             else:
-                print "Couldn't find the config file %s "%config    
+                print("Couldn't find the config file %s "%config)
 
             ret_val = -1
 
@@ -703,7 +703,7 @@ class ListBox(wx.Frame):
         # Gets called when you click 'Load' for pipeline config in the GUI
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Configuration file",
-            defaultDir=current_dir, 
+            defaultDir=current_dir,
             defaultFile="",
             wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
             style=wx.OPEN | wx.CHANGE_DIR)
@@ -712,21 +712,21 @@ class ListBox(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             # Load config file into memory and verify its not a subject list
             path = dlg.GetPath()
-            
+
             os.chdir(current_dir)
-            
+
             # Check for path existence
             if os.path.exists(path):
                 path = os.path.realpath(path)
                 try:
                     f_cfg = yaml.safe_load(open(path, 'r'))
                 except Exception as e:
-                    print '\n\nUnable to load the specified file: %s' % path
-                    print "The YAML file may not be formatted properly."
-                    print 'Error:\n%s\n\n' % e
+                    print('\n\nUnable to load the specified file: %s' % path)
+                    print("The YAML file may not be formatted properly.")
+                    print('Error:\n%s\n\n' % e)
                     raise Exception
                 if type(f_cfg) == dict:
-                    if not f_cfg.has_key('pipelineName') and not f_cfg.has_key('pipeline_dir'):
+                    if 'pipelineName' not in f_cfg and 'pipeline_dir' not in f_cfg:
                         err_msg = 'File is not a pipeline configuration '\
                                   'file. It might be a data configuration file.'
                         raise Exception(err_msg)
@@ -753,14 +753,14 @@ class ListBox(wx.Frame):
                                   "configuration file from an older version "\
                                   "of CPAC, this parameter may be obsolete. "\
                                   "Double-check your selections.\n\n" % e
-                            print err
+                            print(err)
                         else:
-                            print '\n\nERROR: Configuration file could not ' \
+                            print('\n\nERROR: Configuration file could not ' \
                                   'be loaded properly - the file might be '\
                                   'access-protected or you might have ' \
-                                  'chosen the wrong file.\n'
-                            print 'Error name: main_window_0001\n'
-                            print 'Exception: %s\n\n' % e
+                                  'chosen the wrong file.\n')
+                            print('Error name: main_window_0001\n')
+                            print('Exception: %s\n\n' % e)
 
 
                     # Valid pipeline name
@@ -828,35 +828,35 @@ class ListBox(wx.Frame):
 
 # runCPAC class
 class runCPAC(wx.Frame):
- 
+
     def __init__(self, pipeline, sublist, p, pid):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Running CPAC")
-                
+
         # Add a panel so it looks the correct on all platforms
         panel = wx.Panel(self, wx.ID_ANY)
         log = wx.TextCtrl(panel, wx.ID_ANY, size=(300,100),
                           style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
         btn = wx.Button(panel, wx.ID_ANY, 'Kill CPAC!')
         self.Bind(wx.EVT_BUTTON,lambda event: self.onButton(event, pid), btn)
- 
-        # Add widgets to a sizer        
+
+        # Add widgets to a sizer
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(log, 1, wx.ALL|wx.EXPAND, 5)
         sizer.Add(btn, 0, wx.ALL|wx.CENTER, 5)
         panel.SetSizer(sizer)
- 
+
         log.AppendText("running for pipeline --> %s \n"%p)
         log.AppendText("pipeline config --> %s \n"%pipeline)
         log.AppendText("participant list --> %s \n"%sublist)
         log.AppendText("process ids ---> %s \n"%pid)
-       
-    def onButton(self, event, pid):        
+
+    def onButton(self, event, pid):
         if pid:
             for id in pid:
-                print "killing process id -%s"% id
+                print("killing process id -%s"% id)
                 os.kill(id, 9)
-                print "please restart the gui"
-        
+                print("please restart the gui")
+
             self.Close()
         else:
             dlg = wx.MessageDialog(self, 'Unable to retrieve the process id. '
@@ -865,5 +865,3 @@ class runCPAC(wx.Frame):
                                    'Alert!',
                                    wx.OK | wx.ICON_INFORMATION)
             dlg.Destroy()
-       
-

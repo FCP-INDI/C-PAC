@@ -172,7 +172,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list,
 
             if b_any(ext in x for x in glob.glob(glob_string)) == True:
                 nifti_globs.append(glob_string)
-
+                
             glob_string = os.path.join(glob_string, "*")
             prog_string = prog_string + "."
             print(prog_string)
@@ -198,11 +198,11 @@ def grab_raw_score_filepath(filepath, resource_id):
         raw_score_path = filepath.replace(resource_id,"vmhc_raw_score")
         raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
         raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
-    else:                   
+    else:
         raw_score_path = filepath.replace("_zstd","")
         raw_score_path = raw_score_path.replace("_fisher","")
         raw_score_path = raw_score_path.replace("_zstat","")
-                    
+
         if "sca_roi_files_to_standard" in resource_id:
             sub_folder = raw_score_path.split("/")[-2] + "/"
             if "z_score" in sub_folder:
@@ -211,12 +211,12 @@ def grab_raw_score_filepath(filepath, resource_id):
             sca_filename = raw_score_path.split("/")[-1]
             globpath = raw_score_path.replace(sca_filename, "*")
             globpath = os.path.join(globpath, sca_filename)
-            raw_score_path = glob.glob(globpath)[0]     
+            raw_score_path = glob.glob(globpath)[0]
         elif "dr_tempreg_maps" in resource_id:
             raw_score_path = raw_score_path.replace("map_z_","map_")
             raw_filename = raw_score_path.split("/")[-1]
             raw_score_path = raw_score_path.replace(raw_filename,"")
-            raw_score_path = glob.glob(os.path.join(raw_score_path,"*",raw_filename))[0]       
+            raw_score_path = glob.glob(os.path.join(raw_score_path,"*",raw_filename))[0]
         else:
             # in case filenames are different between z-standardized and raw
             raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
@@ -224,7 +224,7 @@ def grab_raw_score_filepath(filepath, resource_id):
                 raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
             except:
                 raw_score_path = os.path.join(raw_score_path,"*")
-                
+
     if (raw_score_path is None) or (not os.path.exists(raw_score_path)):
         err = "\n\n[!] The filepath for the raw score of " \
               "%s can not be found.\nFilepath: %s\n\nThis " \
@@ -250,7 +250,7 @@ def find_power_params_file(filepath, resource_id, series_id):
               "parameters file for at least one of the participants.\n\n" \
               "Error details: %s\n\n" % e
         raise Exception(err)
-    
+
     power_params_file = None
     for root, dirs, files in os.walk(power_first_half):
         for filename in files:
@@ -301,11 +301,11 @@ def extract_power_params(power_params_lines, power_params_filepath):
     meandvars = values_list[-1]
 
     return meanfd_power, meanfd_jenk, meandvars
- 
+
 
 def create_output_dict_list(nifti_globs, pipeline_output_folder,
-                            resource_list, get_motion=False, 
-                            get_raw_score=False, pull_func=False, 
+                            resource_list, get_motion=False,
+                            get_raw_score=False, pull_func=False,
                             derivatives=None, exts=['nii', 'nii.gz']):
 
     import os
@@ -381,8 +381,8 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
                 continue
 
             relative_filepath = filepath.split(pipeline_output_folder)[1]
-            filepath_pieces = filter(None, relative_filepath.split("/"))
-            
+            filepath_pieces = [_f for _f in relative_filepath.split("/") if _f]
+
             resource_id = filepath_pieces[1]
 
             if resource_id not in search_dirs:
@@ -390,17 +390,17 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
             series_id_string = filepath_pieces[2]
             strat_info = "_".join(filepath_pieces[3:])[:-len(ext)]
-            
+
             unique_resource_id = (resource_id, strat_info)
-                        
+
             if unique_resource_id not in output_dict_list.keys():
                 output_dict_list[unique_resource_id] = []
-            
+
             unique_id = filepath_pieces[0]
 
             series_id = series_id_string.replace("_scan_", "")
             series_id = series_id.replace("_rest", "")
-            
+
             new_row_dict = {}
             new_row_dict["participant_session_id"] = unique_id
             new_row_dict["participant_id"], new_row_dict["Sessions"] = \
@@ -408,9 +408,12 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
 
             new_row_dict["Series"] = series_id
             new_row_dict["Filepath"] = filepath
-            
-            print('{0} - {1} - {2}'.format(unique_id, series_id, 
-                  resource_id))
+
+            print('{0} - {1} - {2}'.format(
+                unique_id,
+                series_id,
+                resource_id
+            ))
 
             if get_motion:
                 # if we're including motion measures
@@ -428,9 +431,9 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             if get_raw_score:
                 # grab raw score for measure mean just in case
                 raw_score_path = grab_raw_score_filepath(filepath,
-                                                         resource_id)                    
+                                                         resource_id)
                 new_row_dict["Raw_Filepath"] = raw_score_path
-                       
+
             # unique_resource_id is tuple (resource_id,strat_info)
             output_dict_list[unique_resource_id].append(new_row_dict)
 
@@ -442,7 +445,7 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     import pandas as pd
 
     output_df_dict = {}
-    
+
     # unique_resource_id is tuple (resource_id,strat_info)
     for unique_resource_id in output_dict_list.keys():
 
@@ -465,7 +468,7 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
         # unique_resource_id is tuple (resource_id,strat_info)
         if unique_resource_id not in output_df_dict.keys():
             output_df_dict[unique_resource_id] = new_df
-    
+
     return output_df_dict
 
 
@@ -490,7 +493,7 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list,
     )
 
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
-    
+
     return output_df_dict
 
 
@@ -526,7 +529,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     for col_names in pheno_df.columns:
         if "participant_" in col_names:
             num_partic_cols += 1
-            
+
     if num_partic_cols > 1 and ("Sessions" in pheno_df.columns or "Sessions_column_one" in pheno_df.columns):
         for part_id in pheno_df["participant_id"]:
             if "participant_{0}".format(part_id) in pheno_df.columns:
@@ -559,7 +562,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     # participant IDs new columns
     participant_id_cols = {}
     i = 0
-    
+
     for participant_unique_id in pheno_df["participant_session_id"]:
         part_col = [0] * len(pheno_df["participant_session_id"])
 
@@ -567,12 +570,12 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
             if session in participant_unique_id.split("_")[1]:
                 #print(participant_unique_id)# generate/update sessions categorical column
                 part_id = participant_unique_id.split("_")[0]
-                
+
                 part_ids_col.append(str(part_id))
                 sessions_col.append(str(session))
 
                 header_title = "participant_%s" % part_id
-                
+
                 # generate/update participant ID column (1's or 0's)
                 if header_title not in participant_id_cols.keys():
                     part_col[i] = 1
@@ -588,7 +591,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     for sub_id in sublist:
         new_col = 'participant_{0}'.format(sub_id)
         pheno_df[new_col] = participant_id_cols[new_col]
-    
+
     pheno_df = pheno_df.astype('object')
 
     return pheno_df
@@ -648,7 +651,7 @@ def pheno_series_to_repeated_measures(pheno_df, series_list,
 
         for new_col in participant_id_cols.keys():
             pheno_df[new_col] = participant_id_cols[new_col]
-        
+
     pheno_df = pheno_df.astype('object')
 
     return pheno_df
@@ -673,7 +676,7 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     sessions_x_series = len(sessions_list)
     if series_list is not None:
         sessions_x_series *= len(series_list)
-       
+
     dropped_parts = []
 
     for part_ID in part_ID_count.keys():
@@ -691,7 +694,7 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 def prep_feat_inputs(group_config_file):
     # Preps group analysis run
     # config_file: filepath to the C-PAC group-level config file
-    
+
     import os
     import pandas as pd
     import pkg_resources as p
@@ -713,7 +716,7 @@ def prep_feat_inputs(group_config_file):
     #   - create participant list
     #   - get output measure list
     #   - see if any of the models will require the raw scores
-    
+
     get_motion = False
     get_raw_score = False
 
@@ -764,7 +767,7 @@ def prep_feat_inputs(group_config_file):
                                     inclusion_list,
                                     get_motion,
                                     get_raw_score)
-    
+
     # alright, group model processing time
     #   going to merge the phenotype DFs with the output file DF
     analysis_dict = {}
@@ -779,7 +782,7 @@ def prep_feat_inputs(group_config_file):
         raise Exception(err)
 
     # load original phenotype CSV into a dataframe
-    pheno_df = read_pheno_csv_into_df(group_model.pheno_file, 
+    pheno_df = read_pheno_csv_into_df(group_model.pheno_file,
                                       group_model.participant_id_label)
 
     # enforce the sub ID label to "Participant"
@@ -987,7 +990,7 @@ def prep_feat_inputs(group_config_file):
                     # unique_resource =
                     #        (output_measure_type, preprocessing strategy)
                     analysis_dict[(model_name, group_config_file,
-                                   resource_id, strat_info, session, 
+                                   resource_id, strat_info, session,
                                    series)] = newer_pheno_df
 
         else:
@@ -1036,7 +1039,7 @@ def prep_feat_inputs(group_config_file):
               'participants in your pipeline output directory that were ' \
               'included in your analysis, and the participants in the ' \
               'phenotype file provided.\n\n'
-        raise Exception(err) 
+        raise Exception(err)
 
     return analysis_dict
 
@@ -1121,7 +1124,7 @@ def run_feat(group_config_file, feat=True):
             second_half.remove('')
 
             try:
-                id_tuple = (second_half[0], second_half[1], second_half[2], 
+                id_tuple = (second_half[0], second_half[1], second_half[2],
                             second_half[3])
             except IndexError:
                 # not a file we are interested in
@@ -1161,10 +1164,10 @@ def run_feat(group_config_file, feat=True):
         log_dir = log_dir.replace('cpac_group_analysis', 'cpac_group_analysis_logdir')
         log_dir = log_dir.replace('model_files/', '')
 
-        model_out_dir = os.path.join(models[id_tuple]['dir_path'], 
+        model_out_dir = os.path.join(models[id_tuple]['dir_path'],
                                      'fsl-feat_results')
         model_out_dir = model_out_dir.replace('model_files/', '')
-        input_files_dir = os.path.join(models[id_tuple]['dir_path'], 
+        input_files_dir = os.path.join(models[id_tuple]['dir_path'],
                                        'flame_input_files')
 
         create_dir(work_dir, "group analysis working")
@@ -1178,15 +1181,15 @@ def run_feat(group_config_file, feat=True):
         grp_vector = load_text_file(models[id_tuple]['group_vector'],
                                     'group vector file')
 
-        mat, grp, con, fts = create_flame_model_files(design_matrix, 
-                                                      design_matrix.columns, 
-                                                      None, None,  
-                                                      custom_contrasts_csv, 
-                                                      None, c.group_sep, 
-                                                      grp_vector, 
-                                                      c.coding_scheme, 
+        mat, grp, con, fts = create_flame_model_files(design_matrix,
+                                                      design_matrix.columns,
+                                                      None, None,
+                                                      custom_contrasts_csv,
+                                                      None, c.group_sep,
+                                                      grp_vector,
+                                                      c.coding_scheme,
                                                       model_name,
-                                                      id_tuple[0], 
+                                                      id_tuple[0],
                                                       input_files_dir)
         if fts:
             f_test = True
@@ -1203,7 +1206,7 @@ def run_feat(group_config_file, feat=True):
                   'FSL-FEAT FLAME run.\n\n'\
                   '#########################################################' \
                   '\n'.format(id_tuple[0], id_tuple[1], id_tuple[2], id_tuple[3])
-            print msg
+            print(msg)
             continue
 
         if feat:
@@ -1215,7 +1218,7 @@ def run_feat(group_config_file, feat=True):
                                         work_dir, log_dir, model_name, fts)))
         else:
             from CPAC.randomise.randomise import prep_randomise_workflow
-            model_out_dir = model_out_dir.replace('feat_results', 
+            model_out_dir = model_out_dir.replace('feat_results',
                                                   'randomise_results')
             procss.append(Process(target=prep_randomise_workflow,
                                   args=(c, models[id_tuple]['merged'],
@@ -1530,10 +1533,12 @@ def run_basc(pipeline_config):
         if 'basc' in key:
             basc_config_dct[key.replace('basc_', '')] = pipeconfig_dct[key]
 
-    iterables = ['dataset_bootstrap_list', 'timeseries_bootstrap_list', 
+    iterables = ['dataset_bootstrap_list', 'timeseries_bootstrap_list',
                  'blocklength_list', 'n_clusters_list', 'output_sizes']
     for iterable in iterables:
-        basc_config_dct[iterable] = [int(x) for x in str(basc_config_dct[iterable]).split(',')]
+        basc_config_dct[iterable] = [
+            int(x) for x in str(basc_config_dct[iterable]).split(',')
+        ]
 
     basc_config_dct['proc_mem'] = [basc_config_dct['proc'],
                                    basc_config_dct['memory']]
@@ -1559,7 +1564,7 @@ def run_basc(pipeline_config):
                         '{0}\n'.format(ref_file))
 
     working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'PyBASC',
-                               '{0}mm_resolution'.format(basc_resolution), 
+                               '{0}mm_resolution'.format(basc_resolution),
                                'working_dir')
 
     # check for S3 of ROI files here!
@@ -1699,10 +1704,10 @@ def run_basc(pipeline_config):
 
             # go!
             launch_PyBASC(basc_config_outfile)
-                
+
 
 def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
-                  isc, isfc, levels=[], permutations=1000, 
+                  isc, isfc, levels=[], permutations=1000,
                   std_filter=None, scan_inclusion=None,
                   roi_inclusion=None, num_cpus=1):
 
@@ -1781,7 +1786,7 @@ def run_isc_group(pipeline_dir, out_dir, working_dir, crash_dir,
 
                 unique_out_dir = os.path.join(out_dir, "ISC", derivative, _, df_scan)
 
-                it_id = "ISC_{0}_{1}_{2}".format(df_scan, derivative, 
+                it_id = "ISC_{0}_{1}_{2}".format(df_scan, derivative,
                                                  _.replace('.', '').replace('+', ''))
 
                 isc_wf = create_isc(name=it_id,
@@ -1937,7 +1942,7 @@ def run_qpp(group_config_file):
         qpp_stratification = ['Sessions', 'Series']
     else:
         qpp_stratification = []
-        
+
     for (resource_id, strat_info), output_df in outputs.items():
 
         if c.qpp_session_inclusion:
@@ -1952,7 +1957,7 @@ def run_qpp(group_config_file):
 
         for group_id, output_df_group in output_df_groups:
 
-            group = zip(qpp_stratification, group_id)
+            group = list(zip(qpp_stratification, group_id))
 
             group_id = "_".join(["%s-%s" % ({
                 "Sessions": "ses",
@@ -2001,7 +2006,7 @@ def manage_processes(procss, output_dir, num_parallel=1):
         """
         for p in procss:
             p.start()
-            print >> pid, p.pid
+            print(p.pid, file=pid)
 
     else:
         """
@@ -2016,7 +2021,7 @@ def manage_processes(procss, output_dir, num_parallel=1):
                 idc = idx
                 for p in procss[idc: idc + num_parallel]:
                     p.start()
-                    print >> pid, p.pid
+                    print(p.pid, file=pid)
                     jobQueue.append(p)
                     idx += 1
             else:
