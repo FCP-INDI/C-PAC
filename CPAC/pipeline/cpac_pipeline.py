@@ -4024,7 +4024,9 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     node, out_file = rp[resource]
                     
                     # exclue Nonetype transforms
-                    if resource == 'ants_initial_xfm' or resource == 'ants_rigid_xfm' or resource == 'ants_affine_xfm':
+                    if resource == 'ants_initial_xfm' or resource == 'ants_rigid_xfm' or resource == 'ants_affine_xfm' \
+                        or resource == 'ants_symmetric_initial_xfm' or resource == 'ants_symmetric_rigid_xfm' or resource == 'ants_symmetric_affine_xfm':
+
                         ants_para = c.ANTs_para_T1_registration
                         for para_index in range(len(ants_para)):
                             for para_type in ants_para[para_index]:
@@ -4053,7 +4055,8 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                                                 workflow.connect(node, out_file, ds, resource)
                                             if trans_type == 'Affine' and resource == 'func_to_epi_ants_affine_xfm':
                                                 workflow.connect(node, out_file, ds, resource)
-                    if resource not in ['ants_initial_xfm', 'ants_rigid_xfm', 'ants_affine_xfm', 'func_to_epi_ants_initial_xfm', 'func_to_epi_ants_rigid_xfm', 'func_to_epi_ants_affine_xfm']:
+                    if resource not in ['ants_initial_xfm', 'ants_rigid_xfm', 'ants_affine_xfm', 'func_to_epi_ants_initial_xfm', 'func_to_epi_ants_rigid_xfm', 'func_to_epi_ants_affine_xfm',\
+                        'ants_symmetric_initial_xfm','ants_symmetric_rigid_xfm','ants_symmetric_affine_xfm']:
                         workflow.connect(node, out_file, ds, resource)
 
                     output_sink_nodes += [(ds, 'out_file')]
