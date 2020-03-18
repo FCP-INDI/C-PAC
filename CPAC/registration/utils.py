@@ -7,8 +7,12 @@ def combine_inputs_into_list(input1, input2, input3):
 def seperate_warps_list(warp_list, selection):
     selected_warp = None
     for warp in warp_list:
-        if selection in warp:
-            selected_warp = warp
+        if selection == 'Warp':
+            if '3Warp' in warp or '2Warp' in warp or '1Warp' in warp :
+                selected_warp = warp
+        else:
+            if selection in warp:
+                selected_warp = warp
     return selected_warp
 
 def check_transforms(transform_list):

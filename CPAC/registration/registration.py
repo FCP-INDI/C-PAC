@@ -829,7 +829,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_warp')
 
-    select_forward_warp.inputs.selection = "3Warp"
+    select_forward_warp.inputs.selection = "Warp"
 
     select_inverse_warp = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
