@@ -822,6 +822,10 @@ targetAngleDeg : [90]
 runROITimeseries :  [1]
 
 
+# Functional time-series and ROI realignment method: ['func_to_ROI'] or ['ROI_to_func']
+realignment : ['ROI_to_func']
+
+
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg', 'PearsonCorr', 'PartialCorr'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg

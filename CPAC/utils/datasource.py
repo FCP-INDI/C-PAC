@@ -806,28 +806,45 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
     return wf
 
-def resample_func_to_roi(in_file, reference, identity_matrix):
+def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
 
     import os, subprocess
     import nibabel as nb    
 
-    # check dimension
-    roi_img = nb.load(reference)
+    # load func and ROI dimension
+    roi_img = nb.load(in_roi)
     roi_shape = roi_img.shape 
-    func_img = nb.load(in_file)
+    func_img = nb.load(in_func)
     func_shape = func_img.shape 
 
-    # TODO resample a lower resolution space if high template resolution 
+    # check if func size = ROI size, return func and ROI; else resample using flirt 
     if roi_shape != func_shape:
-        # resample func to roi
-        out_file = os.path.join(os.getcwd(), 'resampled_func.nii.gz')
+
+        # resample func to ROI: in_file = func, reference = ROI
+        if 'func_to_ROI' in realignment: 
+            in_file = in_func
+            reference = in_roi
+            out_file = os.path.join(os.getcwd(), in_file[0:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_func = out_file
+            out_roi = in_roi
+
+        # resample ROI to func: in_file = ROI, reference = func
+        elif 'ROI_to_func' in realignment: 
+            in_file = in_roi
+            reference = in_func
+            out_file = os.path.join(os.getcwd(), in_file[0:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_func = in_func
+            out_roi = out_file
+
         cmd = ['flirt', '-in', in_file, 
                 '-ref', reference, 
                 '-out', out_file, 
                 '-interp', 'trilinear', 
                 '-applyxfm', '-init', identity_matrix]
         subprocess.check_output(cmd)
+
     else:
-        out_file = in_file
+        out_func = in_file
+        out_roi = in_roi
     
-    return out_file
+    return out_func, out_roi
