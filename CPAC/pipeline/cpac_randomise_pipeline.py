@@ -30,9 +30,9 @@ def randomise_merged_mask(s_paths):
     mask.inputs.in_file = s_paths
 
 def prep_randomise_workflow(c, subject_infos):
-    print 'Preparing Randomise workflow'
+    print('Preparing Randomise workflow')
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    print 'Subjects', s_ids
+    print('Subjects', s_ids)
 
     wf = pe.Workflow(name='randomise_workflow')
     wf.base_dir = c.workingDirectory

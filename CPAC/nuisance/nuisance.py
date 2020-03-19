@@ -34,7 +34,7 @@ from CPAC.utils.datasource import check_for_s3
 
 from scipy.fftpack import fft, ifft
 
-from bandpass import bandpass_voxels
+from .bandpass import bandpass_voxels
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
@@ -851,12 +851,12 @@ def create_regressor_workflow(nuisance_selectors,
 
                 if regressor_selector.get('erode_mask_mm'):
                     erosion_mm = regressor_selector['erode_mask_mm']
-                else: 
+                else:
                     erosion_mm = False
 
                 if regressor_selector.get('degree'):
                     degree = regressor_selector['degree']
-                else: 
+                else:
                     degree = 1
 
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
@@ -866,8 +866,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
 
-                if erosion_mm: # TODO: in func/anat space 
-                    # transform eroded anat brain mask to functional space 
+                if erosion_mm: # TODO: in func/anat space
+                    # transform eroded anat brain mask to functional space
                     # convert_xfm
                     anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
                     anat_to_func_linear_xfm.inputs.invert_xfm = True
@@ -1291,7 +1291,9 @@ def create_regressor_workflow(nuisance_selectors,
     )
 
     if has_nuisance_regressors:
-        for regressor_key, (regressor_arg, regressor_node, regressor_target) in regressors.items():
+        for regressor_key, (
+            regressor_arg, regressor_node, regressor_target
+        ) in regressors.items():
             if regressor_target != 'ort':
                 continue
 
@@ -1304,8 +1306,9 @@ def create_regressor_workflow(nuisance_selectors,
     # Check for any regressors to combine into files
     has_voxel_nuisance_regressors = any(
         regressor_node
-        for regressor_key, (regressor_arg, regressor_node, regressor_target)
-        in regressors.items()
+        for regressor_key, (
+            regressor_arg, regressor_node, regressor_target
+        ) in regressors.items()
         if regressor_target == 'dsort'
     )
 
@@ -1313,8 +1316,9 @@ def create_regressor_workflow(nuisance_selectors,
 
         voxel_nuisance_regressors = [
             (regressor_key, (regressor_arg, regressor_node, regressor_target))
-            for regressor_key, (regressor_arg, regressor_node, regressor_target)
-            in regressors.items()
+            for regressor_key, (
+                regressor_arg, regressor_node, regressor_target
+            ) in regressors.items()
             if regressor_target == 'dsort'
         ]
 
@@ -1323,8 +1327,9 @@ def create_regressor_workflow(nuisance_selectors,
             name='voxel_nuisance_regressors_merge'
         )
 
-        for i, (regressor_key, (regressor_arg, regressor_node, regressor_target)) \
-            in enumerate(voxel_nuisance_regressors):
+        for i, (regressor_key, (
+            regressor_arg, regressor_node, regressor_target)
+        ) in enumerate(voxel_nuisance_regressors):
 
             if regressor_target != 'dsort':
                 continue
@@ -1510,13 +1515,13 @@ def filtering_bold_and_regressors(nuisance_selectors,
 
     filtering_wf = pe.Workflow(name=name)
     bandpass_selector = nuisance_selectors.get('Bandpass')
-    
+
     frequency_filter = pe.Node(
                 Function(input_names=['realigned_file',
                                       'regressor_file',
                                       'bandpass_freqs',
                                       'sample_period'],
-                         output_names=['bandpassed_file', 
+                         output_names=['bandpassed_file',
                                        'regressor_file'],
                          function=bandpass_voxels,
                          as_module=True),
@@ -1533,7 +1538,7 @@ def filtering_bold_and_regressors(nuisance_selectors,
 
     filtering_wf.connect(inputspec, 'regressors_file_path',
                          frequency_filter, 'regressor_file')
-        
+
     filtering_wf.connect(frequency_filter, 'bandpassed_file',
                          outputspec, 'residual_file_path')
 
@@ -1541,4 +1546,3 @@ def filtering_bold_and_regressors(nuisance_selectors,
                          outputspec, 'residual_regressor')
 
     return filtering_wf
-

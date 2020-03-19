@@ -1,4 +1,4 @@
-from scrubbing import create_scrubbing_preproc, \
+from .scrubbing import create_scrubbing_preproc, \
                       get_mov_parameters, \
                       get_indx
 

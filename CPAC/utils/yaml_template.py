@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import re
 import yaml
@@ -68,6 +68,5 @@ def create_yaml_from_template(d, template):
                     default_flow_style=default_flow_style,
                     Dumper=noalias_dumper
                 ).strip("{}\n\r") + "\n"
-
 
     return output

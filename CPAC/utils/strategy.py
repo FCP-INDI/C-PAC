@@ -130,11 +130,19 @@ class Strategy(object):
                     fork_label = 'func-bet'
                 if 'func_preproc_fsl_afni' in fork:
                     fork_label = 'func-bet-3dautomask'
+
+                # motion correction reference
+                if 'mean' in fork:
+                    fork_label = 'mean'
+                if 'median' in fork:
+                    fork_label = 'median'
+                if 'selected_volume' in fork:
+                    fork_label = 'selected_volume'
                 # motion correction
                 if 'mcflirt' in fork:
-                    fork_label = 'func-mcflirt' 
+                    fork_label += '_func-mcflirt' 
                 if '3dvolreg' in fork:
-                    fork_label = 'func-3dvolreg'     
+                    fork_label += '_func-3dvolreg'     
                 if 'anat_refined' in fork:
                     fork_label = 'func-anat-refined' 
                 # distortion correction
@@ -150,8 +158,6 @@ class Strategy(object):
                 if 'frequency_filter' in fork:
                     fork_label = 'freq-filter'
                 
-                if 'median' in fork:
-                    fork_label = 'median'
                 if 'gen_motion_stats_before_stc' in fork:
                     fork_label = 'motion_stats_before_stc' 
                 if 'slice' in fork:

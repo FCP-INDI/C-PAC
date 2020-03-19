@@ -559,7 +559,7 @@ motion_correction : ['3dvolreg']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume 
-motion_correction_reference: ['mean', 'median', 'selected volume']
+motion_correction_reference: ['mean']
 
 
 # Choose motion correction reference volume

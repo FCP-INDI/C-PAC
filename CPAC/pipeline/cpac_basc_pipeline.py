@@ -9,9 +9,9 @@ import sys
 import glob
 
 def prep_basc_workflow(c, subject_infos):
-    print 'Preparing BASC workflow'
+    print('Preparing BASC workflow')
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    print 'Subjects', s_ids
+    print('Subjects', s_ids)
     
     wf = pe.Workflow(name='basc_workflow')
     wf.base_dir = c.workingDirectory
@@ -52,8 +52,8 @@ def prep_basc_workflow(c, subject_infos):
 
 def run(config, subject_infos):
     import re
-    import commands
-    commands.getoutput('source ~/.bashrc')
+    import subprocess
+    subprocess.getoutput('source ~/.bashrc')
     import os
     import sys
     import pickle
