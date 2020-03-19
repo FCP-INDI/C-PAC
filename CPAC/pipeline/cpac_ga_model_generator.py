@@ -14,7 +14,7 @@ def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
     try:
         with open(new_sub_file, "w") as f:
             for part_ID in new_participant_list:
-                print >>f, part_ID
+                print(part_ID, file=f)
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not write new participant list for " \
               "current model and derivative in group-level analysis. Ensure "\
@@ -119,11 +119,11 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
     import pandas as pd
 
     mm_dict_list = []
-    
+
     for raw_file in model_df["Raw_Filepath"]:
-    
+
         mask_string = ["3dmaskave", "-mask", merge_mask, raw_file]
-        
+
         # calculate
         try:
             retcode = subprocess.check_output(mask_string)
@@ -131,7 +131,7 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
             err = "\n\n[!] AFNI's 3dMaskAve failed for raw output: %s\n" \
                   "Error details: %s\n\n" % (raw_file, e)
             raise Exception(err)
-        
+
         # if this breaks, 3dmaskave output to STDOUT has changed
         try:
             mean = retcode.split(" ")[0]
@@ -141,21 +141,21 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
                   "Measure Mean in group analysis.\n\nError details: %s\n\n" \
                   % e
             raise Exception(err)
-        
+
         mm_dict = {}
         mm_dict["Raw_Filepath"] = raw_file
         mm_dict["Measure_Mean"] = mean
         mm_dict_list.append(mm_dict)
-        
+
     mm_df = pd.DataFrame(mm_dict_list)
-    
+
     # demean!
     mm_df["Measure_Mean"] = mm_df["Measure_Mean"].astype(float)
     mm_df["Measure_Mean"] = \
         mm_df["Measure_Mean"].sub(mm_df["Measure_Mean"].mean())
-    
+
     model_df = pd.merge(model_df, mm_df, how="inner", on=["Raw_Filepath"])
-    
+
     return model_df
 
 
@@ -176,10 +176,10 @@ def check_mask_file_resolution(data_file, roi_mask, group_mask, out_dir, \
     roi_mask_dims = roi_mask_hdr.get_zooms()
 
     if raw_file_dims != roi_mask_dims:
-        print "\n\nWARNING: The custom ROI mask file is a different " \
+        print("\n\nWARNING: The custom ROI mask file is a different " \
               "resolution than the output data! Resampling the ROI mask " \
               "file to match the original output data!\n\nCustom ROI mask " \
-              "file: %s\n\nOutput measure: %s\n\n" % (roi_mask, output_id)
+              "file: %s\n\nOutput measure: %s\n\n" % (roi_mask, output_id))
 
         resampled_outfile = os.path.join(out_dir, \
                                          "resampled_%s" \
@@ -224,7 +224,7 @@ def trim_mask(input_mask, ref_mask, output_mask_path):
     return output_mask_path
 
 
-def calculate_custom_roi_mean_in_df(model_df, roi_mask):   
+def calculate_custom_roi_mean_in_df(model_df, roi_mask):
 
     import os
     import subprocess
@@ -232,9 +232,9 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
 
     # calculate the ROI means
     roi_dict_list = []
-    
+
     for raw_file in model_df["Raw_Filepath"]:
-        
+
         roi_string = ["3dROIstats", "-mask", roi_mask, raw_file]
 
         try:
@@ -283,17 +283,17 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
 
 
     roi_df = pd.DataFrame(roi_dict_list)
-    
+
     # demean!
     i = 1
     for roi_mean in roi_means_list:
         roi_label = "Custom_ROI_Mean_%d" % i
-        i += 1  
+        i += 1
         roi_df[roi_label] = roi_df[roi_label].astype(float)
         roi_df[roi_label] = roi_df[roi_label].sub(roi_df[roi_label].mean())
-    
+
     model_df = pd.merge(model_df, roi_df, how="inner", on=["Raw_Filepath"])
-    
+
     return model_df
 
 
@@ -312,10 +312,10 @@ def parse_out_covariates(design_formula):
     return covariates
 
 
-def split_groups(pheno_df, group_ev, ev_list, cat_list):   
-            
+def split_groups(pheno_df, group_ev, ev_list, cat_list):
+
     import pandas as pd
-    
+
     new_ev_list = []
     new_cat_list = []
     if group_ev not in cat_list:
@@ -331,19 +331,19 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
             keymap[val] = idx
             idx += 1
     grp_vector = pheno_df[group_ev].map(keymap)
-            
+
     # start the split
     pheno_df["subject_key"] = pheno_df["participant_id"]
     join_column = ["subject_key"]
-        
+
     if "Session" in pheno_df:
         pheno_df["session_key"] = pheno_df["Session"]
         join_column.append("session_key")
-            
+
     if "Series" in pheno_df:
         pheno_df["series_key"] = pheno_df["Series"]
         join_column.append("series_key")
-        
+
     group_levels = list(set(pheno_df[group_ev]))
 
     level_df_list = []
@@ -436,21 +436,21 @@ def check_multicollinearity(matrix):
     max_singular = np.max(s)
     min_singular = np.min(s)
 
-    print "Max singular: ", max_singular
-    print "Min singular: ", min_singular
-    print "Rank: ", np.linalg.matrix_rank(matrix), "\n"
+    print("Max singular: ", max_singular)
+    print("Min singular: ", min_singular)
+    print("Rank: ", np.linalg.matrix_rank(matrix), "\n")
 
     if min_singular == 0:
-        print '[!] CPAC warns: Detected multicollinearity in the ' \
+        print('[!] CPAC warns: Detected multicollinearity in the ' \
                   'computed group-level analysis model. Please double-' \
-                  'check your model design.\n\n'
+                  'check your model design.\n\n')
     else:
         condition_number = float(max_singular)/float(min_singular)
-        print "Condition number: %f" % condition_number
+        print("Condition number: %f" % condition_number)
         if condition_number > 30:
-            print '[!] CPAC warns: Detected multicollinearity in the ' \
+            print('[!] CPAC warns: Detected multicollinearity in the ' \
                       'computed group-level analysis model. Please double-' \
-                      'check your model design.\n\n'
+                      'check your model design.\n\n')
         else:
             print('Looks good..\n')
 
@@ -477,13 +477,13 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
         con_vec = lincon.coefs[0]
         contrasts_vectors.append(con_vec)
 
-    
+
     return contrasts_vectors
 
 
 def build_feat_model(model_df, model_name, group_config_file, resource_id,
                      preproc_strat, session_id, series_or_repeated_label):
-    
+
     #
     # this function runs once per derivative type and preproc strat combo
     # during group analysis
@@ -498,7 +498,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     import nipype.interfaces.utility as util
     import nipype.interfaces.io as nio
     from CPAC.pipeline.cpac_group_runner import load_config_yml
-    
+
     from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv, \
         write_blank_contrast_csv
 
@@ -508,7 +508,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     #sublist_txt = group_config_obj.participant_list
 
     #if sublist_txt == None:
-    #    print ("Warning! You have not provided a subject list. CPAC will use all the subjects in pipeline directory") 
+    #    print ("Warning! You have not provided a subject list. CPAC will use all the subjects in pipeline directory")
     #    sublist_txt = group_config_obj.participant_list
     #else:
     #    sublist_txt = group_config_obj.particpant_list
@@ -579,13 +579,13 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
             re.search('sca_ROI_(\d)+', os.path.splitext(\
                 os.path.splitext(os.path.basename(\
                     model_df["Filepath"][0]))[0])[0]).group(0))
-            
+
     if 'dr_tempreg_maps_zstat_files_to_standard_smooth' in resource_id:
         out_dir = os.path.join(out_dir,
             re.search('temp_reg_map_z_(\d)+', os.path.splitext(\
                 os.path.splitext(os.path.basename(\
                     model_df["Filepath"][0]))[0])[0]).group(0))
-            
+
     if 'centrality' in resource_id:
         names = ['degree_centrality_binarize',
                  'degree_centrality_weighted',
@@ -617,13 +617,13 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         #   repeated measures runs
         if part not in new_participant_list:
             new_participant_list.append(part)
-    
+
     if group_config_obj.participant_list == None:
         #participant_list = os.listdir(group_config_obj.pipeline_dir)
         new_sub_file = write_new_sub_file(model_path,
                                           group_config_obj.pipeline_dir,
                                           new_participant_list)
-    else: 
+    else:
         new_sub_file = write_new_sub_file(model_path,
                                       group_config_obj.participant_list,
                                       new_participant_list)
@@ -631,7 +631,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     group_config_obj.update('participant_list', new_sub_file)
 
     num_subjects = len(list(model_df["participant_id"]))
-    
+
     # start processing the dataframe further
     design_formula = group_config_obj.design_formula
 
@@ -698,7 +698,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0],
                                               custom_roi_mask, mask_for_means,
                                               model_path, resource_id)
-        
+
 
         # trim the custom ROI mask to be within mask constraints
         output_mask = os.path.join(model_path, "masked_%s" \
@@ -711,7 +711,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
 
         # update the design formula
         new_design_substring = ""
-        
+
         for col in model_df.columns:
             if "Custom_ROI_Mean_" in str(col):
                 if str(col) == "Custom_ROI_Mean_1":
@@ -724,7 +724,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     cat_list = []
     if "categorical" in group_config_obj.ev_selections.keys():
         cat_list = group_config_obj.ev_selections["categorical"]
-    
+
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
         if "session" in model_df.columns:
@@ -746,15 +746,15 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
             if "participant_" in col and "_id" not in col:
                 design_formula = design_formula + " + %s" % col
                 cat_list.append(col)
-    
+
     # parse out the EVs in the design formula at this point in time
     #   this is essentially a list of the EVs that are to be included
     ev_list = parse_out_covariates(design_formula)
-    
+
     # SPLIT GROUPS here.
     #   CURRENT PROBLEMS: was creating a few doubled-up new columns
     grp_vector = [1] * num_subjects
-    
+
     if group_config_obj.group_sep:
 
         # check if the group_ev parameter is a list instead of a string:
@@ -770,7 +770,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         #     that usually occurs when the "modeling group variances
         #     separately" option is enabled in the group analysis config YAML
         group_ev = group_config_obj.grouping_var
-        
+
         if isinstance(group_ev, list) or "," in group_ev:
             grp_vector = []
 
@@ -830,7 +830,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         else:
             # model group variances separately
             old_ev_list = ev_list
-            
+
             model_df, grp_vector, ev_list, cat_list = split_groups(model_df,
                                     group_config_obj.grouping_var,
                                     ev_list, cat_list)
@@ -891,7 +891,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
                     sess_map.update({sess_levels[2]: '0'})
                 new_sess = [s.replace(s, sess_map[s]) for s in list(model_df['Series'].values)]
                 model_df['Series'] = new_sess
-        
+
         keep_cols = [x for x in model_df.columns if x in design_formula]
         dmatrix = model_df[keep_cols].astype('float')
         dmatrix_column_names = list(dmatrix.columns)
@@ -899,10 +899,10 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
     check_multicollinearity(np.array(dmatrix))
-    
+
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
     contrast_out_path = os.path.join(out_dir, "contrast.csv")
-    
+
     # make sure "column_names" is in the same order as the original EV column
     # header ordering in model_df - mainly for repeated measures, to make sure
     # participants_<ID> cols are at end for clarity for users
@@ -936,11 +936,11 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
               "the individual-level analysis output directory.\n\nDesign " \
               "formula going in: {8}" \
               "\n\n#########################################################" \
-              "\n\n".format(resource_id, session_id, series_or_repeated_label, 
-                            preproc_strat, num_subjects, len(column_names), 
+              "\n\n".format(resource_id, session_id, series_or_repeated_label,
+                            preproc_strat, num_subjects, len(column_names),
                             column_names, resource_id, design_formula)
         print(err)
-        
+
     # check the merged file's order
     check_merged_file(model_df["Filepath"], merge_file)
 
@@ -956,7 +956,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         # note: dmat_T is now no longer a DesignMatrix Patsy object, but only
         # an array
         dmat_T = dmatrix.transpose()
-        
+
         for index in cat_indices:
             new_row = []
             for val in dmat_T[index]:
@@ -967,7 +967,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         dmatrix = dmat_T.transpose()
         readme_flags.append("cat_demeaned")
 
-    dmatrix_df = pd.DataFrame(np.array(dmatrix), 
+    dmatrix_df = pd.DataFrame(np.array(dmatrix),
                               index=model_df["participant_id"],
                               columns=dmatrix_column_names)
     cols = dmatrix_df.columns.tolist()
@@ -992,7 +992,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
 
     write_design_matrix_csv(dmatrix_df, model_df["participant_id"],
                             column_names, dmat_csv_path)
-    
+
     # time for contrasts
     if (group_config_obj.custom_contrasts == None) or (group_config_obj.contrasts == None):
         # if no custom contrasts matrix CSV provided (i.e. the user
@@ -1000,7 +1000,7 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
         contrasts_columns = column_names
         if group_config_obj.f_tests:
             for i in group_config_obj.f_tests[1:len(group_config_obj.f_tests)-1]:
-                contrasts_columns.append('f_test_{0}'.format(i)) 
+                contrasts_columns.append('f_test_{0}'.format(i))
     else:
         pass
 
@@ -1049,5 +1049,3 @@ def build_feat_model(model_df, model_name, group_config_file, resource_id,
     print('-------------------------------------------------------------------')
 
     return dmat_csv_path, new_sub_file, contrast_out_path
-
-

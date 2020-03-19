@@ -38,9 +38,9 @@ def write_mat_file(design_matrix, output_dir, model_name, \
 
     with open(out_file, 'wt') as f:
 
-        print >>f, '/NumWaves\t%d' %dimy
-        print >>f, '/NumPoints\t%d' %dimx
-        print >>f, ppstring
+        print('/NumWaves\t%d' %dimy, file=f)
+        print('/NumPoints\t%d' %dimx, file=f)
+        print(ppstring, file=f)
 
         # print labels for the columns - mainly for double-checking your model
         col_string = '\n'
@@ -48,9 +48,9 @@ def write_mat_file(design_matrix, output_dir, model_name, \
         for col in depatsified_EV_names:
             col_string = col_string + col + '\t'
 
-        print >>f, col_string, '\n'
+        print(col_string, '\n', file=f)
 
-        print >>f, '/Matrix'
+        print('/Matrix', file=f)
 
         np.savetxt(f, design_matrix, fmt='%1.5e', delimiter='\t')
 
@@ -78,9 +78,9 @@ def create_grp_file(design_matrix, grp_file_vector, output_dir, model_name):
     out_file = os.path.join(output_dir, model_name + ".grp")
 
     with open(out_file, "wt") as f:
-        print >>f, '/NumWaves\t1'
-        print >>f, '/NumPoints\t%d\n' %dimx
-        print >>f, '/Matrix'
+        print('/NumWaves\t1', file=f)
+        print('/NumPoints\t%d\n' %dimx, file=f)
+        print('/Matrix', file=f)
         np.savetxt(f, grp_file_vector, fmt='%d', delimiter='\t')
 
     return out_file
@@ -113,7 +113,7 @@ def create_con_file(con_vecs, con_names, col_names, model_name,
         col_string = '\n'
         for col in col_names:
             col_string = col_string + col + '\t'
-        print >>f, col_string, '\n'
+        print(col_string, '\n', file=f)
 
         # write data
         f.write("/Matrix\n")
@@ -134,15 +134,15 @@ def create_fts_file(ftest_list, con_names, model_name,
 
     try:
 
-        print "\nFound f-tests in your model, writing f-tests file " \
-              "(.fts)..\n"
+        print("\nFound f-tests in your model, writing f-tests file " \
+              "(.fts)..\n")
 
         out_file = os.path.join(out_dir, model_name + '.fts')
 
         with open(out_file, 'w') as f:
 
-            print >>f, '/NumWaves\t', len(con_names)
-            print >>f, '/NumContrasts\t', len(ftest_list)
+            print('/NumWaves\t', len(con_names), file=f)
+            print('/NumContrasts\t', len(ftest_list), file=f)
 
             # process each f-test
             ftst = []
@@ -168,12 +168,12 @@ def create_fts_file(ftest_list, con_names, model_name,
             col_string = '\n'
             for con in con_names:
                 col_string = col_string + con + '\t'
-            print >>f, col_string, '\n'
+            print(col_string, '\n', file=f)
 
-            print >>f, '/Matrix'
+            print('/Matrix', file=f)
 
             for i in range(fts_n.shape[0]):
-                print >>f, ' '.join(fts_n[i].astype('str'))
+                print(' '.join(fts_n[i].astype('str')), file=f)
 
     except Exception as e:
 
@@ -208,8 +208,8 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
     evs = evs.rstrip('\r\n').split(',')
     
     if evs[0].strip().lower() != "contrasts":
-        print "Error: first cell in contrasts file should contain " \
-              "'Contrasts' "
+        print("Error: first cell in contrasts file should contain " \
+              "'Contrasts' ")
         raise Exception
 
     # remove "Contrasts" label and replace it with "Intercept"
@@ -226,7 +226,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
         contrasts_data = np.genfromtxt(con_file, names=True, delimiter=',',
                                        dtype=None)
     except:
-        print "Error: Could not successfully read in contrast file: ",con_file
+        print("Error: Could not successfully read in contrast file: ",con_file)
         raise Exception
 
     lst = contrasts_data.tolist()
@@ -314,7 +314,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
                              str(column_names))
 
         #raise Exception(err_string)
-        print err_string
+        print(err_string)
         return None, None
 
     for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
@@ -326,7 +326,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
                      "%s\nYour contrasts matrix columns: %s\n\n" \
                      % (column_names, evs[1:])
 
-            print errmsg
+            print(errmsg)
             return None, None        
 
     out_file = os.path.join(output_dir, model_name + '.con')
@@ -338,50 +338,50 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
         re_str = '/RequiredEffect'
         for name in contrast_names:
 
-            print >>f, '/ContrastName%d' %idx, '\t', name
+            print('/ContrastName%d' %idx, '\t', name, file=f)
             pp_str += '\t%1.5e' %(1)
             re_str += '\t%1.5e' %(1)
             idx += 1
 
-        print >>f, '/NumWaves\t', (contrasts.shape)[1]
-        print >>f, '/NumContrasts\t', (contrasts.shape)[0]
-        print >>f, pp_str
-        print >>f, re_str + '\n'
+        print('/NumWaves\t', (contrasts.shape)[1], file=f)
+        print('/NumContrasts\t', (contrasts.shape)[0], file=f)
+        print(pp_str, file=f)
+        print(re_str + '\n', file=f)
 
         # print labels for the columns - mainly for double-checking your model
         col_string = '\n'
         for ev in evs:
             if "contrast" not in ev and "Contrast" not in ev:
                 col_string = col_string + ev + '\t'
-        print >>f, col_string, '\n'
+        print(col_string, '\n', file=f)
 
-        print >>f, '/Matrix'
+        print('/Matrix', file=f)
    
         np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
 
     ftest_out_file = None
     if fTest:
 
-        print "\nFound f-tests in your model, writing f-tests file (.fts)..\n"
+        print("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
 
         ftest_out_file = os.path.join(output_dir, model_name + '.fts')
 
         with open(ftest_out_file,"wt") as f:
 
-            print >>f, '/NumWaves\t', (contrasts.shape)[0]
-            print >>f, '/NumContrasts\t', count_ftests
+            print('/NumWaves\t', (contrasts.shape)[0], file=f)
+            print('/NumContrasts\t', count_ftests, file=f)
 
             # print labels for the columns - mainly for double-checking your
             # model
             col_string = '\n'
             for con in contrast_names:
                 col_string = col_string + con + '\t'
-            print >>f, col_string, '\n'
+            print(col_string, '\n', file=f)
 
-            print >>f, '/Matrix'
+            print('/Matrix', file=f)
 
             for i in range(fts_n.shape[0]):
-                print >>f, ' '.join(fts_n[i].astype('str'))
+                print(' '.join(fts_n[i].astype('str')), file=f)
 
     return out_file, ftest_out_file
 

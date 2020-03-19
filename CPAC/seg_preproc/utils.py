@@ -1,8 +1,5 @@
 # Import packages
 import os
-import sys
-import re
-import commands
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import scipy.ndimage as nd
@@ -212,16 +209,16 @@ def pick_wm_class_2(tissue_class_files):
 def mask_erosion(roi_mask = None, skullstrip_mask = None, mask_erosion_mm = None, mask_erosion_prop = None):
 
     """
-    Returns eroded segment mask and skull-stripped brain mask 
+    Returns eroded segment mask and skull-stripped brain mask
 
     Parameters
     ----------
 
-    roi_mask : string 
+    roi_mask : string
         Path to binarized segment mask
 
-    skullstrip_mask : string 
-        Path to skull-stripped brain mask 
+    skullstrip_mask : string
+        Path to skull-stripped brain mask
 
     mask_erosion_prop : float
         Proportion of erosion skull-stripped brain mask
@@ -233,7 +230,7 @@ def mask_erosion(roi_mask = None, skullstrip_mask = None, mask_erosion_mm = None
         Path to eroded segment mask
 
     eroded_skullstrip_mask : string
-        Path to eroded skull-stripped brain mask 
+        Path to eroded skull-stripped brain mask
 
     """
     skullstrip_mask_img =  nb.load(skullstrip_mask)
@@ -251,9 +248,9 @@ def mask_erosion(roi_mask = None, skullstrip_mask = None, mask_erosion_mm = None
             orig_vol = np.sum(skullstrip_mask_data > 0)
             while np.sum(skullstrip_mask_data > 0) / (orig_vol*1.0) > mask_erosion_prop :
                 skullstrip_mask_data = nd.binary_erosion(skullstrip_mask_data, iterations=1)
-        
+
         roi_mask_data[~skullstrip_mask_data] = 0
-        
+
     hdr = roi_mask_img.get_header()
     output_roi_mask_img = nb.Nifti1Image(roi_mask_data, header=hdr,
                                  affine=roi_mask_img.get_affine())
@@ -280,12 +277,12 @@ def erosion(roi_mask = None, erosion_mm = None, erosion_prop = None):
 
 
     """
-    Returns eroded tissue segment mask 
+    Returns eroded tissue segment mask
 
     Parameters
     ----------
 
-    roi_mask : string 
+    roi_mask : string
         Path to binarized segment (ROI) mask
 
     erosion_prop : float

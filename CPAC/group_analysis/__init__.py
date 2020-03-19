@@ -1,4 +1,4 @@
-from group_analysis import create_fsl_flame_wf, \
+from .group_analysis import create_fsl_flame_wf, \
                            get_operation
 
 

@@ -1,10 +1,10 @@
 import wx
-import generic_class
+from . import generic_class
 from .constants import control, dtype, substitution_map
 import os
 import ast
 
-import modelconfig_window
+from . import modelconfig_window
 
 
 ID_RUN = 11
@@ -126,7 +126,7 @@ class ModelDesign(wx.Frame):
                       type=dtype.STR,
                       comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. This allows you to describe your own custom contrasts matrix.Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead, and will use the f-tests described in this custom file only (ignoring those you have input in the f-tests field in the GUI above).\n\nIf you wish to include f-tests, create a new column in your CSV file for each f-test named 'f_test_1', 'f_test_2', .. etc. Then, mark the contrasts you would like to include in each f-test with a 1, and mark the rest 0. Note that you must select at least two contrasts per f-test.",
                       values=str(self.gpa_settings['custom_contrasts']))
-        
+
         self.page.add(label="Model Name ",
                       control=control.TEXT_BOX,
                       name="model_name",
@@ -156,7 +156,7 @@ class ModelDesign(wx.Frame):
             220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, flag=wx.LEFT | wx.BOTTOM, border=5)
-        
+
         back = wx.Button(btnPanel, 1, "< Back", (
             200, -1), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, lambda event: self.back(event), id=1)
@@ -199,8 +199,8 @@ class ModelDesign(wx.Frame):
         elif '-' in contrast_string:
             split_contrast = contrast_string.split('-')
         else:
-            print '[!] CPAC says: The contrast \' ', contrast_string, ' \' ' \
-                  'did not contain any valid operators ( > , < , + , - ).\n'
+            print('[!] CPAC says: The contrast \' ', contrast_string, ' \' ' \
+                  'did not contain any valid operators ( > , < , + , - ).\n')
             raise Exception
 
         # in the case of the '+' or '-' contrast operators, which result in
@@ -276,7 +276,7 @@ class ModelDesign(wx.Frame):
                     ("None" in custom_confile)):
 
                     if not os.path.exists(custom_confile):
-                    
+
                         errmsg = "You've specified a Custom Contrasts file " \
                                  "for your group model, but this file " \
                                  "cannot be found. Please double-check the " \
@@ -424,7 +424,7 @@ class ModelDesign(wx.Frame):
                                 'typical scheme. Consult the User Guide for ' \
                                 'more information.\n\nAvailable options:\n' \
                                 '\'Treatment\', \'Sum\'\n'))
-                                
+
         config_list.append(('group_sep', vals['group_sep'], 0, \
                                 'Specify whether FSL should model the ' \
                                 'variance for each group separately.\n\n' \
@@ -493,7 +493,7 @@ class ModelDesign(wx.Frame):
         config_list.append(('output_dir', vals['output_dir'], 1, \
                                 'Full path to the directory where CPAC ' \
                                 'should place model files.'))
-            
+
 
         try:
             dlg = wx.FileDialog(self, message="Save file as ...",
@@ -560,18 +560,18 @@ class ModelDesign(wx.Frame):
 
                     # print out 'help' (comments describing values)
                     for lines in item[3].split('\n'):
-                        print >> f, '#', lines
+                        print('#', lines, file=f)
 
                     # print out 'label: value'
-                    print >> f, item[0], ': ', value, '\n\n'
+                    print(item[0], ': ', value, '\n\n', file=f)
 
-                print '\n\nCPAC says: Saving the group analysis model ' \
-                          'configuration file to: ', path, '\n\n'
+                print('\n\nCPAC says: Saving the group analysis model ' \
+                          'configuration file to: ', path, '\n\n')
                 f.close()
-                    
+
                 self.Parent.box2.GetTextCtrl().SetValue(path)
                 self.Close()
-        
+
         except Exception as e:
             errmsg = '\n\n[!] CPAC says: Couldn\'t save the group analysis ' \
                       'model configuration file! Maybe check if you have ' \
@@ -579,7 +579,3 @@ class ModelDesign(wx.Frame):
                       'Error details: %s' % (path, e)
 
             raise Exception(errmsg)
-        
-
-            
-            

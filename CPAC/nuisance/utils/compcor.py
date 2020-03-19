@@ -27,29 +27,29 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
 
     if not safe_shape(image_data, binary_mask):
         raise ValueError('The data in {0} and {1} do not have a consistent shape'.format(data_filename, mask_filename))
-    
+
     # make sure that the values in binary_mask are binary
     binary_mask[binary_mask > 0] = 1
     binary_mask[binary_mask != 1] = 0
 
     # reduce the image data to only the voxels in the binary mask
     image_data = image_data[binary_mask==1, :]
-    
+
     # filter out any voxels whose variance equals 0
-    print 'Removing zero variance components'
+    print('Removing zero variance components')
     image_data = image_data[image_data.std(1)!=0,:]
 
     if image_data.shape.count(0):
         err = "\n\n[!] No wm or csf signals left after removing those " \
               "with zero variance.\n\n"
         raise Exception(err)
-    
-    print 'Detrending and centering data'
+
+    print('Detrending and centering data')
     Y = signal.detrend(image_data, axis=1, type='linear').T
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
     Yc = Yc / np.tile(np.array(Yc.std(0)).reshape(1,Yc.shape[1]), (Yc.shape[0],1))
-    
-    print 'Calculating SVD decomposition of Y*Y\''
+
+    print('Calculating SVD decomposition of Y*Y\'')
     U, S, Vh = np.linalg.svd(Yc)
 
     # write out the resulting regressor file
@@ -58,7 +58,7 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
 
     return regressor_file
 
-  
+
 # cosine_filter adapted from nipype 'https://github.com/nipy/nipype/blob/d353f0d879826031334b09d33e9443b8c9b3e7fe/nipype/algorithms/confounds.py'
 def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, axis=-1, failure_mode='error'):
     """
@@ -185,5 +185,5 @@ def TR_string_to_float(tr):
         tr = float(tr.replace('ms',''))/1000
     else:
         tr = float(tr.replace('s',''))
-    
+
     return tr
