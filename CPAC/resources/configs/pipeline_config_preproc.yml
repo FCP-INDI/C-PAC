@@ -753,6 +753,16 @@ targetAngleDeg : [90]
 runROITimeseries :  [0]
 
 
+# Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
+# 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
+# 'func_to_ROI' will realign the functional time series to the atlas/ROI space
+#
+#     NOTE: in rare cases, realigning the ROI to the functional space may
+#           result in small misalignments for very small ROIs - please double
+#           check your data if you see issues
+realignment : ['ROI_to_func']
+
+
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg', 'PearsonCorr', 'PartialCorr'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
