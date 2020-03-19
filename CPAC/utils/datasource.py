@@ -812,11 +812,11 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
     import nibabel as nb    
 
     # load func and ROI dimension
-    roi_img = nb.load(in_roi)
-    roi_shape = roi_img.shape 
     func_img = nb.load(in_func)
     func_shape = func_img.shape 
-
+    roi_img = nb.load(in_roi)
+    roi_shape = roi_img.shape 
+    
     # check if func size = ROI size, return func and ROI; else resample using flirt 
     if roi_shape != func_shape:
 
@@ -824,10 +824,10 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
         if 'func_to_ROI' in realignment: 
             in_file = in_func
             reference = in_roi
-            out_file = os.path.join(os.getcwd(), in_file[0:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
             out_func = out_file
             out_roi = in_roi
-
+            
         # resample ROI to func: in_file = ROI, reference = func
         elif 'ROI_to_func' in realignment: 
             in_file = in_roi
