@@ -1,21 +1,5 @@
 - anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/anat/sub-A00040524_ses-NFB3_T1w.nii.gz
   func:
-    DMNTRACKINGTEST:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-DMNTRACKINGTEST_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTEST_bold.json
-    DMNTRACKINGTRAIN:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-DMNTRACKINGTRAIN_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTRAIN_bold.json
-    MASK:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-MASK_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MASK_bold.json
-    MORALDILEMMA:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-MORALDILEMMA_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MORALDILEMMA_bold.json
     MSIT:
       fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
       scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-MSIT_bold.nii.gz
@@ -33,18 +17,6 @@
   unique_id: NFB3
 - anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/anat/sub-A00040573_ses-NFB3_T1w.nii.gz
   func:
-    DMNTRACKINGTEST:
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-DMNTRACKINGTEST_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTEST_bold.json
-    DMNTRACKINGTRAIN:
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-DMNTRACKINGTRAIN_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTRAIN_bold.json
-    MASK:
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-MASK_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MASK_bold.json
-    MORALDILEMMA:
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-MORALDILEMMA_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MORALDILEMMA_bold.json
     MSIT:
       scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-MSIT_bold.nii.gz
       scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MSIT_bold.json
@@ -59,26 +31,6 @@
   unique_id: NFB3
 - anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/anat/sub-A00040623_ses-NFB3_T1w.nii.gz
   func:
-    DMNTRACKINGTEST:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/func/sub-A00040623_ses-NFB3_task-DMNTRACKINGTEST_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTEST_bold.json
-    DMNTRACKINGTRAIN:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/func/sub-A00040623_ses-NFB3_task-DMNTRACKINGTRAIN_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTRAIN_bold.json
-    MASK:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/func/sub-A00040623_ses-NFB3_task-MASK_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MASK_bold.json
-    MORALDILEMMA:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/func/sub-A00040623_ses-NFB3_task-MORALDILEMMA_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MORALDILEMMA_bold.json
     MSIT:
       fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
       fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
@@ -99,26 +51,6 @@
   unique_id: NFB3
 - anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/anat/sub-A00040628_ses-NFB3_T1w.nii.gz
   func:
-    DMNTRACKINGTEST:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/func/sub-A00040628_ses-NFB3_task-DMNTRACKINGTEST_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTEST_bold.json
-    DMNTRACKINGTRAIN:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/func/sub-A00040628_ses-NFB3_task-DMNTRACKINGTRAIN_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTRAIN_bold.json
-    MASK:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/func/sub-A00040628_ses-NFB3_task-MASK_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MASK_bold.json
-    MORALDILEMMA:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/func/sub-A00040628_ses-NFB3_task-MORALDILEMMA_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MORALDILEMMA_bold.json
     MSIT:
       fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
       fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
@@ -139,26 +71,6 @@
   unique_id: NFB3
 - anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/anat/sub-A00040640_ses-NFB3_T1w.nii.gz
   func:
-    DMNTRACKINGTEST:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/func/sub-A00040640_ses-NFB3_task-DMNTRACKINGTEST_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTEST_bold.json
-    DMNTRACKINGTRAIN:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/func/sub-A00040640_ses-NFB3_task-DMNTRACKINGTRAIN_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-DMNTRACKINGTRAIN_bold.json
-    MASK:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/func/sub-A00040640_ses-NFB3_task-MASK_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MASK_bold.json
-    MORALDILEMMA:
-      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
-      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
-      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/func/sub-A00040640_ses-NFB3_task-MORALDILEMMA_bold.nii.gz
-      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MORALDILEMMA_bold.json
     MSIT:
       fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
       fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
