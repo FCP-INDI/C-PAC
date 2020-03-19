@@ -3,7 +3,7 @@
 def getOpString(mean, std_dev):
 
     """
-    Generate the Operand String to be used in workflow nodes to supply 
+    Generate the Operand String to be used in workflow nodes to supply
     mean and std deviation to alff workflow nodes
 
     Parameters
@@ -11,7 +11,7 @@ def getOpString(mean, std_dev):
 
     mean: string
         mean value in string format
-    
+
     std_dev : string
         std deviation value in string format
 
@@ -44,11 +44,11 @@ def f_kendall(timeseries_matrix):
         A matrix of ranks of a subset subject's brain voxels
 
     Returns
-    ------- 
+    -------
 
     kcc : float
-        Kendall's coefficient of concordance on the given input matrix 
-  
+        Kendall's coefficient of concordance on the given input matrix
+
     """
 
     import numpy as np
@@ -78,7 +78,7 @@ def compute_reho(in_file, mask_file, cluster_size):
     ----------
 
     in_file : nifti file
-        4D EPI File 
+        4D EPI File
 
     mask_file : nifti file
         Mask of the EPI File(Only Compute ReHo of voxels in the mask)
@@ -280,4 +280,3 @@ def compute_reho(in_file, mask_file, cluster_size):
     out_file = reho_file
 
     return out_file
-

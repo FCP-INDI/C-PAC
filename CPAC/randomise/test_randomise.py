@@ -6,7 +6,7 @@ from nipype.interfaces.fsl import ImageStats
 
 
 def run_randomize(inputs,output_dir=None,run=True):
-   import pipeline
+   from . import pipeline
    randomise_workflow = pe.Workflow(name = 'preproc')
    if output_dir == None:
      output_dir = ''

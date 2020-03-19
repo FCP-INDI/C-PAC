@@ -53,7 +53,7 @@ def gui():
 @click.option('--num_cores')
 @click.option('--ndmg_mode', is_flag=True)
 @click.option('--debug', is_flag=True)
-def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False, 
+def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False,
         debug=False):
     if not pipe_config:
         pipe_config = \
@@ -309,7 +309,7 @@ def utils():
 @utils.command()
 @click.argument('crash_file')
 def crash(crash_file):
-    
+
     import mock
 
     def accept_all(object, name, value):
@@ -456,7 +456,7 @@ def run_suite(show_list=False, pipeline_filter=''):
                 no_params = True
             else:
                 data = data_test
-                
+
             # run
             cpac_runner.run(data, pipe)
 

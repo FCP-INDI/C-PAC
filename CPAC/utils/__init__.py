@@ -1,7 +1,7 @@
-import extract_data_multiscan
-import create_fsl_model
-import extract_parameters
-import build_data_config
+from . import extract_data_multiscan
+from . import create_fsl_model
+from . import extract_parameters
+from . import build_data_config
 from .interfaces import function, masktool
 from .extract_data import run
 from .datasource import create_anat_datasource

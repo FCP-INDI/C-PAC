@@ -7,9 +7,9 @@ from CPAC.utils.configuration import Configuration
 
 
 def prep_cwas_workflow(c, subject_infos):
-    print 'Preparing CWAS workflow'
+    print('Preparing CWAS workflow')
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    print 'Subjects', s_ids
+    print('Subjects', s_ids)
 
     wf = pe.Workflow(name='cwas_workflow')
     wf.base_dir = c.workingDirectory
@@ -26,7 +26,7 @@ def prep_cwas_workflow(c, subject_infos):
     cw.inputs.inputspec.f_samples   = c.cwasFSamples
     cw.inputs.inputspec.strata      = c.cwasRegressorStrata # will stay None?
     cw.inputs.inputspec.parallel_nodes = c.cwasParallelNodes
-    
+
     ds = pe.Node(nio.DataSink(), name='cwas_sink')
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'cwas_results')
     ds.inputs.base_directory = out_dir
@@ -42,8 +42,8 @@ def prep_cwas_workflow(c, subject_infos):
 
 
 def run(config, subject_infos):
-    import commands
-    commands.getoutput('source ~/.bashrc')
+    import subprocess
+    subprocess.getoutput('source ~/.bashrc')
     import os
     import pickle
     import yaml
@@ -51,6 +51,3 @@ def run(config, subject_infos):
     c = Configuration(yaml.safe_load(open(os.path.realpath(config), 'r')))
 
     prep_cwas_workflow(c, pickle.load(open(subject_infos, 'r') ))
-
-
-

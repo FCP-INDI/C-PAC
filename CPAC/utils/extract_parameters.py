@@ -142,5 +142,5 @@ if __name__ == '__main__':
     if (len(sys.argv) == 2):
         grab(sys.argv[1], [0])
     else:
-        print 'Usage: python extract_parameters.py /path/to/output/dir'
+        print('Usage: python extract_parameters.py /path/to/output/dir')
 
