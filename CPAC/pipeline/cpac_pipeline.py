@@ -102,6 +102,7 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     create_check_for_s3_node,
     resolve_resolution,
+    resample_func_roi,
     match_epi_fmaps
 )
 from CPAC.utils.trimmer import the_trimmer
@@ -3373,7 +3374,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             # flip the dictionary
             for roi_path in tsa_roi_dict.keys():
-
                 ts_analysis_to_run = [
                     x.strip() for x in tsa_roi_dict[roi_path].split(",")
                 ]
@@ -3389,17 +3389,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     if analysis_type not in ts_analysis_dict.keys():
                         ts_analysis_dict[analysis_type] = []
                     ts_analysis_dict[analysis_type].append(roi_path)
-
-            # c.tsa_roi_paths and c.sca_roi_paths come in a format as such:
-            # a list containing a dictionary
-            # [
-            #     {
-            #         '/path/to/rois1.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois2.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois3.nii.gz': 'Avg, MultReg',
-            #         '/path/to/rois4.nii.gz': 'DualReg'
-            #     }
-            # ]
 
         # TODO ASH normalize w schema val
         if 1 in c.runROITimeseries:
@@ -3425,7 +3414,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             # flip the dictionary
             for roi_path in sca_roi_dict.keys():
-
+                # update analysis dict
                 for analysis_type in sca_roi_dict[roi_path].split(","):
                     analysis_type = analysis_type.replace(" ", "")
 
@@ -3574,14 +3563,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             for num_strat, strat in enumerate(strat_list):
 
                 if "Avg" in ts_analysis_dict.keys():
-                    resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                                                        name='resample_functional_to_roi_%d' % num_strat)
-
-                    resample_functional_to_roi.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                    resample_functional_roi = pe.Node(Function(input_names = ['in_func', 
+                                                                              'in_roi', 
+                                                                              'realignment', 
+                                                                              'identity_matrix'], 
+                                              output_names = ['out_func',
+                                                              'out_roi'], 
+                                              function = resample_func_roi,
+                                              as_module = True), 
+                                        name = 'resample_functional_roi_{0}'.format(num_strat)) 
+                    
+                    resample_functional_roi.inputs.realignment = c.realignment 
+                    resample_functional_roi.inputs.identity_matrix = c.identityMatrix
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -3602,20 +3595,22 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
-                                     resample_functional_to_roi, 'in_file')
+                                     resample_functional_roi, 'in_func')
                     workflow.connect(roi_dataflow, 'outputspec.out_file',
-                                     resample_functional_to_roi, 'reference')
+                                     resample_functional_roi, 'in_roi')
 
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow, 'outputspec.out_file',
+                    # workflow.connect(roi_dataflow, 'outputspec.out_file',
+                    #                  roi_timeseries, 'input_roi.roi')
+                    workflow.connect(resample_functional_roi, 'out_roi',
                                      roi_timeseries, 'input_roi.roi')
-                    workflow.connect(resample_functional_to_roi, 'out_file',
+                    workflow.connect(resample_functional_roi, 'out_func',
                                      roi_timeseries, 'inputspec.rest')
 
                     strat.append_name(roi_timeseries.name)
                     strat.update_resource_pool({
                         'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
-                        'functional_to_roi': (resample_functional_to_roi, 'out_file')
+                        'functional_to_roi': (resample_functional_roi, 'out_file')
                     })
 
                     # create the graphs
@@ -3642,16 +3637,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # same workflow, except to run TSE and send it to the resource
                     # pool so that it will not get sent to SCA
-                    resample_functional_to_roi_for_sca = pe.Node(
-                        interface=fsl.FLIRT(),
-                        name='resample_functional_to_roi_for_sca_%d' % num_strat
-                    )
+                    resample_functional_roi_for_sca = pe.Node(Function(input_names = ['in_func', 
+                                                                                      'in_roi', 
+                                                                                      'realignment', 
+                                                                                      'identity_matrix'], 
+                                              output_names = ['out_func',
+                                                              'out_roi'], 
+                                              function = resample_func_roi,
+                                              as_module = True), 
+                                        name = 'resample_functional_roi_for_sca_{0}'.format(num_strat)) 
 
-                    resample_functional_to_roi_for_sca.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                    resample_functional_roi_for_sca.inputs.realignment = c.realignment 
+                    resample_functional_roi_for_sca.inputs.identity_matrix = c.identityMatrix
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
@@ -3671,42 +3668,38 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
-                                     resample_functional_to_roi_for_sca,
-                                     'in_file')
-                    workflow.connect(roi_dataflow_for_sca,
-                                     'outputspec.out_file',
-                                     resample_functional_to_roi_for_sca,
-                                     'reference')
+                                     resample_functional_roi_for_sca, 'in_func')
+                    workflow.connect(roi_dataflow_for_sca, 'outputspec.out_file',
+                                     resample_functional_roi_for_sca, 'in_roi')  
 
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow_for_sca,
-                                     'outputspec.out_file',
+                    workflow.connect(resample_functional_roi_for_sca, 'out_roi',
                                      roi_timeseries_for_sca, 'input_roi.roi')
-                    workflow.connect(resample_functional_to_roi_for_sca,
-                                     'out_file',
+                    workflow.connect(resample_functional_roi_for_sca, 'out_func',
                                      roi_timeseries_for_sca, 'inputspec.rest')
 
                     strat.append_name(roi_timeseries_for_sca.name)
                     strat.update_resource_pool({
                         'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs'),
-                        'functional_to_roi_for_SCA': (resample_functional_to_roi, 'out_file')
-
+                        'functional_to_roi_for_SCA': (resample_functional_roi, 'out_file')
                     })
 
                 if "MultReg" in sca_analysis_dict.keys():
 
                     # same workflow, except to run TSE and send it to the resource
                     # pool so that it will not get sent to SCA
-                    resample_functional_to_roi_for_multreg = pe.Node(
-                        interface=fsl.FLIRT(),
-                        name='resample_functional_to_roi_for_mult_reg_%d' % num_strat
-                    )
-
-                    resample_functional_to_roi_for_multreg.inputs.set(
-                        interp='trilinear',
-                        apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
-                    )
+                    resample_functional_roi_for_multreg = pe.Node(Function(input_names = ['in_func', 
+                                                                                          'in_roi', 
+                                                                                          'realignment', 
+                                                                                          'identity_matrix'], 
+                                              output_names = ['out_func',
+                                                              'out_roi'], 
+                                              function = resample_func_roi,
+                                              as_module = True), 
+                                        name = 'resample_functional_roi_for_multreg_{0}'.format(num_strat)) 
+                    
+                    resample_functional_roi_for_multreg.inputs.realignment = c.realignment 
+                    resample_functional_roi_for_multreg.inputs.identity_matrix = c.identityMatrix
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
                         sca_analysis_dict["MultReg"],
@@ -3726,20 +3719,20 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
-                                    resample_functional_to_roi_for_multreg,
-                                    'in_file')
+                                    resample_functional_roi_for_multreg,
+                                    'in_func')
                     workflow.connect(roi_dataflow_for_multreg,
                                     'outputspec.out_file',
-                                    resample_functional_to_roi_for_multreg,
-                                    'reference')
+                                    resample_functional_roi_for_multreg,
+                                    'in_roi')
 
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow_for_multreg,
-                                    'outputspec.out_file',
+                    workflow.connect(resample_functional_roi_for_multreg,
+                                    'out_roi',
                                     roi_timeseries_for_multreg,
                                     'input_roi.roi')
-                    workflow.connect(resample_functional_to_roi_for_multreg,
-                                    'out_file',
+                    workflow.connect(resample_functional_roi_for_multreg,
+                                    'out_func',
                                     roi_timeseries_for_multreg,
                                     'inputspec.rest')
 
@@ -3793,13 +3786,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
-                                                    name='resample_functional_to_mask_%d' % num_strat)
-                resample_functional_to_mask.inputs.set(
-                    interp='trilinear',
-                    apply_xfm=True,
-                    in_matrix_file=c.identityMatrix
-                )
+                resample_functional_to_mask = pe.Node(Function(input_names = ['in_func', 
+                                                                            'in_roi', 
+                                                                            'realignment', 
+                                                                            'identity_matrix'], 
+                                              output_names = ['out_func',
+                                                              'out_roi'], 
+                                              function = resample_func_roi,
+                                              as_module = True), 
+                                        name = 'resample_functional_to_mask_{0}'.format(num_strat)) 
+                
+                resample_functional_to_mask.inputs.realignment = c.realignment     
+                resample_functional_to_mask.inputs.identity_matrix = c.identityMatrix
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
                                                         'mask_dataflow_%d' % num_strat)
@@ -3812,14 +3810,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 # resample the input functional file to mask
                 workflow.connect(node, out_file,
-                                resample_functional_to_mask, 'in_file')
+                                resample_functional_to_mask, 'in_func')
                 workflow.connect(mask_dataflow, 'outputspec.out_file',
-                                resample_functional_to_mask, 'reference')
+                                resample_functional_to_mask, 'in_roi')
 
                 # connect it to the voxel_timeseries
-                workflow.connect(mask_dataflow, 'outputspec.out_file',
+                workflow.connect(resample_functional_to_mask, 'out_roi',
                                 voxel_timeseries, 'input_mask.mask')
-                workflow.connect(resample_functional_to_mask, 'out_file',
+                workflow.connect(resample_functional_to_mask, 'out_func',
                                 voxel_timeseries, 'inputspec.rest')
 
                 strat.append_name(voxel_timeseries.name)
