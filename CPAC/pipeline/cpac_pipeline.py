@@ -2951,8 +2951,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                 
         ts_analysis_dict = {}
         sca_analysis_dict = {}
-        # ts_reference_dict = {}
-        # sca_reference_dict = {}
 
         # TODO ASH normalize w schema val
         if c.tsa_roi_paths:
@@ -2981,13 +2979,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     if analysis_type not in ts_analysis_dict.keys():
                         ts_analysis_dict[analysis_type] = []
                     ts_analysis_dict[analysis_type].append(roi_path)
-
-                # update alignment reference dict
-                # reference_type = tsa_roi_dict[roi_path]['reference']
-                
-                # if reference_type not in ts_reference_dict.keys():
-                #     ts_reference_dict[reference_type] = []
-                # ts_reference_dict[reference_type].append(roi_path)
 
         # TODO ASH normalize w schema val
         if 1 in c.runROITimeseries:
@@ -3021,14 +3012,6 @@ def prep_workflow(sub_dict, c, run, pipeline_timing_info=None,
                         sca_analysis_dict[analysis_type] = []
 
                     sca_analysis_dict[analysis_type].append(roi_path)
-
-                # update reference dict
-                # reference_type = sca_roi_dict[roi_path]['reference']
-                # if reference_type not in sca_reference_dict.keys():
-                #     sca_reference_dict[reference_type] = []
-                # sca_reference_dict[reference_type].append(roi_path)
-        
-        # import pdb; pdb.set_trace()
 
         # Section: Spatial Regression Based Time Series
 

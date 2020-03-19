@@ -816,7 +816,7 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
     func_shape = func_img.shape 
     roi_img = nb.load(in_roi)
     roi_shape = roi_img.shape 
-    
+
     # check if func size = ROI size, return func and ROI; else resample using flirt 
     if roi_shape != func_shape:
 
@@ -832,7 +832,7 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
         elif 'ROI_to_func' in realignment: 
             in_file = in_roi
             reference = in_func
-            out_file = os.path.join(os.getcwd(), in_file[0:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
             out_func = in_func
             out_roi = out_file
 
