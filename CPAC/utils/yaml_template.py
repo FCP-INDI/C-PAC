@@ -2,6 +2,7 @@
 
 import re
 import yaml
+import yamlordereddictloader
 
 noalias_dumper = yaml.dumper.SafeDumper
 noalias_dumper.ignore_aliases = lambda self, data: True
@@ -67,6 +68,5 @@ def create_yaml_from_template(d, template):
                     default_flow_style=default_flow_style,
                     Dumper=noalias_dumper
                 ).strip("{}\n\r") + "\n"
-
 
     return output

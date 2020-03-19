@@ -4,7 +4,7 @@ import glob
 import string
 import logging
 import yaml
-
+import yamlordereddictloader
 
 def extract_data(c, param_map):
     """

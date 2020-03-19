@@ -47,6 +47,7 @@ def run(config, subject_infos):
     import os
     import pickle
     import yaml
+    import yamlordereddictloader
 
     c = Configuration(yaml.safe_load(open(os.path.realpath(config), 'r')))
 

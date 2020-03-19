@@ -130,6 +130,7 @@ class Strategy(object):
                     fork_label = 'func-bet'
                 if 'func_preproc_fsl_afni' in fork:
                     fork_label = 'func-bet-3dautomask'
+
                 # motion correction reference
                 if 'mean' in fork:
                     fork_label = 'mean'

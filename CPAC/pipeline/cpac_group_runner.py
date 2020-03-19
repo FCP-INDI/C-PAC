@@ -15,6 +15,7 @@ def load_config_yml(config_file, individual=False):
 
     import os
     import yaml
+    import yamlordereddictloader
     from CPAC.utils import Configuration
 
     try:

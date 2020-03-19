@@ -2,6 +2,7 @@ import os
 import glob
 import string
 import yaml
+import yamlordereddictloader
 
 def extract_data(c, param_map):
     """

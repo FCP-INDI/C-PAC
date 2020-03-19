@@ -705,8 +705,8 @@ class MainFrame(wx.Frame):
         # Import packages
         import os
         import yaml
+        import yamlordereddictloader
         from CPAC.utils import Configuration
-
         from CPAC.pipeline.cpac_pipeline import run_workflow
         from CPAC.pipeline.cpac_runner import build_strategies
 
@@ -822,7 +822,7 @@ class MainFrame(wx.Frame):
         try:
             test_cfg_yml = '/tmp/test_config.yml'
             self.write(test_cfg_yml, config_list)
-            c = Configuration(yaml.safe_load(open(os.path.realpath(test_cfg_yml), 'r')))
+            c = Configuration(yaml.load(open(os.path.realpath(test_cfg_yml), 'r'), Loader=yamlordereddictloader.Loader))
             os.remove(test_cfg_yml)
         except:
             errDlg2 = wx.MessageDialog(

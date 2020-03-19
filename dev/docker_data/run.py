@@ -14,6 +14,7 @@ from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
 from CPAC.utils.utils import load_preconfig
 
+import yamlordereddictloader
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
 

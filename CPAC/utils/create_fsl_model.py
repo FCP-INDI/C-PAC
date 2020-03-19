@@ -1426,7 +1426,7 @@ def run(group_config, current_output, param_file=None, \
     import os
     import csv
     import numpy as np
-
+    import yamlordereddictloader
     # open the GROUP ANALYSIS FSL .YML CONFIG FILE, not the main pipeline
     # config .yml file!
     if CPAC_run:

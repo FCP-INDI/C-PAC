@@ -4,6 +4,7 @@ from multiprocessing import Process
 from time import strftime
 
 import yaml
+import yamlordereddictloader
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run

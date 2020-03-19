@@ -1253,3 +1253,16 @@ def load_preconfig(pipeline_label):
     print("Running the '{0}' pre-configured pipeline.".format(pipeline_label))
 
     return pipeline_file
+
+
+def ordereddict_to_dict(value):
+
+    import yamlordereddictloader
+
+    '''
+    this function convert ordereddict into regular dict
+    '''
+    for k, v in value.items():
+        if isinstance(v, dict):
+            value[k] = ordereddict_to_dict(v)
+    return dict(value)
