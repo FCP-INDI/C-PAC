@@ -174,7 +174,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     import pickle
     import time
 
-    from CPAC.pipeline.cpac_pipeline import prep_workflow
+    from CPAC.pipeline.cpac_pipeline import run_workflow
 
     print('Run called with config file {0}'.format(config_file))
 
@@ -188,7 +188,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
     # Init variables
     sublist = None
-    config_file = os.path.realpath(config_file)
     if '.yaml' in subject_list_file or '.yml' in subject_list_file:
         subject_list_file = os.path.realpath(subject_list_file)
     else:
@@ -208,6 +207,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     pipeline_start_stamp = strftime("%Y-%m-%d_%H:%M:%S")
 
     # Load in pipeline config file
+    config_file = os.path.realpath(config_file)
     try:
         if not os.path.exists(config_file):
             raise IOError
@@ -337,7 +337,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         # If it only allows one, run it linearly
         if c.numParticipantsAtOnce == 1:
             for sub in sublist:
-                prep_workflow(sub, c, True, pipeline_timing_info,
+                run_workflow(sub, c, True, pipeline_timing_info,
                               p_name, plugin, plugin_args, test_config)
             return
 
@@ -348,7 +348,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
         # Allocate processes
         processes = [
-            Process(target=prep_workflow,
+            Process(target=run_workflow,
                     args=(sub, c, True, pipeline_timing_info,
                           p_name, plugin, plugin_args, test_config))
             for sub in sublist
