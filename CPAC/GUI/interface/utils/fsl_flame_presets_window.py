@@ -1,5 +1,5 @@
 import wx
-import generic_class
+from . import generic_class
 from .constants import control, dtype, substitution_map
 import os
 import yaml
@@ -245,8 +245,8 @@ class FlamePresetsOne(wx.Frame):
         elif "One-Sample" in self.gpa_settings["flame_preset"]:
             # no additional info is needed, and we can run the preset
             # generation straight away
-            print "Generating FSL FEAT/FLAME model configuration...\n"
-            create_fsl_flame_preset.run(self.gpa_settings["pipeline_dir"], 
+            print("Generating FSL FEAT/FLAME model configuration...\n")
+            create_fsl_flame_preset.run(self.gpa_settings["pipeline_dir"],
                                         self.gpa_settings["derivative_list"],
                                         self.gpa_settings["z_threshold"],
                                         self.gpa_settings["p_threshold"],
@@ -483,7 +483,7 @@ class FlamePresetsTwoPheno(wx.Frame):
             preset = "unpaired_two"
 
         # generate the preset files
-        print "Generating FSL FEAT/FLAME model configuration...\n"
+        print("Generating FSL FEAT/FLAME model configuration...\n")
         create_fsl_flame_preset.run(self.gpa_settings["pipeline_dir"],
                                     self.gpa_settings["derivative_list"],
                                     self.gpa_settings["z_threshold"],
@@ -683,7 +683,7 @@ class FlamePresetsTwoConditions(wx.Frame):
             preset = "tripled_two"
 
         # generate the preset files
-        print "Generating FSL FEAT/FLAME model configuration...\n"
+        print("Generating FSL FEAT/FLAME model configuration...\n")
         create_fsl_flame_preset.run(self.gpa_settings["pipeline_dir"],
                                     self.gpa_settings["derivative_list"],
                                     self.gpa_settings["z_threshold"],

@@ -92,7 +92,7 @@ def populate_all_templates():
 
     # Check that they all returned a value
     if len(outputs) == len(config_types):
-        print 'Successfully populated and saved templates!'
+        print('Successfully populated and saved templates!')
     else:
         err_msg = 'Something went wrong during template population'
         raise Exception(err_msg)
@@ -125,8 +125,8 @@ def return_aws_creds():
     if not creds_path:
         err_msg = 'CPAC_AWS_CREDS environment variable not set!\n' \
                   'Set this to the filepath location of your AWS credentials.'
-        print err_msg
-        creds_path = raw_input('Enter path to AWS credentials file: ')
+        print(err_msg)
+        creds_path = input('Enter path to AWS credentials file: ')
     else:
         return creds_path
 
@@ -233,7 +233,7 @@ def download_cpac_resources_from_s3(local_base):
                                  Callback=aws_utils.ProgressPercentage(obj))
 
     # Print done
-    print 'CPAC resources folder in %s is complete!' % local_base
+    print('CPAC resources folder in %s is complete!' % local_base)
 
 
 # Look for CPAC_RESOURCE_DIR to be in environment
@@ -264,9 +264,9 @@ def return_resource_dir():
                     'directory of the cpac_resources folder.\n\n*If the folder '\
                     'does not exist, it will be downloaded under the directory '\
                     'specified.'
-        print print_msg
+        print(print_msg)
         # Get user input
-        resource_dir = raw_input('Enter C-PAC resources directory: ')
+        resource_dir = input('Enter C-PAC resources directory: ')
 
     # Check and download any new or missing resources from S3 copy
     try:
@@ -446,9 +446,9 @@ def return_test_subj():
     # Check if set and exists
     if not test_subj:
         info_msg = 'CPAC_TEST_SUBJ environment variable not set!'
-        print info_msg
+        print(info_msg)
         # Get user input
-        test_subj = raw_input('Enter C-PAC benchmark test subject id: ')
+        test_subj = input('Enter C-PAC benchmark test subject id: ')
 
     # Check to make sure their input files exist
     if test_subj not in subs:
@@ -529,11 +529,11 @@ def download_resource_from_s3(s3_url_path):
     # Import packages
     import os
     import tempfile
-    import urllib
+    import urllib.request, urllib.parse, urllib.error
 
     # Init variables
     temp_dir = tempfile.mkdtemp()
-    url_open = urllib.URLopener()
+    url_open = urllib.request.URLopener()
     base_name = os.path.basename(s3_url_path)
     dl_path = os.path.join(temp_dir, base_name)
 

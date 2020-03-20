@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.6.1
+# Version 1.6.2
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -522,7 +522,7 @@ functional_volreg_twopass :  On
 # PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
 # Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
 # Options: ["PhaseDiff", "Blip", "None"]
-distortion_correction :  ["None"]
+distortion_correction :  ["PhaseDiff", "Blip"]
 
 
 # Options for 'PhaseDiff' distortion correction only.
@@ -636,7 +636,7 @@ identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [0]
+runICA :  [1]
 
 
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
@@ -661,7 +661,7 @@ Regressors :
 
    aCompCor:
      summary:
-       method: PC
+       method: DetrendPC
        components: 5
      tissues:
        - WhiteMatter
@@ -678,6 +678,27 @@ Regressors :
    Bandpass:
      bottom_frequency: 0.01
      top_frequency: 0.1
+
+ - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: false
+
+   aCompCor:
+     summary:
+       method: DetrendPC
+       components: 5
+     tissues:
+       - CerebrospinalFluid
+     extraction_resolution: 2
+
+   CerebrospinalFluid:
+     summary: Mean
+     extraction_resolution: 2
+     erode_mask: true
+
+   GlobalSignal:
+     summary: Mean
      
 
 # Whether to run frequency filtering before or after nuisance regression.
@@ -686,7 +707,7 @@ filtering_order: ['After']
 
 
 # Correct for the global signal using Median Angle Correction.
-runMedianAngleCorrection :  [1]
+runMedianAngleCorrection :  [0]
 
 
 # Target angle used during Median Angle Correction.
@@ -695,6 +716,16 @@ targetAngleDeg : [90]
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
 runROITimeseries :  [1]
+
+
+# Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
+# 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
+# 'func_to_ROI' will realign the functional time series to the atlas/ROI space
+#
+#     NOTE: in rare cases, realigning the ROI to the functional space may
+#           result in small misalignments for very small ROIs - please double
+#           check your data if you see issues
+realignment : ['ROI_to_func']
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.

@@ -231,9 +231,9 @@ def qa_montages(workflow, c, strat, num_strat,
             qc_hist_id[idx] = '%s_hist' % measure
 
     except Exception as e:
-        print "[!] Connection of QA montages workflow for %s " \
-                "has failed.\n" % measure
-        print "Error: %s" % e
+        print("[!] Connection of QA montages workflow for %s " \
+                "has failed.\n" % measure)
+        print("Error: %s" % e)
         pass
 
 
@@ -443,10 +443,10 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
 
 def afni_Edge3(in_file):
     import os
-    import commands
+    import subprocess
 
     comm = "3dedge3 -input %s -prefix skull_edge.nii.gz" % in_file
-    commands.getoutput(comm)
+    subprocess.getoutput(comm)
 
     return os.path.abspath('./skull_edge.nii.gz')
 

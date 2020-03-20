@@ -63,8 +63,8 @@ def write_group_list_text_file(group_list, out_file=None):
             f.write("{0}\n".format(part_id))
 
     if os.path.exists(out_file):
-        print "Group-level analysis participant list written:" \
-              "\n{0}\n".format(out_file)
+        print("Group-level analysis participant list written:" \
+              "\n{0}\n".format(out_file))
 
     return out_file
 
@@ -92,7 +92,7 @@ def write_dataframe_to_csv(matrix_df, out_file=None):
     matrix_df.to_csv(out_file, index=False)
 
     if os.path.exists(out_file):
-        print "CSV file written:\n{0}\n".format(out_file)
+        print("CSV file written:\n{0}\n".format(out_file))
 
 
 def write_config_dct_to_yaml(config_dct, out_file=None):
@@ -113,10 +113,10 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
         out_file = "{0}.yml".format(out_file)
 
     field_order = ['pipeline_dir', 'participant_list', 'output_dir', 'work_dir',
-                   'log_dir', 'FSLDIR', 'run_fsl_feat', 'num_models_at_once', 
-                   'model_name', 'preset', 'pheno_file', 'ev_selections', 
-                   'participant_id_label', 'design_formula', 'mean_mask', 
-                   'custom_roi_mask', 'derivative_list', 'coding_scheme', 
+                   'log_dir', 'FSLDIR', 'run_fsl_feat', 'num_models_at_once',
+                   'model_name', 'preset', 'pheno_file', 'ev_selections',
+                   'participant_id_label', 'design_formula', 'mean_mask',
+                   'custom_roi_mask', 'derivative_list', 'coding_scheme',
                    'group_sep', 'grouping_var', 'z_threshold', 'p_threshold',
                    'sessions_list', 'series_list', 'contrasts', 'f_tests',
                    'custom_contrasts', 'run_randomise', 'randomise_permutation',
@@ -143,8 +143,8 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
                         "###########################################\n\n")
 
     if os.path.exists(out_file):
-        print "Group-level analysis configuration YAML file written:\n" \
-              "{0}\n".format(out_file)
+        print("Group-level analysis configuration YAML file written:\n" \
+              "{0}\n".format(out_file))
 
 
 def create_design_matrix_df(group_list, pheno_df=None,
@@ -191,7 +191,7 @@ def create_design_matrix_df(group_list, pheno_df=None,
         # if a phenotype CSV file is provided with the data
         pheno_df = pheno_df.drop_duplicates()
 
-        # replace spaces and dashes with underscores, to prevent confusion with 
+        # replace spaces and dashes with underscores, to prevent confusion with
         # the Patsy design formula
         rename_pheno_cols = {}
         for col_name in pheno_df.columns:
@@ -261,7 +261,7 @@ def create_design_matrix_df(group_list, pheno_df=None,
                                     'analysis participant list and the '
                                     'participant IDs in your phenotype file '
                                     'do not match')
-            
+
             # merge
             if pheno_ses_label:
                 design_df = pheno_df.merge(map_df, on=['participant_id'])
@@ -293,7 +293,7 @@ def create_contrasts_template_df(design_df, contrasts_dct_list=None):
             # contrast_dct is a dictionary with each column name mapped to its
             # contrast vector value, like this:
             #     {contrast: "Group Mean", "Group Mean": 1, "age": 0}
-            if (len(contrast_dct.keys()) - 1) != len(contrast_cols):
+            if (len(contrast_dct) - 1) != len(contrast_cols):
                 # it's -1 because of the "contrast" column in contrast_dct
                 # TODO: message
                 raise Exception("number of columns in the contrast vector "
@@ -976,7 +976,7 @@ def preset_tripled_two_group(group_list, conditions, condition_type="Sessions",
 
 
 def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
-        group_list_text_file=None, pheno_file=None, pheno_sub_label=None, 
+        group_list_text_file=None, pheno_file=None, pheno_sub_label=None,
         output_dir=None, model_name=None, covariate=None, condition_type=None,
         run=False):
 
@@ -1075,7 +1075,7 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
                     "f_tests": [],
                     "run_randomise": [0],
                     "randomise_permutation": 500,
-                    "randomise_thresh": 5, 
+                    "randomise_thresh": 5,
                     "randomise_demean": True,
                     "randomise_tfce": True}
 
@@ -1156,7 +1156,7 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
         # or two scans) will be coming in as a string of either one covariate
         # name, or a string with two covariates separated by a comma
         #     either way, it needs to be in list form in this case, not string
-        try:        
+        try:
             covariate = covariate.split(",")
         except AttributeError:
             # it's already a list- keep it that way
@@ -1193,7 +1193,7 @@ def run(pipeline_dir, derivative_list, z_thresh, p_thresh, preset=None,
         # covariate name, or a string with three covariates separated by a
         # comma
         #     either way, it needs to be in list form in this case, not string
-        try:        
+        try:
             covariate = covariate.split(",")
         except AttributeError:
             # it's already a list- keep it that way

@@ -85,7 +85,7 @@ def process_pheno_file(pheno_file_dataframe, group_subs_dataframe, \
 
     pheno = pheno_file_dataframe
     pheno_file_rows = []
-        
+
     df_rows = []
 
     # convert from dataframe to list and make those strings just in case
@@ -213,7 +213,7 @@ def create_pheno_dict(pheno_file_rows, ev_selections, participant_id_label):
     for line in pheno_file_rows:
 
         for val in line.values():
-            
+
             # if there are any blank values in the pheno row, skip this
             # row. if not, continue on with the "else" clause
             if val == "":
@@ -287,7 +287,7 @@ def create_pheno_dict(pheno_file_rows, ev_selections, participant_id_label):
         # so that Patsy may read them in properly
         if 'categorical' in ev_selections.keys():
             if key not in ev_selections['categorical']:
-            
+
                 pheno_data_dict[key] = np.array(pheno_data_dict[key])
 
 
@@ -329,14 +329,14 @@ def get_measure_dict(param_file):
     for m in measures:
 
         measure_map = {}
-        
+
         if m in motion_params.columns:
 
             part_ids = list(motion_params["Subject"])
             part_ids = [str(i) for i in part_ids]
 
             scan_ids = list(motion_params["Scan"])
-            scan_ids = [str(i) for i in scan_ids]            
+            scan_ids = [str(i) for i in scan_ids]
 
             measure_vals = list(motion_params[m])
             measure_vals = [float(i) for i in measure_vals]
@@ -377,7 +377,7 @@ def get_custom_roi_info(roi_means_dict):
         temp_roi_dict = {}
 
         for key in roi_means_dict.keys():
-                
+
             temp_roi_dict[key] = roi_means_dict[key][num-1]
 
         roi_dict_dict[label] = temp_roi_dict
@@ -390,21 +390,21 @@ def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
                                    ev_selections, coding_scheme):
 
     if grouping_var == None or grouping_var not in formula:
-        print '\n\n[!] CPAC says: Model group variances separately is ' \
+        print('\n\n[!] CPAC says: Model group variances separately is ' \
               'enabled, but the grouping variable set is either set to ' \
               'None, or was not included in the model as one of the ' \
-              'EVs.\n'
-        print 'Design formula: ', formula
-        print 'Grouping variable: ', grouping_var, '\n\n'
+              'EVs.\n')
+        print('Design formula: ', formula)
+        print('Grouping variable: ', grouping_var, '\n\n')
         raise Exception
-            
+
 
     # do this a little early for the grouping variable so that it doesn't
     # get in the way of doing this for the other EVs once they have the
     # grouping variable in their names
     if 'categorical' in ev_selections.keys():
          for EV_name in ev_selections['categorical']:
-            
+
              if EV_name == grouping_var:
 
                  if coding_scheme == 'Treatment':
@@ -412,84 +412,84 @@ def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
                  elif coding_scheme == 'Sum':
                      formula = formula.replace(EV_name, 'C(' + EV_name + \
                                                    ', Sum)')
-    
-    
+
+
     groupvar_levels = []
     grouping_var_id_dict = {}
     idx = 0
-    
+
     for cat_ev_value in pheno_data_dict[grouping_var]:
-        
+
         # here, each "cat_ev_value" will be one of the Patsy-format values
         # of the categorical EV that the user has selected as the grouping
         # variable, i.e. "sex1, sex1, sex0, sex1", etc..
-            
+
         # cat_ev_level is the level digit or label without the EV name
         # ex. sex1 becomes 1
         cat_ev_level = str(cat_ev_value).replace(str(grouping_var), "")
-            
+
         if cat_ev_level not in groupvar_levels:
             groupvar_levels.append(cat_ev_level)
-            
+
         # groupvar_levels only keeps track of how many levels there are in
         # the grouping variable
-            
+
         # populate this dict for creating the .grp file:
         try:
             grouping_var_id_dict[cat_ev_level].append(idx)
         except:
             grouping_var_id_dict[cat_ev_level] = [idx]
-                
+
         idx += 1
 
     split_EVs = {}
-            
+
     for key in pheno_data_dict.keys():
-        
+
         # here, "key" is the name of each EV from the phenotype file, as
         # they are labeled in the phenotype file (not Patsy format)
-            
+
         if (key in formula) and (key != grouping_var):
-            
+
             # for the formula edit
             new_key_string = ""
-                
+
             for level in groupvar_levels:
-                
+
                 # for the new split EV label
-                groupvar_with_level = str(grouping_var) + str(level)  
+                groupvar_with_level = str(grouping_var) + str(level)
                 new_key = key + "__" + groupvar_with_level
-                    
+
                 # for the formula edit
                 if new_key_string == "":
                     new_key_string = new_key
                 else:
                     new_key_string = new_key_string + " + " + new_key
-                
+
                 split_EVs[new_key] = []
-                    
+
                 # for the formula as well
                 if key in ev_selections["categorical"]:
                     ev_selections["categorical"].append(new_key)
-                    
+
                 for val, groupvar_val in zip(pheno_data_dict[key], \
                                              pheno_data_dict[grouping_var]):
-                    
+
                     if groupvar_with_level == groupvar_val:
-                        
+
                         split_EVs[new_key].append(val)
-                            
+
                     else:
-                        
+
                         split_EVs[new_key].append(0)
-                            
+
             del pheno_data_dict[key]
             if key in ev_selections["categorical"]:
                 ev_selections["categorical"].remove(key)
-                
+
             # formula edit
             formula = formula.replace(key, new_key_string)
-                
+
     # put split EVs into pheno data dict
     pheno_data_dict.update(split_EVs)
 
@@ -501,7 +501,7 @@ def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
 
     if 'categorical' in ev_selections.keys():
         for EV_name in ev_selections['categorical']:
-            
+
             if EV_name != grouping_var:
 
                 if coding_scheme == 'Treatment':
@@ -520,32 +520,32 @@ def check_multicollinearity(matrix):
 
     import numpy as np
 
-    print "\nChecking for multicollinearity in the model.."
+    print("\nChecking for multicollinearity in the model..")
 
     U, s, V = np.linalg.svd(matrix)
 
     max_singular = np.max(s)
     min_singular = np.min(s)
 
-    print "Max singular: ", max_singular
-    print "Min singular: ", min_singular
-    print "Rank: ", np.linalg.matrix_rank(matrix), "\n"
+    print("Max singular: ", max_singular)
+    print("Min singular: ", min_singular)
+    print("Rank: ", np.linalg.matrix_rank(matrix), "\n")
 
     if min_singular == 0:
 
-        print '[!] CPAC warns: Detected multicollinearity in the ' \
+        print('[!] CPAC warns: Detected multicollinearity in the ' \
                   'computed group-level analysis model. Please double-' \
-                  'check your model design.\n\n'
+                  'check your model design.\n\n')
 
     else:
 
         condition_number = float(max_singular)/float(min_singular)
-        print "Condition number: %f\n\n" % condition_number
+        print("Condition number: %f\n\n" % condition_number)
         if condition_number > 30:
 
-            print '[!] CPAC warns: Detected multicollinearity in the ' \
+            print('[!] CPAC warns: Detected multicollinearity in the ' \
                       'computed group-level analysis model. Please double-' \
-                      'check your model design.\n\n'
+                      'check your model design.\n\n')
 
 
 def write_mat_file(design_matrix, output_dir, model_name, \
@@ -581,9 +581,9 @@ def write_mat_file(design_matrix, output_dir, model_name, \
 
     with open(out_file, 'wt') as f:
 
-        print >>f, '/NumWaves\t%d' %dimy
-        print >>f, '/NumPoints\t%d' %dimx
-        print >>f, ppstring
+        print('/NumWaves\t%d' %dimy, file=f)
+        print('/NumPoints\t%d' %dimx, file=f)
+        print(ppstring, file=f)
 
         # print labels for the columns - mainly for double-checking your model
         col_string = '\n'
@@ -591,9 +591,9 @@ def write_mat_file(design_matrix, output_dir, model_name, \
         for col in depatsified_EV_names:
             col_string = col_string + col + '\t'
 
-        print >>f, col_string, '\n'
+        print(col_string, '\n', file=f)
 
-        print >>f, '/Matrix'
+        print('/Matrix', file=f)
 
         np.savetxt(f, design_matrix, fmt='%1.5e', delimiter='\t')
 
@@ -632,9 +632,9 @@ def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
 
     with open(out_file, "wt") as f:
 
-        print >>f, '/NumWaves\t1'
-        print >>f, '/NumPoints\t%d\n' %dimx
-        print >>f, '/Matrix'
+        print('/NumWaves\t1', file=f)
+        print('/NumPoints\t%d\n' %dimx, file=f)
+        print('/Matrix', file=f)
         np.savetxt(f, design_matrix_ones, fmt='%d', delimiter='\t')
 
 
@@ -653,7 +653,7 @@ def create_design_matrix(pheno_file, ev_selections, formula, \
     #
     #   ev_selections: a Python dictionary of two lists denoting which EVs are
     #                  categorical, and which should be demeaned
-    #                      format - {"categorical": ["dx_group", "sex"], 
+    #                      format - {"categorical": ["dx_group", "sex"],
     #                                "demean": ["age"]}
     #
     #   formula: a string with the Patsy-format design matrix formula
@@ -767,7 +767,7 @@ def create_design_matrix(pheno_file, ev_selections, formula, \
 
                     else:
                         participant_tuple = (participant_id)
-                    
+
                     pheno_row_dict[measure] = measure_dict[participant_tuple]
 
 
@@ -837,7 +837,7 @@ def create_design_matrix(pheno_file, ev_selections, formula, \
 
 
         # a regressor column of ROI means for each custom-specified ROI has
-        # now been added to the model with appropriate column labels      
+        # now been added to the model with appropriate column labels
 
         formula = formula.replace("Custom_ROI_Mean",add_formula_string)
 
@@ -887,15 +887,15 @@ def create_design_matrix(pheno_file, ev_selections, formula, \
     try:
 
         dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
-            
+
     except:
-        print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
+        print('\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                 'successful - do the terms in your formula correctly ' \
-                'correspond to the EVs listed in your phenotype file?\n'
-        print 'Phenotype file provided: '
-        print pheno_file, '\n'
-        print "Phenotypic data columns (regressors): ", pheno_data_dict.keys()
-        print "Formula: %s\n\n" % formula
+                'correspond to the EVs listed in your phenotype file?\n')
+        print('Phenotype file provided: ')
+        print(pheno_file, '\n')
+        print("Phenotypic data columns (regressors): ", list(pheno_data_dict.keys()))
+        print("Formula: %s\n\n" % formula)
         raise Exception
 
 
@@ -911,8 +911,8 @@ def create_design_matrix(pheno_file, ev_selections, formula, \
     design_matrix = np.array(dmatrix, dtype=np.float16)
 
     column_names = dmatrix.design_info.column_names
-      
-        
+
+
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \
@@ -932,10 +932,10 @@ def create_design_matrix(pheno_file, ev_selections, formula, \
               % (current_output, num_subjects, len(column_names), \
               current_output)
         raise Exception(err)
-        
+
 
     # remove the header formatting Patsy creates for categorical variables
-    # because we are going to use depatsified_EV_names in the "Available EVs 
+    # because we are going to use depatsified_EV_names in the "Available EVs
     # for Contrasts" list on the next page, and also to test user-made custom
     # contrast files
 
@@ -992,10 +992,10 @@ def positive(dmat, a, coding, group_sep, grouping_var):
     con = np.zeros(dmat.shape[1])
 
     if group_sep == True:
-            
+
         if "__" in a and grouping_var in a:
             ev_desc = a.split("__")
-                    
+
             for ev in evs:
                 count = 0
                 for desc in ev_desc:
@@ -1004,7 +1004,7 @@ def positive(dmat, a, coding, group_sep, grouping_var):
                 if count == len(ev_desc):
                     con[evs[ev]] = 1
                     break
-                            
+
             else:
                 # it is a dropped term so make all other terms in that
                 # category at -1
@@ -1013,13 +1013,13 @@ def positive(dmat, a, coding, group_sep, grouping_var):
                 for ev in evs:
                     if ev.startswith(term):
                         con[evs[ev]]= -1
-                                
+
         elif len(a.split(grouping_var)) > 2:
-                
+
             # this is if the current parsed contrast is the actual
             # grouping variable, as the Patsified name will have the
             # variable's name string in it twice
-                    
+
             for ev in evs:
                 if a.split(".")[1] in ev:
                     con[evs[ev]] = 1
@@ -1046,8 +1046,8 @@ def positive(dmat, a, coding, group_sep, grouping_var):
             for ev in evs:
                 if ev.startswith(term):
                     con[evs[ev]]= -1
-     
-        if coding == "Treatment":     
+
+        if coding == "Treatment":
             # make Intercept 0
             con[0] = 0
         elif coding == "Sum":
@@ -1072,7 +1072,7 @@ def create_dummy_string(length):
     ppstring = ""
     for i in range(0, length):
         ppstring += '\t' + '%1.5e' %(1.0)
-    ppstring += '\n' 
+    ppstring += '\n'
     return ppstring
 
 
@@ -1080,8 +1080,8 @@ def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
 
     import os
 
-    print "col names: "
-    print col_names
+    print("col names: ")
+    print(col_names)
 
     with open(os.path.join(out_dir, file_name) + ".con",'w+') as f:
 
@@ -1103,7 +1103,7 @@ def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
         col_string = '\n'
         for col in col_names:
             col_string = col_string + col + '\t'
-        print >>f, col_string, '\n'
+        print(col_string, '\n', file=f)
 
         # write data
         f.write("/Matrix\n")
@@ -1121,13 +1121,13 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output,
     import numpy as np
 
     try:
-        print "\nFound f-tests in your model, writing f-tests file " \
-              "(.fts)..\n"
+        print("\nFound f-tests in your model, writing f-tests file " \
+              "(.fts)..\n")
 
         with open(os.path.join(out_dir, model_name + '.fts'), 'w') as f:
 
-            print >>f, '/NumWaves\t', len(con_dict)
-            print >>f, '/NumContrasts\t', len(ftest_list)
+            print('/NumWaves\t', len(con_dict), file=f)
+            print('/NumContrasts\t', len(ftest_list), file=f)
 
             # process each f-test
             ftst = []
@@ -1135,7 +1135,7 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output,
             for ftest_string in ftest_list:
 
                 ftest_vector = []
-                
+
                 cons_in_ftest = ftest_string.split(",")
 
                 for con in con_dict.keys():
@@ -1145,7 +1145,7 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output,
                         ftest_vector.append(0)
 
                 ftst.append(ftest_vector)
-        
+
             fts_n = np.array(ftst)
 
             # print labels for the columns - mainly for double-checking your
@@ -1153,12 +1153,12 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output,
             col_string = '\n'
             for con in con_dict.keys():
                 col_string = col_string + con + '\t'
-            print >>f, col_string, '\n'
+            print(col_string, '\n', file=f)
 
-            print >>f, '/Matrix'
+            print('/Matrix', file=f)
 
             for i in range(fts_n.shape[0]):
-                print >>f, ' '.join(fts_n[i].astype('str'))
+                print(' '.join(fts_n[i].astype('str')), file=f)
 
     except Exception as e:
 
@@ -1196,8 +1196,8 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
     #evs[0] = "Intercept"
 
     fTest = False
-    print "evs: "
-    print evs
+    print("evs: ")
+    print(evs)
     for ev in evs:
         if "f_test" in ev:
             count_ftests += 1
@@ -1209,7 +1209,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
         data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
 
     except:
-        print "Error: Could not successfully read in contrast file: ",con_file
+        print("Error: Could not successfully read in contrast file: ",con_file)
         raise Exception
 
     lst = data.tolist()
@@ -1300,45 +1300,45 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
         re_str = '/RequiredEffect'
         for name in contrast_names:
 
-            print >>f, '/ContrastName%d' %idx, '\t', name
+            print('/ContrastName%d' %idx, '\t', name, file=f)
             pp_str += '\t%1.5e' %(1)
             re_str += '\t%1.5e' %(1)
             idx += 1
 
-        print >>f, '/NumWaves\t', (contrasts.shape)[1]
-        print >>f, '/NumContrasts\t', (contrasts.shape)[0]
-        print >>f, pp_str
-        print >>f, re_str + '\n'
+        print('/NumWaves\t', (contrasts.shape)[1], file=f)
+        print('/NumContrasts\t', (contrasts.shape)[0], file=f)
+        print(pp_str, file=f)
+        print(re_str + '\n', file=f)
 
         # print labels for the columns - mainly for double-checking your model
         col_string = '\n'
         for ev in evs:
             col_string = col_string + ev + '\t'
-        print >>f, col_string, '\n'
+        print(col_string, '\n', file=f)
 
-        print >>f, '/Matrix'
+        print('/Matrix', file=f)
         np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
 
     if fTest:
-        print "\nFound f-tests in your model, writing f-tests file (.fts)..\n"
+        print("\nFound f-tests in your model, writing f-tests file (.fts)..\n")
 
         ftest_out_dir = os.path.join(output_dir, model_name + '.fts')
 
         with open(ftest_out_dir,"wt") as f:
-            print >>f, '/NumWaves\t', (contrasts.shape)[0]
-            print >>f, '/NumContrasts\t', count_ftests
+            print('/NumWaves\t', (contrasts.shape)[0], file=f)
+            print('/NumContrasts\t', count_ftests, file=f)
 
             # print labels for the columns - mainly for double-checking your
             # model
             col_string = '\n'
             for con in contrast_names:
                 col_string = col_string + con + '\t'
-            print >>f, col_string, '\n'
+            print(col_string, '\n', file=f)
 
-            print >>f, '/Matrix'
+            print('/Matrix', file=f)
 
             for i in range(fts_n.shape[0]):
-                print >>f, ' '.join(fts_n[i].astype('str'))
+                print(' '.join(fts_n[i].astype('str')), file=f)
 
 
 def process_contrast(parsed_contrast, operator, ev_selections, group_sep, \
@@ -1374,7 +1374,7 @@ def process_contrast(parsed_contrast, operator, ev_selections, group_sep, \
                     gpvar = grouping_var
                 else:
                     gpvar = "..."
-                    
+
                 if (cat_EV in EV) and not (gpvar in EV and \
                     "__" in EV):
 
@@ -1399,7 +1399,7 @@ def process_contrast(parsed_contrast, operator, ev_selections, group_sep, \
 
                     parsed_EVs_in_contrast.append(cat_EV_contrast)
                     skip = 1
-                    
+
         if skip == 0:
 
             parsed_EVs_in_contrast.append(EV)
@@ -1426,7 +1426,7 @@ def run(group_config, current_output, param_file=None, \
     import os
     import csv
     import numpy as np
-
+    import yamlordereddictloader
     # open the GROUP ANALYSIS FSL .YML CONFIG FILE, not the main pipeline
     # config .yml file!
     if CPAC_run:
@@ -1471,16 +1471,16 @@ def run(group_config, current_output, param_file=None, \
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
     except:
-        print '\n\n[!] CPAC says: Could not successfully create the group ' \
+        print('\n\n[!] CPAC says: Could not successfully create the group ' \
               'analysis output directory:\n', output_dir, '\n\nMake sure ' \
-              'you have write access in this file structure.\n\n\n'
+              'you have write access in this file structure.\n\n\n')
         raise Exception
 
     measure_dict = {}
 
     # extract motion measures from CPAC-generated power params file
     if param_file != None:
-        measure_dict = get_measure_dict(param_file)        
+        measure_dict = get_measure_dict(param_file)
 
     # combine the motion measures dictionary with the measure_mean
     # dictionary (if it exists)
@@ -1498,7 +1498,7 @@ def run(group_config, current_output, param_file=None, \
     # Create contrasts_dict dictionary for the .con file generation later
     contrasts_list = contrasts
     contrasts_dict = {}
-        
+
     for contrast in contrasts_list:
 
         # each 'contrast' is a string the user input of the desired contrast
@@ -1622,29 +1622,27 @@ def run(group_config, current_output, param_file=None, \
                                 else:
                                     contrasts_dict[parsed_contrast] += contrast_vector
 
-                    idx += 1        
+                    idx += 1
 
     # finally write out the .con file and .fts file (if f-tests)
     if (custom_contrasts == None) or (custom_contrasts == '') or \
         ("None" in custom_contrasts):
 
-        print "Writing contrasts file (.con) based on contrasts provided " \
-              "using the group analysis model builder's contrasts editor.."
+        print("Writing contrasts file (.con) based on contrasts provided " \
+              "using the group analysis model builder's contrasts editor..")
 
         create_con_file(contrasts_dict, regressor_names, model_name, \
-                            current_output, model_out_dir)         
-        
+                            current_output, model_out_dir)
+
         if f_tests:
             create_fts_file(f_tests, contrasts_dict, model_name, \
                                 current_output, model_out_dir)
 
     else:
 
-        print "\nWriting contrasts file (.con) based on contrasts provided " \
-              "with a custom contrasts matrix CSV file..\n"
+        print("\nWriting contrasts file (.con) based on contrasts provided " \
+              "with a custom contrasts matrix CSV file..\n")
 
         create_con_ftst_file(custom_contrasts, model_name, current_output, \
                                  model_out_dir, regressor_names, \
                                  coding_scheme, group_sep)
-
-

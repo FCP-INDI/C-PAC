@@ -160,7 +160,11 @@ def group_files_in_strategies(output_dir, paths):
 
     for path in paths:
         pieces = path.replace(output_dir, '').split(os.sep)
-        related_strategy = tuple([p for p in pieces if any(p.startswith('_' + pattern) for pattern in fork_ids.keys())])
+        related_strategy = tuple([
+            p for p in pieces if any(
+                p.startswith('_' + pattern) for pattern in fork_ids.keys()
+            )
+        ])
         strategies[related_strategy].add(path)
 
     # Get every file that is not affected by a strategy and add it to every other strategy
@@ -191,7 +195,7 @@ def group_files_in_strategies(output_dir, paths):
 
         if has_derived_strategy:
             del strategies[strategy]
-        
+
     if tuple() in strategies:
         del strategies[tuple()]
 
@@ -265,7 +269,7 @@ def create_paths_to_symlinks(
                     for pattern in fork_ids.keys()
                 )
             ]
-            
+
             # Remove leading or trailing underscores
             output_specs = [sp.strip('_') for sp in output_specs]
 
@@ -300,9 +304,9 @@ def create_paths_to_symlinks(
             # Outputs like from segmentation cant change its name since they
             # have several files (e.g. seg0, seg1, seg2)
             if any(
-                rps['group'] == group and 
-                rps['scan'] == path_symlink['scan'] and 
-                rps['name'] == path_symlink['name'] and 
+                rps['group'] == group and
+                rps['scan'] == path_symlink['scan'] and
+                rps['name'] == path_symlink['name'] and
                 rps['specs'] == path_symlink['specs']
                 for rps in remaining_paths_symlinks
             ):
@@ -372,7 +376,7 @@ def create_symlinks(
 
             try:
                 os.symlink(path, symlink)
-            except OSError, e:
+            except OSError as e:
                 if e.errno == errno.EEXIST:
                     os.remove(symlink)
                     os.symlink(path, symlink)

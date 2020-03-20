@@ -1,14 +1,3 @@
-# import torch
-# import torch.nn as nn
-# import numpy as np
-# import scipy.ndimage as snd
-# from torch.autograd import Variable
-# from dataset import VolumeDataset, BlockDataset
-# from torch.utils.data import DataLoader
-# from model import UNet2d
-# import os, sys
-# import nibabel as nib
-# import pickle
 import argparse
 
 class MyParser(argparse.ArgumentParser):
@@ -45,7 +34,7 @@ def extract_large_comp(prt_msk):
 
     return prt_msk
 
-def predict_volumes(model, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="unet_pre_mask",
+def predict_volumes(model_path, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="unet_pre_mask",
         save_dice=False, save_nii=True, nii_outdir=None, verbose=False, 
         rescale_dim=256, num_slice=3):
 
@@ -60,6 +49,11 @@ def predict_volumes(model, rimg_in=None, cimg_in=None, bmsk_in=None, suffix="une
     import os, sys
     import nibabel as nib
     import pickle
+
+    train_model = UNet2d(dim_in=3, num_conv_block=5, kernel_root=16)
+    checkpoint = torch.load(model_path, map_location={'cuda:0':'cpu'})
+    train_model.load_state_dict(checkpoint['state_dict'])
+    model = nn.Sequential(train_model, nn.Softmax2d())
 
     use_gpu=torch.cuda.is_available()
     model_on_gpu=next(model.parameters()).is_cuda
