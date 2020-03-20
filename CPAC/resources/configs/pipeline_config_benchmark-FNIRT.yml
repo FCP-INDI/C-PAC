@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.6.1
+# Version 1.6.2
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -522,7 +522,7 @@ functional_volreg_twopass :  On
 # PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
 # Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
 # Options: ["PhaseDiff", "Blip", "None"]
-distortion_correction :  ["None"]
+distortion_correction :  ["PhaseDiff", "Blip"]
 
 
 # Options for 'PhaseDiff' distortion correction only.
@@ -636,7 +636,7 @@ identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [0]
+runICA :  [1]
 
 
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
@@ -678,6 +678,27 @@ Regressors :
    Bandpass:
      bottom_frequency: 0.01
      top_frequency: 0.1
+
+ - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: false
+
+   aCompCor:
+     summary:
+       method: DetrendPC
+       components: 5
+     tissues:
+       - CerebrospinalFluid
+     extraction_resolution: 2
+
+   CerebrospinalFluid:
+     summary: Mean
+     extraction_resolution: 2
+     erode_mask: true
+
+   GlobalSignal:
+     summary: Mean
      
 
 # Whether to run frequency filtering before or after nuisance regression.
