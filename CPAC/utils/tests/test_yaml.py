@@ -1,5 +1,6 @@
 import yaml
 import tempfile
+import yamlordereddictloader
 
 from CPAC.utils.yaml_template import create_yaml_from_template
 

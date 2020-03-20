@@ -9,24 +9,29 @@ import pkg_resources as p
 class AfterWarping(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
-        wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
+        wx.html.HtmlWindow.__init__(
+            self,
+            parent,
+            style=wx.html.HW_SCROLLBAR_AUTO
+        )
         self.SetStandardFonts()
-        
+
         self.counter = counter
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/after_warp.html'))          
-            
+        self.LoadFile(
+            p.resource_filename('CPAC', 'GUI/resources/html/after_warp.html')
+        )          
+
     def get_counter(self):
         return self.counter
-            
+
 
 class AfterWarpingOptions(wx.ScrolledWindow):
-    
+
     def __init__(self, parent, counter = 0):
         wx.ScrolledWindow.__init__(self, parent)
-                
+
         self.counter = counter
-        
+
         self.page = GenericClass(self, "After Warping Options")
 
         self.page.add(label="Run Smoothing ",
@@ -78,6 +83,6 @@ class AfterWarpingOptions(wx.ScrolledWindow):
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
-        
+
     def get_counter(self):
             return self.counter
