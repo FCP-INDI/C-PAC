@@ -129,38 +129,3 @@
   site: KKI
   subject_id: '3884955'
   unique_id: '1'
-- anat: /local_data/ABCD_1.1_subset/subs/NDARINV00LJVZK2/T1w_MPR1/NDARINV00LJVZK2_3T_T1w_MPR1.nii.gz
-  func:
-    func-1:
-      scan: /local_data/ABCD_1.1_subset/subs/NDARINV00LJVZK2/T2w_SPC1/NDARINV00LJVZK2_3T_T2w_SPC1.nii.gz
-  site: site-1
-  subject_id: NDARINV00LJVZK2
-  unique_id: ses-1
-- anat: /local_data/ABCD_1.1_subset/subs/NDARINV03CV8RDT/T1w_MPR1/NDARINV03CV8RDT_3T_T1w_MPR1.nii.gz
-  func:
-    func-1:
-      scan: /local_data/ABCD_1.1_subset/subs/NDARINV03CV8RDT/T2w_SPC1/NDARINV03CV8RDT_3T_T2w_SPC1.nii.gz
-  site: site-1
-  subject_id: NDARINV03CV8RDT
-  unique_id: ses-1
-- anat: /local_data/ABCD_1.1_subset/subs/NDARINV07XXFHDK/T1w_MPR1/NDARINV07XXFHDK_3T_T1w_MPR1.nii.gz
-  func:
-    func-1:
-      scan: /local_data/ABCD_1.1_subset/subs/NDARINV07XXFHDK/T2w_SPC1/NDARINV07XXFHDK_3T_T2w_SPC1.nii.gz
-  site: site-1
-  subject_id: NDARINV07XXFHDK
-  unique_id: ses-1
-- anat: /local_data/ABCD_1.1_subset/subs/NDARINV08K0R9C4/T1w_MPR1/NDARINV08K0R9C4_3T_T1w_MPR1.nii.gz
-  func:
-    func-1:
-      scan: /local_data/ABCD_1.1_subset/subs/NDARINV08K0R9C4/T2w_SPC1/NDARINV08K0R9C4_3T_T2w_SPC1.nii.gz
-  site: site-1
-  subject_id: NDARINV08K0R9C4
-  unique_id: ses-1
-- anat: /local_data/ABCD_1.1_subset/subs/NDARINV0AEBMADL/T1w_MPR1/NDARINV0AEBMADL_3T_T1w_MPR1.nii.gz
-  func:
-    func-1:
-      scan: /local_data/ABCD_1.1_subset/subs/NDARINV0AEBMADL/T2w_SPC1/NDARINV0AEBMADL_3T_T2w_SPC1.nii.gz
-  site: site-1
-  subject_id: NDARINV0AEBMADL
-  unique_id: ses-1
