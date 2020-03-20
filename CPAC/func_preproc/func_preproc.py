@@ -1145,7 +1145,9 @@ def connect_func_preproc(workflow, strat_list, c):
 
         if any("gen_motion_stats_before_stc" in node for node in nodes):
 
-            motion_stats_node = filter(lambda x: "gen_motion_stats_before_stc" in x, nodes)[0]
+            motion_stats_node = [
+                x for x in nodes if "gen_motion_stats_before_stc" in x
+            ][0]
 
             # skullstripping tool
             if "fsl_afni" in motion_stats_node:

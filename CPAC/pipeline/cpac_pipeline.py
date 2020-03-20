@@ -2598,7 +2598,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             
             if not any("gen_motion_stats_before_stc" in node for node in nodes):
 
-                motion_stats_node = filter(lambda x: "func_preproc" in x, nodes)[0]
+                motion_stats_node = [x for x in nodes if "func_preproc" in x][0]
 
                 # skullstripping tool
                 if "fsl_afni" in motion_stats_node:
