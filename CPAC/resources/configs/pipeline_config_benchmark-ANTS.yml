@@ -709,7 +709,7 @@ filtering_order: ['After']
 
 
 # Correct for the global signal using Median Angle Correction.
-runMedianAngleCorrection :  [1]
+runMedianAngleCorrection :  [0]
 
 
 # Target angle used during Median Angle Correction.
