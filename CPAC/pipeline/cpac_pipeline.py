@@ -2480,7 +2480,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
                             ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi')
+                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
                 new_strat_list.append(new_strat)
 
@@ -2496,7 +2496,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
                         ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='t1', func_type='non-ica-aroma')
                 
                 new_strat_list.append(new_strat)
 
@@ -2744,14 +2744,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi')
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='ica-aroma')
 
                     elif 'T1_template' in c.runRegisterFuncToTemplate:
 
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1',func_type='ica-aroma')
 
 
                     aroma_preproc = create_aroma(tr=TR, wf_name='create_aroma_{0}'.format(num_strat))
@@ -2783,14 +2783,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='epi') 
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='epi', func_type='ica-aroma') 
 
                     else:
 
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1') 
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1', func_type='ica-aroma') 
 
                     node, out_file = strat["ica_aroma_denoised_functional"]
                     strat.set_leaf_properties(node, out_file)
@@ -3268,7 +3268,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi')
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
                 new_strat_list += [strat]
 
@@ -3277,7 +3277,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1', func_type='non-ica-aroma')
                 
                 new_strat_list += [strat]
             
@@ -3973,7 +3973,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     output_name = '{0}_to_standard'.format(key)
                     if output_name not in strat:
                         output_func_to_standard(workflow, key, 'template_epi_derivative',
-                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='epi')
+                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
             elif 'T1_template' in c.runRegisterFuncToTemplate:
                 
@@ -3991,7 +3991,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     output_name = '{0}_to_standard'.format(key)
                     if output_name not in strat:
                         output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
-                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='t1')
+                            '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='t1', func_type='non-ica-aroma')
 
             if "Before" in c.smoothing_order:
 

@@ -116,7 +116,8 @@ def ants_apply_warps_func_mni(
         symmetry='asymmetric',
         input_image_type=0,
         num_ants_cores=1,
-        registration_template='t1'
+        registration_template='t1',
+        func_type='non-ica-aroma'
     ):
 
     """
@@ -264,7 +265,7 @@ def ants_apply_warps_func_mni(
     collect_transforms_key = \
             'collect_transforms{0}'.format(inverse_string)
 
-    if distcor is True:
+    if distcor is True and func_type not in 'ica-aroma':
         num_transforms = 6
         collect_transforms_key = \
                 'collect_transforms{0}{1}'.format('_distcor',
@@ -299,7 +300,7 @@ def ants_apply_warps_func_mni(
             # connected in, and the second element is the input to which it 
             # should be connected
             if inverse is True:
-                if distcor is True:
+                if distcor is True and func_type not in 'ica-aroma':
                     # Field file from anatomical nonlinear registration
                     transforms_to_combine = [\
                             ('mni_to_anatomical_nonlinear_xfm', 'in6'),
@@ -323,7 +324,7 @@ def ants_apply_warps_func_mni(
                         ('ants_initial_xfm', 'in4'),
                         ('fsl_mat_as_itk', 'in5')]
 
-                if distcor is True:
+                if distcor is True and func_type not in 'ica-aroma':
                     transforms_to_combine.append(('blip_warp', 'in6'))
 
         if registration_template == 'epi':
@@ -354,7 +355,7 @@ def ants_apply_warps_func_mni(
             # connected in, and the second element is the input to which it 
             # should be connected
             if inverse is True:
-                if distcor is True:
+                if distcor is True and func_type not in 'ica-aroma':
                     # Field file from anatomical nonlinear registration
                     transforms_to_combine = [\
                             ('epi_to_func_nonlinear_xfm', 'i5'),
@@ -378,7 +379,7 @@ def ants_apply_warps_func_mni(
                         ('func_to_epi_ants_initial_xfm', 'in4')]
                         # ('fsl_mat_as_itk', 'in5')]
 
-                if distcor is True:
+                if distcor is True func_type not in 'ica-aroma':
                     transforms_to_combine.append(('blip_warp', 'in5'))
 
         # define the node
@@ -464,7 +465,7 @@ def ants_apply_warps_func_mni(
 
 def output_func_to_standard(workflow, func_key, ref_key, output_name,
         strat, num_strat, pipeline_config_obj, input_image_type='func_derivative',
-        symmetry='asymmetric', inverse=False, registration_template='t1'):
+        symmetry='asymmetric', inverse=False, registration_template='t1', func_type='non-ica-aroma'):
 
     image_types = ['func_derivative', 'func_derivative_multi',
             'func_4d', 'func_mask']
@@ -506,7 +507,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 num_strat, strat, interpolation_method=interp,
                 distcor=distcor, map_node=map_node, inverse=inverse,
                 symmetry=symmetry, input_image_type=image_type,
-                num_ants_cores=pipeline_config_obj.num_ants_threads, registration_template=registration_template)
+                num_ants_cores=pipeline_config_obj.num_ants_threads, registration_template=registration_template, func_type=func_type)
 
     else:
         raise ValueError('Cannot determine whether a ANTS or FSL registration' \
