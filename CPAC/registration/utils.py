@@ -16,7 +16,7 @@ def seperate_warps_list(warp_list, selection):
     return selected_warp
 
 def check_transforms(transform_list):
-    transform_number = filter(None, transform_list)
+    transform_number = list(filter(None, transform_list))
     return[(transform_number[index]) for index in range(len(transform_number))], len(transform_number)
 
 def generate_inverse_transform_flags(transform_list):

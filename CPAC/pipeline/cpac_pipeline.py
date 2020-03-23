@@ -2598,7 +2598,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             
             if not any("gen_motion_stats_before_stc" in node for node in nodes):
 
-                motion_stats_node = filter(lambda x: "func_preproc" in x, nodes)[0]
+                motion_stats_node = [x for x in nodes if "func_preproc" in x][0]
 
                 # skullstripping tool
                 if "fsl_afni" in motion_stats_node:
@@ -3610,7 +3610,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     strat.append_name(roi_timeseries.name)
                     strat.update_resource_pool({
                         'roi_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
-                        'functional_to_roi': (resample_functional_roi, 'out_file')
+                        'functional_to_roi': (resample_functional_roi, 'out_func')
                     })
 
                     # create the graphs
@@ -3681,7 +3681,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     strat.append_name(roi_timeseries_for_sca.name)
                     strat.update_resource_pool({
                         'roi_timeseries_for_SCA': (roi_timeseries_for_sca, 'outputspec.roi_outputs'),
-                        'functional_to_roi_for_SCA': (resample_functional_roi, 'out_file')
+                        'functional_to_roi_for_SCA': (resample_functional_roi, 'out_func')
                     })
 
                 if "MultReg" in sca_analysis_dict.keys():
