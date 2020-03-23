@@ -286,11 +286,11 @@ def ants_apply_warps_func_mni(
                         'fsl_mat_as_itk': 'fsl_mat_as_itk',
                         },
                     'symmetric': {
-                        'anatomical_to_mni_nonlinear_xfm': 'ants_symm_warp_field',
-                        'symmetric_mni_to_anatomical_nonlinear_xfm': 'symmetric_mni_to_anatomical_nonlinear_xfm',
-                        'ants_affine_xfm': 'ants_symm_affine_xfm',
-                        'ants_rigid_xfm': 'ants_symm_rigid_xfm',
-                        'ants_initial_xfm': 'ants_symm_initial_xfm',
+                        'anatomical_to_mni_nonlinear_xfm': 'anatomical_to_symmetric_mni_nonlinear_xfm',
+                        'mni_to_anatomical_nonlinear_xfm':'symmetric_mni_to_anatomical_nonlinear_xfm',
+                        'ants_affine_xfm': 'ants_symmetric_affine_xfm',
+                        'ants_rigid_xfm': 'ants_symmetric_rigid_xfm',
+                        'ants_initial_xfm': 'ants_symmetric_initial_xfm',
                         'blip_warp': 'blip_warp',
                         'blip_warp_inverse': 'blip_warp_inverse',
                         'fsl_mat_as_itk': 'fsl_mat_as_itk',
@@ -334,6 +334,7 @@ def ants_apply_warps_func_mni(
             ants_transformation_dict =  {
                     'asymmetric': {
                         'func_to_epi_nonlinear_xfm': 'func_to_epi_nonlinear_xfm',
+                        'epi_to_func_nonlinear_xfm' : 'epi_to_func_nonlinear_xfm',
                         'func_to_epi_ants_affine_xfm': 'func_to_epi_ants_affine_xfm',
                         'func_to_epi_ants_rigid_xfm': 'func_to_epi_ants_rigid_xfm',
                         'func_to_epi_ants_initial_xfm': 'func_to_epi_ants_initial_xfm',
