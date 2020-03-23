@@ -277,6 +277,7 @@ def ants_apply_warps_func_mni(
             ants_transformation_dict =  {
                     'asymmetric': {
                         'anatomical_to_mni_nonlinear_xfm': 'anatomical_to_mni_nonlinear_xfm',
+                        'mni_to_anatomical_nonlinear_xfm': 'mni_to_anatomical_nonlinear_xfm',
                         'ants_affine_xfm': 'ants_affine_xfm',
                         'ants_rigid_xfm': 'ants_rigid_xfm',
                         'ants_initial_xfm': 'ants_initial_xfm',
@@ -286,6 +287,7 @@ def ants_apply_warps_func_mni(
                         },
                     'symmetric': {
                         'anatomical_to_mni_nonlinear_xfm': 'ants_symm_warp_field',
+                        'symmetric_mni_to_anatomical_nonlinear_xfm': 'symmetric_mni_to_anatomical_nonlinear_xfm',
                         'ants_affine_xfm': 'ants_symm_affine_xfm',
                         'ants_rigid_xfm': 'ants_symm_rigid_xfm',
                         'ants_initial_xfm': 'ants_symm_initial_xfm',
@@ -379,7 +381,7 @@ def ants_apply_warps_func_mni(
                         ('func_to_epi_ants_initial_xfm', 'in4')]
                         # ('fsl_mat_as_itk', 'in5')]
 
-                if distcor is True func_type not in 'ica-aroma':
+                if distcor is True and func_type not in 'ica-aroma':
                     transforms_to_combine.append(('blip_warp', 'in5'))
 
         # define the node
