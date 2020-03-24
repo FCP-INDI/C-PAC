@@ -143,7 +143,7 @@ def write_roi_npz(roi_csv, out_type=None):
     elif out_type[1]:
         np_roi_data = genfromtxt(roi_csv[0], delimiter=',')
         roi_npz = os.path.join(os.getcwd(), 'roi_stats.npz')
-        with open(roi_npz, 'wt') as f:
+        with open(roi_npz, 'wb') as f:
             np.savez(f, np_roi_data)
         roi_outputs.append(roi_npz)
 
