@@ -2198,7 +2198,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # TODO:  without, and send the without-fieldmap to the BBR fork)
 
                 dist_corr = False
-                if 'epi_distcorr' in nodes and 1 not in c.runBBReg:
+                if 'diff_distcor' in nodes and 1 not in c.runBBReg:
                     dist_corr = True
                     # TODO: for now, disabling dist corr when BBR is disabled
                     err = "\n\n[!] Field map distortion correction is enabled, " \
@@ -2286,7 +2286,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes:
 
                     dist_corr = False
-                    if 'epi_distcorr' in nodes or 'blip_correct' in nodes:
+                    if 'diff_distcor' in nodes or 'blip_correct' in nodes:
                         dist_corr = True
 
                     func_to_anat_bbreg = create_bbregister_func_to_anat(
