@@ -202,62 +202,11 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'dl_dir', s3_scan_params, 'dl_dir')
     wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
 
-    # field map phase file, for field map distortion correction
-    select_fmap_phase = pe.Node(function.Function(input_names=['scan',
-                                                               'rest_dict',
-                                                               'resource'],
-                                                  output_names=['file_path'],
-                                                  function=get_rest,
-                                                  as_module=True),
-                                name='select_fmap_phase')
-    select_fmap_phase.inputs.rest_dict = rest_dict
-    select_fmap_phase.inputs.resource = "fmap_phase"
-    wf.connect(inputnode, 'scan', select_fmap_phase, 'scan')
-
-    s3_fmap_phase = pe.Node(function.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'dl_dir',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3,
-                                              as_module=True),
-                            name='s3_fmap_phase')
-    s3_fmap_phase.inputs.img_type = "other"
-    wf.connect(select_fmap_phase, 'file_path', s3_fmap_phase, 'file_path')
-    wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
-    wf.connect(inputnode, 'dl_dir', s3_fmap_phase, 'dl_dir')
-    wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
-
-    # field map magnitude file, for field map distortion correction
-    select_fmap_mag = pe.Node(function.Function(input_names=['scan',
-                                                             'rest_dict',
-                                                             'resource'],
-                                                output_names=['file_path'],
-                                                function=get_rest,
-                                                as_module=True),
-                              name='select_fmap_mag')
-    select_fmap_mag.inputs.rest_dict = rest_dict
-    select_fmap_mag.inputs.resource = "fmap_mag"
-    wf.connect(inputnode, 'scan', select_fmap_mag, 'scan')
-
-    s3_fmap_mag = pe.Node(function.Function(input_names=['file_path',
-                                                         'creds_path',
-                                                         'dl_dir',
-                                                         'img_type'],
-                                            output_names=['local_path'],
-                                            function=check_for_s3,
-                                            as_module=True),
-                          name='s3_fmap_mag')
-    s3_fmap_mag.inputs.img_type = "other"
-    wf.connect(select_fmap_mag, 'file_path', s3_fmap_mag, 'file_path')
-    wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
-    wf.connect(inputnode, 'dl_dir', s3_fmap_mag, 'dl_dir')
-    wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
-
     return wf
 
 
-def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
+def create_fmap_datasource(fmap_dct, resource=None,
+                           wf_name='fmap_datasource'):
     """Return the field map files, from the dictionary of functional files
     described in the data configuration (sublist) YAML file.
     """
@@ -279,7 +228,6 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                                         'magnitude']),
                          name='outputspec')
 
-    # get the functional scan itself
     selectrest = pe.Node(function.Function(input_names=['scan',
                                                         'rest_dict',
                                                         'resource'],
@@ -288,7 +236,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                            as_module=True),
                          name='selectrest')
     selectrest.inputs.rest_dict = fmap_dct
-    selectrest.inputs.resource = "scan"
+    selectrest.inputs.resource = resource
     wf.connect(inputnode, 'scan', selectrest, 'scan')
 
     # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
