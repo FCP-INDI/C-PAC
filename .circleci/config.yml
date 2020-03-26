@@ -11,8 +11,16 @@ jobs:
       - run:
           name: pytest
           command: |
-            pip install pytest pytest_click
-            pytest --doctest-ignore-import-errors --continue-on-collection-errors --doctest-modules --ignore=CPAC/cwas/tests/test_mdmr_cython.py dev/circleci_data/
+            pip install pytest pytest_click coverage
+            coverage run -m pytest --junitxml=test-results/junit.xml --doctest-ignore-import-errors --continue-on-collection-errors --doctest-modules --ignore=CPAC/cwas/tests/test_mdmr_cython.py dev/circleci_data/
+            coverage report --include="./*" --omit="/home/circleci/.local/*"
+            coverage html
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+      - store_artifacts:
+          path: htmlcov
   build:
     machine: true
     steps:
