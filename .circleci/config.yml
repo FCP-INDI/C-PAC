@@ -60,6 +60,7 @@ workflows:
             branches:
               ignore:
                 - feature/auto-heatmaps
+                - config/test_config
       - test:
           requires:
             - build
