@@ -98,6 +98,8 @@ from CPAC.utils.datasource import (
     create_func_datasource,
     create_anat_datasource,
     create_fmap_datasource,
+    get_fmap_phasediff_metadata,
+    calc_deltaTE_and_asym_ratio,
     create_roi_mask_dataflow,
     create_spatial_map_dataflow,
     create_check_for_s3_node,
@@ -1683,23 +1685,95 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             func_wf.get_node('inputnode').iterables = \
                 ("scan", list(func_paths_dict.keys()))
 
+            # Grab field maps
+            diff = False
+            blip = False
             if "fmap" in sub_dict:
                 fmap_rp_list = []
+                fmap_TE_list = []
                 for key in sub_dict["fmap"]:
-                    if "epi_" in key:
-                        gather_fmap = create_fmap_datasource(sub_dict["fmap"],
-                                                             "fmap_gather_{0}".format(key))
-                        gather_fmap.inputs.inputnode.set(
-                            subject=subject_id,
-                            creds_path=input_creds_path,
-                            dl_dir=c.workingDirectory
-                        )
-                        gather_fmap.inputs.inputnode.scan = key
+                    gather_fmap = create_fmap_datasource(sub_dict["fmap"],
+                                                         "fmap_gather_"
+                                                         "{0}".format(key))
+                    gather_fmap.inputs.inputnode.set(
+                        subject=subject_id,
+                        creds_path=input_creds_path,
+                        dl_dir=c.workingDirectory
+                    )
+                    gather_fmap.inputs.inputnode.scan = key
+                    strat.update_resource_pool({
+                        key: (gather_fmap, 'outputspec.rest'),
+                        "{0}_scan_params".format(key): (gather_fmap,
+                                                        'outputspec.scan_params')
+                    })
+
+                    fmap_rp_list.append(key)
+
+                    if key == "diff_phase" or key == "diff_mag_one" or \
+                            key == "diff_mag_two":
+                        diff = True
+
+                        get_fmap_metadata_imports = ['import json']
+                        get_fmap_metadata = pe.Node(Function(
+                            input_names=['data_config_scan_params'],
+                            output_names=['echo_time',
+                                          'dwell_time',
+                                          'pe_direction'],
+                            function=get_fmap_phasediff_metadata,
+                            imports=get_fmap_metadata_imports),
+                            name='{0}_get_metadata_{1}'.format(key,
+                                                               num_strat))
+
+                        node, out_file = strat["{}_scan_params".format(key)]
+                        workflow.connect(node, out_file, get_fmap_metadata,
+                                         'data_config_scan_params')
+
                         strat.update_resource_pool({
-                            key: (gather_fmap, 'outputspec.rest'),
-                            "{0}_scan_params".format(key): (gather_fmap, 'outputspec.scan_params')
+                            "{}_TE".format(key): (get_fmap_metadata,
+                                                  'echo_time'),
+                            "{}_dwell".format(key): (get_fmap_metadata,
+                                                     'dwell_time'),
+                            "{}_pedir".format(key): (get_fmap_metadata,
+                                                     'pe_direction')
                         })
-                        fmap_rp_list.append(key)
+                        fmap_TE_list.append("{}_TE".format(key))
+
+                    if key == "epi_AP" or key == "epi_PA":
+                        blip = True
+
+                if diff:
+                    calc_delta_ratio = pe.Node(Function(
+                        input_names=['dwell_time',
+                                     'echo_time_one',
+                                     'echo_time_two',
+                                     'echo_time_three'],
+                        output_names=['deltaTE',
+                                      'dwell_asym_ratio'],
+                        function=calc_deltaTE_and_asym_ratio),
+                        name='diff_distcor_calc_delta_{}'.format(num_strat))
+
+                    node, out_file = strat['diff_phase_dwell']
+                    workflow.connect(node, out_file, calc_delta_ratio,
+                                     'dwell_time')
+
+                    node, out_file = strat[fmap_TE_list[0]]
+                    workflow.connect(node, out_file, calc_delta_ratio,
+                                     'echo_time_one')
+
+                    node, out_file = strat[fmap_TE_list[1]]
+                    workflow.connect(node, out_file, calc_delta_ratio,
+                                     'echo_time_two')
+
+                    if len(fmap_TE_list) > 2:
+                        node, out_file = strat[fmap_TE_list[2]]
+                        workflow.connect(node, out_file, calc_delta_ratio,
+                                         'echo_time_three')
+
+                    strat.update_resource_pool({
+                        'deltaTE': (calc_delta_ratio, 'deltaTE'),
+                        'dwell_asym_ratio': (calc_delta_ratio,
+                                             'dwell_asym_ratio')
+                    })
 
             # Add in nodes to get parameters from configuration file
             # a node which checks if scan_parameters are present for each scan
@@ -2015,24 +2089,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         new_strat_list = []
 
         # Distortion Correction - Field Map Phase-difference
-        phase_diff = False
-        if "fmap" in sub_dict.keys():
-            phase = False
-            magnitude = False
-            for scan_name in sub_dict["fmap"]:
-                if "phasediff" in scan_name:
-                    phase = True
-                if "magnitude" in scan_name:
-                    magnitude = True
-            if phase and magnitude:
-                phase_diff = True
-
-        if "PhaseDiff" in c.distortion_correction and phase_diff:
+        if "PhaseDiff" in c.distortion_correction and diff:
             for num_strat, strat in enumerate(strat_list):
                 if 'BET' in c.fmap_distcorr_skullstrip:
                     epi_distcorr = create_EPI_DistCorr(
                         use_BET=True,
-                        wf_name='epi_distcorr_%d' % (num_strat)
+                        wf_name='diff_distcor_%d' % (num_strat)
                     )
                     epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
                     epi_distcorr.get_node('bet_frac_input').iterables = \
@@ -2040,40 +2102,37 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 else:
                     epi_distcorr = create_EPI_DistCorr(
                         use_BET=False,
-                        wf_name='epi_distcorr_%d' % (num_strat)
+                        wf_name='diff_distcor_%d' % (num_strat)
                     )
                     epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
                         c.fmap_distcorr_threshold
-
-                epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
-                epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
-                epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
-
-                epi_distcorr.get_node('deltaTE_input').iterables = (
-                    'deltaTE', c.fmap_distcorr_deltaTE
-                )
-                epi_distcorr.get_node('dwellT_input').iterables = (
-                    'dwellT', c.fmap_distcorr_dwell_time
-                )
-                epi_distcorr.get_node('dwell_asym_ratio_input').iterables = (
-                    'dwell_asym_ratio', c.fmap_distcorr_dwell_asym_ratio
-                )
 
                 node, out_file = strat['anatomical_reorient']
                 workflow.connect(node, out_file, epi_distcorr,
                                 'inputspec.anat_file')
 
-                node, out_file = strat['fmap_phase_diff']
+                node, out_file = strat['diff_phase']
                 workflow.connect(node, out_file, epi_distcorr,
                                 'inputspec.fmap_pha')
 
-                node, out_file = strat['fmap_magnitude']
+                node, out_file = strat['diff_mag_one']
                 workflow.connect(node, out_file, epi_distcorr,
                                 'inputspec.fmap_mag')
 
+                node, out_file = strat['deltaTE']
+                workflow.connect(node, out_file, epi_distcorr,
+                                 'deltaTE_input.deltaTE')
+
+                node, out_file = strat['diff_phase_dwell']
+                workflow.connect(node, out_file, epi_distcorr,
+                                 'dwellT_input.dwellT')
+
+                node, out_file = strat['dwell_asym_ratio']
+                workflow.connect(node, out_file, epi_distcorr,
+                                 'dwell_asym_ratio_input.dwell_asym_ratio')
+
                 # TODO ASH review forking
-                if "None" in c.distortion_correction or \
-                        "Blip" in c.distortion_correction:
+                if "None" in c.distortion_correction:
                     strat = strat.fork()
                     new_strat_list.append(strat)
 
@@ -2084,18 +2143,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'fieldmap_mask': (epi_distcorr, 'outputspec.fieldmapmask'),
                 })
 
+        strat_list += new_strat_list
+
         # Distortion Correction - "Blip-Up / Blip-Down"
-        blip = False
-        blip_fmap = False
-        if "fmap" in sub_dict:
-            for scan_name in sub_dict["fmap"]:
-                if "epi" in scan_name:
-                    blip_fmap = True
-
-        if "Blip" in c.distortion_correction and blip_fmap:
+        if "Blip" in c.distortion_correction and blip:
             for num_strat, strat in enumerate(strat_list):
-                blip = True
-
                 match_epi_imports = ['import json']
                 match_epi_fmaps_node = \
                     pe.Node(Function(input_names=['bold_pedir',
@@ -2161,6 +2213,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         strat_list += new_strat_list
 
+
         for num_strat, strat in enumerate(strat_list):
 
             # Resample brain mask with derivative resolution
@@ -2209,7 +2262,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # TODO:  without, and send the without-fieldmap to the BBR fork)
 
                 dist_corr = False
-                if 'epi_distcorr' in nodes and 1 not in c.runBBReg:
+                if 'diff_distcor' in nodes and 1 not in c.runBBReg:
                     dist_corr = True
                     # TODO: for now, disabling dist corr when BBR is disabled
                     err = "\n\n[!] Field map distortion correction is enabled, " \
@@ -2217,7 +2270,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         "required for distortion correction.\n\n"
                     raise Exception(err)
 
-                func_to_anat = create_register_func_to_anat(dist_corr,
+                func_to_anat = create_register_func_to_anat(#dist_corr,
                                                             'func_to_anat_FLIRT'
                                                             '_%d' % num_strat)
 
@@ -2243,16 +2296,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.anat')
 
-                if dist_corr:
+                if "despiked_fieldmap" in strat:
                     # apply field map distortion correction outputs to
                     # the func->anat registration
+                    node, out_file = strat['diff_phase_dwell']
+                    workflow.connect(node, out_file,
+                                     func_to_anat,
+                                     'echospacing_input.echospacing')
 
-                    func_to_anat.inputs.echospacing_input.set(
-                        echospacing=c.fmap_distcorr_dwell_time[0]
-                    )
-                    func_to_anat.inputs.pedir_input.set(
-                        pedir=c.fmap_distcorr_pedir
-                    )
+                    node, out_file = strat['diff_phase_pedir']
+                    workflow.connect(node, out_file,
+                                     func_to_anat, 'pedir_input.pedir')
 
                     node, out_file = strat["despiked_fieldmap"]
                     workflow.connect(node, out_file,
@@ -2296,12 +2350,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # a crash) on the strat without segmentation
                 if 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes:
 
-                    dist_corr = False
-                    if 'epi_distcorr' in nodes or 'blip_correct' in nodes:
-                        dist_corr = True
-
                     func_to_anat_bbreg = create_bbregister_func_to_anat(
-                        phase_diff,
                         'func_to_anat_bbreg_%d' % num_strat
                     )
 
@@ -2349,22 +2398,31 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                          func_to_anat_bbreg,
                                          'inputspec.anat_wm_segmentation')
 
-                    if dist_corr and phase_diff:
-                        # apply field map distortion correction outputs to
-                        # the func->anat registration
+                    #if dist_corr and phase_diff:
+                    # apply field map distortion correction outputs to
+                    # the func->anat registration
+                    if "despiked_fieldmap" in strat and \
+                                    "fieldmap_mask" in strat:
+                        node, out_file = strat['diff_phase_dwell']
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg,
+                                         'echospacing_input.echospacing')
 
-                        func_to_anat_bbreg.inputs.echospacing_input.echospacing = c.fmap_distcorr_dwell_time[0]
-                        func_to_anat_bbreg.inputs.pedir_input.pedir = c.fmap_distcorr_pedir
+                        node, out_file = strat['diff_phase_pedir']
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg,
+                                         'pedir_input.pedir')
 
                         node, out_file = strat["despiked_fieldmap"]
                         workflow.connect(node, out_file,
-                                        func_to_anat_bbreg,
-                                        'inputspec.fieldmap')
+                                         func_to_anat_bbreg,
+                                         'inputspec.fieldmap')
 
                         node, out_file = strat["fieldmap_mask"]
                         workflow.connect(node, out_file,
-                                        func_to_anat_bbreg,
-                                        'inputspec.fieldmapmask')
+                                         func_to_anat_bbreg,
+                                         'inputspec.fieldmapmask')
+
 
                     # TODO ASH review forking
                     if 0 in c.runBBReg:
@@ -2379,7 +2437,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     }, override=True)
 
                 else:
-
                     # TODO ASH review
                     # anatomical segmentation is not being run in this particular
                     # strategy/fork - we don't want this to stop workflow building
@@ -2395,6 +2452,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             "run again.\n\n"
                         raise Exception(err)
 
+
         strat_list += new_strat_list
 
         # CC This is the first opportunity to write some of the outputs of basic
@@ -2404,7 +2462,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # preproc Func -> T1/EPI Template
 
         new_strat_list = []
-   
+
         for num_strat, strat in enumerate(strat_list):            
             
             nodes = strat.get_nodes_names()
@@ -4362,6 +4420,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                     ds, ndmg_key_dct[resource][1])
 
             else:
+                output_sink_nodes = []
+
                 # regular datasink
                 ds = pe.Node(
                     DataSink(),
