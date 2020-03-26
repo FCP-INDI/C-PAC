@@ -556,22 +556,6 @@ fmap_distcorr_frac : [0.5]
 fmap_distcorr_threshold :  0.6
 
 
-# Set the Delta-TE value, used for preparing field map, time delay between the first and second echo images. Default value is 2.46 ms.
-fmap_distcorr_deltaTE : [2.46]
-
-
-# Set the Dwell Time for the fugue input. This is the time between scans, default value is 0.0005s.
-fmap_distcorr_dwell_time : [0.0005]
-
-
-# Set the asymmetric ratio value for FSL Fugue input.
-fmap_distcorr_dwell_asym_ratio : [0.93902439]
-
-
-# Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir :  x
-
-
 # Run Functional to EPI Template Registration
 runRegisterFuncToEPI :  [0]
 

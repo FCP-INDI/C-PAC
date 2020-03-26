@@ -1730,11 +1730,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                         strat.update_resource_pool({
                             "{}_TE".format(key): (get_fmap_metadata,
-                                                  'outputspec.echo_time'),
+                                                  'echo_time'),
                             "{}_dwell".format(key): (get_fmap_metadata,
-                                                     'outputspec.dwell_time'),
+                                                     'dwell_time'),
                             "{}_pedir".format(key): (get_fmap_metadata,
-                                                     'outputspec.pe_direction')
+                                                     'pe_direction')
                         })
                         fmap_TE_list.append("{}_TE".format(key))
 
