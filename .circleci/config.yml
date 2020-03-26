@@ -11,7 +11,7 @@ jobs:
       - run:
           name: pytest
           command: |
-            pip install pytest
+            pip install pytest pytest_click
             pytest --doctest-ignore-import-errors --continue-on-collection-errors --doctest-modules --ignore=CPAC/cwas/tests/test_mdmr_cython.py dev/circleci_data/
   build:
     machine: true
