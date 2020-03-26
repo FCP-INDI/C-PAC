@@ -289,6 +289,35 @@ def create_fmap_datasource(fmap_dct, resource=None,
     return wf
 
 
+def get_fmap_phasediff_metadata(data_config_scan_params):
+
+    if not isinstance(data_config_scan_params, dict) and \
+            ".json" in data_config_scan_params:
+        with open(data_config_scan_params, 'r') as f:
+            data_config_scan_params = json.load(f)
+
+    echo_time = data_config_scan_params.get("EchoTime")
+    dwell_time = data_config_scan_params.get("DwellTime")
+    pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
+
+    return (echo_time, dwell_time, pe_direction)
+
+
+def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
+                                echo_time_three=None):
+
+    echo_times = [echo_time_one, echo_time_two]
+    if echo_time_three:
+        # get only the two different ones
+        echo_times = list(dict.fromkeys([echo_time_one, echo_time_two,
+                                         echo_time_three]))
+
+    deltaTE = abs(echo_times[0] - echo_times[1])
+    dwell_asym_ratio = (dwell_time / deltaTE)
+
+    return (deltaTE, dwell_asym_ratio)
+
+
 def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
                     epi_fmap_two=None, epi_fmap_params_two=None):
     """Parse the field map files in the data configuration and determine which
