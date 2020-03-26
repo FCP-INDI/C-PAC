@@ -1692,8 +1692,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 fmap_rp_list = []
                 fmap_TE_list = []
                 for key in sub_dict["fmap"]:
-                    gather_fmap = create_fmap_datasource(sub_dict,
-                                                         key,
+                    gather_fmap = create_fmap_datasource(sub_dict["fmap"],
                                                          "fmap_gather_"
                                                          "{0}".format(key))
                     gather_fmap.inputs.inputnode.set(
@@ -1701,7 +1700,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         creds_path=input_creds_path,
                         dl_dir=c.workingDirectory
                     )
-                    gather_fmap.inputs.inputnode.scan = "fmap"
+                    gather_fmap.inputs.inputnode.scan = key
                     strat.update_resource_pool({
                         key: (gather_fmap, 'outputspec.rest'),
                         "{0}_scan_params".format(key): (gather_fmap,
@@ -1751,7 +1750,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         output_names=['deltaTE',
                                       'dwell_asym_ratio'],
                         function=calc_deltaTE_and_asym_ratio),
-                        name='phasediff_delta_{}'.format(num_strat))
+                        name='diff_distcor_calc_delta_{}'.format(num_strat))
 
                     node, out_file = strat['diff_phase_dwell']
                     workflow.connect(node, out_file, calc_delta_ratio,

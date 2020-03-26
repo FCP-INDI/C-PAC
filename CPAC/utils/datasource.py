@@ -205,8 +205,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
-def create_fmap_datasource(fmap_dct, resource=None,
-                           wf_name='fmap_datasource'):
+def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     """Return the field map files, from the dictionary of functional files
     described in the data configuration (sublist) YAML file.
     """
@@ -236,7 +235,7 @@ def create_fmap_datasource(fmap_dct, resource=None,
                                            as_module=True),
                          name='selectrest')
     selectrest.inputs.rest_dict = fmap_dct
-    selectrest.inputs.resource = resource
+    selectrest.inputs.resource = "scan"
     wf.connect(inputnode, 'scan', selectrest, 'scan')
 
     # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
