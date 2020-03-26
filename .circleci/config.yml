@@ -6,6 +6,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Get Sample BIDS Data
+          command: git clone https://github.com/bids-standard/bids-examples.git
+      - run:
           name: pytest
           command: |
             pip install pytest

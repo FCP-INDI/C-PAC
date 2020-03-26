@@ -21,6 +21,7 @@ develop-eggs
 pip-log.txt
 
 # Unit test / coverage reports
+bids-examples
 .coverage
 .tox
 

@@ -929,7 +929,11 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
 
     if site_id not in scan_params_dct.keys():
         site_id = "All"
-        scan_params_dct[site_id] = {}
+        try:
+            scan_params_dct[site_id] = {}
+        except:
+            print(scan_params_dct)
+            scan_params_dct = {site_id: {}}
     if sub_id not in scan_params_dct[site_id]:
         sub_id = "All"
         scan_params_dct[site_id][sub_id] = {}
@@ -1101,9 +1105,12 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         if label == "*":
             # if current key is a wildcard
             continue
-
-        id = new_path.split(part1, 1)[1]
-        id = id.split(part2, 1)[0]
+        
+        try:
+            id = new_path.split(part1, 1)[1]
+            id = id.split(part2, 1)[0]
+        except:
+            print(f"Path split exception: {new_path} // {part1}, {part2}")
 
         # example, ideally at this point, something like this:
         #   template: /path/to/sub-{participant}/etc.
