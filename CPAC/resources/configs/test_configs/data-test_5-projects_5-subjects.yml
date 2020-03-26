@@ -38,6 +38,81 @@
   site: HNU_1
   subject_id: sub-0025431
   unique_id: ses-2
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/func/sub-NDARAA504CRN_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/func/sub-NDARAA504CRN_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAA504CRN
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/anat/sub-NDARAA947ZG5_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/func/sub-NDARAA947ZG5_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/func/sub-NDARAA947ZG5_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAA947ZG5
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/anat/sub-NDARAB348EWR_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/func/sub-NDARAB348EWR_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/func/sub-NDARAB348EWR_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAB348EWR
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/anat/sub-NDARAB458VK9_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/func/sub-NDARAB458VK9_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/func/sub-NDARAB458VK9_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAB458VK9
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/anat/sub-NDARAB514MAJ_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/func/sub-NDARAB514MAJ_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/func/sub-NDARAB514MAJ_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAB514MAJ
+  unique_id: '1'
 - anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/anat/sub-A00040524_ses-NFB3_T1w.nii.gz
   func:
     MSIT:
