@@ -34,6 +34,14 @@ def test_build_data_config(cli_runner):
 def test_new_settings_template(cli_runner):
     os.chdir(CPAC_DIR)
     
+    example_dir = os.path.join(CPAC_DIR, 'bids-examples')
+    if not os.path.exists(example_dir):
+        from git import Repo
+        Repo.clone_from(
+            "https://github.com/bids-standard/bids-examples.git",
+            example_dir
+        )
+    
     result = cli_runner.invoke(
         CPAC_main_utils.commands['data_config'].commands['build'],
         [os.path.join(
