@@ -546,20 +546,20 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_phase_sess = os.path.join(bids_base_dir,
                                    "sub-{participant}/ses-{session}/fmap/"
-                                   "sub-{participant}_ses-{session}_*phase"
+                                   "sub-{participant}_ses-{session}*phase"
                                    "diff.nii.gz")
     fmap_phase = os.path.join(bids_base_dir,
                               "sub-{participant}/fmap/sub-{participant}"
-                              "_phasediff.nii.gz")
+                              "*phasediff.nii.gz")
 
     fmap_mag_sess = os.path.join(bids_base_dir,
                                  "sub-{participant}/ses-{session}/fmap/"
-                                 "sub-{participant}_ses-{session}_*"
+                                 "sub-{participant}_ses-{session}*"
                                  "magnitud*.nii.gz")
 
     fmap_mag = os.path.join(bids_base_dir,
                             "sub-{participant}/fmap/sub-{participant}"
-                            "_magnitud*.nii.gz")
+                            "*magnitud*.nii.gz")
 
     fmap_pedir_sess = os.path.join(bids_base_dir,
                                    "sub-{participant}/ses-{session}/fmap/"
@@ -574,11 +574,11 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_phase_scan_glob = os.path.join(bids_base_dir,
                                         "sub-*fmap/"
-                                        "sub-*_task-*_phasediff.nii.gz")
+                                        "sub-*phasediff.nii.gz")
 
     fmap_mag_scan_glob = os.path.join(bids_base_dir,
                                       "sub-*fmap/"
-                                      "sub-*_task-*_magnitud*.nii.gz")
+                                      "sub-*magnitud*.nii.gz")
 
     fmap_pedir_scan_glob = os.path.join(bids_base_dir,
                                         "sub-*fmap/"
@@ -634,20 +634,20 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                 # check if there is a scan level for the fmap phase files
                 fmap_phase_sess = os.path.join(bids_base_dir,
                                                "sub-{participant}/ses-{session}/fmap/"
-                                               "sub-{participant}_ses-{session}_task-{scan}_phase"
+                                               "sub-{participant}_ses-{session}*phase"
                                                "diff.nii.gz")
                 fmap_phase = os.path.join(bids_base_dir,
                                           "sub-{participant}/fmap/sub-{participant}"
-                                          "task-{scan}_phasediff.nii.gz")
+                                          "*phasediff.nii.gz")
 
             if fnmatch.fnmatch(filepath, fmap_mag_scan_glob):
                 # check if there is a scan level for the fmap magnitude files
                 fmap_mag_sess = os.path.join(bids_base_dir,
                                              "sub-{participant}/ses-{session}/fmap/"
-                                             "sub-{participant}_ses-{session}_task-{scan}_magnitud*.nii.gz")
+                                             "sub-{participant}_ses-{session}*magnitud*.nii.gz")
                 fmap_mag = os.path.join(bids_base_dir,
                                         "sub-{participant}/fmap/sub-{participant}"
-                                        "task-{scan}_magnitud*.nii.gz")
+                                        "*magnitud*.nii.gz")
 
             '''
             if fnmatch.fnmatch(filepath, fmap_pedir_scan_glob):
