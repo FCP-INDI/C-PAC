@@ -311,6 +311,12 @@ def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
         echo_times = list(dict.fromkeys([echo_time_one, echo_time_two,
                                          echo_time_three]))
 
+    # convert into milliseconds if necessary
+    # these values will/should never be more than 10ms
+    if ((echo_times[0] * 1000) < 10) and ((echo_times[1] * 1000) < 10):
+        echo_times[0] = echo_times[0] * 1000
+        echo_times[1] = echo_times[1] * 1000
+
     deltaTE = abs(echo_times[0] - echo_times[1])
     dwell_asym_ratio = (dwell_time / deltaTE)
 
