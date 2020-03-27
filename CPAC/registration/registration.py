@@ -288,8 +288,7 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     return register_func_to_mni
 
 
-def create_register_func_to_anat(fieldmap_distortion=False, 
-                                 name='register_func_to_anat'):
+def create_register_func_to_anat(name='register_func_to_anat'):
     
     """
     Registers a functional scan in native space to anatomical space using a
@@ -353,15 +352,15 @@ def create_register_func_to_anat(fieldmap_distortion=False,
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
     
-    if fieldmap_distortion:
-        register_func_to_anat.connect(inputNode_pedir, 'pedir', 
-                                      linear_reg, 'pedir')
-        register_func_to_anat.connect(inputspec, 'fieldmap', 
-                                      linear_reg, 'fieldmap')
-        register_func_to_anat.connect(inputspec, 'fieldmapmask', 
-                                      linear_reg, 'fieldmapmask')
-        register_func_to_anat.connect(inputNode_echospacing, 'echospacing', 
-                                      linear_reg, 'echospacing')
+    #if fieldmap_distortion:
+    register_func_to_anat.connect(inputNode_pedir, 'pedir',
+                                  linear_reg, 'pedir')
+    register_func_to_anat.connect(inputspec, 'fieldmap',
+                                  linear_reg, 'fieldmap')
+    register_func_to_anat.connect(inputspec, 'fieldmapmask',
+                                  linear_reg, 'fieldmapmask')
+    register_func_to_anat.connect(inputNode_echospacing, 'echospacing',
+                                  linear_reg, 'echospacing')
 
     register_func_to_anat.connect(inputspec, 'func', linear_reg, 'in_file')
     
@@ -379,8 +378,7 @@ def create_register_func_to_anat(fieldmap_distortion=False,
     return register_func_to_anat
 
 
-def create_bbregister_func_to_anat(fieldmap_distortion=False,
-                                   name='bbregister_func_to_anat'):
+def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
   
     """
     Registers a functional scan in native space to structural.  This is meant to be used 
@@ -475,28 +473,28 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
     register_bbregister_func_to_anat.connect(inputspec, 'linear_reg_matrix',
                                  bbreg_func_to_anat, 'in_matrix_file')
 
-    if fieldmap_distortion:
+    #if fieldmap_distortion:
 
-        def convert_pedir(pedir):
-            # FSL Flirt requires pedir input encoded as an int
-            conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
-            if not isinstance(pedir, str):
-                raise Exception("\n\nPhase-encoding direction must be a "
-                                "string value.\n\nValue: {0}"
-                                "\n\n".format(pedir))
-            if pedir not in conv_dct.keys():
-                raise Exception("\n\nInvalid phase-encoding direction "
-                                "entered: {0}\n\n".format(pedir))
-            return conv_dct[pedir]
+    def convert_pedir(pedir):
+        # FSL Flirt requires pedir input encoded as an int
+        conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
+        if not isinstance(pedir, str):
+            raise Exception("\n\nPhase-encoding direction must be a "
+                            "string value.\n\nValue: {0}"
+                            "\n\n".format(pedir))
+        if pedir not in conv_dct.keys():
+            raise Exception("\n\nInvalid phase-encoding direction "
+                            "entered: {0}\n\n".format(pedir))
+        return conv_dct[pedir]
 
-        register_bbregister_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
-                                                 bbreg_func_to_anat, 'pedir')
-        register_bbregister_func_to_anat.connect(inputspec, 'fieldmap',
-                                                 bbreg_func_to_anat, 'fieldmap')
-        register_bbregister_func_to_anat.connect(inputspec, 'fieldmapmask',
-                                                 bbreg_func_to_anat, 'fieldmapmask')
-        register_bbregister_func_to_anat.connect(inputNode_echospacing, 'echospacing',
-                                                 bbreg_func_to_anat, 'echospacing')
+    register_bbregister_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
+                                             bbreg_func_to_anat, 'pedir')
+    register_bbregister_func_to_anat.connect(inputspec, 'fieldmap',
+                                             bbreg_func_to_anat, 'fieldmap')
+    register_bbregister_func_to_anat.connect(inputspec, 'fieldmapmask',
+                                             bbreg_func_to_anat, 'fieldmapmask')
+    register_bbregister_func_to_anat.connect(inputNode_echospacing, 'echospacing',
+                                             bbreg_func_to_anat, 'echospacing')
 
     register_bbregister_func_to_anat.connect(bbreg_func_to_anat, 'out_matrix_file',
                                  outputspec, 'func_to_anat_linear_xfm')

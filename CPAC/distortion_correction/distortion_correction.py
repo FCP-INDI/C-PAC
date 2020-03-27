@@ -91,8 +91,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
 
     inputNode_afni_threshold = pe.Node(util.IdentityInterface(fields=['afni_threshold']),
         name='afni_threshold_input')
-    
-    
+
     outputNode = pe.Node(util.IdentityInterface(fields=['fieldmap',
                                                         'fmap_despiked',
                                                         'fmapmagbrain',
@@ -101,7 +100,11 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     
     # Skull-strip, outputs a masked image file
     if use_BET == False:
-        skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac'],output_names=['expr'],function=createAFNIiterable),name='distcorr_skullstrip_arg')
+        skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac'],
+                                                output_names=['expr'],
+                                                function=createAFNIiterable),
+                                  name='distcorr_skullstrip_arg')
+
         preproc.connect(inputNode_afni_threshold,'afni_threshold',skullstrip_args,'shrink_fac')
 
         bet = pe.Node(interface=afni.SkullStrip(),name='bet')

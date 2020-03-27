@@ -546,20 +546,20 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_phase_sess = os.path.join(bids_base_dir,
                                    "sub-{participant}/ses-{session}/fmap/"
-                                   "sub-{participant}_ses-{session}_*phase"
+                                   "sub-{participant}_ses-{session}*phase"
                                    "diff.nii.gz")
     fmap_phase = os.path.join(bids_base_dir,
                               "sub-{participant}/fmap/sub-{participant}"
-                              "_phasediff.nii.gz")
+                              "*phasediff.nii.gz")
 
     fmap_mag_sess = os.path.join(bids_base_dir,
                                  "sub-{participant}/ses-{session}/fmap/"
-                                 "sub-{participant}_ses-{session}_*"
+                                 "sub-{participant}_ses-{session}*"
                                  "magnitud*.nii.gz")
 
     fmap_mag = os.path.join(bids_base_dir,
                             "sub-{participant}/fmap/sub-{participant}"
-                            "_magnitud*.nii.gz")
+                            "*magnitud*.nii.gz")
 
     fmap_pedir_sess = os.path.join(bids_base_dir,
                                    "sub-{participant}/ses-{session}/fmap/"
@@ -574,11 +574,11 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_phase_scan_glob = os.path.join(bids_base_dir,
                                         "sub-*fmap/"
-                                        "sub-*_task-*_phasediff.nii.gz")
+                                        "sub-*phasediff.nii.gz")
 
     fmap_mag_scan_glob = os.path.join(bids_base_dir,
                                       "sub-*fmap/"
-                                      "sub-*_task-*_magnitud*.nii.gz")
+                                      "sub-*magnitud*.nii.gz")
 
     fmap_pedir_scan_glob = os.path.join(bids_base_dir,
                                         "sub-*fmap/"
@@ -634,20 +634,20 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                 # check if there is a scan level for the fmap phase files
                 fmap_phase_sess = os.path.join(bids_base_dir,
                                                "sub-{participant}/ses-{session}/fmap/"
-                                               "sub-{participant}_ses-{session}_task-{scan}_phase"
+                                               "sub-{participant}_ses-{session}*phase"
                                                "diff.nii.gz")
                 fmap_phase = os.path.join(bids_base_dir,
                                           "sub-{participant}/fmap/sub-{participant}"
-                                          "task-{scan}_phasediff.nii.gz")
+                                          "*phasediff.nii.gz")
 
             if fnmatch.fnmatch(filepath, fmap_mag_scan_glob):
                 # check if there is a scan level for the fmap magnitude files
                 fmap_mag_sess = os.path.join(bids_base_dir,
                                              "sub-{participant}/ses-{session}/fmap/"
-                                             "sub-{participant}_ses-{session}_task-{scan}_magnitud*.nii.gz")
+                                             "sub-{participant}_ses-{session}*magnitud*.nii.gz")
                 fmap_mag = os.path.join(bids_base_dir,
                                         "sub-{participant}/fmap/sub-{participant}"
-                                        "task-{scan}_magnitud*.nii.gz")
+                                        "*magnitud*.nii.gz")
 
             '''
             if fnmatch.fnmatch(filepath, fmap_pedir_scan_glob):
@@ -1354,19 +1354,10 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 print(warn)
             return data_dct
 
-        if 'func' not in data_dct[site_id][sub_id][ses_id]:
+        if 'fmap' not in data_dct[site_id][sub_id][ses_id]:
             # would this ever fire? the way we're using this function now
-            data_dct[site_id][sub_id][ses_id]['func'] = temp_fmap_dct
-        elif not scan_id:
-            # TODO: re-visit in the future (same reason above)
-            # if no scan ID specified, add it to all scans for that session
-            for scan in data_dct[site_id][sub_id][ses_id]['func']:
-                data_dct[site_id][sub_id][ses_id]['func'][scan].update(temp_fmap_dct)
-        elif scan_id not in data_dct[site_id][sub_id][ses_id]['func']:
-            # same- would this ever fire?
-            data_dct[site_id][sub_id][ses_id]['func'][scan_id] = temp_fmap_dct
-        else:
-            data_dct[site_id][sub_id][ses_id]['func'][scan_id].update(temp_fmap_dct)
+            data_dct[site_id][sub_id][ses_id]['fmap'] = {}
+        data_dct[site_id][sub_id][ses_id]['fmap'].update(temp_fmap_dct)
 
     return data_dct
 
@@ -1592,14 +1583,14 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         for fmap_phase in fmap_phase_pool:
             data_dct = update_data_dct(fmap_phase, fmap_phase_template,
-                                       data_dct, "fmap_phase", None,
+                                       data_dct, "diff_phase", None,
                                        sites_dct, scan_params_dct,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
 
         for fmap_mag in fmap_mag_pool:
             data_dct = update_data_dct(fmap_mag, fmap_mag_template,
-                                       data_dct, "fmap_mag", None,
+                                       data_dct, "diff_mag", None,
                                        sites_dct, scan_params_dct,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
@@ -1633,7 +1624,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                        sites_dct, scan_params_dct,
                                        inclusion_dct, exclusion_dct,
                                        aws_creds_path)
-
 
     return data_dct
 
