@@ -1,26 +1,89 @@
 version: 2
 jobs:
+  pytest:
+    docker:
+      - image: fcpindi/c-pac:python3
+    steps:
+      - checkout
+      - run:
+          name: Get Sample BIDS Data
+          command: git clone https://github.com/bids-standard/bids-examples.git
+      - run:
+          name: pytest
+          command: |
+            pip install -r dev/circleci_data/requirements.txt
+            coverage run -m pytest --junitxml=test-results/junit.xml --doctest-ignore-import-errors --continue-on-collection-errors --doctest-modules --ignore=CPAC/cwas/tests/test_mdmr_cython.py dev/circleci_data/
+            coverage report --include="./*" --omit="/home/circleci/.local/*"
+            coverage html
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+      - store_artifacts:
+          path: htmlcov
   build:
     machine: true
     steps:
       - checkout
-      - run: docker build -t cpac:${CIRCLE_BRANCH//\//_} .
+      - run:
+          name: build
+          command: |
+            docker build -t cpac:${CIRCLE_BRANCH//\//_} .
+            docker save cpac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
+          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
+      - persist_to_workspace:
+          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
+          # taken to be the root directory of the workspace.
+          root: /home/circleci/
+          # Must be relative path from root
+          paths: project
+  heatmaps:
+    machine: true
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
+      - run:
+          name: ≟
+          command: python dev/circleci_data/scripts/compare.py
   test:
     machine: true
     steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
       - run:
           name: Run C-PAC
-          command: docker run -i --rm -v $HOME:/output -v /tmp:/tmp cpac:${CIRCLE_BRANCH//\//_} s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_ci.yml
+          command: |
+            docker load < cpac-docker-image.tar.gz
+            docker run -i --rm -v $HOME:/output -v /tmp:/tmp cpac:${CIRCLE_BRANCH//\//_} s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_ci.yml
           no_output_timeout: 3h
 
 workflows:
   version: 2
   build_and_test:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              ignore:
+                - feature/auto-heatmaps
+                - config/test_config
       - test:
           requires:
             - build
           filters:
             branches:
-              ignore: upgrade/python3
+              only:
+                - develop
+                - master
+      - heatmaps:
+          requires:
+            - build
+            - test
+          filters:
+            branches:
+              only: feature/auto-heatmaps
+  unit_tests:
+    jobs:
+      - pytest

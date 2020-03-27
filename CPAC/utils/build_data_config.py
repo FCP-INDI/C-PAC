@@ -929,10 +929,17 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
 
     if site_id not in scan_params_dct.keys():
         site_id = "All"
+        try:
+            scan_params_dct[site_id] = {}
+        except:
+            print(scan_params_dct)
+            scan_params_dct = {site_id: {}}
     if sub_id not in scan_params_dct[site_id]:
         sub_id = "All"
+        scan_params_dct[site_id][sub_id] = {}
     if ses_id not in scan_params_dct[site_id][sub_id]:
         ses_id = "All"
+        scan_params_dct[site_id][sub_id][ses_id] = {}
     if scan_id not in scan_params_dct[site_id][sub_id][ses_id]:
         for key in scan_params_dct[site_id][sub_id][ses_id]:
             # scan_id (incoming file path) might have run- or acq-, if
@@ -945,8 +952,8 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
             if key in scan_id:
                 scan_id = key
                 break
-        else:
-            scan_id = "All"
+    else:
+        scan_id = "All"
 
     try:
         scan_params = scan_params_dct[site_id][sub_id][ses_id][scan_id]
@@ -1001,13 +1008,18 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                     # BIDS tags are delineated with underscores
                     bids_tags = []
                     for tag in file_name.split("_"):
-                        if "sub-" not in tag and "ses-" not in tag and \
-                                "T1w" not in tag:
-                            bids_tags.append(tag)
-                        if anat_scan in tag:
-                            # the "anatomical_scan" substring provided was
-                            # found in one of the BIDS tags
+                        if anat_scan == tag:
+                            # the "anatomical_scan" substring provided is
+                            # one of the BIDS tags
                             anat_scan_identifier = True
+                        else:
+                            if "sub-" not in tag and "ses-" not in tag and \
+                                "T1w" not in tag:
+                                bids_tags.append(tag)
+                            if anat_scan in tag:
+                                # the "anatomical_scan" substring provided was
+                                # found in one of the BIDS tags
+                                anat_scan_identifier = True
                     if anat_scan_identifier:
                         if len(bids_tags) > 1:
                             # if this fires, then there are other tags as well
@@ -1093,9 +1105,12 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         if label == "*":
             # if current key is a wildcard
             continue
-
-        id = new_path.split(part1, 1)[1]
-        id = id.split(part2, 1)[0]
+        
+        try:
+            id = new_path.split(part1, 1)[1]
+            id = id.split(part2, 1)[0]
+        except:
+            print(f"Path split exception: {new_path} // {part1}, {part2}")
 
         # example, ideally at this point, something like this:
         #   template: /path/to/sub-{participant}/etc.
@@ -1162,7 +1177,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 # field map files - keep these open as "None" so that they
                 # can be applied to all scans, if there isn't one specified
                 scan_id = None
-
+    
     if inclusion_dct:
         if 'sites' in inclusion_dct.keys():
             if site_id not in inclusion_dct['sites']:
@@ -1171,7 +1186,11 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             if ses_id not in inclusion_dct['sessions']:
                 return data_dct
         if 'participants' in inclusion_dct.keys():
-            if sub_id not in inclusion_dct['participants']:
+            if all([
+                sub_id not in inclusion_dct['participants'],
+                f"sub-{sub_id}" not in inclusion_dct['participants'],
+                sub_id.split("sub-")[-1] not in inclusion_dct['participants']
+            ]):
                 return data_dct
         if data_type != "anat":
             if 'scans' in inclusion_dct.keys():
@@ -1186,13 +1205,16 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             if ses_id in exclusion_dct['sessions']:
                 return data_dct
         if 'participants' in exclusion_dct.keys():
-            if sub_id in exclusion_dct['participants']:
+            if any([
+                sub_id in exclusion_dct['participants'],
+                f"sub-{sub_id}" in exclusion_dct['participants'],
+                sub_id.split("sub-")[-1] in exclusion_dct['participants']
+            ]):
                 return data_dct
         if data_type != "anat":
             if 'scans' in exclusion_dct.keys():
                 if scan_id in exclusion_dct['scans']:
                     return data_dct
-
     # start the data dictionary updating
     if data_type == "anat":
         if "*" in file_path:

@@ -1,0 +1,189 @@
+# CPAC Data Settings File
+# Version 1.4.2
+#
+# http://fcp-indi.github.io for more info.
+#
+# Use this file to generate the data configuration (participant list) YAML file by loading it via the 'Load Preset' button in the Data Configuration Builder UI, or via command line by providing it to the cpac_data_config_setup.py script with the --data_settings_file input flag.
+
+
+# Select if data is organized using BIDS standard or a custom format.
+# Options: 'BIDS' or 'Custom'
+dataFormat: BIDS
+
+
+# Base directory of BIDS-organized data.
+# BIDS Data Format only.
+#
+# This should be the path to the overarching directory containing the entire dataset.
+bidsBaseDir: ./bids-examples/ds051
+
+
+# File Path Template for Anatomical Files
+# Custom Data Format only.
+# 
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}. Only {participant} is required.
+# 
+# Examples:
+# /data/{site}/{participant}/{session}/anat/mprage.nii.gz
+# /data/{site}/{participant}/anat.nii.gz
+# 
+# See the User Guide for more detailed instructions.
+anatomicalTemplate: None
+
+
+# File Path Template for Functional Files
+# Custom Data Format only.
+# 
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, {session}, and {series}. Only {participant} is required.
+# 
+# Examples:
+# /data/{site}/{participant}/{session}/func/{series}_bold.nii.gz
+# /data/{site}/{participant}/{series}/func.nii.gz
+# 
+# See the User Guide for more detailed instructions.
+functionalTemplate: None
+
+
+# Required if downloading data from a non-public S3 bucket on Amazon Web Services instead of using local files.
+awsCredentialsFile: None
+
+
+# Directory where CPAC should place data configuration files.
+outputSubjectListLocation: ./dev/circleci_data
+
+
+# A label to be appended to the generated participant list files.
+subjectListName: ds051
+
+
+# Scan/Run ID for the Anatomical Scan
+#
+# Sometimes, there are multiple anatomical scans for each participant in a dataset.
+#
+# If this is the case, you can choose which anatomical scan to use for this participant by entering the identifier that makes the scan unique.
+#
+# Examples:
+#
+# BIDS dataset
+# ../anat/sub-001_run-1_T1w.nii.gz
+# ../anat/sub-001_run-2_T1w.nii.gz
+# Pick the second with 'run-2'.
+#
+# Custom dataset
+# Example use case: let's say most anatomicals in your dataset are '../mprage.nii.gz', but some participants only have '../anat1.nii.gz' and '../anat2.nii.gz'. You want the mprage.nii.gz files included, but only the anat2.nii.gz in the others.
+#
+# Place a wildcard (*) in the anatomical filepath template above (../*.nii.gz), then enter 'anat2' in this field to 'break the tie' for participants that have the 'anat1' and 'anat2' scans.
+anatomical_scan: None
+
+
+# For Slice Timing Correction.
+# Custom Data Format only.
+#
+# Path to a .csv file (if not using BIDS-format JSON files) containing information about scan acquisition parameters.
+#
+# For instructions on how to create this file, see the User Guide.
+#
+# If 'None' is specified, CPAC will look for scan parameters information provided in the pipeline configuration file.
+scanParametersCSV: None
+
+
+# File Path Template for brain mask files.
+# For anatomical skull-stripping.
+# Both BIDS and Custom Data Formats.
+# (Note: The BIDS specification is still in flux regarding anatomical derivatives - if using a BIDS data directory, use this field to specify the format of your anatomical brain mask file paths.)
+#
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
+#
+# Examples:
+# /data/{site}/{participant}/{session}/{participant}_{session}_brain-mask.nii.gz
+brain_mask_template: None
+
+
+# File Path Template for Field Map Phase files
+# For field-map based distortion correction.
+# Custom Data Format only.
+#
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
+#
+# Examples:
+# /data/{site}/{participant}/{session}/fmap/phase.nii.gz
+# /data/{site}/{participant}/{session}/{participant}_{session}_phase.nii.gz
+fieldMapPhase: None
+
+
+# File Path Template for Field Map Magnitude files
+# For field-map based distortion correction.
+# Custom Data Format only.
+#
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
+#
+# Examples:
+# /data/{site}/{participant}/{session}/fmap/magnitude.nii.gz
+# /data/{site}/{participant}/{session}/{participant}_{session}_magnitude.nii.gz
+fieldMapMagnitude: None
+
+
+# Include only a sub-set of the participants present in the folders defined above.
+# 
+# List participants in this box (ex: sub101, sub102) or provide the path to a text file with one participant ID on each line.
+# 
+# If 'None' is specified, CPAC will include all participants.
+subjectList: None
+
+
+# Exclude a sub-set of the participants present in the folders defined above.
+# 
+# List participants in this box (ex: sub101, sub102) or provide the path to a text file with one participant ID on each line.
+# 
+# If 'None' is specified, CPAC will not exclude any participants.
+exclusionSubjectList: None
+
+
+# Include only a sub-set of the sites present in the folders defined above.
+# 
+# List sites in this box (ex: NYU, UCLA) or provide the path to a text file with one site name on each line.
+# 
+# If 'None' is specified, CPAC will include all sites.
+siteList: None
+
+
+# Exclude a sub-set of the sites present in the folders defined above.
+# 
+# List sites in this box (ex: NYU, UCLA) or provide the path to a text file with one site name on each line.
+# 
+# If 'None' is specified, CPAC will include all sites.
+exclusionSiteList: None
+
+
+# Include only a sub-set of the sessions present in the folders defined above.
+# 
+# List sessions in this box (ex: session-1, session-2) or provide the path to a text file with one session name on each line.
+# 
+# If 'None' is specified, CPAC will include all sessions.
+sessionList: None
+
+
+# Exclude a sub-set of the sessions present in the folders defined above.
+# 
+# List sessions in this box (ex: session-1, session-2) or provide the path to a text file with one session name on each line.
+# 
+# If 'None' is specified, CPAC will include all sessions.
+exclusionSessionList: None
+
+
+# Include only a sub-set of the series present in the folders defined above.
+# 
+# List series in this box (ex: func-1, func-2) or provide the path to a text file with one series name on each line.
+# 
+# If 'None' is specified, CPAC will include all series.
+scanList: None
+
+
+# Exclude a sub-set of the series present in the folders defined above.
+# 
+# List series in this box (ex: func-1, func-2) or provide the path to a text file with one series name on each line.
+# 
+# If 'None' is specified, CPAC will include all series.
+exclusionScanList: None
+
+
