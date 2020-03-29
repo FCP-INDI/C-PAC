@@ -299,6 +299,11 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     dwell_time = data_config_scan_params.get("DwellTime")
     pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
 
+    # encode for FSL FLIRT
+    pe_dir_flirt = {'x': 1, 'y': 2, 'z': 3, 'x-': -1, 'y-': -2, 'z-': -3,
+                    'i': 1, 'j': 2, 'k': 3, 'i-': -1, 'j-': -2, 'k-': -3}
+    pe_direction = pe_dir_flirt[pe_direction]
+
     return (echo_time, dwell_time, pe_direction)
 
 
