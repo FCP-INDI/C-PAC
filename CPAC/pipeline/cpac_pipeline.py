@@ -2145,6 +2145,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         strat_list += new_strat_list
 
+        diff_complete = False
+        if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
+            diff_complete = True
+
         # Distortion Correction - "Blip-Up / Blip-Down"
         if "Blip" in c.distortion_correction and blip:
             for num_strat, strat in enumerate(strat_list):
@@ -2270,7 +2274,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         "required for distortion correction.\n\n"
                     raise Exception(err)
 
-                func_to_anat = create_register_func_to_anat(#dist_corr,
+                func_to_anat = create_register_func_to_anat(diff_complete,
                                                             'func_to_anat_FLIRT'
                                                             '_%d' % num_strat)
 
@@ -2296,7 +2300,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.anat')
 
-                if "despiked_fieldmap" in strat:
+                if diff_complete:
                     # apply field map distortion correction outputs to
                     # the func->anat registration
                     node, out_file = strat['diff_phase_dwell']
@@ -2351,6 +2355,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes:
 
                     func_to_anat_bbreg = create_bbregister_func_to_anat(
+                        diff_complete,
                         'func_to_anat_bbreg_%d' % num_strat
                     )
 
@@ -2401,8 +2406,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     #if dist_corr and phase_diff:
                     # apply field map distortion correction outputs to
                     # the func->anat registration
-                    if "despiked_fieldmap" in strat and \
-                                    "fieldmap_mask" in strat:
+                    if diff_complete:
                         node, out_file = strat['diff_phase_dwell']
                         workflow.connect(node, out_file,
                                          func_to_anat_bbreg,

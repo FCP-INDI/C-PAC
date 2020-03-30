@@ -288,7 +288,8 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     return register_func_to_mni
 
 
-def create_register_func_to_anat(name='register_func_to_anat'):
+def create_register_func_to_anat(phase_diff_distcor=False,
+                                 name='register_func_to_anat'):
     
     """
     Registers a functional scan in native space to anatomical space using a
@@ -369,14 +370,15 @@ def create_register_func_to_anat(name='register_func_to_anat'):
                             "entered: {0}\n\n".format(pedir))
         return conv_dct[pedir]
 
-    register_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
-                                  linear_reg, 'pedir')
-    register_func_to_anat.connect(inputspec, 'fieldmap',
-                                  linear_reg, 'fieldmap')
-    register_func_to_anat.connect(inputspec, 'fieldmapmask',
-                                  linear_reg, 'fieldmapmask')
-    register_func_to_anat.connect(inputNode_echospacing, 'echospacing',
-                                  linear_reg, 'echospacing')
+    if phase_diff_distcor:
+        register_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
+                                      linear_reg, 'pedir')
+        register_func_to_anat.connect(inputspec, 'fieldmap',
+                                      linear_reg, 'fieldmap')
+        register_func_to_anat.connect(inputspec, 'fieldmapmask',
+                                      linear_reg, 'fieldmapmask')
+        register_func_to_anat.connect(inputNode_echospacing, 'echospacing',
+                                      linear_reg, 'echospacing')
 
     register_func_to_anat.connect(inputspec, 'func', linear_reg, 'in_file')
     
@@ -394,7 +396,8 @@ def create_register_func_to_anat(name='register_func_to_anat'):
     return register_func_to_anat
 
 
-def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
+def create_bbregister_func_to_anat(phase_diff_distcor=False,
+                                   name='bbregister_func_to_anat'):
   
     """
     Registers a functional scan in native space to structural.  This is meant to be used 
@@ -506,14 +509,15 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
                             "entered: {0}\n\n".format(pedir))
         return conv_dct[pedir]
 
-    register_bbregister_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
-                                             bbreg_func_to_anat, 'pedir')
-    register_bbregister_func_to_anat.connect(inputspec, 'fieldmap',
-                                             bbreg_func_to_anat, 'fieldmap')
-    register_bbregister_func_to_anat.connect(inputspec, 'fieldmapmask',
-                                             bbreg_func_to_anat, 'fieldmapmask')
-    register_bbregister_func_to_anat.connect(inputNode_echospacing, 'echospacing',
-                                             bbreg_func_to_anat, 'echospacing')
+    if phase_diff_distcor:
+        register_bbregister_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
+                                                 bbreg_func_to_anat, 'pedir')
+        register_bbregister_func_to_anat.connect(inputspec, 'fieldmap',
+                                                 bbreg_func_to_anat, 'fieldmap')
+        register_bbregister_func_to_anat.connect(inputspec, 'fieldmapmask',
+                                                 bbreg_func_to_anat, 'fieldmapmask')
+        register_bbregister_func_to_anat.connect(inputNode_echospacing, 'echospacing',
+                                                 bbreg_func_to_anat, 'echospacing')
 
     register_bbregister_func_to_anat.connect(bbreg_func_to_anat, 'out_matrix_file',
                                  outputspec, 'func_to_anat_linear_xfm')
