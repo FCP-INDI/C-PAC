@@ -356,7 +356,10 @@ def create_register_func_to_anat(name='register_func_to_anat'):
 
     def convert_pedir(pedir):
         # FSL Flirt requires pedir input encoded as an int
-        conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
+        conv_dct = {'x': 1, 'y': 2, 'z': 3, 'x-': -1, 'y-': -2, 'z-': -3,
+                    'i': 1, 'j': 2, 'k': 3, 'i-': -1, 'j-': -2, 'k-': -3,
+                    '-x': -1, '-i': -1, '-y': -2,
+                    '-j': -2, '-z': -3, '-k': -3}
         if not isinstance(pedir, str):
             raise Exception("\n\nPhase-encoding direction must be a "
                             "string value.\n\nValue: {0}"
@@ -490,7 +493,10 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
 
     def convert_pedir(pedir):
         # FSL Flirt requires pedir input encoded as an int
-        conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
+        conv_dct = {'x': 1, 'y': 2, 'z': 3, 'x-': -1, 'y-': -2, 'z-': -3,
+                    'i': 1, 'j': 2, 'k': 3, 'i-': -1, 'j-': -2, 'k-': -3,
+                    '-x': -1, '-i': -1, '-y': -2,
+                    '-j': -2, '-z': -3, '-k': -3}
         if not isinstance(pedir, str):
             raise Exception("\n\nPhase-encoding direction must be a "
                             "string value.\n\nValue: {0}"
