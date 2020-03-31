@@ -111,6 +111,7 @@ def clean_roi_csv(roi_csv):
     for line in csv_lines:
         line = line.replace('\t\t\t', '')
         line = line.replace('\t\t', '')
+        line = line.replace('\t', ',')
         if '#' in line:
             if '/' in line and '.' in line:
                 modified = True

@@ -563,7 +563,7 @@ Please, make yourself aware of how it works and its assumptions:
                     logger.error(err_msg, log_dir, exc)
 
         except Exception as e:
-
+            import traceback; traceback.print_exc()
             execution_info = """
 
 Error of subject workflow {workflow}

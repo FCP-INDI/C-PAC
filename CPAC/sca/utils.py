@@ -143,7 +143,7 @@ def map_to_roi(timeseries, maps):
     for line in roi_file_lines:
         if "Mean_" in line:
             try:
-                roi_list = line.split("\t")
+                roi_list = line.split(",")
                 # clear out any blank strings/non ROI labels in the list
                 roi_list = [x for x in roi_list if "Mean" in x]
                 # rename labels
