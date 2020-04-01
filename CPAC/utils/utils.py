@@ -298,7 +298,7 @@ def get_roi_num_list(timeseries_file, prefix=None):
                 # clear out any blank strings/non ROI labels in the list
                 roi_list = [x for x in roi_list if "Mean" in x]
                 # rename labels
-                roi_list = [x.replace("Mean", "ROI").replace(" ", "") \
+                roi_list = [x.replace("Mean", "ROI").replace(" ", "").replace("#", "") \
                             for x in roi_list]
             except:
                 raise Exception(roi_err)
