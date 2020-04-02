@@ -111,6 +111,8 @@ def clean_roi_csv(roi_csv):
     for line in csv_lines:
         line = line.replace('\t\t\t', '')
         line = line.replace('\t\t', '')
+        line = line.replace('\t', ',')
+        line = line.replace('#,', '#')
         if '#' in line:
             if '/' in line and '.' in line:
                 modified = True
@@ -126,7 +128,7 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = [roi_csv]
 
-    data = pd.read_csv(edited_roi_csv[0], sep = '\t', header = 1)
+    data = pd.read_csv(edited_roi_csv[0], sep = ',', header = 1)
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 

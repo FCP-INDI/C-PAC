@@ -70,11 +70,19 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
 def check_ts(in_file):
     import numpy as np
-    try:
-        timepoints, rois = np.loadtxt(in_file).shape
-    except ValueError:
-        timepoints = np.loadtxt(in_file).shape[0]
-        rois = 1
+
+    if '.txt' in in_file:
+        try:
+            timepoints, rois = np.loadtxt(in_file).shape
+        except ValueError:
+            timepoints = np.loadtxt(in_file).shape[0]
+            rois = 1
+    elif '.csv' in in_file:
+        csv_array = np.genfromtxt(in_file, delimiter=',')
+        timepoints, rois = csv_array.shape
+        # multiple regression (fsl_glm) needs this format for -design input
+        in_file = in_file.replace('.csv', '.txt')
+        np.savetxt(in_file, csv_array, delimiter='\t')
     if rois > timepoints:
         message = ('\n\n\n****The number of timepoints (' + str(timepoints)
                    + ') is smaller than the number of ROIs to run ('
@@ -123,7 +131,7 @@ def map_to_roi(timeseries, maps):
     import numpy as np
     from nipype import logging
     logger = logging.getLogger('nipype.workflow')
-    testMat = np.loadtxt(timeseries)
+    testMat = np.loadtxt(timeseries, delimiter=',')
     timepoints, rois = testMat.shape
 
     if rois > timepoints:
@@ -143,13 +151,13 @@ def map_to_roi(timeseries, maps):
     for line in roi_file_lines:
         if "Mean_" in line:
             try:
-                roi_list = line.split("\t")
+                roi_list = line.split(",")
                 # clear out any blank strings/non ROI labels in the list
                 roi_list = [x for x in roi_list if "Mean" in x]
                 # rename labels
                 roi_list = \
                     [x.replace("Mean",
-                               "sca_tempreg_z_maps_roi").replace(" ", "")
+                               "sca_tempreg_z_maps_roi").replace(" ", "").replace("#", "")
                      for x in roi_list]
             except:
                 raise Exception(roi_err)
