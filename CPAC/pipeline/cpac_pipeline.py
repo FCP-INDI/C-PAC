@@ -330,7 +330,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
     logger.info(forks)
 
     if test_config:
-        logger.info('This has been a test of the pipeline configuration file, the pipeline was built successfully, but was not run')
+        logger.info('This has been a test of the pipeline configuration '
+                    'file, the pipeline was built successfully, but was '
+                    'not run')
     else:
 
         working_dir = os.path.join(c.workingDirectory, workflow.name)
@@ -3299,11 +3301,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     new_strat.append_name(nuisance_regression_before_workflow.name)
                     new_strat.append_name(filtering.name)
 
-            new_strat_list.append(new_strat)
+                new_strat_list.append(new_strat)
 
         # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
         # Each regressor forks the strategy, instead of reusing it, to keep the code simple
         strat_list = new_strat_list
+
 
         # Inserting Median Angle Correction Workflow
         new_strat_list = []

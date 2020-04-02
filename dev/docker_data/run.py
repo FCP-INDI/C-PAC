@@ -72,8 +72,7 @@ def run(command, env={}):
                                shell=True, env=env)
     while True:
         line = process.stdout.readline()
-        line = str(line)[:-1]
-        print(line)
+        line = line.decode()[:-1]
         if line == '' and process.poll() is not None:
             break
 

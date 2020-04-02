@@ -17,6 +17,8 @@ RUN export NVM_DIR=$HOME/.nvm && \
      nvm use 11.15.0 && \
      nvm alias default 11.15.0 && \
      npm install -g bids-validator
+     
+ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
