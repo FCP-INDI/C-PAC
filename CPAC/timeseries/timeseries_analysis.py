@@ -209,10 +209,11 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                         name='inputspec')
 
     inputnode_roi = pe.Node(util.IdentityInterface(fields=['roi']),
-                                name='input_roi')
+                            name='input_roi')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['roi_ts', 'roi_outputs']),
-                        name='outputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['roi_ts',
+                                                        'roi_outputs']),
+                         name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
                              name='3dROIstats')
@@ -230,7 +231,8 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     clean_csv_imports = ['import os']
     clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
-                                      output_names=['roi_array', 'edited_roi_csv'],
+                                      output_names=['roi_array',
+                                                    'edited_roi_csv'],
                                       function=clean_roi_csv,
                                       imports=clean_csv_imports),
                         name='clean_roi_csv')
@@ -381,12 +383,12 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
     timeseries_surface = pe.Node(util.Function(input_names=['rh_surface_file',
                                                             'lh_surface_file'],
-                                                output_names=['out_file'],
-                                                function=gen_vertices_timeseries),
-                                name='timeseries_surface')
+                                               output_names=['out_file'],
+                                               function=gen_vertices_timeseries),
+                                 name='timeseries_surface')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['surface_outputs']),
-                        name='outputspec')
+                         name='outputspec')
 
     wflow.connect(inputNode, 'rh_surface_file',
                   timeseries_surface, 'rh_surface_file')
@@ -439,16 +441,19 @@ def get_normalized_moments(wf_name='normalized_moments'):
 
     wflow = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['spatial_timeseries']), name='inputspec')
+    inputNode = pe.Node(util.IdentityInterface(fields=['spatial_timeseries']),
+                        name='inputspec')
 
     # calculate normalized moments
     # output of this node is a list, 'moments'
-    norm_moments = pe.Node(util.CalculateNormalizedMoments(moment='3'), name='norm_moments')
+    norm_moments = pe.Node(util.CalculateNormalizedMoments(moment='3'),
+                           name='norm_moments')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['moments_outputs']), name='outputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['moments_outputs']),
+                         name='outputspec')
 
-    wflow.connect(inputNode, 'spatial_timeseries', norm_moments, 'timeseries_file')
-
+    wflow.connect(inputNode, 'spatial_timeseries',
+                  norm_moments, 'timeseries_file')
     wflow.connect(norm_moments, 'moments', outputNode, 'moments_outputs')
 
     return wflow

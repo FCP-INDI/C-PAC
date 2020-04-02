@@ -330,7 +330,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
     logger.info(forks)
 
     if test_config:
-        logger.info('This has been a test of the pipeline configuration file, the pipeline was built successfully, but was not run')
+        logger.info('This has been a test of the pipeline configuration '
+                    'file, the pipeline was built successfully, but was '
+                    'not run')
     else:
 
         working_dir = os.path.join(c.workingDirectory, workflow.name)

@@ -788,6 +788,7 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
     return wf
 
+
 def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
 
     import os, subprocess
@@ -826,7 +827,7 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
         subprocess.check_output(cmd)
 
     else:
-        out_func = in_file
+        out_func = in_func
         out_roi = in_roi
     
     return out_func, out_roi
