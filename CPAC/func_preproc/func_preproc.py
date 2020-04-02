@@ -769,6 +769,18 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref
 
     """
 
+    if motion_correct_ref != 'mean' and motion_correct_ref != 'median' and motion_correct_ref != 'selected_volume':
+        raise Exception("\n\n[!] Error: The 'tool' parameter of the "
+                        "'motion_correction_reference' workflow must be either "
+                        "'mean' or 'median' or 'selected volume'.\n\nTool input: "
+                        "{0}\n\n".format(motion_correct_ref))
+
+    if motion_correct_tool != '3dvolreg' and motion_correct_tool != 'mcflirt':
+        raise Exception("\n\n[!] Error: The 'tool' parameter of the "
+                        "'motion_correction' workflow must be either "
+                        "'3dvolreg' or 'mcflirt'.\n\nTool input: "
+                        "{0}\n\n".format(motion_correct_tool))
+
     preproc = pe.Workflow(name=wf_name)
     input_node = pe.Node(util.IdentityInterface(fields=['raw_func',
                                                         'func',
@@ -959,6 +971,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref
                          output_node, 'transform_matrices')
         preproc.connect(func_motion_correct_A, 'rms_files',
                         output_node, 'max_displacement')
+
+    import pdb; pdb.set_trace()
 
     preproc.connect(input_node, 'raw_func',
                     skullstrip_func, 'inputspec.raw_func')
