@@ -972,8 +972,6 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref
         preproc.connect(func_motion_correct_A, 'rms_files',
                         output_node, 'max_displacement')
 
-    import pdb; pdb.set_trace()
-
     preproc.connect(input_node, 'raw_func',
                     skullstrip_func, 'inputspec.raw_func')
 
