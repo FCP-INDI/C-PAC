@@ -619,9 +619,10 @@ functionalMasking :  ['AFNI']
 anatomical_mask_dilation : False
 
 
-# Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
-runRegisterFuncToMNI :  [1]
+# Run Functional to Template Registration
+# This option must be enabled if you wish to calculate any derivatives.
+# Options: ['T1_template', 'EPI_template', 'Off']
+runRegisterFuncToTemplate :  ['T1_template']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
