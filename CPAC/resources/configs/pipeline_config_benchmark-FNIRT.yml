@@ -124,7 +124,7 @@ already_skullstripped :  [0]
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
 # Options: ['AFNI', 'FSL', 'niworkflows-ants']
-skullstrip_option :  ['AFNI']
+skullstrip_option :  ['FSL']
 
 
 # Template to be used during niworkflows-ants.

@@ -225,7 +225,7 @@ def ants_apply_warps_func_mni(
         inverse_string = '_inverse'
 
     # make sure that resource pool has some required resources before proceeding
-    if 'fsl_mat_as_itk' not in strat:
+    if 'fsl_mat_as_itk' not in strat and registration_template == 't1':
 
         fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(),
                 name='fsl_reg_2_itk_{0}'.format(num_strat))
@@ -387,7 +387,9 @@ def ants_apply_warps_func_mni(
 
         # define the node
         collect_transforms = pe.Node(util.Merge(num_transforms),
-                name='collect_transforms{0}_{1}'.format(inverse_string, num_strat))
+                name='collect_transforms{0}_{1}_{2}'.format(inverse_string,
+                                                            registration_template,
+                                                            num_strat))
 
         # wire in the various tranformations
         for transform_key, input_port in transforms_to_combine:
@@ -398,7 +400,10 @@ def ants_apply_warps_func_mni(
         # check transform list (if missing any init/rig/affine) and exclude Nonetype
         check_transform = pe.Node(util.Function(input_names=['transform_list'], 
                                                 output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms), name='check_transforms{0}_{1}'.format(inverse_string, num_strat))
+                                                function=check_transforms),
+                                  name='check_transforms{0}_{1}_{2}'.format(inverse_string,
+                                                                            registration_template,
+                                                                            num_strat))
         
         workflow.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -406,7 +411,9 @@ def ants_apply_warps_func_mni(
         inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
                                                         output_names=['inverse_transform_flags'],
                                                         function=generate_inverse_transform_flags), 
-                                                        name='inverse_transform_flags{0}_{1}'.format(inverse_string, num_strat))
+                                          name='inverse_transform_flags{0}_{1}_{2}'.format(inverse_string,
+                                                                                           registration_template,
+                                                                                           num_strat))
 
         workflow.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
@@ -423,14 +430,14 @@ def ants_apply_warps_func_mni(
     if map_node:
         apply_ants_warp = pe.MapNode(
                 interface=ants.ApplyTransforms(),
-                name='apply_ants_warp_{0}_mapnode{1}_{2}'.format(output_name,
-                    inverse_string, num_strat),
+                name='apply_ants_warp_{0}_mapnode{1}_{2}_{3}'.format(output_name,
+                    inverse_string, registration_template, num_strat),
                 iterfield=['input_image'], mem_gb=1.5)
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
-                name='apply_ants_warp_{0}{1}_{2}'.format(output_name,
-                    inverse_string, num_strat), mem_gb=1.5)
+                name='apply_ants_warp_{0}{1}_{2}_{3}'.format(output_name,
+                    inverse_string, registration_template, num_strat), mem_gb=1.5)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
@@ -448,7 +455,7 @@ def ants_apply_warps_func_mni(
 
     node, out_file = strat[ref_key]
     workflow.connect(node, out_file,
-            apply_ants_warp, 'reference_image')
+                     apply_ants_warp, 'reference_image')
 
     collect_node, collect_out = strat[collect_transforms_key]
     workflow.connect(collect_node, collect_out,
