@@ -2470,8 +2470,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         new_strat_list = []
 
         for num_strat, strat in enumerate(strat_list):            
-            
-            nodes = strat.get_nodes_names()
 
             if 'EPI_template' in c.runRegisterFuncToTemplate:
                 for reg in c.regOption:
@@ -2489,7 +2487,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     if c.ANTs_para_EPI_registration is None:
                         err_msg = '\n\n[!] C-PAC says: \n'\
                             "You have selected \'regOption: [ANTS]\' and \'runRegisterFuncToTemplate :  ['EPI_template']\'. \n"\
-                                 'However, ANTs parameters specified: {0}, is not supported. ' \
+                                 'However, no EPI-to-template ANTs parameters were specified. ' \
                                     'Please specify ANTs parameters properly and try again'.format(str(c.ANTs_para_EPI_registration))
                         raise Exception(err_msg)
                     else:
@@ -2519,14 +2517,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi'),
                     })
 
-                    if reg == 'FSL' :
+                    if reg == 'FSL':
                         new_strat.update_resource_pool({
                             'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),  
                             'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
                             'epi_to_func_linear_xfm': (func_to_epi, 'outputspec.invlinear_xfm'),
                         })     
 
-                    elif reg == 'ANTS' :
+                    elif reg == 'ANTS':
                         new_strat.update_resource_pool({
                             'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
                             'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
@@ -2544,14 +2542,24 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
                             ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
-                        output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
+                        output_func_to_standard(workflow, func_key, ref_key,
+                                                output_name, new_strat,
+                                                num_strat, c,
+                                                input_image_type=image_type,
+                                                registration_template='epi',
+                                                func_type='non-ica-aroma')
 
-                new_strat_list.append(new_strat)
+                    new_strat_list.append(new_strat)
 
-            if 'T1_template' in c.runRegisterFuncToTemplate:
-                
-                num_strat += 1
-                new_strat = strat.fork()
+        strat_list += new_strat_list
+
+        for num_strat, strat in enumerate(strat_list):
+
+            nodes = strat.get_nodes_names()
+
+            if 'T1_template' in c.runRegisterFuncToTemplate and \
+                    'func_to_epi_ants' not in nodes and \
+                    'func_to_epi_fsl' not in nodes:
 
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
@@ -2560,11 +2568,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
                         ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, new_strat, num_strat, c, input_image_type=image_type, registration_template='t1', func_type='non-ica-aroma')
-                
-                new_strat_list.append(new_strat)
+                    output_func_to_standard(workflow, func_key, ref_key,
+                                            output_name, strat, num_strat, c,
+                                            input_image_type=image_type,
+                                            registration_template='t1',
+                                            func_type='non-ica-aroma')
 
-        strat_list = new_strat_list
 
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
@@ -2595,7 +2604,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if seg_preproc_template_based is None:
                     continue
 
-                if 'func_to_epi_fsl' in nodes :
+                if 'func_to_epi_fsl' in nodes:
 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
@@ -2606,7 +2615,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                     seg_preproc_template_based,
                                     'inputspec.standard2highres_mat')
 
-                elif 'func_to_epi_ants' in nodes :
+                elif 'func_to_epi_ants' in nodes:
 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
@@ -2651,15 +2660,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'epi_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
                 })
 
-            strat_list += new_strat_list
+        strat_list += new_strat_list
+
 
         # Inserting Generate Motion Statistics Workflow
         new_strat_list = []
-
         for num_strat, strat in enumerate(strat_list):
-
             nodes = strat.get_nodes_names()
-            
             if not any("gen_motion_stats_before_stc" in node for node in nodes):
 
                 motion_stats_node = [x for x in nodes if "func_preproc" in x][0]
@@ -2698,31 +2705,33 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # Special case where the workflow is not getting outputs from
                 # resource pool but is connected to functional datasource
                 workflow.connect(func_wf, 'outputspec.subject',
-                                gen_motion_stats, 'inputspec.subject_id')
+                                 gen_motion_stats, 'inputspec.subject_id')
 
                 workflow.connect(func_wf, 'outputspec.scan',
-                                gen_motion_stats, 'inputspec.scan_id')
+                                 gen_motion_stats, 'inputspec.scan_id')
 
                 node, out_file = strat['motion_correct']
                 workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.motion_correct')
+                                 gen_motion_stats, 'inputspec.motion_correct')
 
                 node, out_file = strat['movement_parameters']
                 workflow.connect(node, out_file,
-                                gen_motion_stats,
-                                'inputspec.movement_parameters')
+                                 gen_motion_stats,
+                                 'inputspec.movement_parameters')
 
                 node, out_file = strat['max_displacement']
                 workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.max_displacement')
+                                 gen_motion_stats,
+                                 'inputspec.max_displacement')
 
                 node, out_file = strat['functional_brain_mask']
                 workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.mask')
+                                 gen_motion_stats, 'inputspec.mask')
 
                 node, out_file = strat['coordinate_transformation']
                 workflow.connect(node, out_file,
-                                gen_motion_stats, 'inputspec.transformations')
+                                 gen_motion_stats,
+                                 'inputspec.transformations')
 
                 strat.update_resource_pool({
                     'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
@@ -2817,9 +2826,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ]:
                             output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1',func_type='ica-aroma')
 
-
                     aroma_preproc = create_aroma(tr=TR, wf_name='create_aroma_{0}'.format(num_strat))
-
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
 
                     node, out_file = strat['ica_aroma_functional_to_standard']
@@ -2865,7 +2872,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     )
 
         strat_list += new_strat_list
-
 
         # Inserting Nuisance Regressor Workflow
         new_strat_list = []
@@ -2949,7 +2955,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             regressor_workflow, 'inputspec.csf_mask_file_path'
                         )
 
-                    if 'seg_preproc_epi_template' in nodes :
+                    if 'seg_preproc_epi_template' in nodes:
 
                         node, out_file = new_strat['epi_gm_mask']
                         workflow.connect(
@@ -3351,24 +3357,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             nodes = strat.get_nodes_names()
 
             if 'func_to_epi_fsl' in nodes or 'func_to_epi_ants' in nodes :
-
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
                     output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
-                new_strat_list += [strat]
-
             elif 'T1_template' in c.runRegisterFuncToTemplate:
-
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
                     output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1', func_type='non-ica-aroma')
-                
-                #new_strat_list += [strat]
-            
+
         strat_list += new_strat_list
+
 
         # Derivatives
 
