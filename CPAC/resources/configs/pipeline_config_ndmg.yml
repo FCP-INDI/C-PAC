@@ -304,6 +304,14 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 regOption :  ['FSL']
 
 
+# ANTs parameters, if select ANTs as regOption
+ANTs_para_T1_registration: None
+
+
+# Please specify ANTs parameters,if run Functional to EPI Template Registration
+ANTs_para_EPI_registration: None
+
+
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
 # ANTS registration only.
 use_lesion_mask : [0]

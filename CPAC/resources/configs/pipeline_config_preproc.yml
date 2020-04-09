@@ -304,6 +304,73 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 regOption :  ['ANTS']
 
 
+# ANTs parameters, if select ANTs as regOption
+ANTs_para_T1_registration:
+
+   - collapse-output-transforms: 0
+
+   - dimensionality: 3
+
+   - initial-moving-transform :
+      initializationFeature: 0
+
+   - transforms:
+      - Rigid:
+          gradientStep : 0.1
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 1000x500x250x100
+            convergenceThreshold : 1e-08
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 8x4x2x1
+          use-histogram-matching : True
+
+      - Affine:
+          gradientStep : 0.1
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 1000x500x250x100
+            convergenceThreshold : 1e-08
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 8x4x2x1
+          use-histogram-matching : True
+
+      - SyN:
+          gradientStep : 0.1
+          updateFieldVarianceInVoxelSpace : 3.0
+          totalFieldVarianceInVoxelSpace : 0.0
+          metric:
+            type : CC
+            metricWeight: 1
+            radius : 4
+          convergence:
+            iteration : 100x100x70x20
+            convergenceThreshold : 1e-09
+            convergenceWindowSize : 15
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 6x4x2x1
+          use-histogram-matching : True
+          winsorize-image-intensities :
+            lowerQuantile : 0.01
+            upperQuantile : 0.99
+
+
+# Please specify ANTs parameters,if run Functional to EPI Template Registration
+ANTs_para_EPI_registration: None
+
+
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
 # ANTS registration only.
 use_lesion_mask : [0]
