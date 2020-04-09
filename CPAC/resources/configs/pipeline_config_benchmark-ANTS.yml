@@ -601,7 +601,7 @@ anatomical_mask_dilation : False
 # Run Functional to Template Registration
 # This option must be enabled if you wish to calculate any derivatives.
 # Options: ['T1_template', 'EPI_template', 'Off']
-runRegisterFuncToTemplate :  ['T1_template', 'Off']
+runRegisterFuncToTemplate :  ['T1_template', 'EPI_template', 'Off']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
@@ -628,7 +628,7 @@ identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [1]
+runICA :  [1, 0]
 
 
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
