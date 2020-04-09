@@ -17,7 +17,7 @@ RUN export NVM_DIR=$HOME/.nvm && \
      nvm use 11.15.0 && \
      nvm alias default 11.15.0 && \
      npm install -g bids-validator
-     
+
 ENV PATH=/root/.nvm/versions/node/v11.15.0/bin:$PATH
 
 # Install Ubuntu dependencies and utilities
@@ -152,15 +152,16 @@ RUN chmod +x /opt/ICA-AROMA/ICA_AROMA.py
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # install miniconda
-RUN curl -sO https://repo.continuum.io/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh && \
-    bash Miniconda3-4.7.12.1-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-4.7.12.1-Linux-x86_64.sh
+RUN curl -sO https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.2-Linux-x86_64.sh && \
+    bash Miniconda3-py37_4.8.2-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda3-py37_4.8.2-Linux-x86_64.sh
 
 # update path to include conda
 ENV PATH=/usr/local/miniconda/bin:$PATH
 
 # install conda dependencies
-RUN conda install -y  \
+RUN conda update conda -y && \
+    conda install -y  \
         blas \
         matplotlib==3.1.3 \
         networkx==2.4 \
