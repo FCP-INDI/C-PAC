@@ -304,6 +304,14 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 regOption :  ['FSL']
 
 
+# ANTs parameters, if select ANTs as regOption
+ANTs_para_T1_registration: None
+
+
+# Please specify ANTs parameters,if run Functional to EPI Template Registration
+ANTs_para_EPI_registration: None
+
+
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
 # ANTS registration only.
 use_lesion_mask : [0]
@@ -622,9 +630,10 @@ functionalMasking :  ['AFNI']
 anatomical_mask_dilation : False
 
 
-# Register functional images to a standard MNI152 template.
+# Run Functional to Template Registration
 # This option must be enabled if you wish to calculate any derivatives.
-runRegisterFuncToMNI :  [1]
+# Options: ['T1_template', 'EPI_template', 'Off']
+runRegisterFuncToTemplate :  ['T1_template']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.

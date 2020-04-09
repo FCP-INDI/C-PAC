@@ -810,7 +810,8 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
             out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
             out_func = out_file
             out_roi = in_roi
-            
+            interp = 'trilinear'
+
         # resample ROI to func: in_file = ROI, reference = func
         elif 'ROI_to_func' in realignment: 
             in_file = in_roi
@@ -818,11 +819,12 @@ def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
             out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
             out_func = in_func
             out_roi = out_file
+            interp = 'nearestneighbour'
 
         cmd = ['flirt', '-in', in_file, 
                 '-ref', reference, 
                 '-out', out_file, 
-                '-interp', 'trilinear', 
+                '-interp', interp, 
                 '-applyxfm', '-init', identity_matrix]
         subprocess.check_output(cmd)
 

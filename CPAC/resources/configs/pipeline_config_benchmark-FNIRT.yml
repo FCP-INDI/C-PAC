@@ -229,7 +229,7 @@ skullstrip_monkey : False
 
 # Options to be used for FSL-BET skull-stripping only.
 
-# Set the threshold value controling the brain vs non-brain voxels                              default is 0.5
+# Set the threshold value controling the brain vs non-brain voxels - default is 0.5
 bet_frac :  0.5
 
 
@@ -300,6 +300,14 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
 regOption :  ['FSL']
+
+
+# ANTs parameters, if select ANTs as regOption
+ANTs_para_T1_registration: None
+
+
+# Please specify ANTs parameters,if run Functional to EPI Template Registration
+ANTs_para_EPI_registration: None
 
 
 # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
@@ -591,9 +599,14 @@ func_reg_input_volume :  0
 functionalMasking :  ['AFNI']
 
 
-# Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
-runRegisterFuncToMNI :  [1, 0]
+# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True
+anatomical_mask_dilation : False
+
+
+# Run Functional to Template Registration
+# This option must be enabled if you wish to calculate any derivatives.
+# Options: ['T1_template', 'EPI_template', 'Off']
+runRegisterFuncToTemplate :  ['T1_template', 'EPI_template', 'Off']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
@@ -620,7 +633,7 @@ identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [1]
+runICA :  [1, 0]
 
 
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
