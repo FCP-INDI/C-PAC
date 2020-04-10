@@ -400,11 +400,11 @@ def alff(func_ts, func_brain_mask, hp=0.01, lp=0.1):
 
 
 @utils.command()
-def repickle():
+@click.argument('directory')
+def repickle(directory):
     from CPAC.utils import repickle as repickle_util
-    for path in ["/working", "/outputs"]:
-        if os.path.exists(path):
-            repickle_util(path)
+    if os.path.exists(directory):
+        repickle_util(directory)
 
 
 @utils.group()

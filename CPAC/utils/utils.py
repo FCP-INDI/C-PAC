@@ -1,8 +1,11 @@
 import os
 import fnmatch
+import gzip
 import numbers
+import pickle
 import threading
 import numpy as np
+
 from inspect import currentframe, getframeinfo , stack
 
 
@@ -746,7 +749,7 @@ def get_tr(tr):
     """
     import re
     if tr:
-        tr = re.search("\d+.\d+", str(tr)).group(0)
+        tr = re.search(r"\d+.\d+", str(tr)).group(0)
         tr = float(tr)
         if tr > 10:
             tr = tr / 1000.0
