@@ -348,9 +348,7 @@ ANTs_para_EPI_registration:
       initializationFeature: 1
 
    - transforms:
-       - Affine: 
-      - Affine: 
-       - Affine: 
+       - Affine:     
           gradientStep : 0.25
           metric : 
             type : CC
@@ -361,8 +359,6 @@ ANTs_para_EPI_registration:
           smoothing-sigmas : 5x3x0
           shrink-factors : 5x3x1
 
-       - SyN: 
-      - SyN: 
        - SyN: 
           gradientStep : 0.15
           updateFieldVarianceInVoxelSpace : 5
