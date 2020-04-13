@@ -307,7 +307,7 @@ regOption: [ANTS]
 # ANTs parameters, if select ANTs as regOption
 ANTs_para_T1_registration:
 
-   - collapse-output-transforms: 0
+   - collapse-output-transforms: 1
 
    - dimensionality: 3
 
@@ -327,7 +327,7 @@ ANTs_para_T1_registration:
             iteration : 1000x500x250x100
             convergenceThreshold : 1e-08
             convergenceWindowSize : 10
-          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          smoothing-sigmas : 4.0x2.0x1.0x0.0vox
           shrink-factors : 8x4x2x1
           use-histogram-matching : True
 
@@ -343,7 +343,7 @@ ANTs_para_T1_registration:
             iteration : 1000x500x250x100
             convergenceThreshold : 1e-08
             convergenceWindowSize : 10
-          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          smoothing-sigmas : 4.0x2.0x1.0x0.0vox
           shrink-factors : 8x4x2x1
           use-histogram-matching : True
 
@@ -353,18 +353,18 @@ ANTs_para_T1_registration:
           totalFieldVarianceInVoxelSpace : 0.0
           metric:
             type : CC
-            metricWeight: 1
+            metricWeight: 0.5
             radius : 4
           convergence:
-            iteration : 100x100x70x20
+            iteration : 50x10x0
             convergenceThreshold : 1e-09
             convergenceWindowSize : 15
-          smoothing-sigmas : 3.0x2.0x1.0x0.0
-          shrink-factors : 6x4x2x1
+          smoothing-sigmas : 2.0x1.0x0.0vox
+          shrink-factors : 4x2x1
           use-histogram-matching : True
           winsorize-image-intensities :
-            lowerQuantile : 0.01
-            upperQuantile : 0.99
+            lowerQuantile : 0.025
+            upperQuantile : 0.975
 
 
 # Please specify ANTs parameters,if run Functional to EPI Template Registration
