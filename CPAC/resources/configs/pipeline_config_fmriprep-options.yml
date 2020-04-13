@@ -297,7 +297,7 @@ template_brain_only_for_anat: /code/CPAC/resources/templates/tpl-MNI152NLin2009c
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat: /code/CPAC/resources/templates/skull_mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
+template_skull_for_anat: /code/CPAC/resources/templates/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
