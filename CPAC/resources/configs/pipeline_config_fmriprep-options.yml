@@ -316,7 +316,7 @@ ANTs_para_T1_registration:
 
    - transforms:
       - Rigid:
-          gradientStep : 0.1
+          gradientStep : 0.05
           metric :
             type : MI
             metricWeight: 1
@@ -324,15 +324,15 @@ ANTs_para_T1_registration:
             samplingStrategy : Regular
             samplingPercentage : 0.25
           convergence:
-            iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
-            convergenceWindowSize : 10
-          smoothing-sigmas : 4.0x2.0x1.0x0.0vox
-          shrink-factors : 8x4x2x1
+            iteration : 100x100
+            convergenceThreshold : 1e-06
+            convergenceWindowSize : 20
+          smoothing-sigmas : 2.0x1.0vox
+          shrink-factors : 2x1
           use-histogram-matching : True
 
       - Affine:
-          gradientStep : 0.1
+          gradientStep : 0.08 
           metric :
             type : MI
             metricWeight: 1
@@ -340,11 +340,11 @@ ANTs_para_T1_registration:
             samplingStrategy : Regular
             samplingPercentage : 0.25
           convergence:
-            iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
-            convergenceWindowSize : 10
-          smoothing-sigmas : 4.0x2.0x1.0x0.0vox
-          shrink-factors : 8x4x2x1
+            iteration : 100x100
+            convergenceThreshold : 1e-06
+            convergenceWindowSize : 20
+          smoothing-sigmas : 1.0x0.0vox
+          shrink-factors : 2x1
           use-histogram-matching : True
 
       - SyN:
@@ -353,18 +353,18 @@ ANTs_para_T1_registration:
           totalFieldVarianceInVoxelSpace : 0.0
           metric:
             type : CC
-            metricWeight: 0.5
+            metricWeight: 1
             radius : 4
           convergence:
-            iteration : 50x10x0
-            convergenceThreshold : 1e-09
-            convergenceWindowSize : 15
-          smoothing-sigmas : 2.0x1.0x0.0vox
-          shrink-factors : 4x2x1
+            iteration : 100x70x50x20
+            convergenceThreshold : 1e-06
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0vox
+          shrink-factors : 8x4x2x1
           use-histogram-matching : True
           winsorize-image-intensities :
-            lowerQuantile : 0.025
-            upperQuantile : 0.975
+            lowerQuantile : 0.005
+            upperQuantile : 0.995
 
 
 # Please specify ANTs parameters,if run Functional to EPI Template Registration
