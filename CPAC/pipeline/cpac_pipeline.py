@@ -342,7 +342,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
         #        pickle.dump(strat_list, f)
 
         if c.reGenerateOutputs is True:
-            
+
             erasable = list(find_files(working_dir, '*sink*')) + \
                 list(find_files(working_dir, '*link*')) + \
                 list(find_files(working_dir, '*log*'))
@@ -416,14 +416,31 @@ Please, make yourself aware of how it works and its assumptions:
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
 
-            # Actually run the pipeline now, for the current subject
-            workflow.run(plugin=plugin, plugin_args=plugin_args)
+            try:
+                # Actually run the pipeline now, for the current subject
+                workflow.run(plugin=plugin, plugin_args=plugin_args)
+            except UnicodeDecodeError:
+                raise EnvironmentError(
+                    "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
+                    "release notes). Your working directory contains Python 2 "
+                    "pickles, probably from an older version of C-PAC. If you "
+                    "want to continue to use this working directory, run\n\n"
+                    "docker run -i --rm --user $(id -u):$(id -g) "
+                    "-v /path/to/working_dir:/working "
+                    "fcpindi/c-pac:latest /bids_dir /outputs cli -- "
+                    "utils repickle /working\n"
+                    "\nor\n\n"
+                    "singularity run "
+                    "C-PAC_latest.sif /bids_dir /outputs cli -- "
+                    "utils repickle /path/to/working_dir\n\n"
+                    "before running C-PAC >=v1.6.2"
+                )
 
             # PyPEER kick-off
             if 1 in c.run_pypeer:
                 from CPAC.pypeer.peer import prep_for_pypeer
                 prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
-                                c.eye_mask_path, c.outputDirectory, subject_id, 
+                                c.eye_mask_path, c.outputDirectory, subject_id,
                                 pipeline_ids, c.peer_stimulus_path, c.peer_gsr,
                                 c.peer_scrub, c.peer_scrub_thresh)
 
@@ -590,7 +607,7 @@ CPAC run error:
                     sub_output_dir = os.path.join(pipeline_base, subject_id)
                     qc_dir = os.path.join(sub_output_dir, 'qc')
                     generate_qc_pages(qc_dir)
-                
+
             if workflow:
 
                 logger.info(execution_info.format(
@@ -773,11 +790,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     # update resampled template to resource pool
     for resolution, template, template_name, tag in templates_for_resampling:
-        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'], 
-                                              output_names=['resampled_template'], 
+        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'],
+                                              output_names=['resampled_template'],
                                               function=resolve_resolution,
-                                              as_module=True), 
-                                        name='resampled_' + template_name) 
+                                              as_module=True),
+                                        name='resampled_' + template_name)
 
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
@@ -808,7 +825,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file,
                              anat_preproc, 'inputspec.brain_mask')
-                             
+
             new_strat.append_name(anat_preproc.name)
             new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
             new_strat.update_resource_pool({
@@ -1132,7 +1149,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             'However, ANTs parameters specified: {0}, is not supported. ' \
                             'Please specify ANTs parameters properly and try again'.format(str(c.ANTs_para_T1_registration))
                 raise Exception(err_msg)
-            else: 
+            else:
                 ants_reg_anat_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
 
             ants_reg_anat_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
@@ -1359,7 +1376,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
                         'anat_symmetric_mni_ants_register_%d' % num_strat,
-                        num_threads=num_ants_cores,                    
+                        num_threads=num_ants_cores,
                         reg_ants_skull = c.regWithSkull
                     )
 
@@ -1925,9 +1942,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                 motion_correct_tool=motion_correct_tool,
                                 motion_correct_ref=motion_correct_ref,
                                 config=c,
-                                wf_name='func_preproc_before_stc_{0}_{1}_{2}_{3}'.format(skullstrip_tool, 
-                                                                                         motion_correct_ref, 
-                                                                                         motion_correct_tool, 
+                                wf_name='func_preproc_before_stc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
+                                                                                         motion_correct_ref,
+                                                                                         motion_correct_tool,
                                                                                          num_strat)
                             )
 
@@ -1959,11 +1976,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             })
 
                             gen_motion_stats = motion_power_statistics(
-                                name = 'gen_motion_stats_before_stc_{0}_{1}_{2}_{3}'.format(skullstrip_tool, 
-                                                                                            motion_correct_ref, 
-                                                                                            motion_correct_tool, 
-                                                                                            num_strat), 
-                                motion_correct_tool = motion_correct_tool)         
+                                name = 'gen_motion_stats_before_stc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
+                                                                                            motion_correct_ref,
+                                                                                            motion_correct_tool,
+                                                                                            num_strat),
+                                motion_correct_tool = motion_correct_tool)
 
                             # Special case where the workflow is not getting outputs from
                             # resource pool but is connected to functional datasource
@@ -2005,10 +2022,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             })
 
                             new_strat_list.append(new_strat)
-                            
+
         strat_list = new_strat_list
 
-        
+
         # Despike Workflow
         new_strat_list = []
 
@@ -2393,8 +2410,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         # Input segmentation mask,
                         # since template_based_segmentation cannot generate probability maps
                         node, out_file = strat['anatomical_wm_mask']
-                        workflow.connect(node, out_file,	
-                                        func_to_anat_bbreg,	
+                        workflow.connect(node, out_file,
+                                        func_to_anat_bbreg,
                                         'inputspec.anat_wm_segmentation')
 
                     else:
@@ -2469,7 +2486,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         new_strat_list = []
 
-        for num_strat, strat in enumerate(strat_list):            
+        for num_strat, strat in enumerate(strat_list):
 
             if 'EPI_template' in c.runRegisterFuncToTemplate:
 
@@ -2480,8 +2497,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     func_to_epi = \
                         create_register_func_to_epi(
-                            name='func_to_epi_{0}_{1}'.format(reg.lower(), num_strat), 
-                            reg_option=reg, 
+                            name='func_to_epi_{0}_{1}'.format(reg.lower(), num_strat),
+                            reg_option=reg,
                             reg_ants_skull=c.regWithSkull
                         )
 
@@ -2495,7 +2512,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         raise Exception(err_msg)
                     else:
                         func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
-                    
+
                     func_to_epi.inputs.inputspec.interp = c.funcRegANTSinterpolation
 
                     node, out_file = strat.get_leaf_properties()
@@ -2525,16 +2542,16 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),  
                             'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
                             'epi_to_func_linear_xfm': (func_to_epi, 'outputspec.invlinear_xfm'),
-                        })     
+                        })
 
                     elif reg == 'ANTS':
                         strat.update_resource_pool({
                             'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
                             'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
                             'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm'),
-                            'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.warp_field'), 
+                            'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.warp_field'),
                             'epi_to_func_nonlinear_xfm': (func_to_epi, 'outputspec.inverse_warp_field'), # rename
-                        })                     
+                        })
 
                     strat.append_name(func_to_epi.name)
 
@@ -2681,7 +2698,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 # skullstripping tool
                 if "fsl_afni" in motion_stats_node:
-                    skullstrip_tool = 'fsl_afni' 
+                    skullstrip_tool = 'fsl_afni'
                 elif "fsl" in motion_stats_node:
                     skullstrip_tool = 'fsl'
                 elif "afni" in motion_stats_node:
@@ -2695,7 +2712,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 elif "median" in motion_stats_node:
                     motion_correct_ref = "median"
                 elif "selected_volume" in motion_stats_node:
-                    motion_correct_ref = "selected_volume"     
+                    motion_correct_ref = "selected_volume"
 
                 # motion correction tool
                 if "3dvolreg" in motion_stats_node:
@@ -2704,11 +2721,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     motion_correct_tool = "mcflirt"
 
                 gen_motion_stats = motion_power_statistics(
-                                name='gen_motion_stats_{0}_{1}_{2}_{3}'.format(skullstrip_tool, 
-                                                                               motion_correct_ref, 
-                                                                               motion_correct_tool, 
+                                name='gen_motion_stats_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
+                                                                               motion_correct_ref,
+                                                                               motion_correct_tool,
                                                                                num_strat),
-                                motion_correct_tool=motion_correct_tool)      
+                                motion_correct_tool=motion_correct_tool)
 
                 # Special case where the workflow is not getting outputs from
                 # resource pool but is connected to functional datasource
@@ -2862,14 +2879,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='epi', func_type='ica-aroma') 
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='epi', func_type='ica-aroma')
 
                     else:
 
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1', func_type='ica-aroma') 
+                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1', func_type='ica-aroma')
 
                     node, out_file = strat["ica_aroma_denoised_functional"]
                     strat.set_leaf_properties(node, out_file)
@@ -3659,17 +3676,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             for num_strat, strat in enumerate(strat_list):
 
                 if "Avg" in ts_analysis_dict.keys():
-                    resample_functional_roi = pe.Node(Function(input_names = ['in_func', 
-                                                                              'in_roi', 
-                                                                              'realignment', 
-                                                                              'identity_matrix'], 
+                    resample_functional_roi = pe.Node(Function(input_names = ['in_func',
+                                                                              'in_roi',
+                                                                              'realignment',
+                                                                              'identity_matrix'],
                                               output_names = ['out_func',
-                                                              'out_roi'], 
+                                                              'out_roi'],
                                               function = resample_func_roi,
-                                              as_module = True), 
-                                        name = 'resample_functional_roi_{0}'.format(num_strat)) 
-                    
-                    resample_functional_roi.inputs.realignment = c.realignment 
+                                              as_module = True),
+                                        name = 'resample_functional_roi_{0}'.format(num_strat))
+
+                    resample_functional_roi.inputs.realignment = c.realignment
                     resample_functional_roi.inputs.identity_matrix = c.identityMatrix
 
                     roi_dataflow = create_roi_mask_dataflow(
@@ -3733,17 +3750,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # same workflow, except to run TSE and send it to the resource
                     # pool so that it will not get sent to SCA
-                    resample_functional_roi_for_sca = pe.Node(Function(input_names = ['in_func', 
-                                                                                      'in_roi', 
-                                                                                      'realignment', 
-                                                                                      'identity_matrix'], 
+                    resample_functional_roi_for_sca = pe.Node(Function(input_names = ['in_func',
+                                                                                      'in_roi',
+                                                                                      'realignment',
+                                                                                      'identity_matrix'],
                                               output_names = ['out_func',
-                                                              'out_roi'], 
+                                                              'out_roi'],
                                               function = resample_func_roi,
-                                              as_module = True), 
-                                        name = 'resample_functional_roi_for_sca_{0}'.format(num_strat)) 
+                                              as_module = True),
+                                        name = 'resample_functional_roi_for_sca_{0}'.format(num_strat))
 
-                    resample_functional_roi_for_sca.inputs.realignment = c.realignment 
+                    resample_functional_roi_for_sca.inputs.realignment = c.realignment
                     resample_functional_roi_for_sca.inputs.identity_matrix = c.identityMatrix
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
@@ -3766,7 +3783,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                                      resample_functional_roi_for_sca, 'in_func')
                     workflow.connect(roi_dataflow_for_sca, 'outputspec.out_file',
-                                     resample_functional_roi_for_sca, 'in_roi')  
+                                     resample_functional_roi_for_sca, 'in_roi')
 
                     # connect it to the roi_timeseries
                     workflow.connect(resample_functional_roi_for_sca, 'out_roi',
@@ -3784,17 +3801,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # same workflow, except to run TSE and send it to the resource
                     # pool so that it will not get sent to SCA
-                    resample_functional_roi_for_multreg = pe.Node(Function(input_names = ['in_func', 
-                                                                                          'in_roi', 
-                                                                                          'realignment', 
-                                                                                          'identity_matrix'], 
+                    resample_functional_roi_for_multreg = pe.Node(Function(input_names = ['in_func',
+                                                                                          'in_roi',
+                                                                                          'realignment',
+                                                                                          'identity_matrix'],
                                               output_names = ['out_func',
-                                                              'out_roi'], 
+                                                              'out_roi'],
                                               function = resample_func_roi,
-                                              as_module = True), 
-                                        name = 'resample_functional_roi_for_multreg_{0}'.format(num_strat)) 
-                    
-                    resample_functional_roi_for_multreg.inputs.realignment = c.realignment 
+                                              as_module = True),
+                                        name = 'resample_functional_roi_for_multreg_{0}'.format(num_strat))
+
+                    resample_functional_roi_for_multreg.inputs.realignment = c.realignment
                     resample_functional_roi_for_multreg.inputs.identity_matrix = c.identityMatrix
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
@@ -3882,17 +3899,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                resample_functional_to_mask = pe.Node(Function(input_names = ['in_func', 
-                                                                            'in_roi', 
-                                                                            'realignment', 
-                                                                            'identity_matrix'], 
+                resample_functional_to_mask = pe.Node(Function(input_names = ['in_func',
+                                                                            'in_roi',
+                                                                            'realignment',
+                                                                            'identity_matrix'],
                                               output_names = ['out_func',
-                                                              'out_roi'], 
+                                                              'out_roi'],
                                               function = resample_func_roi,
-                                              as_module = True), 
-                                        name = 'resample_functional_to_mask_{0}'.format(num_strat)) 
-                
-                resample_functional_to_mask.inputs.realignment = c.realignment     
+                                              as_module = True),
+                                        name = 'resample_functional_to_mask_{0}'.format(num_strat))
+
+                resample_functional_to_mask.inputs.realignment = c.realignment
                 resample_functional_to_mask.inputs.identity_matrix = c.identityMatrix
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
@@ -4054,7 +4071,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             nodes = strat.get_nodes_names()
 
             if 'func_to_epi_fsl' in nodes or 'func_to_epi_ants' in nodes :
-                
+
                 rp = strat.get_resource_pool()
 
                 for key in sorted(rp.keys()):
@@ -4072,7 +4089,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
             elif 'T1_template' in c.runRegisterFuncToTemplate:
-                
+
                 rp = strat.get_resource_pool()
 
                 for key in sorted(rp.keys()):
@@ -4460,7 +4477,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 output_sink_nodes = []
                 node, out_file = rp[resource]
-                  
+
                 # exclue Nonetype transforms
                 if resource == 'ants_initial_xfm' or resource == 'ants_rigid_xfm' or resource == 'ants_affine_xfm' \
                     or resource == 'ants_symmetric_initial_xfm' or resource == 'ants_symmetric_rigid_xfm' or resource == 'ants_symmetric_affine_xfm':
@@ -4498,7 +4515,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file, ds, resource)
 
                 output_sink_nodes += [(ds, 'out_file')]
-                  
+
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
     return workflow, strat_list, pipeline_ids

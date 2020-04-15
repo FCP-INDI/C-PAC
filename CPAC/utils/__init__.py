@@ -38,6 +38,7 @@ from .utils import (
     check_command_path,
     check_system_deps,
     check_config_resources,
+    repickle,
 )
 
 __all__ = [

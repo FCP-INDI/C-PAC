@@ -399,6 +399,14 @@ def alff(func_ts, func_brain_mask, hp=0.01, lp=0.1):
     print(paths)
 
 
+@utils.command()
+@click.argument('directory')
+def repickle(directory):
+    from CPAC.utils import repickle as repickle_util
+    if os.path.exists(directory):
+        repickle_util(directory)
+
+
 @utils.group()
 def test():
     pass
