@@ -1,8 +1,11 @@
 import os
 import fnmatch
+import gzip
 import numbers
+import pickle
 import threading
 import numpy as np
+
 from inspect import currentframe, getframeinfo , stack
 
 
@@ -746,7 +749,7 @@ def get_tr(tr):
     """
     import re
     if tr:
-        tr = re.search("\d+.\d+", str(tr)).group(0)
+        tr = re.search(r"\d+.\d+", str(tr)).group(0)
         tr = float(tr)
         if tr > 10:
             tr = tr / 1000.0
@@ -1266,3 +1269,100 @@ def ordereddict_to_dict(value):
         if isinstance(v, dict):
             value[k] = ordereddict_to_dict(v)
     return dict(value)
+
+
+def repickle(directory):
+    """
+    Function to check all of the pickles in a given directory, recursively, and
+    convert any Python 2 pickles found to Python 3 pickles.
+
+    Parameters
+    ----------
+    directory: str
+
+    Returns
+    -------
+    None
+    """
+    for root, dirs, files in os.walk(directory, followlinks=True):
+        for fn in files:
+            p = os.path.join(root, fn)
+            if fn.endswith(".pkl"):
+                if _pickle2(p):
+                    try:
+                        with open(p, 'rb') as fp:
+                            f = pickle.load(fp, encoding='latin1')
+                        with open(p, 'wb') as fp:
+                            pickle.dump(f, fp)
+                        print(
+                            f"Converted pickle {fn} from a Python 2 pickle to "
+                            "a Python 3 pickle."
+                        )
+                    except Exception as e:
+                        print(
+                            f"Could not convert Python 2 pickle {p} because {e}"
+                            "\n"
+                        )
+                else:
+                    print(f"Pickle {fn} is a Python 3 pickle.")
+            elif fn.endswith(".pklz"):
+                if _pickle2(p, True):
+                    try:
+                        with gzip.open(p, 'rb') as fp:
+                            f = pickle.load(fp, encoding='latin1')
+                        with gzip.open(p, 'wb') as fp:
+                            pickle.dump(f, fp)
+                        print(
+                            f"Converted pickle {fn} from a Python 2 pickle to "
+                            "a Python 3 pickle."
+                        )
+                    except Exception as e:
+                        print(
+                            f"Could not convert Python 2 pickle {p} because {e}"
+                            "\n"
+                        )
+                else:
+                    print(f"Pickle {fn} is a Python 3 pickle.")
+
+
+def _pickle2(p, z=False):
+    """
+    Helper function to check if a pickle is a Python 2 pickle. Also prints
+    other exceptions raised by trying to load the file at p.
+
+    Parameters
+    ----------
+    p: str
+        path to pickle
+
+    z: bool
+        if pickle is gzipped
+
+    Returns
+    -------
+    pickle2: bool
+        True if p is a Python 2 pickle
+    """
+    if z:
+        with gzip.open(p, 'rb') as fp:
+            try:
+                f = pickle.load(fp)
+            except UnicodeDecodeError:
+                return(True)
+            except Exception as e:
+                print(
+                    f"Pickle {p} may be a Python 3 pickle, but raised "
+                    f"exception {e}"
+                )
+    else:
+        with open(p, 'rb') as fp:
+            try:
+                f = pickle.load(fp)
+            except UnicodeDecodeError:
+                return(True)
+            except Exception as e:
+                print(
+                    f"Pickle {p} may be a Python 3 pickle, but raised "
+                    f"exception {e}"
+                )
+    return(False)
