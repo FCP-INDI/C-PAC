@@ -2489,9 +2489,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         for num_strat, strat in enumerate(strat_list):
 
             if 'EPI_template' in c.runRegisterFuncToTemplate:
+
                 for reg in c.regOption:
 
-                    new_strat = strat.fork()
+                    if 'T1_template' in c.runRegisterFuncToTemplate:
+                        strat = strat.fork()
 
                     func_to_epi = \
                         create_register_func_to_epi(
@@ -2531,19 +2533,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d_mask')
 
                     # update resource pool
-                    new_strat.update_resource_pool({
+                    strat.update_resource_pool({
                         'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi'),
                     })
 
                     if reg == 'FSL':
-                        new_strat.update_resource_pool({
-                            'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),
+                        strat.update_resource_pool({
+                            'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),  
                             'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
                             'epi_to_func_linear_xfm': (func_to_epi, 'outputspec.invlinear_xfm'),
                         })
 
                     elif reg == 'ANTS':
-                        new_strat.update_resource_pool({
+                        strat.update_resource_pool({
                             'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
                             'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
                             'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm'),
@@ -2551,7 +2553,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             'epi_to_func_nonlinear_xfm': (func_to_epi, 'outputspec.inverse_warp_field'), # rename
                         })
 
-                    new_strat.append_name(func_to_epi.name)
+                    strat.append_name(func_to_epi.name)
 
                     for output_name, func_key, ref_key, image_type in [ \
                             ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
@@ -2561,15 +2563,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
                     ]:
                         output_func_to_standard(workflow, func_key, ref_key,
-                                                output_name, new_strat,
+                                                output_name, strat,
                                                 num_strat, c,
                                                 input_image_type=image_type,
                                                 registration_template='epi',
                                                 func_type='non-ica-aroma')
 
-                    new_strat_list.append(new_strat)
+                    if 'T1_template' in c.runRegisterFuncToTemplate:
+                        new_strat_list.append(strat)
 
         strat_list += new_strat_list
+
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -2601,6 +2605,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             for num_strat, strat in enumerate(strat_list):
 
                 nodes = strat.get_nodes_names()
+
+                if 'func_to_epi_fsl' not in nodes and 'func_to_epi_ants' not in nodes:
+                    continue
 
                 if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
                     err = '\n\n[!] C-PAC says: Your template based segmentation ' \
