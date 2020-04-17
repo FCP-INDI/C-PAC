@@ -1,8 +1,4 @@
 # coding: utf-8
-import os
-import sys
-import re
-import commands
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
@@ -66,9 +62,9 @@ def create_reho():
 
     .. image:: ../images/reho_detailed.dot.png
         :width: 500
-        
+
     References
-    ---------- 
+    ----------
     .. [1] Zang, Y., Jiang, T., Lu, Y., He, Y.,  Tian, L. (2004). Regional homogeneity approach to fMRI data analysis. NeuroImage, 22(1), 394, 400. doi:10.1016/j.neuroimage.2003.12.030
 
     Examples
@@ -106,5 +102,3 @@ def create_reho():
     reHo.connect(raw_reho_map, 'out_file', outputNode, 'raw_reho_map')
 
     return reHo
-
-

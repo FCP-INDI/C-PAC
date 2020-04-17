@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.6.1
+# Version 1.6.2
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -302,6 +302,132 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 regOption :  ['ANTS']
 
 
+# ANTs parameters, if select ANTs as regOption
+ANTs_para_T1_registration:
+
+   - collapse-output-transforms: 0
+
+   - dimensionality: 3
+
+   - initial-moving-transform :
+      initializationFeature: 0
+
+   - transforms:
+      - Rigid:
+          gradientStep : 0.1
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 1000x500x250x100
+            convergenceThreshold : 1e-08
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 8x4x2x1
+          use-histogram-matching : True
+
+      - Affine:
+          gradientStep : 0.1
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 1000x500x250x100
+            convergenceThreshold : 1e-08
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 8x4x2x1
+          use-histogram-matching : True
+
+      - SyN:
+          gradientStep : 0.1
+          updateFieldVarianceInVoxelSpace : 3.0
+          totalFieldVarianceInVoxelSpace : 0.0
+          metric:
+            type : CC
+            metricWeight: 1
+            radius : 4
+          convergence:
+            iteration : 100x100x70x20
+            convergenceThreshold : 1e-09
+            convergenceWindowSize : 15
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 6x4x2x1
+          use-histogram-matching : True
+          winsorize-image-intensities :
+            lowerQuantile : 0.01
+            upperQuantile : 0.99
+
+
+# Please specify ANTs parameters,if run Functional to EPI Template Registration
+ANTs_para_EPI_registration:
+
+   - collapse-output-transforms: 0
+
+   - dimensionality: 3
+
+   - initial-moving-transform :
+      initializationFeature: 0
+
+   - transforms:
+      - Rigid:
+          gradientStep : 0.1
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 1000x500x250x100
+            convergenceThreshold : 1e-08
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 8x4x2x1
+          use-histogram-matching : True
+
+      - Affine:
+          gradientStep : 0.1
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 1000x500x250x100
+            convergenceThreshold : 1e-08
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 8x4x2x1
+          use-histogram-matching : True
+
+      - SyN:
+          gradientStep : 0.1
+          updateFieldVarianceInVoxelSpace : 3.0
+          totalFieldVarianceInVoxelSpace : 0.0
+          metric:
+            type : CC
+            metricWeight: 1
+            radius : 4
+          convergence:
+            iteration : 100x100x70x20
+            convergenceThreshold : 1e-09
+            convergenceWindowSize : 15
+          smoothing-sigmas : 3.0x2.0x1.0x0.0
+          shrink-factors : 6x4x2x1
+          use-histogram-matching : True
+          winsorize-image-intensities :
+            lowerQuantile : 0.01
+            upperQuantile : 0.99
+
+
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
 # ANTS registration only.
 use_lesion_mask : [0]
@@ -418,10 +544,6 @@ brain_mask_erosion_mm : 30
 brain_erosion_mm: 0
 
 
-# Erode binarized csf tissue mask.
-seg_csf_use_erosion: False
-
-
 # Erosion proportion, if use erosion.
 # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
 # Recommend to do not use erosion in both proportion and millimeter method.
@@ -531,7 +653,7 @@ functional_volreg_twopass :  On
 # PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
 # Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
 # Options: ["PhaseDiff", "Blip", "None"]
-distortion_correction :  ["None"]
+distortion_correction :  ["PhaseDiff", "Blip"]
 
 
 # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
@@ -546,22 +668,6 @@ fmap_distcorr_frac : [0.5]
 # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
 # The default value is 0.5.
 fmap_distcorr_threshold :  0.6
-
-
-# Set the Delta-TE value, used for preparing field map, time delay between the first and second echo images. Default value is 2.46 ms.
-fmap_distcorr_deltaTE : [2.46]
-
-
-# Set the Dwell Time for the fugue input. This is the time between scans, default value is 0.0005s.
-fmap_distcorr_dwell_time : [0.0005]
-
-
-# Set the asymmetric ratio value for FSL Fugue input.
-fmap_distcorr_dwell_asym_ratio : [0.93902439]
-
-
-# Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir :  x
 
 
 # Run Functional to Anatomical Registration
@@ -614,9 +720,14 @@ func_reg_input_volume :  0
 functionalMasking :  ['AFNI']
 
 
-# Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
-runRegisterFuncToMNI :  [1, 0]
+# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True
+anatomical_mask_dilation : False
+
+
+# Run Functional to Template Registration
+# This option must be enabled if you wish to calculate any derivatives.
+# Options: ['T1_template', 'EPI_template', 'Off']
+runRegisterFuncToTemplate :  ['T1_template', 'EPI_template', 'Off']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
@@ -643,7 +754,7 @@ identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
-runICA :  [0]
+runICA :  [1, 0]
 
 
 # Types of denoising strategy: i)nonaggr-patial component regression, ii)aggr-aggressive denoising
@@ -685,6 +796,27 @@ Regressors :
      bottom_frequency: 0.01
      top_frequency: 0.1
 
+ - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: false
+
+   aCompCor:
+     summary:
+       method: DetrendPC
+       components: 5
+     tissues:
+       - CerebrospinalFluid
+     extraction_resolution: 2
+
+   CerebrospinalFluid:
+     summary: Mean
+     extraction_resolution: 2
+     erode_mask: true
+
+   GlobalSignal:
+     summary: Mean
+
 
 # Whether to run frequency filtering before or after nuisance regression.
 # ['Before'] or ['After']
@@ -692,7 +824,7 @@ filtering_order: ['After']
 
 
 # Correct for the global signal using Median Angle Correction.
-runMedianAngleCorrection :  [1]
+runMedianAngleCorrection :  [0]
 
 
 # Target angle used during Median Angle Correction.
@@ -701,6 +833,16 @@ targetAngleDeg : [90]
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
 runROITimeseries :  [1]
+
+
+# Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
+# 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
+# 'func_to_ROI' will realign the functional time series to the atlas/ROI space
+#
+#     NOTE: in rare cases, realigning the ROI to the functional space may
+#           result in small misalignments for very small ROIs - please double
+#           check your data if you see issues
+realignment : ['ROI_to_func']
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.

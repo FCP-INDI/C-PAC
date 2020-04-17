@@ -1,0 +1,5 @@
+coverage
+GitPython
+pytest
+pytest_click
+yamlordereddictloader

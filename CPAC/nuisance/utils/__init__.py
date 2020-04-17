@@ -11,7 +11,7 @@ from nipype.interfaces import afni
 from CPAC.nuisance.utils.compcor import calc_compcor_components
 from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.utils.interfaces.function import Function
-
+from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
                                fd_j_threshold=None, fd_p_threshold=None, dvars_threshold=None,
@@ -19,7 +19,7 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
                                number_of_subsequent_trs_to_censor=0):
     """
     Applies criterion in method to find time points whose FD or DVARS (or both)
-    are above threshold. 
+    are above threshold.
 
     :param fd_j_file_path: path to TSV containing framewise displacement as a
         single column. If not specified, it will not be used.
@@ -50,9 +50,12 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
     offending_time_points = set()
     time_course_len = 0
 
-    types = ['FDJ', 'FDP', 'DVARS']
-    file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
-    thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
+    # types = ['FDJ', 'FDP', 'DVARS']
+    # file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
+    # thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
+    types = ['FDP', 'DVARS']
+    file_paths = [fd_p_file_path, dvars_file_path]
+    thresholds = [fd_p_threshold, dvars_threshold]
 
     for type, file_path, threshold in zip(types, file_paths, thresholds):
 
@@ -96,10 +99,9 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
 
     extended_censors = []
     for censor in offending_time_points:
-        extended_censors += range(
+        extended_censors += list(range(
             (censor - number_of_previous_trs_to_censor),
-            (censor + number_of_subsequent_trs_to_censor + 1)
-        )
+            (censor + number_of_subsequent_trs_to_censor + 1)))
 
     extended_censors = [
         censor
@@ -311,7 +313,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
         if step == 'tissue':
             pass
-                
+
         elif step == 'resolution':
 
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
@@ -389,7 +391,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
         mask_csf_with_lat_ven.inputs.expr = 'a*b'
         mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
-        if ventricle_mask_exist : 
+        if ventricle_mask_exist :
             ventricles_key = 'VentriclesToAnat'
             if 'resolution' in regressor_descriptor:
                 ventricles_key += '_{}'.format(regressor_descriptor['resolution'])
@@ -397,7 +399,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
             if ventricles_key not in pipeline_resource_pool:
 
                 transforms = pipeline_resource_pool['Transformations']
-                
+
                 if use_ants is True:
 
                     # perform the transform using ANTS
@@ -407,12 +409,26 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
                     nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
 
+                    # check transform list to exclude Nonetype (missing) init/rig/affine
+                    check_transform = pe.Node(util.Function(input_names=['transform_list'], 
+                                                            output_names=['checked_transform_list', 'list_length'],
+                                                            function=check_transforms), name='{0}_check_transforms'.format(ventricles_key))
+                    
+                    nuisance_wf.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
+
+                    # generate inverse transform flags, which depends on the number of transforms
+                    inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
+                                                                    output_names=['inverse_transform_flags'],
+                                                                    function=generate_inverse_transform_flags), 
+                                                                    name='{0}_inverse_transform_flags'.format(ventricles_key))
+                    nuisance_wf.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
+
                     lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
-                    lat_ven_mni_to_anat.inputs.invert_transform_flags = [True, True, True]
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
-                    nuisance_wf.connect(collect_linear_transforms, 'out', lat_ven_mni_to_anat, 'transforms')
+                    nuisance_wf.connect(inverse_transform_flags, 'inverse_transform_flags', lat_ven_mni_to_anat, 'invert_transform_flags')
+                    nuisance_wf.connect(check_transform, 'checked_transform_list', lat_ven_mni_to_anat, 'transforms')
 
                     nuisance_wf.connect(*(pipeline_resource_pool['Ventricles'] + (lat_ven_mni_to_anat, 'input_image')))
                     nuisance_wf.connect(*(pipeline_resource_pool[mask_key] + (lat_ven_mni_to_anat, 'reference_image')))
@@ -451,7 +467,7 @@ class NuisanceRegressor(object):
             if type(s) is not dict or \
                (not s.get('bottom_frequency') and \
                 not s.get('top_frequency')):
-                
+
                 del self.selector['Bandpass']
 
     def get(self, key, default=None):
@@ -529,14 +545,14 @@ class NuisanceRegressor(object):
         # WM-2mmE-PC5-SDB
         # CSF-2mmE-M-SDB
         # GM-2mmE-DNM-SDB
- 
+
         # G-PC5-SDB
         # M-SDB
         # C-S-FD1.5SD-D1.5SD
         # P-2
         # B-T0.01-B0.1
 
-        for r in regs.iterkeys():
+        for r in regs.keys():
             if r not in selector:
                 continue
 
@@ -564,7 +580,7 @@ class NuisanceRegressor(object):
                     if type(t) != str:
                         t = "%.2f" % t
                     threshold += t
-                if s.get('erode_mask'): 
+                if s.get('erode_mask'):
                     threshold += 'E'
                 if s.get('degree'):
                     d = s.get('degree')
@@ -644,7 +660,7 @@ class NuisanceRegressor(object):
 
                     pieces += [thresh]
 
-            selectors_representations += ['-'.join(filter(None, pieces))]
+            selectors_representations += ['-'.join([_f for _f in pieces if _f])]
 
         return "_".join(selectors_representations)
 

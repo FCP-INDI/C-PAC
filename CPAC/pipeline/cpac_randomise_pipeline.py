@@ -1,11 +1,8 @@
-import nipype.interfaces.utility as util
+import os
+
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
-import re
-import os
-import sys
-import glob
-from CPAC.utils import Configuration
+
 from CPAC.pipeline.cpac_group_runner import load_config_yml
 
 
@@ -33,16 +30,15 @@ def randomise_merged_mask(s_paths):
     mask.inputs.in_file = s_paths
 
 def prep_randomise_workflow(c, subject_infos):
-    print 'Preparing Randomise workflow'
+    print('Preparing Randomise workflow')
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    print 'Subjects', s_ids
+    print('Subjects', s_ids)
 
     wf = pe.Workflow(name='randomise_workflow')
     wf.base_dir = c.workingDirectory
 
     from CPAC.randomise import create_randomise
-    import numpy as np
-    
+
     rw = create_randomise()
 
     rw.inputs.inputspec.permutations = c.randopermutations
@@ -88,8 +84,9 @@ def prep_randomise_workflow(c, subject_infos):
 #    import sys
 #    import pickle
 #    import yaml
+    #  import yamlordereddictloader
 
-#    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+#    c = Configuration(yaml.safe_load(open(os.path.realpath(config), 'r')))
 
 
 #    prep_randomise_workflow(c, pickle.load(open(subject_infos, 'r') ))

@@ -202,58 +202,6 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'dl_dir', s3_scan_params, 'dl_dir')
     wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
 
-    # field map phase file, for field map distortion correction
-    select_fmap_phase = pe.Node(function.Function(input_names=['scan',
-                                                               'rest_dict',
-                                                               'resource'],
-                                                  output_names=['file_path'],
-                                                  function=get_rest,
-                                                  as_module=True),
-                                name='select_fmap_phase')
-    select_fmap_phase.inputs.rest_dict = rest_dict
-    select_fmap_phase.inputs.resource = "fmap_phase"
-    wf.connect(inputnode, 'scan', select_fmap_phase, 'scan')
-
-    s3_fmap_phase = pe.Node(function.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'dl_dir',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3,
-                                              as_module=True),
-                            name='s3_fmap_phase')
-    s3_fmap_phase.inputs.img_type = "other"
-    wf.connect(select_fmap_phase, 'file_path', s3_fmap_phase, 'file_path')
-    wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
-    wf.connect(inputnode, 'dl_dir', s3_fmap_phase, 'dl_dir')
-    wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
-
-    # field map magnitude file, for field map distortion correction
-    select_fmap_mag = pe.Node(function.Function(input_names=['scan',
-                                                             'rest_dict',
-                                                             'resource'],
-                                                output_names=['file_path'],
-                                                function=get_rest,
-                                                as_module=True),
-                              name='select_fmap_mag')
-    select_fmap_mag.inputs.rest_dict = rest_dict
-    select_fmap_mag.inputs.resource = "fmap_mag"
-    wf.connect(inputnode, 'scan', select_fmap_mag, 'scan')
-
-    s3_fmap_mag = pe.Node(function.Function(input_names=['file_path',
-                                                         'creds_path',
-                                                         'dl_dir',
-                                                         'img_type'],
-                                            output_names=['local_path'],
-                                            function=check_for_s3,
-                                            as_module=True),
-                          name='s3_fmap_mag')
-    s3_fmap_mag.inputs.img_type = "other"
-    wf.connect(select_fmap_mag, 'file_path', s3_fmap_mag, 'file_path')
-    wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
-    wf.connect(inputnode, 'dl_dir', s3_fmap_mag, 'dl_dir')
-    wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
-
     return wf
 
 
@@ -279,7 +227,6 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                                         'magnitude']),
                          name='outputspec')
 
-    # get the functional scan itself
     selectrest = pe.Node(function.Function(input_names=['scan',
                                                         'rest_dict',
                                                         'resource'],
@@ -339,6 +286,41 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
 
     return wf
+
+
+def get_fmap_phasediff_metadata(data_config_scan_params):
+
+    if not isinstance(data_config_scan_params, dict) and \
+            ".json" in data_config_scan_params:
+        with open(data_config_scan_params, 'r') as f:
+            data_config_scan_params = json.load(f)
+
+    echo_time = data_config_scan_params.get("EchoTime")
+    dwell_time = data_config_scan_params.get("DwellTime")
+    pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
+
+    return (echo_time, dwell_time, pe_direction)
+
+
+def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
+                                echo_time_three=None):
+
+    echo_times = [echo_time_one, echo_time_two]
+    if echo_time_three:
+        # get only the two different ones
+        echo_times = list(dict.fromkeys([echo_time_one, echo_time_two,
+                                         echo_time_three]))
+
+    # convert into milliseconds if necessary
+    # these values will/should never be more than 10ms
+    if ((echo_times[0] * 1000) < 10) and ((echo_times[1] * 1000) < 10):
+        echo_times[0] = echo_times[0] * 1000
+        echo_times[1] = echo_times[1] * 1000
+
+    deltaTE = abs(echo_times[0] - echo_times[1])
+    dwell_asym_ratio = (dwell_time / deltaTE)
+
+    return (deltaTE, dwell_asym_ratio)
 
 
 def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
@@ -805,3 +787,49 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
                 outputnode, 'con')
 
     return wf
+
+
+def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
+
+    import os, subprocess
+    import nibabel as nb    
+
+    # load func and ROI dimension
+    func_img = nb.load(in_func)
+    func_shape = func_img.shape 
+    roi_img = nb.load(in_roi)
+    roi_shape = roi_img.shape 
+
+    # check if func size = ROI size, return func and ROI; else resample using flirt 
+    if roi_shape != func_shape:
+
+        # resample func to ROI: in_file = func, reference = ROI
+        if 'func_to_ROI' in realignment: 
+            in_file = in_func
+            reference = in_roi
+            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_func = out_file
+            out_roi = in_roi
+            interp = 'trilinear'
+
+        # resample ROI to func: in_file = ROI, reference = func
+        elif 'ROI_to_func' in realignment: 
+            in_file = in_roi
+            reference = in_func
+            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_func = in_func
+            out_roi = out_file
+            interp = 'nearestneighbour'
+
+        cmd = ['flirt', '-in', in_file, 
+                '-ref', reference, 
+                '-out', out_file, 
+                '-interp', interp, 
+                '-applyxfm', '-init', identity_matrix]
+        subprocess.check_output(cmd)
+
+    else:
+        out_func = in_func
+        out_roi = in_roi
+    
+    return out_func, out_roi

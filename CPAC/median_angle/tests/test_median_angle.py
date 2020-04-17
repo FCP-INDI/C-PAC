@@ -27,6 +27,6 @@ def test_median_angle_correct():
     median_angle_orig = np.median(np.arccos(U_orig[:,0].T.dot(Y_orig)))
     median_angle_corr = np.median(np.arccos(U_orig[:,0].T.dot(Y_corr)))
     
-    print median_angle_orig*180.0/np.pi, median_angle_corr*180.0/np.pi
+    print(median_angle_orig*180.0/np.pi, median_angle_corr*180.0/np.pi)
     
     

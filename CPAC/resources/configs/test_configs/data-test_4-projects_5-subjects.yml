@@ -1,0 +1,246 @@
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025427/ses-1/anat/sub-0025427_ses-1_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025427
+  unique_id: ses-1
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025427/ses-2/anat/sub-0025427_ses-2_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025427
+  unique_id: ses-2
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-1/anat/sub-0025428_ses-1_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025428
+  unique_id: ses-1
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025428/ses-2/anat/sub-0025428_ses-2_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025428
+  unique_id: ses-2
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-1/anat/sub-0025429_ses-1_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025429
+  unique_id: ses-1
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025429/ses-2/anat/sub-0025429_ses-2_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025429
+  unique_id: ses-2
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025430/ses-1/anat/sub-0025430_ses-1_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025430
+  unique_id: ses-1
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025430/ses-2/anat/sub-0025430_ses-2_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025430
+  unique_id: ses-2
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025431/ses-1/anat/sub-0025431_ses-1_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025431
+  unique_id: ses-1
+- anat: s3://fcp-indi/data/Projects/CORR/RawDataBIDS/HNU_1/sub-0025431/ses-2/anat/sub-0025431_ses-2_run-1_T1w.nii.gz
+  site: HNU_1
+  subject_id: sub-0025431
+  unique_id: ses-2
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/func/sub-NDARAA504CRN_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/func/sub-NDARAA504CRN_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAA504CRN
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/anat/sub-NDARAA947ZG5_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/func/sub-NDARAA947ZG5_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/func/sub-NDARAA947ZG5_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAA947ZG5
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/anat/sub-NDARAB348EWR_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/func/sub-NDARAB348EWR_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/func/sub-NDARAB348EWR_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAB348EWR
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/anat/sub-NDARAB458VK9_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/func/sub-NDARAB458VK9_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/func/sub-NDARAB458VK9_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAB458VK9
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/anat/sub-NDARAB514MAJ_acq-vNavNorm_run-01_T1w.nii.gz
+  fmap:
+    epi_AP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-AP_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-AP_acq-fMRI_epi.json
+    epi_PA:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-PA_acq-fMRI_epi.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-PA_acq-fMRI_epi.json
+  func:
+    task-movieTP:
+      scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/func/sub-NDARAB514MAJ_task-movieTP_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/func/sub-NDARAB514MAJ_task-movieTP_bold.json
+  site: Site-CBIC
+  subject_id: sub-NDARAB514MAJ
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/anat/sub-A00040524_ses-NFB3_T1w.nii.gz
+  func:
+    MSIT:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-MSIT_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MSIT_bold.json
+    PEER1:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-PEER1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER1_bold.json
+    PEER2:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/fmap/sub-A00040524_ses-NFB3_magnitude1.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040524/ses-NFB3/func/sub-A00040524_ses-NFB3_task-PEER2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER2_bold.json
+  site: site-1
+  subject_id: A00040524
+  unique_id: NFB3
+- anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/anat/sub-A00040573_ses-NFB3_T1w.nii.gz
+  func:
+    MSIT:
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-MSIT_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MSIT_bold.json
+    PEER1:
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-PEER1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER1_bold.json
+    PEER2:
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040573/ses-NFB3/func/sub-A00040573_ses-NFB3_task-PEER2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER2_bold.json
+  site: site-1
+  subject_id: A00040573
+  unique_id: NFB3
+- anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/anat/sub-A00040623_ses-NFB3_T1w.nii.gz
+  func:
+    MSIT:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/func/sub-A00040623_ses-NFB3_task-MSIT_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MSIT_bold.json
+    PEER1:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/func/sub-A00040623_ses-NFB3_task-PEER1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER1_bold.json
+    PEER2:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/fmap/sub-A00040623_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040623/ses-NFB3/func/sub-A00040623_ses-NFB3_task-PEER2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER2_bold.json
+  site: site-1
+  subject_id: A00040623
+  unique_id: NFB3
+- anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/anat/sub-A00040628_ses-NFB3_T1w.nii.gz
+  func:
+    MSIT:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/func/sub-A00040628_ses-NFB3_task-MSIT_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MSIT_bold.json
+    PEER1:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/func/sub-A00040628_ses-NFB3_task-PEER1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER1_bold.json
+    PEER2:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/fmap/sub-A00040628_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040628/ses-NFB3/func/sub-A00040628_ses-NFB3_task-PEER2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER2_bold.json
+  site: site-1
+  subject_id: A00040628
+  unique_id: NFB3
+- anat: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/anat/sub-A00040640_ses-NFB3_T1w.nii.gz
+  func:
+    MSIT:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/func/sub-A00040640_ses-NFB3_task-MSIT_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-MSIT_bold.json
+    PEER1:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/func/sub-A00040640_ses-NFB3_task-PEER1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER1_bold.json
+    PEER2:
+      fmap_mag: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_magnitude1.nii.gz
+      fmap_phase: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/fmap/sub-A00040640_ses-NFB3_phasediff.nii.gz
+      scan: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/sub-A00040640/ses-NFB3/func/sub-A00040640_ses-NFB3_task-PEER2_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS/task-PEER2_bold.json
+  site: site-1
+  subject_id: A00040640
+  unique_id: NFB3
+- anat: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-1019436/ses-1/anat/sub-1019436_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_acq-1_run-1:
+      scan: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-1019436/ses-1/func/sub-1019436_ses-1_task-rest_acq-1_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/task-rest_acq-1_bold.json
+  site: KKI
+  subject_id: '1019436'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-2014113/ses-1/anat/sub-2014113_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_acq-2_run-1:
+      scan: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-2014113/ses-1/func/sub-2014113_ses-1_task-rest_acq-2_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/task-rest_acq-2_bold.json
+  site: KKI
+  subject_id: '2014113'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-3154996/ses-1/anat/sub-3154996_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_acq-2_run-1:
+      scan: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-3154996/ses-1/func/sub-3154996_ses-1_task-rest_acq-2_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/task-rest_acq-2_bold.json
+  site: KKI
+  subject_id: '3154996'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-3699991/ses-1/anat/sub-3699991_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_acq-1_run-1:
+      scan: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-3699991/ses-1/func/sub-3699991_ses-1_task-rest_acq-1_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/task-rest_acq-1_bold.json
+  site: KKI
+  subject_id: '3699991'
+  unique_id: '1'
+- anat: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-3884955/ses-1/anat/sub-3884955_ses-1_run-1_T1w.nii.gz
+  func:
+    rest_acq-2_run-1:
+      scan: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-3884955/ses-1/func/sub-3884955_ses-1_task-rest_acq-2_run-1_bold.nii.gz
+      scan_parameters: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/task-rest_acq-2_bold.json
+  site: KKI
+  subject_id: '3884955'
+  unique_id: '1'

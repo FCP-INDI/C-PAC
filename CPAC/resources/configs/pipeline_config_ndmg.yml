@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.6.1
+# Version 1.6.2
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -304,6 +304,14 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 regOption :  ['FSL']
 
 
+# ANTs parameters, if select ANTs as regOption
+ANTs_para_T1_registration: None
+
+
+# Please specify ANTs parameters,if run Functional to EPI Template Registration
+ANTs_para_EPI_registration: None
+
+
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
 # ANTS registration only.
 use_lesion_mask : [0]
@@ -424,10 +432,6 @@ brain_mask_erosion_mm : 30
 brain_erosion_mm: 0
 
 
-# Erode binarized csf tissue mask.
-seg_csf_use_erosion: False
-
-
 # Erosion proportion, if use erosion.
 # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
 # Recommend to do not use erosion in both proportion and millimeter method.
@@ -495,6 +499,18 @@ scaling_factor : 10
 runMotionStatisticsFirst : [0]
 
 
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['3dvolreg']
+
+
+# Choose motion correction reference. Options: mean, median, selected volume 
+motion_correction_reference: ['mean']
+
+
+# Choose motion correction reference volume
+motion_correction_reference_volume :  0
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -550,22 +566,6 @@ fmap_distcorr_frac : [0.5]
 # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
 # The default value is 0.5.
 fmap_distcorr_threshold :  0.6
-
-
-# Set the Delta-TE value, used for preparing field map, time delay between the first and second echo images. Default value is 2.46 ms.
-fmap_distcorr_deltaTE : [2.46]
-
-
-# Set the Dwell Time for the fugue input. This is the time between scans, default value is 0.0005s.
-fmap_distcorr_dwell_time : [0.0005]
-
-
-# Set the asymmetric ratio value for FSL Fugue input.
-fmap_distcorr_dwell_asym_ratio : [0.93902439]
-
-
-# Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir :  x
 
 
 # Run Functional to EPI Template Registration
@@ -630,13 +630,10 @@ functionalMasking :  ['AFNI']
 anatomical_mask_dilation : False
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction : ['AFNI']
-
-
-# Register functional images to a standard MNI152 template.
+# Run Functional to Template Registration
 # This option must be enabled if you wish to calculate any derivatives.
-runRegisterFuncToMNI :  [1]
+# Options: ['T1_template', 'EPI_template', 'Off']
+runRegisterFuncToTemplate :  ['T1_template']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
@@ -723,6 +720,16 @@ targetAngleDeg : [90]
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
 runROITimeseries :  [1]
+
+
+# Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
+# 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
+# 'func_to_ROI' will realign the functional time series to the atlas/ROI space
+#
+#     NOTE: in rare cases, realigning the ROI to the functional space may
+#           result in small misalignments for very small ROIs - please double
+#           check your data if you see issues
+realignment : ['ROI_to_func']
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.

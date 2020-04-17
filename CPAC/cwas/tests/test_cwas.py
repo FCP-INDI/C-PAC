@@ -23,13 +23,13 @@ class RegressionTester(object):
         self.formula = formula
     
     def run(self):
-        print "Python-Based CWAS"
+        print("Python-Based CWAS")
         self.run_cwas()
         
-        print "R-Based CWAS"
+        print("R-Based CWAS")
         self.run_connectir()
         
-        print "Compare Python and R"
+        print("Compare Python and R")
         self.compare_py_vs_r()
     
     def run_cwas(self):
@@ -100,7 +100,7 @@ class RegressionTester(object):
         start = time.clock()
         c.run(plugin='MultiProc', plugin_args={'n_procs' : 4})
         end = time.clock()
-        print "time: %.2gs" % (end-start)
+        print("time: %.2gs" % (end-start))
 
     def run_connectir(self):
         """
@@ -111,18 +111,18 @@ class RegressionTester(object):
         
         start = time.clock()
     
-        print "Subject Distances"
+        print("Subject Distances")
         cmd = "connectir_subdist.R --infuncs1 %(basedir)s/configs/%(outbase)s_funcpaths_4mm.txt --brainmask1 %(basedir)s/results_%(outbase)s.py/cwas/joint_mask/joint_mask.nii.gz --bg %(basedir)s/rois/standard_4mm.nii.gz --memlimit 12 --forks 1 --threads 12 %(basedir)s/results_%(outbase)s.r" % {'basedir': self.base, 'outbase': self.name}
-        print "RUNNING: %s" % cmd
+        print("RUNNING: %s" % cmd)
         os.system(cmd)
 
-        print "MDMR"
+        print("MDMR")
         cmd = "connectir_mdmr.R --indir %(basedir)s/results_%(outbase)s.r --formula '%(formula)s' --model %(basedir)s/configs/%(outbase)s_model.csv --permutations %(nperms)s --factors2perm '%(factor)s' --save-perms --memlimit 12 --forks 1 --threads 12 %(factor)s.mdmr" % {'basedir': self.base, 'outbase': self.name, 'formula': self.formula, 'factor': self.factor, 'nperms': 1000}
-        print "RUNNING: %s" % cmd
+        print("RUNNING: %s" % cmd)
         os.system(cmd)
     
         end = time.clock()
-        print "time: %.2gs" % (end-start)
+        print("time: %.2gs" % (end-start))
 
     def compare_py_vs_r(self):
         """
@@ -218,7 +218,7 @@ class RegressionTester(object):
         comp = abs(py_ps - r_ps[inds_r2py]).mean() < 0.05
         assert_that(comp, "p-values difference")
         
-        print "tests were all good"
+        print("tests were all good")
     
     
 

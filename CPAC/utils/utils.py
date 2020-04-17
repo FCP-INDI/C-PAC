@@ -1,8 +1,11 @@
 import os
 import fnmatch
+import gzip
 import numbers
+import pickle
 import threading
 import numpy as np
+
 from inspect import currentframe, getframeinfo , stack
 
 
@@ -225,7 +228,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import numpy as np
     import os
 
-    if isinstance(timeseries_one_d, basestring):
+    if isinstance(timeseries_one_d, str):
         if '.1D' in timeseries_one_d or '.csv' in timeseries_one_d:
             timeseries_file = timeseries_one_d
 
@@ -294,11 +297,11 @@ def get_roi_num_list(timeseries_file, prefix=None):
     for line in roi_file_lines:
         if "Mean_" in line:
             try:
-                roi_list = line.split("\t")
+                roi_list = line.split(",")
                 # clear out any blank strings/non ROI labels in the list
                 roi_list = [x for x in roi_list if "Mean" in x]
                 # rename labels
-                roi_list = [x.replace("Mean", "ROI").replace(" ", "") \
+                roi_list = [x.replace("Mean", "ROI").replace(" ", "").replace("#", "") \
                             for x in roi_list]
             except:
                 raise Exception(roi_err)
@@ -341,7 +344,7 @@ def safe_shape(*vol_data):
 
 
 def extract_one_d(list_timeseries):
-    if isinstance(list_timeseries, basestring):
+    if isinstance(list_timeseries, str):
         if '.1D' in list_timeseries or '.csv' in list_timeseries:
             return list_timeseries
 
@@ -358,7 +361,7 @@ def extract_txt(list_timeseries):
     Method to extract txt file containing
     roi timeseries required for dual regression
     """
-    if isinstance(list_timeseries, basestring):
+    if isinstance(list_timeseries, str):
         if list_timeseries.endswith('.txt'):
             return list_timeseries
 
@@ -394,14 +397,14 @@ def correlation(matrix1, matrix2,
         assert matrix1.shape == matrix2.shape
 
     var = np.sqrt(d1 * d2)
-    
+
     if not z_scored:
         matrix1 = zscore(matrix1, matrix1.ndim - 1)
         matrix2 = zscore(matrix2, matrix2.ndim - 1)
 
     if match_rows:
         return np.einsum('...i,...i', matrix1, matrix2) / var
-    
+
     if matrix1.ndim >= matrix2.ndim:
         r = np.dot(matrix1, matrix2.T) / var
     else:
@@ -411,9 +414,9 @@ def correlation(matrix1, matrix2,
 
     if symmetric:
         return (r + r.T) / 2
-    
+
     return r
-    
+
 
 def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
 
@@ -466,16 +469,16 @@ def check_random_state(seed):
 
 
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
-    
+
     scan_parameters = dict(
         (k.lower(), v)
-        for k, v in scan_parameters.iteritems()
+        for k, v in scan_parameters.items()
     )
 
     for key in keys:
 
         key = key.lower()
-        
+
         if key not in scan_parameters:
             continue
 
@@ -587,8 +590,8 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
             TR = float(
                 try_fetch_parameter(
                     params_dct,
-                    subject_id, 
-                    scan, 
+                    subject_id,
+                    scan,
                     ['TR', 'RepetitionTime']
                 )
             )
@@ -601,7 +604,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                     ['acquisition', 'SliceTiming', 'SliceAcquisitionOrder']
                 )
             )
-            
+
             ref_slice = check(params_dct, subject_id, scan, 'reference',
                               False)
             if ref_slice:
@@ -746,7 +749,7 @@ def get_tr(tr):
     """
     import re
     if tr:
-        tr = re.search("\d+.\d+", str(tr)).group(0)
+        tr = re.search(r"\d+.\d+", str(tr)).group(0)
         tr = float(tr)
         if tr > 10:
             tr = tr / 1000.0
@@ -798,7 +801,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     import os
     import time
     import datetime
-    
+
     from CPAC import __version__
     from nipype import logging
 
@@ -950,7 +953,7 @@ def create_log(wf_name="log", scan_id=None):
 
     return wf
 
-  
+
 def pick_wm(seg_prob_list):
     seg_prob_list.sort()
     return seg_prob_list[-1]
@@ -1075,15 +1078,15 @@ def create_output_mean_csv(subject_dir):
                         val = mean_file.readline()
                         val = val.strip('\n')
                     except:
-                        print '\n\n[!] CPAC says: Could not open the output ' \
-                              'mean text file.\n'
-                        print 'Path: ', filepath, '\n\n'
+                        print('\n\n[!] CPAC says: Could not open the output ' \
+                              'mean text file.\n')
+                        print('Path: ', filepath, '\n\n')
                         raise Exception
 
                 else:
-                    print '\n\n[!] CPAC says: Could not find the output mean ' \
-                          'text file.\n'
-                    print 'Path not found: ', filepath, '\n\n'
+                    print('\n\n[!] CPAC says: Could not find the output mean ' \
+                          'text file.\n')
+                    print('Path not found: ', filepath, '\n\n')
                     raise Exception
 
                 output_vals[output] = val
@@ -1138,7 +1141,7 @@ def check_system_deps(check_ants=False,
     if check_centrality_lfcd:
         if not check_command_path("3dLFCD"):
             missing_install.append("3dLFCD")
-        
+
     # Check ICA-AROMA
     if check_ica_aroma:
         if not check_command_path("ICA_AROMA.py"):
@@ -1151,7 +1154,6 @@ def check_system_deps(check_ants=False,
             missing_string = missing_string + string + "\n"
         err = "\n\n[!] CPAC says: It appears the following software " \
               "packages are not installed or configured properly:\n\n%s\n" \
-              "Consult the CPAC Installation Guide for instructions.\n\n" \
               % missing_string
         raise Exception(err)
 
@@ -1254,3 +1256,113 @@ def load_preconfig(pipeline_label):
     print("Running the '{0}' pre-configured pipeline.".format(pipeline_label))
 
     return pipeline_file
+
+
+def ordereddict_to_dict(value):
+
+    import yamlordereddictloader
+
+    '''
+    this function convert ordereddict into regular dict
+    '''
+    for k, v in value.items():
+        if isinstance(v, dict):
+            value[k] = ordereddict_to_dict(v)
+    return dict(value)
+
+
+def repickle(directory):
+    """
+    Function to check all of the pickles in a given directory, recursively, and
+    convert any Python 2 pickles found to Python 3 pickles.
+
+    Parameters
+    ----------
+    directory: str
+
+    Returns
+    -------
+    None
+    """
+    for root, dirs, files in os.walk(directory, followlinks=True):
+        for fn in files:
+            p = os.path.join(root, fn)
+            if fn.endswith(".pkl"):
+                if _pickle2(p):
+                    try:
+                        with open(p, 'rb') as fp:
+                            f = pickle.load(fp, encoding='latin1')
+                        with open(p, 'wb') as fp:
+                            pickle.dump(f, fp)
+                        print(
+                            f"Converted pickle {fn} from a Python 2 pickle to "
+                            "a Python 3 pickle."
+                        )
+                    except Exception as e:
+                        print(
+                            f"Could not convert Python 2 pickle {p} because {e}"
+                            "\n"
+                        )
+                else:
+                    print(f"Pickle {fn} is a Python 3 pickle.")
+            elif fn.endswith(".pklz"):
+                if _pickle2(p, True):
+                    try:
+                        with gzip.open(p, 'rb') as fp:
+                            f = pickle.load(fp, encoding='latin1')
+                        with gzip.open(p, 'wb') as fp:
+                            pickle.dump(f, fp)
+                        print(
+                            f"Converted pickle {fn} from a Python 2 pickle to "
+                            "a Python 3 pickle."
+                        )
+                    except Exception as e:
+                        print(
+                            f"Could not convert Python 2 pickle {p} because {e}"
+                            "\n"
+                        )
+                else:
+                    print(f"Pickle {fn} is a Python 3 pickle.")
+
+
+def _pickle2(p, z=False):
+    """
+    Helper function to check if a pickle is a Python 2 pickle. Also prints
+    other exceptions raised by trying to load the file at p.
+
+    Parameters
+    ----------
+    p: str
+        path to pickle
+
+    z: bool
+        if pickle is gzipped
+
+    Returns
+    -------
+    pickle2: bool
+        True if p is a Python 2 pickle
+    """
+    if z:
+        with gzip.open(p, 'rb') as fp:
+            try:
+                f = pickle.load(fp)
+            except UnicodeDecodeError:
+                return(True)
+            except Exception as e:
+                print(
+                    f"Pickle {p} may be a Python 3 pickle, but raised "
+                    f"exception {e}"
+                )
+    else:
+        with open(p, 'rb') as fp:
+            try:
+                f = pickle.load(fp)
+            except UnicodeDecodeError:
+                return(True)
+            except Exception as e:
+                print(
+                    f"Pickle {p} may be a Python 3 pickle, but raised "
+                    f"exception {e}"
+                )
+    return(False)

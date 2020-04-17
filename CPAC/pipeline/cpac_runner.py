@@ -1,12 +1,12 @@
 import os
-import time
 import warnings
 from multiprocessing import Process
 from time import strftime
 
 import yaml
+import yamlordereddictloader
 
-from CPAC.utils import Configuration
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
 
 
@@ -16,11 +16,11 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     '''
 
     # Import packages
-    import commands
+    import subprocess
     from time import strftime
 
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception("Subject list is not in proper YAML format. Please check your file")
 
@@ -28,24 +28,23 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     subject_bash_file = os.path.join(cluster_files_dir, 'submit_%s.condor' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     f = open(subject_bash_file, 'w')
 
-    print >>f, "Executable = /usr/bin/python"
-    print >>f, "Universe = vanilla"
-    print >>f, "transfer_executable = False"
-    print >>f, "getenv = True"
-    print >>f, "log = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S")))
+    print("Executable = /usr/bin/python", file=f)
+    print("Universe = vanilla", file=f)
+    print("transfer_executable = False", file=f)
+    print("getenv = True", file=f)
+    print("log = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S"))), file=f)
 
-    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     for sidx in range(1,len(sublist)+1):
-        print >>f, "error = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
-        print >>f, "output = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
+        print("error = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx))), file=f)
+        print("output = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx))), file=f)
 
-        print >>f, "arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
-        print >>f, "queue"
+        print("arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name), file=f)
+        print("queue", file=f)
 
     f.close()
 
     #commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput("condor_submit %s " % (subject_bash_file))
+    print(subprocess.getoutput("condor_submit %s " % (subject_bash_file)))
 
 
 # Create and run script for CPAC to run on cluster
@@ -57,7 +56,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
     '''
 
     # Import packages
-    import commands
+    import subprocess
     import getpass
     import re
     from time import strftime
@@ -67,14 +66,14 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
     # Load in pipeline config
     try:
-        pipeline_dict = yaml.load(open(os.path.realpath(config_file), 'r'))
+        pipeline_dict = yaml.safe_load(open(os.path.realpath(config_file), 'r'))
         pipeline_config = Configuration(pipeline_dict)
     except:
         raise Exception('Pipeline config is not in proper YAML format. '\
                         'Please check your file')
     # Load in the subject list
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception('Subject list is not in proper YAML format. '\
                         'Please check your file')
@@ -88,7 +87,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
     time_limit = '%d:00:00' % hrs_limit
 
     # Batch file variables
-    shell = commands.getoutput('echo $SHELL')
+    shell = subprocess.getoutput('echo $SHELL')
     user_account = getpass.getuser()
     num_subs = len(sublist)
 
@@ -151,7 +150,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
         f.write(batch_file_contents)
 
     # Get output response from job submission
-    out = commands.getoutput('%s %s' % (exec_cmd, batch_filepath))
+    out = subprocess.getoutput('%s %s' % (exec_cmd, batch_filepath))
 
     # Check for successful qsub submission
     if re.search(confirm_str, out) == None:
@@ -171,12 +170,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False, test_config=False):
 
     # Import packages
-    import commands
+    import subprocess
     import os
     import pickle
     import time
 
-    from CPAC.pipeline.cpac_pipeline import prep_workflow
+    from CPAC.pipeline.cpac_pipeline import run_workflow
 
     print('Run called with config file {0}'.format(config_file))
 
@@ -190,7 +189,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
     # Init variables
     sublist = None
-    config_file = os.path.realpath(config_file)
     if '.yaml' in subject_list_file or '.yml' in subject_list_file:
         subject_list_file = os.path.realpath(subject_list_file)
     else:
@@ -210,13 +208,14 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     pipeline_start_stamp = strftime("%Y-%m-%d_%H:%M:%S")
 
     # Load in pipeline config file
+    config_file = os.path.realpath(config_file)
     try:
         if not os.path.exists(config_file):
             raise IOError
         else:
-            c = Configuration(yaml.load(open(config_file, 'r')))
+            c = Configuration(yaml.safe_load(open(config_file, 'r')))
     except IOError:
-        print "config file %s doesn't exist" % config_file
+        print("config file %s doesn't exist" % config_file)
         raise
     except yaml.parser.ParserError as e:
         error_detail = "\"%s\" at line %d" % (
@@ -267,11 +266,10 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     # Load in subject list
     try:
         if not sublist:
-            with open(subject_list_file, 'r') as sf:
-                sublist = yaml.load(sf)
+            sublist = yaml.safe_load(open(subject_list_file, 'r'))
     except:
-        print "Subject list is not in proper YAML format. Please check " \
-              "your file"
+        print("Subject list is not in proper YAML format. Please check " \
+              "your file")
         raise Exception
 
     # Populate subject scan map
@@ -294,9 +292,9 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
             sub_scan_map[s] = scan_ids
     except:
-        print "\n\n" + "ERROR: Subject list file not in proper format - " \
+        print("\n\n" + "ERROR: Subject list file not in proper format - " \
               "check if you loaded the correct file?" + "\n" + \
-              "Error name: cpac_runner_0001" + "\n\n"
+              "Error name: cpac_runner_0001" + "\n\n")
         raise Exception
 
     pipeline_timing_info = []
@@ -340,10 +338,10 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         # If it only allows one, run it linearly
         if c.numParticipantsAtOnce == 1:
             for sub in sublist:
-                prep_workflow(sub, c, True, pipeline_timing_info,
+                run_workflow(sub, c, True, pipeline_timing_info,
                               p_name, plugin, plugin_args, test_config)
             return
-                
+
         pid = open(os.path.join(c.workingDirectory, 'pid.txt'), 'w')
 
         # Init job queue
@@ -351,7 +349,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
         # Allocate processes
         processes = [
-            Process(target=prep_workflow,
+            Process(target=run_workflow,
                     args=(sub, c, True, pipeline_timing_info,
                           p_name, plugin, plugin_args, test_config))
             for sub in sublist
@@ -361,7 +359,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         if len(sublist) <= c.numParticipantsAtOnce:
             for p in processes:
                 p.start()
-                print >>pid, p.pid
+                print(p.pid, file=pid)
 
         # Otherwise manage resources to run processes incrementally
         else:
@@ -374,7 +372,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     # Launch processes (one for each subject)
                     for p in processes[idc: idc+c.numParticipantsAtOnce]:
                         p.start()
-                        print >>pid, p.pid
+                        print(p.pid, file=pid)
                         job_queue.append(p)
                         idx += 1
                 # Otherwise, jobs are running - check them
@@ -384,7 +382,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                         # If the job is not alive
                         if not job.is_alive():
                             # Find job and delete it from queue
-                            print 'found dead job ', job
+                            print('found dead job ', job)
                             loc = job_queue.index(job)
                             del job_queue[loc]
                             # ...and start the next available process

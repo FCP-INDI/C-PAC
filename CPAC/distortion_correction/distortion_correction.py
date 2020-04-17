@@ -91,8 +91,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
 
     inputNode_afni_threshold = pe.Node(util.IdentityInterface(fields=['afni_threshold']),
         name='afni_threshold_input')
-    
-    
+
     outputNode = pe.Node(util.IdentityInterface(fields=['fieldmap',
                                                         'fmap_despiked',
                                                         'fmapmagbrain',
@@ -101,7 +100,11 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     
     # Skull-strip, outputs a masked image file
     if use_BET == False:
-        skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac'],output_names=['expr'],function=createAFNIiterable),name='distcorr_skullstrip_arg')
+        skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac'],
+                                                output_names=['expr'],
+                                                function=createAFNIiterable),
+                                  name='distcorr_skullstrip_arg')
+
         preproc.connect(inputNode_afni_threshold,'afni_threshold',skullstrip_args,'shrink_fac')
 
         bet = pe.Node(interface=afni.SkullStrip(),name='bet')
@@ -267,6 +270,7 @@ def blip_distcor_wf(wf_name='blip_distcor'):
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['blip_warp',
+                                                         'blip_warp_inverse',
                                                          'new_func_mean',
                                                          'new_func_mask']),
                           name='outputspec')
@@ -314,6 +318,9 @@ def blip_distcor_wf(wf_name='blip_distcor'):
 
     wf.connect(calc_blip_warp, 'source_warp', convert_afni_warp, 'afni_warp')
 
+    # TODO: inverse source_warp (node:source_warp_inverse)
+        # wf.connect(###
+                # output_node, 'blip_warp_inverse')
 
     undistort_func_mean = pe.Node(interface=ants.ApplyTransforms(),
                               name='undistort_func_mean', mem_gb=.1)
@@ -336,7 +343,9 @@ def blip_distcor_wf(wf_name='blip_distcor'):
     wf.connect(undistort_func_mean, 'output_image',
                create_new_mask, 'inputspec.func')
 
-    wf.connect(convert_afni_warp, 'ants_warp', output_node, 'blip_warp')
+    wf.connect(convert_afni_warp, 'ants_warp', 
+                output_node, 'blip_warp')
+
     wf.connect(undistort_func_mean, 'output_image',
                output_node, 'new_func_mean')
     wf.connect(create_new_mask, 'outputspec.func_brain_mask',
