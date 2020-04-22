@@ -8,7 +8,7 @@ import yamlordereddictloader
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
-
+from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_workflow
 
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
@@ -271,6 +271,107 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         print("Subject list is not in proper YAML format. Please check " \
               "your file")
         raise Exception
+    
+    # BEGIN LONGITUDINAL TEMPLATE PIPELINE
+    if hasattr(c, 'gen_custom_template') and c.gen_custom_template:
+        subject_id_dict = {}
+        for sub in sublist:
+            if sub['subject_id'] in subject_id_dict:
+                subject_id_dict[sub['subject_id']].append(sub)
+            else:
+                subject_id_dict[sub['subject_id']] = [sub]
+        # subject_id_dict has the subject_id as keys and a list of sessions for
+        # each participant as value
+        for subject_id, sub_list in subject_id_dict.items():
+            # TODO debug - node created before working dir created
+            anat_longitudinal_workflow(sub_list, subject_id, c)
+
+        rsc_file_list = []
+        for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
+            for f in filenames:
+                # Thanks Apple, you're the best.
+                if f != '.DS_Store':
+                    rsc_file_list.append(os.path.join(dirpath, f))
+
+        subject_specific_dict = {subj: [] for subj in subject_id_dict.keys()}
+        session_specific_dict = {os.path.join(session['subject_id'], session['unique_id']): [] for session in sublist}
+        for rsc_path in rsc_file_list:
+            key = [s for s in session_specific_dict.keys() if s in rsc_path]
+            if key:
+                session_specific_dict[key[0]].append(rsc_path)
+            else:
+                subj = [s for s in subject_specific_dict.keys() if s in rsc_path]
+                if subj:
+                    subject_specific_dict[subj[0]].append(rsc_path)
+
+        for key in session_specific_dict.keys():
+            for f in session_specific_dict[key]:
+                ses_list = [subj for subj in sublist if key in subj['anat']]
+                if len(ses_list) > 1:
+                    raise Exception("There are several files containing " + f)
+                if len(ses_list) == 1:
+                    ses = ses_list[0]
+                    subj_id = ses['subject_id']
+                    tmp = f.split(c.outputDirectory)[-1]
+                    keys = tmp.split(os.sep)
+                    if keys[0] == '':
+                        keys = keys[1:]
+                    print(keys)
+                    print(len(keys))
+                    if len(keys) > 1:
+                        if ses.get('resource_pool') is None:
+                            ses['resource_pool'] = {
+                                keys[0].split(c.pipelineName + '_')[-1]: {
+                                    keys[-2]: f
+                                }
+                            }
+                        else:
+                            strat_key = keys[0].split(c.pipelineName + '_')[-1]
+                            if ses['resource_pool'].get(strat_key) is None:
+                                ses['resource_pool'].update({
+                                    strat_key: {
+                                        keys[-2]: f
+                                    }
+                                })
+                            else:
+                                ses['resource_pool'][strat_key].update({
+                                        keys[-2]: f
+                                    })
+
+        for key in subject_specific_dict:
+            for f in subject_specific_dict[key]:
+                ses_list = [subj for subj in sublist if key in subj['anat']]
+                for ses in ses_list:
+                    tmp = f.split(c.outputDirectory)[-1]
+                    keys = tmp.split(os.sep)
+                    if keys[0] == '':
+                        keys = keys[1:]
+                    if len(keys) > 1:
+                        if ses.get('resource_pool') is None:
+                            ses['resource_pool'] = {
+                                keys[0].split(c.pipelineName + '_')[-1]: {
+                                    keys[-2]: f
+                                }
+                            }
+                        else:
+                            strat_key = keys[0].split(c.pipelineName + '_')[-1]
+                            if ses['resource_pool'].get(strat_key) is None:
+                                ses['resource_pool'].update({
+                                    strat_key: {
+                                        keys[-2]: f
+                                    }
+                                })
+                            else:
+                                ses['resource_pool'][strat_key].update({
+                                        keys[-2]: f
+                                    })
+        import pdb; pdb.set_trace()
+        yaml.dump(sublist, open('/outputs/output/data_config_long_reg.yml', 'w'), default_flow_style=False)
+
+        import sys
+        sys.exit()
+
+    # END LONGITUDINAL TEMPLATE PIPELINE
 
     # Populate subject scan map
     sub_scan_map = {}

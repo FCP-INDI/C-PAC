@@ -9,7 +9,7 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
-
+# TODO XL drop method and already_skullstripped args
 def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc'):
     """The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image
@@ -82,15 +82,18 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
     preproc = pe.Workflow(name=wf_name)
 
-    inputnode = pe.Node(util.IdentityInterface(
-        fields=['anat', 'brain_mask']), name='inputspec')
+    inputnode = pe.Node(util.IdentityInterface(fields=['anat', 
+                                                       'brain_mask', 
+                                                       'template_cmass']), 
+                        name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['refit',
                                                         'reorient',
                                                         'skullstrip',
                                                         'brain',
-                                                        'brain_mask']),
-                         name='outputspec')
+                                                        'brain_mask',
+                                                        'center_of_mass']),
+                        name='outputspec')
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
                              name='anat_deoblique')
@@ -130,7 +133,27 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
     else:
         preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
 
-    preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
+    # TODO XL review forking 
+    if 1 in config.gen_custom_template:
+        anat_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
+        anat_align_cmass.inputs.cm_file = os.path.join(
+            os.getcwd(), "center_of_mass.txt")
+        preproc.connect(anat_reorient, 'out_file', anat_align_cmass, 'in_file')
+        # have to hardcode that because nipype CenterMass outputs a list of tuples
+        # but the set_cm option take a tuple as input
+        patch = pe.Node(util.Function(input_names=['lst'],
+                        output_names=['tuple'],
+                        function=patch_cmass_output),
+                        name='patch_cmass')
+        preproc.connect(inputnode, 'template_cmass', patch, 'lst')
+        preproc.connect(patch, 'tuple', anat_align_cmass, 'set_cm')
+        # anat_align_cmass.inputs.set_cm = inputnode.inputs.template_cmass
+        preproc.connect(anat_align_cmass, 'cm',
+                        outputnode, 'center_of_mass')
+        # Just add the alignment to the output image
+        preproc.connect(anat_align_cmass, 'out_file', outputnode, 'reorient')
+    else:
+        preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
 
     if already_skullstripped:
 

@@ -659,7 +659,6 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
     return register_func_to_epi
 
 
-# TODO: refactor - change anatomical brain/skull to input brain/skull
 def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_threads=1, reg_ants_skull=1):
 
     '''
@@ -703,7 +702,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
     
     Workflow Inputs::
     
-        inputspec.anatomical_brain : string (nifti file)
+        inputspec.moving_brain : string (nifti file)
             File of brain to be normalized (registered)
         inputspec.reference_brain : string (nifti file)
             Target brain file to normalize to
