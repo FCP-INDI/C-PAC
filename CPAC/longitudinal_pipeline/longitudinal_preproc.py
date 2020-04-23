@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import ntpath
+# import ntpath
 import numpy as np
 import six
 from multiprocessing.dummy import Pool as ThreadPool
@@ -201,11 +201,11 @@ def register_img_list(img_list, ref_img, output_folder, dof=12,
     if not img_list:
         raise ValueError('ERROR register_img_list: image list is empty')
 
-    output_img_list = [os.path.join(output_folder, ntpath.basename(img))
+    output_img_list = [os.path.join(output_folder, os.path.basename(img))
                        for img in img_list]
 
     output_mat_list = [os.path.join(output_folder,
-                                    str(ntpath.basename(img).split('.')[0])
+                                    str(os.path.basename(img).split('.')[0])
                                     + '.mat')
                        for img in img_list]
 
@@ -306,7 +306,7 @@ def template_creation_flirt(img_list, output_folder,
 
     final_warp_list = []
     final_warp_list_filenames = [os.path.join(
-        output_folder, str(ntpath.basename(img).split('.')[0]) + 'anat_to_template.mat') for img in img_list]
+        output_folder, str(os.path.basename(img).split('.')[0]) + 'anat_to_template.mat') for img in img_list]
 
     # I added this part because it is mentioned in the paper but I actually never used it
     # You could run a first register_img_list() with a selected image as starting point and
@@ -350,7 +350,8 @@ def template_creation_flirt(img_list, output_folder,
             concat = ConvertXFM()
             concat.inputs.in_file = final_warp_list[index]
             concat.inputs.invert_xfm = True
-            concat.inputs.in_file2 = mat_list[index]
+            concat.inputs.in_file2 = mat_list[index] # TODO figure out why? 
+            concat.inputs.concat_xfm = True
             concat.inputs.out_file = final_warp_list_filenames[index]
             concat.run()
             final_warp_list[index] = concat.out_file
