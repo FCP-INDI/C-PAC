@@ -870,7 +870,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
         calc_ants_warp_wf.connect(inputspec, 'reference_skull',
                 calculate_ants_warp, 'reference_skull')
 
-    else: 
+    else:
         calc_ants_warp_wf.connect(inputspec, 'moving_brain',
                 calculate_ants_warp, 'moving_skull')
 

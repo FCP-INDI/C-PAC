@@ -127,7 +127,7 @@ def template_convergence(mat_file, mat_type='matrix',
         raise ValueError("ERROR template_convergence: this matrix type does " +
                          "not exist")
     distance = norm_transformations(translation, oth_transform)
-    print(str(abs(distance)) + ' | '),
+    print("distance = " + str(abs(distance)) + ' | ')
 
     return abs(distance) <= convergence_threshold
 
@@ -164,19 +164,16 @@ def create_temporary_template(img_list, out_path, avg_method='median'):
     return out_path
 
 
-def register_img_list(img_list, ref_img, output_folder, dof=12,
+def register_img_list(img_list, ref_img, dof=12,
                       interp='trilinear', cost='corratio', thread_pool=2):
     """
-    Register a list of images to the reference image. The registered images are
-    stored in output_folder.
+    Register a list of images to the reference image.
     Parameters
     ----------
     img_list: list of str
         list of images paths
     ref_img: str
         path to the reference image to which the images will be registered
-    output_folder: str
-        path to the output directory
     dof: integer (int of long)
         number of transform degrees of freedom (FLIRT) (12 by default)
     interp: str
@@ -201,10 +198,10 @@ def register_img_list(img_list, ref_img, output_folder, dof=12,
     if not img_list:
         raise ValueError('ERROR register_img_list: image list is empty')
 
-    output_img_list = [os.path.join(output_folder, os.path.basename(img))
+    output_img_list = [os.path.join(os.getcwd(), os.path.basename(img))
                        for img in img_list]
 
-    output_mat_list = [os.path.join(output_folder,
+    output_mat_list = [os.path.join(os.getcwd(),
                                     str(os.path.basename(img).split('.')[0])
                                     + '.mat')
                        for img in img_list]
@@ -239,19 +236,14 @@ def register_img_list(img_list, ref_img, output_folder, dof=12,
     return node_list
 
 
-def template_creation_flirt(img_list, output_folder,
-                            init_reg=None, avg_method='median', dof=12,
-                            interp='trilinear', cost='corratio',
-                            mat_type='matrix',
-                            convergence_threshold=-1,
-                            thread_pool=2):
+def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12,
+                            interp='trilinear', cost='corratio', mat_type='matrix',
+                            convergence_threshold=-1, thread_pool=2):
     """
     Parameters
     ----------
     img_list : list of str
         list of images paths
-    output_folder: str
-        path to the output folder (the folder must already exist)
     init_reg : list of Node
         (default None so no initial registration performed)
         the output of the function register_img_list with another reference
@@ -306,7 +298,7 @@ def template_creation_flirt(img_list, output_folder,
 
     final_warp_list = []
     final_warp_list_filenames = [os.path.join(
-        output_folder, str(os.path.basename(img).split('.')[0]) + 'anat_to_template.mat') for img in img_list]
+        os.getcwd(), str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in img_list]
 
     # I added this part because it is mentioned in the paper but I actually never used it
     # You could run a first register_img_list() with a selected image as starting point and
@@ -326,7 +318,7 @@ def template_creation_flirt(img_list, output_folder,
         image_list = img_list
         converged = False
 
-    tmp_template = os.path.join(output_folder, 'tmp_template.nii.gz')
+    tmp_template = os.path.join(os.getcwd(), 'tmp_template.nii.gz')
 
     """ First is calculated an average image of the dataset to be the temporary template
     and the loop stops when this temporary template is close enough (with a transformation
@@ -338,7 +330,6 @@ def template_creation_flirt(img_list, output_folder,
                                                  avg_method=avg_method)
         reg_list_node = register_img_list(image_list,
                                           ref_img=tmp_template,
-                                          output_folder=output_folder,
                                           dof=dof,
                                           interp=interp,
                                           cost=cost)
@@ -347,14 +338,9 @@ def template_creation_flirt(img_list, output_folder,
         if len(final_warp_list) == 0:
             final_warp_list = mat_list
         for index, mat in enumerate(mat_list):
-            concat = ConvertXFM()
-            concat.inputs.in_file = final_warp_list[index]
-            concat.inputs.invert_xfm = True
-            concat.inputs.in_file2 = mat_list[index] # TODO figure out why? 
-            concat.inputs.concat_xfm = True
-            concat.inputs.out_file = final_warp_list_filenames[index]
-            concat.run()
-            final_warp_list[index] = concat.out_file
+            cmd = "convert_xfm -omat %s -inverse %s" % (final_warp_list_filenames[index], final_warp_list[index])
+            os.system(cmd)
+            final_warp_list[index] = final_warp_list_filenames[index]
 
         image_list = [node.inputs.out_file for node in reg_list_node]
         # test if every transformation matrix has reached the convergence
@@ -397,13 +383,17 @@ def subject_specific_template(workflow_name='subject_specific_template',
         template_gen_node = pe.Node(
             util.Function(
                 input_names=[
-                    'img_list', 'output_folder',
-                    'init_reg', 'avg_method', 'dof',
-                    'interp', 'cost',
+                    'img_list',
+                    'init_reg', 
+                    'avg_method', 
+                    'dof',
+                    'interp', 
+                    'cost',
                     'mat_type',
                     'convergence_threshold',
                     'thread_pool'],
-                output_names=['template', 'final_warp_list'],
+                output_names=['template', 
+                    'final_warp_list'],
                 imports=imports,
                 function=template_creation_flirt
             ),
