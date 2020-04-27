@@ -2507,8 +2507,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         err_msg = '\n\n[!] C-PAC says: \n'\
                             "You have selected \'regOption: [{0}]\' and \'runRegisterFuncToTemplate :  ['{1}']\'. \n"\
                                  'However, no EPI-to-template ANTs parameters were specified. ' \
-                                    'Please specify ANTs parameters properly and try again'.format(str(c.c.regOption,
-                                                                                                       c.runRegisterFuncToTemplate))
+                                    'Please specify ANTs parameters properly and try again'.format(str(c.regOption),
+                                                                                                   str(c.runRegisterFuncToTemplate))
                         raise Exception(err_msg)
                     else:
                         func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
