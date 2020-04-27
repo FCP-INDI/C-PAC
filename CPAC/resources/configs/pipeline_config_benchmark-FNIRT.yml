@@ -696,6 +696,19 @@ Regressors :
 
    GlobalSignal:
      summary: Mean
+
+ - Motion:
+     include_delayed: true
+     include_squared: false
+     include_delayed_squared: false
+
+   Censor:
+     method: Kill
+     thresholds:
+      - type: FD_P
+        value: 0.3
+     number_of_previous_trs_to_censor: 1
+     number_of_subsequent_trs_to_censor: 1
      
 
 # Whether to run frequency filtering before or after nuisance regression.
