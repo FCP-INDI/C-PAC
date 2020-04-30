@@ -9,7 +9,24 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
-# TODO XL drop method and already_skullstripped args
+def patch_cmass_output(lst, index=0):
+    """
+    Parameters
+    ----------
+    lst : list of tuples
+        output of afni.CenterMass()
+    index : int
+        index in the list of tuples
+
+    Returns
+    -------
+        tuple
+            one set of center of mass coordinates
+    """
+    if len(lst) <= index:
+        raise IndexError("lst index out of range")
+    return lst[index]
+
 def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc'):
     """The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image

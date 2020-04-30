@@ -8,7 +8,7 @@ import yamlordereddictloader
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
-from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_workflow
+from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_workflow, func_longitudinal_workflow
 
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
@@ -347,16 +347,10 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             # each participant as value
             for subject_id, sub_list in subject_id_dict.items():
                 # TODO debug - organize working dir
-                # import pdb; pdb.set_trace()
-                # cwd = os.getcwd()
-                # longitudinal_dir = os.path.join(c.workingDirectory,'longitudinal')
-                # try:
-                #     os.mkdir(longitudinal_dir)
-                # except FileExistsError:
-                #     pass
-                # os.chdir(longitudinal_dir)
+                # import pdb;pdb.set_trace()
                 anat_longitudinal_workflow(sub_list, subject_id, c)
-                # os.chdir(cwd)
+                if 1 in getattr(c, 'runFunctional', [1]):
+                    func_longitudinal_workflow(sub_list, c)
 
             rsc_file_list = []
             for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
@@ -438,10 +432,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                             keys[-2]: f
                                         })
 
-            yaml.dump(sublist, open(os.path.join(c.outputDirectory+'data_config_long_reg.yml'), 'w'), default_flow_style=False)
-            # yaml.dump(sublist, open('/outputs/output/data_config_long_reg.yml', 'w'), default_flow_style=False)
-            # import sys
-            # sys.exit()
+            yaml.dump(sublist, open(os.path.join(c.outputDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
+        
             print("Longitudinal template pipeline completed.")
 
         # END LONGITUDINAL TEMPLATE PIPELINE
