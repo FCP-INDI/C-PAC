@@ -284,12 +284,12 @@ resolution_for_anat :  2mm
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  /Path/to/NMTtemplate/NMT_SS_1mm.nii.gz
+template_brain_only_for_anat: /Path/to/Yerkes19/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat : /Path/to/NMTtemplate/NMT_1mm.nii.gz
+template_skull_for_anat: /Path/to/Yerkes19/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -379,7 +379,7 @@ fsl_linear_reg_only :  [0]
 
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard e.
-ref_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+ref_mask :  /Path/to/Yerkes19/MacaqueYerkes19_T1w_1.0mm_brain_mask.nii.gz
 
 
 # Register skull-on anatomical image to a template.
@@ -534,6 +534,38 @@ gm_erosion_mm: 0
 runFunctional: [1]
 
 
+# Scale functional raw data, usually used in rodent pipeline
+runScaling: false
+
+
+# Set scaling factor, if runScaling : True. Scale the size of the dataset voxels by the factor.
+scaling_factor: 10
+
+
+# run motion statistics before slice timing correction
+runMotionStatisticsFirst : [0]
+
+
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['3dvolreg']
+
+
+# Choose motion correction reference. Options: mean, median, selected volume 
+motion_correction_reference: ['mean']
+
+
+# Choose motion correction reference volume
+motion_correction_reference_volume :  0
+
+
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+functional_volreg_twopass :  On
+
+
+# Run AFNI 3dDespike
+runDespike : [0]
+
+
 # Interpolate voxel time courses so they are sampled at the same time points.
 slice_timing_correction :  [1]
 
@@ -591,12 +623,27 @@ fmap_distcorr_frac : [0.5]
 fmap_distcorr_threshold :  0.6
 
 
+# Set the Delta-TE value, used for preparing field map, time delay between the first and second echo images. Default value is 2.46 ms.
+fmap_distcorr_deltaTE: [2.46]
+
+
+# Set the Dwell Time for the fugue input. This is the time between scans, default value is 0.0005s.
+fmap_distcorr_dwell_time: [0.0005]
+
+
+# Set the asymmetric ratio value for FSL Fugue input.
+fmap_distcorr_dwell_asym_ratio: [0.93902439]
+
+
+# Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
+fmap_distcorr_pedir: -y
+
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
 
 # Run Functional to Anatomical Registration with BB Register
-runBBReg :  [1]
+runBBReg :  [0]
 
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
@@ -636,9 +683,69 @@ func_reg_input :  ['Mean Functional']
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
-# Options: ['AFNI', 'FSL', 'FSL_AFNI']
-functionalMasking :  ['AFNI']
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space. 
+# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
+functionalMasking: [Anatomical_Refined]
+
+
+# Options to be used for FSL skull-stripping of functional masking.
+
+# Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off. 
+# Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+# It must be 'on' if select 'bold_bet_reduce_bias','bold_bet_robust','bold_bet_padding','bold_bet_remove_eyes',or 'bold_bet_surfaces' on
+bold_bet_functional_mean_boolean : Off
+
+
+# Set the threshold value controling the brain vs non-brain voxels.
+bold_bet_frac :  0.3
+
+
+# Mesh created along with skull stripping
+bold_bet_mesh_boolean :  Off
+
+
+# Create a surface outline image
+bold_bet_outline :  Off
+
+
+# Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_padding :  Off
+
+
+# Integer value of head radius
+bold_bet_radius :  0
+
+
+# Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_reduce_bias :  Off
+
+
+# Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_remove_eyes :  Off
+
+
+# Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+bold_bet_robust :  Off
+
+
+# Create a skull image
+bold_bet_skull :  Off
+
+
+# Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
+bold_bet_surfaces :  Off
+
+
+# Apply thresholding to segmented brain image and mask
+bold_bet_threshold :  Off
+
+
+# Vertical gradient in fractional intensity threshold (-1,1)
+bold_bet_vertical_gradient : 0.0
+
+
+# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
+anatomical_mask_dilation: True
 
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True
@@ -652,19 +759,27 @@ runRegisterFuncToTemplate :  ['T1_template']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
-resolution_for_func_preproc :  3mm
+resolution_for_func_preproc: 2mm
 
 
 # The resolution (in mm) to which the registered derivative outputs are written into.
-resolution_for_func_derivative :  3mm
+resolution_for_func_derivative: 2mm
+
+
+# A standard template for resampling if using float resolution
+template_for_resample: /Path/to/Yerkes19/MacaqueYerkes19_T1w_2mm.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  /Path/to/NMTtemplate/NMT_SS_2mm.nii.gz
+template_brain_only_for_func: /Path/to/Yerkes19/MacaqueYerkes19_T1w_2mm_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /Path/to/NMTtemplate/NMT_2mm.nii.gz 
+template_skull_for_func: /Path/to/Yerkes19/MacaqueYerkes19_T1w_2mm.nii.gz
+
+
+# EPI template
+template_epi: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
@@ -686,7 +801,8 @@ runNuisance :  [1]
 
 # Standard Lateral Ventricles Binary Mask
 # lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
-lateral_ventricles_mask :  /Path/to/NMTtemplate/fullmask.nii.gz
+lateral_ventricles_mask :  None
+
 
 # Select which nuisance signal corrections to apply
 Regressors :
@@ -705,7 +821,7 @@ Regressors :
        - CerebrospinalFluid
      extraction_resolution: 2
 
-  CerebrospinalFluid:
+   CerebrospinalFluid:
     summary: Mean
     extraction_resolution: 2
     erode_mask: true
@@ -735,7 +851,7 @@ Regressors :
        - CerebrospinalFluid
      extraction_resolution: 2
 
-  CerebrospinalFluid:
+   CerebrospinalFluid:
     summary: Mean
     extraction_resolution: 2
     erode_mask: true
@@ -822,17 +938,29 @@ runVMHC :  [0]
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-template_symmetric_brain_only :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+template_symmetric_brain_only: /Path/to/Yerkes19/MacaqueYerkes19_T1w_1.0mm_brain.nii.gz
+
+
+# A reference symmetric brain template for resampling
+template_symmetric_brain_for_resample: /Path/to/Yerkes19/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-template_symmetric_skull :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
+template_symmetric_skull: /Path/to/Yerkes19/MacaqueYerkes19_T1w_1.0mm.nii.gz
+
+
+# A reference symmetric skull template for resampling
+template_symmetric_skull_for_resample: /Path/to/Yerkes19/MacaqueYerkes19_T1w_1.0mm.nii.gz
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
 # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-dilated_symmetric_brain_mask :  $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+dilated_symmetric_brain_mask: /Path/to/Yerkes19/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
+
+
+# A reference symmetric brain mask template for resampling
+dilated_symmetric_brain_mask_for_resample: /Path/to/Yerkes19/MacaqueYerkes19_T1w_2mm_brain_mask.nii.gz
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
