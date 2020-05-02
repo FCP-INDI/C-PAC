@@ -127,7 +127,7 @@ already_skullstripped :  [0]
 skullstrip_option :  ['unet']
 
 
-	# UNet model	
+# UNet model	
 unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 
 
@@ -604,10 +604,6 @@ startIdx :  0
 # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
 # Note: the selection here applies to all scans of all participants.
 stopIdx :  None
-
-
-# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-functional_volreg_twopass :  On
 
 
 # Perform distortion correction.
