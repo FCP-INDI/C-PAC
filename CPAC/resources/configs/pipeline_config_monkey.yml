@@ -127,6 +127,10 @@ already_skullstripped :  [0]
 skullstrip_option :  ['unet']
 
 
+	# UNet model	
+unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
+
+
 # Template to be used during niworkflows-ants.
 # For skullstrip option 'niworkflows-ants' only.
 # It is not necessary to change this path unless you intend to use a non-standard template.
@@ -142,6 +146,11 @@ niworkflows_ants_regmask_path : /ants_template/oasis/T_template0_BrainCerebellum
 
 
 # Options to be used for AFNI 3dSkullStrip only.
+
+
+# Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.	
+skullstrip_mask_vol: False
+
 
 # Choice of using monkey option for AFNI 3dskullstrip 
 skullstrip_monkey : True
@@ -229,7 +238,8 @@ skullstrip_blur_fwhm :  0
 bet_frac :  0.5
 
 
-# Mask created along with skull stripping
+# Mask created along with skull stripping. 
+# It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
 bet_mask_boolean :  On
 
 
@@ -623,21 +633,6 @@ fmap_distcorr_frac : [0.5]
 fmap_distcorr_threshold :  0.6
 
 
-# Set the Delta-TE value, used for preparing field map, time delay between the first and second echo images. Default value is 2.46 ms.
-fmap_distcorr_deltaTE: [2.46]
-
-
-# Set the Dwell Time for the fugue input. This is the time between scans, default value is 0.0005s.
-fmap_distcorr_dwell_time: [0.0005]
-
-
-# Set the asymmetric ratio value for FSL Fugue input.
-fmap_distcorr_dwell_asym_ratio: [0.93902439]
-
-
-# Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir: -y
-
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
 
@@ -677,6 +672,10 @@ funcRegFSLinterpolation: sinc
 
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
 func_reg_input :  ['Mean Functional']
+
+
+# Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
+n4_correct_mean_EPI: true
 
 
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
@@ -744,10 +743,6 @@ bold_bet_threshold :  Off
 bold_bet_vertical_gradient : 0.0
 
 
-# Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
-anatomical_mask_dilation: True
-
-
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True
 anatomical_mask_dilation : False
 
@@ -800,7 +795,7 @@ runNuisance :  [1]
 
 
 # Standard Lateral Ventricles Binary Mask
-# lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+# lateral_ventricles_mask :  /Path/to/lateral-ventricles.nii.gz
 lateral_ventricles_mask :  None
 
 
