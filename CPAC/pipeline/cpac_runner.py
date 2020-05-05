@@ -431,6 +431,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                     ses['resource_pool'][strat_key].update({
                                             keys[-2]: f
                                         })
+            
+            # import pdb; pdb.set_trace()
 
             yaml.dump(sublist, open(os.path.join(c.outputDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
         

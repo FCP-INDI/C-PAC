@@ -924,7 +924,32 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         workflow.connect(template_node, "final_warp_list", ds_warp_list, 'warp_list')
 
         # TODO debug the registration from the longitudinal template to the standard template (MNI)
-        # loop over all sessions of one subject
+        reg_strat_list = register_to_standard_template(template_node, config, workflow)
+        for index, strat in enumerate(reg_strat_list):
+            for rsc_key in strat.resource_pool.keys():
+                rsc_nodes_suffix = 'long_reg_to_standard_' + str(index)
+                if rsc_key in Outputs.any:
+                    node, rsc_name = strat[rsc_key]
+                    ds = create_datasink(rsc_key + rsc_nodes_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
+                    workflow.connect(node, rsc_name, ds, rsc_key)
+
+        # the in{}.format take i+1 because the Merge nodes inputs starts at 1 ...
+        for i in range(len(strat_nodes_list)):
+            rsc_nodes_suffix = "_%s_%d" % (node_suffix, i)
+            for rsc_key in strat_nodes_list[i].resource_pool.keys():
+                if rsc_key in Outputs.any:
+                    node, rsc_name = strat_nodes_list[i][rsc_key]
+                    ds = create_datasink(rsc_key + rsc_nodes_suffix, config, subject_id,
+                                         session_id_list[i], 'longitudinal_'+strat_name)
+                    workflow.connect(node, rsc_name, ds, rsc_key)
+            rsc_key = 'anatomical_brain'
+            anat_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
+            workflow.connect(anat_preproc_node,
+                             rsc_name, merge_node,
+                             'in{}'.format(i + 1))
+
+        workflow.connect(merge_node, 'out', template_node, 'img_list')
+        """
         for strat_node in strat_nodes_list:
             # import pdb; pdb.set_trace()
             reg_strat_list = register_to_standard_template(template_node, config, workflow)
@@ -957,8 +982,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                                 'in{}'.format(i + 1))
 
             workflow.connect(merge_node, 'out', template_node, 'img_list')
-
-        workflow.run()
+        """
+    workflow.run()
 
     return # strat_nodes_list_list # for func wf?
 

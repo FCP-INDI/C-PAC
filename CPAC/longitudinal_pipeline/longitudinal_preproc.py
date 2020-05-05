@@ -359,7 +359,6 @@ def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12
 def subject_specific_template(workflow_name='subject_specific_template',
                               method='flirt'):
     """
-
     Parameters
     ----------
     workflow_name
