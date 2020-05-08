@@ -10,6 +10,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.afni as afni
 import nipype.interfaces.io as nio
 from nipype.interfaces.utility import Merge, IdentityInterface
+import nipype.interfaces.utility as util
 
 from indi_aws import aws_utils
 
@@ -25,6 +26,8 @@ from CPAC.registration import (
     create_bbregister_func_to_anat,
     create_wf_calculate_ants_warp
 )
+
+from CPAC.registration.utils import run_ants_apply_warp
 
 from CPAC.utils.datasource import (
     resolve_resolution,
@@ -65,12 +68,12 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
 
     sub_mem_gb, num_cores_per_sub, num_ants_cores = \
         check_config_resources(c)
+    
     strat_initial = Strategy()
-
     strat_initial.update_resource_pool({
         'anatomical_brain': (long_reg_template_node, 'template')
     })
-
+    
     templates_for_resampling = [
         (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
         (c.resolution_for_anat, c.template_skull_for_anat, 'template_skull_for_anat', 'resolution_for_anat'),
@@ -914,20 +917,28 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             thread_pool=config.thread_pool,
         )
 
+        # longitudinal template
         rsc_key = 'resampled_template_brain_for_anat' # 'anat_longitudinal_template'
         ds_template = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
         workflow.connect(template_node, 'template', ds_template, rsc_key)
-
+        
+        # T1 to longitudinal template warp
         rsc_key = 'subject_to_longitudinal_template_warp_'
         ds_warp_list = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name,
                                        map_node_iterfield=['warp_list'])
         workflow.connect(template_node, "final_warp_list", ds_warp_list, 'warp_list')
 
+        # T1 in longitudinal template space
+        rsc_key = 't1_in_longitudinal_template_space_'
+        t1_list = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name,
+                                       map_node_iterfield=['t1_list'])
+        workflow.connect(template_node, "image_list", t1_list, 't1_list')
+
         # TODO debug the registration from the longitudinal template to the standard template (MNI)
         reg_strat_list = register_to_standard_template(template_node, config, workflow)
-        for index, strat in enumerate(reg_strat_list):
+        for num_strat, strat in enumerate(reg_strat_list):
             for rsc_key in strat.resource_pool.keys():
-                rsc_nodes_suffix = 'long_reg_to_standard_' + str(index)
+                rsc_nodes_suffix = '_longitudinal_to_standard_' + str(num_strat)
                 if rsc_key in Outputs.any:
                     node, rsc_name = strat[rsc_key]
                     ds = create_datasink(rsc_key + rsc_nodes_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
@@ -949,6 +960,39 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                              'in{}'.format(i + 1))
 
         workflow.connect(merge_node, 'out', template_node, 'img_list')
+        
+        # TODO register T1 to standard space
+        for num_strat, strat in enumerate(reg_strat_list):
+
+            ants_apply_warp = pe.Node(util.Function(input_names=['moving_image', 
+                                                                'reference', 
+                                                                'initial',
+                                                                'rigid',
+                                                                'affine',
+                                                                'nonlinear',
+                                                                'interp'], 
+                                            function=run_ants_apply_warp),                        
+                                name='ants_apply_warp_t1_longitudinal_to_standard_{0}'.format(num_strat))
+
+            ants_apply_warp.iterables = ('moving_image', template_node.outputs.image_list)
+
+            node, out_file = strat['template_brain_for_anat']
+            workflow.connect(node, out_file, ants_apply_warp, 'reference')
+
+            node, out_file = strat['ants_initial_xfm']
+            workflow.connect(node, out_file, ants_apply_warp, 'initial')
+
+            node, out_file = strat['ants_rigid_xfm']
+            workflow.connect(node, out_file, ants_apply_warp, 'rigid')
+
+            node, out_file = strat['ants_affine_xfm']
+            workflow.connect(node, out_file, ants_apply_warp, 'affine')
+
+            node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+            workflow.connect(node, out_file, ants_apply_warp, 'nonlinear')
+
+            ants_apply_warp.inputs.interp = 'trilinear'
+
         """
         for strat_node in strat_nodes_list:
             # import pdb; pdb.set_trace()

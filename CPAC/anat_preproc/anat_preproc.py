@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
@@ -151,7 +152,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
         preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
 
     # TODO XL review forking 
-    if 1 in config.gen_custom_template:
+    if 'anat' in config.run_longitudinal:
         anat_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
         anat_align_cmass.inputs.cm_file = os.path.join(
             os.getcwd(), "center_of_mass.txt")

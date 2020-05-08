@@ -285,8 +285,12 @@ bet_threshold :  Off
 bet_vertical_gradient : 0.0
 
 
+# Run anatomical and/or functional longitudinal pipeline
+run_longitudinal : ['anat']
+
+
 # Generate custom template for registration (e.g., for longitudinal studies or sample/patient specific)
-gen_custom_template :  [0]
+# gen_custom_template :  [0]
 
 
 # Freesurfer longitudinal template algorithm using FSL FLIRT

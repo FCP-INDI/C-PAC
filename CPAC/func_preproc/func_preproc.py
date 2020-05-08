@@ -824,7 +824,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref
                     func_reorient, 'in_file')
 
     # TODO XL review forking
-    if 1 in config.gen_custom_template:
+    if 'func' in config.run_longitudinal:
         func_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
         func_align_cmass.inputs.cm_file = os.path.join(
             os.getcwd(), "center_of_mass.txt")
@@ -1043,7 +1043,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref
                     output_node, 'preprocessed')
 
     # TODO XL review forking
-    if 1 in config.gen_custom_template:
+    if 'func' in config.run_longitudinal:
         func_get_preprocessed_median = pe.Node(interface=afni_utils.TStat(),
                             name='func_get_preprocessed_median')
 

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-# import ntpath
 import numpy as np
 import six
 from multiprocessing.dummy import Pool as ThreadPool
@@ -335,9 +334,12 @@ def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12
                                           cost=cost)
 
         mat_list = [node.inputs.out_matrix_file for node in reg_list_node]
+        
+        # TODO clean code, refactor variables 
         if len(final_warp_list) == 0:
             final_warp_list = mat_list
         for index, mat in enumerate(mat_list):
+            # why inverse?
             cmd = "convert_xfm -omat %s -inverse %s" % (final_warp_list_filenames[index], final_warp_list[index])
             os.system(cmd)
             final_warp_list[index] = final_warp_list_filenames[index]
@@ -353,7 +355,19 @@ def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12
         pool.join()
 
     template = tmp_template
-    return template, final_warp_list
+    
+    # register T1 to longitudinal template space
+    reg_list_node = register_img_list(img_list,
+                                      ref_img=tmp_template,
+                                      dof=dof,
+                                      interp=interp,
+                                      cost=cost)
+    
+    final_warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
+
+    # import pdb; pdb.set_trace()
+
+    return template, image_list, final_warp_list
 
 
 def subject_specific_template(workflow_name='subject_specific_template',
@@ -391,7 +405,8 @@ def subject_specific_template(workflow_name='subject_specific_template',
                     'mat_type',
                     'convergence_threshold',
                     'thread_pool'],
-                output_names=['template', 
+                output_names=['template',
+                    'image_list',
                     'final_warp_list'],
                 imports=imports,
                 function=template_creation_flirt

@@ -334,9 +334,9 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                       "directory: %s\n\nMake sure you have permissions " \
                       "to write to this directory.\n\n" % c.workingDirectory
                 raise Exception(err)
-        
+ 
         # BEGIN LONGITUDINAL TEMPLATE PIPELINE
-        if hasattr(c, 'gen_custom_template') and c.gen_custom_template:
+        if hasattr(c, 'run_longitudinal') and ('anat' in c.run_longitudinal or 'func' in c.run_longitudinal):
             subject_id_dict = {}
             for sub in sublist:
                 if sub['subject_id'] in subject_id_dict:
@@ -347,9 +347,9 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             # each participant as value
             for subject_id, sub_list in subject_id_dict.items():
                 # TODO debug - organize working dir
-                # import pdb;pdb.set_trace()
-                anat_longitudinal_workflow(sub_list, subject_id, c)
-                if 1 in getattr(c, 'runFunctional', [1]):
+                if 'anat' in c.run_longitudinal:
+                    anat_longitudinal_workflow(sub_list, subject_id, c)
+                if 'func' in c.run_longitudinal:
                     func_longitudinal_workflow(sub_list, c)
 
             rsc_file_list = []
@@ -372,6 +372,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
             for key in session_specific_dict.keys():
                 for f in session_specific_dict[key]:
+                    sub,ses = key.split('/')
+                    key = sub+'/ses-'+ses
                     ses_list = [subj for subj in sublist if key in subj['anat']]
                     if len(ses_list) > 1:
                         raise Exception("There are several files containing " + f)
@@ -382,8 +384,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                         keys = tmp.split(os.sep)
                         if keys[0] == '':
                             keys = keys[1:]
-                        print(keys)
-                        print(len(keys))
                         if len(keys) > 1:
                             if ses.get('resource_pool') is None:
                                 ses['resource_pool'] = {
@@ -428,15 +428,21 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                         }
                                     })
                                 else:
-                                    ses['resource_pool'][strat_key].update({
-                                            keys[-2]: f
-                                        })
-            
-            # import pdb; pdb.set_trace()
-
+                                    if keys[-2] != 'warp_list':
+                                        ses['resource_pool'][strat_key].update({
+                                                keys[-2]: f
+                                            })
+                                    elif keys[-2] == 'warp_list':
+                                        if 'ses-'+ses['unique_id'] in tmp:
+                                            ses['resource_pool'][strat_key].update({
+                                                keys[-2]: f
+                                            })
+                                    
             yaml.dump(sublist, open(os.path.join(c.outputDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
         
             print("Longitudinal template pipeline completed.")
+            
+            import pdb; pdb.set_trace()
 
         # END LONGITUDINAL TEMPLATE PIPELINE
 
