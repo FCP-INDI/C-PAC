@@ -23,6 +23,7 @@ Fixes #[issue number] by @[issue author]
 - [ ] My commit messages follow best practices.
 - [ ] My code follows the established code style of the repository.
 - [ ] I added tests for the changes I made (if applicable).
+- [ ] I updated the changelog.
 - [ ] I added or updated documentation (if applicable).
 - [ ] I tried running the project locally and verified that there are no
   visible errors.
