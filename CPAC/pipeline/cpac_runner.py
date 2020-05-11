@@ -428,7 +428,15 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                         }
                                     })
                                 else:
-                                    if keys[-2] != 'warp_list':
+                                    if 'ants_apply_warp_t1_longitudinal_to_standard' in keys[-2]:
+                                        # TODO update!!!
+                                        # problem: it assumes session id == last key (ordered by session count instead of session id) + 1
+                                        if ses['unique_id'] == str(int(keys[-2][-1])+1):
+                                            ses['resource_pool'][strat_key].update({
+                                                # keys[-3] == 'anatomical_to_standard'
+                                                keys[-3]: f
+                                            })
+                                    elif keys[-2] != 'warp_list':
                                         ses['resource_pool'][strat_key].update({
                                                 keys[-2]: f
                                             })
@@ -440,9 +448,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                     
             yaml.dump(sublist, open(os.path.join(c.outputDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
         
-            print("Longitudinal template pipeline completed.")
+            print("Longitudinal pipeline completed.")
             
-            import pdb; pdb.set_trace()
+            # skip main preprocessing
+            if 1 not in c.runAnatomical and 1 not in c.runFunctional:
+                import sys
+                sys.exit()
 
         # END LONGITUDINAL TEMPLATE PIPELINE
 

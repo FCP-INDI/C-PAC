@@ -109,6 +109,11 @@ reGenerateOutputs :  False
 # Anatomical preprocessing options.
 # ---------------------------------
 
+
+# Run anatomical preproceessing
+runAnatomical: [1]
+
+
 # Non-local means filtering via ANTs DenoiseImage
 non_local_means_filtering: False
 

@@ -262,10 +262,10 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
     import os
     import subprocess
 
-    if inverse:
-        inverse = 1
-    else:
-        inverse = 0
+    # if inverse:
+    #     inverse = 1
+    # else:
+    #     inverse = 0
 
     if func_to_anat:
         # this assumes the func->anat affine transform is FSL-based and needs
@@ -276,31 +276,49 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
         func_to_anat = change_itk_transform_type(os.path.join(os.getcwd(),
                                                               'affine.txt'))
 
-    cmd = ['antsApplyTransforms', '-d', dim, '-i', moving_image, '-r',
-           reference, '-o', 'ants_warped.nii.gz', '-n', interp]
+    cmd = ['antsApplyTransforms', '-d', str(dim), '-i', moving_image, '-r',
+           reference, '-o', os.path.join(os.getcwd(),'ants_warped.nii.gz'), '-n', interp]
 
     if nonlinear:
         cmd.append('-t')
-        cmd.append('[{0}, {1}]'.format(os.path.abspath(nonlinear), inverse))
+        if inverse:
+            cmd.append('[{0}, {1}]'.format(os.path.abspath(nonlinear), '1'))
+        else:
+            cmd.append(os.path.abspath(nonlinear))
 
     if affine:
         cmd.append('-t')
-        cmd.append('[{0}, {1}]'.format(os.path.abspath(affine), inverse))
+        if inverse:
+            cmd.append('[{0}, {1}]'.format(os.path.abspath(affine), '1'))
+        else:
+            cmd.append(os.path.abspath(affine))
 
     if rigid:
         cmd.append('-t')
-        cmd.append('[{0}, {1}]'.format(os.path.abspath(rigid), inverse))
+        if inverse:
+            cmd.append('[{0}, {1}]'.format(os.path.abspath(rigid), '1'))
+        else:
+            cmd.append(os.path.abspath(rigid))
 
     if initial:
         cmd.append('-t')
-        cmd.append('[{0}, {1}]'.format(os.path.abspath(initial), inverse))
+        if inverse:
+            cmd.append('[{0}, {1}]'.format(os.path.abspath(initial), '1'))
+        else:
+            cmd.append(os.path.abspath(initial))
 
     if func_to_anat:
         cmd.append('-t')
-        cmd.append('[{0}, {1}]'.format(os.path.abspath(func_to_anat),
-                                       inverse))
+        if inverse:
+            cmd.append('[{0}, {1}]'.format(os.path.abspath(func_to_anat), '1'))
+        else:
+            cmd.append(os.path.abspath(func_to_anat))
 
     retcode = subprocess.check_output(cmd)
+
+    out_image = os.path.join(os.getcwd(),'ants_warped.nii.gz')
+
+    return out_image
 
 
 def cpac_ants_apply_nonlinear_inverse_warp(cpac_dir, moving_image, reference,

@@ -918,10 +918,11 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             thread_pool=config.thread_pool,
         )
 
-        # TODO debug the registration from the longitudinal template to the standard template (MNI)
+        # Register the longitudinal template to the standard template
         reg_strat_list = register_to_standard_template(template_node, config, workflow)
 
-        # TODO register T1 to standard space
+        # Register T1 to the standard template
+        # TODO add session information in node name
         for num_reg_strat, reg_strat in enumerate(reg_strat_list):
             
             ants_apply_warp = pe.MapNode(util.Function(input_names=['moving_image', 
@@ -957,7 +958,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
             reg_strat.update_resource_pool({'anatomical_to_standard': (ants_apply_warp, 'out_image')})
 
-        # Update Resource Pool
+        # Update resource pool
         # longitudinal template
         rsc_key = 'anatomical_longitudinal_template' #'resampled_template_brain_for_anat' 
         ds_template = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
@@ -985,8 +986,6 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                     workflow.connect(node, rsc_name, ds, rsc_key)
 
         # individual minimal preprocessing items
-        # import pdb;pdb.set_trace()
-
         for i in range(len(strat_nodes_list)):
             rsc_nodes_suffix = "_%s_%d" % (node_suffix, i)
             for rsc_key in strat_nodes_list[i].resource_pool.keys():

@@ -365,8 +365,6 @@ def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12
     
     final_warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
 
-    # import pdb; pdb.set_trace()
-
     return template, image_list, final_warp_list
 
 
