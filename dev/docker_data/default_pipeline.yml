@@ -128,7 +128,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
+# Options: ['AFNI', 'BET', 'niworkflows-ants', 'unet']
 skullstrip_option :  ['AFNI']
 
 

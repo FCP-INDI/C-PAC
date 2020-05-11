@@ -859,9 +859,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
                 anat_preproc = create_anat_preproc(
                     method=skullstrip_method,
-                    wf_name=preproc_wf_name,
-                    non_local_means_filtering=config.non_local_means_filtering,
-                    n4_correction=config.n4_bias_field_correction)
+                    config=config,
+                    wf_name=preproc_wf_name)
 
                 anat_preproc.inputs.BET_options.set(
                     frac=config.bet_frac,
