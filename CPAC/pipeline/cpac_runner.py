@@ -369,12 +369,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     subj = [s for s in subject_specific_dict.keys() if s in rsc_path]
                     if subj:
                         subject_specific_dict[subj[0]].append(rsc_path)
-
+            
             for key in session_specific_dict.keys():
                 for f in session_specific_dict[key]:
                     sub,ses = key.split('/')
-                    key = sub+'/ses-'+ses
-                    ses_list = [subj for subj in sublist if key in subj['anat']]
+                    key2 = sub+'/ses-'+ses
+                    ses_list = [subj for subj in sublist if key2 in subj['anat']]
                     if len(ses_list) > 1:
                         raise Exception("There are several files containing " + f)
                     if len(ses_list) == 1:

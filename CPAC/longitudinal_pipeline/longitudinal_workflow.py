@@ -665,6 +665,8 @@ def connect_anat_preproc_inputs(strat_in, anat_preproc_in, strat_name, strat_nod
             anat_preproc_in, 'outputspec.brain'),
         'anatomical_reorient': (
             anat_preproc_in, 'outputspec.reorient'),
+        'anatomical_brain_mask': (
+            anat_preproc_in, 'outputspec.brain_mask'),
     })
 
     try:
@@ -894,8 +896,9 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
     # loop over the different skull stripping strategies
     for strat_name, strat_nodes_list in strat_nodes_list_list.items():
-
+        
         node_suffix = '_'.join([strat_name, subject_id])
+
         # Merge node to feed the anat_preproc outputs to the longitudinal template generation
         merge_node = pe.Node(
             interface=Merge(len(strat_nodes_list)),
@@ -907,7 +910,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         template_node = subject_specific_template(
             workflow_name='subject_specific_template_' + node_suffix
         )
-        # template_node.inputs.output_folder = os.getcwd()
+        
         template_node.inputs.set(
             avg_method=config.long_reg_avg_method,
             dof=config.dof,
