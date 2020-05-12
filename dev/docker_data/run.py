@@ -392,13 +392,10 @@ elif args.analysis_level in ["test_config", "participant"]:
     else:
         c['maximumMemoryPerParticipant'] = 6.0
 
-    c['maxCoresPerParticipant'] = int(args.n_cpus)
-    c['numParticipantsAtOnce'] = (
-        int(overrides['numParticipantsAtOnce'])
-        if 'numParticipantsAtOnce' in overrides
-        else 1
-    )
-
+    # Preference: override if present, else from config if present, else n_cpus
+    c['maxCoresPerParticipant'] = int(c.get('maxCoresPerParticipant',
+        args.n_cpus))
+    c['numParticipantsAtOnce'] = int(c.get('numParticipantsAtOnce', 1))
     c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
     c['disable_log'] = args.disable_file_logging
