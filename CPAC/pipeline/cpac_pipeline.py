@@ -4458,7 +4458,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # regular datasink
                 ds = pe.Node(
                     DataSink(),
-                    name='sinker_{}_{}'.format(num_strat, resource_i)
+                    name='sinker_{}_{}'.format(num_strat, resource)
                 )
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
