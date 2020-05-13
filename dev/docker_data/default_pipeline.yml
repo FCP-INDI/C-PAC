@@ -294,10 +294,6 @@ bet_vertical_gradient : 0.0
 run_longitudinal : ['anat']
 
 
-# Generate custom template for registration (e.g., for longitudinal studies or sample/patient specific)
-# gen_custom_template :  [0]
-
-
 # Freesurfer longitudinal template algorithm using FSL FLIRT
 # Method to average the dataset at each iteration of the template creation
 long_reg_avg_method : median
