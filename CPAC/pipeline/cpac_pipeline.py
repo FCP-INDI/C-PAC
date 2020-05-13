@@ -2040,7 +2040,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 new_strat = strat.fork()
 
                 despike = pe.Node(interface=preprocess.Despike(),
-                                name='func_despiked')
+                                name='func_despiked_{0}'.format(num_strat))
                 despike.inputs.outputtype = 'NIFTI_GZ'
 
                 node, out_file = new_strat.get_leaf_properties()
