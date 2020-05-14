@@ -276,8 +276,10 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
         func_to_anat = change_itk_transform_type(os.path.join(os.getcwd(),
                                                               'affine.txt'))
 
+    out_image = os.path.join(os.getcwd(), moving_image[moving_image.rindex('/')+1:moving_image.rindex('.nii.gz')]+'_warp.nii.gz')
+
     cmd = ['antsApplyTransforms', '-d', str(dim), '-i', moving_image, '-r',
-           reference, '-o', os.path.join(os.getcwd(),'ants_warped.nii.gz'), '-n', interp]
+           reference, '-o', out_image, '-n', interp]
 
     if nonlinear:
         cmd.append('-t')
@@ -315,8 +317,6 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
             cmd.append(os.path.abspath(func_to_anat))
 
     retcode = subprocess.check_output(cmd)
-
-    out_image = os.path.join(os.getcwd(),'ants_warped.nii.gz')
 
     return out_image
 

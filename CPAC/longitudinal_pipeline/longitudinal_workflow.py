@@ -58,7 +58,15 @@ from CPAC.utils.utils import (
 logger = logging.getLogger('nipype.workflow')
 
 
-def register_to_standard_template(long_reg_template_node, c, workflow):
+def register_to_standard_template(long_reg_template_node, c, workflow, init_strat, name_ss_strat):
+
+    init_strat_copy = init_strat.fork()
+
+    init_strat_copy.update_resource_pool({
+        'anatomical_brain': (long_reg_template_node, 'template')
+    })
+
+    strat_list = [init_strat_copy]
 
     # only need to run once for each subject
     already_skullstripped = c.already_skullstripped[0]
@@ -70,48 +78,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
     sub_mem_gb, num_cores_per_sub, num_ants_cores = \
         check_config_resources(c)
     
-    strat_initial = Strategy()
-    strat_initial.update_resource_pool({
-        'anatomical_brain': (long_reg_template_node, 'template')
-    })
-    
-    templates_for_resampling = [
-        (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.template_skull_for_anat, 'template_skull_for_anat', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.template_symmetric_brain_only, 'template_symmetric_brain', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.template_symmetric_skull, 'template_symmetric_skull', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.dilated_symmetric_brain_mask, 'template_dilated_symmetric_brain_mask',
-         'resolution_for_anat'),
-        (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
-        (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc',
-         'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc',
-         'resolution_for_func_preproc'),
-        (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative',
-         'resolution_for_func_preproc'),
-        (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative',
-         'resolution_for_func_preproc')
-    ]
-
-    # update resampled template to resource pool
-    for resolution, template, template_name, tag in templates_for_resampling:
-        # print(resolution, template, template_name)
-
-        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'],
-                                              output_names=['resampled_template'],
-                                              function=resolve_resolution,
-                                              as_module=True),
-                                     name='resampled_' + template_name)
-
-        resampled_template.inputs.resolution = resolution
-        resampled_template.inputs.template = template
-        resampled_template.inputs.template_name = template_name
-        resampled_template.inputs.tag = tag
-
-        strat_initial.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
-
-    strat_list = [strat_initial]
-
     new_strat_list = []
 
     # either run FSL anatomical-to-MNI registration, or...
@@ -134,7 +100,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
                 raise Exception
 
             flirt_reg_anat_mni = create_fsl_flirt_linear_reg(
-                'anat_mni_flirt_register_%d' % num_strat
+                'anat_mni_flirt_register_%s_%d' % (name_ss_strat, num_strat)
             )
 
             # if someone doesn't have anatRegFSLinterpolation in their pipe config,
@@ -155,16 +121,14 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
 
             # pass the reference files
             node, out_file = strat['template_brain_for_anat']
-            workflow.connect(node, out_file,
-                             flirt_reg_anat_mni, 'inputspec.reference_brain')
+            workflow.connect(node, out_file, flirt_reg_anat_mni, 
+                             'inputspec.reference_brain')
 
-            # ?
             if 'ANTS' in c.regOption:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
             strat.append_name(flirt_reg_anat_mni.name)
-            # strat.set_leaf_properties(flirt_reg_anat_mni,'outputspec.output_brain')
 
             strat.update_resource_pool({
                 'anatomical_to_mni_linear_xfm': (flirt_reg_anat_mni, 'outputspec.linear_xfm'),
@@ -187,10 +151,10 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
 
             nodes = strat.get_nodes_names()
 
-            if 'anat_mni_flirt_register' in nodes:
+            if any('anat_mni_flirt_register' in node for node in nodes): 
 
                 fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
-                    'anat_mni_fnirt_register_%d' % num_strat
+                    'anat_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
                 )
 
                 # input
@@ -252,16 +216,18 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
 
         # or run ANTS anatomical-to-MNI registration instead
         if 'ANTS' in c.regOption and \
-                'anat_mni_flirt_register' not in nodes and \
-                'anat_mni_fnirt_register' not in nodes:
+            all('anat_mni_flirt_register' not in node for node in nodes) and \
+            all('anat_mni_fnirt_register' not in node for node in nodes):
+                # 'anat_mni_flirt_register' not in nodes and \
+                # 'anat_mni_fnirt_register' not in nodes:
 
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
-                    'anat_mni_ants_register_%d' % num_strat,
+                    'anat_mni_ants_register_%s_%d' % (name_ss_strat, num_strat),
                     num_threads=num_ants_cores,
                     reg_ants_skull=c.regWithSkull
                 )
-
+            
             # if someone doesn't have anatRegANTSinterpolation in their pipe config,
             # it will default to LanczosWindowedSinc
             if not hasattr(c, 'anatRegANTSinterpolation'):
@@ -333,8 +299,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
 
             strat.append_name(ants_reg_anat_mni.name)
 
-            # strat.set_leaf_properties(ants_reg_anat_mni,'outputspec.normalized_output_brain')
-
             strat.update_resource_pool({
                 'ants_initial_xfm': (ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
                 'ants_rigid_xfm': (ants_reg_anat_mni, 'outputspec.ants_rigid_xfm'),
@@ -346,7 +310,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
             })
 
     strat_list += new_strat_list
-
+        
     # [SYMMETRIC] T1 -> Symmetric Template, Non-linear registration (FNIRT/ANTS)
 
     new_strat_list = []
@@ -358,7 +322,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
             nodes = strat.get_nodes_names()
 
             if 'FSL' in c.regOption and \
-                    'anat_mni_ants_register' not in nodes:
+                all('anat_mni_ants_register' not in node for node in nodes):
 
                 # this is to prevent the user from running FNIRT if they are
                 # providing already-skullstripped inputs. this is because
@@ -377,7 +341,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
                     raise Exception
 
                 flirt_reg_anat_symm_mni = create_fsl_flirt_linear_reg(
-                    'anat_symmetric_mni_flirt_register_%d' % num_strat
+                    'anat_symmetric_mni_flirt_register_%s_%d' % (name_ss_strat, num_strat)
                 )
 
                 # Input registration parameters
@@ -392,9 +356,9 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
                 workflow.connect(node, out_file,
                                  flirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                # if 'ANTS' in c.regOption:
-                #    strat = strat.fork()
-                #    new_strat_list.append(strat)
+                if 'ANTS' in c.regOption:
+                   strat = strat.fork()
+                   new_strat_list.append(strat)
 
                 strat.append_name(flirt_reg_anat_symm_mni.name)
                 
@@ -422,9 +386,9 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
 
                 nodes = strat.get_nodes_names()
 
-                if 'anat_mni_flirt_register' in nodes:
+                if any('anat_mni_flirt_register' in node for node in nodes): 
                     fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
-                        'anat_symmetric_mni_fnirt_register_%d' % num_strat
+                        'anat_symmetric_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
                     )
 
                     node, out_file = strat['anatomical_brain']
@@ -483,14 +447,18 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
 
             # or run ANTS anatomical-to-MNI registration instead
             if 'ANTS' in c.regOption and \
-                    'anat_mni_flirt_register' not in nodes and \
-                    'anat_mni_fnirt_register' not in nodes and \
-                    'anat_symmetric_mni_flirt_register' not in nodes and \
-                    'anat_symmetric_mni_fnirt_register' not in nodes:
+                    all('anat_mni_flirt_register' not in node for node in nodes) and \
+                    all('anat_mni_fnirt_register' not in node for node in nodes) and \
+                    all('anat_symmetric_mni_flirt_register' not in node for node in nodes) and \
+                    all('anat_symmetric_mni_fnirt_register' not in node for node in nodes):
+                    # 'anat_mni_flirt_register' not in nodes and \
+                    # 'anat_mni_fnirt_register' not in nodes and \
+                    # 'anat_symmetric_mni_flirt_register' not in nodes and \
+                    # 'anat_symmetric_mni_fnirt_register' not in nodes:
 
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
-                        'anat_symmetric_mni_ants_register_%d' % num_strat,
+                        'anat_symmetric_mni_ants_register_%s_%d' % (name_ss_strat, num_strat),
                         num_threads=num_ants_cores,
                         reg_ants_skull=c.regWithSkull
                     )
@@ -528,7 +496,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow):
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                    # TODO debug KeyError: 'anatomical_reorient' if regWithSkull: [1]
                     # # get the reorient skull-on anatomical from resource pool
                     # node, out_file = strat['anatomical_reorient']
                     
@@ -818,7 +785,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             workflow.connect(brain_rsc, 'outputspec.brain_mask',
                              anat_preproc, 'inputspec.brain_mask')
 
-            new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
+            new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
+                strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
             strat_list.append(new_strat)
 
         elif already_skullstripped:
@@ -830,7 +798,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                 config=config,
                 wf_name=preproc_wf_name
             )
-            new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(strat, anat_preproc, 'already_skullstripped', strat_nodes_list_list, workflow)
+            new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
+                strat, anat_preproc, 'already_skullstripped', strat_nodes_list_list, workflow)
             strat_list.append(new_strat)
 
         else:
@@ -867,7 +836,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                     mask_vol=config.skullstrip_mask_vol
                 )
 
-                new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
+                new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
+                    strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
                 strat_list.append(new_strat)
 
             if "BET" in config.skullstrip_option:
@@ -895,7 +865,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                     vertical_gradient=config.bet_vertical_gradient,
                 )
 
-                new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
+                new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
+                    strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
                 strat_list.append(new_strat)
 
             if not any(o in config.skullstrip_option for o in
@@ -908,6 +879,42 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                 raise Exception(err)
 
     # Here we have all the anat_preproc set up for every session of the subject
+
+    strat_initial = Strategy()
+    
+    templates_for_resampling = [
+        (config.resolution_for_anat, config.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
+        (config.resolution_for_anat, config.template_skull_for_anat, 'template_skull_for_anat', 'resolution_for_anat'),
+        (config.resolution_for_anat, config.template_symmetric_brain_only, 'template_symmetric_brain', 'resolution_for_anat'),
+        (config.resolution_for_anat, config.template_symmetric_skull, 'template_symmetric_skull', 'resolution_for_anat'),
+        (config.resolution_for_anat, config.dilated_symmetric_brain_mask, 'template_dilated_symmetric_brain_mask',
+         'resolution_for_anat'),
+        (config.resolution_for_anat, config.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
+        (config.resolution_for_func_preproc, config.template_brain_only_for_func, 'template_brain_for_func_preproc',
+         'resolution_for_func_preproc'),
+        (config.resolution_for_func_preproc, config.template_skull_for_func, 'template_skull_for_func_preproc',
+         'resolution_for_func_preproc'),
+        (config.resolution_for_func_derivative, config.template_brain_only_for_func, 'template_brain_for_func_derivative',
+         'resolution_for_func_preproc'),
+        (config.resolution_for_func_derivative, config.template_skull_for_func, 'template_skull_for_func_derivative',
+         'resolution_for_func_preproc')
+    ]
+
+    # update resampled template to resource pool
+    for resolution, template, template_name, tag in templates_for_resampling:
+        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'],
+                                              output_names=['resampled_template'],
+                                              function=resolve_resolution,
+                                              as_module=True),
+                                     name='resampled_' + template_name)
+
+        resampled_template.inputs.resolution = resolution
+        resampled_template.inputs.template = template
+        resampled_template.inputs.template_name = template_name
+        resampled_template.inputs.tag = tag
+
+        strat_initial.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
+
 
     # loop over the different skull stripping strategies
     for strat_name, strat_nodes_list in strat_nodes_list_list.items():
@@ -937,18 +944,19 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
         workflow.connect(merge_node, 'out', template_node, 'img_list')
 
-        # Register the longitudinal template to the standard template
-        reg_strat_list = register_to_standard_template(template_node, config, workflow)
+        reg_strat_list = register_to_standard_template(template_node, config, workflow, strat_initial, strat_name)
         
         # Register T1 to the standard template
         # TODO add session information in node name
         for num_reg_strat, reg_strat in enumerate(reg_strat_list):
             
             nodes = reg_strat.get_nodes_names()
+            
+            if any('anat_mni_fnirt_register' in node for node in nodes) or \
+                any('anat_mni_fnirt_register' in node for node in nodes):
 
-            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
                 fsl_apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
-                                            name='fsl_apply_warp_t1_longitudinal_to_standard_{0}'.format(num_reg_strat),
+                                            name='fsl_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
                                             iterfield=['in_file'])
 
                 workflow.connect(template_node, "image_list", fsl_apply_warp, 'in_file')
@@ -961,7 +969,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
                 reg_strat.update_resource_pool({'anatomical_to_standard': (fsl_apply_warp, 'out_file')})
 
-            elif 'anat_mni_ants_register' in nodes:
+            elif any('anat_mni_ants_register' in node for node in nodes):
+
                 ants_apply_warp = pe.MapNode(util.Function(input_names=['moving_image', 
                                                                     'reference', 
                                                                     'initial',
@@ -971,7 +980,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                                                                     'interp'], 
                                                 output_names=['out_image'],
                                                 function=run_ants_apply_warp),                        
-                                    name='ants_apply_warp_t1_longitudinal_to_standard_{0}'.format(num_reg_strat),
+                                    name='ants_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
                                     iterfield=['moving_image'])
 
                 workflow.connect(template_node, "image_list", ants_apply_warp, 'moving_image')
@@ -991,7 +1000,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                 node, out_file = reg_strat['anatomical_to_mni_nonlinear_xfm']
                 workflow.connect(node, out_file, ants_apply_warp, 'nonlinear')
 
-                ants_apply_warp.inputs.interp = 'LanczosWindowedSinc'
+                ants_apply_warp.inputs.interp = config.anatRegANTSinterpolation
 
                 reg_strat.update_resource_pool({'anatomical_to_standard': (ants_apply_warp, 'out_image')})
 
@@ -1016,7 +1025,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         # longitudinal to standard registration items 
         for num_strat, strat in enumerate(reg_strat_list):
             for rsc_key in strat.resource_pool.keys():
-                rsc_nodes_suffix = '_longitudinal_to_standard_' + str(num_strat)
+                rsc_nodes_suffix = '_'.join(['_longitudinal_to_standard', strat_name, str(num_strat)]) 
                 if rsc_key in Outputs.any:
                     node, rsc_name = strat[rsc_key]
                     ds = create_datasink(rsc_key + rsc_nodes_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
