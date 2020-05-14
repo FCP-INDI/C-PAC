@@ -182,7 +182,7 @@ parser.add_argument('--aws_output_creds', help='Credentials for writing to S3.'
                     ' use the string "env" to indicate that output credentials should'
                     ' read from the environment. (E.g. when using AWS iam roles).',
                     default=None)
-parser.add_argument('--n_cpus', type=int, default=1,
+parser.add_argument('--n_cpus', type=int, default=3,
                     help='Number of execution '
                          ' resources available for the pipeline.')
 parser.add_argument('--mem_mb', type=float,
