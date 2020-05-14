@@ -19,7 +19,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-import nipype.interfaces.afni as afni
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
@@ -36,17 +35,20 @@ from CPAC.network_centrality.pipeline import (
 )
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
-from CPAC.distortion_correction.distortion_correction import (
-    create_EPI_DistCorr,
-    blip_distcor_wf
+
+from CPAC.func_preproc.func_ingress import (
+    connect_func_ingress
 )
+
 from CPAC.func_preproc.func_preproc import (
-    create_func_preproc,
-    connect_func_preproc,
-    slice_timing_wf,
-    create_wf_edit_func,
-    create_scale_func_wf
+    connect_func_init,
+    connect_func_preproc
 )
+
+from CPAC.distortion_correction.distortion_correction import (
+    connect_distortion_correction
+)
+
 from CPAC.seg_preproc.seg_preproc import (
     create_seg_preproc,
     create_seg_preproc_template_based
@@ -95,17 +97,12 @@ from CPAC.sca.sca import create_sca, create_temporal_reg
 from CPAC.connectome.pipeline import create_connectome
 
 from CPAC.utils.datasource import (
-    create_func_datasource,
     create_anat_datasource,
-    create_fmap_datasource,
-    get_fmap_phasediff_metadata,
-    calc_deltaTE_and_asym_ratio,
     create_roi_mask_dataflow,
     create_spatial_map_dataflow,
     create_check_for_s3_node,
     resolve_resolution,
-    resample_func_roi,
-    match_epi_fmaps
+    resample_func_roi
 )
 from CPAC.utils.trimmer import the_trimmer
 from CPAC.utils import Configuration, Strategy, Outputs, find_files
@@ -118,7 +115,6 @@ from CPAC.qc.utils import generate_qc_pages
 
 from CPAC.utils.utils import (
     extract_one_d,
-    get_scan_params,
     get_tr,
     extract_txt,
     extract_output_mean,
@@ -1682,560 +1678,30 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     strat_list += new_strat_list
 
-    # Inserting Functional Data workflow
+    # Functional / BOLD time
     if ('func' in sub_dict or 'rest' in sub_dict) and \
             1 in getattr(c, 'runFunctional', [1]):
         #  pipeline needs to have explicit [0] to disable functional workflow
 
-        for num_strat, strat in enumerate(strat_list):
-
-            if 'func' in sub_dict:
-                func_paths_dict = sub_dict['func']
-            else:
-                func_paths_dict = sub_dict['rest']
-
-            func_wf = create_func_datasource(func_paths_dict,
-                                             'func_gather_%d' % num_strat)
-            func_wf.inputs.inputnode.set(
-                subject=subject_id,
-                creds_path=input_creds_path,
-                dl_dir=c.workingDirectory
-            )
-            func_wf.get_node('inputnode').iterables = \
-                ("scan", list(func_paths_dict.keys()))
-
-            # Grab field maps
-            diff = False
-            blip = False
-            if "fmap" in sub_dict:
-                fmap_rp_list = []
-                fmap_TE_list = []
-                for key in sub_dict["fmap"]:
-                    gather_fmap = create_fmap_datasource(sub_dict["fmap"],
-                                                         "fmap_gather_"
-                                                         "{0}".format(key))
-                    gather_fmap.inputs.inputnode.set(
-                        subject=subject_id,
-                        creds_path=input_creds_path,
-                        dl_dir=c.workingDirectory
-                    )
-                    gather_fmap.inputs.inputnode.scan = key
-                    strat.update_resource_pool({
-                        key: (gather_fmap, 'outputspec.rest'),
-                        "{0}_scan_params".format(key): (gather_fmap,
-                                                        'outputspec.scan_params')
-                    })
-
-                    fmap_rp_list.append(key)
-
-                    if key == "diff_phase" or key == "diff_mag_one" or \
-                            key == "diff_mag_two":
-                        diff = True
-
-                        get_fmap_metadata_imports = ['import json']
-                        get_fmap_metadata = pe.Node(Function(
-                            input_names=['data_config_scan_params'],
-                            output_names=['echo_time',
-                                          'dwell_time',
-                                          'pe_direction'],
-                            function=get_fmap_phasediff_metadata,
-                            imports=get_fmap_metadata_imports),
-                            name='{0}_get_metadata_{1}'.format(key,
-                                                               num_strat))
-
-                        node, out_file = strat["{}_scan_params".format(key)]
-                        workflow.connect(node, out_file, get_fmap_metadata,
-                                         'data_config_scan_params')
-
-                        strat.update_resource_pool({
-                            "{}_TE".format(key): (get_fmap_metadata,
-                                                  'echo_time'),
-                            "{}_dwell".format(key): (get_fmap_metadata,
-                                                     'dwell_time'),
-                            "{}_pedir".format(key): (get_fmap_metadata,
-                                                     'pe_direction')
-                        })
-                        fmap_TE_list.append("{}_TE".format(key))
-
-                    if key == "epi_AP" or key == "epi_PA":
-                        blip = True
-
-                if diff:
-                    calc_delta_ratio = pe.Node(Function(
-                        input_names=['dwell_time',
-                                     'echo_time_one',
-                                     'echo_time_two',
-                                     'echo_time_three'],
-                        output_names=['deltaTE',
-                                      'dwell_asym_ratio'],
-                        function=calc_deltaTE_and_asym_ratio),
-                        name='diff_distcor_calc_delta_{}'.format(num_strat))
-
-                    node, out_file = strat['diff_phase_dwell']
-                    workflow.connect(node, out_file, calc_delta_ratio,
-                                     'dwell_time')
-
-                    node, out_file = strat[fmap_TE_list[0]]
-                    workflow.connect(node, out_file, calc_delta_ratio,
-                                     'echo_time_one')
-
-                    node, out_file = strat[fmap_TE_list[1]]
-                    workflow.connect(node, out_file, calc_delta_ratio,
-                                     'echo_time_two')
-
-                    if len(fmap_TE_list) > 2:
-                        node, out_file = strat[fmap_TE_list[2]]
-                        workflow.connect(node, out_file, calc_delta_ratio,
-                                         'echo_time_three')
-
-                    strat.update_resource_pool({
-                        'deltaTE': (calc_delta_ratio, 'deltaTE'),
-                        'dwell_asym_ratio': (calc_delta_ratio,
-                                             'dwell_asym_ratio')
-                    })
-
-            # Add in nodes to get parameters from configuration file
-            # a node which checks if scan_parameters are present for each scan
-            scan_params = \
-                pe.Node(Function(
-                    input_names=['data_config_scan_params',
-                                 'subject_id',
-                                 'scan',
-                                 'pipeconfig_tr',
-                                 'pipeconfig_tpattern',
-                                 'pipeconfig_start_indx',
-                                 'pipeconfig_stop_indx'],
-                    output_names=['tr',
-                                  'tpattern',
-                                  'ref_slice',
-                                  'start_indx',
-                                  'stop_indx',
-                                  'pe_direction'],
-                    function=get_scan_params,
-                    as_module=True
-                ), name='scan_params_%d' % num_strat)
-
-            if "Selected Functional Volume" in c.func_reg_input:
-
-                get_func_volume = pe.Node(interface=afni.Calc(),
-                                          name='get_func_volume_{0}'.format(num_strat))
-
-                get_func_volume.inputs.set(
-                    expr='a',
-                    single_idx=c.func_reg_input_volume,
-                    outputtype='NIFTI_GZ'
-                )
-                workflow.connect(func_wf, 'outputspec.rest',
-                                 get_func_volume, 'in_file_a')
-
-            # wire in the scan parameter workflow
-            workflow.connect(func_wf, 'outputspec.scan_params',
-                             scan_params, 'data_config_scan_params')
-
-            workflow.connect(func_wf, 'outputspec.subject',
-                             scan_params, 'subject_id')
-
-            workflow.connect(func_wf, 'outputspec.scan',
-                             scan_params, 'scan')
-
-            # connect in constants
-            scan_params.inputs.set(
-                pipeconfig_start_indx=c.startIdx,
-                pipeconfig_stop_indx=c.stopIdx
-            )
-
-            strat.update_resource_pool({
-                'raw_functional': (func_wf, 'outputspec.rest'),
-                'scan_id': (func_wf, 'outputspec.scan'),
-                'tr': (scan_params, 'tr'),
-                'tpattern': (scan_params, 'tpattern'),
-                'start_idx': (scan_params, 'start_indx'),
-                'stop_idx': (scan_params, 'stop_indx'),
-                'pe_direction': (scan_params, 'pe_direction'),
-            })
-
-            strat.set_leaf_properties(func_wf, 'outputspec.rest')
-
-            if "Selected Functional Volume" in c.func_reg_input:
-                strat.update_resource_pool({
-                    'selected_func_volume': (get_func_volume, 'out_file')
-                })
-
-
-        # scale func data based on configuration information
-        for num_strat, strat in enumerate(strat_list):
-
-            scale_func_wf = create_scale_func_wf(
-                runScaling=c.runScaling,
-                scaling_factor=c.scaling_factor,
-                wf_name="scale_func_%d" % (num_strat)
-            )
-
-            # connect the functional data from the leaf node into the wf
-            node, out_file = strat.get_leaf_properties()
-            workflow.connect(node, out_file,
-                             scale_func_wf, 'inputspec.func')
-
-            # replace the leaf node with the output from the recently added
-            # workflow
-            strat.set_leaf_properties(scale_func_wf, 'outputspec.scaled_func')
-
-
-        # Truncate scan length based on configuration information
-        for num_strat, strat in enumerate(strat_list):
-
-            trunc_wf = create_wf_edit_func(
-                wf_name="edit_func_%d" % (num_strat)
-            )
-
-            # connect the functional data from the leaf node into the wf
-            node, out_file = strat.get_leaf_properties()
-            workflow.connect(node, out_file,
-                             trunc_wf, 'inputspec.func')
-
-            # connect the other input parameters
-            node, node_out = strat['start_idx']
-            workflow.connect(node, node_out,
-                             trunc_wf, 'inputspec.start_idx')
-
-            node, node_out = strat['stop_idx']
-            workflow.connect(node, node_out,
-                             trunc_wf, 'inputspec.stop_idx')
-
-            # replace the leaf node with the output from the recently added
-            # workflow
-            strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
-            strat.update_resource_pool({
-                            'raw_functional_trunc': (trunc_wf, 'outputspec.edited_func'),
-                        })
-
-        # Motion Statistics Workflow
-        new_strat_list = []
-
-        for num_strat, strat in enumerate(strat_list):
-
-            if 0 in c.runMotionStatisticsFirst:
-
-                new_strat_list += [strat.fork()]
-
-            if 1 in c.runMotionStatisticsFirst:
-
-                for skullstrip_tool in c.functionalMasking:
-
-                    skullstrip_tool = skullstrip_tool.lower()
-
-                    for motion_correct_ref in c.motion_correction_reference:
-
-                        motion_correct_ref = motion_correct_ref.lower()
-
-                        if " " in motion_correct_ref:
-                            motion_correct_ref = motion_correct_ref.replace(" ", "_")
-
-                        for motion_correct_tool in c.motion_correction:
-
-                            motion_correct_tool = motion_correct_tool.lower()
-
-                            new_strat = strat.fork()
-
-                            func_preproc = create_func_preproc(
-                                skullstrip_tool=skullstrip_tool,
-                                motion_correct_tool=motion_correct_tool,
-                                motion_correct_ref=motion_correct_ref,
-                                config=c,
-                                wf_name='func_preproc_before_stc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                                                         motion_correct_ref,
-                                                                                         motion_correct_tool,
-                                                                                         num_strat)
-                            )
-
-                            node, out_file = new_strat['raw_functional_trunc']
-                            workflow.connect(node, out_file, func_preproc,
-                                            'inputspec.raw_func')
-
-                            node, out_file = new_strat.get_leaf_properties()
-                            workflow.connect(node, out_file, func_preproc,
-                                            'inputspec.func')
-
-                            node, out_file = new_strat['anatomical_brain']
-                            workflow.connect(node, out_file, func_preproc,
-                                            'inputspec.anat_brain')
-
-                            node, out_file = new_strat['anatomical_brain_mask']
-                            workflow.connect(node, out_file, func_preproc,
-                                            'inputspec.anatomical_brain_mask')
-
-                            func_preproc.inputs.inputspec.twopass = \
-                                getattr(c, 'functional_volreg_twopass', True)
-
-                            new_strat.update_resource_pool({
-                                    'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
-                                    'max_displacement': (func_preproc, 'outputspec.max_displacement'),
-                                    'functional_brain_mask_before_stc': (func_preproc, 'outputspec.mask'),
-                                    'motion_correct_before_stc': (func_preproc, 'outputspec.motion_correct'),
-                                    'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
-                            })
-
-                            gen_motion_stats = motion_power_statistics(
-                                name = 'gen_motion_stats_before_stc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                                                            motion_correct_ref,
-                                                                                            motion_correct_tool,
-                                                                                            num_strat),
-                                motion_correct_tool = motion_correct_tool)
-
-                            # Special case where the workflow is not getting outputs from
-                            # resource pool but is connected to functional datasource
-                            workflow.connect(func_wf, 'outputspec.subject',
-                                            gen_motion_stats, 'inputspec.subject_id')
-
-                            workflow.connect(func_wf, 'outputspec.scan',
-                                            gen_motion_stats, 'inputspec.scan_id')
-
-                            node, out_file = new_strat['motion_correct_before_stc']
-                            workflow.connect(node, out_file,
-                                            gen_motion_stats, 'inputspec.motion_correct')
-
-                            node, out_file = new_strat['movement_parameters']
-                            workflow.connect(node, out_file,
-                                            gen_motion_stats,
-                                            'inputspec.movement_parameters')
-
-                            node, out_file = new_strat['max_displacement']
-                            workflow.connect(node, out_file,
-                                            gen_motion_stats, 'inputspec.max_displacement')
-
-                            node, out_file = new_strat['functional_brain_mask_before_stc']
-                            workflow.connect(node, out_file,
-                                            gen_motion_stats, 'inputspec.mask')
-
-                            node, out_file = new_strat['coordinate_transformation']
-                            workflow.connect(node, out_file,
-                                            gen_motion_stats, 'inputspec.transformations')
-
-                            new_strat.append_name(gen_motion_stats.name)
-
-                            new_strat.update_resource_pool({
-                                'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
-                                'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
-                                'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
-                                'power_params': (gen_motion_stats, 'outputspec.power_params'),
-                                'motion_params': (gen_motion_stats, 'outputspec.motion_params')
-                            })
-
-                            new_strat_list.append(new_strat)
-
-        strat_list = new_strat_list
-
-
-        # Despike Workflow
-        new_strat_list = []
-
-        for num_strat, strat in enumerate(strat_list):
-
-            if 0 in c.runDespike:
-
-                new_strat_list += [strat.fork()]
-
-            if 1 in c.runDespike:
-
-                new_strat = strat.fork()
-
-                despike = pe.Node(interface=preprocess.Despike(),
-                                name='func_despiked_{0}'.format(num_strat))
-                despike.inputs.outputtype = 'NIFTI_GZ'
-
-                node, out_file = new_strat.get_leaf_properties()
-                workflow.connect(node, out_file,
-                                despike, 'in_file')
-
-                new_strat.set_leaf_properties(despike, 'out_file')
-
-                new_strat.update_resource_pool({
-                    'despiked': (despike, 'out_file')
-                })
-
-                new_strat_list.append(new_strat)
-
-        strat_list = new_strat_list
-
-
-        # Slice Timing Correction Workflow
-        new_strat_list = []
-
-        for num_strat, strat in enumerate(strat_list):
-
-            if 0 in c.slice_timing_correction:
-
-                new_strat_list += [strat.fork()]
-
-            if 1 in c.slice_timing_correction:
-
-                new_strat = strat.fork()
-
-                slice_time = slice_timing_wf(name='func_slice_timing_correction_{0}'.format(num_strat))
-
-                node, out_file = new_strat.get_leaf_properties()
-                workflow.connect(node, out_file, slice_time,
-                                'inputspec.func_ts')
-
-                node, node_out = new_strat['tr']
-                workflow.connect(node, node_out,
-                                    slice_time, 'inputspec.tr')
-
-                node, node_out = new_strat['tpattern']
-                workflow.connect(node, node_out,
-                                    slice_time, 'inputspec.tpattern')
-
-                # add the name of the node to the strat name
-                new_strat.append_name(slice_time.name)
-
-                # set the leaf node
-                new_strat.set_leaf_properties(slice_time, 'outputspec.slice_time_corrected')
-
-                # add the outputs to the resource pool
-                new_strat.update_resource_pool({
-                    'slice_time_corrected': (slice_time, 'outputspec.slice_time_corrected')
-                })
-
-                new_strat_list.append(new_strat)
-
-        # add new strats (if forked)
-        strat_list = new_strat_list
+        # Functional Ingress Workflow
+        workflow, diff, blip, fmap_rp_list = connect_func_ingress(workflow,
+                                                                  strat_list, c,
+                                                                  sub_dict,
+                                                                  subject_id,
+                                                                  input_creds_path)
+
+        # Functional Initial Prep Workflow
+        workflow, strat_list = connect_func_init(workflow, strat_list, c)
 
         # Functional Image Preprocessing Workflow
         workflow, strat_list = connect_func_preproc(workflow, strat_list, c)
 
         # Distortion Correction
-        new_strat_list = []
-
-        # Distortion Correction - Field Map Phase-difference
-        if "PhaseDiff" in c.distortion_correction and diff:
-            for num_strat, strat in enumerate(strat_list):
-                if 'BET' in c.fmap_distcorr_skullstrip:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=True,
-                        wf_name='diff_distcor_%d' % (num_strat)
-                    )
-                    epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
-                    epi_distcorr.get_node('bet_frac_input').iterables = \
-                        ('bet_frac', c.fmap_distcorr_frac)
-                else:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=False,
-                        wf_name='diff_distcor_%d' % (num_strat)
-                    )
-                    epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
-                        c.fmap_distcorr_threshold
-
-                node, out_file = strat['anatomical_reorient']
-                workflow.connect(node, out_file, epi_distcorr,
-                                'inputspec.anat_file')
-
-                node, out_file = strat['diff_phase']
-                workflow.connect(node, out_file, epi_distcorr,
-                                'inputspec.fmap_pha')
-
-                node, out_file = strat['diff_mag_one']
-                workflow.connect(node, out_file, epi_distcorr,
-                                'inputspec.fmap_mag')
-
-                node, out_file = strat['deltaTE']
-                workflow.connect(node, out_file, epi_distcorr,
-                                 'deltaTE_input.deltaTE')
-
-                node, out_file = strat['diff_phase_dwell']
-                workflow.connect(node, out_file, epi_distcorr,
-                                 'dwellT_input.dwellT')
-
-                node, out_file = strat['dwell_asym_ratio']
-                workflow.connect(node, out_file, epi_distcorr,
-                                 'dwell_asym_ratio_input.dwell_asym_ratio')
-
-                # TODO ASH review forking
-                if "None" in c.distortion_correction:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(epi_distcorr.name)
-
-                strat.update_resource_pool({
-                    'despiked_fieldmap': (epi_distcorr, 'outputspec.fmap_despiked'),
-                    'fieldmap_mask': (epi_distcorr, 'outputspec.fieldmapmask'),
-                })
-
-        strat_list += new_strat_list
-
-        diff_complete = False
-        if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
-            diff_complete = True
-
-        # Distortion Correction - "Blip-Up / Blip-Down"
-        if "Blip" in c.distortion_correction and blip:
-            for num_strat, strat in enumerate(strat_list):
-                match_epi_imports = ['import json']
-                match_epi_fmaps_node = \
-                    pe.Node(Function(input_names=['bold_pedir',
-                                                  'epi_fmap_one',
-                                                  'epi_fmap_params_one',
-                                                  'epi_fmap_two',
-                                                  'epi_fmap_params_two'],
-                                     output_names=['opposite_pe_epi',
-                                                   'same_pe_epi'],
-                                     function=match_epi_fmaps,
-                                     imports=match_epi_imports,
-                                     as_module=True),
-                            name='match_epi_fmaps_{0}'.format(num_strat))
-
-                if fmap_rp_list:
-                    epi_rp_key = fmap_rp_list[0]
-                    epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
-                    node, node_out = strat[epi_rp_key]
-                    workflow.connect(node, node_out,
-                                     match_epi_fmaps_node, 'epi_fmap_one')
-                    node, node_out = strat[epi_param_rp_key]
-                    workflow.connect(node, node_out,
-                                     match_epi_fmaps_node, 'epi_fmap_params_one')
-                    if len(epi_rp_key) > 1:
-                        epi_rp_key = fmap_rp_list[1]
-                        epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
-                        node, node_out = strat[epi_rp_key]
-                        workflow.connect(node, node_out,
-                                         match_epi_fmaps_node, 'epi_fmap_two')
-                        node, node_out = strat[epi_param_rp_key]
-                        workflow.connect(node, node_out,
-                                         match_epi_fmaps_node,
-                                         'epi_fmap_params_two')
-
-                node, node_out = strat['pe_direction']
-                workflow.connect(node, node_out,
-                                 match_epi_fmaps_node, 'bold_pedir')
-
-                blip_correct = blip_distcor_wf(wf_name='blip_correct_{0}'.format(num_strat))
-
-                node, out_file = strat["mean_functional"]
-                workflow.connect(node, out_file,
-                                 blip_correct, 'inputspec.func_mean')
-
-                workflow.connect(match_epi_fmaps_node, 'opposite_pe_epi',
-                                 blip_correct, 'inputspec.opposite_pe_epi')
-
-                workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
-                                 blip_correct, 'inputspec.same_pe_epi')
-
-            if "None" in c.distortion_correction:
-                strat = strat.fork()
-                new_strat_list.append(strat)
-
-            strat.append_name(blip_correct.name)
-
-            strat.update_resource_pool({
-                'blip_warp': (blip_correct, 'outputspec.blip_warp'),
-                'blip_warp_inverse': (blip_correct, 'outputspec.blip_warp_inverse'),
-                'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
-                'functional_brain_mask': (blip_correct, 'outputspec.new_func_mask')
-            }, override=True)
-
-        strat_list += new_strat_list
-
+        workflow, strat_list = connect_distortion_correction(workflow,
+                                                             strat_list, c,
+                                                             diff,
+                                                             blip,
+                                                             fmap_rp_list)
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -2274,6 +1740,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             for num_strat, strat in enumerate(strat_list):
 
                 nodes = strat.get_nodes_names()
+
+                diff_complete = False
+                if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
+                    diff_complete = True
 
                 # if field map-based distortion correction is on, but BBR is off,
                 # send in the distortion correction files here
@@ -2729,10 +2199,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 # Special case where the workflow is not getting outputs from
                 # resource pool but is connected to functional datasource
-                workflow.connect(func_wf, 'outputspec.subject',
+                node, out_file = new_strat['subject']
+                workflow.connect(node, out_file,
                                  gen_motion_stats, 'inputspec.subject_id')
 
-                workflow.connect(func_wf, 'outputspec.scan',
+                node, out_file = new_strat['scan']
+                workflow.connect(node, out_file,
                                  gen_motion_stats, 'inputspec.scan_id')
 
                 node, out_file = strat['motion_correct']
