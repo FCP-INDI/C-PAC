@@ -394,6 +394,14 @@ elif args.analysis_level in ["test_config", "participant"]:
     c['maxCoresPerParticipant'] = int(c.get('maxCoresPerParticipant',
         args.n_cpus))
     c['numParticipantsAtOnce'] = int(c.get('numParticipantsAtOnce', 1))
+    # Reduce cores per participant if cores times particiapants is more than
+    # available CPUS. n_cpus is a hard upper limit.
+    if (c['maxCoresPerParticipant'] * c['numParticipantsAtOnce']) > int(
+        args.n_cpus
+    ):
+        c['maxCoresPerParticipant'] = int(
+            args.n_cpus
+        ) // c['numParticipantsAtOnce']
     c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
     c['disable_log'] = args.disable_file_logging
