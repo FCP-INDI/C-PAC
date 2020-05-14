@@ -50,7 +50,7 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
     Yc = Yc / np.tile(np.array(Yc.std(0)).reshape(1,Yc.shape[1]), (Yc.shape[0],1))
 
     print('Calculating SVD decomposition of Y*Y\'')
-    U, S, Vh = np.linalg.svd(Yc)
+    U, S, Vh = np.linalg.svd(Yc, full_matrices=False)
 
     # write out the resulting regressor file
     regressor_file = os.path.join(os.getcwd(), 'compcor_regressors.1D')
