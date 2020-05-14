@@ -805,6 +805,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             template_name: (resampled_template, 'resampled_template')
         })
 
+    # update resource pool from data config
+    # TODO fork resource pool
+    if 'resource_pool' in sub_dict.keys():
+        resource_pool_list = sub_dict['resource_pool']
+        for strat in resource_pool_list.keys():
+            resource_pool_dict = sub_dict['resource_pool'][strat]
+            for key in resource_pool_dict.keys():
+                strat_initial.update_resource_pool({
+                    key: resource_pool_dict[key]
+                })
+    
     strat_list += [strat_initial]
 
     new_strat_list = []
