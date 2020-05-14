@@ -1341,7 +1341,7 @@ def connect_func_init(workflow, strat_list, c):
             new_strat = strat.fork()
 
             despike = pe.Node(interface=preprocess.Despike(),
-                              name='func_despiked')
+                              name='func_despiked_{0}'.format(num_strat))
             despike.inputs.outputtype = 'NIFTI_GZ'
 
             node, out_file = new_strat.get_leaf_properties()

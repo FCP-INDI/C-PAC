@@ -420,10 +420,6 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
 
     strat_list += new_strat_list
 
-    diff_complete = False
-    if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
-        diff_complete = True
-
     # Distortion Correction - "Blip-Up / Blip-Down"
     if "Blip" in c.distortion_correction and blip:
         for num_strat, strat in enumerate(strat_list):
@@ -495,4 +491,4 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
 
     strat_list += new_strat_list
 
-    return (workflow, strat_list, diff_complete)
+    return (workflow, strat_list)

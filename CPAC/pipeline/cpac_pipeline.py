@@ -1697,11 +1697,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         workflow, strat_list = connect_func_preproc(workflow, strat_list, c)
 
         # Distortion Correction
-        workflow, strat_list, diff_complete = connect_distortion_correction(workflow,
-                                                                            strat_list, c,
-                                                                            diff,
-                                                                            blip,
-                                                                            fmap_rp_list)
+        workflow, strat_list = connect_distortion_correction(workflow,
+                                                             strat_list, c,
+                                                             diff,
+                                                             blip,
+                                                             fmap_rp_list)
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1740,6 +1740,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             for num_strat, strat in enumerate(strat_list):
 
                 nodes = strat.get_nodes_names()
+
+                diff_complete = False
+                if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
+                    diff_complete = True
 
                 # if field map-based distortion correction is on, but BBR is off,
                 # send in the distortion correction files here

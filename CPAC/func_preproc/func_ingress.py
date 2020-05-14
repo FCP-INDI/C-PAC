@@ -1,4 +1,4 @@
-
+from nipype import logging
 logger = logging.getLogger('workflow')
 
 import nipype.pipeline.engine as pe
@@ -45,9 +45,9 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
         # Grab field maps
         diff = False
         blip = False
+        fmap_rp_list = []
+        fmap_TE_list = []
         if "fmap" in sub_dict:
-            fmap_rp_list = []
-            fmap_TE_list = []
             for key in sub_dict["fmap"]:
                 gather_fmap = create_fmap_datasource(sub_dict["fmap"],
                                                      "fmap_gather_"
