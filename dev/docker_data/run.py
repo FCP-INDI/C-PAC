@@ -116,7 +116,6 @@ def resolve_aws_credential(source):
             .format(source)
         )
 
-
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
@@ -314,7 +313,6 @@ elif args.analysis_level == "group":
         sys.exit(0)
 
 elif args.analysis_level in ["test_config", "participant"]:
-
     # check to make sure that the input directory exists
     if not args.data_config_file and \
         not args.bids_dir.lower().startswith("s3://") and \
@@ -413,7 +411,7 @@ elif args.analysis_level in ["test_config", "participant"]:
                 ' Either change the output directory to something'
                 ' local or turn off the --save_working_dir flag')
 
-    print()
+
     if args.participant_label:
         print(
             "#### Running C-PAC for {0}"
@@ -465,6 +463,8 @@ elif args.analysis_level in ["test_config", "participant"]:
 
         from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
+        print("Parsing {0}..".format(args.bids_dir))
+
         (file_paths, config) = collect_bids_files_configs(
             args.bids_dir, args.aws_input_creds)
 
@@ -484,11 +484,14 @@ elif args.analysis_level in ["test_config", "participant"]:
             ))
             sys.exit(1)
 
+        raise_error = not args.skip_bids_validator
+
         sub_list = bids_gen_cpac_sublist(
             args.bids_dir,
             file_paths,
             config,
-            args.aws_input_creds
+            args.aws_input_creds,
+            raise_error=raise_error
         )
 
         if not sub_list:
@@ -555,7 +558,6 @@ elif args.analysis_level in ["test_config", "participant"]:
         noalias_dumper = yaml.dumper.SafeDumper
         noalias_dumper.ignore_aliases = lambda self, data: True
         yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
-
 
     if args.analysis_level in ["participant", "test_config"]:
         # build pipeline easy way
