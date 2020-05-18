@@ -1006,7 +1006,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 raise Exception
 
             flirt_reg_anat_mni = create_fsl_flirt_linear_reg(
-                'anat_mni_flirt_register_{0}'.format(num_strat)
+                f'anat_mni_flirt_register_{num_strat}'
             )
 
             # Input registration parameters
@@ -1054,7 +1054,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             if strat.get('registration_method') == 'FSL':
 
                 fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
-                    'anat_mni_fnirt_register_{0}'.format(num_strat)
+                    f'anat_mni_fnirt_register_{num_strat}'
                 )
 
                 node, out_file = strat['anatomical_brain']
@@ -1113,7 +1113,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
-                    'anat_mni_ants_register_{0}'.format(num_strat),
+                    f'anat_mni_ants_register_{num_strat}',
                     num_threads=num_ants_cores,
                     reg_ants_skull = c.regWithSkull
                 )
