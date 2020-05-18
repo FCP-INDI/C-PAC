@@ -7,34 +7,28 @@ assignees: ''
 
 ---
 
-Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new bug report. If something like your bug is already reported, please add to that discussion.
+<!-- Please check [open issues](https://github.com/FCP-INDI/C-PAC/issues) before adding a new bug report. If something like your bug is already reported, please add to that discussion. -->
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+<!-- A clear and concise description of what the bug is, or delete this section entirely. -->
 
 **To Reproduce**
 Steps to reproduce the behavior:
-1. Go to '...'
+1. <!-- Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
-4. See error
+4. See error -->
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+<!-- A clear and concise description of what you expected to happen, or delete this section entirely. -->
 
 **Screenshots**
-If applicable, add screenshots to help explain your problem.
+<!-- If applicable, add screenshots to help explain your problem, or delete this section entirely. -->
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+**Versions** <!-- (please complete the following information): -->
+ - C-PAC: <!-- e.g. 1.6.2 -->
+ - Container Platform <!-- as many as are relevant -->:
+    - <!-- Docker or Singularity -->:  <!-- e.g. 1.6.2 -->
 
 **Additional context**
-Add any other context about the problem here.
+<!-- Add any other context about the problem here, or delete this section entirely. -->
