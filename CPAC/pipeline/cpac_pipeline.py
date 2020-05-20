@@ -129,8 +129,8 @@ from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
 logger = logging.getLogger('nipype.workflow')
 # config.enable_debug_mode()
 
-def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
-                 p_name=None, plugin='MultiProc', plugin_args=None, test_config=False):
+def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
+                 plugin='MultiProc', plugin_args=None, test_config=False):
     '''
     Function to prepare and, optionally, run the C-PAC workflow
 
@@ -168,7 +168,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
     if sub_dict['unique_id']:
         subject_id += "_" + sub_dict['unique_id']
 
-    log_dir = os.path.join(c.logDirectory, 'pipeline_%s' % c.pipelineName, subject_id)
+    log_dir = os.path.join(c.logDirectory, 'pipeline_%s' % c.pipelineName,
+                           subject_id)
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
@@ -180,8 +181,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
             'log_to_file': bool(getattr(c, 'run_logging', True))
         }
     })
-    config.enable_resource_monitor()
 
+    config.enable_resource_monitor()
     logging.update_logging(config)
 
     # Start timing here
@@ -191,8 +192,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
     # number of subjects
 
     # Check pipeline config resources
-    sub_mem_gb, num_cores_per_sub, num_ants_cores = \
-        check_config_resources(c)
+    sub_mem_gb, num_cores_per_sub, num_ants_cores = check_config_resources(c)
 
     if not plugin:
         plugin = 'MultiProc'
@@ -253,7 +253,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
     except:
         encrypt_data = False
 
-
     information = """
 
     C-PAC version: {cpac_version}
@@ -291,7 +290,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
         max_cores=max_core_usage
     ))
 
-
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
@@ -308,7 +306,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
                       check_ica_aroma='1' in str(c.runICA[0]),
                       check_centrality_degree=check_centrality_degree,
                       check_centrality_lfcd=check_centrality_lfcd)
-
 
     # absolute paths of the dirs
     c.workingDirectory = os.path.abspath(c.workingDirectory)
@@ -330,7 +327,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None,
                     'file, the pipeline was built successfully, but was '
                     'not run')
     else:
-
         working_dir = os.path.join(c.workingDirectory, workflow.name)
 
         #if c.write_debugging_outputs:
@@ -1105,8 +1101,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     for num_strat, strat in enumerate(strat_list):
 
-        nodes = strat.get_nodes_names()
-
         # or run ANTS anatomical-to-MNI registration instead
         if 'ANTS' in c.regOption and \
                 strat.get('registration_method') != 'FSL':
@@ -1179,8 +1173,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 )
 
             # Test if a lesion mask is found for the anatomical image
-            if 'lesion_mask' in sub_dict and c.use_lesion_mask \
-                    and 'lesion_preproc' not in nodes:
+            if 'lesion_mask' in sub_dict and c.use_lesion_mask:
                 # Create lesion preproc node to apply afni Refit and Resample
                 lesion_preproc = create_lesion_preproc(
                     wf_name='lesion_preproc_%d' % num_strat
@@ -1427,8 +1420,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                     ants_reg_anat_symm_mni, 'inputspec.reference_skull')
 
 
-                if 'lesion_mask' in sub_dict and c.use_lesion_mask\
-                        and 'lesion_preproc' not in nodes:
+                if 'lesion_mask' in sub_dict and c.use_lesion_mask:
                     # Create lesion preproc node to apply afni Refit & Resample
                     lesion_preproc = create_lesion_preproc(
                         wf_name='lesion_preproc_%d' % num_strat
@@ -1740,8 +1732,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                nodes = strat.get_nodes_names()
-
                 diff_complete = False
                 if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
                     diff_complete = True
@@ -1755,6 +1745,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # TODO:  here instead to have a func->anat with fieldmap and
                 # TODO:  without, and send the without-fieldmap to the BBR fork)
 
+                # TODO: if we're moving the distortion correction warp
+                #       application, then the below is unnecessary
+                '''
                 dist_corr = False
                 if 'diff_distcor' in nodes and 1 not in c.runBBReg:
                     dist_corr = True
@@ -1763,10 +1756,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         "but Boundary-Based Registration is off- BBR is " \
                         "required for distortion correction.\n\n"
                     raise Exception(err)
+                '''
 
                 func_to_anat = create_register_func_to_anat(diff_complete,
-                                                            'func_to_anat_FLIRT'
-                                                            '_%d' % num_strat)
+                                                            f'func_to_anat_FLIRT'
+                                                            '_{num_strat}')
 
                 # Input registration parameters
                 func_to_anat.inputs.inputspec.interp = 'trilinear'
@@ -1836,17 +1830,15 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                nodes = strat.get_nodes_names()
-
                 # this is needed here in case tissue segmentation is set on/off
                 # and you have bbreg enabled- this will ensure bbreg will run for
                 # the strat that has segmentation but will not run (thus avoiding
                 # a crash) on the strat without segmentation
-                if 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes:
+                if 'anatomical_wm_mask' in strat:
 
                     func_to_anat_bbreg = create_bbregister_func_to_anat(
                         diff_complete,
-                        'func_to_anat_bbreg_%d' % num_strat
+                        f'func_to_anat_bbreg_{num_strat}'
                     )
 
                     # Input registration parameters
@@ -1858,33 +1850,34 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         # Input functional image (mean functional)
                         node, out_file = strat['mean_functional']
                         workflow.connect(node, out_file,
-                                        func_to_anat_bbreg, 'inputspec.func')
+                                         func_to_anat_bbreg, 'inputspec.func')
 
                     elif 'Selected Functional Volume' in c.func_reg_input:
                         # Input functional image (specific volume)
                         node, out_file = strat['selected_func_volume']
                         workflow.connect(node, out_file,
-                                        func_to_anat_bbreg, 'inputspec.func')
+                                         func_to_anat_bbreg, 'inputspec.func')
 
                     # Input anatomical whole-head image (reoriented)
                     node, out_file = strat['anatomical_reorient']
                     workflow.connect(node, out_file,
-                                    func_to_anat_bbreg,
-                                    'inputspec.anat_skull')
+                                     func_to_anat_bbreg,
+                                     'inputspec.anat_skull')
 
                     node, out_file = strat['functional_to_anat_linear_xfm']
                     workflow.connect(node, out_file,
-                                    func_to_anat_bbreg,
-                                    'inputspec.linear_reg_matrix')
+                                     func_to_anat_bbreg,
+                                     'inputspec.linear_reg_matrix')
 
-                    if 'T1_template' in c.template_based_segmentation or 'EPI_template' in c.template_based_segmentation:
+                    if 'T1_template' in c.template_based_segmentation or \
+                            'EPI_template' in c.template_based_segmentation:
                         # Input segmentation mask,
-                        # since template_based_segmentation cannot generate probability maps
+                        # since template_based_segmentation cannot generate
+                        # probability maps
                         node, out_file = strat['anatomical_wm_mask']
                         workflow.connect(node, out_file,
                                         func_to_anat_bbreg,
                                         'inputspec.anat_wm_segmentation')
-
                     else:
                         # Input segmentation probability maps for white matter
                         # segmentation
@@ -1893,7 +1886,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                          func_to_anat_bbreg,
                                          'inputspec.anat_wm_segmentation')
 
-                    #if dist_corr and phase_diff:
                     # apply field map distortion correction outputs to
                     # the func->anat registration
                     if diff_complete:
@@ -1917,7 +1909,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                          func_to_anat_bbreg,
                                          'inputspec.fieldmapmask')
 
-
                     # TODO ASH review forking
                     if 0 in c.runBBReg:
                         strat = strat.fork()
@@ -1938,14 +1929,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     if len(strat_list) > 1:
                         pass
                     else:
-                        err = "\n\n[!] Boundary-based registration (BBR) for " \
-                            "functional-to-anatomical registration is " \
+                        err = "\n\n[!] Boundary-based registration (BBR) " \
+                            "for functional-to-anatomical registration is " \
                             "enabled, but anatomical segmentation is not. " \
                             "BBR requires the outputs of segmentation. " \
                             "Please modify your pipeline configuration and " \
                             "run again.\n\n"
                         raise Exception(err)
-
 
         strat_list += new_strat_list
 
@@ -2010,6 +2000,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     if reg == 'FSL':
                         strat.update_resource_pool({
+                            'epi_registration_method': 'FSL',
                             'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),  
                             'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
                             'epi_to_func_linear_xfm': (func_to_epi, 'outputspec.invlinear_xfm'),
@@ -2017,6 +2008,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     elif reg == 'ANTS':
                         strat.update_resource_pool({
+                            'epi_registration_method': 'ANTS',
                             'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
                             'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
                             'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm'),
@@ -2051,8 +2043,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             nodes = strat.get_nodes_names()
 
             if 'T1_template' in c.runRegisterFuncToTemplate and \
-                    'func_to_epi_ants' not in nodes and \
-                    'func_to_epi_fsl' not in nodes:
+                    'functional_to_epi-standard' not in strat:
 
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
@@ -2075,9 +2066,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                nodes = strat.get_nodes_names()
-
-                if 'func_to_epi_fsl' not in nodes and 'func_to_epi_ants' not in nodes:
+                if 'functional_to_epi-standard' not in strat:
                     continue
 
                 if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
@@ -2088,9 +2077,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     raise Exception(err)
 
                 # TODO ASH based on config, instead of nodes?
-                if 'func_to_epi_fsl' in nodes:
+                if strat.get('epi_registration_method') == 'FSL':
                     use_ants = False
-                elif 'func_to_epi_ants' in nodes:
+                elif strat.get('epi_registration_method') == 'ANTS':
                     use_ants = True
 
                 seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
@@ -2100,7 +2089,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if seg_preproc_template_based is None:
                     continue
 
-                if 'func_to_epi_fsl' in nodes:
+                if strat.get('epi_registration_method') == 'FSL':
 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
@@ -2111,7 +2100,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                     seg_preproc_template_based,
                                     'inputspec.standard2highres_mat')
 
-                elif 'func_to_epi_ants' in nodes:
+                elif strat.get('epi_registration_method') == 'ANTS':
 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
@@ -2162,34 +2151,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Inserting Generate Motion Statistics Workflow
         new_strat_list = []
         for num_strat, strat in enumerate(strat_list):
-            nodes = strat.get_nodes_names()
-            if not any("gen_motion_stats_before_stc" in node for node in nodes):
 
-                motion_stats_node = [x for x in nodes if "func_preproc" in x][0]
+            if 'motion_params' not in strat:
 
                 # skullstripping tool
-                if "fsl_afni" in motion_stats_node:
-                    skullstrip_tool = 'fsl_afni'
-                elif "fsl" in motion_stats_node:
-                    skullstrip_tool = 'fsl'
-                elif "afni" in motion_stats_node:
-                    skullstrip_tool = 'afni'
-                elif "anatomical_refined" in motion_stats_node:
-                    skullstrip_tool = 'anatomical_refined'
+                skullstrip_tool = strat.get('bold_masking_method')
 
                 # motion correction reference
-                if "mean" in motion_stats_node:
-                    motion_correct_ref = "mean"
-                elif "median" in motion_stats_node:
-                    motion_correct_ref = "median"
-                elif "selected_volume" in motion_stats_node:
-                    motion_correct_ref = "selected_volume"
+                motion_correct_ref = strat.get('motion_correction_ref')
 
                 # motion correction tool
-                if "3dvolreg" in motion_stats_node:
-                    motion_correct_tool = "3dvolreg"
-                elif "mcflirt" in motion_stats_node:
-                    motion_correct_tool = "mcflirt"
+                motion_correct_tool = strat.get('motion_correction_method')
 
                 gen_motion_stats = motion_power_statistics(
                                 name='gen_motion_stats_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
@@ -2310,7 +2282,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     # we don't have the FNIRT warp file, so we need to calculate
                     # ICA-AROMA de-noising in template space
 
-                    if 'func_to_epi_ants' in nodes:
+                    if strat.get('epi_registration_method') == 'ANTS':
 
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
@@ -2347,7 +2319,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         }
                     )
 
-                    if 'func_to_epi_ants' in nodes:
+                    if strat.get('epi_registration_method') == 'ANTS':
 
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
@@ -2382,7 +2354,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             nodes = strat.get_nodes_names()
 
-            has_segmentation = 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes or 'seg_preproc_epi_template' in nodes
+            has_segmentation = 'anatomical_csf_mask' in strat or 'epi_csf_mask' in strat
             use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes and 'func_to_epi_fsl' not in nodes
 
             for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
@@ -2433,7 +2405,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         regressor_workflow, 'inputspec.lat_ventricles_mask_file_path'
                     )
 
-                    if 'seg_preproc' in nodes or 'seg_preproc_t1_template' in nodes :
+                    if 'anatomical_csf_mask' in strat:
 
                         node, out_file = new_strat['anatomical_gm_mask']
                         workflow.connect(
@@ -2453,7 +2425,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             regressor_workflow, 'inputspec.csf_mask_file_path'
                         )
 
-                    if 'seg_preproc_epi_template' in nodes:
+                    if 'epi_csf_mask' in strat:
 
                         node, out_file = new_strat['epi_gm_mask']
                         workflow.connect(
@@ -2540,7 +2512,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 ])
 
                 if use_ants:
-                    if 'func_to_epi_ants' in nodes:
+                    if strat.get('epi_registration_method') == 'ANTS':
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
@@ -2852,9 +2824,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         for num_strat, strat in enumerate(strat_list):
 
-            nodes = strat.get_nodes_names()
-
-            if 'func_to_epi_fsl' in nodes or 'func_to_epi_ants' in nodes :
+            if 'functional_to_epi-standard' in strat:
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
@@ -3541,9 +3511,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         for num_strat, strat in enumerate(strat_list):
 
-            nodes = strat.get_nodes_names()
-
-            if 'func_to_epi_fsl' in nodes or 'func_to_epi_ants' in nodes :
+            if 'functional_to_epi-standard' in strat:
 
                 rp = strat.get_resource_pool()
 

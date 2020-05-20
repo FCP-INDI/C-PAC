@@ -579,7 +579,9 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 # functional preprocessing
-def create_func_preproc(skullstrip_tool, motion_correct_tool, motion_correct_ref, config=None, wf_name='func_preproc'):
+def create_func_preproc(skullstrip_tool, motion_correct_tool,
+                        motion_correct_ref, config=None,
+                        wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -1251,6 +1253,9 @@ def connect_func_init(workflow, strat_list, c):
                             getattr(c, 'functional_volreg_twopass', True)
 
                         new_strat.update_resource_pool({
+                            'bold_masking_method': skullstrip_tool,
+                            'motion_correction_method': motion_correct_tool,
+                            'motion_correction_ref': motion_correct_ref,
                             'movement_parameters': (
                             func_preproc, 'outputspec.movement_parameters'),
                             'max_displacement': (
@@ -1413,44 +1418,26 @@ def connect_func_preproc(workflow, strat_list, c):
 
     for num_strat, strat in enumerate(strat_list):
 
-        nodes = strat.get_nodes_names()
-
-        if any("gen_motion_stats_before_stc" in node for node in nodes):
-
-            motion_stats_node = [
-                x for x in nodes if "gen_motion_stats_before_stc" in x
-            ][0]
+        if 'motion_params' in strat:
 
             # skullstripping tool
-            if "fsl_afni" in motion_stats_node:
-                skullstrip_tool = 'fsl_afni' 
-            elif "fsl" in motion_stats_node:
-                skullstrip_tool = 'fsl'
-            elif "afni" in motion_stats_node:
-                skullstrip_tool = 'afni'
-            elif "anatomical_refined" in motion_stats_node:
-                skullstrip_tool = 'anatomical_refined'
+            skullstrip_tool = strat.get('bold_masking_method')
 
             # motion correction reference
-            if "mean" in motion_stats_node:
-                motion_correct_ref = "mean"
-            elif "median" in motion_stats_node:
-                motion_correct_ref = "median"
-            elif "selected_volume" in motion_stats_node:
-                motion_correct_ref = "selected_volume"     
+            motion_correct_ref = strat.get('motion_correction_ref')
 
             # motion correction tool
-            if "3dvolreg" in motion_stats_node:
-                motion_correct_tool = "3dvolreg"
-            elif "mcflirt" in motion_stats_node:
-                motion_correct_tool = "mcflirt"
+            motion_correct_tool = strat.get('motion_correction_method')
 
             func_preproc = create_func_preproc(
                 skullstrip_tool=skullstrip_tool,
                 motion_correct_tool=motion_correct_tool,
                 motion_correct_ref=motion_correct_ref,
                 config=c,
-                wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool, motion_correct_ref, motion_correct_tool, num_strat)
+                wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
+                                                              motion_correct_ref,
+                                                              motion_correct_tool,
+                                                              num_strat)
             )
 
             node, out_file = strat['raw_functional_trunc']
@@ -1509,7 +1496,10 @@ def connect_func_preproc(workflow, strat_list, c):
                             motion_correct_tool=motion_correct_tool,
                             motion_correct_ref=motion_correct_ref,
                             config=c,
-                            wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool, motion_correct_ref, motion_correct_tool, num_strat)
+                            wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
+                                                                          motion_correct_ref,
+                                                                          motion_correct_tool,
+                                                                          num_strat)
                         )
 
                         node, out_file = new_strat['raw_functional_trunc']
