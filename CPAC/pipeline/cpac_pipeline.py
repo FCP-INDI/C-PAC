@@ -1358,10 +1358,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             # or run ANTS anatomical-to-MNI registration instead
             if 'ANTS' in c.regOption and \
-               'anat_mni_flirt_register' not in nodes and \
-               'anat_mni_fnirt_register' not in nodes and \
-               'anat_symmetric_mni_flirt_register' not in nodes and \
-               'anat_symmetric_mni_fnirt_register' not in nodes:
+                strat.get('registration_method') != 'FSL':
 
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
@@ -1494,9 +1491,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 raise Exception(err)
 
             # TODO ASH based on config, instead of nodes?
-            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
+            if strat.get('registration_method') == 'FSL':
                 use_ants = False
-            elif 'anat_mni_ants_register' in nodes:
+            elif strat.get('registration_method') == 'ANTS':
                 use_ants = True
 
             seg_preproc = create_seg_preproc(use_ants=use_ants,
@@ -1533,13 +1530,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             workflow.connect(node, out_file,
                              seg_preproc, 'inputspec.brain')
 
-            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
+            if strat.get('registration_method') == 'FSL':
                 node, out_file = strat['mni_to_anatomical_linear_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
 
-            elif 'anat_mni_ants_register' in nodes:
+            elif strat.get('registration_method') == 'ANTS':
                 node, out_file = strat['ants_initial_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc,
@@ -1610,9 +1607,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 raise Exception(err)
 
             # TODO ASH based on config, instead of nodes?
-            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
+            if strat.get('registration_method') == 'FSL':
                 use_ants = False
-            elif 'anat_mni_ants_register' in nodes:
+            elif strat.get('registration_method') == 'ANTS':
                 use_ants = True
 
             seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
@@ -1626,13 +1623,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             workflow.connect(node, out_file,
                              seg_preproc_template_based, 'inputspec.brain')
 
-            if 'anat_mni_fnirt_register' in nodes or 'anat_mni_flirt_register' in nodes:
+            if strat.get('registration_method') == 'FSL':
                 node, out_file = strat['mni_to_anatomical_linear_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc_template_based,
                                  'inputspec.standard2highres_mat')
 
-            elif 'anat_mni_ants_register' in nodes:
+            elif strat.get('registration_method') == 'ANTS':
                 node, out_file = strat['ants_initial_xfm']
                 workflow.connect(node, out_file,
                                  seg_preproc_template_based,
@@ -2230,8 +2227,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 # FNIRT ONLY! ANTS further below!
                 if 'FSL' in c.regOption and \
-                        'anat_symmetric_mni_ants_register' not in nodes and \
-                            'anat_mni_ants_register' not in nodes:
+                        strat.get('registration_method') != 'ANTS':
 
                     aroma_preproc = create_aroma(tr=TR,
                                                 wf_name='create_aroma_%d' % num_strat)
@@ -2274,10 +2270,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     strat.append_name(aroma_preproc.name)
 
                 elif 'ANTS' in c.regOption and \
-                    'anat_symmetric_mni_flirt_register' not in nodes and \
-                    'anat_symmetric_mni_fnirt_register' not in nodes and \
-                    'anat_mni_flirt_register' not in nodes and \
-                    'anat_mni_fnirt_register' not in nodes:
+                    strat.get('registration_method') != 'FSL':
 
                     # we don't have the FNIRT warp file, so we need to calculate
                     # ICA-AROMA de-noising in template space
@@ -2352,10 +2345,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             if 0 in c.runNuisance or 1 in c.run_pypeer:
                 new_strat_list.append(strat.fork())
 
-            nodes = strat.get_nodes_names()
-
             has_segmentation = 'anatomical_csf_mask' in strat or 'epi_csf_mask' in strat
-            use_ants = 'anat_mni_fnirt_register' not in nodes and 'anat_mni_flirt_register' not in nodes and 'func_to_epi_fsl' not in nodes
+            use_ants = strat.get('registration_method') == 'ANTS'
 
             for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
 
