@@ -531,7 +531,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
         from indi_aws import fetch_creds
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
 
-        print("gathering files from S3 bucket (%s) for %s" % (bucket, prefix))
+        print(f"gathering files from S3 bucket ({bucket}) for {prefix}")
 
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
