@@ -349,7 +349,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             for subject_id, sub_list in subject_id_dict.items():
                 # TODO debug - organize working dir
                 if 'anat' in c.run_longitudinal:
-                    anat_longitudinal_workflow(sub_list, subject_id, c)
+                    strat_list = anat_longitudinal_workflow(sub_list, subject_id, c)
                 if 'func' in c.run_longitudinal:
                     func_longitudinal_workflow(sub_list, c)
 
@@ -434,8 +434,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                         # problem: it assumes session id == last key (ordered by session count instead of session id) + 1
                                         if ses['unique_id'] == str(int(keys[-2][-1])+1):
                                             ses['resource_pool'][strat_key].update({
-                                                # keys[-3] == 'anatomical_to_standard'
-                                                keys[-3]: f
+                                                keys[-3]: f # keys[-3]: 'anatomical_to_standard'
                                             })
                                     elif keys[-2] != 'warp_list':
                                         ses['resource_pool'][strat_key].update({
@@ -446,7 +445,16 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                             ses['resource_pool'][strat_key].update({
                                                 keys[-2]: f
                                             })
-                                    
+            
+            for key in subject_specific_dict:
+                ses_list = [subj for subj in sublist if key in subj['anat']]
+                for ses in ses_list:
+                    for strat in strat_list:
+                        # TODO search a list of keys
+                        ses['resource_pool'][strat_key].update({
+                            'registration_method': strat['registration_method']
+                        })
+
             yaml.dump(sublist, open(os.path.join(c.outputDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
         
             print("Longitudinal pipeline completed.")

@@ -132,6 +132,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
             strat.append_name(flirt_reg_anat_mni.name)
 
             strat.update_resource_pool({
+                'registration_method': 'FSL',
                 'anatomical_to_mni_linear_xfm': (flirt_reg_anat_mni, 'outputspec.linear_xfm'),
                 'mni_to_anatomical_linear_xfm': (flirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
                 'longitudinal_template_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain')
@@ -152,7 +153,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
             nodes = strat.get_nodes_names()
 
-            if any('anat_mni_flirt_register' in node for node in nodes): 
+            if strat.get('registration_method') == 'FSL':
 
                 fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
                     'anat_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
@@ -211,10 +212,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
         # or run ANTS anatomical-to-MNI registration instead
         if 'ANTS' in c.regOption and \
-            all('anat_mni_flirt_register' not in node for node in nodes) and \
-            all('anat_mni_fnirt_register' not in node for node in nodes):
-                # 'anat_mni_flirt_register' not in nodes and \
-                # 'anat_mni_fnirt_register' not in nodes:
+            strat.get('registration_method') != 'FSL':
 
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
@@ -295,6 +293,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
             strat.append_name(ants_reg_anat_mni.name)
 
             strat.update_resource_pool({
+                'registration_method': 'ANTS',
                 'ants_initial_xfm': (ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
                 'ants_rigid_xfm': (ants_reg_anat_mni, 'outputspec.ants_rigid_xfm'),
                 'ants_affine_xfm': (ants_reg_anat_mni, 'outputspec.ants_affine_xfm'),
@@ -317,7 +316,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
             nodes = strat.get_nodes_names()
 
             if 'FSL' in c.regOption and \
-                all('anat_mni_ants_register' not in node for node in nodes):
+                strat.get('registration_method') != 'ANTS':
 
                 # this is to prevent the user from running FNIRT if they are
                 # providing already-skullstripped inputs. this is because
@@ -381,7 +380,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
                 nodes = strat.get_nodes_names()
 
-                if any('anat_mni_flirt_register' in node for node in nodes): 
+                if strat.get('registration_method') == 'FSL':
                     fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
                         'anat_symmetric_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
                     )
@@ -434,14 +433,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
             # or run ANTS anatomical-to-MNI registration instead
             if 'ANTS' in c.regOption and \
-                    all('anat_mni_flirt_register' not in node for node in nodes) and \
-                    all('anat_mni_fnirt_register' not in node for node in nodes) and \
-                    all('anat_symmetric_mni_flirt_register' not in node for node in nodes) and \
-                    all('anat_symmetric_mni_fnirt_register' not in node for node in nodes):
-                    # 'anat_mni_flirt_register' not in nodes and \
-                    # 'anat_mni_fnirt_register' not in nodes and \
-                    # 'anat_symmetric_mni_flirt_register' not in nodes and \
-                    # 'anat_symmetric_mni_fnirt_register' not in nodes:
+                strat.get('registration_method') != 'FSL':
 
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
@@ -944,8 +936,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             
             nodes = reg_strat.get_nodes_names()
             
-            if any('anat_mni_fnirt_register' in node for node in nodes) or \
-                any('anat_mni_fnirt_register' in node for node in nodes):
+            if strat.get('registration_method') == 'FSL':
 
                 fsl_apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
                                             name='fsl_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
@@ -965,7 +956,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
                 reg_strat.update_resource_pool({'anatomical_to_standard': (fsl_apply_warp, 'out_file')})
 
-            elif any('anat_mni_ants_register' in node for node in nodes):
+            elif strat.get('registration_method') == 'ANTS':
 
                 ants_apply_warp = pe.MapNode(util.Function(input_names=['moving_image', 
                                                                     'reference', 
@@ -1051,7 +1042,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         
     workflow.run()
 
-    return # strat_nodes_list_list # for func wf?
+    return reg_strat_list# strat_nodes_list_list # for func wf?
 
 
 def func_longitudinal_workflow(sub_list, config):
