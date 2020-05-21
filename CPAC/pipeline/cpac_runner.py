@@ -167,7 +167,8 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
 # Run C-PAC subjects via job queue
 def run(subject_list_file, config_file=None, p_name=None, plugin=None,
-        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False, test_config=False):
+        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False,
+        test_config=False):
 
     # Import packages
     import subprocess
