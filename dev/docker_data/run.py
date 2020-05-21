@@ -182,9 +182,12 @@ parser.add_argument('--aws_output_creds', help='Credentials for writing to S3.'
                     ' use the string "env" to indicate that output credentials should'
                     ' read from the environment. (E.g. when using AWS iam roles).',
                     default=None)
-parser.add_argument('--n_cpus', type=int, default=3,
-                    help='Number of execution '
-                         ' resources available for the pipeline.')
+# TODO: restore <default=3> for <--n_cpus> once we remove
+#       <maxCoresPerParticipant> from config file
+#       <https://github.com/FCP-INDI/C-PAC/pull/1264#issuecomment-631643708>
+parser.add_argument('--n_cpus', type=int, default=0,
+                    help='Number of execution resources per participant '
+                         ' available for the pipeline.')
 parser.add_argument('--mem_mb', type=float,
                     help='Amount of RAM available to the pipeline in megabytes.'
                          ' Included for compatibility with BIDS-Apps standard, but mem_gb is preferred')
@@ -390,9 +393,13 @@ elif args.analysis_level in ["test_config", "participant"]:
     else:
         c['maximumMemoryPerParticipant'] = 6.0
 
-    # Preference: override if present, else from config if present, else n_cpus
-    c['maxCoresPerParticipant'] = int(c.get('maxCoresPerParticipant',
-        args.n_cpus))
+    # Preference: n_cpus if given, override if present, else from config if
+    # present, else n_cpus=3
+    if args.n_cpus == 0:
+        c['maxCoresPerParticipant'] = int(c.get('maxCoresPerParticipant', 3))
+        args.n_cpus = 3
+    else:
+        c['maxCoresPerParticipant'] = args.n_cpus
     c['numParticipantsAtOnce'] = int(c.get('numParticipantsAtOnce', 1))
     # Reduce cores per participant if cores times particiapants is more than
     # available CPUS. n_cpus is a hard upper limit.
@@ -402,7 +409,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         c['maxCoresPerParticipant'] = int(
             args.n_cpus
         ) // c['numParticipantsAtOnce']
-    c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
+    c['num_ants_threads'] = min(
+        c['maxCoresPerParticipant'], int(c['num_ants_threads'])
+    )
 
     c['disable_log'] = args.disable_file_logging
 
