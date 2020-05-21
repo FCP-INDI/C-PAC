@@ -503,12 +503,20 @@ runMotionStatisticsFirst : [0]
 motion_correction : ['3dvolreg']
 
 
-# Choose motion correction reference. Options: mean, median, selected volume 
+# Choose motion correction reference. Options: mean, median, selected volume
 motion_correction_reference: ['mean']
 
 
 # Choose motion correction reference volume
 motion_correction_reference_volume :  0
+
+
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+functional_volreg_twopass :  On
+
+
+# Run AFNI 3dDespike
+runDespike : [0]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.
@@ -539,10 +547,6 @@ startIdx :  0
 # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
 # Note: the selection here applies to all scans of all participants.
 stopIdx :  None
-
-
-# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-functional_volreg_twopass :  On
 
 
 # Perform distortion correction.

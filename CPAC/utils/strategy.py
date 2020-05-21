@@ -51,6 +51,9 @@ class Strategy(object):
                 )
             self.resource_pool[key] = value
 
+    def get(self, resource_key):
+        return self.resource_pool.get(resource_key)
+
     def __getitem__(self, resource_key):
         assert isinstance(resource_key, six.string_types)
         try:

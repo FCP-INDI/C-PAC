@@ -12,6 +12,7 @@ from nipype.interfaces.afni import utils as afni_utils
 # from CPAC.anat_preproc import patch_cmass_output
 from CPAC.func_preproc.utils import add_afni_prefix, nullify
 from CPAC.utils.interfaces.function import Function
+from CPAC.generate_motion_statistics import motion_power_statistics
 
 
 def collect_arguments(*args):
@@ -1177,6 +1178,265 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
         stopidx = stop_idx
 
     return stopidx, startidx
+
+
+def connect_func_init(workflow, strat_list, c):
+
+    for num_strat, strat in enumerate(strat_list):
+        # scale func data based on configuration information
+        scale_func_wf = create_scale_func_wf(
+            runScaling=c.runScaling,
+            scaling_factor=c.scaling_factor,
+            wf_name="scale_func_%d" % (num_strat)
+        )
+
+        # connect the functional data from the leaf node into the wf
+        node, out_file = strat.get_leaf_properties()
+        workflow.connect(node, out_file,
+                         scale_func_wf, 'inputspec.func')
+
+        # replace the leaf node with the output from the recently added
+        # workflow
+        strat.set_leaf_properties(scale_func_wf, 'outputspec.scaled_func')
+
+    for num_strat, strat in enumerate(strat_list):
+        # Truncate scan length based on configuration information
+        trunc_wf = create_wf_edit_func(
+            wf_name="edit_func_%d" % (num_strat)
+        )
+
+        # connect the functional data from the leaf node into the wf
+        node, out_file = strat.get_leaf_properties()
+        workflow.connect(node, out_file,
+                         trunc_wf, 'inputspec.func')
+
+        # connect the other input parameters
+        node, node_out = strat['start_idx']
+        workflow.connect(node, node_out,
+                         trunc_wf, 'inputspec.start_idx')
+
+        node, node_out = strat['stop_idx']
+        workflow.connect(node, node_out,
+                         trunc_wf, 'inputspec.stop_idx')
+
+        # replace the leaf node with the output from the recently added
+        # workflow
+        strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
+        strat.update_resource_pool({
+            'raw_functional_trunc': (trunc_wf, 'outputspec.edited_func'),
+        })
+
+    # Motion Statistics Workflow
+    new_strat_list = []
+
+    for num_strat, strat in enumerate(strat_list):
+
+        if 0 in c.runMotionStatisticsFirst:
+            new_strat_list += [strat.fork()]
+
+        if 1 in c.runMotionStatisticsFirst:
+
+            for skullstrip_tool in c.functionalMasking:
+
+                skullstrip_tool = skullstrip_tool.lower()
+
+                for motion_correct_ref in c.motion_correction_reference:
+
+                    motion_correct_ref = motion_correct_ref.lower()
+
+                    if " " in motion_correct_ref:
+                        motion_correct_ref = motion_correct_ref.replace(" ",
+                                                                        "_")
+
+                    for motion_correct_tool in c.motion_correction:
+                        motion_correct_tool = motion_correct_tool.lower()
+
+                        new_strat = strat.fork()
+
+                        func_preproc = create_func_preproc(
+                            skullstrip_tool=skullstrip_tool,
+                            motion_correct_tool=motion_correct_tool,
+                            motion_correct_ref=motion_correct_ref,
+                            config=c,
+                            wf_name='func_preproc_before_stc_{0}_{1}_{2}_{3}'.format(
+                                skullstrip_tool,
+                                motion_correct_ref,
+                                motion_correct_tool,
+                                num_strat)
+                        )
+
+                        node, out_file = new_strat['raw_functional_trunc']
+                        workflow.connect(node, out_file, func_preproc,
+                                         'inputspec.raw_func')
+
+                        node, out_file = new_strat.get_leaf_properties()
+                        workflow.connect(node, out_file, func_preproc,
+                                         'inputspec.func')
+
+                        node, out_file = new_strat['anatomical_brain']
+                        workflow.connect(node, out_file, func_preproc,
+                                         'inputspec.anat_brain')
+
+                        node, out_file = new_strat['anatomical_brain_mask']
+                        workflow.connect(node, out_file, func_preproc,
+                                         'inputspec.anatomical_brain_mask')
+
+                        func_preproc.inputs.inputspec.twopass = \
+                            getattr(c, 'functional_volreg_twopass', True)
+
+                        new_strat.update_resource_pool({
+                            'movement_parameters': (
+                            func_preproc, 'outputspec.movement_parameters'),
+                            'max_displacement': (
+                            func_preproc, 'outputspec.max_displacement'),
+                            'functional_brain_mask_before_stc': (
+                            func_preproc, 'outputspec.mask'),
+                            'motion_correct_before_stc': (
+                            func_preproc, 'outputspec.motion_correct'),
+                            'coordinate_transformation': (
+                            func_preproc, 'outputspec.transform_matrices'),
+                        })
+
+                        gen_motion_stats = motion_power_statistics(
+                            name='gen_motion_stats_before_stc_{0}_{1}_{2}_{3}'.format(
+                                skullstrip_tool,
+                                motion_correct_ref,
+                                motion_correct_tool,
+                                num_strat),
+                            motion_correct_tool=motion_correct_tool)
+
+                        # Special case where the workflow is not getting outputs from
+                        # resource pool but is connected to functional datasource
+                        node, out_file = new_strat['subject']
+                        workflow.connect(node, out_file,
+                                         gen_motion_stats,
+                                         'inputspec.subject_id')
+
+                        node, out_file = new_strat['scan']
+                        workflow.connect(node, out_file,
+                                         gen_motion_stats,
+                                         'inputspec.scan_id')
+
+                        node, out_file = new_strat[
+                            'motion_correct_before_stc']
+                        workflow.connect(node, out_file,
+                                         gen_motion_stats,
+                                         'inputspec.motion_correct')
+
+                        node, out_file = new_strat['movement_parameters']
+                        workflow.connect(node, out_file,
+                                         gen_motion_stats,
+                                         'inputspec.movement_parameters')
+
+                        node, out_file = new_strat['max_displacement']
+                        workflow.connect(node, out_file,
+                                         gen_motion_stats,
+                                         'inputspec.max_displacement')
+
+                        node, out_file = new_strat[
+                            'functional_brain_mask_before_stc']
+                        workflow.connect(node, out_file,
+                                         gen_motion_stats, 'inputspec.mask')
+
+                        node, out_file = new_strat[
+                            'coordinate_transformation']
+                        workflow.connect(node, out_file,
+                                         gen_motion_stats,
+                                         'inputspec.transformations')
+
+                        new_strat.append_name(gen_motion_stats.name)
+
+                        new_strat.update_resource_pool({
+                            'frame_wise_displacement_power': (
+                            gen_motion_stats, 'outputspec.FDP_1D'),
+                            'frame_wise_displacement_jenkinson': (
+                            gen_motion_stats, 'outputspec.FDJ_1D'),
+                            'dvars': (
+                            gen_motion_stats, 'outputspec.DVARS_1D'),
+                            'power_params': (
+                            gen_motion_stats, 'outputspec.power_params'),
+                            'motion_params': (
+                            gen_motion_stats, 'outputspec.motion_params')
+                        })
+
+                        new_strat_list.append(new_strat)
+
+    strat_list = new_strat_list
+
+    # Despike Workflow
+    new_strat_list = []
+
+    for num_strat, strat in enumerate(strat_list):
+
+        if 0 in c.runDespike:
+            new_strat_list += [strat.fork()]
+
+        if 1 in c.runDespike:
+            new_strat = strat.fork()
+
+            despike = pe.Node(interface=preprocess.Despike(),
+                              name='func_despiked_{0}'.format(num_strat))
+            despike.inputs.outputtype = 'NIFTI_GZ'
+
+            node, out_file = new_strat.get_leaf_properties()
+            workflow.connect(node, out_file,
+                             despike, 'in_file')
+
+            new_strat.set_leaf_properties(despike, 'out_file')
+
+            new_strat.update_resource_pool({
+                'despiked': (despike, 'out_file')
+            })
+
+            new_strat_list.append(new_strat)
+
+    strat_list = new_strat_list
+
+    # Slice Timing Correction Workflow
+    new_strat_list = []
+
+    for num_strat, strat in enumerate(strat_list):
+
+        if 0 in c.slice_timing_correction:
+            new_strat_list += [strat.fork()]
+
+        if 1 in c.slice_timing_correction:
+            new_strat = strat.fork()
+
+            slice_time = slice_timing_wf(
+                name='func_slice_timing_correction_{0}'.format(num_strat))
+
+            node, out_file = new_strat.get_leaf_properties()
+            workflow.connect(node, out_file, slice_time,
+                             'inputspec.func_ts')
+
+            node, node_out = new_strat['tr']
+            workflow.connect(node, node_out,
+                             slice_time, 'inputspec.tr')
+
+            node, node_out = new_strat['tpattern']
+            workflow.connect(node, node_out,
+                             slice_time, 'inputspec.tpattern')
+
+            # add the name of the node to the strat name
+            new_strat.append_name(slice_time.name)
+
+            # set the leaf node
+            new_strat.set_leaf_properties(slice_time,
+                                          'outputspec.slice_time_corrected')
+
+            # add the outputs to the resource pool
+            new_strat.update_resource_pool({
+                'slice_time_corrected': (
+                slice_time, 'outputspec.slice_time_corrected')
+            })
+
+            new_strat_list.append(new_strat)
+
+    # add new strats (if forked)
+    strat_list = new_strat_list
+
+    return (workflow, strat_list)
 
 
 def connect_func_preproc(workflow, strat_list, c):
