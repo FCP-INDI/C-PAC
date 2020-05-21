@@ -63,7 +63,8 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
     init_strat_copy = init_strat.fork()
 
     init_strat_copy.update_resource_pool({
-        'anatomical_brain': (long_reg_template_node, 'template')
+        'anatomical_brain': (long_reg_template_node, 'brain_template'),
+        'anatomical_reorient': (long_reg_template_node, 'skull_template')
     })
 
     strat_list = [init_strat_copy]
@@ -157,31 +158,25 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                     'anat_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
                 )
 
-                # input
+                # brain input
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.input_brain')
 
-                # 'anatomical_reorient' is not available for the longitudinal template
-                # use 'anatomical_brain' as 'input_skull'
-                workflow.connect(node, out_file,
-                                 fnirt_reg_anat_mni, 'inputspec.input_skull')
-
-                # reference
+                # brain reference
                 node, out_file = strat['template_brain_for_anat']
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.reference_brain')
 
+                # skull input
+                node, out_file = strat['anatomical_reorient']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_anat_mni, 'inputspec.input_skull')
+                
+                # skull reference
+                node, out_file = strat['template_skull_for_anat']
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.reference_skull')
-
-                # node, out_file = strat['anatomical_reorient']
-                # workflow.connect(node, out_file,
-                #                  fnirt_reg_anat_mni, 'inputspec.input_skull')
-                
-                # node, out_file = strat['template_skull_for_anat']
-                # workflow.connect(node, out_file,
-                #                  fnirt_reg_anat_mni, 'inputspec.reference_skull')
 
                 node, out_file = strat['anatomical_to_mni_linear_xfm']
                 workflow.connect(node, out_file,
@@ -265,12 +260,12 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                 workflow.connect(node, out_file,
                                 ants_reg_anat_mni, 'inputspec.moving_brain')
 
-                # # get the reorient skull-on anatomical from resource pool
-                # node, out_file = strat['anatomical_reorient']
+                # get the reorient skull-on anatomical from resource pool
+                node, out_file = strat['anatomical_reorient']
 
-                # # pass the anatomical to the workflow
-                # workflow.connect(node, out_file,
-                #                 ants_reg_anat_mni, 'inputspec.moving_skull')
+                # pass the anatomical to the workflow
+                workflow.connect(node, out_file,
+                                ants_reg_anat_mni, 'inputspec.moving_skull')
 
                 # pass the reference file
                 node, out_file = strat['template_brain_for_anat']
@@ -390,34 +385,26 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                     fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
                         'anat_symmetric_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
                     )
-
+                    
+                    # input
                     node, out_file = strat['anatomical_brain']
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni,
                                      'inputspec.input_brain')
-                    
-                    # 'anatomical_reorient' is not available for the longitudinal template
-                    # use 'anatomical_brain' as 'input_skull'
+
+                    node, out_file = strat['anatomical_reorient']
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni,
                                      'inputspec.input_skull')
-
-                    # node, out_file = strat['anatomical_reorient']
-                    # workflow.connect(node, out_file,
-                    #                  fnirt_reg_anat_symm_mni,
-                    #                  'inputspec.input_skull')
 
                     # reference
                     node, out_file = strat['template_brain_for_anat']
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
+                    node, out_file = strat['template_symmetric_skull']
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni, 'inputspec.reference_skull')
-
-                    # node, out_file = strat['template_symmetric_skull']
-                    # workflow.connect(node, out_file,
-                    #                  fnirt_reg_anat_symm_mni, 'inputspec.reference_skull')
 
                     node, out_file = strat['anatomical_to_mni_linear_xfm']
                     workflow.connect(node, out_file,
@@ -496,12 +483,12 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                    # # get the reorient skull-on anatomical from resource pool
-                    # node, out_file = strat['anatomical_reorient']
+                    # get the reorient skull-on anatomical from resource pool
+                    node, out_file = strat['anatomical_reorient']
                     
-                    # # pass the anatomical to the workflow
-                    # workflow.connect(node, out_file,
-                    #                  ants_reg_anat_symm_mni, 'inputspec.anatomical_skull')
+                    # pass the anatomical to the workflow
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni, 'inputspec.anatomical_skull')
 
                     # pass the reference file
                     node, out_file = strat['template_symmetric_skull']
@@ -922,9 +909,13 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         node_suffix = '_'.join([strat_name, subject_id])
 
         # Merge node to feed the anat_preproc outputs to the longitudinal template generation
-        merge_node = pe.Node(
+        brain_merge_node = pe.Node(
             interface=Merge(len(strat_nodes_list)),
-            name="anat_longitudinal_merge_" + node_suffix)
+            name="anat_longitudinal_brain_merge_" + node_suffix)
+
+        skull_merge_node = pe.Node(
+            interface=Merge(len(strat_nodes_list)),
+            name="anat_longitudinal_skull_merge_" + node_suffix)
 
         # This node will generate the longitudinal template (the functions are in longitudinal_preproc)
         # Later other algorithms could be added to calculate it, like the multivariate template from ANTS
@@ -942,7 +933,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             thread_pool=config.thread_pool,
         )
 
-        workflow.connect(merge_node, 'out', template_node, 'img_list')
+        workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
+        workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
 
         reg_strat_list = register_to_standard_template(template_node, config, workflow, strat_initial, strat_name)
         
@@ -959,10 +951,14 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                                             name='fsl_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
                                             iterfield=['in_file'])
 
-                workflow.connect(template_node, "image_list", fsl_apply_warp, 'in_file')
+                workflow.connect(template_node, "output_brain_list", fsl_apply_warp, 'in_file')
 
                 node, out_file = reg_strat['template_brain_for_anat']
                 workflow.connect(node, out_file, fsl_apply_warp, 'ref_file')
+
+                # TODO figure how to include linear xfm
+                # node, out_file = reg_strat['anatomical_to_mni_linear_xfm']
+                # workflow.connect(node, out_file, fsl_apply_warp, 'premat')
 
                 node, out_file = reg_strat['anatomical_to_mni_nonlinear_xfm']
                 workflow.connect(node, out_file, fsl_apply_warp, 'field_file')
@@ -983,7 +979,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                                     name='ants_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
                                     iterfield=['moving_image'])
 
-                workflow.connect(template_node, "image_list", ants_apply_warp, 'moving_image')
+                workflow.connect(template_node, "output_brain_list", ants_apply_warp, 'moving_image')
 
                 node, out_file = reg_strat['template_brain_for_anat']
                 workflow.connect(node, out_file, ants_apply_warp, 'reference')
@@ -1008,7 +1004,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         # longitudinal template
         rsc_key = 'anatomical_longitudinal_template' #'resampled_template_brain_for_anat' 
         ds_template = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
-        workflow.connect(template_node, 'template', ds_template, rsc_key)
+        workflow.connect(template_node, 'brain_template', ds_template, rsc_key)
         
         # T1 to longitudinal template warp
         rsc_key = 'anatomical_to_longitudinal_template_warp_'
@@ -1020,7 +1016,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         rsc_key = 'anatomical_to_longitudinal_template_'
         t1_list = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name,
                                        map_node_iterfield=['anatomical_to_longitudinal_template'])
-        workflow.connect(template_node, "image_list", t1_list, 'anatomical_to_longitudinal_template')
+        workflow.connect(template_node, "output_brain_list", t1_list, 'anatomical_to_longitudinal_template')
 
         # longitudinal to standard registration items 
         for num_strat, strat in enumerate(reg_strat_list):
@@ -1040,11 +1036,18 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                     ds = create_datasink(rsc_key + rsc_nodes_suffix, config, subject_id,
                                          session_id_list[i], 'longitudinal_'+strat_name)
                     workflow.connect(node, rsc_name, ds, rsc_key)
+            
             rsc_key = 'anatomical_brain'
             anat_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
             workflow.connect(anat_preproc_node,
-                             rsc_name, merge_node,
+                             rsc_name, brain_merge_node,
                              'in{}'.format(i + 1)) # the in{}.format take i+1 because the Merge nodes inputs starts at 1 ...
+            
+            rsc_key = 'anatomical_reorient'
+            anat_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
+            workflow.connect(anat_preproc_node,
+                             rsc_name, skull_merge_node,
+                             'in{}'.format(i + 1))
         
     workflow.run()
 

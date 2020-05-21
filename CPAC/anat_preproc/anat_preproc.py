@@ -151,33 +151,37 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
     else:
         preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
 
-    # TODO XL review forking 
-    if 'anat' in config.run_longitudinal:
-        anat_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
-        anat_align_cmass.inputs.cm_file = os.path.join(
-            os.getcwd(), "center_of_mass.txt")
-        preproc.connect(anat_reorient, 'out_file', anat_align_cmass, 'in_file')
-        # have to hardcode that because nipype CenterMass outputs a list of tuples
-        # but the set_cm option take a tuple as input
-        patch = pe.Node(util.Function(input_names=['lst'],
-                        output_names=['tuple'],
-                        function=patch_cmass_output),
-                        name='patch_cmass')
-        preproc.connect(inputnode, 'template_cmass', patch, 'lst')
-        preproc.connect(patch, 'tuple', anat_align_cmass, 'set_cm')
-        # anat_align_cmass.inputs.set_cm = inputnode.inputs.template_cmass
-        preproc.connect(anat_align_cmass, 'cm',
-                        outputnode, 'center_of_mass')
-        # Just add the alignment to the output image
-        preproc.connect(anat_align_cmass, 'out_file', outputnode, 'reorient')
-    else:
-        preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
+    # if 'anat' in config.run_longitudinal:
+    #     anat_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
+    #     anat_align_cmass.inputs.cm_file = os.path.join(
+    #         os.getcwd(), "center_of_mass.txt")
+    #     preproc.connect(anat_reorient, 'out_file', anat_align_cmass, 'in_file')
+    #     # have to hardcode that because nipype CenterMass outputs a list of tuples
+    #     # but the set_cm option take a tuple as input
+    #     patch = pe.Node(util.Function(input_names=['lst'],
+    #                     output_names=['tuple'],
+    #                     function=patch_cmass_output),
+    #                     name='patch_cmass')
+    #     preproc.connect(inputnode, 'template_cmass', patch, 'lst')
+    #     preproc.connect(patch, 'tuple', anat_align_cmass, 'set_cm')
+    #     # anat_align_cmass.inputs.set_cm = inputnode.inputs.template_cmass
+    #     preproc.connect(anat_align_cmass, 'cm',
+    #                     outputnode, 'center_of_mass')
+    #     # add the alignment to the output image
+    #     # preproc.connect(anat_align_cmass, 'out_file', anat_reorient, 'out_file')
+    #     preproc.connect(anat_align_cmass, 'out_file', outputnode, 'reorient')
+    # else:
+    preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
 
     if already_skullstripped:
 
         anat_skullstrip = pe.Node(interface=util.IdentityInterface(fields=['out_file']),
                                     name='anat_skullstrip')
 
+        # if 'anat' in config.run_longitudinal:
+        #     preproc.connect(anat_align_cmass, 'out_file',
+        #                     anat_skullstrip, 'out_file')
+        # else:
         preproc.connect(anat_reorient, 'out_file',
                         anat_skullstrip, 'out_file')
 
@@ -280,8 +284,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
             anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
+            # if 'anat' in config.run_longitudinal:
+            #     preproc.connect(anat_align_cmass, 'out_file',
+            #                     anat_skullstrip, 'in_file')
+            # else:
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip, 'in_file')
+
             preproc.connect(skullstrip_args, 'expr',
                             anat_skullstrip, 'args')
 
@@ -303,6 +312,10 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
             anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
 
+            # if 'anat' in config.run_longitudinal:
+            #     preproc.connect(anat_align_cmass, 'out_file',
+            #                     anat_skullstrip_orig_vol, 'in_file_a')
+            # else:
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip_orig_vol, 'in_file_a')
 
@@ -336,7 +349,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             anat_skullstrip = pe.Node(
                 interface=fsl.BET(), name='anat_skullstrip')
             anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
-
+            
+            # if 'anat' in config.run_longitudinal:
+            #     preproc.connect(anat_align_cmass, 'out_file',
+            #                     anat_skullstrip, 'in_file')
+            # else:
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip, 'in_file')
 
@@ -368,6 +385,10 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
             anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
 
+            # if 'anat' in config.run_longitudinal:
+            #     preproc.connect(anat_align_cmass, 'out_file',
+            #                     anat_skullstrip_orig_vol, 'in_file_a')
+            # else:
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip_orig_vol, 'in_file_a')
 

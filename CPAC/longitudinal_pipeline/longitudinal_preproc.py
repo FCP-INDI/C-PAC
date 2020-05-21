@@ -131,46 +131,64 @@ def template_convergence(mat_file, mat_type='matrix',
     return abs(distance) <= convergence_threshold
 
 
-def create_temporary_template(img_list, out_path, avg_method='median'):
+def create_temporary_template(input_brain_list, input_skull_list, 
+                              output_brain_path, output_skull_path, avg_method='median'):
     """
     Average all the 3D images of the list into one 3D image
     WARNING---the function assumes that all the images have the same header,
     the output image will have the same header as the first image of the list
     Parameters---
     ----------
-    img_list: list of str
-        list of images paths
+    input_brain_list: list of str
+        list of brain image paths
+    input_skull_list: list of str
+        list of skull image paths
+    output_brain_path: Nifti1Image
+        temporary longitudinal brain template
+    output_skull_path: Nifti1Image
+        temporary longitudinal skull template
     avg_method: str
         function names from numpy library such as 'median', 'mean', 'std' ...
 
     Returns
     -------
-    tmp_template: Nifti1Image
+    output_brain_path: Nifti1Image
+        temporary longitudinal brain template
+    output_skull_path: Nifti1Image
+        temporary longitudinal skull template
     """
-    if not img_list:
+
+    if not input_brain_list or not input_skull_list:
         raise ValueError('ERROR create_temporary_template: image list is empty')
 
-    if len(img_list) == 1:
-        return img_list[0]
+    if len(input_brain_list) == 1 and len(input_skull_list) == 1:
+        return input_brain_list[0], input_skull_list[0] 
 
     # ALIGN CENTERS
+    avg_brain_data = getattr(np, avg_method)(
+        np.asarray([nifti_image_input(img).get_fdata() for img in input_brain_list]), 0)
 
-    avg_data = getattr(np, avg_method)(
-        np.asarray([nifti_image_input(img).get_data() for img in img_list]), 0)
+    avg_skull_data = getattr(np, avg_method)(
+        np.asarray([nifti_image_input(img).get_fdata() for img in input_skull_list]), 0)
 
-    nii = nib.Nifti1Image(avg_data, nifti_image_input(img_list[0]).affine)
-    nib.save(nii, out_path)
-    return out_path
+    nii_brain = nib.Nifti1Image(avg_brain_data, nifti_image_input(input_brain_list[0]).affine)
+    nii_skull = nib.Nifti1Image(avg_skull_data, nifti_image_input(input_skull_list[0]).affine)
+
+    nib.save(nii_brain, output_brain_path)
+    nib.save(nii_skull, output_skull_path)
+
+    return output_brain_path, output_skull_path
 
 
-def register_img_list(img_list, ref_img, dof=12,
+def register_img_list(input_brain_list, ref_img, dof=12,
                       interp='trilinear', cost='corratio', thread_pool=2):
     """
     Register a list of images to the reference image.
+
     Parameters
     ----------
-    img_list: list of str
-        list of images paths
+    input_brain_list: list of str
+        list of brain image paths
     ref_img: str
         path to the reference image to which the images will be registered
     dof: integer (int of long)
@@ -188,22 +206,21 @@ def register_img_list(img_list, ref_img, dof=12,
 
     Returns
     -------
-    multiple_linear_reg: list of Node
+    node_list: list of Node
         each Node 'node' has been run and
         node.inputs.out_file contains the path to the registered image
         node.inputs.out_matrix_file contains the path to the transformation
         matrix
     """
-    if not img_list:
+    if not input_brain_list:
         raise ValueError('ERROR register_img_list: image list is empty')
 
     output_img_list = [os.path.join(os.getcwd(), os.path.basename(img))
-                       for img in img_list]
+                       for img in input_brain_list]
 
     output_mat_list = [os.path.join(os.getcwd(),
-                                    str(os.path.basename(img).split('.')[0])
-                                    + '.mat')
-                       for img in img_list]
+                       str(os.path.basename(img).split('.')[0]) + '.mat')
+                       for img in input_brain_list]
 
     def flirt_node(in_img, output_img, output_mat):
         linear_reg = fsl.FLIRT()
@@ -215,7 +232,6 @@ def register_img_list(img_list, ref_img, dof=12,
         linear_reg.inputs.dof = dof
         linear_reg.inputs.interp = interp
         linear_reg.inputs.reference = ref_img
-
         return linear_reg
 
     if isinstance(thread_pool, int):
@@ -225,7 +241,7 @@ def register_img_list(img_list, ref_img, dof=12,
 
     node_list = [flirt_node(img, out_img, out_mat)
                  for (img, out_img, out_mat) in zip(
-                 img_list, output_img_list, output_mat_list)]
+                 input_brain_list, output_img_list, output_mat_list)]
     pool.map(lambda node: node.run(), node_list)
 
     if isinstance(thread_pool, int):
@@ -235,14 +251,16 @@ def register_img_list(img_list, ref_img, dof=12,
     return node_list
 
 
-def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12,
+def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, avg_method='median', dof=12,
                             interp='trilinear', cost='corratio', mat_type='matrix',
                             convergence_threshold=-1, thread_pool=2):
     """
     Parameters
     ----------
-    img_list : list of str
-        list of images paths
+    input_brain_list : list of str
+        list of brain images paths
+    input_skull_list : list of str
+        list of skull images paths
     init_reg : list of Node
         (default None so no initial registration performed)
         the output of the function register_img_list with another reference
@@ -288,23 +306,23 @@ def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12
     if convergence_threshold == -1:
         convergence_threshold = np.finfo(np.float64).eps
 
-    if not img_list:
+    if not input_brain_list:
         print('ERROR create_temporary_template: image list is empty')
 
-    if len(img_list) == 1:
-        print("img_list contains only 1 image, no template calculated")
-        return img_list[0]
+    if len(input_brain_list) == 1:
+        print("input_brain_list contains only 1 image, no template calculated")
+        return input_brain_list[0]
 
     final_warp_list = []
     final_warp_list_filenames = [os.path.join(
-        os.getcwd(), str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in img_list]
+        os.getcwd(), str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in input_brain_list]
 
     # I added this part because it is mentioned in the paper but I actually never used it
     # You could run a first register_img_list() with a selected image as starting point and
     # give the output to this function
     if init_reg is not None:
         if isinstance(init_reg, list):
-            image_list = [node.inputs.out_file for node in init_reg]
+            output_brain_list = [node.inputs.out_file for node in init_reg]
             mat_list = [node.inputs.out_matrix_file for node in init_reg]
             final_warp_list = mat_list
             # test if every transformation matrix has reached the convergence
@@ -314,37 +332,51 @@ def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12
         else:
             raise ValueError("init_reg must be a list of FLIRT nipype nodes files")
     else:
-        image_list = img_list
+        output_brain_list = input_brain_list
+        output_skull_list = input_skull_list
         converged = False
 
-    tmp_template = os.path.join(os.getcwd(), 'tmp_template.nii.gz')
+    temporary_brain_template = os.path.join(os.getcwd(), 'temporary_brain_template.nii.gz')
+    temporary_skull_template = os.path.join(os.getcwd(), 'temporary_skull_template.nii.gz')
 
     """ First is calculated an average image of the dataset to be the temporary template
     and the loop stops when this temporary template is close enough (with a transformation
     distance smaller than the threshold) to all the images of the precedent iteration.
     """
     while not converged:
-        tmp_template = create_temporary_template(image_list,
-                                                 out_path=tmp_template,
-                                                 avg_method=avg_method)
-        reg_list_node = register_img_list(image_list,
-                                          ref_img=tmp_template,
+        temporary_brain_template, temporary_skull_template = create_temporary_template(output_brain_list,
+                                                output_skull_list,
+                                                output_brain_path=temporary_brain_template,
+                                                output_skull_path=temporary_skull_template,
+                                                avg_method=avg_method)
+        
+        # TODO applyxfm mat_list to register output_skull_list to longitudinal space
+        reg_list_node = register_img_list(output_brain_list,
+                                          ref_img=temporary_brain_template,
                                           dof=dof,
                                           interp=interp,
                                           cost=cost)
 
         mat_list = [node.inputs.out_matrix_file for node in reg_list_node]
-        
+
         # TODO clean code, refactor variables 
         if len(final_warp_list) == 0:
             final_warp_list = mat_list
+
         for index, mat in enumerate(mat_list):
+            cmd = "flirt -in %s -ref %s -applyxfm -init %s -dof %s -interp %s -cost %s -out %s" % (output_skull_list[index], 
+                    temporary_skull_template, mat, dof, interp, cost, 
+                    os.path.join(os.getcwd(), os.path.basename(output_skull_list[index])))
+            os.system(cmd)
+            output_skull_list[index] = os.path.join(os.getcwd(), os.path.basename(output_skull_list[index]))
+            
             # why inverse?
             cmd = "convert_xfm -omat %s -inverse %s" % (final_warp_list_filenames[index], final_warp_list[index])
             os.system(cmd)
+
             final_warp_list[index] = final_warp_list_filenames[index]
 
-        image_list = [node.inputs.out_file for node in reg_list_node]
+        output_brain_list = [node.inputs.out_file for node in reg_list_node]
         # test if every transformation matrix has reached the convergence
         convergence_list = [template_convergence(
             mat, mat_type, convergence_threshold) for mat in mat_list]
@@ -354,18 +386,19 @@ def template_creation_flirt(img_list, init_reg=None, avg_method='median', dof=12
         pool.close()
         pool.join()
 
-    template = tmp_template
+    brain_template = temporary_brain_template
+    skull_template = temporary_skull_template
     
     # register T1 to longitudinal template space
-    reg_list_node = register_img_list(img_list,
-                                      ref_img=tmp_template,
+    reg_list_node = register_img_list(input_brain_list,
+                                      ref_img=temporary_brain_template,
                                       dof=dof,
                                       interp=interp,
                                       cost=cost)
     
     final_warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
 
-    return template, image_list, final_warp_list
+    return brain_template, skull_template, output_brain_list, output_skull_list, final_warp_list
 
 
 def subject_specific_template(workflow_name='subject_specific_template',
@@ -394,7 +427,8 @@ def subject_specific_template(workflow_name='subject_specific_template',
         template_gen_node = pe.Node(
             util.Function(
                 input_names=[
-                    'img_list',
+                    'input_brain_list',
+                    'input_skull_list',
                     'init_reg', 
                     'avg_method', 
                     'dof',
@@ -403,8 +437,10 @@ def subject_specific_template(workflow_name='subject_specific_template',
                     'mat_type',
                     'convergence_threshold',
                     'thread_pool'],
-                output_names=['template',
-                    'image_list',
+                output_names=['brain_template',
+                    'skull_template',
+                    'output_brain_list',
+                    'output_skull_list',
                     'final_warp_list'],
                 imports=imports,
                 function=template_creation_flirt
@@ -416,4 +452,3 @@ def subject_specific_template(workflow_name='subject_specific_template',
                          + 'this method has not yet been implemented')
 
     return template_gen_node
-
