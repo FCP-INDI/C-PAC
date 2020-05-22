@@ -101,6 +101,8 @@ COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 RUN libs_path=/usr/lib/x86_64-linux-gnu && \
     if [ -f $libs_path/libgsl.so.23 ]; then \
         ln $libs_path/libgsl.so.23 $libs_path/libgsl.so.0; \
+    elif [ -f $libs_path/libgsl.so.19 ]; then \
+        ln -s $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
     fi && \
     curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries && \
     tcsh @update.afni.binaries -package linux_openmp_64 -bindir /opt/afni -prog_list $(cat /opt/required_afni_pkgs.txt)
