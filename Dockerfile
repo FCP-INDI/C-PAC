@@ -218,3 +218,5 @@ ENTRYPOINT ["/code/run.py"]
 RUN apt-get clean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN ldconfig
