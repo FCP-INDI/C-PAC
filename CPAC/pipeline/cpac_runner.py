@@ -357,7 +357,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
                 for f in filenames:
                     # Thanks Apple, you're the best.
-                    if f != '.DS_Store':
+                    # TODO is there a better way to check output folder name?
+                    if f != '.DS_Store' and 'pipeline_analysis_longitudinal' in dirpath:
                         rsc_file_list.append(os.path.join(dirpath, f))
 
             subject_specific_dict = {subj: [] for subj in subject_id_dict.keys()}
