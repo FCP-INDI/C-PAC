@@ -398,6 +398,53 @@ regWithSkull :  [1]
 runSegmentationPreprocessing :  [1]
 
 
+# ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
+# Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
+# If you'd like to set ANTs Prior-based Segmentation as your segmentation option,
+# please set Template based segmentation as 'None' and runSegmentationPreprocessing as [0].
+ANTs_prior_based_segmentation : [0]
+
+
+# The atlas image assumed to be used in ANTs Prior-based Segmentation.
+ANTs_prior_seg_template_brain_list : 
+  - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
+  - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
+
+# The atlas segmentation images. 
+# For performing ANTs Prior-based segmentation method 
+# the number of specified segmentations should be identical to the number of atlas brain image sets. 
+# eg.
+# ANTs_prior_seg_template_brain_list : 
+#   - atlas1.nii.gz 
+#   - atlas2.nii.gz 
+# ANTs_prior_seg_template_segmentation_list:
+#   - segmentation1.nii.gz 
+#   - segmentation1.nii.gz 
+ANTs_prior_seg_template_segmentation_list:
+  - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
+  - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
+
+
+# Label values corresponding to CSF/GM/WM in atlas file
+# It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
+
+# Label value corresponding to CSF in multiatlas file
+ANTs_prior_seg_CSF_label : 24
+
+# Label value corresponding to Left Gray Matter in multiatlas file
+ANTs_prior_seg_left_GM_label : 3
+
+# Label value corresponding to Right Gray Matter in multiatlas file
+ANTs_prior_seg_right_GM_label : 42
+
+# Label value corresponding to Left White Matter in multiatlas file
+ANTs_prior_seg_left_WM_label : 2
+
+# Label value corresponding to Right White Matter in multiatlas file
+ANTs_prior_seg_right_WM_label : 41
+
+
 # Generate white matter, gray matter, CSF masks based on EPI template segmentation masks, T1 template segmentation masks, or not use template-based segmentation.
 # If use template based segmentation, please make sure to specify white matter, gray matter, CSF mask paths at below three configurations.
 # These masks should be in the same space of your registration template, e.g. if you choose 'EPI_template' , below tissue masks should also be EPI template tissue masks.
