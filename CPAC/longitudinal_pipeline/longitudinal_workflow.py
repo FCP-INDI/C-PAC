@@ -37,7 +37,11 @@ from CPAC.utils.datasource import (
     create_check_for_s3_node
 )
 
-from CPAC.anat_preproc.anat_preproc import create_anat_preproc
+from CPAC.anat_preproc.anat_preproc import (
+    create_anat_preproc,
+    connect_anat_segmentation
+)
+
 from CPAC.func_preproc.func_preproc import (
     connect_func_preproc,
     create_func_preproc,
@@ -60,14 +64,24 @@ logger = logging.getLogger('nipype.workflow')
 
 def register_to_standard_template(long_reg_template_node, c, workflow, init_strat, name_ss_strat):
 
-    init_strat_copy = init_strat.fork()
+    # TODO update a brain mask
+    brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
+                         name='longitudinal_anatomical_brain_mask')
+    
+    brain_mask.inputs.args = '-bin'
+    
+    workflow.connect(long_reg_template_node, 'brain_template', 
+                     brain_mask, 'in_file')
 
-    init_strat_copy.update_resource_pool({
+    new_init_strat = init_strat.fork()
+
+    new_init_strat.update_resource_pool({
         'anatomical_brain': (long_reg_template_node, 'brain_template'),
-        'anatomical_reorient': (long_reg_template_node, 'skull_template')
+        'anatomical_reorient': (long_reg_template_node, 'skull_template'),
+        'anatomical_brain_mask': (brain_mask, 'out_file')
     })
 
-    strat_list = [init_strat_copy]
+    strat_list = [new_init_strat]
 
     # only need to run once for each subject
     already_skullstripped = c.already_skullstripped[0]
@@ -504,7 +518,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                 ants_reg_anat_symm_mni.inputs.inputspec.fixed_image_mask = None
 
                 strat.append_name(ants_reg_anat_symm_mni.name)
-                # strat.set_leaf_properties(ants_reg_anat_symm_mni,'outputspec.normalized_output_brain')
 
                 strat.update_resource_pool({
                     'ants_symmetric_initial_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_initial_xfm'),
@@ -520,6 +533,9 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
         strat_list += new_strat_list
     
+    # Inserting Segmentation Preprocessing Workflow
+    # workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
+
     return strat_list
 
 
@@ -588,13 +604,13 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
     )
     return ds
 
-def connect_anat_preproc_inputs(strat_in, anat_preproc_in, strat_name, strat_nodes_list_list, workflow):
+def connect_anat_preproc_inputs(strat, anat_preproc, strat_name, strat_nodes_list_list, workflow):
     """
     Parameters
     ----------
-    strat_in : Strategy
+    strat : Strategy
         the strategy object you want to fork
-    anat_preproc_in : Workflow
+    anat_preproc : Workflow
         the anat_preproc workflow node to be connected and added to the resource pool
     strat_name : str
         name of the strategy
@@ -606,28 +622,28 @@ def connect_anat_preproc_inputs(strat_in, anat_preproc_in, strat_name, strat_nod
     Returns
     -------
     new_strat : Strategy
-        the fork of strat_in with the resource pool updated
+        the fork of strat with the resource pool updated
     strat_nodes_list_list : list
         a list of strat_nodes_list 
     """
 
-    new_strat = strat_in.fork()
+    new_strat = strat.fork()
 
     tmp_node, out_key = new_strat['anatomical']
-    workflow.connect(tmp_node, out_key, anat_preproc_in, 'inputspec.anat')
+    workflow.connect(tmp_node, out_key, anat_preproc, 'inputspec.anat')
     
     tmp_node, out_key = new_strat['template_cmass']
-    workflow.connect(tmp_node, out_key, anat_preproc_in, 'inputspec.template_cmass')
+    workflow.connect(tmp_node, out_key, anat_preproc, 'inputspec.template_cmass')
 
-    new_strat.append_name(anat_preproc_in.name)
+    new_strat.append_name(anat_preproc.name)
     
     new_strat.update_resource_pool({
         'anatomical_brain': (
-            anat_preproc_in, 'outputspec.brain'),
+            anat_preproc, 'outputspec.brain'),
         'anatomical_reorient': (
-            anat_preproc_in, 'outputspec.reorient'),
+            anat_preproc, 'outputspec.reorient'),
         'anatomical_brain_mask': (
-            anat_preproc_in, 'outputspec.brain_mask'),
+            anat_preproc, 'outputspec.brain_mask'),
     })
 
     try:
@@ -696,7 +712,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
     # creds_list = []
 
     session_id_list = []
-    # Loop over the sessions to create the input for the longitudinal algo
+    # Loop over the sessions to create the input for the longitudinal algorithm
     for session in sub_list:
         unique_id = session['unique_id']
         session_id_list.append(unique_id)
@@ -717,7 +733,29 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             input_creds_path = None
 
         # creds_list.append(input_creds_path)
+        
+        template_keys = [
+            ("anat", "PRIORS_CSF"),
+            ("anat", "PRIORS_GRAY"),
+            ("anat", "PRIORS_WHITE"),
+            ("other", "configFileTwomm"),
+            ("anat", "template_based_segmentation_CSF"),
+            ("anat", "template_based_segmentation_GRAY"),
+            ("anat", "template_based_segmentation_WHITE"),
+        ]
 
+        for key_type, key in template_keys:
+            
+            node = create_check_for_s3_node(
+                name=key,
+                file_path=getattr(config, key), 
+                img_type=key_type,
+                creds_path=input_creds_path, 
+                dl_dir=config.workingDirectory
+            )
+            # import pdb; pdb.set_trace()
+            setattr(config, key, node)
+        
         strat = Strategy()
         strat_list = []
         node_suffix = '_'.join([subject_id, unique_id])
@@ -1071,7 +1109,7 @@ def func_longitudinal_workflow(sub_list, config):
         if 'func' in sub_dict or 'rest' in sub_dict:
             """
             truncate
-            (Func_preproc){
+            (func_preproc){
             two step motion corr 
             refit 
             resample

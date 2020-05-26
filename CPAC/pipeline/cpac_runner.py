@@ -326,7 +326,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
     # Run on one computer
     else:
-
         if not os.path.exists(c.workingDirectory):
             try:
                 os.makedirs(c.workingDirectory)
@@ -372,6 +371,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     if subj:
                         subject_specific_dict[subj[0]].append(rsc_path)
             
+            # TODO update anatomical_brain and anatomical_reorient
             for key in session_specific_dict.keys():
                 for f in session_specific_dict[key]:
                     sub,ses = key.split('/')

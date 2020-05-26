@@ -655,7 +655,9 @@ def connect_anat_segmentation(workflow, strat_list, c):
                 workflow.connect(node, out_file,
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
-
+            
+            # import pdb; pdb.set_trace()
+            
             workflow.connect(c.PRIORS_CSF, 'local_path',
                                 seg_preproc, 'inputspec.PRIOR_CSF')
 
@@ -709,7 +711,6 @@ def connect_anat_segmentation(workflow, strat_list, c):
                     '\n\n'.format(str(c.template_based_segmentation))
                 raise Exception(err)
 
-            # TODO ASH based on config, instead of nodes?
             if strat.get('registration_method') == 'FSL':
                 use_ants = False
             elif strat.get('registration_method') == 'ANTS':
@@ -718,7 +719,6 @@ def connect_anat_segmentation(workflow, strat_list, c):
             seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
                                                              wf_name='seg_preproc_t1_template_{0}'.format(num_strat))
 
-            # TODO ASH review
             if seg_preproc_template_based is None:
                 continue
 

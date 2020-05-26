@@ -370,6 +370,8 @@ def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
 
 def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None):
 
+    from CPAC.utils.datasource import check_for_s3
+    
     check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                            'creds_path',
                                                            'dl_dir',
