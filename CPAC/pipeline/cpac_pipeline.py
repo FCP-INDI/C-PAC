@@ -1606,8 +1606,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         for num_strat, strat in enumerate(strat_list):
 
-            nodes = strat.get_nodes_names()
-
             seg_preproc_ants_prior_based = create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_ants_prior_{0}'.format(num_strat))
 
             # TODO ASH review
