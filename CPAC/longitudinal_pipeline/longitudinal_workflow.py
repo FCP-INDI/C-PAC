@@ -765,11 +765,13 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
         anat_rsc = create_anat_datasource(
             'anat_gather_%s' % node_suffix)
-        anat_rsc.inputs.inputnode.subject = subject_id
-        anat_rsc.inputs.inputnode.anat = session['anat']
-        anat_rsc.inputs.inputnode.creds_path = input_creds_path
-        anat_rsc.inputs.inputnode.dl_dir = config.workingDirectory
-        anat_rsc.inputs.inputnode.img_type = 'anat'
+        anat_rsc.inputs.inputnode.set(
+            subject = subject_id,
+            anat = session['anat'],
+            creds_path = input_creds_path,
+            dl_dir = config.workingDirectory,
+            img_type = 'anat'
+        )
 
         strat.update_resource_pool({
             'anatomical': (anat_rsc, 'outputspec.anat')
@@ -785,11 +787,13 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
             brain_rsc = create_anat_datasource(
                 'brain_gather_%s' % unique_id)
-            brain_rsc.inputs.inputnode.subject = subject_id
-            brain_rsc.inputs.inputnode.anat = session['brain_mask']
-            brain_rsc.inputs.inputnode.creds_path = input_creds_path
-            brain_rsc.inputs.inputnode.dl_dir = config.workingDirectory
-            brain_rsc.inputs.inputnode.img_type = 'anat'
+            brain_rsc.inputs.inputnode.set(
+                subject = subject_id,
+                anat = session['brain_mask'],
+                creds_path = input_creds_path,
+                dl_dir = config.workingDirectory,
+                img_type = 'anat'
+            )
 
             skullstrip_method = 'mask'
             preproc_wf_name = 'anat_preproc_mask_%s' % node_suffix
@@ -1164,7 +1168,6 @@ def func_longitudinal_workflow(sub_list, config):
                 ("scan", func_paths_dict.keys())
 
             # TODO Grab field maps
-
             strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
             # Add in nodes to get parameters from configuration file

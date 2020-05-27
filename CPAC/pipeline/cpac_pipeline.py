@@ -740,7 +740,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         for strat in resource_pool_list.keys():
             resource_pool_dict = sub_dict['resource_pool'][strat]
             for key in resource_pool_dict.keys():
-                if 'anatomical_to_mni_nonlinear_xfm' in key:
+                # handle anatomical_to_mni_nonlinear_xfm, mni_to_anatomical_nonlinear_xfm, ants xfms
+                if ('nonlinear_xfm' in key or 'ants' in key) and key not in strat:
                     longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
                     longitudinal_flow.inputs.inputnode.set(
                         subject = subject_id,
