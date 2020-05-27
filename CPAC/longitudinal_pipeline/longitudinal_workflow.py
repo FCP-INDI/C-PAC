@@ -671,6 +671,9 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         None
     """
 
+    # Assure that changes on config will not affect other parts
+    config = copy.copy(config)
+
     workflow = pe.Workflow(name="anat_longitudinal_template_" + str(subject_id))
     workflow.base_dir = config.workingDirectory
     workflow.config['execution'] = {
@@ -766,6 +769,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         anat_rsc.inputs.inputnode.anat = session['anat']
         anat_rsc.inputs.inputnode.creds_path = input_creds_path
         anat_rsc.inputs.inputnode.dl_dir = config.workingDirectory
+        anat_rsc.inputs.inputnode.img_type = 'anat'
 
         strat.update_resource_pool({
             'anatomical': (anat_rsc, 'outputspec.anat')
@@ -785,6 +789,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             brain_rsc.inputs.inputnode.anat = session['brain_mask']
             brain_rsc.inputs.inputnode.creds_path = input_creds_path
             brain_rsc.inputs.inputnode.dl_dir = config.workingDirectory
+            brain_rsc.inputs.inputnode.img_type = 'anat'
 
             skullstrip_method = 'mask'
             preproc_wf_name = 'anat_preproc_mask_%s' % node_suffix

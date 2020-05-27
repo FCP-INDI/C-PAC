@@ -555,7 +555,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
     inputnode = pe.Node(util.IdentityInterface(
                                 fields=['subject', 'anat', 'creds_path',
-                                        'dl_dir'],
+                                        'dl_dir', 'img_type'],
                                 mandatory_inputs=True),
                         name='inputnode')
 
@@ -571,7 +571,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
-    check_s3_node.inputs.img_type = 'anat'
+    wf.connect(inputnode, 'img_type', check_s3_node, 'img_type')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
                                                         'anat']),
