@@ -407,7 +407,8 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label,
 
     """
     pick tissue mask from multiatlas labels file
-    https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
+    based off of FreeSurferColorLUT https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
+    or user provided label value
 
     Parameters
     ----------
@@ -445,6 +446,10 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label,
 
     img = nb.load(multiatlas_Labels)
     data = img.get_data()
+
+    # pick tissue mask from multiatlas labels file
+    # based off of FreeSurferColorLUT or user provided label values
+    # hard-coded csf/gm/wm label values are based off of FreeSurferColorLUT
 
     csf = data.copy()
     if csf_label == None:
