@@ -656,8 +656,6 @@ def connect_anat_segmentation(workflow, strat_list, c):
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
             
-            # import pdb; pdb.set_trace()
-            
             workflow.connect(c.PRIORS_CSF, 'local_path',
                                 seg_preproc, 'inputspec.PRIOR_CSF')
 

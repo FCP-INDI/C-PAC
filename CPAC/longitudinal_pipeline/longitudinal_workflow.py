@@ -534,7 +534,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
         strat_list += new_strat_list
     
     # Inserting Segmentation Preprocessing Workflow
-    # workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
+    workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
 
     return strat_list
 
@@ -756,15 +756,15 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                 creds_path=input_creds_path, 
                 dl_dir=config.workingDirectory
             )
-            # import pdb; pdb.set_trace()
+            
             setattr(config, key, node)
         
         strat = Strategy()
         strat_list = []
         node_suffix = '_'.join([subject_id, unique_id])
 
-        anat_rsc = create_anat_datasource(
-            'anat_gather_%s' % node_suffix)
+        anat_rsc = create_anat_datasource('anat_gather_%s' % node_suffix)
+
         anat_rsc.inputs.inputnode.set(
             subject = subject_id,
             anat = session['anat'],
