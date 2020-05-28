@@ -17,7 +17,9 @@ from CPAC.seg_preproc.utils import (
     pick_wm_class_1,
     pick_wm_class_2,
     erosion,
-    mask_erosion)
+    mask_erosion,
+    hardcoded_antsJointLabelFusion,
+    pick_tissue_from_labels_file)
 
 import nipype.pipeline.engine as pe
 import scipy.ndimage as nd
@@ -962,5 +964,109 @@ def tissue_mask_template_to_t1(wf_name,
         preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'in_matrix_file')
 
         preproc.connect (tissueprior_mni_to_t1, 'out_file', outputNode, 'segment_mask_temp2t1')
+
+    return preproc
+
+
+def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_based'):
+
+    """Generate the subject's cerebral spinal fluids,
+    white matter and gray matter mask based on provided template, if selected to do so.
+
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+
+    Returns
+    -------
+    seg_preproc_templated_based : workflow
+        Workflow Object for Segmentation Workflow
+
+    Notes
+    -----
+
+    Workflow Inputs: ::
+
+        inputspec.brain : string (existing nifti file)
+            Anatomical image(without skull)
+               
+        inputspec.template_brain : string (existing nifti file)
+            Template anatomical image(without skull)
+
+        inputspec.template_segmentation : string (existing nifti file)
+            Template segmentation image(without skull)
+
+    Workflow Outputs: ::
+
+        outputspec.csf_mask : string (nifti file)
+            outputs CSF mask
+
+        outputspec.gm_mask : string (nifti file)
+            outputs gray matter mask
+
+        outputspec.wm_mask : string (nifti file)
+            outputs White Matter mask
+
+
+    """
+
+    preproc = pe.Workflow(name = wf_name)
+    inputNode = pe.Node(util.IdentityInterface(fields=['anatomical_brain',
+                                                       'anatomical_brain_mask',
+                                                       'template_brain_list',
+                                                       'template_segmentation_list',
+                                                       'csf_label', 
+                                                       'left_gm_label', 
+                                                       'left_wm_label', 
+                                                       'right_gm_label', 
+                                                       'right_wm_label']),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',
+                                                        'gm_mask',
+                                                        'wm_mask']),
+                        name='outputspec')
+
+
+    seg_preproc_antsJointLabel = pe.Node(util.Function(input_names=['anatomical_brain', 'anatomical_brain_mask', 'template_brain_list', 'template_segmentation_list'], 
+                                                        output_names=['multiatlas_Intensity', 'multiatlas_Labels'],
+                                                        function=hardcoded_antsJointLabelFusion), 
+                                                        name='{0}_antsJointLabel'.format(wf_name))
+
+    preproc.connect(inputNode, 'anatomical_brain',
+                    seg_preproc_antsJointLabel, 'anatomical_brain')
+    preproc.connect(inputNode, 'anatomical_brain_mask',
+                    seg_preproc_antsJointLabel, 'anatomical_brain_mask')
+    preproc.connect(inputNode, 'template_brain_list',
+                    seg_preproc_antsJointLabel, 'template_brain_list')
+    preproc.connect(inputNode, 'template_segmentation_list',
+                    seg_preproc_antsJointLabel, 'template_segmentation_list')                 
+    
+    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels', 'csf_label', 'left_gm_label', 'left_wm_label', 'right_gm_label', 'right_wm_label'], 
+                                        output_names=['csf_mask', 'gm_mask', 'wm_mask'],
+                                        function=pick_tissue_from_labels_file), 
+                                        name='{0}_tissue_mask'.format(wf_name))
+    
+    preproc.connect(seg_preproc_antsJointLabel, 'multiatlas_Labels',
+                    pick_tissue, 'multiatlas_Labels') 
+    preproc.connect(inputNode, 'csf_label',
+                    pick_tissue, 'csf_label') 
+    preproc.connect(inputNode, 'left_gm_label',
+                    pick_tissue, 'left_gm_label') 
+    preproc.connect(inputNode, 'left_wm_label',
+                    pick_tissue, 'left_wm_label')                    
+    preproc.connect(inputNode, 'right_gm_label',
+                    pick_tissue, 'right_gm_label') 
+    preproc.connect(inputNode, 'right_wm_label',
+                    pick_tissue, 'right_wm_label') 
+
+    preproc.connect(pick_tissue, 'csf_mask',
+                    outputNode, 'csf_mask')
+    preproc.connect(pick_tissue, 'gm_mask',
+                    outputNode, 'gm_mask')   
+    preproc.connect(pick_tissue, 'wm_mask',
+                    outputNode, 'wm_mask')
 
     return preproc
