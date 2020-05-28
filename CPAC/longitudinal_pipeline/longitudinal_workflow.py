@@ -584,6 +584,7 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
                       'accessing the S3 bucket. Check and try again.\n' \
                       'Error: %s' % e
             raise Exception(err_msg)
+
     if map_node_iterfield is not None:
         ds = pe.MapNode(
             DataSink(infields=map_node_iterfield),
@@ -595,6 +596,7 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
             DataSink(),
             name='sinker_{}'.format(datasink_name)
         )
+
     ds.inputs.base_directory = config.outputDirectory
     ds.inputs.creds_path = creds_path
     ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -703,6 +705,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         interface=afni.CenterMass(),
         name='template_skull_for_anat_center_of_mass'
     )
+
     template_center_of_mass.inputs.cm_file = "template_center_of_mass.txt"
     
     workflow.connect(resampled_template, 'resampled_template',
@@ -717,6 +720,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
     session_id_list = []
     # Loop over the sessions to create the input for the longitudinal algorithm
     for session in sub_list:
+
         unique_id = session['unique_id']
         session_id_list.append(unique_id)
 
@@ -749,15 +753,17 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
         for key_type, key in template_keys:
             
-            node = create_check_for_s3_node(
-                name=key,
-                file_path=getattr(config, key), 
-                img_type=key_type,
-                creds_path=input_creds_path, 
-                dl_dir=config.workingDirectory
-            )
+            if isinstance(getattr(config, key), str):
             
-            setattr(config, key, node)
+                node = create_check_for_s3_node(
+                    name=key,
+                    file_path=getattr(config, key),
+                    img_type=key_type,
+                    creds_path=input_creds_path, 
+                    dl_dir=config.workingDirectory
+                )
+                
+                setattr(config, key, node)
         
         strat = Strategy()
         strat_list = []
@@ -1006,16 +1012,16 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             elif strat.get('registration_method') == 'ANTS':
 
                 ants_apply_warp = pe.MapNode(util.Function(input_names=['moving_image', 
-                                                                    'reference', 
-                                                                    'initial',
-                                                                    'rigid',
-                                                                    'affine',
-                                                                    'nonlinear',
-                                                                    'interp'], 
-                                                output_names=['out_image'],
-                                                function=run_ants_apply_warp),                        
-                                    name='ants_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
-                                    iterfield=['moving_image'])
+                                                                        'reference', 
+                                                                        'initial',
+                                                                        'rigid',
+                                                                        'affine',
+                                                                        'nonlinear',
+                                                                        'interp'],
+                                                            output_names=['out_image'],
+                                                            function=run_ants_apply_warp),                        
+                                            name='ants_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
+                                            iterfield=['moving_image'])
 
                 workflow.connect(template_node, "output_brain_list", ants_apply_warp, 'moving_image')
 
