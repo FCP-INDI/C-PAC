@@ -50,12 +50,12 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
     offending_time_points = set()
     time_course_len = 0
 
-    # types = ['FDJ', 'FDP', 'DVARS']
-    # file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
-    # thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
-    types = ['FDP', 'DVARS']
-    file_paths = [fd_p_file_path, dvars_file_path]
-    thresholds = [fd_p_threshold, dvars_threshold]
+    types = ['FDJ', 'FDP', 'DVARS']
+    file_paths = [fd_j_file_path, fd_p_file_path, dvars_file_path]
+    thresholds = [fd_j_threshold, fd_p_threshold, dvars_threshold]
+    #types = ['FDP', 'DVARS']
+    #file_paths = [fd_p_file_path, dvars_file_path]
+    #thresholds = [fd_p_threshold, dvars_threshold]
 
     for type, file_path, threshold in zip(types, file_paths, thresholds):
 
@@ -113,7 +113,7 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
     censor_vector[extended_censors] = 0
 
     out_file_path = os.path.join(os.getcwd(), "censors.tsv")
-    np.savetxt(out_file_path, censor_vector, fmt='%d')
+    np.savetxt(out_file_path, censor_vector, fmt='%d', header='censor')
 
     return out_file_path
 
@@ -410,16 +410,16 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
 
                     # check transform list to exclude Nonetype (missing) init/rig/affine
-                    check_transform = pe.Node(util.Function(input_names=['transform_list'], 
+                    check_transform = pe.Node(util.Function(input_names=['transform_list'],
                                                             output_names=['checked_transform_list', 'list_length'],
                                                             function=check_transforms), name='{0}_check_transforms'.format(ventricles_key))
-                    
+
                     nuisance_wf.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
                     # generate inverse transform flags, which depends on the number of transforms
-                    inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
+                    inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'],
                                                                     output_names=['inverse_transform_flags'],
-                                                                    function=generate_inverse_transform_flags), 
+                                                                    function=generate_inverse_transform_flags),
                                                                     name='{0}_inverse_transform_flags'.format(ventricles_key))
                     nuisance_wf.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
