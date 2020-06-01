@@ -51,7 +51,8 @@ from CPAC.distortion_correction.distortion_correction import (
 
 from CPAC.seg_preproc.seg_preproc import (
     create_seg_preproc,
-    create_seg_preproc_template_based
+    create_seg_preproc_template_based,
+    create_seg_preproc_antsJointLabel_method
 )
 
 from CPAC.seg_preproc.utils import mask_erosion
@@ -1593,6 +1594,55 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     strat_list += new_strat_list
 
+
+    if 1 in c.ANTs_prior_based_segmentation:
+
+        if 'T1_template' in c.template_based_segmentation or 'EPI_template' in c.template_based_segmentation or 1 in c.runSegmentationPreprocessing:
+            err = '\n\n[!] C-PAC says: '\
+                    'If you would like to set ANTs Prior-based Segmentation as your segmentation option,'\
+                    'please set Template based segmentation as \'None\' and runSegmentationPreprocessing as \'0\'.\n\n' \
+                    '\n\n'
+            raise Exception(err)
+
+        for num_strat, strat in enumerate(strat_list):
+
+            seg_preproc_ants_prior_based = create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_ants_prior_{0}'.format(num_strat))
+
+            # TODO ASH review
+            if seg_preproc_ants_prior_based is None:
+                continue
+
+            node, out_file = strat['anatomical_brain']
+            workflow.connect(node, out_file,
+                             seg_preproc_ants_prior_based, 'inputspec.anatomical_brain')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file,
+                             seg_preproc_ants_prior_based, 'inputspec.anatomical_brain_mask')
+
+            seg_preproc_ants_prior_based.inputs.inputspec.template_brain_list = c.ANTs_prior_seg_template_brain_list
+            seg_preproc_ants_prior_based.inputs.inputspec.template_segmentation_list = c.ANTs_prior_seg_template_segmentation_list
+            seg_preproc_ants_prior_based.inputs.inputspec.csf_label = c.ANTs_prior_seg_CSF_label
+            seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = c.ANTs_prior_seg_left_GM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = c.ANTs_prior_seg_right_GM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = c.ANTs_prior_seg_left_WM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = c.ANTs_prior_seg_right_WM_label
+
+            # TODO ASH review with forking function
+            if 0 in c.ANTs_prior_based_segmentation:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            strat.append_name(seg_preproc_ants_prior_based.name)
+            strat.update_resource_pool({
+                'anatomical_gm_mask': (seg_preproc_ants_prior_based, 'outputspec.gm_mask'),
+                'anatomical_csf_mask': (seg_preproc_ants_prior_based, 'outputspec.csf_mask'),
+                'anatomical_wm_mask': (seg_preproc_ants_prior_based, 'outputspec.wm_mask')
+            })
+
+    strat_list += new_strat_list
+
+
     if 'T1_template' in c.template_based_segmentation:
 
         for num_strat, strat in enumerate(strat_list):
@@ -1756,8 +1806,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 '''
 
                 func_to_anat = create_register_func_to_anat(diff_complete,
-                                                            'func_to_anat_FLIRT'
-                                                            f'_{num_strat}')
+                                                            f'func_to_anat_FLIRT_{num_strat}')
 
                 # Input registration parameters
                 func_to_anat.inputs.inputspec.interp = 'trilinear'
@@ -1867,9 +1916,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                      'inputspec.linear_reg_matrix')
 
                     if 'T1_template' in c.template_based_segmentation or \
-                            'EPI_template' in c.template_based_segmentation:
+                            'EPI_template' in c.template_based_segmentation or \
+                               1 in c.ANTs_prior_based_segmentation :
                         # Input segmentation mask,
-                        # since template_based_segmentation cannot generate
+                        # since template_based_segmentation or ANTs_prior_based_segmentation cannot generate
                         # probability maps
                         node, out_file = strat['anatomical_wm_mask']
                         workflow.connect(node, out_file,
