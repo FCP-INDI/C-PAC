@@ -37,6 +37,14 @@ jobs:
       - run:
           name: build-singularity
           command: |
+            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+            git clone -b 2.5.2 https://github.com/sylabs/singularity
+            cd singularity
+            ./autogen.sh
+            ./configure --prefix=/usr/local --sysconfdir=/etc
+            make
+            sudo make install
+            cd ..
             docker load < cpac-docker-image.tar.gz
             docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
