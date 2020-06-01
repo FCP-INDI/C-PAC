@@ -1756,8 +1756,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 '''
 
                 func_to_anat = create_register_func_to_anat(diff_complete,
-                                                            f'func_to_anat_FLIRT'
-                                                            '_{num_strat}')
+                                                            'func_to_anat_FLIRT'
+                                                            f'_{num_strat}')
 
                 # Input registration parameters
                 func_to_anat.inputs.inputspec.interp = 'trilinear'
