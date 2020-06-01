@@ -26,11 +26,19 @@ jobs:
     steps:
       - checkout
       - run:
-          name: build
+          name: build-docker
           command: |
-            docker build -t cpac:${CIRCLE_BRANCH//\//_} .
-            docker save cpac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
+            docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
+            docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
           # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
+      - run:
+          name: build-singularity
+          command: |
+            docker load < cpac-docker-image.tar.gz
+            docker run -d -p 5000:5000 --restart=always --name registry registry:2
+            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+            SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_} 
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
           # taken to be the root directory of the workspace.
