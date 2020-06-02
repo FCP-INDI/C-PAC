@@ -7,27 +7,31 @@ jobs:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - run:
+          name: "Set Python Version"
+          command: |
+            pyenv install 3.6.3
+            pyenv global 3.6.3
+      - run:
           name: Get Sample BIDS Data
           command: git clone https://github.com/bids-standard/bids-examples.git
       - run:
           name: pytest
           command: |
             docker load < cpac-docker-image.tar.gz
-            docker run -dit -P --entrypoint=/bin/bash --name docker_test -v code:code fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+            docker run -dit -P --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             docker exec docker_test code/dev/circleci_data/test_in_image.sh && docker kill docker_test
           no_output_timeout: 5h
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
-      - store_artifacts:
-          path: htmlcov
   pytest-singularity:
     machine: true
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - run:
+          name: "Set Python Version"
+          command: |
+            pyenv install 3.6.3
+            pyenv global 3.6.3
       - run:
           name: test_install
           command: |
@@ -37,6 +41,11 @@ jobs:
     machine: true
     steps:
       - checkout
+      - run:
+          name: "Set Python Version"
+          command: |
+            pyenv install 3.6.3
+            pyenv global 3.6.3
       - run:
           name: build-docker
           command: |
@@ -79,6 +88,11 @@ jobs:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - run:
+          name: "Set Python Version"
+          command: |
+            pyenv install 3.6.3
+            pyenv global 3.6.3
+      - run:
           name: ≟
           command: python dev/circleci_data/scripts/compare.py
   test:
@@ -87,6 +101,11 @@ jobs:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - run:
+          name: "Set Python Version"
+          command: |
+            pyenv install 3.6.3
+            pyenv global 3.6.3
       - run:
           name: Run C-PAC
           command: |
