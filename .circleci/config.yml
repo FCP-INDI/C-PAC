@@ -1,8 +1,7 @@
 version: 2
 jobs:
-  pytest:
-    docker:
-      - image: localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+  pytest-docker:
+    machine: true
     steps:
       - checkout
       - run:
@@ -11,6 +10,9 @@ jobs:
       - run:
           name: pytest
           command: |
+            docker load < cpac-docker-image.tar.gz
+            docker run -i -t --entrypoint='/bin/bash' --rm fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+            cd code
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --doctest-ignore-import-errors --continue-on-collection-errors --doctest-modules --ignore=CPAC/cwas/tests/test_mdmr_cython.py dev/circleci_data/
             coverage report --include="./*" --omit="/home/circleci/.local/*"
@@ -102,6 +104,6 @@ workflows:
           filters:
             branches:
               only: feature/auto-heatmaps
-      - pytest:
+      - pytest-docker:
           requires:
             - build
