@@ -48,7 +48,7 @@ num_ants_threads :  3
 
 
 # Name for this pipeline configuration - useful for identification.
-pipelineName :  benchmark-3
+pipelineName :  regtest-2
 
 
 # Directory where CPAC should store temporary and intermediate files.
@@ -72,7 +72,7 @@ logDirectory :  /output
 
 
 # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
-awsOutputBucketCredentials :
+awsOutputBucketCredentials :  
 
 
 # Enable server-side 256-AES encryption on data to the S3 bucket
@@ -110,11 +110,11 @@ reGenerateOutputs :  False
 # ---------------------------------
 
 # Non-local means filtering / Denoise image
-non_local_means_filtering: True
+non_local_means_filtering: False
 
 
 # N4 bias field correction
-n4_bias_field_correction: True
+n4_bias_field_correction: False
 
 
 # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
@@ -124,7 +124,7 @@ already_skullstripped :  [0]
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants to perform SkullStripping
 # Options: ['AFNI', 'FSL', 'niworkflows-ants']
-skullstrip_option :  ['niworkflows-ants']
+skullstrip_option :  ['FSL']
 
 
 # Template to be used during niworkflows-ants.
@@ -223,7 +223,7 @@ skullstrip_fac :  1
 skullstrip_blur_fwhm :  0
 
 
-# Set it as True if processing monkey data with AFNI
+# Set it as True if processing monkey data with AFNI 
 skullstrip_monkey : False
 
 
@@ -283,7 +283,7 @@ bet_vertical_gradient : 0.0
 
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
-# If three dimensions are identical, enter only one number (integer or floating point number), eg. 2mm or 1.5mm;
+# If three dimensions are identical, enter only one number (integer or floating point number), eg. 2mm or 1.5mm; 
 # if three dimensions are different, enter: num1xnum2xnum3, eg. 2mmx2mmx1.5mm
 resolution_for_anat :  2mm
 
@@ -299,70 +299,11 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
-regOption :  ['ANTS', 'FSL']
+regOption :  ['FSL']
 
 
 # ANTs parameters, if select ANTs as regOption
-ANTs_para_T1_registration:
-
-   - collapse-output-transforms: 0
-
-   - dimensionality: 3
-
-   - initial-moving-transform :
-      initializationFeature: 0
-
-   - transforms:
-      - Rigid:
-          gradientStep : 0.1
-          metric :
-            type : MI
-            metricWeight: 1
-            numberOfBins : 32
-            samplingStrategy : Regular
-            samplingPercentage : 0.25
-          convergence:
-            iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
-            convergenceWindowSize : 10
-          smoothing-sigmas : 3.0x2.0x1.0x0.0
-          shrink-factors : 8x4x2x1
-          use-histogram-matching : True
-
-      - Affine:
-          gradientStep : 0.1
-          metric :
-            type : MI
-            metricWeight: 1
-            numberOfBins : 32
-            samplingStrategy : Regular
-            samplingPercentage : 0.25
-          convergence:
-            iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
-            convergenceWindowSize : 10
-          smoothing-sigmas : 3.0x2.0x1.0x0.0
-          shrink-factors : 8x4x2x1
-          use-histogram-matching : True
-
-      - SyN:
-          gradientStep : 0.1
-          updateFieldVarianceInVoxelSpace : 3.0
-          totalFieldVarianceInVoxelSpace : 0.0
-          metric:
-            type : CC
-            metricWeight: 1
-            radius : 4
-          convergence:
-            iteration : 100x100x70x20
-            convergenceThreshold : 1e-09
-            convergenceWindowSize : 15
-          smoothing-sigmas : 3.0x2.0x1.0x0.0
-          shrink-factors : 6x4x2x1
-          use-histogram-matching : True
-          winsorize-image-intensities :
-            lowerQuantile : 0.01
-            upperQuantile : 0.99
+ANTs_para_T1_registration: None
 
 
 # Please specify ANTs parameters,if run Functional to EPI Template Registration
@@ -394,7 +335,7 @@ runSegmentationPreprocessing :  [1]
 # Generate white matter, gray matter, CSF masks based on EPI template segmentation masks, T1 template segmentation masks, or not use template-based segmentation.
 # If use template based segmentation, please make sure to specify white matter, gray matter, CSF mask paths at below three configurations.
 # These masks should be in the same space of your registration template, e.g. if you choose 'EPI_template' , below tissue masks should also be EPI template tissue masks.
-# Options: ['EPI_template', 'T1_template', 'None']
+# Options: ['T1_template', 'None']
 template_based_segmentation : ['None']
 
 
@@ -439,7 +380,7 @@ PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 # Use threshold to further refine the resulting segmentation tissue masks.
 # FSL-FAST Thresholding - Use FSL FAST generated tissue class files (binary masks) to generate the resulting segmentation tissue masks.
 # Customized Thresholding - Set the threshold value for tissue probability maps to generate the resulting segmentation tissue masks.
-seg_use_threshold : ['Customized Thresholding']
+seg_use_threshold : ['FSL-FAST Thresholding']
 
 
 # Set the threshold value for refining the resulting segmentation tissue masks (CSF, White Matter, and Gray Matter)
@@ -544,15 +485,15 @@ scaling_factor : 10
 
 
 # run motion statistics before slice timing correction
-runMotionStatisticsFirst : [1]
+runMotionStatisticsFirst : [0]
 
 
 # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
-motion_correction : ['mcflirt']
+motion_correction : ['3dvolreg']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume
-motion_correction_reference: ['median']
+motion_correction_reference: ['mean']
 
 
 # Choose motion correction reference volume
@@ -560,11 +501,11 @@ motion_correction_reference_volume :  0
 
 
 # This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-functional_volreg_twopass :  Off
+functional_volreg_twopass :  On
 
 
 # Run AFNI 3dDespike
-runDespike : [1]
+runDespike : [0]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.
@@ -587,15 +528,18 @@ slice_timing_pattern :  Use NIFTI Header
 # Default is 0 (beginning of timeseries).
 # First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
 # Note: the selection here applies to all scans of all participants.
-startIdx :  5
+startIdx :  0
 
 
 # Last timepoint to include in analysis.
 # Default is None or End (end of timeseries).
 # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
 # Note: the selection here applies to all scans of all participants.
-stopIdx :  100
+stopIdx :  None
 
+
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+functional_volreg_twopass :  On
 
 
 # Perform distortion correction.
@@ -668,7 +612,7 @@ func_reg_input_volume :  0
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET) or FSL_AFNI (BET+3dAutoMask).
 # Options: ['AFNI', 'FSL', 'FSL_AFNI']
-functionalMasking :  ['FSL_AFNI']
+functionalMasking :  ['AFNI']
 
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True
@@ -781,11 +725,11 @@ Regressors :
         value: 0.3
      number_of_previous_trs_to_censor: 1
      number_of_subsequent_trs_to_censor: 1
-
+     
 
 # Whether to run frequency filtering before or after nuisance regression.
 # ['Before'] or ['After']
-filtering_order: ['Before']
+filtering_order: ['After']
 
 
 # Correct for the global signal using Median Angle Correction.
@@ -954,7 +898,7 @@ run_smoothing :  [1, 0]
 # Tool to use for smoothing.
 # ['FSL'] for FSL MultiImageMaths for FWHM provided
 # ['AFNI'] for AFNI 3dBlurToFWHM for FWHM provided
-smoothing_method : ['AFNI']
+smoothing_method : ['FSL']
 
 
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
