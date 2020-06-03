@@ -18,8 +18,14 @@ jobs:
           name: pytest
           command: |
             docker load < cpac-docker-image.tar.gz
-            docker run -dit -P --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            docker exec docker_test code/dev/circleci_data/test_in_image.sh && docker kill docker_test
+            docker run -dit -P -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project/htmlcov:/code/htmlcov --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+            docker exec docker_test /bin/bash ./code/dev/circleci_data/test_in_image.sh
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+      - store_artifacts:
+          path: htmlcov
           no_output_timeout: 5h
   pytest-singularity:
     machine: true
@@ -35,6 +41,13 @@ jobs:
       - run:
           name: test_install
           command: |
+            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+            cd singularity
+            ./autogen.sh
+            ./configure --prefix=/usr/local --sysconfdir=/etc
+            make
+            sudo make install
+            cd ..
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
   build:
