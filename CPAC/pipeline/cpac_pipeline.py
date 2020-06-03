@@ -56,7 +56,8 @@ from CPAC.distortion_correction.distortion_correction import (
 
 from CPAC.seg_preproc.seg_preproc import (
     create_seg_preproc,
-    create_seg_preproc_template_based
+    create_seg_preproc_template_based,
+    create_seg_preproc_antsJointLabel_method
 )
 
 from CPAC.seg_preproc.utils import mask_erosion
@@ -1617,8 +1618,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 '''
 
                 func_to_anat = create_register_func_to_anat(diff_complete,
-                                                            f'func_to_anat_FLIRT'
-                                                            '_{num_strat}')
+                                                            f'func_to_anat_FLIRT_{num_strat}')
 
                 # Input registration parameters
                 func_to_anat.inputs.inputspec.interp = 'trilinear'
@@ -1728,9 +1728,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                      'inputspec.linear_reg_matrix')
 
                     if 'T1_template' in c.template_based_segmentation or \
-                            'EPI_template' in c.template_based_segmentation:
+                            'EPI_template' in c.template_based_segmentation or \
+                               1 in c.ANTs_prior_based_segmentation :
                         # Input segmentation mask,
-                        # since template_based_segmentation cannot generate
+                        # since template_based_segmentation or ANTs_prior_based_segmentation cannot generate
                         # probability maps
                         node, out_file = strat['anatomical_wm_mask']
                         workflow.connect(node, out_file,

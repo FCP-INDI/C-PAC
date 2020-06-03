@@ -1563,6 +1563,9 @@ def connect_func_preproc(workflow, strat_list, c):
                         new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
                         new_strat.update_resource_pool({
+                            'bold_masking_method': skullstrip_tool,
+                            'motion_correction_method': motion_correct_tool,
+                            'motion_correction_ref': motion_correct_ref,
                             'mean_functional': (func_preproc, 'outputspec.func_mean'),
                             'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
                             'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),

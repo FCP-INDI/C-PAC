@@ -319,3 +319,173 @@ def erosion(roi_mask = None, erosion_mm = None, erosion_prop = None):
     output_img.to_filename(eroded_roi_mask)
 
     return eroded_roi_mask
+
+
+def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask, template_brain_list, template_segmentation_list):
+    
+    """
+    run antsJointLabelFusion.sh
+
+    Parameters
+    ----------
+
+    anatomical_brain : string (nifti file)
+        Target image to be labeled.
+
+    anatomical_brain_mask: string (nifti file)
+        Target mask image
+
+    template_brain_list: list
+        Atlas to be warped to target image.
+
+    template_segmentation_list: list 
+        Labels corresponding to atlas.
+
+    Returns
+    -------
+
+    multiatlas_Intensity : string (nifti file)
+
+    multiatlas_Labels : string (nifti file)
+
+
+    """
+
+    import os
+    import subprocess
+
+    cmd = ["${ANTSPATH}${ANTSPATH:+/}antsJointLabelFusion.sh"] 
+    cmd.append(" -d 3 -o ants_multiatlas_ -t {0} -x {1} -y b -c 0".format(anatomical_brain, anatomical_brain_mask))
+    
+    if (not len(template_brain_list) == len(template_segmentation_list)):
+        err_msg = '\n\n[!] C-PAC says: '\
+                    'Please check ANTs Prior-based Segmentation setting. ' \
+                    'For performing ANTs Prior-based segmentation method '\
+                    'the number of specified segmentations should be identical to the number of atlas image sets.'\
+                    '\n\n'
+        raise Exception(err_msg)    
+    else:
+        for index in range(len(template_brain_list)):
+            cmd.append(" -g {0} -l {1}".format(template_brain_list[index], template_segmentation_list[index]))
+
+    # write out the actual command-line entry for testing/validation later
+    command_file = os.path.join(os.getcwd(), 'command.txt')
+    with open(command_file, 'wt') as f:
+        f.write(' '.join(cmd))
+    
+    str = ""
+    bash_cmd = str.join(cmd) 
+
+    try:
+        retcode = subprocess.check_output(bash_cmd, shell=True) 
+    except Exception as e:
+        raise Exception('[!] antsJointLabel segmentation method did not complete successfully.'
+                        '\n\nError details:\n{0}\n{1}\n'.format(e, e.output))
+
+    multiatlas_Intensity = None
+    multiatlas_Labels = None
+
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+
+    for f in files:
+        if "Intensity" in f:
+            multiatlas_Intensity = os.getcwd() + "/" + f
+        if "Labels" in f:
+            multiatlas_Labels = os.getcwd() + "/" + f
+
+    if not multiatlas_Labels:
+        raise Exception("\n\n[!] No multiatlas labels file found."
+                        "antsJointLabelFusion may not have completed successfully.\n\n")
+
+    return multiatlas_Intensity, multiatlas_Labels
+
+
+def pick_tissue_from_labels_file(multiatlas_Labels, csf_label, 
+                                left_gm_label, left_wm_label,
+                                right_gm_label, right_wm_label):
+
+
+    """
+    pick tissue mask from multiatlas labels file
+    based off of FreeSurferColorLUT https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
+    or user provided label value
+
+    Parameters
+    ----------
+
+    multiatlas_Labels : string (nifti file)
+
+    csf_label: integer 
+        label value corresponding to CSF in multiatlas file
+
+    left_gm_label: integer 
+        label value corresponding to Left Gray Matter in multiatlas file
+
+    left_wm_label: integer 
+        label value corresponding to Left White Matter in multiatlas file
+
+    right_gm_label: integer 
+        label value corresponding to Right Gray Matter in multiatlas file
+
+    right_wm_label: integer 
+        label value corresponding to Right White Matter in multiatlas file
+
+    Returns
+    -------
+
+    csf_mask : string (nifti file)
+
+    gm_mask : string (nifti file)
+
+    wm_mask : string (nifti file)
+
+    """
+    import os
+    import nibabel as nb
+    import numpy as np
+
+    img = nb.load(multiatlas_Labels)
+    data = img.get_data()
+
+    # pick tissue mask from multiatlas labels file
+    # based off of FreeSurferColorLUT or user provided label values
+    # hard-coded csf/gm/wm label values are based off of FreeSurferColorLUT
+
+    csf = data.copy()
+    if csf_label == None:
+        csf[csf != 24] = 0
+        csf[csf == 24] = 1
+    else:
+        csf[csf != csf_label] = 0
+        csf[csf == csf_label] = 1
+
+    gm = data.copy()
+    if left_gm_label == None and right_gm_label == None:
+        gm[np.logical_and(gm != 42, gm != 3)] = 0 
+        gm[np.logical_or(gm == 42, gm == 3)] = 1
+    else:
+        gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0 
+        gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
+
+    wm = data.copy()
+    if left_wm_label == None and right_wm_label == None:
+        wm[np.logical_and(wm != 41, wm != 2)] = 0
+        wm[np.logical_or(wm == 41, wm == 2)] = 1
+    else:
+        wm[np.logical_and(wm != right_wm_label, wm != left_wm_label)] = 0
+        wm[np.logical_or(wm == right_wm_label, wm == left_wm_label)] = 1
+
+    
+    save_img_csf = nb.Nifti1Image(csf, header=img.get_header(), affine=img.get_affine())
+    save_img_gm = nb.Nifti1Image(gm, header=img.get_header(), affine=img.get_affine())
+    save_img_wm = nb.Nifti1Image(wm, header=img.get_header(), affine=img.get_affine())
+
+    save_img_csf.to_filename('csf_mask.nii.gz')
+    save_img_gm.to_filename('gm_mask.nii.gz')
+    save_img_wm.to_filename('wm_mask.nii.gz')
+
+    csf_mask = os.path.join(os.getcwd(),'csf_mask.nii.gz')
+    gm_mask = os.path.join(os.getcwd(),'gm_mask.nii.gz')
+    wm_mask = os.path.join(os.getcwd(),'wm_mask.nii.gz')
+
+    return csf_mask, gm_mask, wm_mask
