@@ -175,8 +175,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
         for num_strat, strat in enumerate(strat_list):
 
-            nodes = strat.get_nodes_names()
-
             if strat.get('registration_method') == 'FSL':
 
                 fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
@@ -231,8 +229,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
     new_strat_list = []
 
     for num_strat, strat in enumerate(strat_list):
-
-        nodes = strat.get_nodes_names()
 
         # or run ANTS anatomical-to-MNI registration instead
         if 'ANTS' in c.regOption and \
@@ -337,8 +333,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
         for num_strat, strat in enumerate(strat_list):
 
-            nodes = strat.get_nodes_names()
-
             if 'FSL' in c.regOption and \
                 strat.get('registration_method') != 'ANTS':
 
@@ -402,8 +396,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
             for num_strat, strat in enumerate(strat_list):
 
-                nodes = strat.get_nodes_names()
-
                 if strat.get('registration_method') == 'FSL':
                     fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
                         'anat_symmetric_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
@@ -452,8 +444,6 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
         new_strat_list = []
 
         for num_strat, strat in enumerate(strat_list):
-
-            nodes = strat.get_nodes_names()
 
             # or run ANTS anatomical-to-MNI registration instead
             if 'ANTS' in c.regOption and \
@@ -996,10 +986,8 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         # Register tissue segmentation from longitudinal template space to native space
         # TODO add session information in node name
         for num_reg_strat, reg_strat in enumerate(reg_strat_list):
-            
-            nodes = reg_strat.get_nodes_names()
-            
-            if strat.get('registration_method') == 'FSL':
+
+            if reg_strat.get('registration_method') == 'FSL':
 
                 fsl_apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
                                             name='fsl_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
@@ -1045,7 +1033,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                 }, override=True)
                 '''
 
-            elif strat.get('registration_method') == 'ANTS':
+            elif reg_strat.get('registration_method') == 'ANTS':
 
                 ants_apply_warp = pe.MapNode(util.Function(input_names=['moving_image', 
                                                                         'reference', 
@@ -1084,7 +1072,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
         # Update resource pool
         # longitudinal template
-        rsc_key = 'anatomical_longitudinal_template' #'resampled_template_brain_for_anat' 
+        rsc_key = 'anatomical_longitudinal_template_' #'resampled_template_brain_for_anat' 
         ds_template = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
         workflow.connect(template_node, 'brain_template', 
                          ds_template, rsc_key)
@@ -1227,10 +1215,11 @@ def func_longitudinal_workflow(sub_list, config):
             
     # Here we have all the func_preproc set up for every session of the subject
     
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
     # TODO create template
     # WARNING: code below will crash QAQ
+    '''
     for num_strat, strat in strat_list:
 
         node_suffix = '_'.join([subject_id, num_strat])
@@ -1262,7 +1251,7 @@ def func_longitudinal_workflow(sub_list, config):
 
         workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
         workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
-
+    '''
     workflow.run()
     
     return 
