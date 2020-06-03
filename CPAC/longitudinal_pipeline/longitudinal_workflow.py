@@ -42,13 +42,24 @@ from CPAC.anat_preproc.anat_preproc import (
     connect_anat_segmentation
 )
 
+from CPAC.func_preproc.func_ingress import (
+    connect_func_ingress
+)
+
 from CPAC.func_preproc.func_preproc import (
+    connect_func_init,
     connect_func_preproc,
     create_func_preproc,
     create_wf_edit_func
 )
 
-from CPAC.longitudinal_pipeline.longitudinal_preproc import subject_specific_template
+from CPAC.distortion_correction.distortion_correction import (
+    connect_distortion_correction
+)
+
+from CPAC.longitudinal_pipeline.longitudinal_preproc import (
+    subject_specific_template
+) 
 
 from CPAC.utils import Strategy, find_files, function, Outputs
 
@@ -64,7 +75,6 @@ logger = logging.getLogger('nipype.workflow')
 
 def register_to_standard_template(long_reg_template_node, c, workflow, init_strat, name_ss_strat):
 
-    # TODO update a brain mask
     brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
                          name='longitudinal_anatomical_brain_mask')
     
@@ -673,9 +683,6 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         None
     """
 
-    # Assure that changes on config will not affect other parts
-    config = copy.copy(config)
-
     workflow = pe.Workflow(name="anat_longitudinal_template_" + str(subject_id))
     workflow.base_dir = config.workingDirectory
     workflow.config['execution'] = {
@@ -945,12 +952,14 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
 
-        strat_initial.update_resource_pool({template_name: (resampled_template, 'resampled_template')})
+        strat_initial.update_resource_pool({
+            template_name: (resampled_template, 'resampled_template')
+        })
 
 
     # loop over the different skull stripping strategies
     for strat_name, strat_nodes_list in strat_nodes_list_list.items():
-        
+
         node_suffix = '_'.join([strat_name, subject_id])
 
         # Merge node to feed the anat_preproc outputs to the longitudinal template generation
@@ -966,7 +975,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         # Later other algorithms could be added to calculate it, like the multivariate template from ANTS
         # It would just require to change it here.
         template_node = subject_specific_template(
-            workflow_name='subject_specific_template_' + node_suffix
+            workflow_name='subject_specific_anat_template_' + node_suffix
         )
         
         template_node.inputs.set(
@@ -984,6 +993,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         reg_strat_list = register_to_standard_template(template_node, config, workflow, strat_initial, strat_name)
         
         # Register T1 to the standard template
+        # Register tissue segmentation from longitudinal template space to native space
         # TODO add session information in node name
         for num_reg_strat, reg_strat in enumerate(reg_strat_list):
             
@@ -995,19 +1005,45 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                                             name='fsl_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
                                             iterfield=['in_file'])
 
-                workflow.connect(template_node, "output_brain_list", fsl_apply_warp, 'in_file')
+                workflow.connect(template_node, "output_brain_list", 
+                                fsl_apply_warp, 'in_file')
 
                 node, out_file = reg_strat['template_brain_for_anat']
-                workflow.connect(node, out_file, fsl_apply_warp, 'ref_file')
+                workflow.connect(node, out_file, 
+                                fsl_apply_warp, 'ref_file')
 
-                # TODO figure how to include linear xfm
+                # TODO how to include linear xfm?
                 # node, out_file = reg_strat['anatomical_to_mni_linear_xfm']
                 # workflow.connect(node, out_file, fsl_apply_warp, 'premat')
 
                 node, out_file = reg_strat['anatomical_to_mni_nonlinear_xfm']
-                workflow.connect(node, out_file, fsl_apply_warp, 'field_file')
+                workflow.connect(node, out_file, 
+                                fsl_apply_warp, 'field_file')
 
-                reg_strat.update_resource_pool({'anatomical_to_standard': (fsl_apply_warp, 'out_file')})
+                reg_strat.update_resource_pool({
+                    'anatomical_to_standard': (fsl_apply_warp, 'out_file')
+                })
+
+                fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
+                                            name='fsl_apply_xfm_longitudinal_to_native_{0}_'.format(strat_name),
+                                            iterfield=['reference', 'in_matrix_file'])
+
+                # TODO how to iterate all masks? write a function
+                '''
+                node, out_file = reg_strat['anatomical_gm_mask']
+                workflow.connect(node, out_file, 
+                                fsl_apply_xfm, 'in_file')
+
+                workflow.connect(brain_merge_node, 'out', 
+                                fsl_apply_xfm, 'reference')
+
+                workflow.connect(template_node, "inv_warp_list", 
+                                fsl_apply_xfm, 'in_matrix_file')
+
+                reg_strat.update_resource_pool({
+                    'anatomical_gm_mask':(fsl_apply_xfm, 'out_file')
+                }, override=True)
+                '''
 
             elif strat.get('registration_method') == 'ANTS':
 
@@ -1042,25 +1078,30 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
                 ants_apply_warp.inputs.interp = config.anatRegANTSinterpolation
 
-                reg_strat.update_resource_pool({'anatomical_to_standard': (ants_apply_warp, 'out_image')})
+                reg_strat.update_resource_pool({
+                    'anatomical_to_standard': (ants_apply_warp, 'out_image')
+                })
 
         # Update resource pool
         # longitudinal template
         rsc_key = 'anatomical_longitudinal_template' #'resampled_template_brain_for_anat' 
         ds_template = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
-        workflow.connect(template_node, 'brain_template', ds_template, rsc_key)
+        workflow.connect(template_node, 'brain_template', 
+                         ds_template, rsc_key)
         
         # T1 to longitudinal template warp
         rsc_key = 'anatomical_to_longitudinal_template_warp_'
         ds_warp_list = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name,
                                        map_node_iterfield=['anatomical_to_longitudinal_template_warp'])
-        workflow.connect(template_node, "final_warp_list", ds_warp_list, 'anatomical_to_longitudinal_template_warp')
+        workflow.connect(template_node, "warp_list", 
+                         ds_warp_list, 'anatomical_to_longitudinal_template_warp')
 
         # T1 in longitudinal template space
         rsc_key = 'anatomical_to_longitudinal_template_'
         t1_list = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name,
                                        map_node_iterfield=['anatomical_to_longitudinal_template'])
-        workflow.connect(template_node, "output_brain_list", t1_list, 'anatomical_to_longitudinal_template')
+        workflow.connect(template_node, "output_brain_list", 
+                         t1_list, 'anatomical_to_longitudinal_template')
 
         # longitudinal to standard registration items 
         for num_strat, strat in enumerate(reg_strat_list):
@@ -1095,9 +1136,11 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         
     workflow.run()
 
-    return reg_strat_list# strat_nodes_list_list # for func wf?
+    return reg_strat_list # strat_nodes_list_list # for func wf?
 
-
+# TODO check:
+# 1 func alone works
+# 2 anat + func works, pass anat strategy list?
 def func_longitudinal_workflow(sub_list, config):
     """
     Parameters
@@ -1112,30 +1155,19 @@ def func_longitudinal_workflow(sub_list, config):
     -------
         None
     """
-    
-    wf_list = []
 
     datasink = pe.Node(nio.DataSink(), name='sinker')
     datasink.inputs.base_directory = config.workingDirectory
 
     session_id_list = []
+    strat_nodes_list_list = {}
+    # TODO create a list of list strat_nodes_list_list
+    # a list of skullstripping strategies, 
+    # a list of sessions within each strategy list
 
     for sub_dict in sub_list:
-        if 'func' in sub_dict or 'rest' in sub_dict:
-            """
-            truncate
-            (func_preproc){
-            two step motion corr 
-            refit 
-            resample
-            motion corr
-            skullstripping
-            mean + median
-            }  
-            dist corr and apply dist corr res
-            config file registration target (epi t1)
-            """
 
+        if 'func' in sub_dict or 'rest' in sub_dict:
             if 'func' in sub_dict:
                 func_paths_dict = sub_dict['func']
             else:
@@ -1162,39 +1194,6 @@ def func_longitudinal_workflow(sub_list, config):
             strat = Strategy()
             strat_list = [strat]
             node_suffix = '_'.join([subject_id, unique_id])
-
-            func_wf = create_func_datasource(func_paths_dict,
-                                             'func_gather_%s' % node_suffix)
-            func_wf.inputs.inputnode.set(
-                subject=subject_id,
-                creds_path=input_creds_path,
-                dl_dir=config.workingDirectory
-            )
-            func_wf.get_node('inputnode').iterables = \
-                ("scan", func_paths_dict.keys())
-
-            # TODO Grab field maps
-            strat.set_leaf_properties(func_wf, 'outputspec.rest')
-
-            # Add in nodes to get parameters from configuration file
-            # a node which checks if scan_parameters are present for each scan
-            scan_params = \
-                pe.Node(
-                    function.Function(input_names=['data_config_scan_params',
-                                                   'subject_id',
-                                                   'scan',
-                                                   'pipeconfig_tr',
-                                                   'pipeconfig_tpattern',
-                                                   'pipeconfig_start_indx',
-                                                   'pipeconfig_stop_indx'],
-                                      output_names=['tr',
-                                                    'tpattern',
-                                                    'ref_slice',
-                                                    'start_indx',
-                                                    'stop_indx'],
-                                      function=get_scan_params,
-                                      as_module=True),
-                    name='scan_params_%s' % node_suffix)
             
             workflow_name = 'func_longitudinal_template_' + str(subject_id) 
             workflow = pe.Workflow(name=workflow_name)
@@ -1204,120 +1203,66 @@ def func_longitudinal_workflow(sub_list, config):
                 'crashdump_dir': os.path.abspath(config.crashLogDirectory)
             }
 
-            # wire in the scan parameter workflow
-            workflow.connect(func_wf, 'outputspec.scan_params',
-                             scan_params, 'data_config_scan_params')
+            # Functional Ingress Workflow
+            workflow, diff, blip, fmap_rp_list = connect_func_ingress(workflow,
+                                                                    strat_list, 
+                                                                    config,
+                                                                    sub_dict,
+                                                                    subject_id,
+                                                                    input_creds_path)
 
-            workflow.connect(func_wf, 'outputspec.subject',
-                             scan_params, 'subject_id')
+            # Functional Initial Prep Workflow
+            workflow, strat_list = connect_func_init(workflow, strat_list, config)
 
-            workflow.connect(func_wf, 'outputspec.scan',
-                             scan_params, 'scan')
-
-            # connect in constants
-            scan_params.inputs.set(
-                pipeconfig_tr=config.TR,
-                pipeconfig_tpattern=config.slice_timing_pattern,
-                pipeconfig_start_indx=config.startIdx,
-                pipeconfig_stop_indx=config.stopIdx
-            )
-
-            # node to convert TR between seconds and milliseconds
-            convert_tr = pe.Node(function.Function(input_names=['tr'],
-                                                   output_names=['tr'],
-                                                   function=get_tr,
-                                                   as_module=True),
-                                 name='convert_tr_%s' % str(subject_id))
-
-            # strat.update_resource_pool({
-            #     'raw_functional': (func_wf, 'outputspec.rest'),
-            #     'scan_id': (func_wf, 'outputspec.scan')
-            # })
-
-            trunc_wf = create_wf_edit_func(
-                wf_name="edit_func_%s" % str(subject_id)
-            )
-
-            # connect the functional data from the leaf node into the wf
-            workflow.connect(func_wf, 'outputspec.rest',
-                             trunc_wf, 'inputspec.func')
-
-            # connect the other input parameters
-            workflow.connect(scan_params, 'start_indx',
-                             trunc_wf, 'inputspec.start_idx')
-            workflow.connect(scan_params, 'stop_indx',
-                             trunc_wf, 'inputspec.stop_idx')
-
-            strat.update_resource_pool({
-                            'raw_functional_trunc': (trunc_wf, 'outputspec.edited_func'),
-                        })
-
-            new_strat_list = []
             # Functional Image Preprocessing Workflow
-            # TODO strat update resource pool, add strat to strat_list
-            for num_strat, strat in enumerate(strat_list):
+            workflow, strat_list = connect_func_preproc(workflow, strat_list, config)
 
-                for skullstrip_tool in c.functionalMasking:
-                    
-                    skullstrip_tool = skullstrip_tool.lower()
+            # Distortion Correction
+            workflow, strat_list = connect_distortion_correction(workflow,
+                                                                strat_list, 
+                                                                config,
+                                                                diff,
+                                                                blip,
+                                                                fmap_rp_list)
+            
+    # Here we have all the func_preproc set up for every session of the subject
+    
+    import pdb; pdb.set_trace()
 
-                    for motion_correct_ref in c.motion_correction_reference:
+    # TODO create template
+    # WARNING: code below will crash QAQ
+    for num_strat, strat in strat_list:
 
-                        motion_correct_ref = motion_correct_ref.lower()
+        node_suffix = '_'.join([subject_id, num_strat])
 
-                        if " " in motion_correct_ref:
-                            motion_correct_ref = motion_correct_ref.replace(" ", "_")
+        # Merge node to feed the func_preproc outputs to the longitudinal template generation
+        brain_merge_node = pe.Node(
+            interface=Merge(len(strat_nodes_list)),
+            name="func_longitudinal_brain_merge_" + node_suffix)
 
-                        for motion_correct_tool in c.motion_correction:
+        skull_merge_node = pe.Node(
+            interface=Merge(len(strat_nodes_list)),
+            name="func_longitudinal_skull_merge_" + node_suffix)
 
-                            motion_correct_tool = motion_correct_tool.lower()
+        # This node will generate the longitudinal template (the functions are in longitudinal_preproc)
+        # Later other algorithms could be added to calculate it, like the multivariate template from ANTS
+        # It would just require to change it here.
+        template_node = subject_specific_template(
+            workflow_name='subject_specific_func_template_' + node_suffix
+        )
+        
+        template_node.inputs.set(
+            avg_method=config.long_reg_avg_method,
+            dof=config.dof,
+            interp=config.interp,
+            cost=config.cost,
+            convergence_threshold=config.convergence_threshold,
+            thread_pool=config.thread_pool,
+        )
 
-                            new_strat = strat.fork()
-                            
-                            func_preproc = create_func_preproc(
-                                skullstrip_tool=skullstrip_tool,
-                                motion_correct_tool=motion_correct_tool,
-                                motion_correct_ref=motion_correct_ref,
-                                config=c,
-                                wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool, motion_correct_ref, motion_correct_tool, num_strat)
-                            )
+        workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
+        workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
 
-                            node, out_file = new_strat['raw_functional_trunc']
-                            workflow.connect(node, out_file, func_preproc,
-                                            'inputspec.raw_func')
-
-                            node, out_file = new_strat.get_leaf_properties()
-                            workflow.connect(node, out_file, func_preproc,
-                                            'inputspec.func')
-
-                            func_preproc.inputs.inputspec.twopass = \
-                                getattr(c, 'functional_volreg_twopass', True)
-
-                            new_strat.append_name(func_preproc.name)
-                            # new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-
-                            new_strat.update_resource_pool({
-                                'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
-                                'functional_preprocessed_median': (func_preproc, 'outputspec.preprocessed_median'),
-                            })
-
-                            new_strat_list.append(new_strat)
-
-            strat_list = new_strat_list
-
-            # TODO Distortion Correction
-                
-            # workflow.connect(func_preproc, 'outputspec.preprocessed', 
-            #                     datasink, 'preproc_func')
-
-            # Here we have all the func_preproc set up for every session of the subject
-
-            # TODO create template?
-
-            workflow.run()
-
-            wf_list.append(workflow)
-
-    print("DOOOOOONE")
+    workflow.run()
     
     return 

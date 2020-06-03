@@ -313,8 +313,8 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
         print("input_brain_list contains only 1 image, no template calculated")
         return input_brain_list[0]
 
-    final_warp_list = []
-    final_warp_list_filenames = [os.path.join(
+    warp_list = []
+    warp_list_filenames = [os.path.join(
         os.getcwd(), str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in input_brain_list]
 
     # I added this part because it is mentioned in the paper but I actually never used it
@@ -324,7 +324,7 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
         if isinstance(init_reg, list):
             output_brain_list = [node.inputs.out_file for node in init_reg]
             mat_list = [node.inputs.out_matrix_file for node in init_reg]
-            final_warp_list = mat_list
+            warp_list = mat_list
             # test if every transformation matrix has reached the convergence
             convergence_list = [template_convergence(
                 mat, mat_type, convergence_threshold) for mat in mat_list]
@@ -360,23 +360,25 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
         mat_list = [node.inputs.out_matrix_file for node in reg_list_node]
 
         # TODO clean code, refactor variables 
-        if len(final_warp_list) == 0:
-            final_warp_list = mat_list
+        if len(warp_list) == 0:
+            warp_list = mat_list
 
         for index, mat in enumerate(mat_list):
             cmd = "flirt -in %s -ref %s -applyxfm -init %s -dof %s -interp %s -cost %s -out %s" % (output_skull_list[index], 
                     temporary_skull_template, mat, dof, interp, cost, 
                     os.path.join(os.getcwd(), os.path.basename(output_skull_list[index])))
             os.system(cmd)
+
             output_skull_list[index] = os.path.join(os.getcwd(), os.path.basename(output_skull_list[index]))
             
             # why inverse?
-            cmd = "convert_xfm -omat %s -inverse %s" % (final_warp_list_filenames[index], final_warp_list[index])
+            cmd = "convert_xfm -omat %s -inverse %s" % (warp_list_filenames[index], warp_list[index])
             os.system(cmd)
 
-            final_warp_list[index] = final_warp_list_filenames[index]
+            warp_list[index] = warp_list_filenames[index]
 
         output_brain_list = [node.inputs.out_file for node in reg_list_node]
+
         # test if every transformation matrix has reached the convergence
         convergence_list = [template_convergence(
             mat, mat_type, convergence_threshold) for mat in mat_list]
@@ -396,9 +398,17 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
                                       interp=interp,
                                       cost=cost)
     
-    final_warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
+    warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
+    
+    # output inverse warp for segmentation registration
+    inv_warp_list = []
+    for warp in warp_list:
+        inv_warp = os.path.basename(warp).split('.')[0] + "_inv.mat"
+        cmd = "convert_xfm -omat %s -inverse %s" % (inv_warp, warp)
+        os.system(cmd)
+        inv_warp_list.append(inv_warp)
 
-    return brain_template, skull_template, output_brain_list, output_skull_list, final_warp_list
+    return brain_template, skull_template, output_brain_list, output_skull_list, warp_list, inv_warp_list
 
 
 def subject_specific_template(workflow_name='subject_specific_template',
@@ -441,7 +451,8 @@ def subject_specific_template(workflow_name='subject_specific_template',
                     'skull_template',
                     'output_brain_list',
                     'output_skull_list',
-                    'final_warp_list'],
+                    'warp_list',
+                    'inv_warp_list'],
                 imports=imports,
                 function=template_creation_flirt
             ),

@@ -826,7 +826,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(func_deoblique, 'out_file',
                     func_reorient, 'in_file')
 
-    # TODO XL review forking
+    # TODO reassess average center of mass implementation, esp for skull alignment
+    '''
     if 'func' in config.run_longitudinal:
         func_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
         func_align_cmass.inputs.cm_file = os.path.join(
@@ -845,7 +846,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         # Just add the alignment to the output image
         preproc.connect(func_align_cmass, 'out_file', output_node, 'reorient')
     else:
-        preproc.connect(func_reorient, 'out_file', output_node, 'reorient')
+    '''
+    preproc.connect(func_reorient, 'out_file', output_node, 'reorient')
 
     func_motion_correct = pe.Node(interface=preprocess.Volreg(),
                                         name='func_generate_ref')
@@ -1543,14 +1545,16 @@ def connect_func_preproc(workflow, strat_list, c):
                         node, out_file = new_strat.get_leaf_properties()
                         workflow.connect(node, out_file, func_preproc,
                                         'inputspec.func')
+                        
+                        if skullstrip_tool == 'anatomical_refined':
+                            
+                            node, out_file = new_strat['anatomical_brain']
+                            workflow.connect(node, out_file, func_preproc,
+                                            'inputspec.anat_brain')
 
-                        node, out_file = new_strat['anatomical_brain']
-                        workflow.connect(node, out_file, func_preproc,
-                                        'inputspec.anat_brain')
-
-                        node, out_file = new_strat['anatomical_brain_mask']
-                        workflow.connect(node, out_file, func_preproc,
-                                        'inputspec.anatomical_brain_mask')
+                            node, out_file = new_strat['anatomical_brain_mask']
+                            workflow.connect(node, out_file, func_preproc,
+                                            'inputspec.anatomical_brain_mask')
 
                         func_preproc.inputs.inputspec.twopass = \
                             getattr(c, 'functional_volreg_twopass', True)

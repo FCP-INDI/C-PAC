@@ -151,26 +151,29 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
     else:
         preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
 
-    # if 'anat' in config.run_longitudinal:
-    #     anat_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
-    #     anat_align_cmass.inputs.cm_file = os.path.join(
-    #         os.getcwd(), "center_of_mass.txt")
-    #     preproc.connect(anat_reorient, 'out_file', anat_align_cmass, 'in_file')
-    #     # have to hardcode that because nipype CenterMass outputs a list of tuples
-    #     # but the set_cm option take a tuple as input
-    #     patch = pe.Node(util.Function(input_names=['lst'],
-    #                     output_names=['tuple'],
-    #                     function=patch_cmass_output),
-    #                     name='patch_cmass')
-    #     preproc.connect(inputnode, 'template_cmass', patch, 'lst')
-    #     preproc.connect(patch, 'tuple', anat_align_cmass, 'set_cm')
-    #     # anat_align_cmass.inputs.set_cm = inputnode.inputs.template_cmass
-    #     preproc.connect(anat_align_cmass, 'cm',
-    #                     outputnode, 'center_of_mass')
-    #     # add the alignment to the output image
-    #     # preproc.connect(anat_align_cmass, 'out_file', anat_reorient, 'out_file')
-    #     preproc.connect(anat_align_cmass, 'out_file', outputnode, 'reorient')
-    # else:
+    # TODO reassess average center of mass implementation, esp for skull alignment
+    '''
+    if 'anat' in config.run_longitudinal:
+        anat_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
+        anat_align_cmass.inputs.cm_file = os.path.join(
+            os.getcwd(), "center_of_mass.txt")
+        preproc.connect(anat_reorient, 'out_file', anat_align_cmass, 'in_file')
+        # have to hardcode that because nipype CenterMass outputs a list of tuples
+        # but the set_cm option take a tuple as input
+        patch = pe.Node(util.Function(input_names=['lst'],
+                        output_names=['tuple'],
+                        function=patch_cmass_output),
+                        name='patch_cmass')
+        preproc.connect(inputnode, 'template_cmass', patch, 'lst')
+        preproc.connect(patch, 'tuple', anat_align_cmass, 'set_cm')
+        # anat_align_cmass.inputs.set_cm = inputnode.inputs.template_cmass
+        preproc.connect(anat_align_cmass, 'cm',
+                        outputnode, 'center_of_mass')
+        # add the alignment to the output image
+        # preproc.connect(anat_align_cmass, 'out_file', anat_reorient, 'out_file')
+        preproc.connect(anat_align_cmass, 'out_file', outputnode, 'reorient')
+    else:
+    '''
     preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
 
     if already_skullstripped:
@@ -655,7 +658,7 @@ def connect_anat_segmentation(workflow, strat_list, c):
                 workflow.connect(node, out_file,
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
-            
+
             workflow.connect(c.PRIORS_CSF, 'local_path',
                                 seg_preproc, 'inputspec.PRIOR_CSF')
 
