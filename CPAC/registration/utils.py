@@ -38,6 +38,7 @@ def generate_inverse_transform_flags(transform_list):
             inverse_transform_flags.append(False)
     return inverse_transform_flags
 
+
 def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                   reference_skull, ants_para, fixed_image_mask=None, interp=None):
 

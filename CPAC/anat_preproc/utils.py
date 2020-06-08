@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+def fsl_aff_to_rigid(in_xfm, out_name):
+    out_mat = os.path.join(os.getcwd(), out_name)
+    cmd = ['aff2rigid', in_xfm, out_mat]
+    retcode = subprocess.check_output(cmd)
+    return out_mat
+
+
 def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
                                    shrink_fac_bot_lim, avoid_vent, niter,
                                    pushout, touchup, fill_hole, avoid_eyes,
