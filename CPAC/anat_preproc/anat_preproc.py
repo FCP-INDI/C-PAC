@@ -3,10 +3,13 @@ import os
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
+from nipype.interfaces.fsl import utils as fsl_utils
+from nipype.interfaces.fsl import preprocess as fsl_preproc
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
-from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
+from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
+    fsl_aff_to_rigid
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
@@ -28,10 +31,12 @@ def patch_cmass_output(lst, index=0):
         raise IndexError("lst index out of range")
     return lst[index]
 
-def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc'):
-    """The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
-    into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image
-    for later use in registration.
+def create_anat_preproc(method='afni', already_skullstripped=False,
+                        config=None, wf_name='anat_preproc'):
+    """The main purpose of this workflow is to process T1 scans. Raw mprage
+    file is deobliqued, reoriented into RPI and skullstripped. Also, a whole
+    brain only mask is generated from the skull stripped image for later use
+    in registration.
 
     Returns
     -------
@@ -55,16 +60,19 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             Path to RPI oriented anatomical image
 
         outputspec.skullstrip : string
-            Path to skull stripped RPI oriented mprage file with normalized intensities.
+            Path to skull stripped RPI oriented mprage file with normalized
+            intensities.
 
         outputspec.brain : string
-            Path to skull stripped RPI brain image with original intensity values and not normalized or scaled.
+            Path to skull stripped RPI brain image with original intensity
+            values and not normalized or scaled.
 
     Order of commands:
     - Deobliqing the scans. ::
         3drefit -deoblique mprage.nii.gz
 
-    - Re-orienting the Image into Right-to-Left Posterior-to-Anterior Inferior-to-Superior  (RPI) orientation ::
+    - Re-orienting the Image into Right-to-Left Posterior-to-Anterior
+      Inferior-to-Superior  (RPI) orientation ::
         3dresample -orient RPI
                    -prefix mprage_RPI.nii.gz
                    -inset mprage.nii.gz
@@ -76,7 +84,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
         or using BET ::
             bet mprage_RPI.nii.gz
 
-    - The skull-stripping step modifies the intensity values. To get back the original intensity values, we do an element wise product of RPI data with step function of skull-stripped data ::
+    - The skull-stripping step modifies the intensity values. To get back the
+      original intensity values, we do an element wise product of RPI data
+      with step function of skull-stripped data ::
         3dcalc -a mprage_RPI.nii.gz
                -b mprage_RPI_3dT.nii.gz
                -expr 'a*step(b)'
@@ -118,27 +128,89 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
     anat_deoblique = pe.Node(interface=afni.Refit(),
                              name='anat_deoblique')
     anat_deoblique.inputs.deoblique = True
-    preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
 
-    preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')    
+    preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
+    preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')
+
+    anat_leaf = pe.Node(util.IdentityInterface(fields=['anat_data']),
+                        name='anat_leaf')
+
+    preproc.connect(anat_deoblique, 'out_file', anat_leaf, 'anat_data')
+
+    # ACPC alignment (for NHP mainly)
+    if config.acpc_align:
+        robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
+                             name='anat_acpc_robustfov')
+        robust_fov.inputs.brainsize = config.acpc_brainsize
+
+        preproc.connect(anat_deoblique, 'out_file', robust_fov, 'in_file')
+
+        convert_fov_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
+                                  name='anat_acpc_fov_convertxfm')
+        convert_fov_xfm.inputs.invert_xfm = True
+
+        preproc.connect(robust_fov, 'out_transform',
+                        convert_fov_xfm, 'in_file')
+
+        align = pe.Node(interface=fsl.FLIRT(),
+                        name='anat_acpc_flirt')
+        align.inputs.interp = 'spline'
+        align.inputs.searchr_x = [30, 30]
+        align.inputs.searchr_y = [30, 30]
+        align.inputs.searchr_z = [30, 30]
+
+        preproc.connect(robust_fov, 'out_roi', align, 'in_file')
+        preproc.connect(anat_deoblique, 'out_file', align, 'reference')
+
+        concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
+                             name='anat_acpc_concatxfm')
+        concat_xfm.inputs.concat_xfm = True
+
+        preproc.connect(convert_fov_xfm, 'out_file', concat_xfm, 'in_file')
+        preproc.connect(align, 'out_matrix_file', concat_xfm, 'in_file2')
+
+        aff_to_rig_imports = ['import os', 'import subprocess']
+        aff_to_rig = pe.Node(util.Function(input_names=['in_xfm', 'out_name'],
+                                           output_names=['out_mat'],
+                                           function=fsl_aff_to_rigid,
+                                           imports=aff_to_rig_imports),
+                             name='anat_acpc_aff2rigid')
+        aff_to_rig.inputs.out_name = 'acpc.mat'
+
+        preproc.connect(concat_xfm, 'out_file', aff_to_rig, 'in_xfm')
+
+        apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
+                            name='anat_acpc_applywarp')
+        apply_xfm.inputs.interp = 'spline'
+        apply_xfm.inputs.relwarp = True
+
+        preproc.connect(anat_deoblique, 'out_file', apply_xfm, 'in_file')
+        preproc.connect(anat_deoblique, 'out_file', apply_xfm, 'ref_file')
+        preproc.connect(aff_to_rig, 'out_mat', apply_xfm, 'premat')
+
+        preproc.connect(apply_xfm, 'out_file', anat_leaf, 'anat_data')
+
     # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
-        config.non_local_means_filtering = False 
+        config.non_local_means_filtering = False
         config.n4_bias_field_correction = False
         
     if config.non_local_means_filtering and config.n4_bias_field_correction:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
-        preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
+        preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
+
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
         preproc.connect(denoise, 'output_image', n4, 'input_image')
+
     elif config.non_local_means_filtering and not config.n4_bias_field_correction:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
-        preproc.connect(anat_deoblique, 'out_file', denoise, 'input_image')
+        preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
+
     elif not config.non_local_means_filtering and config.n4_bias_field_correction:
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
-        preproc.connect(anat_deoblique, 'out_file', n4, 'input_image')
+        preproc.connect(anat_leaf, 'anat_data', n4, 'input_image')
 
     # Anatomical reorientation
     anat_reorient = pe.Node(interface=afni.Resample(),
@@ -151,12 +223,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
     elif config.non_local_means_filtering and not config.n4_bias_field_correction:
         preproc.connect(denoise, 'output_image', anat_reorient, 'in_file')
     else:
-        preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
+        preproc.connect(anat_leaf, 'anat_data', anat_reorient, 'in_file')
 
     preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
 
     if already_skullstripped:
-
         anat_skullstrip = pe.Node(interface=util.IdentityInterface(fields=['out_file']),
                                     name='anat_skullstrip')
 
@@ -269,7 +340,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
                             anat_skullstrip, 'args')
 
             # Generate anatomical brain mask
-
             anat_brain_mask = pe.Node(interface=afni.Calc(),
                                             name='anat_brain_mask')
 
