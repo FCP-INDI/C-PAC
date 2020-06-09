@@ -747,12 +747,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         'anatomical_wm_mask'
     ]
 
-    for key in anat_ingress:
+    for key_num, key in enumerate(anat_ingress):
         if key in sub_dict.keys():
             if sub_dict[key] and sub_dict[key].lower() != 'none':
 
                 anat_ingress_flow = create_anat_datasource(
-                    f'anat_ingress_gather_{num_strat}')
+                    f'anat_ingress_gather_{key_num}')
                 anat_ingress_flow.inputs.inputnode.subject = subject_id
                 anat_ingress_flow.inputs.inputnode.anat = sub_dict[key]
                 anat_ingress_flow.inputs.inputnode.creds_path = input_creds_path
@@ -827,6 +827,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             workflow.connect(node, out_file,
                              anat_preproc, 'inputspec.brain_mask')
 
+            node, out_file = strat['anatomical_csf_mask']
+            workflow.connect(node, out_file,
+                             anat_preproc, 'inputspec.anatomical_csf_mask')   
+
+            node, out_file = strat['anatomical_wm_mask']
+            workflow.connect(node, out_file,
+                             anat_preproc, 'inputspec.anatomical_wm_mask')                            
+
             new_strat.append_name(anat_preproc.name)
             new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
             new_strat.update_resource_pool({
@@ -834,7 +842,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
             })
             new_strat.update_resource_pool({
-                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask')
+                'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                'anatomical_wm_mask': (anat_preproc, 'outputspec.anatomical_wm_mask'),
+                'anatomical_csf_mask': (anat_preproc, 'outputspec.anatomical_csf_mask'),
             }, override=True)
 
             new_strat_list += [new_strat]

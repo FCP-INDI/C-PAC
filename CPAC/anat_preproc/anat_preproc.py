@@ -93,13 +93,15 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['anat', 'brain_mask', 'reference_skull']), name='inputspec')
+        fields=['anat', 'brain_mask', 'reference_skull', 'anatomical_csf_mask', 'anatomical_wm_mask']), name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['refit',
                                                         'reorient',
                                                         'skullstrip',
                                                         'brain',
-                                                        'brain_mask']),
+                                                        'brain_mask',
+                                                        'anatomical_wm_mask',
+                                                        'anatomical_csf_mask']),
                          name='outputspec')
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
@@ -164,6 +166,26 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         preproc.connect(aff_to_rig, 'out_mat', apply_xfm, 'premat')
 
         preproc.connect(apply_xfm, 'out_file', anat_leaf, 'anat_data')
+
+        # ingressed csf acpc align
+        csf_apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
+                            name='csf_acpc_applywarp')
+        csf_apply_xfm.inputs.interp = 'spline'
+        csf_apply_xfm.inputs.relwarp = True
+        preproc.connect(inputnode, 'anatomical_csf_mask', csf_apply_xfm, 'in_file')
+        preproc.connect(inputnode, 'reference_skull', csf_apply_xfm, 'ref_file')
+        preproc.connect(aff_to_rig, 'out_mat', csf_apply_xfm, 'premat')
+        preproc.connect(csf_apply_xfm, 'out_file', outputnode, 'anatomical_csf_mask')
+
+        # ingressed wm acpc align
+        wm_apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
+                            name='wm_acpc_applywarp')
+        wm_apply_xfm.inputs.interp = 'spline'
+        wm_apply_xfm.inputs.relwarp = True
+        preproc.connect(inputnode, 'anatomical_wm_mask', wm_apply_xfm, 'in_file')
+        preproc.connect(inputnode, 'reference_skull', wm_apply_xfm, 'ref_file')
+        preproc.connect(aff_to_rig, 'out_mat', wm_apply_xfm, 'premat')
+        preproc.connect(wm_apply_xfm, 'out_file', outputnode, 'anatomical_wm_mask')
 
     else:
         preproc.connect(anat_deoblique, 'out_file', anat_leaf, 'anat_data')
