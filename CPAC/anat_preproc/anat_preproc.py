@@ -135,25 +135,27 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     anat_leaf = pe.Node(util.IdentityInterface(fields=['anat_data']),
                         name='anat_leaf')
 
-    preproc.connect(anat_deoblique, 'out_file', anat_leaf, 'anat_data')
+    if not config.acpc_align:
+        preproc.connect(anat_deoblique, 'out_file', anat_leaf, 'anat_data')
 
     # ACPC alignment (for NHP mainly)
     if config.acpc_align:
         robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
-                             name='anat_acpc_robustfov')
+                             name='anat_acpc_1_robustfov')
         robust_fov.inputs.brainsize = config.acpc_brainsize
+        robust_fov.inputs.out_transform = 'fov_xfm.mat'
 
         preproc.connect(anat_deoblique, 'out_file', robust_fov, 'in_file')
 
         convert_fov_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
-                                  name='anat_acpc_fov_convertxfm')
+                                  name='anat_acpc_2_fov_convertxfm')
         convert_fov_xfm.inputs.invert_xfm = True
 
         preproc.connect(robust_fov, 'out_transform',
                         convert_fov_xfm, 'in_file')
 
         align = pe.Node(interface=fsl.FLIRT(),
-                        name='anat_acpc_flirt')
+                        name='anat_acpc_3_flirt')
         align.inputs.interp = 'spline'
         align.inputs.searchr_x = [30, 30]
         align.inputs.searchr_y = [30, 30]
@@ -163,7 +165,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         preproc.connect(anat_deoblique, 'out_file', align, 'reference')
 
         concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
-                             name='anat_acpc_concatxfm')
+                             name='anat_acpc_4_concatxfm')
         concat_xfm.inputs.concat_xfm = True
 
         preproc.connect(convert_fov_xfm, 'out_file', concat_xfm, 'in_file')
@@ -174,13 +176,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                            output_names=['out_mat'],
                                            function=fsl_aff_to_rigid,
                                            imports=aff_to_rig_imports),
-                             name='anat_acpc_aff2rigid')
+                             name='anat_acpc_5_aff2rigid')
         aff_to_rig.inputs.out_name = 'acpc.mat'
 
         preproc.connect(concat_xfm, 'out_file', aff_to_rig, 'in_xfm')
 
         apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
-                            name='anat_acpc_applywarp')
+                            name='anat_acpc_6_applywarp')
         apply_xfm.inputs.interp = 'spline'
         apply_xfm.inputs.relwarp = True
 
