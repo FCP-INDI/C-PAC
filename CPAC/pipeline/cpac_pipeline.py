@@ -749,7 +749,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     for key in anat_ingress:
         if key in sub_dict.keys():
-            if sub_dict['key'] and sub_dict['key'].lower() != 'none':
+            if sub_dict[key] and sub_dict[key].lower() != 'none':
 
                 anat_ingress_flow = create_anat_datasource(
                     f'anat_ingress_gather_{num_strat}')
@@ -818,6 +818,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             workflow.connect(node, out_file,
                              anat_preproc, 'inputspec.anat')
 
+            # pass the reference file
+            node, out_file = strat['template_skull_for_anat']
+            workflow.connect(node, out_file,
+                anat_preproc, 'inputspec.reference_skull')
+
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file,
                              anat_preproc, 'inputspec.brain_mask')
@@ -847,6 +852,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             node, out_file = new_strat['anatomical']
             workflow.connect(node, out_file,
                             anat_preproc, 'inputspec.anat')
+
+            # pass the reference file
+            node, out_file = strat['template_skull_for_anat']
+            workflow.connect(node, out_file,
+                anat_preproc, 'inputspec.reference_skull')
+
             new_strat.append_name(anat_preproc.name)
             new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
             new_strat.update_resource_pool({
@@ -898,6 +909,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                  anat_preproc, 'inputspec.anat')
+                
+                # pass the reference file
+                node, out_file = strat['template_skull_for_anat']
+                workflow.connect(node, out_file,
+                    anat_preproc, 'inputspec.reference_skull') 
+
                 new_strat.append_name(anat_preproc.name)
                 new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                 new_strat.update_resource_pool({
@@ -933,6 +950,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.anat')
+                # pass the reference file
+                node, out_file = strat['template_skull_for_anat']
+                workflow.connect(node, out_file,
+                    anat_preproc, 'inputspec.reference_skull')
+
                 new_strat.append_name(anat_preproc.name)
                 new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                 new_strat.update_resource_pool({
@@ -952,6 +974,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.anat')
+                # pass the reference file
+                node, out_file = strat['template_skull_for_anat']
+                workflow.connect(node, out_file,
+                    anat_preproc, 'inputspec.reference_skull')
                 new_strat.append_name(anat_preproc.name)
                 new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                 new_strat.update_resource_pool({
@@ -971,6 +997,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.anat')
+                # pass the reference file
+                node, out_file = strat['template_skull_for_anat']
+                workflow.connect(node, out_file,
+                    anat_preproc, 'inputspec.reference_skull')
+
                 new_strat.append_name(anat_preproc.name)
                 new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                 new_strat.update_resource_pool({

@@ -93,7 +93,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-        fields=['anat', 'brain_mask']), name='inputspec')
+        fields=['anat', 'brain_mask', 'reference_skull']), name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['refit',
                                                         'reorient',
@@ -111,8 +111,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     anat_leaf = pe.Node(util.IdentityInterface(fields=['anat_data']),
                         name='anat_leaf')
-
-    preproc.connect(anat_deoblique, 'out_file', anat_leaf, 'anat_data')
 
     # ACPC alignment (for NHP mainly)
     if config.acpc_align:
@@ -137,7 +135,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         align.inputs.searchr_z = [30, 30]
 
         preproc.connect(robust_fov, 'out_roi', align, 'in_file')
-        preproc.connect(anat_deoblique, 'out_file', align, 'reference')
+        preproc.connect(inputnode, 'reference_skull', align, 'reference')
 
         concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
                              name='anat_acpc_concatxfm')
@@ -162,11 +160,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         apply_xfm.inputs.relwarp = True
 
         preproc.connect(anat_deoblique, 'out_file', apply_xfm, 'in_file')
-        preproc.connect(anat_deoblique, 'out_file', apply_xfm, 'ref_file')
+        preproc.connect(inputnode, 'reference_skull', apply_xfm, 'ref_file')
         preproc.connect(aff_to_rig, 'out_mat', apply_xfm, 'premat')
 
         preproc.connect(apply_xfm, 'out_file', anat_leaf, 'anat_data')
 
+    else:
+        preproc.connect(anat_deoblique, 'out_file', anat_leaf, 'anat_data')
     # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
         config.non_local_means_filtering = False
