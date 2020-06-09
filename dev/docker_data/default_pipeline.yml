@@ -109,6 +109,11 @@ reGenerateOutputs :  False
 # Anatomical preprocessing options.
 # ---------------------------------
 
+# ACPC Alignment
+acpc_align: False
+acpc_brainsize: 70
+
+
 # Non-local means filtering via ANTs DenoiseImage
 non_local_means_filtering: False
 
