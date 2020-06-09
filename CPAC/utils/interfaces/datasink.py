@@ -525,7 +525,7 @@ class DataSink(IOBase):
             if not isdefined(files):
                 continue
             iflogger.debug("key: %s files: %s", key, str(files))
-            files = ensure_list(files)
+            files = ensure_list(files if files else [])
             tempoutdir = outdir
             if s3_flag:
                 s3tempoutdir = s3dir
