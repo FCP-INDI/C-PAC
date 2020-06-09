@@ -440,8 +440,20 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                     name='brain_mask_reorient')
             brain_mask_reorient.inputs.orientation = 'RPI'
             brain_mask_reorient.inputs.outputtype = 'NIFTI_GZ'
-            preproc.connect(brain_mask_deoblique, 'out_file',
-                            brain_mask_reorient, 'in_file')
+            if config.acpc_align:
+                mask_apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
+                            name='anat_mask_acpc_applywarp')
+                mask_apply_xfm.inputs.interp = 'spline'
+                mask_apply_xfm.inputs.relwarp = True
+
+                preproc.connect(brain_mask_deoblique, 'out_file', mask_apply_xfm, 'in_file')
+                preproc.connect(inputnode, 'reference_skull', mask_apply_xfm, 'ref_file')
+                preproc.connect(aff_to_rig, 'out_mat', mask_apply_xfm, 'premat')
+
+                preproc.connect(mask_apply_xfm, 'out_file', brain_mask_reorient, 'in_file')
+            else:
+                preproc.connect(brain_mask_deoblique, 'out_file',
+                                brain_mask_reorient, 'in_file')
 
 
             anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
