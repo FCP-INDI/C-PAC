@@ -202,6 +202,7 @@ def T2wToT1wReg(wf_name="T2w_to_T1w_reg"):
 
     preproc = pe.Workflow(name=wf_name)
 
+<<<<<<< HEAD
     inputnode = pe.Node(
         util.IdentityInterface(fields=["T1w", "T1w_brain", "T2w", "T2w_brain"]),
         name="inputspec",
@@ -234,6 +235,481 @@ def T2wToT1wReg(wf_name="T2w_to_T1w_reg"):
 
     preproc.connect(T2w2T1w, "out_file", T2w2T1w_final, "in_file")
     preproc.connect(T2w2T1w_final, "out_file", outputnode, "T2w_to_T1w")
+=======
+    inputnode = pe.Node(util.IdentityInterface(
+        fields=['anat', 'brain_mask', 'template_head']), name='inputspec')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['refit',
+                                                        'reorient',
+                                                        'skullstrip',
+                                                        'brain',
+                                                        'brain_mask',]),
+                         name='outputspec')
+
+    anat_deoblique = pe.Node(interface=afni.Refit(),
+                             name='anat_deoblique')
+    anat_deoblique.inputs.deoblique = True
+
+    preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
+    preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')
+
+    # Anatomical reorientation
+    anat_reorient = pe.Node(interface=afni.Resample(),
+                            name='anat_reorient')
+    anat_reorient.inputs.orientation = 'RPI'
+    anat_reorient.inputs.outputtype = 'NIFTI_GZ'
+
+    preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
+    preproc.connect(anat_reorient, 'out_file', outputnode, 'reorient')
+
+    anat_leaf = pe.Node(util.IdentityInterface(fields=['anat_data']),
+                        name='anat_leaf')
+
+    if not config.acpc_align:
+        preproc.connect(anat_reorient, 'out_file', anat_leaf, 'anat_data')
+
+    # ACPC alignment (for NHP mainly)
+    if config.acpc_align:
+        robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
+                             name='anat_acpc_1_robustfov')
+        robust_fov.inputs.brainsize = config.acpc_brainsize
+        robust_fov.inputs.out_transform = 'fov_xfm.mat'
+
+        preproc.connect(anat_reorient, 'out_file', robust_fov, 'in_file')
+
+        convert_fov_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
+                                  name='anat_acpc_2_fov_convertxfm')
+        convert_fov_xfm.inputs.invert_xfm = True
+
+        preproc.connect(robust_fov, 'out_transform',
+                        convert_fov_xfm, 'in_file')
+
+        align = pe.Node(interface=fsl.FLIRT(),
+                        name='anat_acpc_3_flirt')
+        align.inputs.interp = 'spline'
+        align.inputs.searchr_x = [30, 30]
+        align.inputs.searchr_y = [30, 30]
+        align.inputs.searchr_z = [30, 30]
+
+        preproc.connect(robust_fov, 'out_roi', align, 'in_file')
+        preproc.connect(inputnode, 'template_head', align, 'reference')
+
+        concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
+                             name='anat_acpc_4_concatxfm')
+        concat_xfm.inputs.concat_xfm = True
+
+        preproc.connect(convert_fov_xfm, 'out_file', concat_xfm, 'in_file')
+        preproc.connect(align, 'out_matrix_file', concat_xfm, 'in_file2')
+
+        aff_to_rig_imports = ['import os', 'from numpy import *']
+        aff_to_rig = pe.Node(util.Function(input_names=['in_xfm', 'out_name'],
+                                           output_names=['out_mat'],
+                                           function=fsl_aff_to_rigid,
+                                           imports=aff_to_rig_imports),
+                             name='anat_acpc_5_aff2rigid')
+        aff_to_rig.inputs.out_name = 'acpc.mat'
+
+        preproc.connect(concat_xfm, 'out_file', aff_to_rig, 'in_xfm')
+
+        apply_xfm = pe.Node(interface=fsl.ApplyWarp(),
+                            name='anat_acpc_6_applywarp')
+        apply_xfm.inputs.interp = 'spline'
+        apply_xfm.inputs.relwarp = True
+
+        preproc.connect(anat_reorient, 'out_file', apply_xfm, 'in_file')
+        preproc.connect(inputnode, 'template_head', apply_xfm, 'ref_file')
+        preproc.connect(aff_to_rig, 'out_mat', apply_xfm, 'premat')
+
+        preproc.connect(apply_xfm, 'out_file', anat_leaf, 'anat_data')
+
+    # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
+    if method == 'niworkflows-ants':
+        config.non_local_means_filtering = False
+        config.n4_bias_field_correction = False
+        
+    if config.non_local_means_filtering and config.n4_bias_field_correction:
+        denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
+        preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
+
+        n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
+            name='anat_n4')
+        preproc.connect(denoise, 'output_image', n4, 'input_image')
+
+    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
+        denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
+        preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
+
+    elif not config.non_local_means_filtering and config.n4_bias_field_correction:
+        n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
+            name='anat_n4')
+        preproc.connect(anat_leaf, 'anat_data', n4, 'input_image')
+
+    anat_leaf2 = pe.Node(util.IdentityInterface(fields=['anat_data']),
+                         name='anat_leaf2')
+    
+    if config.n4_bias_field_correction:
+        preproc.connect(n4, 'output_image', anat_leaf2, 'anat_data')
+    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
+        preproc.connect(denoise, 'output_image', anat_leaf2, 'anat_data')
+    else:
+        preproc.connect(anat_leaf, 'anat_data', anat_leaf2, 'anat_data')
+
+    if already_skullstripped:
+        anat_skullstrip = pe.Node(interface=util.IdentityInterface(fields=['out_file']),
+                                    name='anat_skullstrip')
+
+        preproc.connect(anat_leaf2, 'anat_data',
+                        anat_skullstrip, 'out_file')
+
+        preproc.connect(anat_skullstrip, 'out_file',
+                        outputnode, 'skullstrip')
+        
+        # binarize skullstripped brain to get brain mask
+        brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), name='brain_mask')
+        brain_mask.inputs.args = '-bin'
+
+        preproc.connect(anat_skullstrip, 'out_file',
+                        brain_mask, 'in_file')
+
+        preproc.connect(brain_mask, 'out_file',
+                        outputnode, 'brain_mask')
+
+        preproc.connect(anat_skullstrip, 'out_file',
+                        outputnode, 'brain')
+
+    else:
+
+        if method == 'afni':
+            # Skull-stripping using AFNI 3dSkullStrip
+            inputnode_afni = pe.Node(
+                util.IdentityInterface(fields=['mask_vol',
+                                               'shrink_factor',
+                                               'var_shrink_fac',
+                                               'shrink_fac_bot_lim',
+                                               'avoid_vent',
+                                               'niter',
+                                               'pushout',
+                                               'touchup',
+                                               'fill_hole',
+                                               'avoid_eyes',
+                                               'use_edge',
+                                               'exp_frac',
+                                               'smooth_final',
+                                               'push_to_edge',
+                                               'use_skull',
+                                               'perc_int',
+                                               'max_inter_iter',
+                                               'blur_fwhm',
+                                               'fac',
+                                               'monkey']),
+                name='AFNI_options')
+
+            skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
+                                                                 'spat_norm_dxyz',
+                                                                 'mask_vol',
+                                                                 'shrink_fac',
+                                                                 'var_shrink_fac',
+                                                                 'shrink_fac_bot_lim',
+                                                                 'avoid_vent',
+                                                                 'niter',
+                                                                 'pushout',
+                                                                 'touchup',
+                                                                 'fill_hole',
+                                                                 'avoid_eyes',
+                                                                 'use_edge',
+                                                                 'exp_frac',
+                                                                 'smooth_final',
+                                                                 'push_to_edge',
+                                                                 'use_skull',
+                                                                 'perc_int',
+                                                                 'max_inter_iter',
+                                                                 'blur_fwhm',
+                                                                 'fac',
+                                                                 'monkey'],
+                                                    output_names=['expr'],
+                                                    function=create_3dskullstrip_arg_string),
+                                      name='anat_skullstrip_args')
+
+            preproc.connect([
+                (inputnode_afni, skullstrip_args, [
+                    ('mask_vol', 'mask_vol'),
+                    ('shrink_factor', 'shrink_fac'),
+                    ('var_shrink_fac', 'var_shrink_fac'),
+                    ('shrink_fac_bot_lim', 'shrink_fac_bot_lim'),
+                    ('avoid_vent', 'avoid_vent'),
+                    ('niter', 'niter'),
+                    ('pushout', 'pushout'),
+                    ('touchup', 'touchup'),
+                    ('fill_hole', 'fill_hole'),
+                    ('avoid_eyes', 'avoid_eyes'),
+                    ('use_edge', 'use_edge'),
+                    ('exp_frac', 'exp_frac'),
+                    ('smooth_final', 'smooth_final'),
+                    ('push_to_edge', 'push_to_edge'),
+                    ('use_skull', 'use_skull'),
+                    ('perc_int', 'perc_int'),
+                    ('max_inter_iter', 'max_inter_iter'),
+                    ('blur_fwhm', 'blur_fwhm'),
+                    ('fac', 'fac'),
+                    ('monkey','monkey')
+                ])
+            ])
+
+            anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
+                                      name='anat_skullstrip')
+
+            anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            anat_skullstrip, 'in_file')
+            preproc.connect(skullstrip_args, 'expr',
+                            anat_skullstrip, 'args')
+
+            # Generate anatomical brain mask
+            anat_brain_mask = pe.Node(interface=afni.Calc(),
+                                            name='anat_brain_mask')
+
+            anat_brain_mask.inputs.expr = 'step(a)'
+            anat_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_skullstrip, 'out_file',
+                            anat_brain_mask, 'in_file_a')
+
+            # Apply skull-stripping step mask to original volume
+            anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                            name='anat_skullstrip_orig_vol')
+
+            anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+            anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            anat_skullstrip_orig_vol, 'in_file_a')
+
+            preproc.connect(anat_brain_mask, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_b')
+
+            preproc.connect(anat_brain_mask, 'out_file',
+                            outputnode, 'brain_mask')
+
+            preproc.connect(anat_skullstrip_orig_vol, 'out_file',
+                            outputnode, 'brain')
+
+        elif method == 'fsl':
+            # Skull-stripping using FSL BET
+            inputnode_bet = pe.Node(
+                util.IdentityInterface(fields=['frac',
+                                               'mask_boolean',
+                                               'mesh_boolean',
+                                               'outline',
+                                               'padding',
+                                               'radius',
+                                               'reduce_bias',
+                                               'remove_eyes',
+                                               'robust',
+                                               'skull',
+                                               'surfaces',
+                                               'threshold',
+                                               'vertical_gradient']),
+                name='BET_options')
+
+            anat_skullstrip = pe.Node(
+                interface=fsl.BET(), name='anat_skullstrip')
+            anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            anat_skullstrip, 'in_file')
+
+            preproc.connect([
+                (inputnode_bet, anat_skullstrip, [
+                    ('frac', 'frac'),
+                    ('mask_boolean', 'mask'),
+                    ('mesh_boolean', 'mesh'),
+                    ('outline', 'outline'),
+                    ('padding', 'padding'),
+                    ('radius', 'radius'),
+                    ('reduce_bias', 'reduce_bias'),
+                    ('remove_eyes', 'remove_eyes'),
+                    ('robust', 'robust'),
+                    ('skull', 'skull'),
+                    ('surfaces', 'surfaces'),
+                    ('threshold', 'threshold'),
+                    ('vertical_gradient', 'vertical_gradient'),
+                ])
+            ])
+
+            preproc.connect(anat_skullstrip, 'out_file',
+                            outputnode, 'skullstrip')
+
+            # Apply skull-stripping step mask to original volume
+            anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                            name='anat_skullstrip_orig_vol')
+
+            anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+            anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            anat_skullstrip_orig_vol, 'in_file_a')
+
+            preproc.connect(anat_skullstrip, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_b')
+
+            preproc.connect(anat_skullstrip, 'mask_file',
+                            outputnode, 'brain_mask')
+
+            preproc.connect(anat_skullstrip_orig_vol, 'out_file',
+                            outputnode, 'brain')
+
+        elif method == 'niworkflows-ants': 
+            # Skull-stripping using niworkflows-ants  
+            anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=config.niworkflows_ants_template_path,
+                                                            tpl_mask_path=config.niworkflows_ants_mask_path,
+                                                            tpl_regmask_path=config.niworkflows_ants_regmask_path,
+                                                            name='anat_skullstrip_ants')
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            anat_skullstrip_ants, 'inputnode.in_files')
+
+            preproc.connect(anat_skullstrip_ants, 'copy_xform.out_file',
+                            outputnode, 'skullstrip')
+
+            preproc.connect(anat_skullstrip_ants, 'copy_xform.out_file',
+                            outputnode, 'brain')
+
+            preproc.connect(anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask',
+                            outputnode, 'brain_mask')
+
+        elif method == 'mask':
+
+            brain_mask_deoblique = pe.Node(interface=afni.Refit(),
+                                    name='brain_mask_deoblique')
+            brain_mask_deoblique.inputs.deoblique = True
+            preproc.connect(inputnode, 'brain_mask',
+                            brain_mask_deoblique, 'in_file')
+
+            brain_mask_reorient = pe.Node(interface=afni.Resample(),
+                                    name='brain_mask_reorient')
+            brain_mask_reorient.inputs.orientation = 'RPI'
+            brain_mask_reorient.inputs.outputtype = 'NIFTI_GZ'
+            preproc.connect(brain_mask_deoblique, 'out_file',
+                            brain_mask_reorient, 'in_file')
+
+
+            anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
+                                            name='anat_skullstrip_orig_vol')
+            anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+            anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            anat_skullstrip_orig_vol, 'in_file_a')
+
+            preproc.connect(brain_mask_reorient, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_b')
+
+            preproc.connect(brain_mask_reorient, 'out_file',
+                            outputnode, 'brain_mask')
+
+            preproc.connect(anat_skullstrip_orig_vol, 'out_file',
+                            outputnode, 'brain')
+
+        elif method == 'unet':
+            """
+            UNet
+            options (following numbers are default):
+            input_slice: 3
+            conv_block: 5
+            kernel_root: 16
+            rescale_dim: 256
+            """
+            # TODO: add options to pipeline_config
+            unet_check_for_s3 = create_check_for_s3_node('unet', config.unet_model)
+            unet_mask = pe.Node(util.Function(input_names=['model_path', 'cimg_in'], 
+                                              output_names=['out_path'],
+                                              function=predict_volumes),                        
+                                name='unet_mask')
+            
+            preproc.connect(unet_check_for_s3, 'local_path', unet_mask, 'model_path')
+            preproc.connect(anat_leaf2, 'anat_data', unet_mask, 'cimg_in')
+
+            """
+            Revised mask with ANTs
+            """
+            # fslmaths <whole head> -mul <mask> brain.nii.gz
+            unet_masked_brain = pe.Node(interface=fsl.MultiImageMaths(), name='unet_masked_brain')
+            unet_masked_brain.inputs.op_string = "-mul %s"
+            preproc.connect(anat_leaf2, 'anat_data', unet_masked_brain, 'in_file')
+            preproc.connect(unet_mask, 'out_path', unet_masked_brain, 'operand_files')
+
+            # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
+            # TODO: antsRegistration -z 0 -d 3 -r [NMT_SS_0.5mm.nii.gz,brain.nii.gz,0] -o [transform,brain_rot2atl.nii.gz,brain_inv_rot2atl.nii.gz] -t Rigid[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1 -t Affine[0.1] -m MI[NMT_SS_0.5mm.nii.gz,brain.nii.gz,1,32,Regular,0.25] -c [1000x500x250x100,1e-08,10] -s 3.0x2.0x1.0x0.0 -f 8x4x2x1 -u 1
+            native_brain_to_template_brain = pe.Node(interface=fsl.FLIRT(), name='native_brain_to_template_brain')
+            native_brain_to_template_brain.inputs.reference = config.template_brain_only_for_anat
+            native_brain_to_template_brain.inputs.dof = 6
+            native_brain_to_template_brain.inputs.interp = 'sinc'
+            preproc.connect(unet_masked_brain, 'out_file', native_brain_to_template_brain, 'in_file')
+            
+            # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
+            # TODO: antsApplyTransforms -d 3 -i head.nii.gz -r NMT_0.5mm.nii.gz -n Linear -o head_rot2atl.nii.gz -v -t transform1Rigid.mat -t transform2Affine.mat -t transform0DerivedInitialMovingTranslation.mat 
+            native_head_to_template_head = pe.Node(interface=fsl.FLIRT(), name='native_head_to_template_head')
+            native_head_to_template_head.inputs.reference = config.template_skull_for_anat
+            native_head_to_template_head.inputs.apply_xfm = True
+            preproc.connect(anat_leaf2, 'anat_data', native_head_to_template_head, 'in_file')
+            preproc.connect(native_brain_to_template_brain, 'out_matrix_file', native_head_to_template_head, 'in_matrix_file')
+            
+            # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
+            template_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), name='template_brain_mask')
+            template_brain_mask.inputs.in_file = config.template_brain_only_for_anat
+            template_brain_mask.inputs.args = '-bin'
+
+            # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
+            ants_template_head_to_template = pe.Node(interface=ants.Registration(), name='template_head_to_template')
+            ants_template_head_to_template.inputs.metric = ['CC']
+            ants_template_head_to_template.inputs.metric_weight = [1,5]
+            ants_template_head_to_template.inputs.moving_image = config.template_skull_for_anat
+            ants_template_head_to_template.inputs.transforms = ['SyN']
+            ants_template_head_to_template.inputs.transform_parameters = [(0.25,)]
+            ants_template_head_to_template.inputs.interpolation = 'NearestNeighbor'
+            ants_template_head_to_template.inputs.number_of_iterations = [[60,50,20]] 
+            ants_template_head_to_template.inputs.smoothing_sigmas = [[0.6,0.2,0.0]]
+            ants_template_head_to_template.inputs.shrink_factors = [[4,2,1]] 
+            ants_template_head_to_template.inputs.convergence_threshold = [1.e-8]
+            preproc.connect(native_head_to_template_head, 'out_file', ants_template_head_to_template, 'fixed_image')
+
+            # antsApplyTransforms -d 3 -i templateMask.nii.gz -t atl2T1rotWarp.nii.gz atl2T1rotAffine.txt -r brain_rot2atl.nii.gz -o brain_rot2atl_mask.nii.gz
+            template_head_transform_to_template = pe.Node(interface=ants.ApplyTransforms(), name='template_head_transform_to_template')
+            template_head_transform_to_template.inputs.dimension = 3
+            preproc.connect(template_brain_mask, 'out_file', template_head_transform_to_template, 'input_image')
+            preproc.connect(native_brain_to_template_brain, 'out_file', template_head_transform_to_template, 'reference_image')
+            preproc.connect(ants_template_head_to_template, 'forward_transforms', template_head_transform_to_template, 'transforms')
+
+            # TODO: replace convert_xfm and flirt with: 
+            # antsApplyTransforms -d 3 -i brain_rot2atl_mask.nii.gz -r brain.nii.gz -n linear -o brain_mask.nii.gz -t [transform0DerivedInitialMovingTranslation.mat,1] -t [transform2Affine.mat,1] -t [transform1Rigid.mat,1] 
+            # convert_xfm -omat brain_rot2native.mat -inverse brain_rot2atl.mat 
+            invt = pe.Node(interface=fsl.ConvertXFM(), name='convert_xfm')
+            invt.inputs.invert_xfm = True
+            preproc.connect(native_brain_to_template_brain, 'out_matrix_file', invt, 'in_file')
+
+            # flirt -in brain_rot2atl_mask.nii.gz -ref brain.nii.gz -o brain_mask.nii.gz -applyxfm -init brain_rot2native.mat
+            template_brain_to_native_brain = pe.Node(interface=fsl.FLIRT(), name='template_brain_to_native_brain')
+            template_brain_to_native_brain.inputs.apply_xfm = True
+            preproc.connect(template_head_transform_to_template, 'output_image', template_brain_to_native_brain, 'in_file')
+            preproc.connect(unet_masked_brain, 'out_file', template_brain_to_native_brain, 'reference')
+            preproc.connect(invt, 'out_file', template_brain_to_native_brain, 'in_matrix_file')
+
+            # fslmaths brain_mask.nii.gz -thr .5 -bin brain_mask_thr.nii.gz
+            refined_mask = pe.Node(interface=fsl.Threshold(), name='refined_mask')
+            refined_mask.inputs.thresh = 0.5
+            refined_mask.inputs.args = '-bin'
+            preproc.connect(template_brain_to_native_brain, 'out_file', refined_mask, 'in_file')
+
+            # get a new brain with mask
+            refined_brain = pe.Node(interface=fsl.MultiImageMaths(), name='refined_brain')
+            refined_brain.inputs.op_string = "-mul %s"
+            preproc.connect(anat_leaf2, 'anat_data', refined_brain, 'in_file')
+            preproc.connect(refined_mask, 'out_file', refined_brain, 'operand_files')
+            
+            preproc.connect(refined_mask, 'out_file', outputnode, 'brain_mask')
+            preproc.connect(refined_brain, 'out_file', outputnode, 'brain')
+>>>>>>> 6dc1630df (Moved anatomical reorient back to its original location right after deoblique, introduced a more specific NHP preconfig (macaque), included the Yerkes template in cpac templates package.)
 
     return preproc
 
