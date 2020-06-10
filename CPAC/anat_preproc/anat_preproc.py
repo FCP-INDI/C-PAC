@@ -171,7 +171,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         preproc.connect(convert_fov_xfm, 'out_file', concat_xfm, 'in_file')
         preproc.connect(align, 'out_matrix_file', concat_xfm, 'in_file2')
 
-        aff_to_rig_imports = ['import os', 'import subprocess']
+        aff_to_rig_imports = ['import os', 'from numpy import *']
         aff_to_rig = pe.Node(util.Function(input_names=['in_xfm', 'out_name'],
                                            output_names=['out_mat'],
                                            function=fsl_aff_to_rigid,
