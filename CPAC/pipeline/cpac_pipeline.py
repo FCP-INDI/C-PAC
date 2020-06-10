@@ -934,6 +934,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                 wf_name='anat_preproc_mask_%d' % num_strat)
 
                 new_strat = strat.fork()
+
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.anat')
@@ -964,9 +965,15 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                 wf_name='anat_preproc_already_%d' % num_strat)
 
                 new_strat = strat.fork()
+
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
-                                anat_preproc, 'inputspec.anat')
+                                 anat_preproc, 'inputspec.anat')
+
+                node, out_file = strat['template_skull_for_anat']
+                workflow.connect(node, out_file,
+                                 anat_preproc, 'inputspec.template_head')
+
                 new_strat.append_name(anat_preproc.name)
                 new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                 new_strat.update_resource_pool({

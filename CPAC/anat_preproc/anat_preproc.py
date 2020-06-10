@@ -162,7 +162,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         align.inputs.searchr_z = [30, 30]
 
         preproc.connect(robust_fov, 'out_roi', align, 'in_file')
-        preproc.connect(anat_deoblique, 'out_file', align, 'reference')
+        preproc.connect(inputnode, 'template_head', align, 'reference')
 
         concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
                              name='anat_acpc_4_concatxfm')
@@ -187,7 +187,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         apply_xfm.inputs.relwarp = True
 
         preproc.connect(anat_deoblique, 'out_file', apply_xfm, 'in_file')
-        preproc.connect(anat_deoblique, 'out_file', apply_xfm, 'ref_file')
+        preproc.connect(inputnode, 'template_head', apply_xfm, 'ref_file')
         preproc.connect(aff_to_rig, 'out_mat', apply_xfm, 'premat')
 
         preproc.connect(apply_xfm, 'out_file', anat_leaf, 'anat_data')
