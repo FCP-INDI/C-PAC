@@ -739,28 +739,31 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         'anatomical': (anat_flow, 'outputspec.anat')
     })
 
-    if 'brain_mask' in sub_dict.keys():
-        if sub_dict['brain_mask'] and sub_dict['brain_mask'].lower() != 'none':
-            brain_flow = create_anat_datasource('brain_gather_%d' % num_strat)
-            brain_flow.inputs.inputnode.subject = subject_id
-            brain_flow.inputs.inputnode.anat = sub_dict['brain_mask']
-            brain_flow.inputs.inputnode.creds_path = input_creds_path
-            brain_flow.inputs.inputnode.dl_dir = c.workingDirectory
+    anat_ingress = [
+        'brain_mask',
+        'lesion_mask',
+        'anatomical_csf_mask',
+        'anatomical_gm_mask',
+        'anatomical_wm_mask'
+    ]
 
-            strat_initial.update_resource_pool({
-                'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
-            })
+    for key in anat_ingress:
+        if key in sub_dict.keys():
+            if sub_dict[key] and sub_dict[key].lower() != 'none':
 
-    if 'lesion_mask' in sub_dict.keys():
-        lesion_datasource = create_anat_datasource('lesion_gather_%d' % num_strat)
-        lesion_datasource.inputs.inputnode.subject = subject_id
-        lesion_datasource.inputs.inputnode.anat = sub_dict['lesion_mask']
-        lesion_datasource.inputs.inputnode.creds_path = input_creds_path
-        lesion_datasource.inputs.inputnode.dl_dir = c.workingDirectory
+                anat_ingress_flow = create_anat_datasource(
+                    f'anat_ingress_gather_{key}_{num_strat}')
+                anat_ingress_flow.inputs.inputnode.subject = subject_id
+                anat_ingress_flow.inputs.inputnode.anat = sub_dict[key]
+                anat_ingress_flow.inputs.inputnode.creds_path = input_creds_path
+                anat_ingress_flow.inputs.inputnode.dl_dir = c.workingDirectory
 
-        strat_initial.update_resource_pool({
-            'lesion_mask': (lesion_datasource, 'outputspec.anat')
-        })
+                if key == 'brain_mask':
+                    key = 'anatomical_brain_mask'
+
+                strat_initial.update_resource_pool({
+                    key: (anat_ingress_flow, 'outputspec.anat')
+                })
 
     templates_for_resampling = [
         (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
@@ -1480,9 +1483,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         for num_strat, strat in enumerate(strat_list):
 
-            nodes = strat.get_nodes_names()
-
-            seg_preproc = None
+            if 'anatomical_csf_mask' in strat and 'anatomical_gm_mask' in strat and 'anatomical_wm_mask' in strat:
+                continue
 
             if not any(o in c.seg_use_threshold for o in ["FSL-FAST Thresholding", "Customized Thresholding"]):
                 err = '\n\n[!] C-PAC says: Your segmentation thresholding options ' \
@@ -1583,14 +1585,26 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             strat.append_name(seg_preproc.name)
             strat.update_resource_pool({
-                'anatomical_gm_mask': (seg_preproc, 'outputspec.gm_mask'),
-                'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask'),
-                'anatomical_wm_mask': (seg_preproc, 'outputspec.wm_mask'),
                 'seg_probability_maps': (seg_preproc, 'outputspec.probability_maps'),
                 'seg_mixeltype': (seg_preproc, 'outputspec.mixeltype'),
                 'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
                 'seg_partial_volume_files': (seg_preproc, 'outputspec.partial_volume_files')
             })
+
+            if 'anatomical_csf_mask' not in strat:
+                strat.update_resource_pool({
+                    'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask')
+                })
+
+            if 'anatomical_gm_mask' not in strat:
+                strat.update_resource_pool({
+                    'anatomical_gm_mask': (seg_preproc, 'outputspec.gm_mask')
+                })
+
+            if 'anatomical_wm_mask' not in strat:
+                strat.update_resource_pool({
+                    'anatomical_wm_mask': (seg_preproc, 'outputspec.wm_mask')
+                })
 
     strat_list += new_strat_list
 
