@@ -1201,7 +1201,7 @@ def check_config_resources(c):
         else:
             num_cores_per_sub = c.maxCoresPerParticipant
     else:
-        num_cores_per_sub = num_cores / c.maxCoresPerParticipant
+        num_cores_per_sub = num_cores / c.numParticipantsAtOnce
 
     # Now check ANTS
     if 'ANTS' in c.regOption:
