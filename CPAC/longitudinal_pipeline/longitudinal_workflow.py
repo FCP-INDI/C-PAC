@@ -946,10 +946,9 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             template_name: (resampled_template, 'resampled_template')
         })
 
-
     # loop over the different skull stripping strategies
     for strat_name, strat_nodes_list in strat_nodes_list_list.items():
-
+        # import pdb; pdb.set_trace()
         node_suffix = '_'.join([strat_name, subject_id])
 
         # Merge node to feed the anat_preproc outputs to the longitudinal template generation
@@ -1114,7 +1113,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
             anat_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
             workflow.connect(anat_preproc_node,
                              rsc_name, brain_merge_node,
-                             'in{}'.format(i + 1)) # the in{}.format take i+1 because the Merge nodes inputs starts at 1 ...
+                             'in{}'.format(i + 1)) # the in{}.format take i+1 because the Merge nodes inputs starts at 1
             
             rsc_key = 'anatomical_reorient'
             anat_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
@@ -1126,6 +1125,20 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
     return reg_strat_list # strat_nodes_list_list # for func wf?
 
+
+def connect_func_preproc_inputs():
+    """
+    Parameters
+    ----------
+
+    Returns
+    -------
+    
+    """
+
+    return
+
+
 # TODO check:
 # 1 func alone works
 # 2 anat + func works, pass anat strategy list?
@@ -1136,7 +1149,7 @@ def func_longitudinal_workflow(sub_list, config):
     sub_list : list of dict
         this is a list of sessions for one subject and each session if the same dictionary as the one given to
         prep_workflow
-    config : Configuration
+    config : configuration
         a configuration object containing the information of the pipeline config. (Same as for prep_workflow)
 
     Returns
@@ -1191,6 +1204,8 @@ def func_longitudinal_workflow(sub_list, config):
                 'crashdump_dir': os.path.abspath(config.crashLogDirectory)
             }
 
+            # TODO add session information 
+            
             # Functional Ingress Workflow
             workflow, diff, blip, fmap_rp_list = connect_func_ingress(workflow,
                                                                     strat_list, 
@@ -1212,46 +1227,60 @@ def func_longitudinal_workflow(sub_list, config):
                                                                 diff,
                                                                 blip,
                                                                 fmap_rp_list)
-            
+
+            strat_nodes_list_list[node_suffix] = strat_list
+    
     # Here we have all the func_preproc set up for every session of the subject
     
-    # import pdb; pdb.set_trace()
+    # TODO rename and reorganize dict
+    # TODO update strat name
+    func_list_list = {}
+    func_list_list['func_default'] = []
+    for sub_ses_id, strat_nodes_list in strat_nodes_list_list.items():
+        func_list_list['func_default'].append(strat_nodes_list[0])
 
     # TODO create template
-    # WARNING: code below will crash QAQ
-    '''
-    for num_strat, strat in strat_list:
+    strat_nodes_list = func_list_list['func_default']
 
-        node_suffix = '_'.join([subject_id, num_strat])
+    brain_merge_node = pe.Node(
+        interface=Merge(len(strat_nodes_list)),
+        name="func_longitudinal_brain_merge_" + subject_id)
 
-        # Merge node to feed the func_preproc outputs to the longitudinal template generation
-        brain_merge_node = pe.Node(
+    skull_merge_node = pe.Node(
             interface=Merge(len(strat_nodes_list)),
-            name="func_longitudinal_brain_merge_" + node_suffix)
+            name="func_longitudinal_skull_merge_" + subject_id)
 
-        skull_merge_node = pe.Node(
-            interface=Merge(len(strat_nodes_list)),
-            name="func_longitudinal_skull_merge_" + node_suffix)
-
-        # This node will generate the longitudinal template (the functions are in longitudinal_preproc)
-        # Later other algorithms could be added to calculate it, like the multivariate template from ANTS
-        # It would just require to change it here.
-        template_node = subject_specific_template(
-            workflow_name='subject_specific_func_template_' + node_suffix
-        )
-        
-        template_node.inputs.set(
-            avg_method=config.long_reg_avg_method,
-            dof=config.dof,
-            interp=config.interp,
-            cost=config.cost,
-            convergence_threshold=config.convergence_threshold,
-            thread_pool=config.thread_pool,
+    template_node = subject_specific_template(
+            workflow_name='subject_specific_func_template_' + subject_id
         )
 
-        workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
-        workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
-    '''
+    template_node.inputs.set(
+        avg_method=config.long_reg_avg_method,
+        dof=config.dof,
+        interp=config.interp,
+        cost=config.cost,
+        convergence_threshold=config.convergence_threshold,
+        thread_pool=config.thread_pool,
+    )
+
+    workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
+    workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
+
+    import pdb; pdb.set_trace()
+    # OSError: Duplicate node name "func_preproc_fsl_afni_mean_3dvolreg_0" found.
+    for i in range(len(strat_nodes_list)):
+        rsc_key = 'functional_preprocessed_median'
+        func_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
+        workflow.connect(func_preproc_node,
+                        rsc_name, brain_merge_node,
+                        'in{}'.format(i + 1))
+
+        rsc_key = 'motion_correct_median'
+        func_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
+        workflow.connect(func_preproc_node,
+                        rsc_name, skull_merge_node,
+                        'in{}'.format(i + 1))
+
     workflow.run()
     
     return 
