@@ -530,7 +530,7 @@ Please, make yourself aware of how it works and its assumptions:
                     ), 'a') as timeCSV, open(os.path.join(
                         c.logDirectory,
                         'cpac_individual_timing_%s.csv' % c.pipelineName
-                    ), 'rb') as readTimeCSV:
+                    ), 'r') as readTimeCSV:
 
                         timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
                         timeReader = csv.DictReader(readTimeCSV)
