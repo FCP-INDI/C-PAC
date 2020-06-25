@@ -350,12 +350,11 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 if 'anat' in c.run_longitudinal:
                     strat_list = anat_longitudinal_workflow(sub_list, subject_id, c)
                 if 'func' in c.run_longitudinal:
-                    func_longitudinal_workflow(sub_list, c)
-
+                    strat_list = func_longitudinal_workflow(sub_list, subject_id, c)
+            import pdb; pdb.set_trace()
             rsc_file_list = []
             for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
                 for f in filenames:
-                    # Thanks Apple, you're the best.
                     # TODO is there a better way to check output folder name?
                     if f != '.DS_Store' and 'pipeline_analysis_longitudinal' in dirpath:
                         rsc_file_list.append(os.path.join(dirpath, f))

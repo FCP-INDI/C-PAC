@@ -509,7 +509,7 @@ def resolve_resolution(resolution, template, template_name, tag = None):
     from CPAC.utils.datasource import check_for_s3
 
     tagname = None
-    local_path = None 
+    local_path = None
     # TODO XL think a better way to check template
     if "{" in template and tag is not None:
             tagname = "${" + tag + "}"

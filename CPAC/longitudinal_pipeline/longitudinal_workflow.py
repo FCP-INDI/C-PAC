@@ -665,7 +665,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
         prep_workflow
     subject_id : str
         the id of the subject
-    config : Configuration
+    config : configuration
         a configuration object containing the information of the pipeline config. (Same as for prep_workflow)
 
     Returns
@@ -735,9 +735,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
                 input_creds_path = None
         except KeyError:
             input_creds_path = None
-
-        # creds_list.append(input_creds_path)
-        
+      
         template_keys = [
             ("anat", "PRIORS_CSF"),
             ("anat", "PRIORS_GRAY"),
@@ -948,7 +946,7 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 
     # loop over the different skull stripping strategies
     for strat_name, strat_nodes_list in strat_nodes_list_list.items():
-        # import pdb; pdb.set_trace()
+        
         node_suffix = '_'.join([strat_name, subject_id])
 
         # Merge node to feed the anat_preproc outputs to the longitudinal template generation
@@ -1126,29 +1124,18 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
     return reg_strat_list # strat_nodes_list_list # for func wf?
 
 
-def connect_func_preproc_inputs():
-    """
-    Parameters
-    ----------
-
-    Returns
-    -------
-    
-    """
-
-    return
-
-
 # TODO check:
 # 1 func alone works
 # 2 anat + func works, pass anat strategy list?
-def func_longitudinal_workflow(sub_list, config):
+def func_longitudinal_workflow(sub_list, subject_id, config):
     """
     Parameters
     ----------
     sub_list : list of dict
         this is a list of sessions for one subject and each session if the same dictionary as the one given to
         prep_workflow
+    subject_id : str
+        the id of the subject
     config : configuration
         a configuration object containing the information of the pipeline config. (Same as for prep_workflow)
 
@@ -1166,14 +1153,42 @@ def func_longitudinal_workflow(sub_list, config):
     # a list of skullstripping strategies, 
     # a list of sessions within each strategy list
 
-    for sub_dict in sub_list:
+    workflow_name = 'func_longitudinal_template_' + str(subject_id) 
+    workflow = pe.Workflow(name=workflow_name)
+    workflow.base_dir = config.workingDirectory
+    workflow.config['execution'] = {
+        'hash_method': 'timestamp',
+        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+    }
 
+    templates_for_resampling = [
+        (config.resolution_for_func_preproc, config.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_preproc, config.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_preproc, config.template_epi, 'template_epi', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_derivative, config.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),
+        (config.resolution_for_func_derivative, config.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_derivative, config.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
+    ]
+
+    for resolution, template, template_name, tag in templates_for_resampling:
+        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'],
+                                              output_names=['resampled_template'],
+                                              function=resolve_resolution,
+                                              as_module=True),
+                                        name='resampled_' + template_name)
+
+        resampled_template.inputs.resolution = resolution
+        resampled_template.inputs.template = template
+        resampled_template.inputs.template_name = template_name
+        resampled_template.inputs.tag = tag
+
+    for sub_dict in sub_list:
         if 'func' in sub_dict or 'rest' in sub_dict:
             if 'func' in sub_dict:
                 func_paths_dict = sub_dict['func']
             else:
                 func_paths_dict = sub_dict['rest']
-            subject_id = sub_dict['subject_id']
+            
             unique_id = sub_dict['unique_id']
             session_id_list.append(unique_id)
 
@@ -1195,30 +1210,22 @@ def func_longitudinal_workflow(sub_list, config):
             strat = Strategy()
             strat_list = [strat]
             node_suffix = '_'.join([subject_id, unique_id])
-            
-            workflow_name = 'func_longitudinal_template_' + str(subject_id) 
-            workflow = pe.Workflow(name=workflow_name)
-            workflow.base_dir = config.workingDirectory
-            workflow.config['execution'] = {
-                'hash_method': 'timestamp',
-                'crashdump_dir': os.path.abspath(config.crashLogDirectory)
-            }
 
-            # TODO add session information 
-            
             # Functional Ingress Workflow
+            # add optional flag
             workflow, diff, blip, fmap_rp_list = connect_func_ingress(workflow,
                                                                     strat_list, 
                                                                     config,
                                                                     sub_dict,
                                                                     subject_id,
-                                                                    input_creds_path)
+                                                                    input_creds_path, 
+                                                                    node_suffix)
 
             # Functional Initial Prep Workflow
-            workflow, strat_list = connect_func_init(workflow, strat_list, config)
+            workflow, strat_list = connect_func_init(workflow, strat_list, config, node_suffix)
 
             # Functional Image Preprocessing Workflow
-            workflow, strat_list = connect_func_preproc(workflow, strat_list, config)
+            workflow, strat_list = connect_func_preproc(workflow, strat_list, config, node_suffix)
 
             # Distortion Correction
             workflow, strat_list = connect_distortion_correction(workflow,
@@ -1226,8 +1233,9 @@ def func_longitudinal_workflow(sub_list, config):
                                                                 config,
                                                                 diff,
                                                                 blip,
-                                                                fmap_rp_list)
-
+                                                                fmap_rp_list,
+                                                                node_suffix)
+            
             strat_nodes_list_list[node_suffix] = strat_list
     
     # Here we have all the func_preproc set up for every session of the subject
@@ -1266,8 +1274,6 @@ def func_longitudinal_workflow(sub_list, config):
     workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
     workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
 
-    import pdb; pdb.set_trace()
-    # OSError: Duplicate node name "func_preproc_fsl_afni_mean_3dvolreg_0" found.
     for i in range(len(strat_nodes_list)):
         rsc_key = 'functional_preprocessed_median'
         func_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
@@ -1280,6 +1286,7 @@ def func_longitudinal_workflow(sub_list, config):
         workflow.connect(func_preproc_node,
                         rsc_name, skull_merge_node,
                         'in{}'.format(i + 1))
+    # import pdb; pdb.set_trace()
 
     workflow.run()
     

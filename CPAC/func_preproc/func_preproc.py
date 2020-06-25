@@ -431,14 +431,12 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
 
     return wf
 
-
-def create_scale_func_wf(runScaling, scaling_factor, wf_name='scale_func'):
+# TODO
+def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
 
     """Workflow to scale func data.
     Parameters
     ----------
-        runScaling : boolean
-            Whether scale func data or not. Usually scaling used in rodent raw data.
         scaling_factor : float
             Scale the size of the dataset voxels by the factor. 
         wf_name : string
@@ -466,25 +464,19 @@ def create_scale_func_wf(runScaling, scaling_factor, wf_name='scale_func'):
     outputNode = pe.Node(util.IdentityInterface(fields=['scaled_func']),
                          name='outputspec')
 
-    if runScaling == True:
+    # allocate a node to edit the functional file
+    func_scale = pe.Node(interface=afni_utils.Refit(),
+                            name='func_scale')
 
-        # allocate a node to edit the functional file
-        func_scale = pe.Node(interface=afni_utils.Refit(),
-                                name='func_scale')
+    func_scale.inputs.xyzscale = scaling_factor
 
-        func_scale.inputs.xyzscale = scaling_factor
+    # wire in the func_get_idx node
+    preproc.connect(inputNode, 'func',
+                    func_scale, 'in_file')
 
-        # wire in the func_get_idx node
-        preproc.connect(inputNode, 'func',
-                        func_scale, 'in_file')
-
-        # wire the output
-        preproc.connect(func_scale, 'out_file',
-                        outputNode, 'scaled_func')
-
-    else:
-        preproc.connect(inputNode, 'func',
-                        outputNode, 'scaled_func')
+    # wire the output
+    preproc.connect(func_scale, 'out_file',
+                    outputNode, 'scaled_func')
 
     return preproc
 
@@ -1199,30 +1191,35 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     return stopidx, startidx
 
 
-def connect_func_init(workflow, strat_list, c):
+def connect_func_init(workflow, strat_list, c, unique_id=None):
 
-    for num_strat, strat in enumerate(strat_list):
-        # scale func data based on configuration information
-        scale_func_wf = create_scale_func_wf(
-            runScaling=c.runScaling,
-            scaling_factor=c.scaling_factor,
-            wf_name="scale_func_%d" % (num_strat)
-        )
+    if c.runScaling is True:
+        for num_strat, strat in enumerate(strat_list):
+            # scale func data based on configuration information
+            scale_func_wf = create_scale_func_wf(
+                scaling_factor=c.scaling_factor,
+                wf_name="scale_func_%d" % (num_strat)
+            )
 
-        # connect the functional data from the leaf node into the wf
-        node, out_file = strat.get_leaf_properties()
-        workflow.connect(node, out_file,
-                         scale_func_wf, 'inputspec.func')
+            # connect the functional data from the leaf node into the wf
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file,
+                            scale_func_wf, 'inputspec.func')
 
-        # replace the leaf node with the output from the recently added
-        # workflow
-        strat.set_leaf_properties(scale_func_wf, 'outputspec.scaled_func')
+            # replace the leaf node with the output from the recently added
+            # workflow
+            strat.set_leaf_properties(scale_func_wf, 'outputspec.scaled_func')
 
     for num_strat, strat in enumerate(strat_list):
         # Truncate scan length based on configuration information
-        trunc_wf = create_wf_edit_func(
-            wf_name="edit_func_%d" % (num_strat)
-        )
+        if unique_id is None:
+            trunc_wf = create_wf_edit_func(
+                wf_name=f"edit_func_{num_strat}"
+            )
+        else:
+            trunc_wf = create_wf_edit_func(
+                wf_name=f"edit_func_{unique_id}_{num_strat}"
+            )
 
         # connect the functional data from the leaf node into the wf
         node, out_file = strat.get_leaf_properties()
@@ -1425,9 +1422,13 @@ def connect_func_init(workflow, strat_list, c):
         if 1 in c.slice_timing_correction:
             new_strat = strat.fork()
 
-            slice_time = slice_timing_wf(
-                name='func_slice_timing_correction_{0}'.format(num_strat))
-
+            if unique_id is None:
+                slice_time = slice_timing_wf(
+                    name=f'func_slice_timing_correction_{num_strat}')
+            else:
+                slice_time = slice_timing_wf(
+                    name=f'func_slice_timing_correction_{unique_id}')
+            
             node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, slice_time,
                              'inputspec.func_ts')
@@ -1461,7 +1462,7 @@ def connect_func_init(workflow, strat_list, c):
     return (workflow, strat_list)
 
 
-def connect_func_preproc(workflow, strat_list, c):
+def connect_func_preproc(workflow, strat_list, c, unique_id=None):
 
     from CPAC.func_preproc.func_preproc import create_func_preproc
     
@@ -1480,16 +1481,29 @@ def connect_func_preproc(workflow, strat_list, c):
             # motion correction tool
             motion_correct_tool = strat.get('motion_correction_method')
 
-            func_preproc = create_func_preproc(
-                skullstrip_tool=skullstrip_tool,
-                motion_correct_tool=motion_correct_tool,
-                motion_correct_ref=motion_correct_ref,
-                config=c,
-                wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                              motion_correct_ref,
-                                                              motion_correct_tool,
-                                                              num_strat)
-            )
+            if unique_id is None:
+                func_preproc = create_func_preproc(
+                    skullstrip_tool=skullstrip_tool,
+                    motion_correct_tool=motion_correct_tool,
+                    motion_correct_ref=motion_correct_ref,
+                    config=c,
+                    wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
+                                                                motion_correct_ref,
+                                                                motion_correct_tool,
+                                                                num_strat)
+                )
+            else:
+                func_preproc = create_func_preproc(
+                    skullstrip_tool=skullstrip_tool,
+                    motion_correct_tool=motion_correct_tool,
+                    motion_correct_ref=motion_correct_ref,
+                    config=c,
+                    wf_name='func_preproc_{0}_{1}_{2}_{3}_{4}'.format(skullstrip_tool,
+                                                                motion_correct_ref,
+                                                                motion_correct_tool,
+                                                                unique_id,
+                                                                num_strat)
+                )
 
             node, out_file = strat['raw_functional_trunc']
             workflow.connect(node, out_file, func_preproc,
@@ -1548,16 +1562,29 @@ def connect_func_preproc(workflow, strat_list, c):
 
                         new_strat = strat.fork()
                         
-                        func_preproc = create_func_preproc(
-                            skullstrip_tool=skullstrip_tool,
-                            motion_correct_tool=motion_correct_tool,
-                            motion_correct_ref=motion_correct_ref,
-                            config=c,
-                            wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                                          motion_correct_ref,
-                                                                          motion_correct_tool,
-                                                                          num_strat)
-                        )
+                        if unique_id is None:
+                            func_preproc = create_func_preproc(
+                                skullstrip_tool=skullstrip_tool,
+                                motion_correct_tool=motion_correct_tool,
+                                motion_correct_ref=motion_correct_ref,
+                                config=c,
+                                wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
+                                                                            motion_correct_ref,
+                                                                            motion_correct_tool,
+                                                                            num_strat)
+                            )
+                        else:
+                            func_preproc = create_func_preproc(
+                                skullstrip_tool=skullstrip_tool,
+                                motion_correct_tool=motion_correct_tool,
+                                motion_correct_ref=motion_correct_ref,
+                                config=c,
+                                wf_name='func_preproc_{0}_{1}_{2}_{3}_{4}'.format(skullstrip_tool,
+                                                                            motion_correct_ref,
+                                                                            motion_correct_tool,
+                                                                            unique_id,
+                                                                            num_strat)
+                            )
 
                         node, out_file = new_strat['raw_functional_trunc']
                         workflow.connect(node, out_file, func_preproc,
