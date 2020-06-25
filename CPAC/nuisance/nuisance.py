@@ -264,14 +264,28 @@ def gather_nuisance(functional_file_path,
         regressor_file = censor_file_path
 
         if not regressor_file:
-            raise ValueError("Regressor type Censor specified in selectors but "
-                             "the corresponding file was not found!")
-
-        try:
-            censor_volumes = np.loadtxt(regressor_file)
-        except:
-            raise ValueError("Could not read regressor {0} from {1}."
-                             .format(regressor_type, regressor_file))
+            # ↓ This section is gross and temporary ↓
+            num_thresh = len(selector['Censor']['thresholds'])
+            plural_s = '' if num_thresh == 1 else 's'
+            thresh_list = [
+                thresh['value'] for thresh in selector['Censor']['thresholds']
+            ]
+            max_v = str([])
+            print(f"{selector['Censor']['method']} Censor "
+                  "specified with "
+                  f"{'no ' if num_thresh == 0 else ''}threshold"
+                  f"{plural_s} {str(thresh_list)} in selectors but "
+                  f" threshold was not reached. Max value{plural_s}"
+                  " in array: {max_v}")
+            # ↑ This section is gross and temporary ↑
+            # All good to pass through if nothing to censor
+            censor_volumes = np.ones((regressor_length,), dtype=int)
+        else:
+            try:
+                censor_volumes = np.loadtxt(regressor_file)
+            except:
+                raise ValueError("Could not read regressor {0} from {1}."
+                                 .format(regressor_type, regressor_file))
 
         if (len(censor_volumes.shape) > 1 and censor_volumes.shape[1] > 1) or \
            not np.all(np.isin(censor_volumes, [0, 1])):
