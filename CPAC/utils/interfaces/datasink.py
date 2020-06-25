@@ -570,24 +570,26 @@ class DataSink(IOBase):
                                 pass
                             else:
                                 raise (inst)
-                    # If src is a file, copy it to dst
-                    if os.path.isfile(src):
-                        iflogger.debug('copyfile: %s %s', src, dst)
-                        copyfile(
-                            src,
-                            dst,
-                            copy=True,
-                            hashmethod='content',
-                            use_hardlink=use_hardlink)
-                        out_files.append(dst)
-                    # If src is a directory, copy entire contents to dst dir
-                    elif os.path.isdir(src):
-                        if os.path.exists(dst) and self.inputs.remove_dest_dir:
-                            iflogger.debug('removing: %s', dst)
-                            shutil.rmtree(dst)
-                        iflogger.debug('copydir: %s %s', src, dst)
-                        copytree(src, dst)
-                        out_files.append(dst)
+                    # If src == dest, it's already home
+                    if src != dst:
+                        # If src is a file, copy it to dst
+                        if os.path.isfile(src):
+                            iflogger.debug('copyfile: %s %s', src, dst)
+                            copyfile(
+                                src,
+                                dst,
+                                copy=True,
+                                hashmethod='content',
+                                use_hardlink=use_hardlink)
+                            out_files.append(dst)
+                        # If src is a directory, copy entire contents to dst dir
+                        elif os.path.isdir(src):
+                            if os.path.exists(dst) and self.inputs.remove_dest_dir:
+                                iflogger.debug('removing: %s', dst)
+                                shutil.rmtree(dst)
+                            iflogger.debug('copydir: %s %s', src, dst)
+                            copytree(src, dst)
+                            out_files.append(dst)
 
         # Return outputs dictionary
         outputs['out_file'] = out_files
