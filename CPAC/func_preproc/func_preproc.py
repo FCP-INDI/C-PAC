@@ -1427,7 +1427,7 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
                     name=f'func_slice_timing_correction_{num_strat}')
             else:
                 slice_time = slice_timing_wf(
-                    name=f'func_slice_timing_correction_{unique_id}')
+                    name=f'func_slice_timing_correction_{unique_id}_{num_strat}')
             
             node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, slice_time,

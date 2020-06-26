@@ -656,15 +656,15 @@ def connect_anat_preproc_inputs(strat, anat_preproc, strat_name, strat_nodes_lis
     return new_strat, strat_nodes_list_list
 
 
-def anat_longitudinal_workflow(sub_list, subject_id, config):
+def anat_longitudinal_wf(subject_id, sub_list, config):
     """
     Parameters
     ----------
+    subject_id : str
+        the id of the subject
     sub_list : list of dict
         this is a list of sessions for one subject and each session if the same dictionary as the one given to
         prep_workflow
-    subject_id : str
-        the id of the subject
     config : configuration
         a configuration object containing the information of the pipeline config. (Same as for prep_workflow)
 
@@ -1127,60 +1127,42 @@ def anat_longitudinal_workflow(sub_list, subject_id, config):
 # TODO check:
 # 1 func alone works
 # 2 anat + func works, pass anat strategy list?
-def func_longitudinal_workflow(sub_list, subject_id, config):
+
+# func preproc wf
+def func_preproc_longitudinal_wf(subject_id, sub_list, config):
     """
     Parameters
     ----------
+    subject_id : string
+        the id of the subject
     sub_list : list of dict
         this is a list of sessions for one subject and each session if the same dictionary as the one given to
         prep_workflow
-    subject_id : str
-        the id of the subject
     config : configuration
         a configuration object containing the information of the pipeline config. (Same as for prep_workflow)
 
     Returns
     -------
-        None
+    strat_list_ses_list : list of list
+        a list of strategies; within each strategy, a list of sessions
     """
 
     datasink = pe.Node(nio.DataSink(), name='sinker')
     datasink.inputs.base_directory = config.workingDirectory
 
     session_id_list = []
-    strat_nodes_list_list = {}
-    # TODO create a list of list strat_nodes_list_list
+    ses_list_strat_list = {}
+    # TODO create a list of list ses_list_strat_list
     # a list of skullstripping strategies, 
     # a list of sessions within each strategy list
 
-    workflow_name = 'func_longitudinal_template_' + str(subject_id) 
+    workflow_name = 'func_preproc_longitudinal_' + str(subject_id) 
     workflow = pe.Workflow(name=workflow_name)
     workflow.base_dir = config.workingDirectory
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
         'crashdump_dir': os.path.abspath(config.crashLogDirectory)
     }
-
-    templates_for_resampling = [
-        (config.resolution_for_func_preproc, config.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
-        (config.resolution_for_func_preproc, config.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
-        (config.resolution_for_func_preproc, config.template_epi, 'template_epi', 'resolution_for_func_preproc'),
-        (config.resolution_for_func_derivative, config.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),
-        (config.resolution_for_func_derivative, config.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
-        (config.resolution_for_func_derivative, config.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
-    ]
-
-    for resolution, template, template_name, tag in templates_for_resampling:
-        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'],
-                                              output_names=['resampled_template'],
-                                              function=resolve_resolution,
-                                              as_module=True),
-                                        name='resampled_' + template_name)
-
-        resampled_template.inputs.resolution = resolution
-        resampled_template.inputs.template = template
-        resampled_template.inputs.template_name = template_name
-        resampled_template.inputs.tag = tag
 
     for sub_dict in sub_list:
         if 'func' in sub_dict or 'rest' in sub_dict:
@@ -1236,31 +1218,116 @@ def func_longitudinal_workflow(sub_list, subject_id, config):
                                                                 fmap_rp_list,
                                                                 node_suffix)
             
-            strat_nodes_list_list[node_suffix] = strat_list
+            ses_list_strat_list[node_suffix] = strat_list
     
     # Here we have all the func_preproc set up for every session of the subject
     
     # TODO rename and reorganize dict
     # TODO update strat name
-    func_list_list = {}
-    func_list_list['func_default'] = []
-    for sub_ses_id, strat_nodes_list in strat_nodes_list_list.items():
-        func_list_list['func_default'].append(strat_nodes_list[0])
+    strat_list_ses_list = {}
+    strat_list_ses_list['func_default'] = []
 
-    # TODO create template
-    strat_nodes_list = func_list_list['func_default']
+    for sub_ses_id, strat_nodes_list in ses_list_strat_list.items():
+        strat_list_ses_list['func_default'].append(strat_nodes_list[0])
 
-    brain_merge_node = pe.Node(
-        interface=Merge(len(strat_nodes_list)),
-        name="func_longitudinal_brain_merge_" + subject_id)
+    workflow.run()
+    
+    return strat_list_ses_list
 
-    skull_merge_node = pe.Node(
-            interface=Merge(len(strat_nodes_list)),
-            name="func_longitudinal_skull_merge_" + subject_id)
+
+# merge data
+def merge_func_preproc(working_directory):
+    """
+    Parameters
+    ----------
+    working_directory : string
+        a path to the working directory
+    
+    Returns
+    -------
+    brain_list : list
+        a list of func preprocessed brain
+    skull_list : list
+        a list of func preprocessed skull
+    """
+
+    brain_list = []
+    skull_list = []
+
+    for dirpath, dirnames, filenames in os.walk(working_directory):
+        for f in filenames:
+            if 'func_get_preprocessed_median' in dirpath and '.nii.gz' in f:
+                filepath = os.path.join(dirpath, f)
+                brain_list.append(filepath)
+            if 'func_get_motion_correct_median' in dirpath and '.nii.gz' in f:
+                filepath = os.path.join(dirpath, f)
+                skull_list.append(filepath)
+    
+    brain_list.sort()
+    skull_list.sort()
+
+    return brain_list, skull_list
+
+
+# template wf
+def func_longitudinal_template_wf(subject_id, strat_list, config):
+    '''
+    Parameters
+    ----------
+    subject_id : string
+        the id of the subject
+    strat_list : list of list
+        first level strategy, second level session
+    config : configuration
+        a configuration object containing the information of the pipeline config.
+
+    Returns
+    -------
+        None
+    '''
+
+    workflow_name = 'func_longitudinal_template_' + str(subject_id) 
+    workflow = pe.Workflow(name=workflow_name)
+    workflow.base_dir = config.workingDirectory
+    workflow.config['execution'] = {
+        'hash_method': 'timestamp',
+        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+    }
+
+    strat_nodes_list = strat_list['func_default']
+
+    templates_for_resampling = [
+        (config.resolution_for_func_preproc, config.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_preproc, config.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_preproc, config.template_epi, 'template_epi', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_derivative, config.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),
+        (config.resolution_for_func_derivative, config.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_derivative, config.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
+    ]
+
+    for resolution, template, template_name, tag in templates_for_resampling:
+        resampled_template = pe.Node(Function(input_names=['resolution', 'template', 'template_name', 'tag'],
+                                              output_names=['resampled_template'],
+                                              function=resolve_resolution,
+                                              as_module=True),
+                                        name='resampled_' + template_name)
+
+        resampled_template.inputs.resolution = resolution
+        resampled_template.inputs.template = template
+        resampled_template.inputs.template_name = template_name
+        resampled_template.inputs.tag = tag
+    
+    merge_func_preproc_node = pe.Node(Function(input_names=['working_directory'],
+                                               output_names=['brain_list', 'skull_list'],
+                                               function=merge_func_preproc,
+                                               as_module=True),
+                                        name='merge_func_preproc')
+                                        
+    merge_func_preproc_node.inputs.working_directory = config.workingDirectory
 
     template_node = subject_specific_template(
-            workflow_name='subject_specific_func_template_' + subject_id
-        )
+        workflow_name='subject_specific_func_template_' + subject_id
+    )
 
     template_node.inputs.set(
         avg_method=config.long_reg_avg_method,
@@ -1271,23 +1338,9 @@ def func_longitudinal_workflow(sub_list, subject_id, config):
         thread_pool=config.thread_pool,
     )
 
-    workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
-    workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
-
-    for i in range(len(strat_nodes_list)):
-        rsc_key = 'functional_preprocessed_median'
-        func_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
-        workflow.connect(func_preproc_node,
-                        rsc_name, brain_merge_node,
-                        'in{}'.format(i + 1))
-
-        rsc_key = 'motion_correct_median'
-        func_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
-        workflow.connect(func_preproc_node,
-                        rsc_name, skull_merge_node,
-                        'in{}'.format(i + 1))
-    # import pdb; pdb.set_trace()
+    workflow.connect(merge_func_preproc_node, 'brain_list', template_node, 'input_brain_list')
+    workflow.connect(merge_func_preproc_node, 'skull_list', template_node, 'input_skull_list')
 
     workflow.run()
-    
-    return 
+
+    return

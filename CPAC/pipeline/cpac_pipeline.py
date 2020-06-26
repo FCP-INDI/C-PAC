@@ -1100,8 +1100,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                nodes = strat.get_nodes_names()
-
                 if strat.get('registration_method') == 'FSL':
 
                     fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
@@ -1408,8 +1406,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             new_strat_list = []
 
             for num_strat, strat in enumerate(strat_list):
-
-                nodes = strat.get_nodes_names()
 
                 # or run ANTS anatomical-to-MNI registration instead
                 if 'ANTS' in c.regOption and \

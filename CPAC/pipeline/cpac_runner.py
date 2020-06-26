@@ -8,7 +8,11 @@ import yamlordereddictloader
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
-from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_workflow, func_longitudinal_workflow
+from CPAC.longitudinal_pipeline.longitudinal_workflow import (
+    anat_longitudinal_wf, 
+    func_preproc_longitudinal_wf,
+    func_longitudinal_template_wf
+)
 
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
@@ -348,10 +352,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             for subject_id, sub_list in subject_id_dict.items():
                 # TODO debug - organize working dir
                 if 'anat' in c.run_longitudinal:
-                    strat_list = anat_longitudinal_workflow(sub_list, subject_id, c)
+                    strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
                 if 'func' in c.run_longitudinal:
-                    strat_list = func_longitudinal_workflow(sub_list, subject_id, c)
-            import pdb; pdb.set_trace()
+                    strat_list = func_preproc_longitudinal_wf(subject_id, sub_list, c)
+                    # brain_list, skull_list = get_func_preproc_output(c.workingDirectory)
+                    func_longitudinal_template_wf(subject_id, strat_list, c)
+
             rsc_file_list = []
             for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
                 for f in filenames:
@@ -451,11 +457,14 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 for ses in ses_list:
                     for strat in strat_list:
                         # TODO search a list of keys
-                        ses['resource_pool'][strat_key].update({
-                            'registration_method': strat['registration_method']
-                        })
+                        try:
+                            ses['resource_pool'][strat_key].update({
+                                'registration_method': strat['registration_method']
+                            })
+                        except KeyError:
+                            pass
 
-            yaml.dump(sublist, open(os.path.join(c.outputDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
+            yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
         
             print("Longitudinal pipeline completed.")
             
