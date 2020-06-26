@@ -72,10 +72,10 @@ from CPAC.image_utils import (
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
     create_fsl_fnirt_nonlinear_reg,
-    create_register_func_to_anat,
-    create_bbregister_func_to_anat,
-    create_register_func_to_epi,
     create_wf_calculate_ants_warp,
+    connect_func_to_anat_init_reg,
+    connect_func_to_anat_bbreg,
+    connect_func_to_template_reg,
     output_func_to_standard
 )
 
@@ -1286,8 +1286,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                nodes = strat.get_nodes_names()
-
                 if 'FSL' in c.regOption and \
                     strat.get('registration_method') != 'ANTS':
 
@@ -1354,8 +1352,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             if 'FSL' in c.regOption and 0 in fsl_linear_reg_only:
 
                 for num_strat, strat in enumerate(strat_list):
-
-                    nodes = strat.get_nodes_names()
 
                     if strat.get('registration_method') == 'FSL':
                         fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
@@ -1576,343 +1572,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             })
 
         # Func -> T1 Registration (Initial Linear reg)
-
         # Depending on configuration, either passes output matrix to
         # Func -> Template ApplyWarp, or feeds into linear reg of BBReg operation
         # (if BBReg is enabled)
-
-        new_strat_list = []
-
-        if 1 in c.runRegisterFuncToAnat:
-
-            for num_strat, strat in enumerate(strat_list):
-
-                diff_complete = False
-                if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
-                    diff_complete = True
-
-                # if field map-based distortion correction is on, but BBR is off,
-                # send in the distortion correction files here
-                # TODO: is this robust to the possibility of forking both
-                # TODO: distortion correction and BBR at the same time?
-                # TODO: (note if you are forking with BBR on/off, at this point
-                # TODO:  there is still only one strat, so you would have to fork
-                # TODO:  here instead to have a func->anat with fieldmap and
-                # TODO:  without, and send the without-fieldmap to the BBR fork)
-
-                # TODO: if we're moving the distortion correction warp
-                #       application, then the below is unnecessary
-                '''
-                dist_corr = False
-                if 'diff_distcor' in nodes and 1 not in c.runBBReg:
-                    dist_corr = True
-                    # TODO: for now, disabling dist corr when BBR is disabled
-                    err = "\n\n[!] Field map distortion correction is enabled, " \
-                        "but Boundary-Based Registration is off- BBR is " \
-                        "required for distortion correction.\n\n"
-                    raise Exception(err)
-                '''
-
-                func_to_anat = create_register_func_to_anat(diff_complete,
-                                                            f'func_to_anat_FLIRT_{num_strat}')
-
-                # Input registration parameters
-                func_to_anat.inputs.inputspec.interp = 'trilinear'
-
-
-                # TODO ASH normalize strings with enums?
-                if 'Mean Functional' in c.func_reg_input:
-                    # Input functional image (mean functional)
-                    node, out_file = strat['mean_functional']
-                    workflow.connect(node, out_file,
-                                     func_to_anat, 'inputspec.func')
-
-                elif 'Selected Functional Volume' in c.func_reg_input:
-                    # Input functional image (specific volume)
-                    node, out_file = strat['selected_func_volume']
-                    workflow.connect(node, out_file,
-                                     func_to_anat, 'inputspec.func')
-
-                # Input skull-stripped anatomical (anat.nii.gz)
-                node, out_file = strat['anatomical_brain']
-                workflow.connect(node, out_file,
-                                 func_to_anat, 'inputspec.anat')
-
-                if diff_complete:
-                    # apply field map distortion correction outputs to
-                    # the func->anat registration
-                    node, out_file = strat['diff_phase_dwell']
-                    workflow.connect(node, out_file,
-                                     func_to_anat,
-                                     'echospacing_input.echospacing')
-
-                    node, out_file = strat['diff_phase_pedir']
-                    workflow.connect(node, out_file,
-                                     func_to_anat, 'pedir_input.pedir')
-
-                    node, out_file = strat["despiked_fieldmap"]
-                    workflow.connect(node, out_file,
-                                     func_to_anat, 'inputspec.fieldmap')
-
-                    node, out_file = strat["fieldmap_mask"]
-                    workflow.connect(node, out_file,
-                                     func_to_anat, 'inputspec.fieldmapmask')
-
-                # TODO ASH review forking
-                if 0 in c.runRegisterFuncToAnat:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(func_to_anat.name)
-
-                strat.update_resource_pool({
-                    'mean_functional_in_anat': (func_to_anat, 'outputspec.anat_func_nobbreg'),
-                    'functional_to_anat_linear_xfm': (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
-                })
-
-        strat_list += new_strat_list
+        workflow, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow, strat_list, c)
 
         # Func -> T1 Registration (BBREG)
-
         # Outputs 'functional_to_anat_linear_xfm', a matrix file of the
         # functional-to-anatomical registration warp to be applied LATER in
         # func_mni_warp, which accepts it as input 'premat'
+        workflow, strat_list = connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete)
 
-        new_strat_list = []
-
-        if 1 in c.runRegisterFuncToAnat and 1 in c.runBBReg:
-
-            for num_strat, strat in enumerate(strat_list):
-
-                # this is needed here in case tissue segmentation is set on/off
-                # and you have bbreg enabled- this will ensure bbreg will run for
-                # the strat that has segmentation but will not run (thus avoiding
-                # a crash) on the strat without segmentation
-                if 'anatomical_wm_mask' in strat:
-
-                    func_to_anat_bbreg = create_bbregister_func_to_anat(
-                        diff_complete,
-                        f'func_to_anat_bbreg_{num_strat}'
-                    )
-
-                    # Input registration parameters
-                    func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
-                        c.boundaryBasedRegistrationSchedule
-
-                    # TODO ASH normalize strings with enums?
-                    if 'Mean Functional' in c.func_reg_input:
-                        # Input functional image (mean functional)
-                        node, out_file = strat['mean_functional']
-                        workflow.connect(node, out_file,
-                                         func_to_anat_bbreg, 'inputspec.func')
-
-                    elif 'Selected Functional Volume' in c.func_reg_input:
-                        # Input functional image (specific volume)
-                        node, out_file = strat['selected_func_volume']
-                        workflow.connect(node, out_file,
-                                         func_to_anat_bbreg, 'inputspec.func')
-
-                    # Input anatomical whole-head image (reoriented)
-                    node, out_file = strat['anatomical_reorient']
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg,
-                                     'inputspec.anat_skull')
-
-                    node, out_file = strat['functional_to_anat_linear_xfm']
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg,
-                                     'inputspec.linear_reg_matrix')
-
-                    if 'T1_template' in c.template_based_segmentation or \
-                            'EPI_template' in c.template_based_segmentation or \
-                               1 in c.ANTs_prior_based_segmentation :
-                        # Input segmentation mask,
-                        # since template_based_segmentation or ANTs_prior_based_segmentation cannot generate
-                        # probability maps
-                        node, out_file = strat['anatomical_wm_mask']
-                        workflow.connect(node, out_file,
-                                        func_to_anat_bbreg,
-                                        'inputspec.anat_wm_segmentation')
-                    else:
-                        # Input segmentation probability maps for white matter
-                        # segmentation
-                        node, out_file = strat['seg_probability_maps']
-                        workflow.connect(node, (out_file, pick_wm),
-                                         func_to_anat_bbreg,
-                                         'inputspec.anat_wm_segmentation')
-
-                    # apply field map distortion correction outputs to
-                    # the func->anat registration
-                    if diff_complete:
-                        node, out_file = strat['diff_phase_dwell']
-                        workflow.connect(node, out_file,
-                                         func_to_anat_bbreg,
-                                         'echospacing_input.echospacing')
-
-                        node, out_file = strat['diff_phase_pedir']
-                        workflow.connect(node, out_file,
-                                         func_to_anat_bbreg,
-                                         'pedir_input.pedir')
-
-                        node, out_file = strat["despiked_fieldmap"]
-                        workflow.connect(node, out_file,
-                                         func_to_anat_bbreg,
-                                         'inputspec.fieldmap')
-
-                        node, out_file = strat["fieldmap_mask"]
-                        workflow.connect(node, out_file,
-                                         func_to_anat_bbreg,
-                                         'inputspec.fieldmapmask')
-
-                    # TODO ASH review forking
-                    if 0 in c.runBBReg:
-                        strat = strat.fork()
-                        new_strat_list.append(strat)
-
-                    strat.append_name(func_to_anat_bbreg.name)
-
-                    strat.update_resource_pool({
-                        'mean_functional_in_anat': (func_to_anat_bbreg, 'outputspec.anat_func'),
-                        'functional_to_anat_linear_xfm': (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')
-                    }, override=True)
-
-                else:
-                    # TODO ASH review
-                    # anatomical segmentation is not being run in this particular
-                    # strategy/fork - we don't want this to stop workflow building
-                    # unless there is only one strategy
-                    if len(strat_list) > 1:
-                        pass
-                    else:
-                        err = "\n\n[!] Boundary-based registration (BBR) " \
-                            "for functional-to-anatomical registration is " \
-                            "enabled, but anatomical segmentation is not. " \
-                            "BBR requires the outputs of segmentation. " \
-                            "Please modify your pipeline configuration and " \
-                            "run again.\n\n"
-                        raise Exception(err)
-
-        strat_list += new_strat_list
-
-        # CC This is the first opportunity to write some of the outputs of basic
-        # func preproc, such as the brain mask and mean EPI. Doing it any later
-        # might result in multiple versions of these files being needlessly generated
-        # do to strategies created by denoising, which do not impact the mean or brainmask
-        # preproc Func -> T1/EPI Template
-
-        new_strat_list = []
-
-        for num_strat, strat in enumerate(strat_list):
-
-            if 'EPI_template' in c.runRegisterFuncToTemplate:
-
-                for reg in c.regOption:
-
-                    if 'T1_template' in c.runRegisterFuncToTemplate:
-                        strat = strat.fork()
-
-                    func_to_epi = \
-                        create_register_func_to_epi(
-                            name='func_to_epi_{0}_{1}'.format(reg.lower(), num_strat),
-                            reg_option=reg,
-                            reg_ants_skull=c.regWithSkull
-                        )
-
-                    # Input registration parameters
-                    if c.ANTs_para_EPI_registration is None:
-                        err_msg = '\n\n[!] C-PAC says: \n'\
-                            "You have selected \'regOption: [{0}]\' and \'runRegisterFuncToTemplate :  ['{1}']\'. \n"\
-                                 'However, no EPI-to-template ANTs parameters were specified. ' \
-                                    'Please specify ANTs parameters properly and try again'.format(str(c.regOption),
-                                                                                                   str(c.runRegisterFuncToTemplate))
-                        raise Exception(err_msg)
-                    else:
-                        func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
-
-                    func_to_epi.inputs.inputspec.interp = c.funcRegANTSinterpolation
-
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file, func_to_epi, 'inputspec.func_4d')
-
-                    if 'Mean Functional' in c.func_reg_input:
-                        node, out_file = strat['mean_functional']
-                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d')
-
-                    elif 'Selected Functional Volume' in c.func_reg_input:
-                        node, out_file = strat['selected_func_volume']
-                        workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d')
-
-                    node, out_file = strat['template_epi']
-                    workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
-
-                    node, out_file = strat['functional_brain_mask']
-                    workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d_mask')
-
-                    # update resource pool
-                    strat.update_resource_pool({
-                        'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi'),
-                    })
-
-                    if reg == 'FSL':
-                        strat.update_resource_pool({
-                            'epi_registration_method': 'FSL',
-                            'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),  
-                            'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.fsl_fnirt_xfm'),
-                            'epi_to_func_linear_xfm': (func_to_epi, 'outputspec.invlinear_xfm'),
-                        })
-
-                    elif reg == 'ANTS':
-                        strat.update_resource_pool({
-                            'epi_registration_method': 'ANTS',
-                            'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
-                            'func_to_epi_ants_rigid_xfm': (func_to_epi, 'outputspec.ants_rigid_xfm'),
-                            'func_to_epi_ants_affine_xfm': (func_to_epi, 'outputspec.ants_affine_xfm'),
-                            'func_to_epi_nonlinear_xfm': (func_to_epi, 'outputspec.warp_field'),
-                            'epi_to_func_nonlinear_xfm': (func_to_epi, 'outputspec.inverse_warp_field'), # rename
-                        })
-
-                    strat.append_name(func_to_epi.name)
-
-                    for output_name, func_key, ref_key, image_type in [ \
-                            ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
-                            ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
-                            ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
-                            ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
-                            ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
-                    ]:
-                        output_func_to_standard(workflow, func_key, ref_key,
-                                                output_name, strat,
-                                                num_strat, c,
-                                                input_image_type=image_type,
-                                                registration_template='epi',
-                                                func_type='non-ica-aroma')
-
-                    if 'T1_template' in c.runRegisterFuncToTemplate:
-                        new_strat_list.append(strat)
-
-        strat_list += new_strat_list
-
-
-        for num_strat, strat in enumerate(strat_list):
-
-            nodes = strat.get_nodes_names()
-
-            if 'T1_template' in c.runRegisterFuncToTemplate and \
-                    'functional_to_epi-standard' not in strat:
-
-                for output_name, func_key, ref_key, image_type in [ \
-                        ('functional_brain_mask_to_standard', 'functional_brain_mask', 'template_skull_for_func_preproc', 'func_mask'),
-                        ('functional_brain_mask_to_standard_derivative', 'functional_brain_mask', 'template_skull_for_func_derivative', 'func_mask'),
-                        ('mean_functional_to_standard', 'mean_functional', 'template_brain_for_func_preproc', 'func_derivative'),
-                        ('mean_functional_to_standard_derivative', 'mean_functional', 'template_brain_for_func_derivative', 'func_derivative'),
-                        ('motion_correct_to_standard', 'motion_correct', 'template_brain_for_func_preproc', 'func_4d'),
-                ]:
-                    output_func_to_standard(workflow, func_key, ref_key,
-                                            output_name, strat, num_strat, c,
-                                            input_image_type=image_type,
-                                            registration_template='t1',
-                                            func_type='non-ica-aroma')
-
+        # Func -> T1/EPI Template
+        workflow, strat_list = connect_func_to_template_reg(workflow, strat_list, c)
 
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
@@ -1931,7 +1603,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         '\n\n'.format(str(c.template_based_segmentation))
                     raise Exception(err)
 
-                # TODO ASH based on config, instead of nodes?
                 if strat.get('epi_registration_method') == 'FSL':
                     use_ants = False
                 elif strat.get('epi_registration_method') == 'ANTS':
@@ -2075,8 +1746,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 if 0 in c.runICA:
                     new_strat_list += [strat.fork()]
-
-                nodes = strat.get_nodes_names()
 
                 if 'none' in str(c.TR).lower():
                     TR = None
