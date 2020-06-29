@@ -265,18 +265,16 @@ def gather_nuisance(functional_file_path,
 
         if not regressor_file:
             # ↓ This section is gross and temporary ↓
-            num_thresh = len(selector['Censor']['thresholds'])
+            num_thresh = len(selector['thresholds'])
             plural_s = '' if num_thresh == 1 else 's'
             thresh_list = [
-                thresh['value'] for thresh in selector['Censor']['thresholds']
+                thresh.get('value') for thresh in selector['thresholds']
             ]
-            max_v = str([])
-            print(f"{selector['Censor']['method']} Censor "
+            print(f"{selector['method']} Censor "
                   "specified with "
                   f"{'no ' if num_thresh == 0 else ''}threshold"
                   f"{plural_s} {str(thresh_list)} in selectors but "
-                  f" threshold was not reached. Max value{plural_s}"
-                  " in array: {max_v}")
+                  f" threshold was not reached.")
             # ↑ This section is gross and temporary ↑
             # All good to pass through if nothing to censor
             censor_volumes = np.ones((regressor_length,), dtype=int)
