@@ -398,9 +398,8 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
     # Import packages
     import os
     import nibabel as nib
-    import botocore.exceptions
-
-    from indi_aws import fetch_creds
+    # import botocore.exceptions
+    # from indi_aws import fetch_creds
 
     # Init variables
     s3_str = 's3://'
@@ -510,14 +509,20 @@ def resolve_resolution(resolution, template, template_name, tag = None):
 
     tagname = None
     local_path = None
-    # TODO XL think a better way to check template
+    
     if "{" in template and tag is not None:
             tagname = "${" + tag + "}"
     try:
         if tagname is not None:
             local_path = check_for_s3(template.replace(tagname, str(resolution)))     
-    except IOError:
+    except (IOError, OSError):
         local_path = None
+
+    ## TODO debug - it works in ipython but doesn't work in nipype wf
+    # try:
+    #     local_path = check_for_s3('/usr/local/fsl/data/standard/MNI152_T1_3.438mmx3.438mmx3.4mm_brain_mask_dil.nii.gz')     
+    # except (IOError, OSError):
+    #     local_path = None
 
     if local_path is None:
         if tagname is not None:

@@ -25,7 +25,11 @@ from CPAC.registration import (
     create_fsl_fnirt_nonlinear_reg,
     create_register_func_to_anat,
     create_bbregister_func_to_anat,
-    create_wf_calculate_ants_warp
+    create_wf_calculate_ants_warp,
+    connect_func_to_anat_init_reg,
+    connect_func_to_anat_bbreg,
+    connect_func_to_template_reg,
+    output_func_to_standard
 )
 
 from CPAC.registration.utils import run_ants_apply_warp
@@ -73,25 +77,25 @@ from CPAC.utils.utils import (
 logger = logging.getLogger('nipype.workflow')
 
 
-def register_to_standard_template(long_reg_template_node, c, workflow, init_strat, name_ss_strat):
+def register_anat_longitudinal_template_to_standard(longitudinal_template_node, c, workflow, strat_init, strat_name):
 
     brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
                          name='longitudinal_anatomical_brain_mask')
     
     brain_mask.inputs.args = '-bin'
     
-    workflow.connect(long_reg_template_node, 'brain_template', 
+    workflow.connect(longitudinal_template_node, 'brain_template', 
                      brain_mask, 'in_file')
 
-    new_init_strat = init_strat.fork()
+    strat_init_new = strat_init.fork()
 
-    new_init_strat.update_resource_pool({
-        'anatomical_brain': (long_reg_template_node, 'brain_template'),
-        'anatomical_reorient': (long_reg_template_node, 'skull_template'),
+    strat_init_new.update_resource_pool({
+        'anatomical_brain': (longitudinal_template_node, 'brain_template'),
+        'anatomical_reorient': (longitudinal_template_node, 'skull_template'),
         'anatomical_brain_mask': (brain_mask, 'out_file')
     })
 
-    strat_list = [new_init_strat]
+    strat_list = [strat_init_new]
 
     # only need to run once for each subject
     already_skullstripped = c.already_skullstripped[0]
@@ -125,11 +129,11 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                 raise Exception
 
             flirt_reg_anat_mni = create_fsl_flirt_linear_reg(
-                'anat_mni_flirt_register_%s_%d' % (name_ss_strat, num_strat)
+                'anat_mni_flirt_register_%s_%d' % (strat_name, num_strat)
             )
 
             # if someone doesn't have anatRegFSLinterpolation in their pipe config,
-            # it will default to sinc
+            # sinc will be default option
             if not hasattr(c, 'anatRegFSLinterpolation'):
                 setattr(c, 'anatRegFSLinterpolation', 'sinc')
 
@@ -159,7 +163,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                 'registration_method': 'FSL',
                 'anatomical_to_mni_linear_xfm': (flirt_reg_anat_mni, 'outputspec.linear_xfm'),
                 'mni_to_anatomical_linear_xfm': (flirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
-                'longitudinal_template_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain')
+                'anat_longitudinal_template_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain')
             })
 
     strat_list += new_strat_list
@@ -178,7 +182,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
             if strat.get('registration_method') == 'FSL':
 
                 fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
-                    'anat_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
+                    'anat_mni_fnirt_register_%s_%d' % (strat_name, num_strat)
                 )
 
                 # brain input
@@ -221,7 +225,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
                 strat.update_resource_pool({
                     'anatomical_to_mni_nonlinear_xfm': (fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
-                    'longitudinal_template_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain')
+                    'anat_longitudinal_template_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain')
                 }, override=True)
 
     strat_list += new_strat_list
@@ -236,7 +240,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
             ants_reg_anat_mni = \
                 create_wf_calculate_ants_warp(
-                    'anat_mni_ants_register_%s_%d' % (name_ss_strat, num_strat),
+                    'anat_mni_ants_register_%s_%d' % (strat_name, num_strat),
                     num_threads=num_ants_cores,
                     reg_ants_skull=c.regWithSkull
                 )
@@ -320,7 +324,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                 'anatomical_to_mni_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.warp_field'),
                 'mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.inverse_warp_field'),
                 'anat_to_mni_ants_composite_xfm': (ants_reg_anat_mni, 'outputspec.composite_transform'),
-                'longitudinal_template_to_standard': (ants_reg_anat_mni, 'outputspec.normalized_output_brain')
+                'anat_longitudinal_template_to_standard': (ants_reg_anat_mni, 'outputspec.normalized_output_brain')
             })
 
     strat_list += new_strat_list
@@ -353,7 +357,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
                     raise Exception
 
                 flirt_reg_anat_symm_mni = create_fsl_flirt_linear_reg(
-                    'anat_symmetric_mni_flirt_register_%s_%d' % (name_ss_strat, num_strat)
+                    'anat_symmetric_mni_flirt_register_%s_%d' % (strat_name, num_strat)
                 )
 
                 # Input registration parameters
@@ -398,7 +402,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
                 if strat.get('registration_method') == 'FSL':
                     fnirt_reg_anat_symm_mni = create_fsl_fnirt_nonlinear_reg(
-                        'anat_symmetric_mni_fnirt_register_%s_%d' % (name_ss_strat, num_strat)
+                        'anat_symmetric_mni_fnirt_register_%s_%d' % (strat_name, num_strat)
                     )
                     
                     # input
@@ -451,7 +455,7 @@ def register_to_standard_template(long_reg_template_node, c, workflow, init_stra
 
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
-                        'anat_symmetric_mni_ants_register_%s_%d' % (name_ss_strat, num_strat),
+                        'anat_symmetric_mni_ants_register_%s_%d' % (strat_name, num_strat),
                         num_threads=num_ants_cores,
                         reg_ants_skull=c.regWithSkull
                     )
@@ -907,7 +911,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
     # Here we have all the anat_preproc set up for every session of the subject
 
-    strat_initial = Strategy()
+    strat_init = Strategy()
     
     templates_for_resampling = [
         (config.resolution_for_anat, config.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
@@ -940,7 +944,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
 
-        strat_initial.update_resource_pool({
+        strat_init.update_resource_pool({
             template_name: (resampled_template, 'resampled_template')
         })
 
@@ -977,7 +981,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
         workflow.connect(skull_merge_node, 'out', template_node, 'input_skull_list')
 
-        reg_strat_list = register_to_standard_template(template_node, config, workflow, strat_initial, strat_name)
+        reg_strat_list = register_anat_longitudinal_template_to_standard(template_node, config, workflow, strat_init, strat_name)
         
         # Register T1 to the standard template
         # Register tissue segmentation from longitudinal template space to native space
@@ -987,7 +991,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             if reg_strat.get('registration_method') == 'FSL':
 
                 fsl_apply_warp = pe.MapNode(interface=fsl.ApplyWarp(),
-                                            name='fsl_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
+                                            name='fsl_apply_warp_anat_longitudinal_to_standard_{0}_'.format(strat_name),
                                             iterfield=['in_file'])
 
                 workflow.connect(template_node, "output_brain_list", 
@@ -1010,7 +1014,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 })
 
                 fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
-                                            name='fsl_apply_xfm_longitudinal_to_native_{0}_'.format(strat_name),
+                                            name='fsl_apply_xfm_anat_longitudinal_to_native_{0}_'.format(strat_name),
                                             iterfield=['reference', 'in_matrix_file'])
 
                 # TODO how to iterate all masks? write a function
@@ -1041,7 +1045,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                                                                         'interp'],
                                                             output_names=['out_image'],
                                                             function=run_ants_apply_warp),                        
-                                            name='ants_apply_warp_t1_longitudinal_to_standard_{0}_'.format(strat_name),
+                                            name='ants_apply_warp_anat_longitudinal_to_standard_{0}_'.format(strat_name),
                                             iterfield=['moving_image'])
 
                 workflow.connect(template_node, "output_brain_list", ants_apply_warp, 'moving_image')
@@ -1127,8 +1131,6 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 # TODO check:
 # 1 func alone works
 # 2 anat + func works, pass anat strategy list?
-
-# func preproc wf
 def func_preproc_longitudinal_wf(subject_id, sub_list, config):
     """
     Parameters
@@ -1152,9 +1154,6 @@ def func_preproc_longitudinal_wf(subject_id, sub_list, config):
 
     session_id_list = []
     ses_list_strat_list = {}
-    # TODO create a list of list ses_list_strat_list
-    # a list of skullstripping strategies, 
-    # a list of sessions within each strategy list
 
     workflow_name = 'func_preproc_longitudinal_' + str(subject_id) 
     workflow = pe.Workflow(name=workflow_name)
@@ -1222,6 +1221,9 @@ def func_preproc_longitudinal_wf(subject_id, sub_list, config):
     
     # Here we have all the func_preproc set up for every session of the subject
     
+    # TODO create a list of list ses_list_strat_list
+    # a list of skullstripping strategies, 
+    # a list of sessions within each strategy list
     # TODO rename and reorganize dict
     # TODO update strat name
     strat_list_ses_list = {}
@@ -1235,7 +1237,6 @@ def func_preproc_longitudinal_wf(subject_id, sub_list, config):
     return strat_list_ses_list
 
 
-# merge data
 def merge_func_preproc(working_directory):
     """
     Parameters
@@ -1269,7 +1270,227 @@ def merge_func_preproc(working_directory):
     return brain_list, skull_list
 
 
-# template wf
+def register_func_longitudinal_template_to_standard(longitudinal_template_node, c, workflow, strat_init, strat_name):
+
+    sub_mem_gb, num_cores_per_sub, num_ants_cores = \
+        check_config_resources(c)
+
+    strat_init_new = strat_init.fork()
+
+    strat_init_new.update_resource_pool({
+        'functional_preprocessed_median': (longitudinal_template_node, 'brain_template'),
+        'motion_correct_median': (longitudinal_template_node, 'skull_template')
+    })
+
+    strat_list = [strat_init_new]
+
+    new_strat_list = []
+
+    if 'FSL' in c.regOption:
+
+        for num_strat, strat in enumerate(strat_list):
+
+            flirt_reg_func_mni = create_fsl_flirt_linear_reg(
+                'func_mni_flirt_register_%s_%d' % (strat_name, num_strat)
+            )
+
+            # if someone doesn't have anatRegFSLinterpolation in their pipe config,
+            # sinc will be default option
+            if not hasattr(c, 'funcRegFSLinterpolation'):
+                setattr(c, 'funcRegFSLinterpolation', 'sinc')
+
+            if c.funcRegFSLinterpolation not in ["trilinear", "sinc", "spline"]:
+                err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
+                raise Exception(err_msg)
+
+            # Input registration parameters
+            flirt_reg_func_mni.inputs.inputspec.interp = c.funcRegFSLinterpolation
+
+            node, out_file = strat['functional_preprocessed_median']
+            workflow.connect(node, out_file,
+                             flirt_reg_func_mni, 'inputspec.input_brain')
+
+            # pass the reference files
+            node, out_file = strat['template_brain_for_func_preproc']
+            workflow.connect(node, out_file, flirt_reg_func_mni, 
+                             'inputspec.reference_brain')
+
+            if 'ANTS' in c.regOption:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            strat.append_name(flirt_reg_func_mni.name)
+
+            strat.update_resource_pool({
+                'registration_method': 'FSL',
+                'func_longitudinal_to_mni_linear_xfm': (flirt_reg_func_mni, 'outputspec.linear_xfm'),
+                'mni_to_func_longitudinal_linear_xfm': (flirt_reg_func_mni, 'outputspec.invlinear_xfm'),
+                'func_longitudinal_template_to_standard': (flirt_reg_func_mni, 'outputspec.output_brain')
+            })
+
+    strat_list += new_strat_list
+
+    new_strat_list = []
+
+    try:
+        fsl_linear_reg_only = c.fsl_linear_reg_only
+    except AttributeError:
+        fsl_linear_reg_only = [0]
+
+    if 'FSL' in c.regOption and 0 in fsl_linear_reg_only:
+
+        for num_strat, strat in enumerate(strat_list):
+
+            if strat.get('registration_method') == 'FSL':
+
+                fnirt_reg_func_mni = create_fsl_fnirt_nonlinear_reg(
+                    'func_mni_fnirt_register_%s_%d' % (strat_name, num_strat)
+                )
+
+                # brain input
+                node, out_file = strat['functional_preprocessed_median']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_func_mni, 'inputspec.input_brain')
+
+                # brain reference
+                node, out_file = strat['template_brain_for_func_preproc']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_func_mni, 'inputspec.reference_brain')
+
+                # skull input
+                node, out_file = strat['motion_correct_median']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_func_mni, 'inputspec.input_skull')
+                
+                # skull reference
+                node, out_file = strat['template_skull_for_func_preproc']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_func_mni, 'inputspec.reference_skull')
+
+                node, out_file = strat['func_longitudinal_to_mni_linear_xfm']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_func_mni, 'inputspec.linear_aff')
+
+                node, out_file = strat['template_ref_mask']
+                workflow.connect(node, out_file,
+                                 fnirt_reg_func_mni, 'inputspec.ref_mask')
+
+                # assign the FSL FNIRT config file specified in pipeline
+                # config.yml
+                fnirt_reg_func_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
+
+                if 1 in fsl_linear_reg_only:
+                    strat = strat.fork()
+                    new_strat_list.append(strat)
+
+                strat.append_name(fnirt_reg_func_mni.name)
+
+                strat.update_resource_pool({
+                    'func_longitudinal_to_mni_nonlinear_xfm': (fnirt_reg_func_mni, 'outputspec.nonlinear_xfm'),
+                    'func_longitudinal_template_to_standard': (fnirt_reg_func_mni, 'outputspec.output_brain')
+                }, override=True)
+
+    strat_list += new_strat_list
+
+    new_strat_list = []
+
+    for num_strat, strat in enumerate(strat_list):
+
+        # or run ANTS anatomical-to-MNI registration instead
+        if 'ANTS' in c.regOption and \
+            strat.get('registration_method') != 'FSL':
+
+            ants_reg_func_mni = \
+                create_wf_calculate_ants_warp(
+                    'func_mni_ants_register_%s_%d' % (strat_name, num_strat),
+                    num_threads=num_ants_cores,
+                    reg_ants_skull=c.regWithSkull
+                )
+            
+            if not hasattr(c, 'funcRegANTSinterpolation'):
+                setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
+
+            if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+                err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
+                raise Exception(err_msg)
+
+            # Input registration parameters
+            ants_reg_func_mni.inputs.inputspec.interp = c.funcRegANTSinterpolation
+
+            # calculating the transform with the skullstripped is
+            # reported to be better, but it requires very high
+            # quality skullstripping. If skullstripping is imprecise
+            # registration with skull is preferred
+            if 1 in c.regWithSkull:
+
+                # get the skull-stripped anatomical from resource pool
+                node, out_file = strat['functional_preprocessed_median']
+
+                # pass the anatomical to the workflow
+                workflow.connect(node, out_file,
+                                ants_reg_func_mni, 'inputspec.moving_brain')
+
+                # get the reorient skull-on anatomical from resource pool
+                node, out_file = strat['motion_correct_median']
+
+                # pass the anatomical to the workflow
+                workflow.connect(node, out_file,
+                                ants_reg_func_mni, 'inputspec.moving_skull')
+
+                # pass the reference file
+                node, out_file = strat['template_brain_for_func_preproc']
+                workflow.connect(node, out_file,
+                                ants_reg_func_mni, 'inputspec.reference_brain')
+
+                # pass the reference file
+                node, out_file = strat['template_skull_for_func_preproc']
+                workflow.connect(node, out_file,
+                                ants_reg_func_mni, 'inputspec.reference_skull')
+
+            else:
+
+                node, out_file = strat['functional_preprocessed_median']
+
+                workflow.connect(node, out_file, 
+                                ants_reg_func_mni, 'inputspec.moving_brain')
+
+                # pass the reference file
+                node, out_file = strat['template_brain_for_func_preproc']
+                workflow.connect(node, out_file,
+                                ants_reg_func_mni, 'inputspec.reference_brain')
+
+            ants_reg_func_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
+            ants_reg_func_mni.inputs.inputspec.fixed_image_mask = None
+
+            strat.append_name(ants_reg_func_mni.name)
+
+            strat.update_resource_pool({
+                'registration_method': 'ANTS',
+                'ants_initial_xfm': (ants_reg_func_mni, 'outputspec.ants_initial_xfm'),
+                'ants_rigid_xfm': (ants_reg_func_mni, 'outputspec.ants_rigid_xfm'),
+                'ants_affine_xfm': (ants_reg_func_mni, 'outputspec.ants_affine_xfm'),
+                'func_longitudinal_to_mni_nonlinear_xfm': (ants_reg_func_mni, 'outputspec.warp_field'),
+                'mni_to_func_longitudinal_nonlinear_xfm': (ants_reg_func_mni, 'outputspec.inverse_warp_field'),
+                'func_longitudinal_to_mni_ants_composite_xfm': (ants_reg_func_mni, 'outputspec.composite_transform'),
+                'func_longitudinal_template_to_standard': (ants_reg_func_mni, 'outputspec.normalized_output_brain')
+            })
+
+    strat_list += new_strat_list
+
+    '''
+    # Func -> T1 Registration (Initial Linear Reg)
+    workflow, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow, strat_list, c)
+
+    # Func -> T1 Registration (BBREG)
+    workflow, strat_list = connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete)
+
+    # Func -> T1/EPI Template
+    workflow, strat_list = connect_func_to_template_reg(workflow, strat_list, c)
+    '''
+
+    return workflow, strat_list
+
+
 def func_longitudinal_template_wf(subject_id, strat_list, config):
     '''
     Parameters
@@ -1294,11 +1515,13 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         'crashdump_dir': os.path.abspath(config.crashLogDirectory)
     }
 
-    strat_nodes_list = strat_list['func_default']
+    # strat_nodes_list = strat_list['func_default']
+    strat_init = Strategy()
 
     templates_for_resampling = [
         (config.resolution_for_func_preproc, config.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (config.resolution_for_func_preproc, config.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_preproc, config.ref_mask_for_func, 'template_ref_mask', 'resolution_for_func_preproc'), # TODO check float resolution
         (config.resolution_for_func_preproc, config.template_epi, 'template_epi', 'resolution_for_func_preproc'),
         (config.resolution_for_func_derivative, config.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),
         (config.resolution_for_func_derivative, config.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
@@ -1316,7 +1539,11 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
-    
+
+        strat_init.update_resource_pool({
+            template_name: (resampled_template, 'resampled_template')
+        })
+
     merge_func_preproc_node = pe.Node(Function(input_names=['working_directory'],
                                                output_names=['brain_list', 'skull_list'],
                                                function=merge_func_preproc,
@@ -1338,8 +1565,19 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         thread_pool=config.thread_pool,
     )
 
-    workflow.connect(merge_func_preproc_node, 'brain_list', template_node, 'input_brain_list')
-    workflow.connect(merge_func_preproc_node, 'skull_list', template_node, 'input_skull_list')
+    workflow.connect(merge_func_preproc_node, 'brain_list', 
+                     template_node, 'input_brain_list')
+
+    workflow.connect(merge_func_preproc_node, 'skull_list', 
+                     template_node, 'input_skull_list')
+
+    workflow, strat_list = register_func_longitudinal_template_to_standard(
+        template_node, 
+        config, 
+        workflow, 
+        strat_init, 
+        'default'
+    )
 
     workflow.run()
 

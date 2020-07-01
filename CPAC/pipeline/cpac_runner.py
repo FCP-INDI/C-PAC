@@ -435,7 +435,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                         }
                                     })
                                 else:
-                                    if 'apply_warp_t1_longitudinal_to_standard' in keys[-2]:
+                                    if 'apply_warp_anat_longitudinal_to_standard' in keys[-2]:
                                         # TODO update!!!
                                         # problem: it assumes session id == last key (ordered by session count instead of session id) + 1
                                         if ses['unique_id'] == str(int(keys[-2][-1])+1):
