@@ -1012,12 +1012,14 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 reg_strat.update_resource_pool({
                     'anatomical_to_standard': (fsl_apply_warp, 'out_file')
                 })
-                
-                def segmentation_apply_warp(wf_name, resource):
+
+                def seg_apply_warp(wf_name, resource):
 
                     fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
                                                 name=wf_name,
                                                 iterfield=['reference', 'in_matrix_file'])
+
+                    fsl_apply_xfm.inputs.interp = 'nearestneighbour'
 
                     node, out_file = reg_strat[resource]
                     workflow.connect(node, out_file, 
@@ -1033,10 +1035,10 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                         resource:(fsl_apply_xfm, 'out_file')
                     }, override=True)
 
-                for segmentation in ['anatomical_gm_mask']:
+                for seg in ['anatomical_gm_mask']:
 
-                    segmentation_apply_warp(wf_name=f'fsl_apply_xfm_longitudinal_to_native_{r}_{strat_name}',
-                                            resource=segmentation)
+                    seg_apply_warp(wf_name=f'fsl_apply_xfm_longitudinal_to_native_{seg}_{strat_name}',
+                                            resource=seg)
 
             elif reg_strat.get('registration_method') == 'ANTS':
 
@@ -1077,7 +1079,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         # Update resource pool
         # longitudinal template
-        rsc_key = 'anatomical_longitudinal_template_' #'resampled_template_brain_for_anat' 
+        rsc_key = 'anatomical_longitudinal_template_'
         ds_template = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
         workflow.connect(template_node, 'brain_template', 
                          ds_template, rsc_key)

@@ -374,8 +374,9 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     subj = [s for s in subject_specific_dict.keys() if s in rsc_path]
                     if subj:
                         subject_specific_dict[subj[0]].append(rsc_path)
-            # import pdb; pdb.set_trace()
-            # TODO update anatomical_brain and anatomical_reorient
+            
+            # update individual-specific outputs: 
+            # anatomical_brain, anatomical_brain_mask and anatomical_reorient
             for key in session_specific_dict.keys():
                 for f in session_specific_dict[key]:
                     sub,ses = key.split('/')
@@ -434,9 +435,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                         }
                                     })
                                 else:
-                                    if 'apply_warp_anat_longitudinal_to_standard' in keys[-2]:
+                                    if keys[-2] == 'anatomical_brain' or keys[-2] == 'anatomical_brain_mask' or keys[-2] == 'anatomical_reorient':
+                                        pass
+                                    elif 'apply_warp_anat_longitudinal_to_standard' in keys[-2]:
                                         # TODO update!!!
-                                        # problem: it assumes session id == last key (ordered by session count instead of session id) + 1
+                                        # it assumes session id == last key (ordered by session count instead of session id) + 1
+                                        # might cause problem if session id is not continuous
                                         if ses['unique_id'] == str(int(keys[-2][-1])+1):
                                             ses['resource_pool'][strat_key].update({
                                                 keys[-3]: f # keys[-3]: 'anatomical_to_standard'
@@ -455,7 +459,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 ses_list = [subj for subj in sublist if key in subj['anat']]
                 for ses in ses_list:
                     for strat in strat_list:
-                        # TODO search a list of keys
+                        # TODO search a list of method keys
                         try:
                             ses['resource_pool'][strat_key].update({
                                 'registration_method': strat['registration_method']
