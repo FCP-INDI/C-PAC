@@ -970,12 +970,12 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         )
         
         template_node.inputs.set(
-            avg_method=config.long_reg_avg_method,
-            dof=config.dof,
-            interp=config.interp,
-            cost=config.cost,
-            convergence_threshold=config.convergence_threshold,
-            thread_pool=config.thread_pool,
+            avg_method=config.longitudinal_template_average_method,
+            dof=config.longitudinal_template_dof,
+            interp=config.longitudinal_template_interp,
+            cost=config.longitudinal_template_cost,
+            convergence_threshold=config.longitudinal_template_convergence_threshold,
+            thread_pool=config.longitudinal_template_thread_pool,
         )
 
         workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
@@ -1012,27 +1012,31 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 reg_strat.update_resource_pool({
                     'anatomical_to_standard': (fsl_apply_warp, 'out_file')
                 })
+                
+                def segmentation_apply_warp(wf_name, resource):
 
-                fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
-                                            name='fsl_apply_xfm_anat_longitudinal_to_native_{0}_'.format(strat_name),
-                                            iterfield=['reference', 'in_matrix_file'])
+                    fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
+                                                name=wf_name,
+                                                iterfield=['reference', 'in_matrix_file'])
 
-                # TODO how to iterate all masks? write a function
-                '''
-                node, out_file = reg_strat['anatomical_gm_mask']
-                workflow.connect(node, out_file, 
-                                fsl_apply_xfm, 'in_file')
+                    node, out_file = reg_strat[resource]
+                    workflow.connect(node, out_file, 
+                                    fsl_apply_xfm, 'in_file')
 
-                workflow.connect(brain_merge_node, 'out', 
-                                fsl_apply_xfm, 'reference')
+                    workflow.connect(brain_merge_node, 'out', 
+                                    fsl_apply_xfm, 'reference')
 
-                workflow.connect(template_node, "inv_warp_list", 
-                                fsl_apply_xfm, 'in_matrix_file')
+                    workflow.connect(template_node, "inv_warp_list", 
+                                    fsl_apply_xfm, 'in_matrix_file')
 
-                reg_strat.update_resource_pool({
-                    'anatomical_gm_mask':(fsl_apply_xfm, 'out_file')
-                }, override=True)
-                '''
+                    reg_strat.update_resource_pool({
+                        resource:(fsl_apply_xfm, 'out_file')
+                    }, override=True)
+
+                for segmentation in ['anatomical_gm_mask']:
+
+                    segmentation_apply_warp(wf_name=f'fsl_apply_xfm_longitudinal_to_native_{r}_{strat_name}',
+                                            resource=segmentation)
 
             elif reg_strat.get('registration_method') == 'ANTS':
 
@@ -1557,12 +1561,12 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
     )
 
     template_node.inputs.set(
-        avg_method=config.long_reg_avg_method,
-        dof=config.dof,
-        interp=config.interp,
-        cost=config.cost,
-        convergence_threshold=config.convergence_threshold,
-        thread_pool=config.thread_pool,
+        avg_method=config.longitudinal_template_average_method,
+        dof=config.longitudinal_template_dof,
+        interp=config.longitudinal_template_interp,
+        cost=config.longitudinal_template_cost,
+        convergence_threshold=config.longitudinal_template_convergence_threshold,
+        thread_pool=config.longitudinal_template_thread_pool,
     )
 
     workflow.connect(merge_func_preproc_node, 'brain_list', 

@@ -291,32 +291,36 @@ bet_vertical_gradient : 0.0
 
 
 # Run anatomical and/or functional longitudinal pipeline
+# Options: 'anat' and/or 'func'
+# Note: 'func' is still under development and not available yet
 run_longitudinal : ['anat']
 
 
 # Freesurfer longitudinal template algorithm using FSL FLIRT
 # Method to average the dataset at each iteration of the template creation
-long_reg_avg_method : median
+# Options: 'median', 'mean' or 'std'
+longitudinal_template_average_method : median
 
 
 # Degree of freedom of FLIRT in the template creation
-dof : 12
+longitudinal_template_dof : 12
 
 
 # Interpolation parameter for FLIRT in the template creation
-interp : trilinear
+longitudinal_template_interp : trilinear
 
 
 # Cost function for FLIRT in the template creation
-cost : corratio
+longitudinal_template_cost : corratio
 
 
 # Number of threads used for one run of the template generation algorithm
-thread_pool : 2
+longitudinal_template_thread_pool : 2
 
 
-# Threshold of transformation distance to consider that the loop converged (-1 means numpy.finfo(np.float64).eps and is the default)
-convergence_threshold : 0.001
+# Threshold of transformation distance to consider that the loop converged 
+# (-1 means numpy.finfo(np.float64).eps and is the default)
+longitudinal_template_convergence_threshold : -1
 
 
 # The resolution to which anatomical images should be transformed during registration.

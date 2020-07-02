@@ -355,7 +355,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
                 if 'func' in c.run_longitudinal:
                     strat_list = func_preproc_longitudinal_wf(subject_id, sub_list, c)
-                    # brain_list, skull_list = get_func_preproc_output(c.workingDirectory)
                     func_longitudinal_template_wf(subject_id, strat_list, c)
 
             rsc_file_list = []
@@ -375,7 +374,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     subj = [s for s in subject_specific_dict.keys() if s in rsc_path]
                     if subj:
                         subject_specific_dict[subj[0]].append(rsc_path)
-            
+            # import pdb; pdb.set_trace()
             # TODO update anatomical_brain and anatomical_reorient
             for key in session_specific_dict.keys():
                 for f in session_specific_dict[key]:
@@ -464,7 +463,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                         except KeyError:
                             pass
 
-            yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_long_reg.yml'), 'w'), default_flow_style=False)
+            yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
         
             print("Longitudinal pipeline completed.")
             
