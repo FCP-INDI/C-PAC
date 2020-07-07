@@ -145,7 +145,7 @@ RUN mkdir /ants_template && \
 ENV PATH=/usr/lib/ants:$PATH
 RUN apt-get install -y ants
 # RUN export ANTSPATH=/usr/lib/ants
-ENV ANTSPATH=/usr/lib/ants
+ENV ANTSPATH=/usr/lib/ants/
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
