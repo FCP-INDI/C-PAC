@@ -437,7 +437,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                 else:
                                     if keys[-2] == 'anatomical_brain' or keys[-2] == 'anatomical_brain_mask' or keys[-2] == 'anatomical_reorient':
                                         pass
-                                    elif 'apply_warp_anat_longitudinal_to_standard' in keys[-2]:
+                                    elif 'apply_warp_anat_longitudinal_to_standard' in keys[-2] or 'fsl_apply_xfm_longitudinal' in keys[-2]:
                                         # TODO update!!!
                                         # it assumes session id == last key (ordered by session count instead of session id) + 1
                                         # might cause problem if session id is not continuous

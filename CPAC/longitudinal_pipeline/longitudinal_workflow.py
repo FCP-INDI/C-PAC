@@ -360,14 +360,12 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                     'anat_symmetric_mni_flirt_register_%s_%d' % (strat_name, num_strat)
                 )
 
-                # Input registration parameters
                 flirt_reg_anat_symm_mni.inputs.inputspec.interp = c.anatRegFSLinterpolation
 
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
                                  flirt_reg_anat_symm_mni, 'inputspec.input_brain')
 
-                # pass the reference files
                 node, out_file = strat['template_symmetric_brain']
                 workflow.connect(node, out_file,
                                  flirt_reg_anat_symm_mni, 'inputspec.reference_brain')
@@ -405,7 +403,6 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                         'anat_symmetric_mni_fnirt_register_%s_%d' % (strat_name, num_strat)
                     )
                     
-                    # input
                     node, out_file = strat['anatomical_brain']
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni,
@@ -416,7 +413,6 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                                      fnirt_reg_anat_symm_mni,
                                      'inputspec.input_skull')
 
-                    # reference
                     node, out_file = strat['template_brain_for_anat']
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni, 'inputspec.reference_brain')
@@ -449,7 +445,6 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
 
         for num_strat, strat in enumerate(strat_list):
 
-            # or run ANTS anatomical-to-MNI registration instead
             if 'ANTS' in c.regOption and \
                 strat.get('registration_method') != 'FSL':
 
@@ -564,7 +559,7 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
     except:
         encrypt_data = False
 
-    # TODO enforce value with schema validation
+    # TODO Enforce value with schema validation
     # Extract credentials path for output if it exists
     try:
         # Get path to creds file
@@ -984,7 +979,6 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         reg_strat_list = register_anat_longitudinal_template_to_standard(template_node, config, workflow, strat_init, strat_name)
         
         # Register T1 to the standard template
-        # Register tissue segmentation from longitudinal template space to native space
         # TODO add session information in node name
         for num_reg_strat, reg_strat in enumerate(reg_strat_list):
 
@@ -1012,33 +1006,6 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 reg_strat.update_resource_pool({
                     'anatomical_to_standard': (fsl_apply_warp, 'out_file')
                 })
-
-                def seg_apply_warp(wf_name, resource):
-
-                    fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
-                                                name=wf_name,
-                                                iterfield=['reference', 'in_matrix_file'])
-
-                    fsl_apply_xfm.inputs.interp = 'nearestneighbour'
-
-                    node, out_file = reg_strat[resource]
-                    workflow.connect(node, out_file, 
-                                    fsl_apply_xfm, 'in_file')
-
-                    workflow.connect(brain_merge_node, 'out', 
-                                    fsl_apply_xfm, 'reference')
-
-                    workflow.connect(template_node, "inv_warp_list", 
-                                    fsl_apply_xfm, 'in_matrix_file')
-
-                    reg_strat.update_resource_pool({
-                        resource:(fsl_apply_xfm, 'out_file')
-                    }, override=True)
-
-                for seg in ['anatomical_gm_mask']:
-
-                    seg_apply_warp(wf_name=f'fsl_apply_xfm_longitudinal_to_native_{seg}_{strat_name}',
-                                            resource=seg)
 
             elif reg_strat.get('registration_method') == 'ANTS':
 
@@ -1077,13 +1044,52 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     'anatomical_to_standard': (ants_apply_warp, 'out_image')
                 })
 
+        # Register tissue segmentation from longitudinal template space to native space
+        fsl_convert_xfm = pe.MapNode(interface=fsl.ConvertXFM(),
+                                name=f'fsl_xfm_longitudinal_to_native_{strat_name}',
+                                iterfield=['in_file'])
+        
+        fsl_convert_xfm.inputs.invert_xfm = True
+
+        workflow.connect(template_node, "warp_list", 
+                        fsl_convert_xfm, 'in_file')
+
+        def seg_apply_warp(strat_name, resource):
+
+            fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
+                                        name=f'fsl_apply_xfm_longitudinal_to_native_{resource}_{strat_name}',
+                                        iterfield=['reference', 'in_matrix_file'])
+
+            fsl_apply_xfm.inputs.interp = 'nearestneighbour'
+            # import pdb; pdb.set_trace()
+            node, out_file = reg_strat[resource]
+            workflow.connect(node, out_file, 
+                            fsl_apply_xfm, 'in_file')
+
+            workflow.connect(brain_merge_node, 'out', 
+                            fsl_apply_xfm, 'reference')
+
+            workflow.connect(fsl_convert_xfm, "out_file", 
+                            fsl_apply_xfm, 'in_matrix_file')
+            
+            reg_strat.update_resource_pool({
+                resource:(fsl_apply_xfm, 'out_file')
+            }, override=True)
+
+        for seg in ['anatomical_gm_mask', 'anatomical_csf_mask', 'anatomical_wm_mask',
+            'seg_mixeltype', 'seg_partial_volume_map']: 
+            # TODO apply warp on list
+            # 'seg_probability_maps', 'seg_partial_volume_files'
+
+            seg_apply_warp(strat_name=strat_name, resource=seg)
+
         # Update resource pool
         # longitudinal template
         rsc_key = 'anatomical_longitudinal_template_'
         ds_template = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
         workflow.connect(template_node, 'brain_template', 
                          ds_template, rsc_key)
-        
+
         # T1 to longitudinal template warp
         rsc_key = 'anatomical_to_longitudinal_template_warp_'
         ds_warp_list = create_datasink(rsc_key + node_suffix, config, subject_id, strat_name='longitudinal_'+strat_name,

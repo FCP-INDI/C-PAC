@@ -400,15 +400,7 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     
     warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
     
-    # output inverse warp for segmentation registration
-    inv_warp_list = []
-    for warp in warp_list:
-        inv_warp = os.path.basename(warp).split('.')[0] + "_inv.mat"
-        cmd = "convert_xfm -omat %s -inverse %s" % (inv_warp, warp)
-        os.system(cmd)
-        inv_warp_list.append(inv_warp)
-
-    return brain_template, skull_template, output_brain_list, output_skull_list, warp_list, inv_warp_list
+    return brain_template, skull_template, output_brain_list, output_skull_list, warp_list
 
 
 def subject_specific_template(workflow_name='subject_specific_template',
@@ -451,8 +443,7 @@ def subject_specific_template(workflow_name='subject_specific_template',
                     'skull_template',
                     'output_brain_list',
                     'output_skull_list',
-                    'warp_list',
-                    'inv_warp_list'],
+                    'warp_list'],
                 imports=imports,
                 function=template_creation_flirt
             ),
