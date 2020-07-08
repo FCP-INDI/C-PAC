@@ -46,6 +46,15 @@ from CPAC.anat_preproc.anat_preproc import (
     connect_anat_segmentation
 )
 
+from CPAC.seg_preproc.utils import (
+    pick_wm_prob_0,
+    pick_wm_prob_1,
+    pick_wm_prob_2,
+    pick_wm_class_0,
+    pick_wm_class_1,
+    pick_wm_class_2
+)
+
 from CPAC.func_preproc.func_ingress import (
     connect_func_ingress
 )
@@ -655,6 +664,21 @@ def connect_anat_preproc_inputs(strat, anat_preproc, strat_name, strat_nodes_lis
     return new_strat, strat_nodes_list_list
 
 
+def pick_map(file_list, index, file_type):
+    if isinstance(file_list, list):
+        if len(file_list) == 1:
+            file_list = file_list[0]
+        for file_name in file_list:
+            if file_name.endswith(f"{file_type}_{index}.nii.gz"):
+                return file_name
+    return None
+
+
+def concat_map(in_list, in_file):
+    out_list = in_list.append(in_file)
+    return out_list
+
+
 def anat_longitudinal_wf(subject_id, sub_list, config):
     """
     Parameters
@@ -1054,34 +1078,111 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         workflow.connect(template_node, "warp_list", 
                         fsl_convert_xfm, 'in_file')
 
-        def seg_apply_warp(strat_name, resource):
-
-            fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
-                                        name=f'fsl_apply_xfm_longitudinal_to_native_{resource}_{strat_name}',
-                                        iterfield=['reference', 'in_matrix_file'])
-
-            fsl_apply_xfm.inputs.interp = 'nearestneighbour'
-            # import pdb; pdb.set_trace()
-            node, out_file = reg_strat[resource]
-            workflow.connect(node, out_file, 
-                            fsl_apply_xfm, 'in_file')
-
-            workflow.connect(brain_merge_node, 'out', 
-                            fsl_apply_xfm, 'reference')
-
-            workflow.connect(fsl_convert_xfm, "out_file", 
-                            fsl_apply_xfm, 'in_matrix_file')
+        def seg_apply_warp(strat_name, resource, type='str', file_type=None):
             
-            reg_strat.update_resource_pool({
-                resource:(fsl_apply_xfm, 'out_file')
-            }, override=True)
+            if type == 'str':
+
+                fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
+                                            name=f'fsl_apply_xfm_longitudinal_to_native_{resource}_{strat_name}',
+                                            iterfield=['reference', 'in_matrix_file'])
+
+                fsl_apply_xfm.inputs.interp = 'nearestneighbour'
+                
+                node, out_file = reg_strat[resource]
+                workflow.connect(node, out_file, 
+                                fsl_apply_xfm, 'in_file')
+
+                workflow.connect(brain_merge_node, 'out', 
+                                fsl_apply_xfm, 'reference')
+
+                workflow.connect(fsl_convert_xfm, "out_file", 
+                                fsl_apply_xfm, 'in_matrix_file')
+                
+                reg_strat.update_resource_pool({
+                    resource:(fsl_apply_xfm, 'out_file')
+                }, override=True)
+            
+            elif type == 'list':
+                
+                in_list = []
+
+                for index in range(3):
+
+                    fsl_apply_xfm = pe.MapNode(interface=fsl.ApplyXFM(),
+                                            name=f'fsl_apply_xfm_longitudinal_to_native_{resource}_{index}_{strat_name}',
+                                            iterfield=['reference', 'in_matrix_file'])
+
+                    fsl_apply_xfm.inputs.interp = 'nearestneighbour'
+
+                    
+                    pick_seg_map = pe.Node(Function(input_names=['file_list', 'index', 'file_type'],
+                                                output_names=['file_name'],
+                                                function=pick_map,
+                                                as_module=True),
+                                        name=f'pick_{file_type}_{index}')
+                    
+                    node, out_file = reg_strat[resource]
+                    
+                    workflow.connect(node, out_file,
+                                    pick_seg_map, 'file_list')
+                    
+                    pick_seg_map.inputs.index=index
+                    pick_seg_map.inputs.file_type=file_type
+
+                    workflow.connect(pick_seg_map, 'file_name',
+                                    fsl_apply_xfm, 'in_file')
+
+                    workflow.connect(brain_merge_node, 'out', 
+                                    fsl_apply_xfm, 'reference')
+
+                    workflow.connect(fsl_convert_xfm, 'out_file', 
+                                    fsl_apply_xfm, 'in_matrix_file')
+                    
+                    concat_seg_map = pe.Node(Function(input_names=['in_list', 'in_file'],
+                                                output_names=['out_list'],
+                                                function=concat_map,
+                                                as_module=True),
+                                        name=f'concat_{file_type}_{index}')
+
+                    workflow.connect(fsl_apply_xfm, 'out_file',
+                                    concat_seg_map, 'in_file')
+
+                    if index == 0:
+                        concat_seg_map.inputs.in_list = in_list
+
+                        reg_strat.update_resource_pool({
+                            'temporary_seg_map_list':(concat_seg_map, 'out_list')
+                        })
+
+                    else:
+                        node, out_file = reg_strat['temporary_seg_map_list']
+
+                        workflow.connect(node, out_file,
+                                    concat_seg_map, 'in_list')
+                        
+                        reg_strat.update_resource_pool({
+                            'temporary_seg_map_list':(concat_seg_map, 'out_list')
+                        }, override=True)
+                
+                # reg_strat.update_resource_pool({
+                #     resource:(fsl_apply_xfm, 'out_file')
+                # }, override=True)
+                
+                # import pdb; pdb.set_trace()
+
+                reg_strat.update_resource_pool({
+                    resource:(concat_map, 'out_list')
+                }, override=True)
 
         for seg in ['anatomical_gm_mask', 'anatomical_csf_mask', 'anatomical_wm_mask',
-            'seg_mixeltype', 'seg_partial_volume_map']: 
+            'seg_mixeltype', 'seg_partial_volume_map']:
             # TODO apply warp on list
             # 'seg_probability_maps', 'seg_partial_volume_files'
-
             seg_apply_warp(strat_name=strat_name, resource=seg)
+
+        seg_apply_warp(strat_name=strat_name, resource='seg_probability_maps', type='list', file_type='prob')
+
+        # seg_apply_warp(strat_name=strat_name, resource='seg_partial_volume_files', type='list', file_type='pve')
 
         # Update resource pool
         # longitudinal template
@@ -1109,9 +1210,12 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             for rsc_key in strat.resource_pool.keys():
                 rsc_nodes_suffix = '_'.join(['_longitudinal_to_standard', strat_name, str(num_strat)]) 
                 if rsc_key in Outputs.any:
+                    # try:
                     node, rsc_name = strat[rsc_key]
                     ds = create_datasink(rsc_key + rsc_nodes_suffix, config, subject_id, strat_name='longitudinal_'+strat_name)
                     workflow.connect(node, rsc_name, ds, rsc_key)
+                    # except AttributeError:
+                    #     import pdb; pdb.set_trace()
 
         # individual minimal preprocessing items
         for i in range(len(strat_nodes_list)):
