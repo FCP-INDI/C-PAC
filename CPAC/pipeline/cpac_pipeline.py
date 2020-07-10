@@ -127,7 +127,10 @@ from CPAC.utils.utils import (
     create_output_mean_csv,
     get_zscore,
     get_fisher_zscore,
-    pick_wm
+    concat_list,
+    check_config_resources, 
+    check_system_deps,
+    ordereddict_to_dict
 )
 
 from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
@@ -163,9 +166,6 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         the prepared nipype workflow object containing the parameters
         specified in the config
     '''
-
-    # Import packages
-    from CPAC.utils.utils import check_config_resources, check_system_deps
 
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
@@ -754,10 +754,45 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     strat_initial.update_resource_pool({
                         key: (longitudinal_flow, 'outputspec.anat')
                     })
+                
                 elif ('anatomical' in key or 'seg' in key) and key not in strat:
-                    if 'seg_probability_maps' in key or 'seg_partial_volume_files' in key:
-                        # TODO
-                        pass
+                    if 'seg_probability_maps' in key or 'seg_partial_volume_files' in key:                    
+                        for num_key, file_path in enumerate(resource_pool_dict[key]):
+
+                            longitudinal_flow = create_anat_datasource(f'{key}_{num_key}_gather_{num_strat}')
+                            longitudinal_flow.inputs.inputnode.set(
+                                subject = subject_id,
+                                anat = file_path,
+                                creds_path = input_creds_path,
+                                dl_dir = c.workingDirectory,
+                                img_type = 'anat'
+                            )
+
+                            concat_seg_map = pe.Node(Function(input_names=['in_list1', 'in_list2'],
+                                                                output_names=['out_list'],
+                                                                function=concat_list),
+                                                        name=f'concat_{key}_{num_key}')
+                            
+                            workflow.connect(longitudinal_flow, 'outputspec.anat',
+                                concat_seg_map, 'in_list1')
+
+                            if num_key == 0:
+                                strat_initial.update_resource_pool({
+                                    f'temporary_{key}_list':(concat_seg_map, 'out_list')
+                                })
+                            else:
+                                node, out_file = strat_initial[f'temporary_{key}_list']
+                                workflow.connect(node, out_file,
+                                            concat_seg_map, 'in_list2')
+                                
+                                strat_initial.update_resource_pool({
+                                    f'temporary_{key}_list':(concat_seg_map, 'out_list')
+                                }, override=True)
+
+                        strat_initial.update_resource_pool({
+                            key: (concat_seg_map, 'out_list')
+                        })
+                    
                     else:
                         longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
                         longitudinal_flow.inputs.inputnode.set(
@@ -770,6 +805,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         strat_initial.update_resource_pool({
                             key: (longitudinal_flow, 'outputspec.anat')
                         })
+                
                 elif 'functional' in key:
                     # TODO 
                     pass
@@ -1883,7 +1919,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 new_strat = strat.fork()
 
                 # Before start nuisance_wf, covert OrderedDict(regressors_selector) to dict
-                from CPAC.utils.utils import ordereddict_to_dict
                 regressors_selector = ordereddict_to_dict(regressors_selector)
 
                 # to guarantee immutability

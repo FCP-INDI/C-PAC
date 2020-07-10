@@ -15,6 +15,7 @@ import nipype.interfaces.utility as util
 
 from indi_aws import aws_utils
 
+from CPAC.utils.utils import concat_list
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
 
@@ -665,16 +666,6 @@ def pick_map(file_list, index, file_type):
     return None
 
 
-def concat_list(in_list, in_file=None):
-
-    if in_file != None:
-        out_list = in_list + in_file
-    else:
-        out_list = in_list
-
-    return out_list
-
-
 def anat_longitudinal_wf(subject_id, sub_list, config):
     """
     Parameters
@@ -1130,14 +1121,14 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     workflow.connect(fsl_convert_xfm, 'out_file', 
                                     fsl_apply_xfm, 'in_matrix_file')
                     
-                    concat_seg_map = pe.Node(Function(input_names=['in_list', 'in_file'],
+                    concat_seg_map = pe.Node(Function(input_names=['in_list1', 'in_list2'],
                                                 output_names=['out_list'],
                                                 function=concat_list),
                                         name=f'concat_{file_type}_{index}')
                     
                     if index == 0:
                         workflow.connect(fsl_apply_xfm, 'out_file',
-                                    concat_seg_map, 'in_list')
+                                    concat_seg_map, 'in_list1')
 
                         reg_strat.update_resource_pool({
                             f'temporary_{resource}_list':(concat_seg_map, 'out_list')
@@ -1145,12 +1136,12 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
                     else:
                         workflow.connect(fsl_apply_xfm, 'out_file',
-                                    concat_seg_map, 'in_file')
+                                    concat_seg_map, 'in_list2')
 
                         node, out_file = reg_strat[f'temporary_{resource}_list']
 
                         workflow.connect(node, out_file,
-                                    concat_seg_map, 'in_list')
+                                    concat_seg_map, 'in_list1')
                         
                         reg_strat.update_resource_pool({
                             f'temporary_{resource}_list':(concat_seg_map, 'out_list')
