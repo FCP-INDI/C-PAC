@@ -81,7 +81,7 @@ logger = logging.getLogger('nipype.workflow')
 def register_anat_longitudinal_template_to_standard(longitudinal_template_node, c, workflow, strat_init, strat_name):
 
     brain_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
-                         name='longitudinal_anatomical_brain_mask')
+                         name=f'longitudinal_anatomical_brain_mask_{strat_name}')
     
     brain_mask.inputs.args = '-bin'
     
@@ -534,7 +534,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
         strat_list += new_strat_list
     
     # Inserting Segmentation Preprocessing Workflow
-    workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
+    workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c, strat_name)
 
     return strat_list
 
@@ -956,7 +956,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
     # loop over the different skull stripping strategies
     for strat_name, strat_nodes_list in strat_nodes_list_list.items():
-        
+
         node_suffix = '_'.join([strat_name, subject_id])
 
         # Merge node to feed the anat_preproc outputs to the longitudinal template generation
@@ -1102,7 +1102,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     pick_seg_map = pe.Node(Function(input_names=['file_list', 'index', 'file_type'],
                                                 output_names=['file_name'],
                                                 function=pick_map),
-                                        name=f'pick_{file_type}_{index}')
+                                        name=f'pick_{file_type}_{index}_{strat_name}')
 
                     node, out_file = reg_strat[resource]
 
@@ -1124,7 +1124,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     concat_seg_map = pe.Node(Function(input_names=['in_list1', 'in_list2'],
                                                 output_names=['out_list'],
                                                 function=concat_list),
-                                        name=f'concat_{file_type}_{index}')
+                                        name=f'concat_{file_type}_{index}_{strat_name}')
                     
                     if index == 0:
                         workflow.connect(fsl_apply_xfm, 'out_file',

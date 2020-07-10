@@ -558,21 +558,28 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
     return preproc
 
 
-def connect_anat_segmentation(workflow, strat_list, c):
+def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
     
     """
     Segmentation Preprocessing Workflow
     
     Parameters
     ----------
-        workflow : main preprocessing workflow
-        strat_list : list of strategies
+        workflow : workflow
+            main preprocessing workflow
+        strat_list : list
+            list of strategies
         c : configuration
+            pipeline configuration
+        strat_name : str
+            name of strategy
 
     Returns
     -------
-        workflow : updated main preprocessing workflow
-        strat_list : list of updated strategies
+        workflow : workflow
+            updated main preprocessing workflow
+        strat_list : list
+            list of updated strategies
     """
     
     from CPAC.seg_preproc.seg_preproc import (
@@ -602,13 +609,18 @@ def connect_anat_segmentation(workflow, strat_list, c):
             elif strat.get('registration_method') == 'ANTS':
                 use_ants = True
 
+            if strat_name != None:
+                seg_preproc_wf_name = f'seg_preproc_{strat_name}_{num_strat}'
+            else:
+                seg_preproc_wf_name = f'seg_preproc_{num_strat}'
+
             seg_preproc = create_seg_preproc(use_ants=use_ants,
                                              use_priors=c.seg_use_priors,
                                              use_threshold=c.seg_use_threshold,
                                              csf_use_erosion=c.seg_csf_use_erosion,
                                              wm_use_erosion=c.seg_wm_use_erosion,
                                              gm_use_erosion=c.seg_gm_use_erosion,
-                                             wf_name='seg_preproc_{0}'.format(num_strat))
+                                             wf_name=seg_preproc_wf_name)
 
             seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
             seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
