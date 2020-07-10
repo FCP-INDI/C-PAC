@@ -26,7 +26,6 @@ linux_openmp_64/3dTproject
 linux_openmp_64/3dTshift
 linux_openmp_64/3dTstat
 linux_openmp_64/3dvolreg
-linux_openmp_64/@animal_warper
 linux_openmp_64/afni
 linux_openmp_64/libcoxplot.a
 linux_openmp_64/libf2c.a

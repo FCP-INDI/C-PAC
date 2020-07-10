@@ -787,32 +787,31 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         'anatomical': (anat_flow, 'outputspec.anat')
     })
 
-    if 'brain_mask' in sub_dict.keys():
-        if sub_dict['brain_mask'] and sub_dict['brain_mask'].lower() != 'none':
-            brain_flow = create_anat_datasource('brain_gather_%d' % num_strat)
-            brain_flow.inputs.inputnode.set(
-                subject = subject_id,
-                anat = sub_dict['brain_mask'],
-                creds_path = input_creds_path,
-                dl_dir = c.workingDirectory,
-                img_type = 'anat'
-            )
-            strat_initial.update_resource_pool({
-                'anatomical_brain_mask': (brain_flow, 'outputspec.anat')
-            })
+    anat_ingress = [
+        'brain_mask',
+        'lesion_mask',
+        'anatomical_csf_mask',
+        'anatomical_gm_mask',
+        'anatomical_wm_mask'
+    ]
 
-    if 'lesion_mask' in sub_dict.keys():
-        lesion_datasource = create_anat_datasource('lesion_gather_%d' % num_strat)
-        lesion_datasource.inputs.inputnode.set(
-            subject = subject_id,
-            anat = sub_dict['lesion_mask'],
-            creds_path = input_creds_path,
-            dl_dir = c.workingDirectory,
-            img_type = 'anat'
-        )
-        strat_initial.update_resource_pool({
-            'lesion_mask': (lesion_datasource, 'outputspec.anat')
-        })
+    for key in anat_ingress:
+        if key in sub_dict.keys():
+            if sub_dict[key] and sub_dict[key].lower() != 'none':
+
+                anat_ingress_flow = create_anat_datasource(
+                    f'anat_ingress_gather_{key}_{num_strat}')
+                anat_ingress_flow.inputs.inputnode.subject = subject_id
+                anat_ingress_flow.inputs.inputnode.anat = sub_dict[key]
+                anat_ingress_flow.inputs.inputnode.creds_path = input_creds_path
+                anat_ingress_flow.inputs.inputnode.dl_dir = c.workingDirectory
+
+                if key == 'brain_mask':
+                    key = 'anatomical_brain_mask'
+
+                strat_initial.update_resource_pool({
+                    key: (anat_ingress_flow, 'outputspec.anat')
+                })
 
     templates_for_resampling = [
         (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
