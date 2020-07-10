@@ -755,17 +755,21 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         key: (longitudinal_flow, 'outputspec.anat')
                     })
                 elif ('anatomical' in key or 'seg' in key) and key not in strat:
-                    longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
-                    longitudinal_flow.inputs.inputnode.set(
-                        subject = subject_id,
-                        anat = resource_pool_dict[key],
-                        creds_path = input_creds_path,
-                        dl_dir = c.workingDirectory,
-                        img_type = 'anat'
-                    )
-                    strat_initial.update_resource_pool({
-                        key: (longitudinal_flow, 'outputspec.anat')
-                    })
+                    if 'seg_probability_maps' in key or 'seg_partial_volume_files' in key:
+                        # TODO
+                        pass
+                    else:
+                        longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
+                        longitudinal_flow.inputs.inputnode.set(
+                            subject = subject_id,
+                            anat = resource_pool_dict[key],
+                            creds_path = input_creds_path,
+                            dl_dir = c.workingDirectory,
+                            img_type = 'anat'
+                        )
+                        strat_initial.update_resource_pool({
+                            key: (longitudinal_flow, 'outputspec.anat')
+                        })
                 elif 'functional' in key:
                     # TODO 
                     pass

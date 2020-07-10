@@ -1,4 +1,5 @@
 import os
+import glob
 import warnings
 from multiprocessing import Process
 from time import strftime
@@ -441,10 +442,31 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                         # TODO update!!!
                                         # it assumes session id == last key (ordered by session count instead of session id) + 1
                                         # might cause problem if session id is not continuous
+                                        def replace_index(target1, target2, file_path):
+                                            index1 = file_path.index(target1)+len(target1)
+                                            index2 = file_path.index(target2)+len(target2)
+                                            file_str_list = list(file_path)
+                                            file_str_list[index1] = "*"
+                                            file_str_list[index2] = "*"
+                                            file_path_updated = "".join(file_str_list)
+                                            file_list = glob.glob(file_path_updated)
+                                            file_list.sort()
+                                            return file_list
                                         if ses['unique_id'] == str(int(keys[-2][-1])+1):
-                                            ses['resource_pool'][strat_key].update({
-                                                keys[-3]: f # keys[-3]: 'anatomical_to_standard'
-                                            })
+                                            if keys[-3] == 'seg_probability_maps':
+                                                f_list = replace_index('seg_probability_maps_', 'segment_prob_', f)
+                                                ses['resource_pool'][strat_key].update({
+                                                    keys[-3]: f_list
+                                                })
+                                            elif keys[-3] == 'seg_partial_volume_files':
+                                                f_list = replace_index('seg_partial_volume_files_', 'segment_pve_', f)
+                                                ses['resource_pool'][strat_key].update({
+                                                    keys[-3]: f_list
+                                                })
+                                            else:
+                                                ses['resource_pool'][strat_key].update({
+                                                    keys[-3]: f # keys[-3]: 'anatomical_to_standard'
+                                                })
                                     elif keys[-2] != 'warp_list':
                                         ses['resource_pool'][strat_key].update({
                                                 keys[-2]: f
@@ -469,7 +491,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
             yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
         
-            print("Longitudinal pipeline completed.")
+            print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
             
             # skip main preprocessing
             if 1 not in c.runAnatomical and 1 not in c.runFunctional:
