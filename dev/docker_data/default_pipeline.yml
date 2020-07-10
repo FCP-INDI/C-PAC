@@ -293,7 +293,7 @@ bet_vertical_gradient : 0.0
 # Run anatomical and/or functional longitudinal pipeline
 # Options: 'anat' and/or 'func'
 # Note: 'func' is still under development and not available yet
-run_longitudinal : ['anat']
+run_longitudinal : []
 
 
 # Freesurfer longitudinal template algorithm using FSL FLIRT

@@ -351,12 +351,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             # subject_id_dict has the subject_id as keys and a list of sessions for
             # each participant as value
             for subject_id, sub_list in subject_id_dict.items():
-                # TODO debug - organize working dir
                 if 'anat' in c.run_longitudinal:
                     strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
-                if 'func' in c.run_longitudinal:
-                    strat_list = func_preproc_longitudinal_wf(subject_id, sub_list, c)
-                    func_longitudinal_template_wf(subject_id, strat_list, c)
+                # TODO
+                # if 'func' in c.run_longitudinal:
+                #     strat_list = func_preproc_longitudinal_wf(subject_id, sub_list, c)
+                #     func_longitudinal_template_wf(subject_id, strat_list, c)
 
             rsc_file_list = []
             for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
