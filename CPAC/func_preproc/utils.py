@@ -18,17 +18,17 @@ def nullify(value, function=None):
     return value
 
 
-def chunk_ts(func_file):
-    func_img = nb.load(func)
+def chunk_ts(func_file, n_cpus):
+    func_img = nb.load(func_file)
     trs = func_img.shape[3]
     chunk = trs/n_cpus
     TR_ranges = []
 
     for chunk_idx in range(0, n_cpus):
         if chunk_idx == n_cpus - 1:
-            TR_ranges.append((chunk_idx*chunk, trs - 1))
+            TR_ranges.append((int(chunk_idx*chunk), int(trs - 1)))
         else:
-            TR_ranges.append((chunk_idx*chunk, (chunk_idx+1)*chunk -1))
+            TR_ranges.append((int(chunk_idx*chunk), int((chunk_idx+1)*chunk -1)))
     return TR_ranges
 
 
@@ -50,3 +50,26 @@ def split_ts_chunks(func_file, tr_ranges):
         split_funcs.append(out_file)
 
     return split_funcs
+
+
+def oned_text_concat(in_files):
+    out_file = os.path.join(os.getcwd(), os.path.basename(in_files[0].replace("_0", "")))
+
+    out_txt = []
+    for txt in in_files:
+        with open(txt, 'r') as f:
+            txt_lines = f.readlines()
+        if not out_txt:
+            out_txt = [x for x in txt_lines]
+        else:
+            for line in txt_lines:
+                if "#" in line:
+                    continue
+                out_txt.append(line)
+
+    with open(out_file, 'wt') as f:
+        for line in out_txt:
+            f.write(line)
+
+    return out_file
+
