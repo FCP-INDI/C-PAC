@@ -497,7 +497,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                     
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
-                                     ants_reg_anat_symm_mni, 'inputspec.anatomical_skull')
+                                     ants_reg_anat_symm_mni, 'inputspec.moving_skull')
 
                     # pass the reference file
                     node, out_file = strat['template_symmetric_skull']
