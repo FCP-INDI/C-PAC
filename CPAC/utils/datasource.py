@@ -398,8 +398,8 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
     # Import packages
     import os
     import nibabel as nib
-    # import botocore.exceptions
-    # from indi_aws import fetch_creds
+    import botocore.exceptions
+    from indi_aws import fetch_creds
 
     # Init variables
     s3_str = 's3://'

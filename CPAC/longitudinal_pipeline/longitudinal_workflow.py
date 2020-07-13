@@ -43,7 +43,10 @@ from CPAC.utils.datasource import (
 )
 
 from CPAC.anat_preproc.anat_preproc import (
-    create_anat_preproc,
+    create_anat_preproc
+)
+
+from CPAC.seg_preproc.seg_preproc import (
     connect_anat_segmentation
 )
 

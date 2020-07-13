@@ -35,8 +35,7 @@ from CPAC.network_centrality.pipeline import (
 )
 
 from CPAC.anat_preproc.anat_preproc import (
-    create_anat_preproc, 
-    connect_anat_segmentation
+    create_anat_preproc
 )
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
@@ -55,9 +54,7 @@ from CPAC.distortion_correction.distortion_correction import (
 )
 
 from CPAC.seg_preproc.seg_preproc import (
-    create_seg_preproc,
-    create_seg_preproc_template_based,
-    create_seg_preproc_antsJointLabel_method
+    connect_anat_segmentation
 )
 
 from CPAC.seg_preproc.utils import mask_erosion
@@ -734,86 +731,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     strat_list = []
     num_strat = 0
 
-    # update resource pool from data config
-    # TODO fork resource pool
-    if 'resource_pool' in sub_dict.keys():
-        resource_pool_list = sub_dict['resource_pool']
-        for strat in resource_pool_list.keys():
-            resource_pool_dict = sub_dict['resource_pool'][strat]
-            for key in resource_pool_dict.keys():
-                # handle anatomical_to_mni_nonlinear_xfm, mni_to_anatomical_nonlinear_xfm, ants xfms
-                if ('nonlinear_xfm' in key or 'ants' in key) and key not in strat:
-                    longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
-                    longitudinal_flow.inputs.inputnode.set(
-                        subject = subject_id,
-                        anat = resource_pool_dict[key],
-                        creds_path = input_creds_path,
-                        dl_dir = c.workingDirectory,
-                        img_type = 'other'
-                    )
-                    strat_initial.update_resource_pool({
-                        key: (longitudinal_flow, 'outputspec.anat')
-                    })
-                
-                elif ('anatomical' in key or 'seg' in key) and key not in strat:
-                    if 'seg_probability_maps' in key or 'seg_partial_volume_files' in key:                    
-                        for num_key, file_path in enumerate(resource_pool_dict[key]):
-
-                            longitudinal_flow = create_anat_datasource(f'{key}_{num_key}_gather_{num_strat}')
-                            longitudinal_flow.inputs.inputnode.set(
-                                subject = subject_id,
-                                anat = file_path,
-                                creds_path = input_creds_path,
-                                dl_dir = c.workingDirectory,
-                                img_type = 'anat'
-                            )
-
-                            concat_seg_map = pe.Node(Function(input_names=['in_list1', 'in_list2'],
-                                                                output_names=['out_list'],
-                                                                function=concat_list),
-                                                        name=f'concat_{key}_{num_key}')
-                            
-                            workflow.connect(longitudinal_flow, 'outputspec.anat',
-                                concat_seg_map, 'in_list1')
-
-                            if num_key == 0:
-                                strat_initial.update_resource_pool({
-                                    f'temporary_{key}_list':(concat_seg_map, 'out_list')
-                                })
-                            else:
-                                node, out_file = strat_initial[f'temporary_{key}_list']
-                                workflow.connect(node, out_file,
-                                            concat_seg_map, 'in_list2')
-                                
-                                strat_initial.update_resource_pool({
-                                    f'temporary_{key}_list':(concat_seg_map, 'out_list')
-                                }, override=True)
-
-                        strat_initial.update_resource_pool({
-                            key: (concat_seg_map, 'out_list')
-                        })
-                    
-                    else:
-                        longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
-                        longitudinal_flow.inputs.inputnode.set(
-                            subject = subject_id,
-                            anat = resource_pool_dict[key],
-                            creds_path = input_creds_path,
-                            dl_dir = c.workingDirectory,
-                            img_type = 'anat'
-                        )
-                        strat_initial.update_resource_pool({
-                            key: (longitudinal_flow, 'outputspec.anat')
-                        })
-                
-                elif 'functional' in key:
-                    # TODO 
-                    pass
-                else:
-                    strat_initial.update_resource_pool({
-                        key: resource_pool_dict[key]
-                    })
-
     anat_flow = create_anat_datasource('anat_gather_%d' % num_strat)
     anat_flow.inputs.inputnode.set(
         subject = subject_id,
@@ -889,11 +806,102 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             template_name: (resampled_template, 'resampled_template')
         })
 
-    strat_list += [strat_initial]
+    # update resource pool from data config
+    # TODO fork resource pool
+    if 'resource_pool' in sub_dict.keys():
+        
+        resource_pool_list = sub_dict['resource_pool']
+
+        for num_strat, strat in enumerate(resource_pool_list.keys()):
+            
+            new_strat = strat_initial.fork()
+            resource_pool_dict = sub_dict['resource_pool'][strat]
+
+            for key in resource_pool_dict.keys():
+                # handle anatomical_to_mni_nonlinear_xfm, mni_to_anatomical_nonlinear_xfm, ants xfms
+                if ('nonlinear_xfm' in key or 'ants' in key) and key not in strat:
+
+                    longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
+
+                    longitudinal_flow.inputs.inputnode.set(
+                        subject = subject_id,
+                        anat = resource_pool_dict[key],
+                        creds_path = input_creds_path,
+                        dl_dir = c.workingDirectory,
+                        img_type = 'other'
+                    )
+
+                    new_strat.update_resource_pool({
+                        key: (longitudinal_flow, 'outputspec.anat')
+                    })
+                
+                elif ('anatomical' in key or 'seg' in key) and key not in strat:
+
+                    if 'seg_probability_maps' in key or 'seg_partial_volume_files' in key:
+
+                        for num_key, file_path in enumerate(resource_pool_dict[key]):
+
+                            longitudinal_flow = create_anat_datasource(f'{key}_{num_key}_gather_{num_strat}')
+                            longitudinal_flow.inputs.inputnode.set(
+                                subject = subject_id,
+                                anat = file_path,
+                                creds_path = input_creds_path,
+                                dl_dir = c.workingDirectory,
+                                img_type = 'anat'
+                            )
+
+                            concat_seg_map = pe.Node(Function(input_names=['in_list1', 'in_list2'],
+                                                                output_names=['out_list'],
+                                                                function=concat_list),
+                                                        name=f'concat_{key}_{num_key}_{num_strat}')
+                            
+                            workflow.connect(longitudinal_flow, 'outputspec.anat',
+                                concat_seg_map, 'in_list1')
+
+                            if num_key == 0:
+                                new_strat.update_resource_pool({
+                                    f'temporary_{key}_list':(concat_seg_map, 'out_list')
+                                })
+                            else:
+                                node, out_file = new_strat[f'temporary_{key}_list']
+                                workflow.connect(node, out_file,
+                                            concat_seg_map, 'in_list2')
+                                
+                                new_strat.update_resource_pool({
+                                    f'temporary_{key}_list':(concat_seg_map, 'out_list')
+                                }, override=True)
+
+                        new_strat.update_resource_pool({
+                            key: (concat_seg_map, 'out_list')
+                        })
+                    
+                    else:
+                        longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
+                        longitudinal_flow.inputs.inputnode.set(
+                            subject = subject_id,
+                            anat = resource_pool_dict[key],
+                            creds_path = input_creds_path,
+                            dl_dir = c.workingDirectory,
+                            img_type = 'anat'
+                        )
+                        new_strat.update_resource_pool({
+                            key: (longitudinal_flow, 'outputspec.anat')
+                        })
+                
+                elif 'functional' in key:
+                    # TODO 
+                    pass
+                else:
+                    new_strat.update_resource_pool({
+                        key: resource_pool_dict[key]
+                    })
+                
+            strat_list += [new_strat]
+
 
     new_strat_list = []
 
-    if 'anatomical_to_standard' not in strat_initial:
+    if 'anatomical_to_standard' not in new_strat:
         
         for num_strat, strat in enumerate(strat_list):
 

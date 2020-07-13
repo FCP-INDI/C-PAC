@@ -365,31 +365,24 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
     # Distortion Correction - Field Map Phase-difference
     if "PhaseDiff" in c.distortion_correction and diff:
         for num_strat, strat in enumerate(strat_list):
+            if unique_id is None:
+                    workflow_name=f'diff_distcor_{num_strat}'
+            else:
+                workflow_name=f'diff_distcor_{unique_id}_{num_strat}'
+            
             if 'BET' in c.fmap_distcorr_skullstrip:
-                if unique_id is None:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=True,
-                        wf_name=f'diff_distcor_{num_strat}'
-                    )
-                else:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=True,
-                        wf_name=f'diff_distcor_{unique_id}_{num_strat}'
-                    )
+                epi_distcorr = create_EPI_DistCorr(
+                    use_BET=True,
+                    wf_name=workflow_name
+                )
                 epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
                 epi_distcorr.get_node('bet_frac_input').iterables = \
                     ('bet_frac', c.fmap_distcorr_frac)
             else:
-                if unique_id is None:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=False,
-                        wf_name=f'diff_distcor_{num_strat}'
-                    )
-                else:
-                    epi_distcorr = create_EPI_DistCorr(
-                        use_BET=False,
-                        wf_name=f'diff_distcor_{unique_id}_{num_strat}'
-                    )
+                epi_distcorr = create_EPI_DistCorr(
+                    use_BET=False,
+                    wf_name=workflow_name
+                )
                 epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
                     c.fmap_distcorr_threshold
 
@@ -474,11 +467,12 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
                              match_epi_fmaps_node, 'bold_pedir')
 
             if unique_id is None:
-                blip_correct = blip_distcor_wf(
-                    wf_name=f'blip_correct_{num_strat}')
+                workflow_name=f'blip_correct_{num_strat}'
             else:
-                blip_correct = blip_distcor_wf(
-                    wf_name=f'blip_correct_{unique_id}_{num_strat}')
+                workflow_name=f'blip_correct_{unique_id}_{num_strat}'
+            
+            blip_correct = blip_distcor_wf(
+                wf_name=workflow_name)
 
             node, out_file = strat["mean_functional"]
             workflow.connect(node, out_file,

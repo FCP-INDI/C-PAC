@@ -28,12 +28,13 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
             func_paths_dict = sub_dict['rest']
 
         if unique_id is None:
-            func_wf = create_func_datasource(func_paths_dict,
-                                            f'func_gather_{num_strat}')
+            workflow_name=f'func_gather_{num_strat}'
         else:
-            func_wf = create_func_datasource(func_paths_dict,
-                                            f'func_gather_{unique_id}_{num_strat}')
-
+            workflow_name=f'func_gather_{unique_id}_{num_strat}'
+        
+        func_wf = create_func_datasource(func_paths_dict,
+                                        workflow_name)
+        
         func_wf.inputs.inputnode.set(
             subject=subject_id,
             creds_path=input_creds_path,
@@ -140,43 +141,28 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
         # Add in nodes to get parameters from configuration file
         # a node which checks if scan_parameters are present for each scan
         if unique_id is None:
-            scan_params = \
-                pe.Node(Function(
-                    input_names=['data_config_scan_params',
-                                'subject_id',
-                                'scan',
-                                'pipeconfig_tr',
-                                'pipeconfig_tpattern',
-                                'pipeconfig_start_indx',
-                                'pipeconfig_stop_indx'],
-                    output_names=['tr',
-                                'tpattern',
-                                'ref_slice',
-                                'start_indx',
-                                'stop_indx',
-                                'pe_direction'],
-                    function=get_scan_params,
-                    as_module=True
-                ), name=f'scan_params_{num_strat}')
+            workflow_name=f'scan_params_{num_strat}'
         else:
-            scan_params = \
-                pe.Node(Function(
-                    input_names=['data_config_scan_params',
-                                'subject_id',
-                                'scan',
-                                'pipeconfig_tr',
-                                'pipeconfig_tpattern',
-                                'pipeconfig_start_indx',
-                                'pipeconfig_stop_indx'],
-                    output_names=['tr',
-                                'tpattern',
-                                'ref_slice',
-                                'start_indx',
-                                'stop_indx',
-                                'pe_direction'],
-                    function=get_scan_params,
-                    as_module=True
-                ), name=f'scan_params_{unique_id}_{num_strat}')
+            workflow_name=f'scan_params_{unique_id}_{num_strat}'
+        
+        scan_params = \
+            pe.Node(Function(
+                input_names=['data_config_scan_params',
+                            'subject_id',
+                            'scan',
+                            'pipeconfig_tr',
+                            'pipeconfig_tpattern',
+                            'pipeconfig_start_indx',
+                            'pipeconfig_stop_indx'],
+                output_names=['tr',
+                            'tpattern',
+                            'ref_slice',
+                            'start_indx',
+                            'stop_indx',
+                            'pe_direction'],
+                function=get_scan_params,
+                as_module=True
+            ), name=workflow_name)
         
         if "Selected Functional Volume" in c.func_reg_input:
             get_func_volume = pe.Node(interface=afni.Calc(),

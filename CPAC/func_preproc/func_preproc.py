@@ -1482,28 +1482,17 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
             motion_correct_tool = strat.get('motion_correction_method')
 
             if unique_id is None:
-                func_preproc = create_func_preproc(
-                    skullstrip_tool=skullstrip_tool,
-                    motion_correct_tool=motion_correct_tool,
-                    motion_correct_ref=motion_correct_ref,
-                    config=c,
-                    wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                                motion_correct_ref,
-                                                                motion_correct_tool,
-                                                                num_strat)
-                )
+                workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{num_strat}'
             else:
-                func_preproc = create_func_preproc(
-                    skullstrip_tool=skullstrip_tool,
-                    motion_correct_tool=motion_correct_tool,
-                    motion_correct_ref=motion_correct_ref,
-                    config=c,
-                    wf_name='func_preproc_{0}_{1}_{2}_{3}_{4}'.format(skullstrip_tool,
-                                                                motion_correct_ref,
-                                                                motion_correct_tool,
-                                                                unique_id,
-                                                                num_strat)
-                )
+                workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{unique_id}_{num_strat}'
+
+            func_preproc = create_func_preproc(
+                skullstrip_tool=skullstrip_tool,
+                motion_correct_tool=motion_correct_tool,
+                motion_correct_ref=motion_correct_ref,
+                config=c,
+                wf_name=workflow_name
+            )
 
             node, out_file = strat['raw_functional_trunc']
             workflow.connect(node, out_file, func_preproc,
@@ -1563,28 +1552,17 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                         new_strat = strat.fork()
                         
                         if unique_id is None:
-                            func_preproc = create_func_preproc(
-                                skullstrip_tool=skullstrip_tool,
-                                motion_correct_tool=motion_correct_tool,
-                                motion_correct_ref=motion_correct_ref,
-                                config=c,
-                                wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                                            motion_correct_ref,
-                                                                            motion_correct_tool,
-                                                                            num_strat)
-                            )
+                            workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{num_strat}'
                         else:
-                            func_preproc = create_func_preproc(
-                                skullstrip_tool=skullstrip_tool,
-                                motion_correct_tool=motion_correct_tool,
-                                motion_correct_ref=motion_correct_ref,
-                                config=c,
-                                wf_name='func_preproc_{0}_{1}_{2}_{3}_{4}'.format(skullstrip_tool,
-                                                                            motion_correct_ref,
-                                                                            motion_correct_tool,
-                                                                            unique_id,
-                                                                            num_strat)
-                            )
+                            workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{unique_id}_{num_strat}'
+
+                        func_preproc = create_func_preproc(
+                            skullstrip_tool=skullstrip_tool,
+                            motion_correct_tool=motion_correct_tool,
+                            motion_correct_ref=motion_correct_ref,
+                            config=c,
+                            wf_name=workflow_name
+                        )
 
                         node, out_file = new_strat['raw_functional_trunc']
                         workflow.connect(node, out_file, func_preproc,
