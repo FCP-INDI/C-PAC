@@ -897,9 +897,8 @@ realignment : ['ROI_to_func']
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
 tsa_roi_paths:
-- s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg	
-  s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
-
+  - s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
 roiTSOutputs :  [True, True]
@@ -914,8 +913,8 @@ runSCA :  [0]
 # Available analyses: ['Avg', 'DualReg', 'MultReg'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
 sca_roi_paths:
-- s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg	
-  s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
+  - s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_L_0.5mm.nii.gz: Avg
+    s3://fcp-indi/resources/cpac/resources/parcellation/Markov91_R_0.5mm.nii.gz: Avg
 
 
 # Normalize each time series before running Dual Regression SCA.
