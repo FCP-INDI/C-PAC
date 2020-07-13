@@ -38,7 +38,7 @@
   site: HNU_1
   subject_id: sub-0025431
   unique_id: ses-2
-- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-vNavNorm_run-01_T1w.nii.gz
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/anat/sub-NDARAA504CRN_acq-VNavNorm_T1w.nii.gz
   fmap:
     epi_AP:
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA504CRN/fmap/sub-NDARAA504CRN_dir-AP_acq-fMRI_epi.nii.gz
@@ -53,7 +53,7 @@
   site: Site-CBIC
   subject_id: sub-NDARAA504CRN
   unique_id: '1'
-- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/anat/sub-NDARAA947ZG5_acq-vNavNorm_run-01_T1w.nii.gz
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/anat/sub-NDARAA947ZG5_acq-VNavNorm_T1w.nii.gz
   fmap:
     epi_AP:
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAA947ZG5/fmap/sub-NDARAA947ZG5_dir-AP_acq-fMRI_epi.nii.gz
@@ -68,7 +68,7 @@
   site: Site-CBIC
   subject_id: sub-NDARAA947ZG5
   unique_id: '1'
-- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/anat/sub-NDARAB348EWR_acq-vNavNorm_run-01_T1w.nii.gz
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/anat/sub-NDARAB348EWR_acq-VNavNorm_run-01_T1w.nii.gz
   fmap:
     epi_AP:
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB348EWR/fmap/sub-NDARAB348EWR_dir-AP_acq-fMRI_epi.nii.gz
@@ -83,7 +83,7 @@
   site: Site-CBIC
   subject_id: sub-NDARAB348EWR
   unique_id: '1'
-- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/anat/sub-NDARAB458VK9_acq-vNavNorm_run-01_T1w.nii.gz
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/anat/sub-NDARAB458VK9_acq-VNavNorm_run-01_T1w.nii.gz
   fmap:
     epi_AP:
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB458VK9/fmap/sub-NDARAB458VK9_dir-AP_acq-fMRI_epi.nii.gz
@@ -98,7 +98,7 @@
   site: Site-CBIC
   subject_id: sub-NDARAB458VK9
   unique_id: '1'
-- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/anat/sub-NDARAB514MAJ_acq-vNavNorm_run-01_T1w.nii.gz
+- anat: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/anat/sub-NDARAB514MAJ_acq-VNavNorm_T1w.nii.gz
   fmap:
     epi_AP:
       scan: s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB514MAJ/fmap/sub-NDARAB514MAJ_dir-AP_acq-fMRI_epi.nii.gz

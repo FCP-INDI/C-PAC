@@ -113,9 +113,7 @@ def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_f
     censor_vector[extended_censors] = 0
 
     out_file_path = os.path.join(os.getcwd(), "censors.tsv")
-    np.savetxt(
-        out_file_path, censor_vector, fmt='%d', header='censor', comments=''
-    )
+    np.savetxt(out_file_path, censor_vector, fmt='%d', header='censor')
 
     return out_file_path
 

@@ -1105,7 +1105,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         if label == "*":
             # if current key is a wildcard
             continue
-        
+
         try:
             id = new_path.split(part1, 1)[1]
             id = id.split(part2, 1)[0]
@@ -1177,7 +1177,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                 # field map files - keep these open as "None" so that they
                 # can be applied to all scans, if there isn't one specified
                 scan_id = None
-    
+
     if inclusion_dct:
         if 'sites' in inclusion_dct.keys():
             if site_id not in inclusion_dct['sites']:
@@ -1662,11 +1662,12 @@ def util_copy_template(template_type=None):
     else:
         type = template_type
 
-    settings_template = \
-        p.resource_filename("CPAC",
-                            os.path.join("resources",
-                                         "configs",
-                                         "{0}_template.yml".format(type)))
+    settings_template = "/cpac_resources/default_pipeline.yml" if (
+        type == "pipeline_config"
+    ) else p.resource_filename("CPAC",
+        os.path.join("resources",
+                     "configs",
+                     "{0}_template.yml".format(type)))
 
     settings_file = os.path.join(os.getcwd(), "{0}.yml".format(type))
 
