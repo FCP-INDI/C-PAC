@@ -819,27 +819,6 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(func_deoblique, 'out_file',
                     func_reorient, 'in_file')
 
-    # TODO reassess average center of mass implementation, esp for skull alignment
-    '''
-    if 'func' in config.run_longitudinal:
-        func_align_cmass = pe.Node(interface=afni.CenterMass(), name='cmass')
-        func_align_cmass.inputs.cm_file = os.path.join(
-            os.getcwd(), "center_of_mass.txt")
-        preproc.connect(func_reorient, 'out_file', func_align_cmass, 'in_file')
-        # have to hardcode that because nipype CenterMass outputs a list of tuples
-        # but the set_cm option take a tuple as input
-        patch = pe.Node(util.Function(input_names=['lst'],
-                        output_names=['tuple'],
-                        function=patch_cmass_output),
-                        name='patch_cmass')
-        preproc.connect(inputnode, 'template_cmass', patch, 'lst')
-        preproc.connect(patch, 'tuple', func_align_cmass, 'set_cm')
-        preproc.connect(func_align_cmass, 'cm',
-                        output_node, 'center_of_mass')
-        # Just add the alignment to the output image
-        preproc.connect(func_align_cmass, 'out_file', output_node, 'reorient')
-    else:
-    '''
     preproc.connect(func_reorient, 'out_file', output_node, 'reorient')
 
     func_motion_correct = pe.Node(interface=preprocess.Volreg(),
