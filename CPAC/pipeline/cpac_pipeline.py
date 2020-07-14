@@ -897,11 +897,15 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     })
                 
             strat_list += [new_strat]
+        
+    else:
+        
+        strat_list += [strat_initial]
 
 
     new_strat_list = []
 
-    if 'anatomical_to_standard' not in new_strat:
+    if 'anatomical_to_standard' not in strat_list[0]:
         
         for num_strat, strat in enumerate(strat_list):
 
