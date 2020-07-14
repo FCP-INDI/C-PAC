@@ -575,8 +575,8 @@ def create_regressor_workflow(nuisance_selectors,
     High Level Workflow Graph:
 
     .. exec::
-        from CPAC.nuisance import create_nuisance_workflow
-        wf = create_nuisance_workflow({
+        from CPAC.nuisance import create_nuisance_regression_workflow
+        wf = create_nuisance_regression_workflow({
             'PolyOrt': {'degree': 2},
             'tCompCor': {'summary': {'method': 'PC', 'components': 5}, 'threshold': '1.5SD', 'by_slice': True},
             'aCompCor': {'summary': {'method': 'PC', 'components': 5}, 'tissues': ['WhiteMatter', 'CerebrospinalFluid'], 'extraction_resolution': 2},
