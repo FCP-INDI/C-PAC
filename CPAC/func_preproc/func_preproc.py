@@ -9,8 +9,8 @@ import nipype.interfaces.utility as util
 from nipype.interfaces import afni
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
-
-from CPAC.func_preproc.utils import add_afni_prefix, nullify
+from CPAC.func_preproc.utils import add_afni_prefix, nullify, chunk_ts, \
+    split_ts_chunks, oned_text_concat
 from CPAC.utils.interfaces.function import Function
 from CPAC.generate_motion_statistics import motion_power_statistics
 
@@ -152,7 +152,7 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
 
 def normalize_motion_parameters(in_file):
     """
-    Convert FSL mcflirt motion params to AFNI space  
+    Convert FSL mcflirt motion parameters to AFNI space  
     """
     import os 
     import numpy as np
@@ -431,14 +431,12 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
 
     return wf
 
-
-def create_scale_func_wf(runScaling, scaling_factor, wf_name='scale_func'):
+# TODO
+def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
 
     """Workflow to scale func data.
     Parameters
     ----------
-        runScaling : boolean
-            Whether scale func data or not. Usually scaling used in rodent raw data.
         scaling_factor : float
             Scale the size of the dataset voxels by the factor. 
         wf_name : string
@@ -466,25 +464,19 @@ def create_scale_func_wf(runScaling, scaling_factor, wf_name='scale_func'):
     outputNode = pe.Node(util.IdentityInterface(fields=['scaled_func']),
                          name='outputspec')
 
-    if runScaling == True:
+    # allocate a node to edit the functional file
+    func_scale = pe.Node(interface=afni_utils.Refit(),
+                            name='func_scale')
 
-        # allocate a node to edit the functional file
-        func_scale = pe.Node(interface=afni_utils.Refit(),
-                                name='func_scale')
+    func_scale.inputs.xyzscale = scaling_factor
 
-        func_scale.inputs.xyzscale = scaling_factor
+    # wire in the func_get_idx node
+    preproc.connect(inputNode, 'func',
+                    func_scale, 'in_file')
 
-        # wire in the func_get_idx node
-        preproc.connect(inputNode, 'func',
-                        func_scale, 'in_file')
-
-        # wire the output
-        preproc.connect(func_scale, 'out_file',
-                        outputNode, 'scaled_func')
-
-    else:
-        preproc.connect(inputNode, 'func',
-                        outputNode, 'scaled_func')
+    # wire the output
+    preproc.connect(func_scale, 'out_file',
+                    outputNode, 'scaled_func')
 
     return preproc
 
@@ -797,15 +789,18 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'reorient_mean',
                                                          'motion_correct',
                                                          'motion_correct_ref',
+                                                         'motion_correct_median',
                                                          'movement_parameters',
                                                          'max_displacement',
                                                          'mask',
                                                          'skullstrip',
                                                          'func_mean',
                                                          'preprocessed',
+                                                         'preprocessed_median',
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
-                                                         'transform_matrices']),
+                                                         'transform_matrices',
+                                                         'center_of_mass']),
                           name='outputspec')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
@@ -824,18 +819,104 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(func_deoblique, 'out_file',
                     func_reorient, 'in_file')
 
-    preproc.connect(func_reorient, 'out_file',
-                    output_node, 'reorient')
+    preproc.connect(func_reorient, 'out_file', output_node, 'reorient')
 
-    func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                        name='func_generate_ref')
+    if config:
+        if int(config.maxCoresPerParticipant) > 1:
+            chunk_imports = ['import nibabel as nb']
+            chunk = pe.Node(Function(input_names=['func_file',
+                                                  'n_cpus'],
+                                     output_names=['TR_ranges'],
+                                     function=chunk_ts,
+                                     imports=chunk_imports),
+                            name='chunk')
+
+            chunk.inputs.n_cpus = int(config.maxCoresPerParticipant)
+            preproc.connect(func_reorient, 'out_file', chunk, 'func_file')
+
+            split_imports = ['import os', 'import subprocess']
+            split = pe.Node(Function(input_names=['func_file',
+                                                  'tr_ranges'],
+                                     output_names=['split_funcs'],
+                                     function=split_ts_chunks,
+                                     imports=split_imports),
+                            name='split')
+
+            preproc.connect(func_reorient, 'out_file', split, 'func_file')
+            preproc.connect(chunk, 'TR_ranges', split, 'tr_ranges')
+
+            out_split_func = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_split_func')
+
+            preproc.connect(split, 'split_funcs', out_split_func, 'out_file')
+
+            func_motion_correct = pe.MapNode(interface=preprocess.Volreg(),
+                                             name='func_generate_ref',
+                                             iterfield=['in_file'])
+
+            preproc.connect(out_split_func, 'out_file',
+                            func_motion_correct, 'in_file')
+
+            func_concat = pe.Node(interface=afni_utils.TCat(),
+                                  name='func_concat')
+            func_concat.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(func_motion_correct, 'out_file',
+                            func_concat, 'in_files')
+
+            out_motion = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_motion')
+
+            preproc.connect(func_concat, 'out_file', out_motion, 'out_file')
+
+        else:
+            out_split_func = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_split_func')
+            preproc.connect(func_reorient, 'out_file', out_split_func, 'out_file')
+
+            func_motion_correct = pe.Node(interface=preprocess.Volreg(),
+                                          name='func_generate_ref')
+
+            preproc.connect(out_split_func, 'out_file',
+                            func_motion_correct, 'in_file')
+
+            out_motion = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_motion')
+
+            preproc.connect(func_motion_correct, 'out_file',
+                            out_motion, 'out_file')
+
+    else:
+        out_split_func = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_split_func')
+        preproc.connect(func_reorient, 'out_file', out_split_func, 'out_file')
+
+        func_motion_correct = pe.Node(interface=preprocess.Volreg(),
+                                      name='func_generate_ref')
+
+        preproc.connect(out_split_func, 'out_file',
+                        func_motion_correct, 'in_file')
+
+        out_motion = pe.Node(
+            interface=util.IdentityInterface(fields=['out_file']),
+            name='out_motion')
+
+        preproc.connect(func_motion_correct, 'out_file',
+                        out_motion, 'out_file')
+
     func_motion_correct.inputs.zpad = 4
     func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect([(input_node, func_motion_correct, [(('twopass', collect_arguments, '-twopass', '-Fourier'),'args')]),])
-
-    preproc.connect(func_reorient, 'out_file',
-                    func_motion_correct, 'in_file')
+    preproc.connect([(input_node, func_motion_correct, [(('twopass',
+                                                          collect_arguments,
+                                                          '-twopass',
+                                                          '-Fourier'),
+                                                         'args')]), ])
 
     # Calculate motion correction reference
     if motion_correct_ref == 'mean': 
@@ -849,16 +930,16 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                         func_get_mean_RPI, 'in_file')
 
         preproc.connect(func_get_mean_RPI, 'out_file',
-                    func_motion_correct, 'basefile')   
+                        func_motion_correct, 'basefile')
 
         func_motion_correct_ref = func_get_mean_RPI.clone('func_get_mean_motion')
 
-        preproc.connect(func_motion_correct, 'out_file',
+        preproc.connect(out_motion, 'out_file',
                         func_motion_correct_ref, 'in_file')
 
     elif motion_correct_ref == 'median':
         func_get_median_RPI = pe.Node(interface=afni_utils.TStat(),
-                                    name='func_get_median_RPI')
+                                      name='func_get_median_RPI')
 
         func_get_median_RPI.inputs.options = '-median'
         func_get_median_RPI.inputs.outputtype = 'NIFTI_GZ'
@@ -867,11 +948,11 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                         func_get_median_RPI, 'in_file')
 
         preproc.connect(func_get_median_RPI, 'out_file',
-                    func_motion_correct, 'basefile')   
+                        func_motion_correct, 'basefile')
 
         func_motion_correct_ref = func_get_median_RPI.clone('func_get_median_motion')
 
-        preproc.connect(func_motion_correct, 'out_file',
+        preproc.connect(out_motion, 'out_file',
                         func_motion_correct_ref, 'in_file')
 
     elif motion_correct_ref == 'selected_volume':
@@ -885,20 +966,18 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         )
 
         preproc.connect(func_reorient, 'out_file',
-                         func_get_selected_RPI, 'in_file_a')
+                        func_get_selected_RPI, 'in_file_a')
 
         preproc.connect(func_get_selected_RPI, 'out_file',
-                    func_motion_correct, 'basefile')   
+                        func_motion_correct, 'basefile')
 
         func_motion_correct_ref = func_get_selected_RPI.clone('func_get_selected_motion')
 
-        preproc.connect(func_motion_correct, 'out_file',
+        preproc.connect(out_motion, 'out_file',
                         func_motion_correct_ref, 'in_file_a')
-
 
     preproc.connect(func_motion_correct_ref, 'out_file',
                     output_node, 'motion_correct_ref')                 
-
 
     # Calculate motion parameters
     if motion_correct_tool == '3dvolreg':
@@ -915,25 +994,148 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
             ),
         ])
 
-        preproc.connect(func_reorient, 'out_file',
+        preproc.connect(out_split_func, 'out_file',
                         func_motion_correct_A, 'in_file')
         preproc.connect(func_motion_correct_ref, 'out_file',
                         func_motion_correct_A, 'basefile')
 
-        preproc.connect(func_motion_correct_A, 'out_file',
+        if config:
+            if int(config.maxCoresPerParticipant) > 1:
+                motion_concat = pe.Node(interface=afni_utils.TCat(),
+                                        name='motion_concat')
+                motion_concat.inputs.outputtype = 'NIFTI_GZ'
+
+                preproc.connect(func_motion_correct_A, 'out_file',
+                                motion_concat, 'in_files')
+
+                out_motion_A = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_motion_A')
+
+                preproc.connect(motion_concat, 'out_file', 
+                                out_motion_A, 'out_file')
+
+                concat_imports = ['import os']
+                md1d_concat = pe.Node(Function(input_names=['in_files'],
+                                               output_names=['out_file'],
+                                               function=oned_text_concat,
+                                               imports=concat_imports),
+                                      name='md1d_concat')
+
+                preproc.connect(func_motion_correct_A, 'md1d_file',
+                                md1d_concat, 'in_files')
+
+                oned_concat = pe.Node(Function(input_names=['in_files'],
+                                               output_names=['out_file'],
+                                               function=oned_text_concat,
+                                               imports=concat_imports),
+                                      name='oned_concat')
+
+                preproc.connect(func_motion_correct_A, 'oned_file',
+                                oned_concat, 'in_files')
+
+                oned_matrix_concat = pe.Node(Function(input_names=['in_files'],
+                                                      output_names=['out_file'],
+                                                      function=oned_text_concat,
+                                                      imports=concat_imports),
+                                             name='oned_matrix_concat')
+
+                preproc.connect(func_motion_correct_A, 'oned_matrix_save',
+                                oned_matrix_concat, 'in_files')
+
+                out_md1d = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_md1d')
+
+                preproc.connect(md1d_concat, 'out_file', 
+                                out_md1d, 'out_file')
+
+                out_oned = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_oned')
+
+                preproc.connect(oned_concat, 'out_file', 
+                                out_oned, 'out_file')
+
+                out_oned_matrix = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_oned_matrix')
+
+                preproc.connect(oned_matrix_concat, 'out_file', 
+                                out_oned_matrix, 'out_file')
+
+            else:
+                out_motion_A = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_motion_A')
+
+                preproc.connect(func_motion_correct_A, 'out_file', 
+                                out_motion_A, 'out_file')
+
+                out_md1d = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_md1d')
+
+                preproc.connect(func_motion_correct_A, 'md1d_file', 
+                                out_md1d, 'out_file')
+
+                out_oned = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_oned')
+
+                preproc.connect(func_motion_correct_A, 'oned_file', 
+                                out_oned, 'out_file')
+
+                out_oned_matrix = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_oned_matrix')
+
+                preproc.connect(func_motion_correct_A, 'oned_matrix_save', 
+                                out_oned_matrix, 'out_file')
+
+        else:
+            out_motion_A = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_motion_A')
+
+            preproc.connect(func_motion_correct_A, 'out_file', 
+                            out_motion_A, 'out_file')
+
+            out_md1d = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_md1d')
+
+            preproc.connect(func_motion_correct_A, 'md1d_file', 
+                            out_md1d, 'out_file')
+
+            out_oned = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_oned')
+
+            preproc.connect(func_motion_correct_A, 'oned_file', 
+                            out_oned, 'out_file')
+
+            out_oned_matrix = pe.Node(
+                interface=util.IdentityInterface(fields=['out_file']),
+                name='out_oned_matrix')
+
+            preproc.connect(func_motion_correct_A, 'oned_matrix_save', 
+                            out_oned_matrix, 'out_file')
+
+        preproc.connect(out_motion_A, 'out_file',
                         output_node, 'motion_correct')
-        preproc.connect(func_motion_correct_A, 'md1d_file',
+        preproc.connect(out_md1d, 'out_file',
                         output_node, 'max_displacement')
-        preproc.connect(func_motion_correct_A, 'oned_file',
+        preproc.connect(out_oned, 'out_file',
                         output_node, 'movement_parameters')
-        preproc.connect(func_motion_correct_A, 'oned_matrix_save',
+        preproc.connect(out_oned_matrix, 'out_file',
                         output_node, 'transform_matrices')
 
         skullstrip_func = skullstrip_functional(skullstrip_tool=skullstrip_tool, config=config, 
                                                 wf_name="{0}_skullstrip".format(wf_name))
         
-        preproc.connect(func_motion_correct_A, 'out_file',
-                    skullstrip_func, 'inputspec.func')
+        preproc.connect(out_motion_A, 'out_file',
+                        skullstrip_func, 'inputspec.func')
 
     elif motion_correct_tool == 'mcflirt':
         func_motion_correct_A = pe.Node(interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
@@ -960,8 +1162,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         
         normalize_motion_params = pe.Node(Function(input_names=['in_file'],
                                      output_names=['out_file'],
-                                     function=normalize_motion_parameters,
-                                     as_module=True),
+                                     function=normalize_motion_parameters),
                             name='norm_motion_params')
 
         preproc.connect(func_motion_correct_A, 'par_file',
@@ -1006,13 +1207,13 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         func_mean_n4_corrected.inputs.args = '-r True'
         
         preproc.connect(func_mean, 'out_file', 
-                    func_mean_n4_corrected, 'input_image')
+                        func_mean_n4_corrected, 'input_image')
         preproc.connect(func_mean_n4_corrected, 'output_image',
-                    output_node, 'func_mean')
+                        output_node, 'func_mean')
 
     else:
         preproc.connect(func_mean, 'out_file',
-                    output_node, 'func_mean')
+                        output_node, 'func_mean')
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
                              name='func_normalize')
@@ -1024,6 +1225,34 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
     preproc.connect(func_normalize, 'out_file',
                     output_node, 'preprocessed')
+
+    # TODO XL review forking
+    if 'func' in config.run_longitudinal:
+        # get median brain for longitudinal
+        func_get_preprocessed_median = pe.Node(interface=afni_utils.TStat(),
+                            name='func_get_preprocessed_median')
+
+        func_get_preprocessed_median.inputs.options = '-median'
+        func_get_preprocessed_median.inputs.outputtype = 'NIFTI_GZ'
+
+        preproc.connect(func_normalize, 'out_file',
+                        func_get_preprocessed_median, 'in_file')
+
+        preproc.connect(func_get_preprocessed_median, 'out_file',
+                    output_node, 'preprocessed_median')   
+
+        # get median skull for longitudinal
+        func_get_motion_correct_median = pe.Node(interface=afni_utils.TStat(),
+                            name='func_get_motion_correct_median')
+
+        func_get_motion_correct_median.inputs.options = '-median'
+        func_get_motion_correct_median.inputs.outputtype = 'NIFTI_GZ'
+
+        preproc.connect(func_motion_correct_A, 'out_file',
+                        func_get_motion_correct_median, 'in_file')
+
+        preproc.connect(func_get_motion_correct_median, 'out_file',
+                    output_node, 'motion_correct_median')
 
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
                                   name='func_mask_normalize')
@@ -1148,30 +1377,35 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     return stopidx, startidx
 
 
-def connect_func_init(workflow, strat_list, c):
+def connect_func_init(workflow, strat_list, c, unique_id=None):
 
-    for num_strat, strat in enumerate(strat_list):
-        # scale func data based on configuration information
-        scale_func_wf = create_scale_func_wf(
-            runScaling=c.runScaling,
-            scaling_factor=c.scaling_factor,
-            wf_name="scale_func_%d" % (num_strat)
-        )
+    if c.runScaling is True:
+        for num_strat, strat in enumerate(strat_list):
+            # scale func data based on configuration information
+            scale_func_wf = create_scale_func_wf(
+                scaling_factor=c.scaling_factor,
+                wf_name="scale_func_%d" % (num_strat)
+            )
 
-        # connect the functional data from the leaf node into the wf
-        node, out_file = strat.get_leaf_properties()
-        workflow.connect(node, out_file,
-                         scale_func_wf, 'inputspec.func')
+            # connect the functional data from the leaf node into the wf
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file,
+                            scale_func_wf, 'inputspec.func')
 
-        # replace the leaf node with the output from the recently added
-        # workflow
-        strat.set_leaf_properties(scale_func_wf, 'outputspec.scaled_func')
+            # replace the leaf node with the output from the recently added
+            # workflow
+            strat.set_leaf_properties(scale_func_wf, 'outputspec.scaled_func')
 
     for num_strat, strat in enumerate(strat_list):
         # Truncate scan length based on configuration information
-        trunc_wf = create_wf_edit_func(
-            wf_name="edit_func_%d" % (num_strat)
-        )
+        if unique_id is None:
+            trunc_wf = create_wf_edit_func(
+                wf_name=f"edit_func_{num_strat}"
+            )
+        else:
+            trunc_wf = create_wf_edit_func(
+                wf_name=f"edit_func_{unique_id}_{num_strat}"
+            )
 
         # connect the functional data from the leaf node into the wf
         node, out_file = strat.get_leaf_properties()
@@ -1374,9 +1608,13 @@ def connect_func_init(workflow, strat_list, c):
         if 1 in c.slice_timing_correction:
             new_strat = strat.fork()
 
-            slice_time = slice_timing_wf(
-                name='func_slice_timing_correction_{0}'.format(num_strat))
-
+            if unique_id is None:
+                slice_time = slice_timing_wf(
+                    name=f'func_slice_timing_correction_{num_strat}')
+            else:
+                slice_time = slice_timing_wf(
+                    name=f'func_slice_timing_correction_{unique_id}_{num_strat}')
+            
             node, out_file = new_strat.get_leaf_properties()
             workflow.connect(node, out_file, slice_time,
                              'inputspec.func_ts')
@@ -1410,7 +1648,7 @@ def connect_func_init(workflow, strat_list, c):
     return (workflow, strat_list)
 
 
-def connect_func_preproc(workflow, strat_list, c):
+def connect_func_preproc(workflow, strat_list, c, unique_id=None):
 
     from CPAC.func_preproc.func_preproc import create_func_preproc
     
@@ -1429,15 +1667,17 @@ def connect_func_preproc(workflow, strat_list, c):
             # motion correction tool
             motion_correct_tool = strat.get('motion_correction_method')
 
+            if unique_id is None:
+                workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{num_strat}'
+            else:
+                workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{unique_id}_{num_strat}'
+
             func_preproc = create_func_preproc(
                 skullstrip_tool=skullstrip_tool,
                 motion_correct_tool=motion_correct_tool,
                 motion_correct_ref=motion_correct_ref,
                 config=c,
-                wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                              motion_correct_ref,
-                                                              motion_correct_tool,
-                                                              num_strat)
+                wf_name=workflow_name
             )
 
             node, out_file = strat['raw_functional_trunc']
@@ -1470,6 +1710,12 @@ def connect_func_preproc(workflow, strat_list, c):
                 'motion_correct': (func_preproc, 'outputspec.motion_correct'),                                
             })
 
+            if 'func' in c.run_longitudinal:
+                strat.update_resource_pool({
+                    'functional_preprocessed_median': (func_preproc, 'outputspec.preprocessed_median'),
+                    'motion_correct_median': (func_preproc, 'outputspec.motion_correct_median'),                                
+                })
+
             new_strat_list.append(strat)
 
         else:
@@ -1491,15 +1737,17 @@ def connect_func_preproc(workflow, strat_list, c):
 
                         new_strat = strat.fork()
                         
+                        if unique_id is None:
+                            workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{num_strat}'
+                        else:
+                            workflow_name=f'func_preproc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_{unique_id}_{num_strat}'
+
                         func_preproc = create_func_preproc(
                             skullstrip_tool=skullstrip_tool,
                             motion_correct_tool=motion_correct_tool,
                             motion_correct_ref=motion_correct_ref,
                             config=c,
-                            wf_name='func_preproc_{0}_{1}_{2}_{3}'.format(skullstrip_tool,
-                                                                          motion_correct_ref,
-                                                                          motion_correct_tool,
-                                                                          num_strat)
+                            wf_name=workflow_name
                         )
 
                         node, out_file = new_strat['raw_functional_trunc']
@@ -1509,14 +1757,16 @@ def connect_func_preproc(workflow, strat_list, c):
                         node, out_file = new_strat.get_leaf_properties()
                         workflow.connect(node, out_file, func_preproc,
                                         'inputspec.func')
+                        
+                        if skullstrip_tool == 'anatomical_refined':
+                            
+                            node, out_file = new_strat['anatomical_brain']
+                            workflow.connect(node, out_file, func_preproc,
+                                            'inputspec.anat_brain')
 
-                        node, out_file = new_strat['anatomical_brain']
-                        workflow.connect(node, out_file, func_preproc,
-                                        'inputspec.anat_brain')
-
-                        node, out_file = new_strat['anatomical_brain_mask']
-                        workflow.connect(node, out_file, func_preproc,
-                                        'inputspec.anatomical_brain_mask')
+                            node, out_file = new_strat['anatomical_brain_mask']
+                            workflow.connect(node, out_file, func_preproc,
+                                            'inputspec.anatomical_brain_mask')
 
                         func_preproc.inputs.inputspec.twopass = \
                             getattr(c, 'functional_volreg_twopass', True)
@@ -1538,6 +1788,12 @@ def connect_func_preproc(workflow, strat_list, c):
                             'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
                         })
 
+                        if 'func' in c.run_longitudinal:
+                            new_strat.update_resource_pool({
+                                'functional_preprocessed_median': (func_preproc, 'outputspec.preprocessed_median'),
+                                'motion_correct_median': (func_preproc, 'outputspec.motion_correct_median'),                                
+                            })
+                        
                         new_strat_list.append(new_strat)
 
     return workflow, new_strat_list
