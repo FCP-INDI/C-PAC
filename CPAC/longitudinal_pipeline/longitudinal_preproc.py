@@ -62,6 +62,7 @@ def norm_transformation(input_mat):
     Calculate the squared norm of the translation + squared Frobenium norm
     of the difference between other affine transformations and the identity
     from an fsl FLIRT transformation matrix
+    
     Parameters
     ----------
     input_mat: str or numpy.ndarray
@@ -102,6 +103,7 @@ def template_convergence(mat_file, mat_type='matrix',
     """
     Calculate the distance between transformation matrix with a matrix of no
     transformation
+
     Parameters
     ----------
     mat_file: str
@@ -137,7 +139,8 @@ def create_temporary_template(input_brain_list, input_skull_list,
     Average all the 3D images of the list into one 3D image
     WARNING---the function assumes that all the images have the same header,
     the output image will have the same header as the first image of the list
-    Parameters---
+
+    Parameters
     ----------
     input_brain_list: list of str
         list of brain image paths

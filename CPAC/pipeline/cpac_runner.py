@@ -17,8 +17,6 @@ from CPAC.longitudinal_pipeline.longitudinal_workflow import (
 
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
-    '''
-    '''
 
     # Import packages
     import subprocess
@@ -331,6 +329,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
     # Run on one computer
     else:
+        # Create working dir
         if not os.path.exists(c.workingDirectory):
             try:
                 os.makedirs(c.workingDirectory)
@@ -339,7 +338,17 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                       "directory: %s\n\nMake sure you have permissions " \
                       "to write to this directory.\n\n" % c.workingDirectory
                 raise Exception(err)
- 
+        '''
+        if not os.path.exists(c.logDirectory):
+            try:
+                os.makedirs(c.logDirectory)
+            except:
+                err = "\n\n[!] CPAC says: Could not create the log " \
+                      "directory: %s\n\nMake sure you have permissions " \
+                      "to write to this directory.\n\n" % c.logDirectory
+                raise Exception(err)
+        '''
+
         # BEGIN LONGITUDINAL TEMPLATE PIPELINE
         if hasattr(c, 'run_longitudinal') and ('anat' in c.run_longitudinal or 'func' in c.run_longitudinal):
             subject_id_dict = {}
@@ -351,6 +360,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             # subject_id_dict has the subject_id as keys and a list of sessions for
             # each participant as value
             for subject_id, sub_list in subject_id_dict.items():
+                if 'func' in c.run_longitudinal:
+                    raise Exception("\n\n[!] Error: Functional longitudinal pipeline is still in development and not available yet. \n\n")
                 if 'anat' in c.run_longitudinal:
                     strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
                 # TODO
@@ -480,14 +491,15 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             for key in subject_specific_dict:
                 ses_list = [subj for subj in sublist if key in subj['anat']]
                 for ses in ses_list:
-                    for strat in strat_list:
-                        # TODO search a list of method keys
-                        try:
-                            ses['resource_pool'][strat_key].update({
-                                'registration_method': strat['registration_method']
-                            })
-                        except KeyError:
-                            pass
+                    for reg_strat in strat_list:
+                        ss_strat_list = list(ses['resource_pool'])
+                        for strat_key in ss_strat_list:
+                            try:
+                                ses['resource_pool'][strat_key].update({
+                                    'registration_method': reg_strat['registration_method']
+                                })
+                            except KeyError:
+                                pass
 
             yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
         
