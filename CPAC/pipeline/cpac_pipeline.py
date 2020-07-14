@@ -704,8 +704,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("anat", "PRIORS_GRAY"),
         ("anat", "PRIORS_WHITE"),
         ("other", "configFileTwomm"),
-        ("anat", "ANTs_prior_seg_template_brain_list"),
-        ("anat", "ANTs_prior_seg_template_segmentation_list"),
         ("anat", "template_based_segmentation_CSF"),
         ("anat", "template_based_segmentation_GRAY"),
         ("anat", "template_based_segmentation_WHITE"),
@@ -728,7 +726,24 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         node = create_check_for_s3_node(
             key,
             getattr(c, key), key_type,
-            input_creds_path, c.workingDirectory
+            input_creds_path, c.workingDirectory, map_node=False
+        )
+
+        setattr(c, key, node)
+    
+    template_keys_in_list = [
+        ("anat", "ANTs_prior_seg_template_brain_list"),
+        ("anat", "ANTs_prior_seg_template_segmentation_list"),
+        ("other", "tsa_roi_paths"),
+        ("other", "sca_roi_paths")
+    ]
+
+    for key_type, key in template_keys_in_list:
+
+        node = create_check_for_s3_node(
+            key,
+            getattr(c, key), key_type,
+            input_creds_path, c.workingDirectory, map_node=True
         )
 
         setattr(c, key, node)
