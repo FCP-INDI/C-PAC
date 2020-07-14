@@ -704,9 +704,23 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("anat", "PRIORS_GRAY"),
         ("anat", "PRIORS_WHITE"),
         ("other", "configFileTwomm"),
+        ("anat", "ANTs_prior_seg_template_brain_list"),
+        ("anat", "ANTs_prior_seg_template_segmentation_list"),
         ("anat", "template_based_segmentation_CSF"),
         ("anat", "template_based_segmentation_GRAY"),
         ("anat", "template_based_segmentation_WHITE"),
+        ("anat", "template_brain_only_for_anat"),
+        ("anat", "template_skull_for_anat"),
+        ("anat", "ref_mask"),
+        ("func", "template_for_resample"),
+        ("func", "template_brain_only_for_func"),
+        ("func", "template_skull_for_func"),
+        ("other", "template_symmetric_brain_only"),
+        ("other", "template_symmetric_brain_for_resample"),        
+        ("other", "template_symmetric_skull"),
+        ("other", "template_symmetric_skull_for_resample"),        
+        ("other", "dilated_symmetric_brain_mask"),
+        ("other", "dilated_symmetric_brain_mask_for_resample"),
     ]
 
     for key_type, key in template_keys:
@@ -971,6 +985,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.anat')
+                workflow.connect(c.template_brain_only_for_anat, 'local_path',
+                                anat_preproc, 'inputspec.template_brain_only_for_anat')
+                workflow.connect(c.template_skull_for_anat, 'local_path',
+                                anat_preproc, 'inputspec.template_skull_for_anat')
                 new_strat.append_name(anat_preproc.name)
                 new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                 new_strat.update_resource_pool({
@@ -1633,9 +1651,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file,
                              seg_preproc_ants_prior_based, 'inputspec.anatomical_brain_mask')
-
-            seg_preproc_ants_prior_based.inputs.inputspec.template_brain_list = c.ANTs_prior_seg_template_brain_list
-            seg_preproc_ants_prior_based.inputs.inputspec.template_segmentation_list = c.ANTs_prior_seg_template_segmentation_list
+            workflow.connect(c.ANTs_prior_seg_template_brain_list, 'local_path',
+                             seg_preproc_ants_prior_based, 'inputspec.template_brain_list')
+            workflow.connect(c.ANTs_prior_seg_template_segmentation_list, 'local_path',
+                             seg_preproc_ants_prior_based, 'inputspec.template_segmentation_list')
             seg_preproc_ants_prior_based.inputs.inputspec.csf_label = c.ANTs_prior_seg_CSF_label
             seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = c.ANTs_prior_seg_left_GM_label
             seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = c.ANTs_prior_seg_right_GM_label
