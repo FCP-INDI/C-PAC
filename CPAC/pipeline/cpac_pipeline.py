@@ -1469,20 +1469,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             strat_list += new_strat_list
 
-
-            node, out_file = strat['anatomical_brain_mask']
-            workflow.connect(node, out_file,
-                             seg_preproc_ants_prior_based, 'inputspec.anatomical_brain_mask')
-            workflow.connect(c.ANTs_prior_seg_template_brain_list, 'local_path',
-                             seg_preproc_ants_prior_based, 'inputspec.template_brain_list')
-            workflow.connect(c.ANTs_prior_seg_template_segmentation_list, 'local_path',
-                             seg_preproc_ants_prior_based, 'inputspec.template_segmentation_list')
-            seg_preproc_ants_prior_based.inputs.inputspec.csf_label = c.ANTs_prior_seg_CSF_label
-            seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = c.ANTs_prior_seg_left_GM_label
-            seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = c.ANTs_prior_seg_right_GM_label
-            seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = c.ANTs_prior_seg_left_WM_label
-            seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = c.ANTs_prior_seg_right_WM_label
-
             
             new_strat_list = []
 
