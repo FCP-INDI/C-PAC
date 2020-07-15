@@ -713,13 +713,15 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     for key_type, key in template_keys:
 
-        node = create_check_for_s3_node(
-            key,
-            getattr(c, key), key_type,
-            input_creds_path, c.workingDirectory
-        )
+        if isinstance(getattr(c, key), str):
 
-        setattr(c, key, node)
+            node = create_check_for_s3_node(
+                key,
+                getattr(c, key), key_type,
+                input_creds_path, c.workingDirectory
+            )
+
+            setattr(c, key, node)
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING

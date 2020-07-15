@@ -499,14 +499,17 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     ses_list = [subj for subj in sublist if key in subj['anat']]
                     for ses in ses_list:
                         for reg_strat in strat_list:
-                            ss_strat_list = list(ses['resource_pool'])
-                            for strat_key in ss_strat_list:
-                                try:
-                                    ses['resource_pool'][strat_key].update({
-                                        'registration_method': reg_strat['registration_method']
-                                    })
-                                except KeyError:
-                                    pass
+                            try: 
+                                ss_strat_list = list(ses['resource_pool'])
+                                for strat_key in ss_strat_list:
+                                    try:
+                                        ses['resource_pool'][strat_key].update({
+                                            'registration_method': reg_strat['registration_method']
+                                        })
+                                    except KeyError:
+                                        pass
+                            except KeyError:
+                                pass
 
                 yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
             
