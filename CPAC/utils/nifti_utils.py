@@ -1,9 +1,34 @@
 import os
 import numpy as np
 import six
-
 import nibabel as nib
 
+
+def nifti_image_input(image):
+    """
+    Test if an input is a path or a nifti.image and the image loaded through
+    nibabel
+    Parameters
+    ----------
+    image: str or nibabel.nifti1.Nifti1Image
+        path to the nifti file or the image already loaded through nibabel
+
+    Returns
+    -------
+    img: nibabel.nifti1.Nifti1Image
+        load and return the nifti image if image is a path, otherwise simply
+        return image
+    """
+    if isinstance(image, nib.nifti1.Nifti1Image):
+        img = image
+    elif isinstance(image, six.string_types):
+        if not os.path.exists(image):
+            raise ValueError(str(image) + " does not exist.")
+        else:
+            img = nib.load(image)
+    else:
+        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
+    return img
 
 def more_zeros_than_ones(image):
     """
