@@ -12,6 +12,7 @@ import re
 import copy
 import tempfile
 from os.path import join, dirname
+from shutil import SameFileError
 from warnings import warn
 from nipype.interfaces.io import IOBase, DataSinkInputSpec, DataSinkOutputSpec, ProgressPercentage, copytree
 
@@ -574,17 +575,27 @@ class DataSink(IOBase):
                     if src != dst:
                         # If src is a file, copy it to dst
                         if os.path.isfile(src):
-                            iflogger.debug('copyfile: %s %s', src, dst)
-                            copyfile(
-                                src,
-                                dst,
-                                copy=True,
-                                hashmethod='content',
-                                use_hardlink=use_hardlink)
+                            iflogger.debug(f'copyfile: {src} {dst}')
+                            try:
+                                copyfile(
+                                    src,
+                                    dst,
+                                    copy=True,
+                                    hashmethod='content',
+                                    use_hardlink=use_hardlink)
+                            # … unless dst already contains same contents
+                            except SameFileError:
+                                iflogger.debug(
+                                    f'{dst} already contains contents of {src}'
+                                )
                             out_files.append(dst)
-                        # If src is a directory, copy entire contents to dst dir
+                        # If src is a directory, copy
+                        # entire contents to dst dir
                         elif os.path.isdir(src):
-                            if os.path.exists(dst) and self.inputs.remove_dest_dir:
+                            if (
+                                os.path.exists(dst) and
+                                self.inputs.remove_dest_dir
+                            ):
                                 iflogger.debug('removing: %s', dst)
                                 shutil.rmtree(dst)
                             iflogger.debug('copydir: %s %s', src, dst)
