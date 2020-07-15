@@ -728,6 +728,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     # creds_list = []
 
     session_id_list = []
+
     # Loop over the sessions to create the input for the longitudinal algorithm
     for session in sub_list:
 
@@ -748,7 +749,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 input_creds_path = None
         except KeyError:
             input_creds_path = None
-      
+
         template_keys = [
             ("anat", "PRIORS_CSF"),
             ("anat", "PRIORS_GRAY"),

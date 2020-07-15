@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 import os
-import numpy as np
 import six
-from multiprocessing.dummy import Pool as ThreadPool
-
-from CPAC.utils.nifti_utils import nifti_image_input
+import numpy as np
 import nibabel as nib
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 from nipype.interfaces.fsl import ConvertXFM
+from CPAC.utils.nifti_utils import nifti_image_input
+from multiprocessing.dummy import Pool as ThreadPool
 
 
 def read_ants_mat(ants_mat_file):
@@ -300,6 +299,14 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     """
     # DEBUG to skip the longitudinal template generation which takes a lot of time.
     # return 'CECI_EST_UN_TEST'
+    
+    if not input_brain_list or not input_skull_list:
+        raise ValueError('ERROR create_temporary_template: image list is empty')
+
+    warp_list = []
+
+    warp_list_filenames = [os.path.join(
+        os.getcwd(), str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in input_brain_list]
 
     if isinstance(thread_pool, int):
         pool = ThreadPool(thread_pool)
@@ -309,18 +316,12 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     if convergence_threshold == -1:
         convergence_threshold = np.finfo(np.float64).eps
 
-    if not input_brain_list:
-        print('ERROR create_temporary_template: image list is empty')
+    if len(input_brain_list) == 1 or len(input_skull_list) == 1:
+        warnings.warn("input_brain_list or input_skull_list contains only 1 image, no need to calculate template")
+        warp_list.append(np.identity(4, dtype = float)) # return an identity matrix
+        return input_brain_list[0], input_skull_list[0], input_brain_list, input_skull_list, warp_list
 
-    if len(input_brain_list) == 1:
-        print("input_brain_list contains only 1 image, no template calculated")
-        return input_brain_list[0]
-
-    warp_list = []
-    warp_list_filenames = [os.path.join(
-        os.getcwd(), str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in input_brain_list]
-
-    # I added this part because it is mentioned in the paper but I actually never used it
+    # Chris: I added this part because it is mentioned in the paper but I actually never used it
     # You could run a first register_img_list() with a selected image as starting point and
     # give the output to this function
     if init_reg is not None:
@@ -419,6 +420,7 @@ def subject_specific_template(workflow_name='subject_specific_template',
     """
     imports = [
         'import os',
+        'import warnings',
         'import numpy as np',
         'from multiprocessing.dummy import Pool as ThreadPool',
         'from nipype.interfaces.fsl import ConvertXFM',
