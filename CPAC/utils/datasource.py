@@ -368,18 +368,27 @@ def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
     return (opposite_pe_epi, same_pe_epi)
 
 
-def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None):
+def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None, map_node=False):
 
-    from CPAC.utils.datasource import check_for_s3
-    
-    check_s3_node = pe.Node(function.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'dl_dir',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3,
-                                              as_module=True),
-                            name='check_for_s3_%s' % name)
+    if map_node:
+        check_s3_node = pe.MapNode(function.Function(input_names=['file_path',
+                                                                  'creds_path',
+                                                                  'dl_dir',
+                                                                  'img_type'],
+                                                     output_names=['local_path'],
+                                                     function=check_for_s3,
+                                                     as_module=True),
+                                                     iterfield=['file_path'],
+                                   name='check_for_s3_%s' % name)
+    else: 
+        check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                               'creds_path',
+                                                               'dl_dir',
+                                                               'img_type'],
+                                                  output_names=['local_path'],
+                                                  function=check_for_s3,
+                                                  as_module=True),
+                                name='check_for_s3_%s' % name)
 
     check_s3_node.inputs.set(
         file_path=file_path,
