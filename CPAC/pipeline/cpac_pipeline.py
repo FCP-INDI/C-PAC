@@ -707,18 +707,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("anat", "template_based_segmentation_CSF"),
         ("anat", "template_based_segmentation_GRAY"),
         ("anat", "template_based_segmentation_WHITE"),
-        ("anat", "template_brain_only_for_anat"),
-        ("anat", "template_skull_for_anat"),
-        ("anat", "ref_mask"),
-        ("func", "template_for_resample"),
-        ("func", "template_brain_only_for_func"),
-        ("func", "template_skull_for_func"),
-        ("other", "template_symmetric_brain_only"),
-        ("other", "template_symmetric_brain_for_resample"),        
-        ("other", "template_symmetric_skull"),
-        ("other", "template_symmetric_skull_for_resample"),        
-        ("other", "dilated_symmetric_brain_mask"),
-        ("other", "dilated_symmetric_brain_mask_for_resample"),
     ]
 
     for key_type, key in template_keys:
@@ -734,8 +722,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     template_keys_in_list = [
         ("anat", "ANTs_prior_seg_template_brain_list"),
         ("anat", "ANTs_prior_seg_template_segmentation_list"),
-        ("other", "tsa_roi_paths"),
-        ("other", "sca_roi_paths")
     ]
 
     for key_type, key in template_keys_in_list:
