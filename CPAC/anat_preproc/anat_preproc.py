@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
@@ -9,6 +10,23 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
+def patch_cmass_output(lst, index=0):
+    """
+    Parameters
+    ----------
+    lst : list of tuples
+        output of afni.CenterMass()
+    index : int
+        index in the list of tuples
+
+    Returns
+    -------
+        tuple
+            one set of center of mass coordinates
+    """
+    if len(lst) <= index:
+        raise IndexError("lst index out of range")
+    return lst[index]
 
 def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc'):
     """The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
@@ -82,15 +100,20 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
     preproc = pe.Workflow(name=wf_name)
 
-    inputnode = pe.Node(util.IdentityInterface(
-        fields=['anat', 'brain_mask', 'template_brain_only_for_anat','template_skull_for_anat']), name='inputspec')
+    inputnode = pe.Node(util.IdentityInterface(fields=['anat', 
+                                                       'brain_mask',
+                                                       'template_brain_only_for_anat',
+                                                       'template_skull_for_anat',
+                                                       'template_cmass']), 
+                        name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['refit',
                                                         'reorient',
                                                         'skullstrip',
                                                         'brain',
-                                                        'brain_mask']),
-                         name='outputspec')
+                                                        'brain_mask',
+                                                        'center_of_mass']),
+                        name='outputspec')
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
                              name='anat_deoblique')
@@ -241,6 +264,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip, 'in_file')
+
             preproc.connect(skullstrip_args, 'expr',
                             anat_skullstrip, 'args')
 
@@ -295,7 +319,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             anat_skullstrip = pe.Node(
                 interface=fsl.BET(), name='anat_skullstrip')
             anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
-
+            
             preproc.connect(anat_reorient, 'out_file',
                             anat_skullstrip, 'in_file')
 
@@ -490,3 +514,4 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             preproc.connect(refined_brain, 'out_file', outputnode, 'brain')
 
     return preproc
+

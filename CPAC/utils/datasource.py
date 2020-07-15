@@ -372,23 +372,24 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
 
     if map_node:
         check_s3_node = pe.MapNode(function.Function(input_names=['file_path',
-                                                                'creds_path',
-                                                                'dl_dir',
-                                                                'img_type'],
-                                                    output_names=['local_path'],
-                                                    function=check_for_s3,
-                                                    as_module=True),
-                                                    iterfield=['file_path'],
-                                                    name='check_for_s3_%s' % name)
+                                                                  'creds_path',
+                                                                  'dl_dir',
+                                                                  'img_type'],
+                                                     output_names=['local_path'],
+                                                     function=check_for_s3,
+                                                     as_module=True),
+                                                     iterfield=['file_path'],
+                                   name='check_for_s3_%s' % name)
     else: 
         check_s3_node = pe.Node(function.Function(input_names=['file_path',
-                                                                'creds_path',
-                                                                'dl_dir',
-                                                                'img_type'],
-                                                output_names=['local_path'],
-                                                function=check_for_s3,
-                                                as_module=True),
+                                                               'creds_path',
+                                                               'dl_dir',
+                                                               'img_type'],
+                                                  output_names=['local_path'],
+                                                  function=check_for_s3,
+                                                  as_module=True),
                                 name='check_for_s3_%s' % name)
+
     check_s3_node.inputs.set(
         file_path=file_path,
         creds_path=creds_path,
@@ -407,7 +408,6 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
     import os
     import nibabel as nib
     import botocore.exceptions
-
     from indi_aws import fetch_creds
 
     # Init variables
@@ -517,15 +517,21 @@ def resolve_resolution(resolution, template, template_name, tag = None):
     from CPAC.utils.datasource import check_for_s3
 
     tagname = None
-    local_path = None 
-    # TODO XL think a better way to check template
+    local_path = None
+    
     if "{" in template and tag is not None:
             tagname = "${" + tag + "}"
     try:
         if tagname is not None:
             local_path = check_for_s3(template.replace(tagname, str(resolution)))     
-    except IOError:
+    except (IOError, OSError):
         local_path = None
+
+    ## TODO debug - it works in ipython but doesn't work in nipype wf
+    # try:
+    #     local_path = check_for_s3('/usr/local/fsl/data/standard/MNI152_T1_3.438mmx3.438mmx3.4mm_brain_mask_dil.nii.gz')     
+    # except (IOError, OSError):
+    #     local_path = None
 
     if local_path is None:
         if tagname is not None:
@@ -563,7 +569,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
     inputnode = pe.Node(util.IdentityInterface(
                                 fields=['subject', 'anat', 'creds_path',
-                                        'dl_dir'],
+                                        'dl_dir', 'img_type'],
                                 mandatory_inputs=True),
                         name='inputnode')
 
@@ -579,7 +585,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
-    check_s3_node.inputs.img_type = 'anat'
+    wf.connect(inputnode, 'img_type', check_s3_node, 'img_type')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
                                                         'anat']),

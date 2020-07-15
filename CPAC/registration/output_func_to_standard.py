@@ -361,7 +361,7 @@ def ants_apply_warps_func_mni(
                 if distcor is True and func_type not in 'ica-aroma':
                     # Field file from anatomical nonlinear registration
                     transforms_to_combine = [\
-                            ('epi_to_func_nonlinear_xfm', 'i5'),
+                            ('epi_to_func_nonlinear_xfm', 'in5'),
                             ('func_to_epi_ants_affine_xfm', 'in4'),
                             ('func_to_epi_ants_rigid_xfm', 'in3'),
                             ('func_to_epi_ants_initial_xfm', 'in2'),
