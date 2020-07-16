@@ -705,13 +705,13 @@ distortion_correction :  ["None"]
 fmap_distcorr_skullstrip :  ['BET']
 
 
-# Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+# Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
 # The default value is 0.5.
 fmap_distcorr_frac : [0.5]
 
 
 # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
-# The default value is 0.5.
+# The default value is 0.6.
 fmap_distcorr_threshold :  0.6
 
 
