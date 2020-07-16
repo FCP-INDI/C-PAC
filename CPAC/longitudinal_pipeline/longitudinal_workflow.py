@@ -979,6 +979,8 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             workflow_name='subject_specific_anat_template_' + node_suffix
         )
         
+        unique_id_list = [i.get_name()[0].split('_')[-1] for i in strat_nodes_list]
+
         template_node.inputs.set(
             avg_method=config.longitudinal_template_average_method,
             dof=config.longitudinal_template_dof,
@@ -986,6 +988,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             cost=config.longitudinal_template_cost,
             convergence_threshold=config.longitudinal_template_convergence_threshold,
             thread_pool=config.longitudinal_template_thread_pool,
+            unique_id_list=unique_id_list
         )
 
         workflow.connect(brain_merge_node, 'out', template_node, 'input_brain_list')
@@ -1203,7 +1206,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     ds = create_datasink(rsc_key + rsc_nodes_suffix, config, subject_id,
                                          session_id_list[i], 'longitudinal_'+strat_name)
                     workflow.connect(node, rsc_name, ds, rsc_key)
-            
+
             rsc_key = 'anatomical_brain'
             anat_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
             workflow.connect(anat_preproc_node,

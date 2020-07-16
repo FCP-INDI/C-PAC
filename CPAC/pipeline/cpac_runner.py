@@ -398,9 +398,8 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 # anatomical_brain, anatomical_brain_mask and anatomical_reorient
                 for key in session_specific_dict.keys():
                     for f in session_specific_dict[key]:
-                        sub,ses = key.split('/')
-                        key2 = sub+'/ses-'+ses
-                        ses_list = [subj for subj in sublist if key2 in subj['anat']]
+                        sub, ses = key.split('/')
+                        ses_list = [subj for subj in sublist if sub in subj['subject_id'] and ses in subj['unique_id']]
                         if len(ses_list) > 1:
                             raise Exception("There are several files containing " + f)
                         if len(ses_list) == 1:
