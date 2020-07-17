@@ -374,9 +374,9 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                 workflow.connect(node, out_file,
                                  flirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                if 'ANTS' in c.regOption:
-                   strat = strat.fork()
-                   new_strat_list.append(strat)
+                # if 'ANTS' in c.regOption:
+                #    strat = strat.fork()
+                #    new_strat_list.append(strat)
 
                 strat.append_name(flirt_reg_anat_symm_mni.name)
                 

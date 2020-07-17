@@ -302,7 +302,8 @@ run_longitudinal : []
 longitudinal_template_average_method : median
 
 
-# Degree of freedom of FLIRT in the template creation
+# Degree of freedom for FLIRT in the template creation
+# Options: 12 (affine), 9 (traditional), 7 (global rescale) or 6 (rigid body)
 longitudinal_template_dof : 12
 
 
@@ -312,7 +313,7 @@ longitudinal_template_interp : trilinear
 
 
 # Cost function for FLIRT in the template creation
-# Options: mutualinfo, corratio, normcorr, normmi, leastsq, labeldiff or bbr
+# Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
 longitudinal_template_cost : corratio
 
 
