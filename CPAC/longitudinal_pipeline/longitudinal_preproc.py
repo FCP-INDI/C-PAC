@@ -9,7 +9,7 @@ import nipype.interfaces.fsl as fsl
 from nipype.interfaces.fsl import ConvertXFM
 from CPAC.utils.nifti_utils import nifti_image_input
 from multiprocessing.dummy import Pool as ThreadPool
-
+from collections import Counter
 
 def read_ants_mat(ants_mat_file):
     if not os.path.exists(ants_mat_file):
@@ -183,7 +183,7 @@ def create_temporary_template(input_brain_list, input_skull_list,
 
 
 def register_img_list(input_brain_list, ref_img, dof=12, interp='trilinear', cost='corratio', 
-                        thread_pool=2, duplicated_basename=False, unique_id_list=None):
+                        thread_pool=2, unique_id_list=None):
     """
     Register a list of images to the reference image.
 
@@ -220,8 +220,12 @@ def register_img_list(input_brain_list, ref_img, dof=12, interp='trilinear', cos
 
     if not input_brain_list:
         raise ValueError('ERROR register_img_list: image list is empty')
+
+    basename_list = [str(os.path.basename(img).split('.')[0]) for img in input_brain_list]
+    counter = Counter(basename_list)
+    duplicated_basename_list = [i for i, j in counter.items() if j > 1]
     
-    if not duplicated_basename:
+    if not duplicated_basename_list:
         output_img_list = [os.path.join(os.getcwd(), os.path.basename(img))
                         for img in input_brain_list]
 
@@ -325,7 +329,7 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     duplicated_basename_list = [i for i, j in counter.items() if j > 1]
     duplicated_basename = False
 
-    if not duplicated_basename_list:
+    if not duplicated_basename_list: # if duplicated_basename_list is empty, no duplicated basenames
         warp_list_filenames = [os.path.join(os.getcwd(), 
             str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in input_brain_list]
     else:
@@ -374,18 +378,18 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     distance smaller than the threshold) to all the images of the precedent iteration.
     """
     while not converged:
-        temporary_brain_template, temporary_skull_template = create_temporary_template(output_brain_list,
-                                                output_skull_list,
+        temporary_brain_template, temporary_skull_template = create_temporary_template(
+                                                input_brain_list=output_brain_list,
+                                                input_skull_list=output_skull_list,
                                                 output_brain_path=temporary_brain_template,
                                                 output_skull_path=temporary_skull_template,
                                                 avg_method=avg_method)
         
-        reg_list_node = register_img_list(output_brain_list,
+        reg_list_node = register_img_list(input_brain_list=output_brain_list,
                                           ref_img=temporary_brain_template,
                                           dof=dof,
                                           interp=interp,
                                           cost=cost,
-                                          duplicated_basename=duplicated_basename,
                                           unique_id_list=unique_id_list)
 
         mat_list = [node.inputs.out_matrix_file for node in reg_list_node]
@@ -428,7 +432,6 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
                                       dof=dof,
                                       interp=interp,
                                       cost=cost,
-                                      duplicated_basename=duplicated_basename,
                                       unique_id_list=unique_id_list)
 
     warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
