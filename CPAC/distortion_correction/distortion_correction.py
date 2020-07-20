@@ -225,6 +225,18 @@ def same_pe_direction_prep(same_pe_epi, func_mean):
     return qwarp_input
 
 
+def calculate_blip_warp(opp_pe, same_pe):
+
+    out_warp = os.path.join(os.getcwd(), "Qwarp_PLUS_WARP.nii.gz")
+
+    cmd = ["3dQwarp", "-prefix", "Qwarp.nii.gz", "-plusminus", "-base", 
+           opp_pe, "-source", same_pe]
+
+    retcode = subprocess.check_output(cmd)
+
+    return out_warp
+
+
 def convert_afni_to_ants(afni_warp):
     afni_warp = os.path.abspath(afni_warp)
     afni_warp_img = nb.load(afni_warp)
@@ -302,13 +314,15 @@ def blip_distcor_wf(wf_name='blip_distcor'):
     wf.connect(input_node, 'same_pe_epi', prep_qwarp_input, 'same_pe_epi')
     wf.connect(input_node, 'func_mean', prep_qwarp_input, 'func_mean')
 
-    calc_blip_warp = pe.Node(afni.QwarpPlusMinus(), name='calc_blip_warp')
-    calc_blip_warp.inputs.plusminus = True
-    calc_blip_warp.inputs.outputtype = "NIFTI_GZ"
-    calc_blip_warp.inputs.out_file = os.path.abspath("Qwarp.nii.gz")
+    calculate_blip_warp_imports = ['import os', 'import subprocess']
+    calc_blip_warp = pe.Node(function.Function(input_names=['opp_pe', 'same_pe'],
+                                               output_names=['out_warp'],
+                                               function=calculate_blip_warp,
+                                               imports=calculate_blip_warp_imports),
+                             name='calc_blip_warp')
 
-    wf.connect(opp_pe_to_func, 'out_file', calc_blip_warp, 'base_file')
-    wf.connect(prep_qwarp_input, 'qwarp_input', calc_blip_warp, 'in_file')
+    wf.connect(opp_pe_to_func, 'out_file', calc_blip_warp, 'opp_pe')
+    wf.connect(prep_qwarp_input, 'qwarp_input', calc_blip_warp, 'same_pe')
 
     convert_afni_warp_imports = ['import os', 'import nibabel as nb']
     convert_afni_warp = \
@@ -318,14 +332,14 @@ def blip_distcor_wf(wf_name='blip_distcor'):
                                   imports=convert_afni_warp_imports),
                 name='convert_afni_warp')
 
-    wf.connect(calc_blip_warp, 'source_warp', convert_afni_warp, 'afni_warp')
+    wf.connect(calc_blip_warp, 'out_warp', convert_afni_warp, 'afni_warp')
 
     # TODO: inverse source_warp (node:source_warp_inverse)
         # wf.connect(###
                 # output_node, 'blip_warp_inverse')
 
     undistort_func_mean = pe.Node(interface=ants.ApplyTransforms(),
-                              name='undistort_func_mean', mem_gb=.1)
+                                  name='undistort_func_mean', mem_gb=.1)
 
     undistort_func_mean.inputs.out_postfix = '_antswarp'
     undistort_func_mean.interface.num_threads = 1
