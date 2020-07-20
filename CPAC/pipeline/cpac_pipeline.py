@@ -2367,6 +2367,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat.append_name(regressor_workflow.name)
                     new_strat.append_name(nuisance_regression_before_workflow.name)
+                
+                if 'Bandpass' in regressors_selector:
                     new_strat.append_name(filtering.name)
 
                 new_strat_list.append(new_strat)
