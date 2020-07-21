@@ -1,5 +1,6 @@
 coverage
 GitPython
+spython >= 0.0.81
 pytest
 pytest_click
 yamlordereddictloader

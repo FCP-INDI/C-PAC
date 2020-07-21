@@ -264,14 +264,26 @@ def gather_nuisance(functional_file_path,
         regressor_file = censor_file_path
 
         if not regressor_file:
-            raise ValueError("Regressor type Censor specified in selectors but "
-                             "the corresponding file was not found!")
-
-        try:
-            censor_volumes = np.loadtxt(regressor_file)
-        except:
-            raise ValueError("Could not read regressor {0} from {1}."
-                             .format(regressor_type, regressor_file))
+            # ↓ This section is gross and temporary ↓
+            num_thresh = len(selector['thresholds'])
+            plural_s = '' if num_thresh == 1 else 's'
+            thresh_list = [
+                thresh.get('value') for thresh in selector['thresholds']
+            ]
+            print(f"{selector['method']} Censor "
+                  "specified with "
+                  f"{'no ' if num_thresh == 0 else ''}threshold"
+                  f"{plural_s} {str(thresh_list)} in selectors but "
+                  f" threshold was not reached.")
+            # ↑ This section is gross and temporary ↑
+            # All good to pass through if nothing to censor
+            censor_volumes = np.ones((regressor_length,), dtype=int)
+        else:
+            try:
+                censor_volumes = np.loadtxt(regressor_file)
+            except:
+                raise ValueError("Could not read regressor {0} from {1}."
+                                 .format(regressor_type, regressor_file))
 
         if (len(censor_volumes.shape) > 1 and censor_volumes.shape[1] > 1) or \
            not np.all(np.isin(censor_volumes, [0, 1])):
@@ -575,8 +587,8 @@ def create_regressor_workflow(nuisance_selectors,
     High Level Workflow Graph:
 
     .. exec::
-        from CPAC.nuisance import create_nuisance_workflow
-        wf = create_nuisance_workflow({
+        from CPAC.nuisance import create_nuisance_regression_workflow
+        wf = create_nuisance_regression_workflow({
             'PolyOrt': {'degree': 2},
             'tCompCor': {'summary': {'method': 'PC', 'components': 5}, 'threshold': '1.5SD', 'by_slice': True},
             'aCompCor': {'summary': {'method': 'PC', 'components': 5}, 'tissues': ['WhiteMatter', 'CerebrospinalFluid'], 'extraction_resolution': 2},

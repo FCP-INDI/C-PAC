@@ -17,7 +17,9 @@ from CPAC.seg_preproc.utils import (
     pick_wm_class_1,
     pick_wm_class_2,
     erosion,
-    mask_erosion)
+    mask_erosion,
+    hardcoded_antsJointLabelFusion,
+    pick_tissue_from_labels_file)
 
 import nipype.pipeline.engine as pe
 import scipy.ndimage as nd
@@ -964,3 +966,389 @@ def tissue_mask_template_to_t1(wf_name,
         preproc.connect (tissueprior_mni_to_t1, 'out_file', outputNode, 'segment_mask_temp2t1')
 
     return preproc
+
+
+def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_based'):
+
+    """Generate the subject's cerebral spinal fluids,
+    white matter and gray matter mask based on provided template, if selected to do so.
+
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+
+    Returns
+    -------
+    seg_preproc_templated_based : workflow
+        Workflow Object for Segmentation Workflow
+
+    Notes
+    -----
+
+    Workflow Inputs: ::
+
+        inputspec.brain : string (existing nifti file)
+            Anatomical image(without skull)
+               
+        inputspec.template_brain : string (existing nifti file)
+            Template anatomical image(without skull)
+
+        inputspec.template_segmentation : string (existing nifti file)
+            Template segmentation image(without skull)
+
+    Workflow Outputs: ::
+
+        outputspec.csf_mask : string (nifti file)
+            outputs CSF mask
+
+        outputspec.gm_mask : string (nifti file)
+            outputs gray matter mask
+
+        outputspec.wm_mask : string (nifti file)
+            outputs White Matter mask
+
+
+    """
+
+    preproc = pe.Workflow(name = wf_name)
+    inputNode = pe.Node(util.IdentityInterface(fields=['anatomical_brain',
+                                                       'anatomical_brain_mask',
+                                                       'template_brain_list',
+                                                       'template_segmentation_list',
+                                                       'csf_label', 
+                                                       'left_gm_label', 
+                                                       'left_wm_label', 
+                                                       'right_gm_label', 
+                                                       'right_wm_label']),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',
+                                                        'gm_mask',
+                                                        'wm_mask']),
+                        name='outputspec')
+
+
+    seg_preproc_antsJointLabel = pe.Node(util.Function(input_names=['anatomical_brain', 'anatomical_brain_mask', 'template_brain_list', 'template_segmentation_list'], 
+                                                        output_names=['multiatlas_Intensity', 'multiatlas_Labels'],
+                                                        function=hardcoded_antsJointLabelFusion), 
+                                                        name='{0}_antsJointLabel'.format(wf_name))
+
+    preproc.connect(inputNode, 'anatomical_brain',
+                    seg_preproc_antsJointLabel, 'anatomical_brain')
+    preproc.connect(inputNode, 'anatomical_brain_mask',
+                    seg_preproc_antsJointLabel, 'anatomical_brain_mask')
+    preproc.connect(inputNode, 'template_brain_list',
+                    seg_preproc_antsJointLabel, 'template_brain_list')
+    preproc.connect(inputNode, 'template_segmentation_list',
+                    seg_preproc_antsJointLabel, 'template_segmentation_list')                 
+    
+    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels', 'csf_label', 'left_gm_label', 'left_wm_label', 'right_gm_label', 'right_wm_label'], 
+                                        output_names=['csf_mask', 'gm_mask', 'wm_mask'],
+                                        function=pick_tissue_from_labels_file), 
+                                        name='{0}_tissue_mask'.format(wf_name))
+    
+    preproc.connect(seg_preproc_antsJointLabel, 'multiatlas_Labels',
+                    pick_tissue, 'multiatlas_Labels') 
+    preproc.connect(inputNode, 'csf_label',
+                    pick_tissue, 'csf_label') 
+    preproc.connect(inputNode, 'left_gm_label',
+                    pick_tissue, 'left_gm_label') 
+    preproc.connect(inputNode, 'left_wm_label',
+                    pick_tissue, 'left_wm_label')                    
+    preproc.connect(inputNode, 'right_gm_label',
+                    pick_tissue, 'right_gm_label') 
+    preproc.connect(inputNode, 'right_wm_label',
+                    pick_tissue, 'right_wm_label') 
+
+    preproc.connect(pick_tissue, 'csf_mask',
+                    outputNode, 'csf_mask')
+    preproc.connect(pick_tissue, 'gm_mask',
+                    outputNode, 'gm_mask')   
+    preproc.connect(pick_tissue, 'wm_mask',
+                    outputNode, 'wm_mask')
+
+    return preproc
+
+
+def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
+    
+    """
+    Segmentation Preprocessing Workflow
+    
+    Parameters
+    ----------
+        workflow : workflow
+            main preprocessing workflow
+        strat_list : list
+            list of strategies
+        c : configuration
+            pipeline configuration
+        strat_name : str
+            name of strategy
+
+    Returns
+    -------
+        workflow : workflow
+            updated main preprocessing workflow
+        strat_list : list
+            list of updated strategies
+    """
+    
+    from CPAC.seg_preproc.seg_preproc import (
+        create_seg_preproc,
+        create_seg_preproc_template_based
+    )
+
+    new_strat_list = []
+
+    if 1 in c.runSegmentationPreprocessing:
+
+        for num_strat, strat in enumerate(strat_list):
+
+            nodes = strat.get_nodes_names()
+
+            seg_preproc = None
+
+            if not any(o in c.seg_use_threshold for o in ["FSL-FAST Thresholding", "Customized Thresholding"]):
+                err = '\n\n[!] C-PAC says: Your segmentation thresholding options ' \
+                    'setting does not include either \'FSL-FAST Thresholding\' or \'Customized Thresholding\'.\n\n' \
+                    'Options you provided:\nseg_use_threshold: {0}' \
+                    '\n\n'.format(str(c.seg_use_threshold))
+                raise Exception(err)
+
+            if strat.get('registration_method') == 'FSL':
+                use_ants = False
+            elif strat.get('registration_method') == 'ANTS':
+                use_ants = True
+
+            if strat_name != None:
+                seg_preproc_wf_name = f'seg_preproc_{strat_name}_{num_strat}'
+            else:
+                seg_preproc_wf_name = f'seg_preproc_{num_strat}'
+
+            seg_preproc = create_seg_preproc(use_ants=use_ants,
+                                             use_priors=c.seg_use_priors,
+                                             use_threshold=c.seg_use_threshold,
+                                             csf_use_erosion=c.seg_csf_use_erosion,
+                                             wm_use_erosion=c.seg_wm_use_erosion,
+                                             gm_use_erosion=c.seg_gm_use_erosion,
+                                             wf_name=seg_preproc_wf_name)
+
+            seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
+            seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
+            seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+
+            seg_preproc.inputs.csf_erosion_prop.csf_erosion_prop=c.csf_erosion_prop
+            seg_preproc.inputs.wm_erosion_prop.wm_erosion_prop=c.wm_erosion_prop
+            seg_preproc.inputs.gm_erosion_prop.gm_erosion_prop=c.gm_erosion_prop
+
+            seg_preproc.inputs.csf_mask_erosion_mm.csf_mask_erosion_mm=c.csf_mask_erosion_mm
+            seg_preproc.inputs.wm_mask_erosion_mm.wm_mask_erosion_mm=c.wm_mask_erosion_mm
+            seg_preproc.inputs.gm_mask_erosion_mm.gm_mask_erosion_mm=c.gm_mask_erosion_mm
+
+            seg_preproc.inputs.csf_erosion_mm.csf_erosion_mm=c.csf_erosion_mm
+            seg_preproc.inputs.wm_erosion_mm.wm_erosion_mm=c.wm_erosion_mm
+            seg_preproc.inputs.gm_erosion_mm.gm_erosion_mm=c.gm_erosion_mm
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file, seg_preproc, 'inputspec.brain_mask')
+
+            # TODO ASH review
+            if seg_preproc is None:
+                continue
+
+            node, out_file = strat['anatomical_brain']
+            workflow.connect(node, out_file,
+                             seg_preproc, 'inputspec.brain')
+
+            if strat.get('registration_method') == 'FSL':
+                node, out_file = strat['mni_to_anatomical_linear_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc,
+                                 'inputspec.standard2highres_mat')
+
+            elif strat.get('registration_method') == 'ANTS':
+                node, out_file = strat['ants_initial_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc,
+                                 'inputspec.standard2highres_init')
+
+                node, out_file = strat['ants_rigid_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc,
+                                 'inputspec.standard2highres_rig')
+
+                node, out_file = strat['ants_affine_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc,
+                                 'inputspec.standard2highres_mat')
+
+            workflow.connect(c.PRIORS_CSF, 'local_path',
+                                seg_preproc, 'inputspec.PRIOR_CSF')
+
+            workflow.connect(c.PRIORS_GRAY, 'local_path',
+                                seg_preproc, 'inputspec.PRIOR_GRAY')
+
+            workflow.connect(c.PRIORS_WHITE, 'local_path',
+                                seg_preproc, 'inputspec.PRIOR_WHITE')
+
+            # TODO ASH review with forking function
+            if 0 in c.runSegmentationPreprocessing:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            if c.brain_use_erosion:
+                ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
+                eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_mm', 'mask_erosion_prop'],
+                                                    output_names = ['output_roi_mask', 'eroded_skullstrip_mask'],
+                                                    function = mask_erosion,
+                                                    imports = ero_imports),
+                                                    name='erode_skullstrip_brain_mask')
+                eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm
+                
+                node, out_file = strat['anatomical_brain_mask']
+                workflow.connect(node, out_file, 
+                                    eroded_mask, 'skullstrip_mask')
+                
+                workflow.connect(seg_preproc, 'outputspec.csf_probability_map', 
+                                    eroded_mask, 'roi_mask')
+
+                strat.update_resource_pool({'anatomical_eroded_brain_mask': (eroded_mask, 'eroded_skullstrip_mask')})
+
+            strat.append_name(seg_preproc.name)
+            strat.update_resource_pool({
+                'anatomical_gm_mask': (seg_preproc, 'outputspec.gm_mask'),
+                'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask'),
+                'anatomical_wm_mask': (seg_preproc, 'outputspec.wm_mask'),
+                'seg_probability_maps': (seg_preproc, 'outputspec.probability_maps'),
+                'seg_mixeltype': (seg_preproc, 'outputspec.mixeltype'),
+                'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
+                'seg_partial_volume_files': (seg_preproc, 'outputspec.partial_volume_files')
+            })
+
+    strat_list += new_strat_list
+    
+    if 1 in c.ANTs_prior_based_segmentation:
+
+        if 'T1_template' in c.template_based_segmentation or 'EPI_template' in c.template_based_segmentation or 1 in c.runSegmentationPreprocessing:
+            err = '\n\n[!] C-PAC says: '\
+                    'If you would like to set ANTs Prior-based Segmentation as your segmentation option,'\
+                    'please set Template based segmentation as \'None\' and runSegmentationPreprocessing as \'0\'.\n\n' \
+                    '\n\n'
+            raise Exception(err)
+
+        for num_strat, strat in enumerate(strat_list):
+
+            seg_preproc_ants_prior_based = create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_ants_prior_{0}'.format(num_strat))
+
+            # TODO ASH review
+            if seg_preproc_ants_prior_based is None:
+                continue
+
+            node, out_file = strat['anatomical_brain']
+            workflow.connect(node, out_file,
+                             seg_preproc_ants_prior_based, 'inputspec.anatomical_brain')
+
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(node, out_file,
+                             seg_preproc_ants_prior_based, 'inputspec.anatomical_brain_mask')
+                             
+            workflow.connect(c.ANTs_prior_seg_template_brain_list, 'local_path',
+                             seg_preproc_ants_prior_based, 'inputspec.template_brain_list')
+            workflow.connect(c.ANTs_prior_seg_template_segmentation_list, 'local_path',
+                             seg_preproc_ants_prior_based, 'inputspec.template_segmentation_list')
+            seg_preproc_ants_prior_based.inputs.inputspec.csf_label = c.ANTs_prior_seg_CSF_label
+            seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = c.ANTs_prior_seg_left_GM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = c.ANTs_prior_seg_right_GM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = c.ANTs_prior_seg_left_WM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = c.ANTs_prior_seg_right_WM_label
+
+            # TODO ASH review with forking function
+            if 0 in c.ANTs_prior_based_segmentation:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            strat.append_name(seg_preproc_ants_prior_based.name)
+            strat.update_resource_pool({
+                'anatomical_gm_mask': (seg_preproc_ants_prior_based, 'outputspec.gm_mask'),
+                'anatomical_csf_mask': (seg_preproc_ants_prior_based, 'outputspec.csf_mask'),
+                'anatomical_wm_mask': (seg_preproc_ants_prior_based, 'outputspec.wm_mask')
+            })
+
+    strat_list += new_strat_list
+
+    if 'T1_template' in c.template_based_segmentation:
+
+        for num_strat, strat in enumerate(strat_list):
+
+            nodes = strat.get_nodes_names()
+
+            if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
+                err = '\n\n[!] C-PAC says: Your template based segmentation ' \
+                    'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
+                    'Options you provided:\ntemplate_based_segmentation: {0}' \
+                    '\n\n'.format(str(c.template_based_segmentation))
+                raise Exception(err)
+
+            if strat.get('registration_method') == 'FSL':
+                use_ants = False
+            elif strat.get('registration_method') == 'ANTS':
+                use_ants = True
+
+            seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
+                                                             wf_name='seg_preproc_t1_template_{0}'.format(num_strat))
+
+            if seg_preproc_template_based is None:
+                continue
+
+            node, out_file = strat['anatomical_brain']
+            workflow.connect(node, out_file,
+                             seg_preproc_template_based, 'inputspec.brain')
+
+            if strat.get('registration_method') == 'FSL':
+                node, out_file = strat['mni_to_anatomical_linear_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_mat')
+
+            elif strat.get('registration_method') == 'ANTS':
+                node, out_file = strat['ants_initial_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_init')
+
+                node, out_file = strat['ants_rigid_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_rig')
+
+                node, out_file = strat['ants_affine_xfm']
+                workflow.connect(node, out_file,
+                                 seg_preproc_template_based,
+                                 'inputspec.standard2highres_mat')
+
+            workflow.connect(c.template_based_segmentation_CSF, 'local_path',
+                                seg_preproc_template_based, 'inputspec.CSF_template')
+
+            workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
+                                seg_preproc_template_based, 'inputspec.GRAY_template')
+
+            workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
+                                seg_preproc_template_based, 'inputspec.WHITE_template')
+
+            if 'None' in c.template_based_segmentation:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            strat.append_name(seg_preproc_template_based.name)
+            strat.update_resource_pool({
+                'anatomical_gm_mask': (seg_preproc_template_based, 'outputspec.gm_mask'),
+                'anatomical_csf_mask': (seg_preproc_template_based, 'outputspec.csf_mask'),
+                'anatomical_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
+            })
+
+    strat_list += new_strat_list
+
+    return workflow, strat_list

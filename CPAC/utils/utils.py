@@ -1201,7 +1201,7 @@ def check_config_resources(c):
         else:
             num_cores_per_sub = c.maxCoresPerParticipant
     else:
-        num_cores_per_sub = num_cores / c.maxCoresPerParticipant
+        num_cores_per_sub = num_cores / c.numParticipantsAtOnce
 
     # Now check ANTS
     if 'ANTS' in c.regOption:
@@ -1366,3 +1366,36 @@ def _pickle2(p, z=False):
                     f"exception {e}"
                 )
     return(False)
+
+
+def concat_list(in_list1=None, in_list2=None):
+    """
+    Parameters
+    ----------
+    in_list1: list or str
+        file path or a list of file paths
+
+    in_list2: list or str
+        file path or a list of file paths
+
+    Returns
+    -------
+    out_list: list
+        a list of file paths
+    """
+
+    if in_list1 != None:
+        if not isinstance(in_list1, list):
+            in_list1 = [in_list1]
+    else:
+        in_list1 = []
+    
+    if in_list2 != None:
+        if not isinstance(in_list2, list):
+            in_list2 = [in_list2]
+    else:
+        in_list2 = []
+    
+    out_list = in_list1 + in_list2
+    
+    return out_list

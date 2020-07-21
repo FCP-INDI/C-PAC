@@ -113,6 +113,10 @@ reGenerateOutputs :  False
 # Anatomical preprocessing options.
 # ---------------------------------
 
+# Run anatomical preproceessing
+runAnatomical: [1]
+
+
 # Non-local means filtering via ANTs DenoiseImage
 non_local_means_filtering: False
 
@@ -287,6 +291,42 @@ bet_threshold :  Off
 
 # Vertical gradient in fractional intensity threshold (-1,1)
 bet_vertical_gradient : 0.0
+
+
+# Run anatomical and/or functional longitudinal pipeline
+# Options: 'anat' and/or 'func'
+# Note: 'func' is still under development and not available yet
+run_longitudinal : []
+
+
+# Freesurfer longitudinal template algorithm using FSL FLIRT
+# Method to average the dataset at each iteration of the template creation
+# Options: median, mean or std
+longitudinal_template_average_method : median
+
+
+# Degree of freedom for FLIRT in the template creation
+# Options: 12 (affine), 9 (traditional), 7 (global rescale) or 6 (rigid body)
+longitudinal_template_dof : 12
+
+
+# Interpolation parameter for FLIRT in the template creation
+# Options: trilinear, nearestneighbour, sinc or spline
+longitudinal_template_interp : trilinear
+
+
+# Cost function for FLIRT in the template creation
+# Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
+longitudinal_template_cost : corratio
+
+
+# Number of threads used for one run of the template generation algorithm
+longitudinal_template_thread_pool : 2
+
+
+# Threshold of transformation distance to consider that the loop converged 
+# (-1 means numpy.finfo(np.float64).eps and is the default)
+longitudinal_template_convergence_threshold : -1
 
 
 # The resolution to which anatomical images should be transformed during registration.
@@ -756,28 +796,27 @@ tsa_roi_paths:
     /cpac_templates/PNAS_Smith09_rsn10.nii.gz: SpatialReg
     /cpac_templates/ho_mask_pad.nii.gz: Avg
     /cpac_templates/rois_3mm.nii.gz: Avg
-    /ndmg_atlases/label/Human/AAL2zourioMazoyer2002.nii.gz: Avg
-    /ndmg_atlases/label/Human/CorticalAreaParcellationfromRestingStateCorrelationsGordon2014.nii.gz: Avg
+    /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/CAPRSC_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     /ndmg_atlases/label/Human/DKT_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/DesikanKlein2012.nii.gz: Avg
+    /ndmg_atlases/label/Human/DesikanKlein_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Juelichgmthr252mmEickhoff2005.nii.gz: Avg
-    /ndmg_atlases/label/Human/MICCAI2012MultiAtlasLabelingWorkshopandChallengeNeuromorphometrics.nii.gz: Avg
-    /ndmg_atlases/label/Human/Schaefer2018-1000-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Schaefer2018-200-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Schaefer2018-300-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/Schaefer2018-400-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/MICCAI_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer1000_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer200_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer300_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Schaefer400_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     /ndmg_atlases/label/Human/Talairach_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/aal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/desikan_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-    /ndmg_atlases/label/Human/yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Desikan_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+    /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.

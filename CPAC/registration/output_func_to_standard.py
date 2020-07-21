@@ -361,7 +361,7 @@ def ants_apply_warps_func_mni(
                 if distcor is True and func_type not in 'ica-aroma':
                     # Field file from anatomical nonlinear registration
                     transforms_to_combine = [\
-                            ('epi_to_func_nonlinear_xfm', 'i5'),
+                            ('epi_to_func_nonlinear_xfm', 'in5'),
                             ('func_to_epi_ants_affine_xfm', 'in4'),
                             ('func_to_epi_ants_rigid_xfm', 'in3'),
                             ('func_to_epi_ants_initial_xfm', 'in2'),
@@ -394,8 +394,7 @@ def ants_apply_warps_func_mni(
         # wire in the various tranformations
         for transform_key, input_port in transforms_to_combine:
              node, out_file = strat[ants_transformation_dict[symmetry][transform_key]]
-             workflow.connect(node, out_file,
-                 collect_transforms, input_port)
+             workflow.connect(node, out_file, collect_transforms, input_port)
 
         # check transform list (if missing any init/rig/affine) and exclude Nonetype
         check_transform = pe.Node(util.Function(input_names=['transform_list'], 
@@ -517,7 +516,9 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 num_strat, strat, interpolation_method=interp,
                 distcor=distcor, map_node=map_node, inverse=inverse,
                 symmetry=symmetry, input_image_type=image_type,
-                num_ants_cores=pipeline_config_obj.num_ants_threads, registration_template=registration_template, func_type=func_type)
+                num_ants_cores=pipeline_config_obj.num_ants_threads, 
+                registration_template=registration_template, 
+                func_type=func_type)
 
     else:
         raise ValueError('Cannot determine whether a ANTS or FSL registration' \

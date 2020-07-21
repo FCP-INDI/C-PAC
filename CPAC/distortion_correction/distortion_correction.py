@@ -13,6 +13,8 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 
 from CPAC.utils import function
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.datasource import match_epi_fmaps
 from CPAC.func_preproc import skullstrip_functional
 
 
@@ -223,6 +225,18 @@ def same_pe_direction_prep(same_pe_epi, func_mean):
     return qwarp_input
 
 
+def calculate_blip_warp(opp_pe, same_pe):
+
+    out_warp = os.path.join(os.getcwd(), "Qwarp_PLUS_WARP.nii.gz")
+
+    cmd = ["3dQwarp", "-prefix", "Qwarp.nii.gz", "-plusminus", "-base", 
+           opp_pe, "-source", same_pe]
+
+    retcode = subprocess.check_output(cmd)
+
+    return out_warp
+
+
 def convert_afni_to_ants(afni_warp):
     afni_warp = os.path.abspath(afni_warp)
     afni_warp_img = nb.load(afni_warp)
@@ -300,13 +314,15 @@ def blip_distcor_wf(wf_name='blip_distcor'):
     wf.connect(input_node, 'same_pe_epi', prep_qwarp_input, 'same_pe_epi')
     wf.connect(input_node, 'func_mean', prep_qwarp_input, 'func_mean')
 
-    calc_blip_warp = pe.Node(afni.QwarpPlusMinus(), name='calc_blip_warp')
-    calc_blip_warp.inputs.plusminus = True
-    calc_blip_warp.inputs.outputtype = "NIFTI_GZ"
-    calc_blip_warp.inputs.out_file = os.path.abspath("Qwarp.nii.gz")
+    calculate_blip_warp_imports = ['import os', 'import subprocess']
+    calc_blip_warp = pe.Node(function.Function(input_names=['opp_pe', 'same_pe'],
+                                               output_names=['out_warp'],
+                                               function=calculate_blip_warp,
+                                               imports=calculate_blip_warp_imports),
+                             name='calc_blip_warp')
 
-    wf.connect(opp_pe_to_func, 'out_file', calc_blip_warp, 'base_file')
-    wf.connect(prep_qwarp_input, 'qwarp_input', calc_blip_warp, 'in_file')
+    wf.connect(opp_pe_to_func, 'out_file', calc_blip_warp, 'opp_pe')
+    wf.connect(prep_qwarp_input, 'qwarp_input', calc_blip_warp, 'same_pe')
 
     convert_afni_warp_imports = ['import os', 'import nibabel as nb']
     convert_afni_warp = \
@@ -316,14 +332,14 @@ def blip_distcor_wf(wf_name='blip_distcor'):
                                   imports=convert_afni_warp_imports),
                 name='convert_afni_warp')
 
-    wf.connect(calc_blip_warp, 'source_warp', convert_afni_warp, 'afni_warp')
+    wf.connect(calc_blip_warp, 'out_warp', convert_afni_warp, 'afni_warp')
 
     # TODO: inverse source_warp (node:source_warp_inverse)
         # wf.connect(###
                 # output_node, 'blip_warp_inverse')
 
     undistort_func_mean = pe.Node(interface=ants.ApplyTransforms(),
-                              name='undistort_func_mean', mem_gb=.1)
+                                  name='undistort_func_mean', mem_gb=.1)
 
     undistort_func_mean.inputs.out_postfix = '_antswarp'
     undistort_func_mean.interface.num_threads = 1
@@ -352,3 +368,151 @@ def blip_distcor_wf(wf_name='blip_distcor'):
                output_node, 'new_func_mask')
 
     return wf
+
+
+def connect_distortion_correction(workflow, strat_list, c, diff, blip,
+                                  fmap_rp_list, unique_id=None):
+
+    # Distortion Correction
+    new_strat_list = []
+
+    # Distortion Correction - Field Map Phase-difference
+    if "PhaseDiff" in c.distortion_correction and diff:
+        for num_strat, strat in enumerate(strat_list):
+            if unique_id is None:
+                    workflow_name=f'diff_distcor_{num_strat}'
+            else:
+                workflow_name=f'diff_distcor_{unique_id}_{num_strat}'
+            
+            if 'BET' in c.fmap_distcorr_skullstrip:
+                epi_distcorr = create_EPI_DistCorr(
+                    use_BET=True,
+                    wf_name=workflow_name
+                )
+                epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
+                epi_distcorr.get_node('bet_frac_input').iterables = \
+                    ('bet_frac', c.fmap_distcorr_frac)
+            else:
+                epi_distcorr = create_EPI_DistCorr(
+                    use_BET=False,
+                    wf_name=workflow_name
+                )
+                epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
+                    c.fmap_distcorr_threshold
+
+            node, out_file = strat['anatomical_reorient']
+            workflow.connect(node, out_file, epi_distcorr,
+                             'inputspec.anat_file')
+
+            node, out_file = strat['diff_phase']
+            workflow.connect(node, out_file, epi_distcorr,
+                             'inputspec.fmap_pha')
+
+            node, out_file = strat['diff_mag_one']
+            workflow.connect(node, out_file, epi_distcorr,
+                             'inputspec.fmap_mag')
+
+            node, out_file = strat['deltaTE']
+            workflow.connect(node, out_file, epi_distcorr,
+                             'deltaTE_input.deltaTE')
+
+            node, out_file = strat['diff_phase_dwell']
+            workflow.connect(node, out_file, epi_distcorr,
+                             'dwellT_input.dwellT')
+
+            node, out_file = strat['dwell_asym_ratio']
+            workflow.connect(node, out_file, epi_distcorr,
+                             'dwell_asym_ratio_input.dwell_asym_ratio')
+
+            # TODO ASH review forking
+            if "None" in c.distortion_correction:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            strat.append_name(epi_distcorr.name)
+
+            strat.update_resource_pool({
+                'despiked_fieldmap': (
+                epi_distcorr, 'outputspec.fmap_despiked'),
+                'fieldmap_mask': (epi_distcorr, 'outputspec.fieldmapmask'),
+            })
+
+    strat_list += new_strat_list
+
+    # Distortion Correction - "Blip-Up / Blip-Down"
+    if "Blip" in c.distortion_correction and blip:
+        for num_strat, strat in enumerate(strat_list):
+            match_epi_imports = ['import json']
+            match_epi_fmaps_node = \
+                pe.Node(Function(input_names=['bold_pedir',
+                                              'epi_fmap_one',
+                                              'epi_fmap_params_one',
+                                              'epi_fmap_two',
+                                              'epi_fmap_params_two'],
+                                 output_names=['opposite_pe_epi',
+                                               'same_pe_epi'],
+                                 function=match_epi_fmaps,
+                                 imports=match_epi_imports,
+                                 as_module=True),
+                        name='match_epi_fmaps_{0}'.format(num_strat))
+
+            if fmap_rp_list:
+                epi_rp_key = fmap_rp_list[0]
+                epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
+                node, node_out = strat[epi_rp_key]
+                workflow.connect(node, node_out,
+                                 match_epi_fmaps_node, 'epi_fmap_one')
+                node, node_out = strat[epi_param_rp_key]
+                workflow.connect(node, node_out,
+                                 match_epi_fmaps_node, 'epi_fmap_params_one')
+                if len(epi_rp_key) > 1:
+                    epi_rp_key = fmap_rp_list[1]
+                    epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
+                    node, node_out = strat[epi_rp_key]
+                    workflow.connect(node, node_out,
+                                     match_epi_fmaps_node, 'epi_fmap_two')
+                    node, node_out = strat[epi_param_rp_key]
+                    workflow.connect(node, node_out,
+                                     match_epi_fmaps_node,
+                                     'epi_fmap_params_two')
+
+            node, node_out = strat['pe_direction']
+            workflow.connect(node, node_out,
+                             match_epi_fmaps_node, 'bold_pedir')
+
+            if unique_id is None:
+                workflow_name=f'blip_correct_{num_strat}'
+            else:
+                workflow_name=f'blip_correct_{unique_id}_{num_strat}'
+            
+            blip_correct = blip_distcor_wf(
+                wf_name=workflow_name)
+
+            node, out_file = strat["mean_functional"]
+            workflow.connect(node, out_file,
+                             blip_correct, 'inputspec.func_mean')
+
+            workflow.connect(match_epi_fmaps_node, 'opposite_pe_epi',
+                             blip_correct, 'inputspec.opposite_pe_epi')
+
+            workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
+                             blip_correct, 'inputspec.same_pe_epi')
+
+        if "None" in c.distortion_correction:
+            strat = strat.fork()
+            new_strat_list.append(strat)
+
+        strat.append_name(blip_correct.name)
+
+        strat.update_resource_pool({
+            'blip_warp': (blip_correct, 'outputspec.blip_warp'),
+            'blip_warp_inverse': (
+            blip_correct, 'outputspec.blip_warp_inverse'),
+            'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
+            'functional_brain_mask': (
+            blip_correct, 'outputspec.new_func_mask')
+        }, override=True)
+
+    strat_list += new_strat_list
+
+    return (workflow, strat_list)
