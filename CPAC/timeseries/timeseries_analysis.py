@@ -96,9 +96,6 @@ def clean_roi_csv(roi_csv):
     passes the original file as output, instead of unnecessarily opening and
     re-writing it.
     """
-
-    import pandas as pd
-
     import os
     import pandas as pd
     import numpy as np
@@ -106,7 +103,14 @@ def clean_roi_csv(roi_csv):
     with open(roi_csv, 'r') as f:
         csv_lines = f.readlines()
 
+    # flag whether to re-write
     modified = False
+
+    # uncomment the header if commented:
+    if csv_lines[1].lstrip()[0] == '#':
+        csv_lines[1] = csv_lines[1].lstrip()[1:].lstrip()
+        modified = True
+
     edited_lines = []
     for line in csv_lines:
         line = line.replace('\t\t\t', '')
@@ -128,7 +132,7 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = [roi_csv]
 
-    data = pd.read_csv(edited_roi_csv[0], sep = ',', header = 1)
+    data = pd.read_csv(edited_roi_csv[0], sep=',', header=0)
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 
