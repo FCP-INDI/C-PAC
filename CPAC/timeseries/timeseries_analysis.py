@@ -95,6 +95,18 @@ def clean_roi_csv(roi_csv):
     If there are no file path comments to remove, this function simply
     passes the original file as output, instead of unnecessarily opening and
     re-writing it.
+
+    Parameters
+    ----------
+    roi_csv: str
+        path to CSV
+
+    Returns
+    -------
+    roi_array: numpy.ndarray
+
+    edited_roi_csv: str
+        path to CSV
     """
     import os
     import pandas as pd
@@ -132,7 +144,7 @@ def clean_roi_csv(roi_csv):
     else:
         edited_roi_csv = [roi_csv]
 
-    data = pd.read_csv(edited_roi_csv[0], sep=',', header=0)
+    data = pd.read_csv(edited_roi_csv[0], sep=',', header=1)
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 
