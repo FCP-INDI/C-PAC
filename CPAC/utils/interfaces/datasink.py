@@ -12,6 +12,7 @@ import re
 import copy
 import tempfile
 from os.path import join, dirname
+from shutil import SameFileError
 from warnings import warn
 from nipype.interfaces.io import IOBase, DataSinkInputSpec, DataSinkOutputSpec, ProgressPercentage, copytree
 
@@ -561,7 +562,7 @@ class DataSink(IOBase):
                     out_files.append(s3dst)
                 # Otherwise, copy locally src -> dst
                 if not s3_flag or isdefined(self.inputs.local_copy):
-                    # Create output directory if it doesnt exist
+                    # Create output directory if it doesn't exist
                     if not os.path.exists(path):
                         try:
                             os.makedirs(path)
@@ -570,21 +571,26 @@ class DataSink(IOBase):
                                 pass
                             else:
                                 raise (inst)
-                    # If src == dest, it's already home
-                    if src != dst:
+                    # If src == dst, it's already home
+                    if (not os.path.exists(dst)) or (
+                        os.stat(src) != os.stat(dst)
+                    ):
                         # If src is a file, copy it to dst
                         if os.path.isfile(src):
-                            iflogger.debug('copyfile: %s %s', src, dst)
+                            iflogger.debug(f'copyfile: {src} {dst}')
                             copyfile(
                                 src,
                                 dst,
                                 copy=True,
                                 hashmethod='content',
                                 use_hardlink=use_hardlink)
-                            out_files.append(dst)
-                        # If src is a directory, copy entire contents to dst dir
+                        # If src is a directory, copy
+                        # entire contents to dst dir
                         elif os.path.isdir(src):
-                            if os.path.exists(dst) and self.inputs.remove_dest_dir:
+                            if (
+                                os.path.exists(dst) and
+                                self.inputs.remove_dest_dir
+                            ):
                                 iflogger.debug('removing: %s', dst)
                                 shutil.rmtree(dst)
                             iflogger.debug('copydir: %s %s', src, dst)

@@ -713,10 +713,27 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     for key_type, key in template_keys:
 
+        if isinstance(getattr(c, key), str) or getattr(c, key) == None:
+            
+            node = create_check_for_s3_node(
+                key,
+                getattr(c, key), key_type,
+                input_creds_path, c.workingDirectory, map_node=False
+            )
+
+            setattr(c, key, node)
+    
+    template_keys_in_list = [
+        ("anat", "ANTs_prior_seg_template_brain_list"),
+        ("anat", "ANTs_prior_seg_template_segmentation_list"),
+    ]
+
+    for key_type, key in template_keys_in_list:
+
         node = create_check_for_s3_node(
             key,
             getattr(c, key), key_type,
-            input_creds_path, c.workingDirectory
+            input_creds_path, c.workingDirectory, map_node=True
         )
 
         setattr(c, key, node)
@@ -1073,6 +1090,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
+                    node, out_file = new_strat['template_brain_for_anat']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.template_brain_only_for_anat')
+                    node, out_file = new_strat['template_skull_for_anat']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.template_skull_for_anat')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
@@ -1450,6 +1473,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             strat_list += new_strat_list
 
+            
             new_strat_list = []
 
             for num_strat, strat in enumerate(strat_list):
@@ -2343,6 +2367,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat.append_name(regressor_workflow.name)
                     new_strat.append_name(nuisance_regression_before_workflow.name)
+                
+                if 'Bandpass' in regressors_selector:
                     new_strat.append_name(filtering.name)
 
                 new_strat_list.append(new_strat)

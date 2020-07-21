@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
-import numpy as np
 import six
-from multiprocessing.dummy import Pool as ThreadPool
-
-from CPAC.utils.nifti_utils import nifti_image_input
+import numpy as np
 import nibabel as nib
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 from nipype.interfaces.fsl import ConvertXFM
-
+from CPAC.utils.nifti_utils import nifti_image_input
+from multiprocessing.dummy import Pool as ThreadPool
+from collections import Counter
 
 def read_ants_mat(ants_mat_file):
     if not os.path.exists(ants_mat_file):
@@ -183,8 +182,8 @@ def create_temporary_template(input_brain_list, input_skull_list,
     return output_brain_path, output_skull_path
 
 
-def register_img_list(input_brain_list, ref_img, dof=12,
-                      interp='trilinear', cost='corratio', thread_pool=2):
+def register_img_list(input_brain_list, ref_img, dof=12, interp='trilinear', cost='corratio', 
+                        thread_pool=2, unique_id_list=None):
     """
     Register a list of images to the reference image.
 
@@ -206,7 +205,10 @@ def register_img_list(input_brain_list, ref_img, dof=12,
     thread_pool: int or multiprocessing.dummy.Pool
         (default 2) number of threads. You can also provide a Pool so the
         node will be added to it to be run.
-
+    duplicated_basename: boolean
+        whether there exists duplicated basename which may happen in non-BIDS dataset
+    unique_id_list: list
+        a list of unique IDs in data
     Returns
     -------
     node_list: list of Node
@@ -215,15 +217,29 @@ def register_img_list(input_brain_list, ref_img, dof=12,
         node.inputs.out_matrix_file contains the path to the transformation
         matrix
     """
+
     if not input_brain_list:
         raise ValueError('ERROR register_img_list: image list is empty')
 
-    output_img_list = [os.path.join(os.getcwd(), os.path.basename(img))
-                       for img in input_brain_list]
+    basename_list = [str(os.path.basename(img).split('.')[0]) for img in input_brain_list]
+    counter = Counter(basename_list)
+    duplicated_basename_list = [i for i, j in counter.items() if j > 1]
+    
+    if not duplicated_basename_list:
+        output_img_list = [os.path.join(os.getcwd(), os.path.basename(img))
+                        for img in input_brain_list]
 
-    output_mat_list = [os.path.join(os.getcwd(),
-                       str(os.path.basename(img).split('.')[0]) + '.mat')
-                       for img in input_brain_list]
+        output_mat_list = [os.path.join(os.getcwd(),
+                        str(os.path.basename(img).split('.')[0]) + '.mat')
+                        for img in input_brain_list]
+    else:
+        output_img_list = [os.path.join(os.getcwd(), 
+                        str(os.path.basename(img).split('.')[0]) + '_' + unique_id_list[i] + '.nii.gz')
+                        for i, img in enumerate(input_brain_list)]
+
+        output_mat_list = [os.path.join(os.getcwd(),
+                        str(os.path.basename(img).split('.')[0]) + '_' + unique_id_list[i] + '.mat')
+                        for i, img in enumerate(input_brain_list)]
 
     def flirt_node(in_img, output_img, output_mat):
         linear_reg = fsl.FLIRT()
@@ -256,7 +272,7 @@ def register_img_list(input_brain_list, ref_img, dof=12,
 
 def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, avg_method='median', dof=12,
                             interp='trilinear', cost='corratio', mat_type='matrix',
-                            convergence_threshold=-1, thread_pool=2):
+                            convergence_threshold=-1, thread_pool=2, unique_id_list=None):
     """
     Parameters
     ----------
@@ -291,7 +307,8 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     thread_pool : int or multiprocessing.dummy.Pool
         (default 2) number of threads. You can also provide a Pool so the
         node will be added to it to be run.
-
+    unique_id_list : list of str
+        list of unique IDs in data config
     Returns
     -------
     template : str
@@ -300,6 +317,26 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     """
     # DEBUG to skip the longitudinal template generation which takes a lot of time.
     # return 'CECI_EST_UN_TEST'
+    
+    if not input_brain_list or not input_skull_list:
+        raise ValueError('ERROR create_temporary_template: image list is empty')
+    
+    warp_list = []
+
+    # check if image basename_list are the same
+    basename_list = [str(os.path.basename(img).split('.')[0]) for img in input_brain_list]
+    counter = Counter(basename_list)
+    duplicated_basename_list = [i for i, j in counter.items() if j > 1]
+    duplicated_basename = False
+
+    if not duplicated_basename_list: # if duplicated_basename_list is empty, no duplicated basenames
+        warp_list_filenames = [os.path.join(os.getcwd(), 
+            str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in input_brain_list]
+    else:
+        if len(unique_id_list) == len(input_brain_list):
+            duplicated_basename = True
+            warp_list_filenames = [os.path.join(os.getcwd(), 
+                str(os.path.basename(img).split('.')[0]) + '_' + unique_id_list[i] + '_anat_to_template.mat') for i, img in enumerate(input_brain_list)]
 
     if isinstance(thread_pool, int):
         pool = ThreadPool(thread_pool)
@@ -309,18 +346,12 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     if convergence_threshold == -1:
         convergence_threshold = np.finfo(np.float64).eps
 
-    if not input_brain_list:
-        print('ERROR create_temporary_template: image list is empty')
+    if len(input_brain_list) == 1 or len(input_skull_list) == 1:
+        warnings.warn("input_brain_list or input_skull_list contains only 1 image, no need to calculate template")
+        warp_list.append(np.identity(4, dtype = float)) # return an identity matrix
+        return input_brain_list[0], input_skull_list[0], input_brain_list, input_skull_list, warp_list
 
-    if len(input_brain_list) == 1:
-        print("input_brain_list contains only 1 image, no template calculated")
-        return input_brain_list[0]
-
-    warp_list = []
-    warp_list_filenames = [os.path.join(
-        os.getcwd(), str(os.path.basename(img).split('.')[0]) + '_anat_to_template.mat') for img in input_brain_list]
-
-    # I added this part because it is mentioned in the paper but I actually never used it
+    # Chris: I added this part because it is mentioned in the paper but I actually never used it
     # You could run a first register_img_list() with a selected image as starting point and
     # give the output to this function
     if init_reg is not None:
@@ -347,18 +378,19 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
     distance smaller than the threshold) to all the images of the precedent iteration.
     """
     while not converged:
-        temporary_brain_template, temporary_skull_template = create_temporary_template(output_brain_list,
-                                                output_skull_list,
+        temporary_brain_template, temporary_skull_template = create_temporary_template(
+                                                input_brain_list=output_brain_list,
+                                                input_skull_list=output_skull_list,
                                                 output_brain_path=temporary_brain_template,
                                                 output_skull_path=temporary_skull_template,
                                                 avg_method=avg_method)
         
-        # TODO applyxfm mat_list to register output_skull_list to longitudinal space
-        reg_list_node = register_img_list(output_brain_list,
+        reg_list_node = register_img_list(input_brain_list=output_brain_list,
                                           ref_img=temporary_brain_template,
                                           dof=dof,
                                           interp=interp,
-                                          cost=cost)
+                                          cost=cost,
+                                          unique_id_list=unique_id_list)
 
         mat_list = [node.inputs.out_matrix_file for node in reg_list_node]
 
@@ -393,14 +425,15 @@ def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, a
 
     brain_template = temporary_brain_template
     skull_template = temporary_skull_template
-    
+
     # register T1 to longitudinal template space
     reg_list_node = register_img_list(input_brain_list,
                                       ref_img=temporary_brain_template,
                                       dof=dof,
                                       interp=interp,
-                                      cost=cost)
-    
+                                      cost=cost,
+                                      unique_id_list=unique_id_list)
+
     warp_list = [node.inputs.out_matrix_file for node in reg_list_node]
     
     return brain_template, skull_template, output_brain_list, output_skull_list, warp_list
@@ -419,7 +452,9 @@ def subject_specific_template(workflow_name='subject_specific_template',
     """
     imports = [
         'import os',
+        'import warnings',
         'import numpy as np',
+        'from collections import Counter',
         'from multiprocessing.dummy import Pool as ThreadPool',
         'from nipype.interfaces.fsl import ConvertXFM',
         'from CPAC.longitudinal_pipeline.longitudinal_preproc import ('
@@ -441,7 +476,8 @@ def subject_specific_template(workflow_name='subject_specific_template',
                     'cost',
                     'mat_type',
                     'convergence_threshold',
-                    'thread_pool'],
+                    'thread_pool',
+                    'unique_id_list'],
                 output_names=['brain_template',
                     'skull_template',
                     'output_brain_list',

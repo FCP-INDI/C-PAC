@@ -109,6 +109,10 @@ reGenerateOutputs :  False
 # Anatomical preprocessing options.
 # ---------------------------------
 
+# Run anatomical preproceessing
+runAnatomical: [1]
+
+
 # Non-local means filtering / Denoise image
 non_local_means_filtering: False
 
@@ -279,6 +283,42 @@ bet_threshold :  Off
 
 # Vertical gradient in fractional intensity threshold (-1,1)
 bet_vertical_gradient : 0.0
+
+
+# Run anatomical and/or functional longitudinal pipeline
+# Options: 'anat' and/or 'func'
+# Note: 'func' is still under development and not available yet
+run_longitudinal : []
+
+
+# Freesurfer longitudinal template algorithm using FSL FLIRT
+# Method to average the dataset at each iteration of the template creation
+# Options: median, mean or std
+longitudinal_template_average_method : median
+
+
+# Degree of freedom for FLIRT in the template creation
+# Options: 12 (affine), 9 (traditional), 7 (global rescale) or 6 (rigid body)
+longitudinal_template_dof : 12
+
+
+# Interpolation parameter for FLIRT in the template creation
+# Options: trilinear, nearestneighbour, sinc or spline
+longitudinal_template_interp : trilinear
+
+
+# Cost function for FLIRT in the template creation
+# Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
+longitudinal_template_cost : corratio
+
+
+# Number of threads used for one run of the template generation algorithm
+longitudinal_template_thread_pool : 2
+
+
+# Threshold of transformation distance to consider that the loop converged 
+# (-1 means numpy.finfo(np.float64).eps and is the default)
+longitudinal_template_convergence_threshold : -1
 
 
 # The resolution to which anatomical images should be transformed during registration.

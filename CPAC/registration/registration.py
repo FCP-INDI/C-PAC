@@ -930,6 +930,8 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
 
     new_strat_list = []
 
+    diff_complete = False
+    
     if 1 in c.runRegisterFuncToAnat:
 
         for num_strat, strat in enumerate(strat_list):
