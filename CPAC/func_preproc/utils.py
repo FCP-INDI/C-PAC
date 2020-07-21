@@ -83,6 +83,7 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     #   https://github.com/DCAN-Labs/dcan_bold_processing/blob/master/
     #       ...matlab_code/filtered_movement_regressors.m
 
+    TR = float(TR.replace("s", ""))
     params_data = np.loadtxt(motion_params)
 
     fc_RR_bw = [fc_RR_min, fc_RR_max]
