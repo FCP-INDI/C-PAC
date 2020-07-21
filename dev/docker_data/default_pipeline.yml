@@ -658,6 +658,15 @@ motion_correction_reference_volume :  0
 functional_volreg_twopass :  On
 
 
+notch_filter_motion_estimates: False
+
+notch_filter_breathing_rate_min: None
+
+notch_filter_breathing_rate_max: None
+
+notch_filter_order: 4
+
+
 # Run AFNI 3dDespike
 runDespike : [0]
 
