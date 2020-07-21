@@ -1207,8 +1207,13 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                                                     imports = ero_imports),
                                                     name='erode_skullstrip_brain_mask')
                 eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm
-                workflow.connect(anat_preproc, 'outputspec.brain_mask', eroded_mask, 'skullstrip_mask')
-                workflow.connect(seg_preproc, 'outputspec.csf_probability_map', eroded_mask, 'roi_mask')
+                
+                node, out_file = strat['anatomical_brain_mask']
+                workflow.connect(node, out_file, 
+                                    eroded_mask, 'skullstrip_mask')
+                
+                workflow.connect(seg_preproc, 'outputspec.csf_probability_map', 
+                                    eroded_mask, 'roi_mask')
 
                 strat.update_resource_pool({'anatomical_eroded_brain_mask': (eroded_mask, 'eroded_skullstrip_mask')})
 
