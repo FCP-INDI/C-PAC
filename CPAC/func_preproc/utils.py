@@ -1,4 +1,6 @@
 
+import numpy as np
+from scipy.signal import iirnotch, filtfilt
 import nibabel as nb
 import subprocess
 
@@ -72,4 +74,45 @@ def oned_text_concat(in_files):
             f.write(line)
 
     return out_file
+
+
+def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR, 
+                        filter_order=4):
+
+    # Adapted from DCAN Labs:
+    #   https://github.com/DCAN-Labs/dcan_bold_processing/blob/master/
+    #       ...matlab_code/filtered_movement_regressors.m
+
+    params_data = np.loadtxt(motion_params)
+
+    fc_RR_bw = [fc_RR_min, fc_RR_max]
+
+    # Respiratory Rate
+    rr = [float(fc_RR_min) / float(60),
+          float(fc_RR_max) / float(60)]
+
+    # Sampling frequency
+    fs = 1 / TR
+
+    # Nyquist frequency
+    fNy = fs / 2;
+
+    rr_fNy = [rr[0] + fNy, rr[1] + fNy]
+
+    fa = abs(rr - np.floor(np.divide(rr_fNy, fs)) * fs)
+
+    W_notch = np.divide(fa, fNy)
+    Wn = np.mean(W_notch)
+    bw = np.diff(W_notch)
+    [b_filt, a_filt] = iirnotch(Wn, bw)
+    num_f_apply = np.floor(filter_order / 2)
+
+    filtered_params = filtfilt(b_filt, a_filt, params_data.T)
+
+    filtered_motion_params = os.path.join(os.getcwd(),
+                                          "{0}_notch-filtered.1D".format(os.path.basename(motion_params)))
+    np.savetxt(filtered_motion_params, filtered_params.T, fmt='%f')
+
+    return filtered_motion_params
+
 

@@ -10,7 +10,7 @@ from nipype.interfaces import afni
 from nipype.interfaces.afni import preprocess
 from nipype.interfaces.afni import utils as afni_utils
 from CPAC.func_preproc.utils import add_afni_prefix, nullify, chunk_ts, \
-    split_ts_chunks, oned_text_concat
+    split_ts_chunks, oned_text_concat, notch_filter_motion
 from CPAC.utils.interfaces.function import Function
 from CPAC.generate_motion_statistics import motion_power_statistics
 
@@ -781,7 +781,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                         'func',
                                                         'twopass',
                                                         'anatomical_brain_mask',
-                                                        'anat_brain']),
+                                                        'anat_brain',
+                                                        'TR']),
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['refit',
@@ -1122,6 +1123,33 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
             preproc.connect(func_motion_correct_A, 'oned_matrix_save', 
                             out_oned_matrix, 'out_file')
 
+        if config:
+            if config.notch_filter_motion_estimates:
+                notch_imports = ['import numpy as np',
+                                 'from scipy.signal import iirnotch, filtfilt']
+                notch = pe.Node(Function(input_names=['motion_params',
+                                                      'fc_RR_min', 
+                                                      'fc_RR_max',
+                                                      'TR',
+                                                      'filter_order'],
+                                         output_names=['filtered_motion_params'],
+                                         function=notch_filter_motion,
+                                         imports=notch_imports),
+                                name='notch_filter_motion_params')
+
+                notch.inputs.fc_RR_min = config.notch_filter_breathing_rate_min
+                notch.inputs.fc_RR_max = config.notch_filter_breathing_rate_max
+                notch.inputs.filter_order = config.notch_filter_order
+
+                preproc.connect(out_oned, 'out_file', notch, 'motion_params')
+                preproc.connect(input_node, 'TR', notch, 'TR')
+
+                out_oned = pe.Node(
+                    interface=util.IdentityInterface(fields=['out_file']),
+                    name='out_oned_notch')
+
+                preproc.connect(notch, 'filtered_motion_params', out_oned, 'out_file')
+
         preproc.connect(out_motion_A, 'out_file',
                         output_node, 'motion_correct')
         preproc.connect(out_md1d, 'out_file',
@@ -1168,8 +1196,36 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         preproc.connect(func_motion_correct_A, 'par_file',
                         normalize_motion_params, 'in_file')
 
-        preproc.connect(normalize_motion_params, 'out_file',
-                        output_node, 'movement_parameters')
+        if config:
+            if config.notch_filter_motion_estimates:
+                notch_imports = ['import numpy as np']
+                notch = pe.Node(Function(input_names=['motion_params',
+                                                      'fc_RR_min', 
+                                                      'fc_RR_max',
+                                                      'TR',
+                                                      'filter_order'],
+                                         output_names=['filtered_motion_params'],
+                                         function=notch_filter_motion,
+                                         imports=notch_imports),
+                                name='notch_filter_motion_params')
+
+                notch.inputs.fc_RR_min = config.notch_filter_breathing_rate_min
+                notch.inputs.fc_RR_max = config.notch_filter_breathing_rate_max
+                notch.inputs.filter_order = config.notch_filter_order
+
+                preproc.connect(normalize_motion_params, 'out_file',
+                                notch, 'motion_params')
+                preproc.connect(input_node, 'TR', notch, 'TR')
+
+                preproc.connect(notch, 'filtered_motion_params', 
+                                output_node, 'movement_parameters')
+
+            else:
+                preproc.connect(normalize_motion_params, 'out_file',
+                                output_node, 'movement_parameters')
+        else:
+            preproc.connect(normalize_motion_params, 'out_file',
+                            output_node, 'movement_parameters')
 
         preproc.connect(func_motion_correct_A, 'mat_file',
                          output_node, 'transform_matrices')
@@ -1695,6 +1751,10 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file, func_preproc,
                             'inputspec.anatomical_brain_mask')
+
+            node, out_file = strat['tr']
+            workflow.connect(node, out_file, func_preproc,
+                             'inputspec.TR')
 
             func_preproc.inputs.inputspec.twopass = \
                 getattr(c, 'functional_volreg_twopass', True)
