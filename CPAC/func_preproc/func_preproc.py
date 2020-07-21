@@ -1539,6 +1539,10 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
                         workflow.connect(node, out_file, func_preproc,
                                          'inputspec.anatomical_brain_mask')
 
+                        node, out_file = strat['tr']
+                        workflow.connect(node, out_file, func_preproc,
+                                        'inputspec.TR')
+
                         func_preproc.inputs.inputspec.twopass = \
                             getattr(c, 'functional_volreg_twopass', True)
 
@@ -1827,6 +1831,10 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                             node, out_file = new_strat['anatomical_brain_mask']
                             workflow.connect(node, out_file, func_preproc,
                                             'inputspec.anatomical_brain_mask')
+
+                        node, out_file = strat['tr']
+                        workflow.connect(node, out_file, func_preproc,
+                                        'inputspec.TR')
 
                         func_preproc.inputs.inputspec.twopass = \
                             getattr(c, 'functional_volreg_twopass', True)
