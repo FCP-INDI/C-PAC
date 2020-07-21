@@ -54,7 +54,8 @@ from CPAC.distortion_correction.distortion_correction import (
 )
 
 from CPAC.seg_preproc.seg_preproc import (
-    connect_anat_segmentation
+    connect_anat_segmentation,
+    create_seg_preproc_template_based
 )
 
 from CPAC.seg_preproc.utils import mask_erosion
