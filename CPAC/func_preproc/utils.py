@@ -146,6 +146,7 @@ def notch_filter_motion(
 
     # Nyquist frequency
     fNy = fs / 2
+    fNy = fs / 2
 
     if filter_type == "notch":
         # Respiratory Rate
@@ -222,10 +223,14 @@ def notch_filter_motion(
     params_data[:, 0:3] = degrees_to_mm(params_data[:, 0:3], head_radius=50)
 
     filtered_params = filtfilt(b_filt, a_filt, params_data.T)
+    
+    for i in range(0, int(num_f_apply)-1):
+        filtered_params = filtfilt(b_filt, a_filt, filtered_params)
 
     # back rotation params to degrees
     filtered_params[0:3, :] = mm_to_degrees(filtered_params[0:3, :], head_radius=50)
 
+    return filtered_motion_params
     # back rotation params to degrees
     filtered_params[0:3, :] = mm_to_degrees(filtered_params[0:3, :], head_radius=50)
 
