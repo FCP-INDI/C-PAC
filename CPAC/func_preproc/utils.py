@@ -109,11 +109,12 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     num_f_apply = np.floor(filter_order / 2)
 
     filtered_params = filtfilt(b_filt, a_filt, params_data.T)
+    
+    for i in range(0, int(num_f_apply)-1):
+        filtered_params = filtfilt(b_filt, a_filt, filtered_params)
 
     filtered_motion_params = os.path.join(os.getcwd(),
                                           "{0}_notch-filtered.1D".format(os.path.basename(motion_params)))
     np.savetxt(filtered_motion_params, filtered_params.T, fmt='%f')
 
     return filtered_motion_params
-
-
