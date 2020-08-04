@@ -17,6 +17,7 @@ from time import strftime
 import nipype
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
+import nipype.interfaces.freesurfer as freesurfer
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
@@ -927,92 +928,55 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         
         for num_strat, strat in enumerate(strat_list):
 
-            if 'anatomical_brain_mask' in strat:
+            if 1 in c.runFreeSurfer:
 
-                anat_preproc = create_anat_preproc(method='mask',
-                                                config=c,
-                                                wf_name='anat_preproc_mask_%d' % num_strat)
-
-                new_strat = strat.fork()
-                node, out_file = new_strat['anatomical']
+                reconall = pe.Node(interface=freesurfer.ReconAll(), 
+                                    name=f'reconall_{num_strat}')
+                
+                reconall.inputs.subject_id = subject_id
+                reconall.inputs.directive = 'all'
+                reconall.inputs.subjects_dir = '.'
+                
+                node, out_file = strat['anatomical']
                 workflow.connect(node, out_file,
-                                anat_preproc, 'inputspec.anat')
-
-                node, out_file = strat['anatomical_brain_mask']
-                workflow.connect(node, out_file,
-                                anat_preproc, 'inputspec.brain_mask')
-
-                new_strat.append_name(anat_preproc.name)
-                new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                new_strat.update_resource_pool({
-                    'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                    'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
-                })
-                new_strat.update_resource_pool({
-                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask')
-                }, override=True)
-
-                new_strat_list += [new_strat]
-
-                continue
-
-            if already_skullstripped:
-
-                anat_preproc = create_anat_preproc(method=None,
-                                                already_skullstripped=True,
-                                                config=c,
-                                                wf_name='anat_preproc_already_%d' % num_strat)
-
-                new_strat = strat.fork()
-                node, out_file = new_strat['anatomical']
-                workflow.connect(node, out_file,
-                                anat_preproc, 'inputspec.anat')
-                new_strat.append_name(anat_preproc.name)
-                new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                new_strat.update_resource_pool({
-                    'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                    'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
-                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
-                })
-
-                new_strat_list += [new_strat]
+                                reconall, 'T1_files')
 
             else:
-                if not any(o in c.skullstrip_option for o in ["AFNI", "FSL", "niworkflows-ants", "unet"]):
-                    err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
-                        'setting does not include either \'AFNI\' or \'FSL\' or \'niworkflows-ants\'.\n\n' \
-                        'Options you provided:\nskullstrip_option: {0}' \
-                        '\n\n'.format(str(c.skullstrip_option))
-                    raise Exception(err)
+                if 'anatomical_brain_mask' in strat:
 
-                if "AFNI" in c.skullstrip_option:
-
-                    anat_preproc = create_anat_preproc(method='afni',
+                    anat_preproc = create_anat_preproc(method='mask',
                                                     config=c,
-                                                    wf_name='anat_preproc_afni_%d' % num_strat)
+                                                    wf_name='anat_preproc_mask_%d' % num_strat)
 
-                    anat_preproc.inputs.AFNI_options.set(
-                        mask_vol=c.skullstrip_mask_vol,
-                        shrink_factor=c.skullstrip_shrink_factor,
-                        var_shrink_fac=c.skullstrip_var_shrink_fac,
-                        shrink_fac_bot_lim=c.skullstrip_shrink_factor_bot_lim,
-                        avoid_vent=c.skullstrip_avoid_vent,
-                        niter=c.skullstrip_n_iterations,
-                        pushout=c.skullstrip_pushout,
-                        touchup=c.skullstrip_touchup,
-                        fill_hole=c.skullstrip_fill_hole,
-                        avoid_eyes=c.skullstrip_avoid_eyes,
-                        use_edge=c.skullstrip_use_edge,
-                        exp_frac=c.skullstrip_exp_frac,
-                        smooth_final=c.skullstrip_smooth_final,
-                        push_to_edge=c.skullstrip_push_to_edge,
-                        use_skull=c.skullstrip_use_skull,
-                        perc_int=c.skullstrip_perc_int,
-                        max_inter_iter=c.skullstrip_max_inter_iter,
-                        blur_fwhm=c.skullstrip_blur_fwhm,
-                        fac=c.skullstrip_fac,
-                        monkey=c.skullstrip_monkey,
-                    )
+                    new_strat = strat.fork()
+                    node, out_file = new_strat['anatomical']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.anat')
+
+                    node, out_file = strat['anatomical_brain_mask']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.brain_mask')
+
+                    new_strat.append_name(anat_preproc.name)
+                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                    new_strat.update_resource_pool({
+                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                    })
+                    new_strat.update_resource_pool({
+                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask')
+                    }, override=True)
+
+                    new_strat_list += [new_strat]
+
+                    continue
+
+                if already_skullstripped:
+
+                    anat_preproc = create_anat_preproc(method=None,
+                                                    already_skullstripped=True,
+                                                    config=c,
+                                                    wf_name='anat_preproc_already_%d' % num_strat)
 
                     new_strat = strat.fork()
                     node, out_file = new_strat['anatomical']
@@ -1028,84 +992,135 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat_list += [new_strat]
 
-                if "FSL" in c.skullstrip_option:
-                    anat_preproc = create_anat_preproc(method='fsl',
-                                                    config=c,
-                                                    wf_name='anat_preproc_bet_%d' % num_strat)
+                else:
+                    if not any(o in c.skullstrip_option for o in ["AFNI", "FSL", "niworkflows-ants", "unet"]):
+                        err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
+                            'setting does not include either \'AFNI\' or \'FSL\' or \'niworkflows-ants\'.\n\n' \
+                            'Options you provided:\nskullstrip_option: {0}' \
+                            '\n\n'.format(str(c.skullstrip_option))
+                        raise Exception(err)
 
-                    anat_preproc.inputs.BET_options.set(
-                        frac=c.bet_frac,
-                        mask_boolean=c.bet_mask_boolean,
-                        mesh_boolean=c.bet_mesh_boolean,
-                        outline=c.bet_outline,
-                        padding=c.bet_padding,
-                        radius=c.bet_radius,
-                        reduce_bias=c.bet_reduce_bias,
-                        remove_eyes=c.bet_remove_eyes,
-                        robust=c.bet_robust,
-                        skull=c.bet_skull,
-                        surfaces=c.bet_surfaces,
-                        threshold=c.bet_threshold,
-                        vertical_gradient=c.bet_vertical_gradient,
-                    )
+                    if "AFNI" in c.skullstrip_option:
 
-                    new_strat = strat.fork()
-                    node, out_file = new_strat['anatomical']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.anat')
-                    new_strat.append_name(anat_preproc.name)
-                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                    new_strat.update_resource_pool({
-                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
-                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
-                    })
+                        anat_preproc = create_anat_preproc(method='afni',
+                                                        config=c,
+                                                        wf_name='anat_preproc_afni_%d' % num_strat)
 
-                    new_strat_list += [new_strat]
+                        anat_preproc.inputs.AFNI_options.set(
+                            mask_vol=c.skullstrip_mask_vol,
+                            shrink_factor=c.skullstrip_shrink_factor,
+                            var_shrink_fac=c.skullstrip_var_shrink_fac,
+                            shrink_fac_bot_lim=c.skullstrip_shrink_factor_bot_lim,
+                            avoid_vent=c.skullstrip_avoid_vent,
+                            niter=c.skullstrip_n_iterations,
+                            pushout=c.skullstrip_pushout,
+                            touchup=c.skullstrip_touchup,
+                            fill_hole=c.skullstrip_fill_hole,
+                            avoid_eyes=c.skullstrip_avoid_eyes,
+                            use_edge=c.skullstrip_use_edge,
+                            exp_frac=c.skullstrip_exp_frac,
+                            smooth_final=c.skullstrip_smooth_final,
+                            push_to_edge=c.skullstrip_push_to_edge,
+                            use_skull=c.skullstrip_use_skull,
+                            perc_int=c.skullstrip_perc_int,
+                            max_inter_iter=c.skullstrip_max_inter_iter,
+                            blur_fwhm=c.skullstrip_blur_fwhm,
+                            fac=c.skullstrip_fac,
+                            monkey=c.skullstrip_monkey,
+                        )
 
-                if "niworkflows-ants" in c.skullstrip_option:
-                    anat_preproc = create_anat_preproc(method='niworkflows-ants',
-                                                    config=c,
-                                                    wf_name='anat_preproc_niworkflows_ants_%d' % num_strat)
+                        new_strat = strat.fork()
+                        node, out_file = new_strat['anatomical']
+                        workflow.connect(node, out_file,
+                                        anat_preproc, 'inputspec.anat')
+                        new_strat.append_name(anat_preproc.name)
+                        new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                        new_strat.update_resource_pool({
+                            'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                            'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                            'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        })
 
-                    new_strat = strat.fork()
-                    node, out_file = new_strat['anatomical']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.anat')
-                    new_strat.append_name(anat_preproc.name)
-                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                    new_strat.update_resource_pool({
-                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
-                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
-                    })
+                        new_strat_list += [new_strat]
 
-                    new_strat_list += [new_strat]
+                    if "FSL" in c.skullstrip_option:
+                        anat_preproc = create_anat_preproc(method='fsl',
+                                                        config=c,
+                                                        wf_name='anat_preproc_bet_%d' % num_strat)
 
-                if "unet" in c.skullstrip_option:
-                    anat_preproc = create_anat_preproc(method='unet',
-                                                    config=c,
-                                                    wf_name='anat_preproc_unet_%d' % num_strat)
+                        anat_preproc.inputs.BET_options.set(
+                            frac=c.bet_frac,
+                            mask_boolean=c.bet_mask_boolean,
+                            mesh_boolean=c.bet_mesh_boolean,
+                            outline=c.bet_outline,
+                            padding=c.bet_padding,
+                            radius=c.bet_radius,
+                            reduce_bias=c.bet_reduce_bias,
+                            remove_eyes=c.bet_remove_eyes,
+                            robust=c.bet_robust,
+                            skull=c.bet_skull,
+                            surfaces=c.bet_surfaces,
+                            threshold=c.bet_threshold,
+                            vertical_gradient=c.bet_vertical_gradient,
+                        )
 
-                    new_strat = strat.fork()
-                    node, out_file = new_strat['anatomical']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.anat')
-                    node, out_file = new_strat['template_brain_for_anat']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.template_brain_only_for_anat')
-                    node, out_file = new_strat['template_skull_for_anat']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.template_skull_for_anat')
-                    new_strat.append_name(anat_preproc.name)
-                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                    new_strat.update_resource_pool({
-                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
-                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
-                    })
+                        new_strat = strat.fork()
+                        node, out_file = new_strat['anatomical']
+                        workflow.connect(node, out_file,
+                                        anat_preproc, 'inputspec.anat')
+                        new_strat.append_name(anat_preproc.name)
+                        new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                        new_strat.update_resource_pool({
+                            'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                            'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                            'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        })
 
-                    new_strat_list += [new_strat]
+                        new_strat_list += [new_strat]
+
+                    if "niworkflows-ants" in c.skullstrip_option:
+                        anat_preproc = create_anat_preproc(method='niworkflows-ants',
+                                                        config=c,
+                                                        wf_name='anat_preproc_niworkflows_ants_%d' % num_strat)
+
+                        new_strat = strat.fork()
+                        node, out_file = new_strat['anatomical']
+                        workflow.connect(node, out_file,
+                                        anat_preproc, 'inputspec.anat')
+                        new_strat.append_name(anat_preproc.name)
+                        new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                        new_strat.update_resource_pool({
+                            'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                            'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                            'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        })
+
+                        new_strat_list += [new_strat]
+
+                    if "unet" in c.skullstrip_option:
+                        anat_preproc = create_anat_preproc(method='unet',
+                                                        config=c,
+                                                        wf_name='anat_preproc_unet_%d' % num_strat)
+
+                        new_strat = strat.fork()
+                        node, out_file = new_strat['anatomical']
+                        workflow.connect(node, out_file,
+                                        anat_preproc, 'inputspec.anat')
+                        node, out_file = new_strat['template_brain_for_anat']
+                        workflow.connect(node, out_file,
+                                        anat_preproc, 'inputspec.template_brain_only_for_anat')
+                        node, out_file = new_strat['template_skull_for_anat']
+                        workflow.connect(node, out_file,
+                                        anat_preproc, 'inputspec.template_skull_for_anat')
+                        new_strat.append_name(anat_preproc.name)
+                        new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                        new_strat.update_resource_pool({
+                            'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                            'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                            'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        })
+
+                        new_strat_list += [new_strat]
 
 
         strat_list = new_strat_list
