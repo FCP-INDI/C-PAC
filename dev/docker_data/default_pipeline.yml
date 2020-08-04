@@ -114,6 +114,10 @@ reGenerateOutputs :  False
 runAnatomical: [1]
 
 
+# Run FreeSurfer
+runFreeSurfer: [0]
+
+
 # Non-local means filtering via ANTs DenoiseImage
 non_local_means_filtering: False
 
