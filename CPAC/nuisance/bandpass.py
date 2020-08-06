@@ -87,45 +87,50 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
     bandpassed_file = os.path.join(os.getcwd(),
                                    'bandpassed_demeaned_filtered.nii.gz')
     img.to_filename(bandpassed_file)
-    if regressor_file.endswith('.nii.gz') or regressor_file.endswith('.nii'):
-        nii = nb.load(regressor_file)
-        data = nii.get_data().astype('float64')
-        mask = (data != 0).sum(-1) != 0
-        Y = data[mask].T
-        Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
-        Y_bp = np.zeros_like(Y)
-        for j in range(Y.shape[1]):
-            Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
-        data[mask] = Y_bp.T
+
+    regressor_bandpassed_file = None
+
+    if regressor_file is not None:
+
+        if regressor_file.endswith('.nii.gz') or regressor_file.endswith('.nii'):
+            nii = nb.load(regressor_file)
+            data = nii.get_data().astype('float64')
+            mask = (data != 0).sum(-1) != 0
+            Y = data[mask].T
+            Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
+            Y_bp = np.zeros_like(Y)
+            for j in range(Y.shape[1]):
+                Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
+            data[mask] = Y_bp.T
+            
+            img = nb.Nifti1Image(data, header=nii.get_header(),
+                            affine=nii.get_affine())
+            regressor_bandpassed_file = os.path.join(os.getcwd(),
+                                    'regressor_bandpassed_demeaned_filtered.nii.gz')
+            img.to_filename(regressor_bandpassed_file)
         
-        img = nb.Nifti1Image(data, header=nii.get_header(),
-                         affine=nii.get_affine())
-        regressor_bandpassed_file = os.path.join(os.getcwd(),
-                                   'regressor_bandpassed_demeaned_filtered.nii.gz')
-        img.to_filename(regressor_bandpassed_file)
+        else:
+            with open(regressor_file, 'r') as f:
+                header = [f.readline() for x in range(0,3)]
 
-    else:
-        with open(regressor_file, 'r') as f:
-            header = [f.readline() for x in range(0,3)]
+            regressor = np.loadtxt(regressor_file)
+            Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
+            Y_bp = np.zeros_like(Yc)
+            for j in range(regressor.shape[1]):
+                Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period,
+                                            bandpass_freqs)
 
-        regressor = np.loadtxt(regressor_file)
-        Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
-        Y_bp = np.zeros_like(Yc)
-        for j in range(regressor.shape[1]):
-            Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period,
-                                        bandpass_freqs)
+            regressor_bandpassed_file = os.path.join(os.getcwd(),
+                                    'regressor_bandpassed_demeaned_filtered.1D')
 
-        regressor_bandpassed_file = os.path.join(os.getcwd(),
-                                   'regressor_bandpassed_demeaned_filtered.1D')
+            with open(regressor_bandpassed_file, "w") as ofd:
+                # write out the header information
+                for line in header:
+                    ofd.write(line)
 
-        with open(regressor_bandpassed_file, "w") as ofd:
-            # write out the header information
-            for line in header:
-                ofd.write(line)
-
-            nuisance_regressors = np.array(Y_bp)
-            np.savetxt(ofd, nuisance_regressors, fmt='%.18f',
-                       delimiter='\t')
+                nuisance_regressors = np.array(Y_bp)
+                np.savetxt(ofd, nuisance_regressors, fmt='%.18f',
+                        delimiter='\t')
 
     return bandpassed_file, regressor_bandpassed_file
     

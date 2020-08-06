@@ -96,7 +96,7 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     fs = 1 / TR
 
     # Nyquist frequency
-    fNy = fs / 2;
+    fNy = fs / 2
 
     rr_fNy = [rr[0] + fNy, rr[1] + fNy]
 
