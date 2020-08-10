@@ -34,6 +34,10 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
 
     # reduce the image data to only the voxels in the binary mask
     image_data = image_data[binary_mask==1, :]
+    if image_data.shape.count(0):
+        err = "\n\n[!] No wm or csf signals left after reducing to "\
+              f"only the voxels in the binary mask {mask_filename}.\n\n"
+        raise Exception(err)
 
     # filter out any voxels whose variance equals 0
     print('Removing zero variance components')
