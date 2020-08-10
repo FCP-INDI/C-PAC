@@ -110,34 +110,33 @@ jobs:
     steps:
       - checkout
       - set-python-version
-      - run:
-          name: "Building Docker image"
+      - configure-git-user
+      - run: 
+          name: "Checking if version needs updated"
           command: |
-            docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
-            docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
-          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
-      - run:
-          name: "Starting local registry"
-          command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - set-up-singularity
-      - run:
-          name: "Building Singularity image from Docker image"
-          command: |
-            docker load < cpac-docker-image.tar.gz
-            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_} 
-      - store_artifacts:
-          path: cpac-docker-image.tar.gz
-      - store_artifacts:
-          path: C-PAC-CI.simg
-          destination: cpac-singularity-image.simg
-      - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
-          root: /home/circleci/
-          # Must be relative path from root
-          paths: project
+            cd project/CPAC
+            VERSION=$(python -c "from info import __version__; print(__version__)")
+            cd ..
+            echo "v${VERSION}" > version
+            find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+            git add version CPAC/resources/configs
+            if [[ git diff origin/${CIRCLE_BRANCH} ]]
+            then
+                echo $CIRCLE_TAG > version
+                find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${CIRCLE_TAG:1:${#CIRCLE_TAG}}/g" {} \;
+            fi
+                git add version CPAC/resource/configs
+                if [[ git diff origin/${CIRCLE_BRANCH} ]]
+                then
+                  git commit -m ":rocket: Update version to ${CIRCLE_TAG}"
+                  git push origin HEAD:${CIRCLE_BRANCH}
+                  git tag -d ${CIRCLE_TAG}
+                  git tag ${CIRCLE_TAG}
+                  git push origin ${CIRCLE_TAG} -f
+                fi
+            fi
+            cd ..
+      - build-images
 
 workflows:
   version: 2
