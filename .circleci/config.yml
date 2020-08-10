@@ -114,7 +114,7 @@ jobs:
       - run: 
           name: "Checking if version needs updated"
           command: |
-            cd project/CPAC
+            cd $HOME/project/CPAC
             VERSION=$(python -c "from info import __version__; print(__version__)")
             cd ..
             echo "v${VERSION}" > version
