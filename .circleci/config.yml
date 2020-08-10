@@ -113,6 +113,8 @@ jobs:
       - configure-git-user
       - run: 
           name: "Checking if version needs updated"
+          # update version if version needs updated and user SSH key is
+          # defined on CircleCI, otherwise just move on
           command: |
             cd $HOME/project/CPAC
             VERSION=$(python -c "from info import __version__; print(__version__)")
@@ -123,7 +125,7 @@ jobs:
             if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
             then
               git commit -m ":bookmark: Update version to ${VERSION}"
-              git push origin HEAD:${CIRCLE_BRANCH}
+              git push origin HEAD:${CIRCLE_BRANCH} || true
             fi
             cd ..
       - build-images
