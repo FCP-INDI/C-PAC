@@ -61,6 +61,9 @@ commands:
           paths: project
   configure-git-user:
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "12:bc:f2:e4:31:cc:72:54:54:bc:f5:5b:89:e6:d8:ee"
       - run:
           name: "Configuring git user"
           command: |
@@ -113,8 +116,7 @@ jobs:
       - configure-git-user
       - run: 
           name: "Checking if version needs updated"
-          # update version if version needs updated and user SSH key is
-          # defined on CircleCI, otherwise just move on
+          # update version if version needs updated, otherwise just move on
           command: |
             cd $HOME/project/CPAC
             VERSION=$(python -c "from info import __version__; print(__version__)")
