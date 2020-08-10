@@ -122,18 +122,8 @@ jobs:
             git add version CPAC/resources/configs
             if [[ git diff origin/${CIRCLE_BRANCH} ]]
             then
-                echo $CIRCLE_TAG > version
-                find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${CIRCLE_TAG:1:${#CIRCLE_TAG}}/g" {} \;
-            fi
-                git add version CPAC/resource/configs
-                if [[ git diff origin/${CIRCLE_BRANCH} ]]
-                then
-                  git commit -m ":rocket: Update version to ${CIRCLE_TAG}"
-                  git push origin HEAD:${CIRCLE_BRANCH}
-                  git tag -d ${CIRCLE_TAG}
-                  git tag ${CIRCLE_TAG}
-                  git push origin ${CIRCLE_TAG} -f
-                fi
+              git commit -m ":bookmark: Update version to ${VERSION}"
+              git push origin HEAD:${CIRCLE_BRANCH}
             fi
             cd ..
       - build-images
