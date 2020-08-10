@@ -27,6 +27,16 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
 
     if not safe_shape(image_data, binary_mask):
         raise ValueError('The data in {0} and {1} do not have a consistent shape'.format(data_filename, mask_filename))
+        
+    # DEBUGGING
+    print(f"Loaded shape: {str(image_data.shape)}")
+    print("Shape after reducing to mask: {}".format(
+        str(image_data[binary_mask == 1, :].shape)
+    ))
+    print("Shape after filtering by 0 variance: {}".format(
+        str(image_data[image_data.std(1) != 0, :].shape)
+    ))
+    # END DEBUGGING
 
     # make sure that the values in binary_mask are binary
     binary_mask[binary_mask > 0] = 1
@@ -41,7 +51,7 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
 
     # filter out any voxels whose variance equals 0
     print('Removing zero variance components')
-    image_data = image_data[image_data.std(1)!=0,:]
+    image_data = image_data[image_data.std(1)!=0, :]
 
     if image_data.shape.count(0):
         err = "\n\n[!] No wm or csf signals left after removing those " \
