@@ -11,5 +11,5 @@
     rest_acq-1_run-1:
       scan: s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/KKI/sub-1019436/ses-1/func/sub-1019436_ses-1_task-rest_acq-1_run-1_bold.nii.gz
   site: KKI
-  subject_id: '1019436'
-  unique_id: '1'
+  subject_id: "1019436"
+  unique_id: "1"
