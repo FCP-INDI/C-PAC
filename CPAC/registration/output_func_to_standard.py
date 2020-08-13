@@ -4,7 +4,14 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from CPAC.registration.utils import change_itk_transform_type, check_transforms, generate_inverse_transform_flags
+
+from nipype.interfaces.afni import utils as afni_utils
+from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
+from CPAC.utils.interfaces.function import Function
+
 # Todo: CC distcor is not implement for fsl apply xform func to mni, why ??
+
+
 def fsl_apply_transform_func_to_mni(
         workflow,
         output_name, 
@@ -14,7 +21,9 @@ def fsl_apply_transform_func_to_mni(
         strat, 
         interpolation_method, 
         distcor=False, 
-        map_node=False
+        map_node=False,
+        func_ts=False,
+        num_cpus=1
     ):
 
     strat_nodes = strat.get_nodes_names()
@@ -35,6 +44,10 @@ def fsl_apply_transform_func_to_mni(
     elif isinstance(ref_key, tuple):
         ref_node, ref_out_file = ref_key
 
+    if int(num_cpus) > 1 and func_ts:
+        # parallelize time series warp application
+        map_node = True
+
     if map_node == True:
         # func_mni_warp
         func_mni_warp = pe.MapNode(interface=fsl.ApplyWarp(),
@@ -46,8 +59,47 @@ def fsl_apply_transform_func_to_mni(
         func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                 name='func_mni_fsl_warp_{0}_{1:d}'.format(output_name, num_strat))
 
-        
     func_mni_warp.inputs.interp = interpolation_method
+
+    # parallelize the apply warp, if multiple CPUs, and it's a time series!
+    if int(num_cpus) > 1 and func_ts:
+        chunk_imports = ['import nibabel as nb']
+        chunk = pe.Node(Function(input_names=['func_file',
+                                              'n_cpus'],
+                                 output_names=['TR_ranges'],
+                                 function=chunk_ts,
+                                 imports=chunk_imports),
+                        name='chunk')
+
+        chunk.inputs.n_cpus = int(num_cpus)
+        workflow.connect(func_node, func_file, chunk, 'func_file')
+
+        split_imports = ['import os', 'import subprocess']
+        split = pe.Node(Function(input_names=['func_file',
+                                              'tr_ranges'],
+                                 output_names=['split_funcs'],
+                                 function=split_ts_chunks,
+                                 imports=split_imports),
+                        name='split')
+
+        workflow.connect(func_node, func_file, split, 'func_file')
+        workflow.connect(chunk, 'TR_ranges', split, 'tr_ranges')
+
+        workflow.connect(split, 'split_funcs', func_mni_warp, 'in_file')
+
+        func_concat = pe.Node(interface=afni_utils.TCat(),
+                              name='func_concat')
+        func_concat.inputs.outputtype = 'NIFTI_GZ'
+
+        workflow.connect(func_mni_warp, 'out_file',
+                         func_concat, 'in_files')
+
+        strat.update_resource_pool({
+            output_name: (func_concat, 'output_image')
+        })
+
+    else:
+        strat.update_resource_pool({output_name: (func_mni_warp, 'out_file')})
 
     workflow.connect(func_node, func_file,
                      func_mni_warp, 'in_file')
@@ -96,7 +148,6 @@ def fsl_apply_transform_func_to_mni(
         raise ValueError(
                 'Could not find flirt or fnirt registration in nodes')
         
-    strat.update_resource_pool({ output_name: (func_mni_warp, 'out_file')}) 
     strat.append_name(func_mni_warp.name)
 
     return workflow
@@ -117,7 +168,8 @@ def ants_apply_warps_func_mni(
         input_image_type=0,
         num_ants_cores=1,
         registration_template='t1',
-        func_type='non-ica-aroma'
+        func_type='non-ica-aroma',
+        num_cpus=1
     ):
 
     """
@@ -426,6 +478,10 @@ def ants_apply_warps_func_mni(
         strat.append_name(inverse_transform_flags.name)
 
     #### now we add in the apply ants warps node
+    if int(num_cpus) > 1 and input_image_type == 3:
+        # parallelize time series warp application
+        map_node = True
+
     if map_node:
         apply_ants_warp = pe.MapNode(
                 interface=ants.ApplyTransforms(),
@@ -460,12 +516,50 @@ def ants_apply_warps_func_mni(
     workflow.connect(collect_node, collect_out,
                      apply_ants_warp, 'transforms')
 
-    workflow.connect(input_node, input_out,
-                     apply_ants_warp, 'input_image')
+    # parallelize the apply warp, if multiple CPUs, and it's a time series!
+    if int(num_cpus) > 1 and input_image_type == 3:
+        chunk_imports = ['import nibabel as nb']
+        chunk = pe.Node(Function(input_names=['func_file',
+                                              'n_cpus'],
+                                 output_names=['TR_ranges'],
+                                 function=chunk_ts,
+                                 imports=chunk_imports),
+                        name='chunk')
 
-    strat.update_resource_pool({
-        output_name: (apply_ants_warp, 'output_image')
-    })
+        chunk.inputs.n_cpus = int(num_cpus)
+        workflow.connect(input_node, input_out, chunk, 'func_file')
+
+        split_imports = ['import os', 'import subprocess']
+        split = pe.Node(Function(input_names=['func_file',
+                                              'tr_ranges'],
+                                 output_names=['split_funcs'],
+                                 function=split_ts_chunks,
+                                 imports=split_imports),
+                        name='split')
+
+        workflow.connect(input_node, input_out, split, 'func_file')
+        workflow.connect(chunk, 'TR_ranges', split, 'tr_ranges')
+
+        workflow.connect(split, 'split_funcs', apply_ants_warp, 'input_image')
+
+        func_concat = pe.Node(interface=afni_utils.TCat(),
+                              name='func_concat')
+        func_concat.inputs.outputtype = 'NIFTI_GZ'
+
+        workflow.connect(apply_ants_warp, 'out_file',
+                         func_concat, 'in_files')
+
+        strat.update_resource_pool({
+            output_name: (func_concat, 'output_image')
+        })
+
+    else:
+        workflow.connect(input_node, input_out,
+                         apply_ants_warp, 'input_image')
+
+        strat.update_resource_pool({
+            output_name: (apply_ants_warp, 'output_image')
+        })
 
     strat.append_name(apply_ants_warp.name)
 
@@ -474,7 +568,8 @@ def ants_apply_warps_func_mni(
 
 def output_func_to_standard(workflow, func_key, ref_key, output_name,
         strat, num_strat, pipeline_config_obj, input_image_type='func_derivative',
-        symmetry='asymmetric', inverse=False, registration_template='t1', func_type='non-ica-aroma'):
+        symmetry='asymmetric', inverse=False, registration_template='t1',
+        func_type='non-ica-aroma'):
 
     image_types = ['func_derivative', 'func_derivative_multi',
             'func_4d', 'func_mask']
@@ -490,6 +585,8 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
     distcor = True if 'epi_distcorr' in nodes or \
             'blip_correct' in nodes else False
 
+    num_cpus = pipeline_config_obj.maxCoresPerParticipant
+
     if 'anat_mni_fnirt_register' in nodes or \
         'anat_mni_flirt_register' in nodes or \
         'func_to_epi_fsl' in nodes:
@@ -499,9 +596,11 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         else:
             interp = pipeline_config_obj.funcRegFSLinterpolation
 
+        func_ts = True if input_image_type == 'func_4d' else False
+
         fsl_apply_transform_func_to_mni(workflow, output_name, func_key,
                 ref_key, num_strat, strat, interp, distcor=distcor,
-                map_node=map_node)
+                map_node=map_node, func_ts=func_ts, num_cpus=num_cpus)
 
     elif 'ANTS' in pipeline_config_obj.regOption:
 
