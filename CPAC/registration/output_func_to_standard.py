@@ -546,7 +546,7 @@ def ants_apply_warps_func_mni(
                               name='func_concat')
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
-        workflow.connect(apply_ants_warp, 'out_file',
+        workflow.connect(apply_ants_warp, 'output_image',
                          func_concat, 'in_files')
 
         strat.update_resource_pool({
