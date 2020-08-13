@@ -63,13 +63,16 @@ def fsl_apply_transform_func_to_mni(
 
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
     if int(num_cpus) > 1 and func_ts:
+
+        node_id = f'{output_name}_{inverse_string}_{registration_template}_{num_strat}'
+
         chunk_imports = ['import nibabel as nb']
         chunk = pe.Node(Function(input_names=['func_file',
                                               'n_cpus'],
                                  output_names=['TR_ranges'],
                                  function=chunk_ts,
                                  imports=chunk_imports),
-                        name='chunk')
+                        name=f'chunk{node_id}')
 
         chunk.inputs.n_cpus = int(num_cpus)
         workflow.connect(func_node, func_file, chunk, 'func_file')
@@ -80,7 +83,7 @@ def fsl_apply_transform_func_to_mni(
                                  output_names=['split_funcs'],
                                  function=split_ts_chunks,
                                  imports=split_imports),
-                        name='split')
+                        name=f'split{node_id}')
 
         workflow.connect(func_node, func_file, split, 'func_file')
         workflow.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -88,7 +91,7 @@ def fsl_apply_transform_func_to_mni(
         workflow.connect(split, 'split_funcs', func_mni_warp, 'in_file')
 
         func_concat = pe.Node(interface=afni_utils.TCat(),
-                              name='func_concat')
+                              name=f'func_concat{node_id}')
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
         workflow.connect(func_mni_warp, 'out_file',
@@ -518,13 +521,16 @@ def ants_apply_warps_func_mni(
 
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
     if int(num_cpus) > 1 and input_image_type == 3:
+
+        node_id = f'{output_name}_{inverse_string}_{registration_template}_{num_strat}'
+
         chunk_imports = ['import nibabel as nb']
         chunk = pe.Node(Function(input_names=['func_file',
                                               'n_cpus'],
                                  output_names=['TR_ranges'],
                                  function=chunk_ts,
                                  imports=chunk_imports),
-                        name='chunk')
+                        name=f'chunk{node_id}')
 
         chunk.inputs.n_cpus = int(num_cpus)
         workflow.connect(input_node, input_out, chunk, 'func_file')
@@ -535,7 +541,7 @@ def ants_apply_warps_func_mni(
                                  output_names=['split_funcs'],
                                  function=split_ts_chunks,
                                  imports=split_imports),
-                        name='split')
+                        name=f'split{node_id}')
 
         workflow.connect(input_node, input_out, split, 'func_file')
         workflow.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -543,7 +549,7 @@ def ants_apply_warps_func_mni(
         workflow.connect(split, 'split_funcs', apply_ants_warp, 'input_image')
 
         func_concat = pe.Node(interface=afni_utils.TCat(),
-                              name='func_concat')
+                              name=f'func_concat{node_id}')
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
         workflow.connect(apply_ants_warp, 'output_image',
