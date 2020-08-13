@@ -318,23 +318,24 @@ elif args.analysis_level == "group":
 elif args.analysis_level in ["test_config", "participant"]:
     # check to make sure that the input directory exists
     if not args.data_config_file and \
-        not args.bids_dir.lower().startswith("s3://") and \
-        not os.path.exists(args.bids_dir):
-
-        print("Error! Could not find {0}".format(args.bids_dir))
-        sys.exit(1)
+            not args.bids_dir.lower().startswith("s3://"):
+        args.bids_dir = os.path.abspath(args.bids_dir)
+        if not os.path.exists(args.bids_dir):
+            raise FileNotFoundError(
+                f"Error! Could not find {args.bids_dir}"
+            )
 
     # check to make sure that the output directory exists
-    if not args.output_dir.lower().startswith("s3://") and \
-        not os.path.exists(args.output_dir):
-
-        try:
-            os.makedirs(args.output_dir)
-        except:
-            print("Error! Could not find/create output dir {0}".format(
-                args.output_dir
-            ))
-            sys.exit(1)
+    if not args.output_dir.lower().startswith("s3://"):
+        args.output_dir = os.path.abspath(args.output_dir)
+        if not os.path.exists(args.output_dir):
+            try:
+                os.makedirs(args.output_dir)
+            except Exception:
+                raise FileNotFoundError(
+                    "Error! Could not find/create output "
+                    f"dir {args.output_dir}"
+                )
 
     # validate input dir (if skip_bids_validator is not set)
     if not args.data_config_file:

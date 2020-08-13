@@ -491,7 +491,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
         if os.path.islink(local_path):
             local_path = os.path.abspath(os.readlink(local_path))
         else:
-            raise IOError('File {0} does not exist!'.format(local_path))
+            raise FileNotFoundError(f'File {local_path} does not exist!')
 
     if verbose:
         print("Downloaded file:\n{0}\n".format(local_path))
