@@ -20,7 +20,9 @@ from .utils.compcor import (
 )
 
 __all__ = [
-    'create_nuisance_workflow',
+    'create_regressor_workflow',
+    'create_nuisance_regression_workflow',
+    'filtering_bold_and_regressors',
     'find_offending_time_points',
     'temporal_variance_mask',
     'generate_summarize_tissue_mask',
