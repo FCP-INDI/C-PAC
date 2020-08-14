@@ -1,16 +1,14 @@
+import os
+import sys
+
 from pathlib import Path
 
 CPAC_DIR = str(Path(__file__).parent.parent.parent)
-
-import sys
-
 sys.path.append(CPAC_DIR)
-
-import os
+DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
 
 from CPAC.__main__ import utils as CPAC_main_utils
 
-DATA_DIR = os.path.join(CPAC_DIR, 'dev', 'circleci_data')
 
 def test_build_data_config(cli_runner):
     os.chdir(DATA_DIR)
