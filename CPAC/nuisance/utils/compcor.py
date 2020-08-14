@@ -29,13 +29,17 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
         raise ValueError('The data in {0} and {1} do not have a consistent shape'.format(data_filename, mask_filename))
         
     # DEBUGGING
-    print(f"Loaded shape: {str(image_data.shape)}")
-    print("Shape after reducing to mask: {}".format(
-        str(image_data[binary_mask == 1, :].shape)
-    ))
-    print("Shape after filtering by 0 variance: {}".format(
-        str(image_data[image_data.std(1) != 0, :].shape)
-    ))
+    debugging_message = '\n'.join([
+        f'Loaded shape: {str(image_data.shape)}',
+        'Shape after reducing to mask: {}'.format(
+            str(image_data[binary_mask == 1, :].shape)
+        ),
+        'Shape after filtering by 0 variance: {}'.format(
+            str(image_data[image_data.std(1) != 0, :].shape)
+        )
+    ])
+    iflogger.debug(debugging_message)
+    print(debugging_message)
     # END DEBUGGING
 
     # make sure that the values in binary_mask are binary
