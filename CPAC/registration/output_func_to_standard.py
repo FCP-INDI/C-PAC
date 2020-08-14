@@ -98,7 +98,7 @@ def fsl_apply_transform_func_to_mni(
                          func_concat, 'in_files')
 
         strat.update_resource_pool({
-            output_name: (func_concat, 'output_image')
+            output_name: (func_concat, 'out_file')
         })
 
     else:
@@ -557,7 +557,7 @@ def ants_apply_warps_func_mni(
                          func_concat, 'in_files')
 
         strat.update_resource_pool({
-            output_name: (func_concat, 'output_image')
+            output_name: (func_concat, 'out_file')
         })
 
     else:
