@@ -25,6 +25,51 @@ def fsl_apply_transform_func_to_mni(
         func_ts=False,
         num_cpus=1
     ):
+    """
+    Applies previously calculated FSL registration transforms to input
+    images. This workflow employs the FSL applywarp tool:
+
+    https://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/registration/index.html
+
+    Parameters
+    ----------
+    workflow: Nipype workflow object
+        the workflow containing the resources involved
+    output_name: str
+        what the name of the warped functional should be when written to the
+        resource pool
+    func_key: string
+        resource pool key correspoding to the node containing the 3D or 4D
+        functional file to be written into MNI space, use 'leaf' for a
+        leaf node
+    ref_key: string
+        resource pool key correspoding to the file path to the template brain
+        used for functional-to-template registration
+    num_strat: int
+        the number of strategy objects
+    strat: C-PAC Strategy object
+        a strategy with one or more resource pools
+    interpolation_method: str
+        which interpolation to use when applying the warps
+    distcor: boolean
+        indicates whether a distortion correction transformation should be
+        added to the transforms, this of course requires that a distortion
+        correction map exist in the resource pool
+    map_node: boolean
+        indicates whether a mapnode should be used, if TRUE func_key is
+        expected to correspond to a list of resources that should each
+        be written into standard space with the other parameters
+    func_ts: boolean
+        indicates whether the input image is a 4D time series
+    num_cpus: int
+        the number of CPUs dedicated to each participant workflow - this
+        is used to determine how to parallelize the warp application step
+
+    Returns
+    -------
+    workflow : nipype.pipeline.engine.Workflow
+
+    """
 
     strat_nodes = strat.get_nodes_names()
 
@@ -64,7 +109,7 @@ def fsl_apply_transform_func_to_mni(
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
     if int(num_cpus) > 1 and func_ts:
 
-        node_id = f'{output_name}_{inverse_string}_{registration_template}_{num_strat}'
+        node_id = f'_{output_name}_{inverse_string}_{registration_template}_{num_strat}'
 
         chunk_imports = ['import nibabel as nb']
         chunk = pe.Node(Function(input_names=['func_file',
@@ -98,7 +143,7 @@ def fsl_apply_transform_func_to_mni(
                          func_concat, 'in_files')
 
         strat.update_resource_pool({
-            output_name: (func_concat, 'output_image')
+            output_name: (func_concat, 'out_file')
         })
 
     else:
@@ -522,7 +567,7 @@ def ants_apply_warps_func_mni(
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
     if int(num_cpus) > 1 and input_image_type == 3:
 
-        node_id = f'{output_name}_{inverse_string}_{registration_template}_{num_strat}'
+        node_id = f'_{output_name}_{inverse_string}_{registration_template}_{num_strat}'
 
         chunk_imports = ['import nibabel as nb']
         chunk = pe.Node(Function(input_names=['func_file',
@@ -556,7 +601,7 @@ def ants_apply_warps_func_mni(
                          func_concat, 'in_files')
 
         strat.update_resource_pool({
-            output_name: (func_concat, 'output_image')
+            output_name: (func_concat, 'out_file')
         })
 
     else:
@@ -578,7 +623,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         func_type='non-ica-aroma'):
 
     image_types = ['func_derivative', 'func_derivative_multi',
-            'func_4d', 'func_mask']
+                   'func_4d', 'func_mask']
 
     if input_image_type not in image_types:
         raise ValueError('Input image type {0} should be one of {1}'.format(\
