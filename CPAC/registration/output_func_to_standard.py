@@ -117,7 +117,7 @@ def fsl_apply_transform_func_to_mni(
                                  output_names=['TR_ranges'],
                                  function=chunk_ts,
                                  imports=chunk_imports),
-                        name=f'chunk{node_id}')
+                        name=f'chunk_{node_id}')
 
         chunk.inputs.n_cpus = int(num_cpus)
         workflow.connect(func_node, func_file, chunk, 'func_file')
@@ -128,7 +128,7 @@ def fsl_apply_transform_func_to_mni(
                                  output_names=['split_funcs'],
                                  function=split_ts_chunks,
                                  imports=split_imports),
-                        name=f'split{node_id}')
+                        name=f'split_{node_id}')
 
         workflow.connect(func_node, func_file, split, 'func_file')
         workflow.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -277,6 +277,16 @@ def ants_apply_warps_func_mni(
         num_ants_cores: int
             the number of CPU cores dedicated to ANTS anatomical-to-standard
             registration
+        registration_template: str
+            which template to use as a target for the apply warps ('t1' or 'epi'),
+            should be the same as the target used in the warp calculation
+            (registration)
+        func_type: str
+            'non-ica-aroma' or 'ica-aroma' - how to handle the functional time series
+            based on the particular demands of ICA-AROMA processed time series
+        num_cpus: int
+            the number of CPUs dedicated to each participant workflow - this is
+            used to determine how to parallelize the warp application step
             
     Workflow Outputs::
     
@@ -533,13 +543,13 @@ def ants_apply_warps_func_mni(
     if map_node:
         apply_ants_warp = pe.MapNode(
                 interface=ants.ApplyTransforms(),
-                name='apply_ants_warp_{0}_mapnode{1}_{2}_{3}'.format(output_name,
+                name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat),
                 iterfield=['input_image'], mem_gb=1.5)
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
-                name='apply_ants_warp_{0}{1}_{2}_{3}'.format(output_name,
+                name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat), mem_gb=1.5)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
@@ -575,7 +585,7 @@ def ants_apply_warps_func_mni(
                                  output_names=['TR_ranges'],
                                  function=chunk_ts,
                                  imports=chunk_imports),
-                        name=f'chunk{node_id}')
+                        name=f'chunk_{node_id}')
 
         chunk.inputs.n_cpus = int(num_cpus)
         workflow.connect(input_node, input_out, chunk, 'func_file')
@@ -586,7 +596,7 @@ def ants_apply_warps_func_mni(
                                  output_names=['split_funcs'],
                                  function=split_ts_chunks,
                                  imports=split_imports),
-                        name=f'split{node_id}')
+                        name=f'split_{node_id}')
 
         workflow.connect(input_node, input_out, split, 'func_file')
         workflow.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -594,7 +604,7 @@ def ants_apply_warps_func_mni(
         workflow.connect(split, 'split_funcs', apply_ants_warp, 'input_image')
 
         func_concat = pe.Node(interface=afni_utils.TCat(),
-                              name=f'func_concat{node_id}')
+                              name=f'func_concat_{node_id}')
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
         workflow.connect(apply_ants_warp, 'output_image',
