@@ -3,10 +3,11 @@ import os
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
+from nipype.interfaces import freesurfer
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
-from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string
+from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, mri_convert
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
@@ -381,6 +382,50 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
             preproc.connect(anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask',
                             outputnode, 'brain_mask')
+        
+        elif method == 'freesurfer':
+
+            reconall = pe.Node(interface=freesurfer.ReconAll(),
+                            name='anat_skullstrip_freesurfer')
+        
+            # reconall.inputs.subject_id = subject_id
+            reconall.inputs.directive = 'autorecon1'
+            reconall.inputs.subjects_dir = '.'
+            reconall.inputs.openmp = config.num_omp_threads
+            
+            preproc.connect(anat_reorient, 'out_file',
+                            reconall, 'T1_files')
+
+            # register FS brain mask to native space
+            fs_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                            name='fs_brain_mask_to_native')
+            fs_brain_mask_to_native.inputs.reg_header = True
+            preproc.connect(reconall, 'brainmask',
+                            fs_brain_mask_to_native, 'source_file')
+            preproc.connect(reconall, 'rawavg',
+                            fs_brain_mask_to_native, 'target_file')
+              
+            # convert brain mask file from .mgz to .nii.gz
+            fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
+                                              output_names=['out_file'],
+                                              function=mri_convert),                        
+                                    name='fs_brain_mask_to_nifti')
+
+            preproc.connect(fs_brain_mask_to_native, 'transformed_file',
+                            fs_brain_mask_to_nifti, 'in_file')
+            
+            preproc.connect(fs_brain_mask_to_nifti, 'out_file',
+                            outputnode, 'brain_mask')
+
+            # apply mask
+            fs_brain = pe.Node(interface=fsl.ApplyMask(),
+                            name='anat_skullstrip')
+            preproc.connect(anat_reorient, 'out_file',
+                            fs_brain, 'in_file')
+            preproc.connect(fs_brain_mask_to_nifti, 'out_file',
+                            fs_brain, 'mask_file')
+            preproc.connect(fs_brain, 'out_file',
+                            outputnode, 'brain')
 
         elif method == 'mask':
 

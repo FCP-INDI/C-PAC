@@ -47,6 +47,10 @@ numParticipantsAtOnce :  1
 num_ants_threads :  4
 
 
+# The number of cores to allocate to FreeSurfer recon-all per participant. This number cannot be greater than the number of cores per participant.
+num_omp_threads: 1
+
+
 # Name for this pipeline configuration - useful for identification.
 pipelineName :  analysis
 
@@ -114,7 +118,7 @@ reGenerateOutputs :  False
 runAnatomical: [1]
 
 
-# Run FreeSurfer
+# Run FreeSurfer recon-all
 runFreeSurfer: [0]
 
 
@@ -131,8 +135,8 @@ n4_bias_field_correction: False
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
-# Options: ['AFNI', 'BET', 'niworkflows-ants', 'unet']
+# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer (recon-all) or UNet for monkey data to perform skull-stripping.
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer', 'unet']
 skullstrip_option :  ['AFNI']
 
 
