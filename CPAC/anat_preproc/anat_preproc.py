@@ -392,7 +392,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         brain_mask_deoblique = pe.Node(interface=afni.Refit(),
                                 name='brain_mask_deoblique')
         brain_mask_deoblique.inputs.deoblique = True
-        preproc.connect(inputnode, 'brain_mask',
+        preproc.connect(input_node, 'brain_mask',
                         brain_mask_deoblique, 'in_file')
 
         brain_mask_reorient = pe.Node(interface=afni.Resample(),
