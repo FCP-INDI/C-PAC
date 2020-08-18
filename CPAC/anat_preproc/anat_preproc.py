@@ -32,7 +32,7 @@ def patch_cmass_output(lst, index=0):
     return lst[index]
 
 
-def acpc_align(skullstrip_tool='afni', config=None, wf_name='acpc_align'):
+def acpc_alignment(skullstrip_tool='afni', config=None, wf_name='acpc_align'):
                
     preproc = pe.Workflow(name=wf_name)
 
@@ -386,7 +386,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         brain_mask_deoblique = pe.Node(interface=afni.Refit(),
                                 name='brain_mask_deoblique')
         brain_mask_deoblique.inputs.deoblique = True
-        preproc.connect(inputnode, 'brain_mask',
+        preproc.connect(input_node, 'brain_mask',
                         brain_mask_deoblique, 'in_file')
 
         brain_mask_reorient = pe.Node(interface=afni.Resample(),
@@ -640,20 +640,14 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                 '\n\n'.format(str(config.acpc_target))
             raise Exception(err)
     
-    if config.acpc_align and config.acpc_target == 'whole-head':
-        acpc_align_head = acpc_align(skullstrip_tool=method, config=config, wf_name='acpc_align')
+    if config.acpc_align:
+        acpc_align = acpc_alignment(skullstrip_tool=method, config=config, wf_name='acpc_align')
 
-        preproc.connect(anat_reorient, 'out_file', acpc_align_head, 'inputspec.anat_leaf')
-        preproc.connect(inputnode, 'template_skull_for_anat', acpc_align_head, 'template_head')
-        preproc.connect(acpc_align_head, 'outputspec.acpc_aligned_head', anat_leaf, 'anat_data')
-
-    if config.acpc_align and config.acpc_target == 'brain':
-        acpc_align_brain = acpc_align(skullstrip_tool=method, config=config, wf_name='acpc_align')
-        
-        preproc.connect(anat_reorient, 'out_file', acpc_align_brain, 'inputspec.anat_leaf')
-        preproc.connect(inputnode, 'template_brain_only_for_anat', acpc_align_brain, 'inputspec.template_brain')
-        preproc.connect(inputnode, 'template_skull_for_anat', acpc_align_brain, 'inputspec.template_head')
-        preproc.connect(acpc_align_brain, 'outputspec.acpc_aligned_head', anat_leaf, 'anat_data')
+        preproc.connect(anat_reorient, 'out_file', acpc_align, 'inputspec.anat_leaf')
+        preproc.connect(inputnode, 'brain_mask', acpc_align, 'inputspec.brain_mask')
+        preproc.connect(inputnode, 'template_brain_only_for_anat', acpc_align, 'inputspec.template_brain')
+        preproc.connect(inputnode, 'template_skull_for_anat', acpc_align, 'inputspec.template_head')
+        preproc.connect(acpc_align, 'outputspec.acpc_aligned_head', anat_leaf, 'anat_data')
 
     # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
@@ -717,7 +711,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         preproc.connect(anat_leaf2, 'anat_data',
                         anat_skullstrip, 'inputspec.anat_data')
         if method == 'mask' and config.acpc_align:
-            preproc.connect(acpc_align_brain, 'outputspec.acpc_aligned_mask', 
+            preproc.connect(acpc_align, 'outputspec.acpc_brain_mask', 
                             anat_skullstrip, 'inputspec.brain_mask') 
         else:             
             preproc.connect(inputnode, 'brain_mask',
