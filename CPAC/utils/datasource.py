@@ -503,7 +503,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
         if local_path in ndmg_atlases['v0']:
             raise FileNotFoundError(
                 ''.join([
-                    'Neuroparc atlas paths were updated on July 20, 2020.'
+                    'Neuroparc atlas paths were updated on July 20, 2020. '
                     'C-PAC configuration files using Neuroparc v0 atlas paths '
                     '(including C-PAC default and preconfigured pipeline '
                     'configurations from v1.6.2a and earlier) need to be '
