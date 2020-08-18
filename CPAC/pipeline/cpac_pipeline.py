@@ -1209,7 +1209,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
                         'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                        'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
                         'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                     })
 
