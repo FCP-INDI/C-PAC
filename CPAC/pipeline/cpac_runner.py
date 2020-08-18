@@ -456,7 +456,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                                             }
                                         })
                                     else:
-                                        if keys[-2] == 'anatomical_brain' or keys[-2] == 'anatomical_brain_mask' or keys[-2] == 'anatomical_reorient':
+                                        if keys[-2] == 'anatomical_brain' or keys[-2] == 'anatomical_brain_mask' or keys[-2] == 'anatomical_skull_leaf':
                                             pass
                                         elif 'apply_warp_anat_longitudinal_to_standard' in keys[-2] or 'fsl_apply_xfm_longitudinal' in keys[-2]:
                                             # TODO update!!!
