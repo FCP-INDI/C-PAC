@@ -6,7 +6,7 @@ output_renamings = {
     'anatomical_brain': 'anat',
     'anatomical_brain_mask': 'anat',
     'qc': 'qc',
-    'anatomical_reorient': 'anat',
+    'anatomical_skull_leaf': 'anat',
     'anatomical_to_mni_linear_xfm': 'anat',
     'mni_to_anatomical_linear_xfm': 'anat',
     'mni_to_anatomical_nonlinear_xfm': 'anat',

@@ -114,7 +114,7 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
 
         # make QC montages for Skull Stripping Visualization
         anat_underlay, out_file = strat['anatomical_brain']
-        skull, out_file_s = strat['anatomical_reorient']
+        skull, out_file_s = strat['anatomical_skull_leaf']
 
         qc_workflow = create_qc_skullstrip(
             'qc_skullstrip_{0}'.format(num_strat)
