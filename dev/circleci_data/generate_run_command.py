@@ -1,5 +1,6 @@
 import os
 import random
+import stat
 import yaml
 
 from sys import argv
@@ -101,7 +102,7 @@ def get_random_test_run_command(platform, image=None):
             platforms[platform]['bind'],
             'CPAC/resources/configs/test_configs:/test_configs',
             ' '.join([
-                '-e COVERAGE_FILE=.coverage.docker-test-run',
+                f'-e COVERAGE_FILE=.coverage.{platform}-test-run',
                 image
             ]) if platform == 'docker' else image,
             'coverage run /code/dev/docker_data/run.py',
@@ -113,18 +114,23 @@ def get_random_test_run_command(platform, image=None):
         ])
         if platform == 'singularity':
             command = ' '.join([
-                'SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run',
+                f'SINGULARITYENV_COVERAGE_FILE=.coverage.{platform}-test-run',
                 command
             ])
     except NotImplementedError as nie:
         # pass error along to user as warning, but don't fail
         warn(nie, Warning)
         command = (
-            f'echo "{nie} which we need for \'--preconfig {random_config}\'"'
+            f'echo "{nie}, which we need for \'--preconfig {random_config}\'"'
         )
 
     return command
     
 
 if __name__ == '__main__':
-    print(get_random_test_run_command(argv[1]))
+    fp = os.path.join(os.path.dirname(__file__), 'run_script.sh') 
+    with open(fp, 'w') as run_script:
+        run_script.write('#!/bin/bash\n\n')
+        run_script.write(get_random_test_run_command(argv[1]))
+    # ↓ chmod +x ↓
+    os.chmod(fp, os.stat(fp).st_mode | 0o0111)
