@@ -136,6 +136,12 @@ acpc_template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
 acpc_template_brain: None
 
 
+# ACPC size of brain in z-dimension in mm. 
+# Default: 150mm for human data. 
+acpc_target: whole-head
+acpc_template_skull: 
+acpc_template_brain: 
+
 # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
 # Set this to 1 if your input images are already skull-stripped.
 already_skullstripped :  [0]
