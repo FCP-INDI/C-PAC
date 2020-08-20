@@ -1,6 +1,13 @@
 version: 2.1
 
 commands:
+  combine-coverage:
+    steps:
+      - run:
+          name: "Combining and reporting coverage"
+          command: |
+            coverage combine
+            coverage html
   install-singularity:
     steps:
       - install-singularity-requirements
@@ -56,7 +63,6 @@ jobs:
           path: test-results
       - store_artifacts:
           path: htmlcov
-          no_output_timeout: 5h
   pytest-singularity:
     machine: true
     steps:
@@ -69,8 +75,14 @@ jobs:
           name: "Testing C-PAC installation in Singularity Image"
           command: |
             pip install -r dev/circleci_data/requirements.txt
-            COVERAGE_FILE=.coverage-singularity-install
+            COVERAGE_FILE=.coverage.singularity-install
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
+      - run:
+          name: "Running unit tests in Singularity image"
+          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity singularity exec C-PAC-CI.simg python -m coverage run -m pytest /code
+      - combine-coverage
+      - store_artifacts:
+          path: htmlcov
   build:
     machine: true
     steps:
