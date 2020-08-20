@@ -1,4 +1,38 @@
-version: 2
+version: 2.1
+
+commands:
+  install-singularity:
+    steps:
+      - install-singularity-requirements
+      - run:
+          name: "Cloning Singularity v2.5.2 source code"
+          command: git clone -b 2.5.2 https://github.com/sylabs/singularity
+      - set-up-singularity
+  install-singularity-requirements:
+    steps:
+      - run:
+          name: "Installing Singularity v2.5.2 requirements"
+          command: sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+  set-python-version:
+    steps:
+      - run:
+          name: "Setting Python Version"
+          command: |
+            pyenv install 3.6.3
+            pyenv global 3.6.3
+  set-up-singularity:
+    steps:
+      - install-singularity-requirements
+      - run:
+          name: "Setting up Singularity v2.5.2"
+          command: |
+            cd singularity
+            ./autogen.sh
+            ./configure --prefix=/usr/local --sysconfdir=/etc
+            make
+            sudo make install
+            cd ..
+
 jobs:
   pytest-docker:
     machine: true
@@ -6,11 +40,7 @@ jobs:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
-      - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
+      - set-python-version
       - run:
           name: Get Sample BIDS Data
           command: git clone https://github.com/bids-standard/bids-examples.git
@@ -33,52 +63,32 @@ jobs:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - set-python-version
+      - set-up-singularity
       - run:
-          name: "Set Python Version"
+          name: "Testing C-PAC installation in Singularity Image"
           command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: test_install
-          command: |
-            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
-            cd singularity
-            ./autogen.sh
-            ./configure --prefix=/usr/local --sysconfdir=/etc
-            make
-            sudo make install
-            cd ..
             pip install -r dev/circleci_data/requirements.txt
+            COVERAGE_FILE=.coverage-singularity-install
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
   build:
     machine: true
     steps:
       - checkout
+      - set-python-version
       - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: build-docker
+          name: "Building Docker image"
           command: |
             docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
             docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
           # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
       - run:
-          name: local-registry
+          name: "Starting local Docker registry"
           command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+      - install-singularity
       - run:
-          name: build-singularity
+          name: "Building Singularity image"
           command: |
-            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
-            git clone -b 2.5.2 https://github.com/sylabs/singularity
-            cd singularity
-            ./autogen.sh
-            ./configure --prefix=/usr/local --sysconfdir=/etc
-            make
-            sudo make install
-            cd ..
             docker load < cpac-docker-image.tar.gz
             docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
@@ -94,33 +104,15 @@ jobs:
           root: /home/circleci/
           # Must be relative path from root
           paths: project
-  heatmaps:
-    machine: true
-    steps:
-      - attach_workspace:
-          # Must be absolute path or relative path from working_directory
-          at: /home/circleci/
-      - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: ≟
-          command: python dev/circleci_data/scripts/compare.py
   test:
     machine: true
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - set-python-version
       - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: Run C-PAC
+          name: Running C-PAC pipe-test
           command: |
             docker load < cpac-docker-image.tar.gz
             docker run -i --rm -v $HOME:/output -v /tmp:/tmp cpac:${CIRCLE_BRANCH//\//_} s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_ci.yml
@@ -130,12 +122,7 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - build:
-          filters:
-            branches:
-              ignore:
-                - feature/auto-heatmaps
-                - config/test_config
+      - build
       - test:
           requires:
             - build
@@ -144,13 +131,6 @@ workflows:
               only:
                 - develop
                 - master
-      - heatmaps:
-          requires:
-            - build
-            - test
-          filters:
-            branches:
-              only: feature/auto-heatmaps
       - pytest-docker:
           requires:
             - build
