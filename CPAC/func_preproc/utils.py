@@ -77,6 +77,15 @@ def oned_text_concat(in_files):
 
     return out_file
 
+# function to convert degrees of motion to mm 
+def degrees_to_mm(degrees, head_radius):
+    mm = 2*math.pi*head_radius*(degrees/360)
+    return mm
+
+# function to convert mm of motion to degrees 
+def mm_to_degrees(mm, head_radius):
+    degrees = 360*mm/(2*math.pi*head_radius)
+    return degrees
 
 def degrees_to_mm(degrees, head_radius):
     # function to convert degrees of motion to mm
