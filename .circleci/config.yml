@@ -20,6 +20,15 @@ commands:
       - run:
           name: "Installing Singularity v2.5.2 requirements"
           command: sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+  run-random:
+    parameters:
+      platform:
+        description: "Docker or Singularity"
+        type: string
+    steps:
+      - run:
+          name: "Running one random subject through one random preconfig"
+          command: $(python dev/circleci_data/generate_run_command.py << parameters.platform >>)
   set-python-version:
     steps:
       - run:
@@ -41,6 +50,17 @@ commands:
             cd ..
 
 jobs:
+  combine-coverage:
+    machine: true
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - set-python-version
+      - combine-coverage
+      - store_test_results:        
+          path: test-results
+      - store_artifacts:
+          path: htmlcov
   pytest-docker:
     machine: true
     steps:
@@ -55,14 +75,14 @@ jobs:
           name: pytest
           command: |
             docker load < cpac-docker-image.tar.gz
-            docker run -dit -P -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project/htmlcov:/code/htmlcov --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+            docker run -dit -P -e COVERAGE_FILE=.coverage.docker-test -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             docker exec docker_test /bin/bash ./code/dev/circleci_data/test_in_image.sh
       - store_test_results:
           path: test-results
       - store_artifacts:
           path: test-results
       - store_artifacts:
-          path: htmlcov
+          path: .coverage*
   pytest-singularity:
     machine: true
     steps:
@@ -80,9 +100,31 @@ jobs:
       - run:
           name: "Running unit tests in Singularity image"
           command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity singularity exec C-PAC-CI.simg python -m coverage run -m pytest /code
-      - combine-coverage
       - store_artifacts:
-          path: htmlcov
+          path: .coverage*
+  run-docker:
+    machine: true
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
+      - set-python-version
+      - run-random:
+          platform: docker
+      - store_artifacts:
+          path: .coverage*
+  run-singularity:
+    machine: true
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
+      - set-python-version
+      - set-up-singularity
+      - run-random:
+          platform: singularity
+      - store_artifacts:
+          path: .coverage*
   build:
     machine: true
     steps:
@@ -149,3 +191,15 @@ workflows:
       - pytest-singularity:
           requires:
             - build
+      - run-docker:
+          requires:
+            - build
+      - run-singularity:
+          requires:
+            - build
+      - combine-coverage:
+          requires:
+            - pytest-docker
+            - pytest-singularity
+            - run-docker
+            - run-singularity
