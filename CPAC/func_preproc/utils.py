@@ -77,6 +77,15 @@ def oned_text_concat(in_files):
 
     return out_file
 
+# function to convert degrees of motion to mm 
+def degrees_to_mm(degrees, head_radius):
+    mm = 2*math.pi*head_radius*(degrees/360)
+    return mm
+
+# function to convert mm of motion to degrees 
+def mm_to_degrees(mm, head_radius):
+    degrees = 360*mm/(2*math.pi*head_radius)
+    return degrees
 
 def degrees_to_mm(degrees, head_radius):
     # function to convert degrees of motion to mm
@@ -191,6 +200,9 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
 
     for i in range(0, int(num_f_apply) - 1):
         filtered_params = lfilter(b_filt, a_filt, filtered_params, zi=None)
+
+    # back rotation params to degrees
+    filtered_params[0:3,:] = mm_to_degrees(filtered_params[0:3,:], head_radius = 50)
 
     # back rotation params to degrees
     filtered_params[0:3,:] = mm_to_degrees(filtered_params[0:3,:], head_radius = 50)
