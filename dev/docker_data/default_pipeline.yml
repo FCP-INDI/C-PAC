@@ -123,9 +123,18 @@ n4_bias_field_correction: False
 
 # ACPC Alignment
 acpc_align: False
-acpc_brainsize: 150
-acpc_target: whole-head
 
+
+# ACPC size of brain in z-dimension in mm. 
+# Default: 150mm for human data. 
+acpc_brainsize: 150
+
+
+# ACPC size of brain in z-dimension in mm. 
+# Default: 150mm for human data. 
+acpc_target: whole-head
+acpc_template_skull: 
+acpc_template_brain: 
 
 # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
 # Set this to 1 if your input images are already skull-stripped.
@@ -133,7 +142,7 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
-# Options: ['AFNI', 'BET', 'niworkflows-ants', 'unet']
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
 skullstrip_option :  ['AFNI']
 
 
