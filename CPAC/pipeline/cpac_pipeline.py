@@ -1944,6 +1944,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         for num_strat, strat in enumerate(strat_list):
 
+            node, out_file = strat.get_leaf_properties()
+            strat.update_resource_pool({
+                'functional_freq_unfiltered': (
+                    node, out_file
+                ),
+            })
+
             # for each strategy, create a new one without nuisance
             if 0 in c.runNuisance or 1 in c.run_pypeer:
                 new_strat_list.append(strat.fork())
@@ -2058,12 +2065,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     regressor_workflow,
                     'inputspec.functional_file_path'
                 )
-
-                new_strat.update_resource_pool({
-                    'functional_freq_unfiltered': (
-                        node, out_file
-                    ),
-                })
 
                 node, out_file = new_strat['frame_wise_displacement_jenkinson']
                 workflow.connect(
