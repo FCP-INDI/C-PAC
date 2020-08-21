@@ -121,6 +121,10 @@ jobs:
             cd $HOME/project/CPAC
             VERSION=$(python -c "from info import __version__; print(__version__)")
             cd ..
+            if [[ ${VERSION} == *-dev ]]
+            then
+              VERSION=$(python dev/circleci_data/check_version.py)
+            fi
             echo "v${VERSION}" > version
             find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
             git add version CPAC/resources/configs
