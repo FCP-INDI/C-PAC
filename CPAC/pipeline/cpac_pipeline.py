@@ -699,6 +699,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     else:
         ventricle_mask_exist = True
 
+    # check acpc alignment target
+    if c.acpc_align and str(c.acpc_template_skull).lower() in ['none', 'false']:
+        err = "\n\n[!] C-PAC says: You have choosed ACPC alignment, " \
+                    "but you did not provide ACPC alignment template. " \
+                    "Options you provided:\nacpc_template_skull: {0}" \
+                        '\n\n'.format(str(c.acpc_template_skull))
+        raise Exception(err)
+    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false'] and str(c.acpc_template_brain).lower() in ['none', 'false']:
+        acpc_target = 'whole-head'
+    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false'] and str(c.acpc_template_brain).lower() not in ['none', 'false']:
+        acpc_target = 'brain'
+    
     # TODO ASH normalize file paths with schema validator
     template_keys = [
         ("anat", "templateSpecificationFile"),
@@ -710,6 +722,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("anat", "template_based_segmentation_CSF"),
         ("anat", "template_based_segmentation_GRAY"),
         ("anat", "template_based_segmentation_WHITE"),
+        ("anat", "template_based_segmentation_WHITE"),
+        ("anat", "acpc_template_skull"),
+        ("anat", "acpc_template_brain"),
     ]
 
     for key_type, key in template_keys:
@@ -930,7 +945,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             if 'anatomical_brain_mask' in strat:
 
                 anat_preproc = create_anat_preproc(method='mask',
-                                                config=c,
+                                                config=c, 
+                                                acpc_target=acpc_target,
                                                 wf_name='anat_preproc_mask_%d' % num_strat)
 
                 new_strat = strat.fork()
@@ -941,11 +957,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical_brain_mask']
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.brain_mask')
-                node, out_file = new_strat['template_skull_for_anat']
-                workflow.connect(node, out_file,
+                workflow.connect(c.acpc_template_skull, 'local_path',
                                 anat_preproc, 'inputspec.template_skull_for_anat')                               
-                node, out_file = new_strat['template_brain_for_anat']
-                workflow.connect(node, out_file,
+                workflow.connect(c.acpc_template_brain, 'local_path',
                                 anat_preproc, 'inputspec.template_brain_only_for_anat')
 
                 new_strat.append_name(anat_preproc.name)
@@ -967,6 +981,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 anat_preproc = create_anat_preproc(method=None,
                                                 already_skullstripped=True,
                                                 config=c,
+                                                acpc_target=acpc_target,
                                                 wf_name='anat_preproc_already_%d' % num_strat)
 
                 new_strat = strat.fork()
@@ -974,12 +989,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                  anat_preproc, 'inputspec.anat')
-
-                node, out_file = new_strat['template_skull_for_anat']
-                workflow.connect(node, out_file,
+                workflow.connect(c.acpc_template_skull, 'local_path',
                                 anat_preproc, 'inputspec.template_skull_for_anat')                               
-                node, out_file = new_strat['template_brain_for_anat']
-                workflow.connect(node, out_file,
+                workflow.connect(c.acpc_template_brain, 'local_path',
                                 anat_preproc, 'inputspec.template_brain_only_for_anat')
 
                 new_strat.append_name(anat_preproc.name)
@@ -1004,17 +1016,16 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     anat_preproc = create_anat_preproc(method='afni',
                                                     config=c,
+                                                    acpc_target=acpc_target,
                                                     wf_name='anat_preproc_afni_%d' % num_strat)
 
                     new_strat = strat.fork()
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    node, out_file = new_strat['template_skull_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_skull, 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_anat')                               
-                    node, out_file = new_strat['template_brain_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_brain, 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_anat')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
@@ -1029,17 +1040,16 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if "FSL" in c.skullstrip_option:
                     anat_preproc = create_anat_preproc(method='fsl',
                                                     config=c,
+                                                    acpc_target=acpc_target,
                                                     wf_name='anat_preproc_bet_%d' % num_strat)
 
                     new_strat = strat.fork()
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    node, out_file = new_strat['template_skull_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_skull, 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_anat')                               
-                    node, out_file = new_strat['template_brain_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_brain, 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_anat')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
@@ -1054,17 +1064,16 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if "niworkflows-ants" in c.skullstrip_option:
                     anat_preproc = create_anat_preproc(method='niworkflows-ants',
                                                     config=c,
+                                                    acpc_target=acpc_target,
                                                     wf_name='anat_preproc_niworkflows_ants_%d' % num_strat)
 
                     new_strat = strat.fork()
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    node, out_file = new_strat['template_skull_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_skull, 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_anat')                               
-                    node, out_file = new_strat['template_brain_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_brain, 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_anat')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
@@ -1079,18 +1088,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if "unet" in c.skullstrip_option:
                     anat_preproc = create_anat_preproc(method='unet',
                                                     config=c,
+                                                    acpc_target=acpc_target,
                                                     wf_name='anat_preproc_unet_%d' % num_strat)
 
                     new_strat = strat.fork()
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    node, out_file = new_strat['template_brain_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_skull, 'local_path',
+                                    anat_preproc, 'inputspec.template_skull_for_anat')                               
+                    workflow.connect(c.acpc_template_brain, 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_anat')
-                    node, out_file = new_strat['template_skull_for_anat']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.template_skull_for_anat')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
