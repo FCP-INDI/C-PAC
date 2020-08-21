@@ -39,6 +39,7 @@ commands:
           command: |
             pyenv install 3.6.3
             pyenv global 3.6.3
+            pip install -r dev/circleci_data/requirements.txt
   set-up-singularity:
     steps:
       - install-singularity-requirements
@@ -98,7 +99,6 @@ jobs:
       - run:
           name: "Testing C-PAC installation in Singularity Image"
           command: |
-            pip install -r dev/circleci_data/requirements.txt
             COVERAGE_FILE=.coverage.singularity-install
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors dev/circleci_data/test_install.py
       - run:
