@@ -86,6 +86,7 @@ jobs:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - check-for-built-images
       - set-python-version
       - run:
           name: Getting Sample BIDS Data
@@ -128,23 +129,22 @@ jobs:
           name: "Checking if version needs updated"
           # update version if version needs updated, otherwise just move on
           command: |
-            cd $HOME/project/CPAC
-            VERSION=$(python -c "from info import __version__; print(__version__)")
-            cd ..
-            if [[ ${VERSION} == *-dev ]]
+            if [[ ! $(git log -1 --pretty=%B) == *"Update version to"* ]]
             then
-              VERSION=$(python dev/circleci_data/check_version.py)
+              cd $HOME/project/CPAC
+              VERSION=$(python -c "from info import __version__; print(__version__)")
+              cd ..
+              echo "v${VERSION}" > version
+              find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+              git add version CPAC/resources/configs
+              if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
+              then
+                git commit -m ":bookmark: Update version to ${VERSION}"
+                git push origin HEAD:${CIRCLE_BRANCH} || true
+                circleci step halt
+              fi
+              cd ..
             fi
-            echo "v${VERSION}" > version
-            find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
-            git add version CPAC/resources/configs
-            if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
-            then
-              git commit -m ":bookmark: Update version to ${VERSION}"
-              git push origin HEAD:${CIRCLE_BRANCH} || true
-              circleci step halt
-            fi
-            cd ..
       - build-images
 
 workflows:
