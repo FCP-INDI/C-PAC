@@ -8,6 +8,17 @@ commands:
           command: |
             coverage combine
             coverage html
+  create-docker-test-container:
+    parameters:
+      coverage-file:
+        description: "Filename for coverage file"
+        type: string
+        default: .coverage.docker
+    steps:
+      - load-docker-image
+      - run:
+          name: "Creating Docker container"
+          command: docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
   install-singularity:
     steps:
       - install-singularity-requirements
@@ -20,18 +31,16 @@ commands:
       - run:
           name: "Installing Singularity v2.5.2 requirements"
           command: sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
-  run-random:
-    parameters:
-      platform:
-        description: "Docker or Singularity"
-        type: string
+  load-docker-image:
+    steps:
+      - run:
+          name: "Loading Docker image"
+          command: docker load < cpac-docker-image.tar.gz
+  generate-random-run:
     steps:
       - run:
           name: "Generating run command"
-          command: python dev/circleci_data/generate_run_command.py << parameters.platform >>
-      - run:
-          name: "Running one random subject through one random preconfig"
-          command: ./dev/circleci_data/run_script.sh
+          command: python dev/circleci_data/generate_run_command.py
   set-python-version:
     steps:
       - run:
@@ -69,30 +78,24 @@ jobs:
     machine: true
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - set-python-version
       - run:
           name: Get Sample BIDS Data
           command: git clone https://github.com/bids-standard/bids-examples.git
+      - create-docker-test-container
       - run:
           name: "Running unit tests in Docker image"
-          command: |
-            docker load < cpac-docker-image.tar.gz
-            docker run -dit -P -e COVERAGE_FILE=.coverage.docker -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            docker exec docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
+          command: docker exec docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
       - store_test_results:
           path: test-results
       - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
           root: /home/circleci/
           paths: .coverage*
   pytest-singularity:
     machine: true
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - set-python-version
       - set-up-singularity
@@ -107,22 +110,21 @@ jobs:
       - store_test_results:
           path: test-results
       - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
           root: /home/circleci/
           paths: .coverage*
   run-docker:
     machine: true
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - set-python-version
-      - run-random:
-          platform: docker
+      - generate-random-run
+      - create-docker-test-container:
+          coverage-file: .coverage.docker-run
+      - run:
+          name: "Running one participant in Docker"
+          command: docker exec docker_test dev/circleci_data/run_command.sh
       - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
           root: /home/circleci/
           paths: .coverage*
       - store_artifacts:
@@ -133,15 +135,14 @@ jobs:
     machine: true
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - set-python-version
       - set-up-singularity
-      - run-random:
-          platform: singularity
+      - generate-random-run
+      - run:
+          name: "Running one participant in Singularity"
+          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs C-PAC-CI.simg dev/circleci_data/run_command.sh
       - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
           root: /home/circleci/
           paths: .coverage*
       - store_artifacts:
@@ -158,15 +159,14 @@ jobs:
           command: |
             docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
             docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
-          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
       - run:
           name: "Starting local Docker registry"
           command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - install-singularity
+      - load-docker-image
       - run:
           name: "Building Singularity image"
           command: |
-            docker load < cpac-docker-image.tar.gz
             docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_} 
@@ -176,22 +176,18 @@ jobs:
           path: C-PAC-CI.simg
           destination: cpac-singularity-image.simg
       - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
           root: /home/circleci/
-          # Must be relative path from root
           paths: project
   test:
     machine: true
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - set-python-version
+      - load-docker-image
       - run:
           name: Running C-PAC pipe-test
           command: |
-            docker load < cpac-docker-image.tar.gz
             docker run -i --rm -v $HOME:/output -v /tmp:/tmp cpac:${CIRCLE_BRANCH//\//_} s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_ci.yml
           no_output_timeout: 3h
 

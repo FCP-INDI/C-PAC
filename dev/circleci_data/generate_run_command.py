@@ -1,26 +1,8 @@
 import os
 import random
-import stat
 import yaml
 
-from sys import argv
 from warnings import warn
-
-platforms = {
-    'docker': {
-        'bind': '-v',
-        'set_home': '--workdir=',
-        'image': ':'.join([
-            'fcpindi/c-pac',
-            os.environ.get('CIRCLE_BRANCH', 'latest')
-        ])
-    },
-    'singularity': {
-        'bind': '-B',
-        'set_home': '-H ',
-        'image': 'C-PAC-CI.simg'
-    }
-}
 
 
 def get_random_subject(species='human'):
@@ -41,7 +23,10 @@ def get_random_subject(species='human'):
     participant_ndx: int
     """
     if species == 'human':
-        data_config_file = 'test_configs/data-test_4-projects_5-subjects.yml'
+        data_config_file = (
+            'CPAC/resources/configs/test_configs/'
+            'data-test_4-projects_5-subjects.yml'
+        )
     else:
         raise NotImplementedError(
             f'Data configurations not yet set for random test of {species}'
@@ -51,28 +36,22 @@ def get_random_subject(species='human'):
     return (data_config_file, random.randrange(len(subject_list)))
 
 
-def get_random_test_run_command(platform, image=None):
+def get_random_test_run_command():
     """
     Function to choose a random preconfig, an appropriate subject, and
-    return a shell command to run C-PAC on that subject/config in the
-    given platform image.
+    return a string command to pass to coverage_run.sh.
 
     Parameters
     ----------
-    platform: str
-
-    image: str
+    None
 
     Returns
     -------
     command: str
     """
-    if image is None:
-        image = platforms[platform]['image']
-
     # collect preconfigs
     all_configs = {
-        'default', 
+        'default',
         *{
             config[16:-4] for config in os.listdir(
                 'CPAC/resources/configs'
@@ -97,26 +76,13 @@ def get_random_test_run_command(platform, image=None):
     try:
         data_config_file, participant_ndx = get_random_subject(data_species)
         command = ' '.join([
-            f'{platform} exec',
-            f'{platforms[platform]["set_home"]}/home/circleci/project',
-            platforms[platform]['bind'],
-            'CPAC/resources/configs/test_configs:/test_configs',
-            ' '.join([
-                f'-e COVERAGE_FILE=.coverage.{platform}-test-run',
-                image
-            ]) if platform == 'docker' else image,
-            'coverage run /code/dev/docker_data/run.py',
+            'python -m coverage run /code/dev/docker_data/run.py',
             '/home/circleci/project',
             '/home/circleci/project/outputs participant',
             f'--save_working_dir --data_config_file {data_config_file}',
             f'{config_string} --n_cpus 1 --mem_gb 12'.lstrip(),
             f'--participant_ndx {participant_ndx}'
         ])
-        if platform == 'singularity':
-            command = ' '.join([
-                f'SINGULARITYENV_COVERAGE_FILE=.coverage.{platform}-test-run',
-                command
-            ])
     except NotImplementedError as nie:
         # pass error along to user as warning, but don't fail
         warn(nie, Warning)
@@ -125,12 +91,17 @@ def get_random_test_run_command(platform, image=None):
         )
 
     return command
-    
+
 
 if __name__ == '__main__':
-    fp = os.path.join(os.path.dirname(__file__), 'run_script.sh') 
-    with open(fp, 'w') as run_script:
-        run_script.write('#!/bin/bash\n\n')
-        run_script.write(get_random_test_run_command(argv[1]))
-    # ↓ chmod +x ↓
-    os.chmod(fp, os.stat(fp).st_mode | 0o0111)
+    fp = os.path.join(os.path.dirname(__file__), 'run_command.sh')
+    run_string = get_random_test_run_command()
+    with open(fp, 'w') as run_command:
+        run_command.write('#!/bin/bash\n\n')
+        if run_string[:4] != 'echo':
+            run_command.write('\n'.join([
+                '# install testing requirements',
+                'pip install -r /code/dev/circleci_data/requirements.txt\n',
+                '# run one participant with coverage\n'
+            ]))
+        run_command.write(run_string)
