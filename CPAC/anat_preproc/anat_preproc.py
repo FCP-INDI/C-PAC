@@ -32,7 +32,7 @@ def patch_cmass_output(lst, index=0):
     return lst[index]
 
 
-def acpc_alignment(skullstrip_tool='afni', config=None, wf_name='acpc_align'):
+def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head', wf_name='acpc_align'):
                
     preproc = pe.Workflow(name=wf_name)
 
@@ -51,10 +51,12 @@ def acpc_alignment(skullstrip_tool='afni', config=None, wf_name='acpc_align'):
     robust_fov.inputs.brainsize = config.acpc_brainsize
     robust_fov.inputs.out_transform = 'fov_xfm.mat'
 
-    if config.acpc_target == 'whole-head':
+    # align head-to-head to get acpc.mat (for human)
+    if acpc_target == 'whole-head':
         preproc.connect(inputnode, 'anat_leaf', robust_fov, 'in_file')
-
-    if config.acpc_target=='brain':
+    
+    # align brain-to-brain to get acpc.mat (for monkey)
+    if acpc_target == 'brain':
         initial_skullstrip =  skullstrip_anatomical(method=skullstrip_tool, config=config, 
                                                     wf_name="anat_acpc_0_pre")
         preproc.connect(inputnode, 'anat_leaf', 
@@ -81,9 +83,12 @@ def acpc_alignment(skullstrip_tool='afni', config=None, wf_name='acpc_align'):
 
     preproc.connect(robust_fov, 'out_roi', align, 'in_file')
 
-    if config.acpc_target == 'whole-head':
+    # align head-to-head to get acpc.mat (for human)
+    if acpc_target == 'whole-head':
         preproc.connect(inputnode, 'template_head', align, 'reference')
-    if config.acpc_target == 'brain':
+    
+    # align brain-to-brain to get acpc.mat (for monkey)
+    if acpc_target=='brain':
         preproc.connect(inputnode, 'template_brain', align, 'reference')
 
     concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
@@ -515,7 +520,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
     return preproc
 
 def create_anat_preproc(method='afni', already_skullstripped=False,
-                        config=None, wf_name='anat_preproc'):
+                        config=None, acpc_target='whole-head', wf_name='anat_preproc'):
     """The main purpose of this workflow is to process T1 scans. Raw mprage
     file is deobliqued, reoriented into RPI and skullstripped. Also, a whole
     brain only mask is generated from the skull stripped image for later use
@@ -631,17 +636,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     if not config.acpc_align:
         preproc.connect(anat_reorient, 'out_file', anat_leaf, 'anat_data')
 
-    # ACPC alignment 
+    # ACPC alignment     
     if config.acpc_align:
-        if not any(o in config.acpc_target for o in ["whole-head", "brain"]):
-            err = '\n\n[!] C-PAC says: Your ACPC alignment target ' \
-                'setting does not include either \'whole-head\' or \'brain\'.\n\n' \
-                'Options you provided:\nacpc_target: {0}' \
-                '\n\n'.format(str(config.acpc_target))
-            raise Exception(err)
-    
-    if config.acpc_align:
-        acpc_align = acpc_alignment(skullstrip_tool=method, config=config, wf_name='acpc_align')
+        acpc_align = acpc_alignment(skullstrip_tool=method, config=config, acpc_target=acpc_target, wf_name='acpc_align')
 
         preproc.connect(anat_reorient, 'out_file', acpc_align, 'inputspec.anat_leaf')
         preproc.connect(inputnode, 'brain_mask', acpc_align, 'inputspec.brain_mask')
