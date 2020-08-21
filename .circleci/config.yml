@@ -1,6 +1,15 @@
 version: 2.1
 
 commands:
+  check-for-built-images:
+    steps:
+      - run:
+          name: "Checking for locally built images"
+          command: |
+            if [[ ! -f cpac-docker-image.tar.gz || ! -f cpac-singularity-image.simg ]]
+            then
+              circleci step halt
+            fi
   set-python-version:
     steps:
       - run:
@@ -100,6 +109,7 @@ jobs:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - check-for-built-images
       - set-python-version
       - install-singularity-requirements
       - set-up-singularity
@@ -114,7 +124,7 @@ jobs:
       - checkout
       - set-python-version
       - configure-git-user
-      - run: 
+      - run:
           name: "Checking if version needs updated"
           # update version if version needs updated, otherwise just move on
           command: |
@@ -132,6 +142,7 @@ jobs:
             then
               git commit -m ":bookmark: Update version to ${VERSION}"
               git push origin HEAD:${CIRCLE_BRANCH} || true
+              circleci step halt
             fi
             cd ..
       - build-images
