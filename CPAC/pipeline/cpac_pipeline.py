@@ -1152,18 +1152,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if "unet" in c.skullstrip_option:
                     anat_preproc = create_anat_preproc(method='unet',
                                                     config=c,
+                                                    acpc_target=acpc_target,
                                                     wf_name='anat_preproc_unet_%d' % num_strat)
 
                     new_strat = strat.fork()
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    node, out_file = new_strat['template_brain_for_anat']
-                    workflow.connect(node, out_file,
+                    workflow.connect(c.acpc_template_skull, 'local_path',
+                                    anat_preproc, 'inputspec.template_skull_for_anat')                               
+                    workflow.connect(c.acpc_template_brain, 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_anat')
-                    node, out_file = new_strat['template_skull_for_anat']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.template_skull_for_anat')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
