@@ -113,6 +113,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
                                                         'skullstrip',
                                                         'brain',
                                                         'brain_mask',
+                                                        'freesurfer_subject_dir',
                                                         'center_of_mass']),
                         name='outputspec')
 
@@ -386,15 +387,14 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
         elif method == 'freesurfer':
 
             reconall = pe.Node(interface=freesurfer.ReconAll(),
-                            name='anat_skullstrip_freesurfer')
-        
-            # reconall.inputs.subject_id = subject_id
+                            name='anat_freesurfer')
             reconall.inputs.directive = 'autorecon1'
             reconall.inputs.subjects_dir = '.'
             reconall.inputs.openmp = config.num_omp_threads
-            
             preproc.connect(anat_reorient, 'out_file',
                             reconall, 'T1_files')
+            preproc.connect(reconall, 'subjects_dir',
+                            outputnode, 'freesurfer_subject_dir')
 
             # register FS brain mask to native space
             fs_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
@@ -410,10 +410,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
                                               output_names=['out_file'],
                                               function=mri_convert),                        
                                     name='fs_brain_mask_to_nifti')
-
             preproc.connect(fs_brain_mask_to_native, 'transformed_file',
                             fs_brain_mask_to_nifti, 'in_file')
-            
             preproc.connect(fs_brain_mask_to_nifti, 'out_file',
                             outputnode, 'brain_mask')
 

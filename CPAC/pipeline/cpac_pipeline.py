@@ -919,7 +919,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     else:
         
         strat_list += [strat_initial]
-
+    '''
     if 1 in c.runFreeSurfer:
         reconall = pe.Node(interface=freesurfer.ReconAll(), 
                             name=f'reconall_{num_strat}')
@@ -931,7 +931,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         node, out_file = strat['anatomical']
         workflow.connect(node, out_file,
                         reconall, 'T1_files')
-
+    '''
     new_strat_list = []
 
     if 'anatomical_to_standard' not in strat_list[0]:
@@ -1107,6 +1107,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                         'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
                         'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
                     })
 
                     new_strat_list += [new_strat]
