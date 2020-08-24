@@ -128,7 +128,7 @@ jobs:
           root: /home/circleci/
           paths: .coverage*
       - store_artifacts:
-          path: dev/circleci_data/run_script.sh
+          path: dev/circleci_data/run_command.sh
       - store_artifacts:
           path: outputs
   run-singularity:
@@ -146,7 +146,7 @@ jobs:
           root: /home/circleci/
           paths: .coverage*
       - store_artifacts:
-          path: dev/circleci_data/run_script.sh
+          path: dev/circleci_data/run_command.sh
       - store_artifacts:
           path: outputs
   build:
