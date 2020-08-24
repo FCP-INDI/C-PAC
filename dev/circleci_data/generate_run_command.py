@@ -1,5 +1,6 @@
 import os
 import random
+import stat
 import yaml
 
 from warnings import warn
@@ -105,3 +106,5 @@ if __name__ == '__main__':
                 '# run one participant with coverage\n'
             ]))
         run_command.write(run_string)
+    # ↓ chmod +x ↓
+    os.chmod(fp, os.stat(fp).st_mode | 0o0111)
