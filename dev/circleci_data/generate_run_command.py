@@ -105,6 +105,10 @@ if __name__ == '__main__':
                 'pip install -r /code/dev/circleci_data/requirements.txt\n',
                 '# run one participant with coverage\n'
             ]))
-        run_command.write(run_string)
+            run_command.write(run_string)
+        else:
+            with open('run_warning.py', 'w') as warning_script:
+                warning_script.write(f'print({run_string[5:]})')
+            run_command.write('python -m coverage run run_warning.py')
     # ↓ chmod +x ↓
     os.chmod(fp, os.stat(fp).st_mode | 0o0111)
