@@ -18,7 +18,7 @@ commands:
       - load-docker-image
       - run:
           name: "Creating Docker container"
-          command: docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+          command: docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
   install-singularity:
     steps:
       - install-singularity-requirements
@@ -141,7 +141,7 @@ jobs:
       - generate-random-run
       - run:
           name: "Running one participant in Singularity"
-          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs C-PAC-CI.simg dev/circleci_data/run_command.sh
+          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs -B dev/circleci_data C-PAC-CI.simg dev/circleci_data/run_command.sh
       - persist_to_workspace:
           root: /home/circleci/
           paths: .coverage*
