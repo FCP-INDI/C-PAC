@@ -18,7 +18,7 @@ commands:
       - load-docker-image
       - run:
           name: "Creating Docker container"
-          command: docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+          command: docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
   install-singularity:
     steps:
       - install-singularity-requirements
@@ -106,7 +106,7 @@ jobs:
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors dev/circleci_data/test_install.py
       - run:
           name: "Running unit tests in Singularity image"
-          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity singularity exec C-PAC-CI.simg ./dev/circleci_data/test_in_image.sh
+          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity singularity exec -B $PWD:/code C-PAC-CI.simg ./dev/circleci_data/test_in_image.sh
       - store_test_results:
           path: test-results
       - persist_to_workspace:
