@@ -91,7 +91,7 @@ jobs:
           path: test-results
       - persist_to_workspace:
           root: /home/circleci/
-          paths: .coverage*
+          paths: project/.coverage*
   pytest-singularity:
     machine: true
     steps:
@@ -111,7 +111,7 @@ jobs:
           path: test-results
       - persist_to_workspace:
           root: /home/circleci/
-          paths: .coverage*
+          paths: project/.coverage*
   run-docker:
     machine: true
     steps:
@@ -127,7 +127,7 @@ jobs:
           no_output_timeout: 5h
       - persist_to_workspace:
           root: /home/circleci/
-          paths: .coverage*
+          paths: project/.coverage*
       - store_artifacts:
           path: dev/circleci_data/run_command.sh
       - store_artifacts:
@@ -146,7 +146,7 @@ jobs:
           no_output_timeout: 5h
       - persist_to_workspace:
           root: /home/circleci/
-          paths: .coverage*
+          paths: project/.coverage*
       - store_artifacts:
           path: dev/circleci_data/run_command.sh
       - store_artifacts:
