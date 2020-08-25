@@ -98,14 +98,17 @@ if __name__ == '__main__':
     fp = os.path.join(os.path.dirname(__file__), 'run_command.sh')
     run_string = get_random_test_run_command()
     with open(fp, 'w') as run_command:
-        run_command.write('#!/bin/bash\n\n')
+        run_command.write('\n'.join([
+            '#!/bin/bash\n',
+            '# install testing requirements',
+            'pip install -r /code/dev/circleci_data/requirements.txt\n\n'
+        ]))
         if run_string[:4] != 'echo':
             run_command.write('\n'.join([
-                '# install testing requirements',
-                'pip install -r /code/dev/circleci_data/requirements.txt\n',
-                '# run one participant with coverage\n'
+                '# run one participant with coverage',
+                run_string,
+                ''
             ]))
-            run_command.write(run_string)
         else:
             with open('run_warning.py', 'w') as warning_script:
                 warning_script.write(f'print({run_string[5:]})')

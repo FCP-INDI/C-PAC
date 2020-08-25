@@ -142,7 +142,7 @@ jobs:
       - generate-random-run
       - run:
           name: "Running one participant in Singularity"
-          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs -B dev/circleci_data C-PAC-CI.simg dev/circleci_data/run_command.sh
+          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs C-PAC-CI.simg dev/circleci_data/run_command.sh
           no_output_timeout: 5h
       - persist_to_workspace:
           root: /home/circleci/
