@@ -447,6 +447,10 @@ regWithSkull :  [1]
 runSegmentationPreprocessing :  [1]
 
 
+# segmentation_method: ['FSL FAST', 'ANTs-Prior-Based', 'Template-Based' ]
+segmentation_method: ['FSL FAST']
+
+
 # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
 # Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
 # If you'd like to set ANTs Prior-based Segmentation as your segmentation option,
@@ -740,6 +744,9 @@ runRegisterFuncToAnat :  [1]
 # Run Functional to Anatomical Registration with BB Register
 runBBReg :  [1]
 
+
+# BBR_WM_source :  ['FSL FAST', 'FreeSurfer']
+BBR_WM_source : ['FSL FAST']
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.

@@ -25,7 +25,8 @@ import nipype.pipeline.engine as pe
 import scipy.ndimage as nd
 import numpy as np
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
-
+from nipype.interfaces import freesurfer
+from CPAC.anat_preproc.utils import mri_convert
 
 def create_seg_preproc(use_ants,
                         use_priors,
@@ -1072,6 +1073,84 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
     return preproc
 
 
+def create_seg_preproc_freesurfer_method(config=None, wf_name='seg_preproc_freesurfer'):
+
+    """Generate the subject's cerebral spinal fluids,
+    white matter and gray matter mask based on freesurfer, if selected to do so.
+
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+
+    Returns
+    -------
+    seg_preproc_freesurfer : workflow
+        Workflow Object for Segmentation Workflow
+
+    Notes
+    -----
+
+    Workflow Inputs: ::
+
+        inputspec.subject_dir : string (existing nifti file)
+            FreeSurfer autorecon1 dir
+
+    Workflow Outputs: ::
+
+        outputspec.wm_mask : string (nifti file)
+            outputs White Matter mask
+
+
+    """
+
+    preproc = pe.Workflow(name = wf_name)
+    inputNode = pe.Node(util.IdentityInterface(fields=['subject_dir']),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['wm_mask']),
+                        name='outputspec')
+
+    reconall2 = pe.Node(interface=freesurfer.ReconAll(),
+                    name='anat_autorecon2')
+
+    reconall2.inputs.directive = 'autorecon2'
+    reconall2.inputs.openmp = config.num_omp_threads
+    
+    preproc.connect(inputNode, 'subject_dir',
+                    reconall2, 'subjects_dir')
+    
+    # register FS wm to native space
+    fs_brain_wm_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                    name='fs_brain_wm_to_native')
+    fs_brain_wm_to_native.inputs.reg_header = True
+    preproc.connect(reconall2, 'wm',
+                    fs_brain_wm_to_native, 'source_file')
+    preproc.connect(reconall2, 'rawavg',
+                    fs_brain_wm_to_native, 'target_file')
+              
+    # convert wm file from .mgz to .nii.gz
+    fs_wm_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
+                                        output_names=['out_file'],
+                                        function=mri_convert),                        
+                            name='fs_wm_to_nifti')
+    preproc.connect(fs_brain_wm_to_native, 'transformed_file',
+                    fs_wm_to_nifti, 'in_file')
+
+    # binarize wm mask
+    wm_mask = pe.Node(interface=fsl.maths.MathsCommand(), name='wm_mask')
+    wm_mask.inputs.args = '-bin'
+
+    preproc.connect(fs_wm_to_nifti, 'out_file',
+                    wm_mask, 'in_file')
+
+    preproc.connect(wm_mask, 'out_file',
+                    outputnode, 'wm_mask')
+
+    return preproc
+
+
 def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
     
     """
@@ -1276,6 +1355,31 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                 'anatomical_csf_mask': (seg_preproc_ants_prior_based, 'outputspec.csf_mask'),
                 'anatomical_wm_mask': (seg_preproc_ants_prior_based, 'outputspec.wm_mask')
             })
+
+    strat_list += new_strat_list
+
+    if 1 in c.runBBReg and 'FreeSurfer' in c.BBR_WM_source:
+        
+        for num_strat, strat in enumerate(strat_list):
+
+            seg_preproc_freesurfer = create_seg_preproc_freesurfer_method(config=c, wf_name='seg_preproc_freesurfer_{0}'.format(num_strat))
+
+            # TODO ASH review
+            if seg_preproc_freesurfer is None:
+                continue
+
+            node, out_file = strat['freesurfer_subject_dir']
+            workflow.connect(node, out_file,
+                             seg_preproc_freesurfer, 'inputspec.subject_dir')
+
+            # TODO ASH review with forking function
+            if 0 in c.runSegmentationPreprocessing:
+                strat = strat.fork()
+                new_strat_list.append(strat)
+
+            strat.append_name(seg_preproc_freesurfer.name)
+            strat.update_resource_pool({
+                'anatomical_wm_mask': (seg_preproc_freesurfer, 'outputspec.wm_mask')}, override=True)
 
     strat_list += new_strat_list
 
