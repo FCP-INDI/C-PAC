@@ -1,6 +1,6 @@
 
 import numpy as np
-from scipy.signal import iirnotch, filtfilt
+from scipy.signal import iirnotch, filtfilt, lfilter
 import nibabel as nb
 import subprocess
 
@@ -121,10 +121,10 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     # convert rotation params from degrees to mm
     params_data[:,0:3] = degrees_to_mm(params_data[:,0:3], head_radius = 50)
 
-    filtered_params = filtfilt(b_filt, a_filt, params_data.T)
+    filtered_params = lfilter(b_filt, a_filt, params_data.T, zi=None)
     
     for i in range(0, int(num_f_apply)-1):
-        filtered_params = filtfilt(b_filt, a_filt, filtered_params)
+        filtered_params = lfilter(b_filt, a_filt, filtered_params, zi=None)
 
     # back rotation params to degrees
     filtered_params[0:3,:] = mm_to_degrees(filtered_params[0:3,:], head_radius = 50)
