@@ -114,7 +114,8 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     W_notch = np.divide(fa, fNy)
     Wn = np.mean(W_notch)
     bw = np.diff(W_notch)
-    [b_filt, a_filt] = iirnotch(Wn, bw)
+    Q = Wn/bw
+    [b_filt, a_filt] = iirnotch(Wn, Q)
     num_f_apply = np.floor(filter_order / 2)
 
     # convert rotation params from degrees to mm
