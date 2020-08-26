@@ -389,7 +389,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             reconall = pe.Node(interface=freesurfer.ReconAll(),
                             name='anat_freesurfer')
             reconall.inputs.directive = 'autorecon1'
-            reconall.inputs.subjects_dir = '.'
+            # TODO update dir
+            reconall.inputs.subjects_dir = os.getcwd()
             reconall.inputs.openmp = config.num_omp_threads
             preproc.connect(anat_reorient, 'out_file',
                             reconall, 'T1_files')

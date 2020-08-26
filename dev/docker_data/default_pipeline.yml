@@ -638,6 +638,10 @@ gm_mask_erosion_mm: 30
 gm_erosion_mm: 0
 
 
+# Reconstruct surface via FreeSurfer
+surface_reconstruction: [0]
+
+
 # Run functional preproceessing
 runFunctional: [1]
 
@@ -746,7 +750,9 @@ runBBReg :  [1]
 
 
 # BBR_WM_source :  ['FSL FAST', 'FreeSurfer']
+# FSL uses FAST to get WM segmentation while FreeSurfer uses reconall -autorecon2
 BBR_WM_source : ['FSL FAST']
+
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.

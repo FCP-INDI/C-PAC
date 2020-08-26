@@ -1073,10 +1073,9 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
     return preproc
 
 
-def create_seg_preproc_freesurfer_method(config=None, wf_name='seg_preproc_freesurfer'):
+def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer'):
 
-    """Generate the subject's cerebral spinal fluids,
-    white matter and gray matter mask based on freesurfer, if selected to do so.
+    """Generate the subject's white matter based on freesurfer, if selected to do so.
 
     Parameters
     ----------
@@ -1086,7 +1085,7 @@ def create_seg_preproc_freesurfer_method(config=None, wf_name='seg_preproc_frees
     Returns
     -------
     seg_preproc_freesurfer : workflow
-        Workflow Object for Segmentation Workflow
+        workflow object for segmentation workflow
 
     Notes
     -----
@@ -1101,15 +1100,14 @@ def create_seg_preproc_freesurfer_method(config=None, wf_name='seg_preproc_frees
         outputspec.wm_mask : string (nifti file)
             outputs White Matter mask
 
-
     """
 
     preproc = pe.Workflow(name = wf_name)
-    inputNode = pe.Node(util.IdentityInterface(fields=['subject_dir']),
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir']),
                         name='inputspec')
 
-
-    outputNode = pe.Node(util.IdentityInterface(fields=['wm_mask']),
+    outputnode = pe.Node(util.IdentityInterface(fields=['wm_mask']),
                         name='outputspec')
 
     reconall2 = pe.Node(interface=freesurfer.ReconAll(),
@@ -1118,24 +1116,27 @@ def create_seg_preproc_freesurfer_method(config=None, wf_name='seg_preproc_frees
     reconall2.inputs.directive = 'autorecon2'
     reconall2.inputs.openmp = config.num_omp_threads
     
-    preproc.connect(inputNode, 'subject_dir',
+    preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
     
     # register FS wm to native space
-    fs_brain_wm_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
-                    name='fs_brain_wm_to_native')
-    fs_brain_wm_to_native.inputs.reg_header = True
+    fs_wm_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                    name='fs_wm_to_native')
+    fs_wm_to_native.inputs.reg_header = True
+
     preproc.connect(reconall2, 'wm',
-                    fs_brain_wm_to_native, 'source_file')
+                    fs_wm_to_native, 'source_file')
+
     preproc.connect(reconall2, 'rawavg',
-                    fs_brain_wm_to_native, 'target_file')
-              
+                    fs_wm_to_native, 'target_file')
+
     # convert wm file from .mgz to .nii.gz
     fs_wm_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
                                         output_names=['out_file'],
                                         function=mri_convert),                        
                             name='fs_wm_to_nifti')
-    preproc.connect(fs_brain_wm_to_native, 'transformed_file',
+
+    preproc.connect(fs_wm_to_native, 'transformed_file',
                     fs_wm_to_nifti, 'in_file')
 
     # binarize wm mask
@@ -1362,9 +1363,9 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
         
         for num_strat, strat in enumerate(strat_list):
 
-            seg_preproc_freesurfer = create_seg_preproc_freesurfer_method(config=c, wf_name='seg_preproc_freesurfer_{0}'.format(num_strat))
+            seg_preproc_freesurfer = create_seg_preproc_freesurfer(config=c, 
+                                        wf_name='seg_preproc_freesurfer_{0}'.format(num_strat))
 
-            # TODO ASH review
             if seg_preproc_freesurfer is None:
                 continue
 
@@ -1372,7 +1373,6 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             workflow.connect(node, out_file,
                              seg_preproc_freesurfer, 'inputspec.subject_dir')
 
-            # TODO ASH review with forking function
             if 0 in c.runSegmentationPreprocessing:
                 strat = strat.fork()
                 new_strat_list.append(strat)

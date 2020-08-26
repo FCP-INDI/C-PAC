@@ -1627,6 +1627,32 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Inserting Segmentation Preprocessing Workflow
         workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
 
+        # Surface Reconstruction Workflow
+        if 1 in c.surface_reconstruction:
+
+            for num_strat, strat in enumerate(strat_list):
+
+                reconall3 = pe.Node(interface=freesurfer.ReconAll(),
+                        name='anat_autorecon3')
+
+                reconall3.inputs.directive = 'autorecon3'
+                reconall3.inputs.openmp = c.num_omp_threads
+                
+                node, out_file = strat['freesurfer_subject_dir']
+                workflow.connect(node, out_file,
+                                reconall3, 'subjects_dir')
+
+                strat.update_resource_pool({
+                    'surface_curvature': (reconall3, 'outputspec.curv'),
+                    'pial_surface_mesh': (reconall3, 'outputspec.pial'),
+                    'smoothed_surface_mesh': (reconall3, 'outputspec.smoothwm'),
+                    'spherical_surface_mesh': (reconall3, 'outputspec.sphere'),
+                    'sulcal_depth_surface_maps': (reconall3, 'outputspec.sulc'),
+                    'cortical_thickness_surface_maps': (reconall3, 'outputspec.thickness'),
+                    'cortical_volume_surface_maps': (reconall3, 'outputspec.volume'),
+                    'white_matter_surface_mesh': (reconall3, 'outputspec.white')
+                })
+
 
     # Functional / BOLD time
     if ('func' in sub_dict or 'rest' in sub_dict) and \
