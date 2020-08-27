@@ -3,6 +3,7 @@ import numpy as np
 from scipy.signal import iirnotch, filtfilt, lfilter
 import nibabel as nb
 import subprocess
+import math
 
 def add_afni_prefix(tpattern):
     if tpattern:
@@ -92,7 +93,11 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     #   https://github.com/DCAN-Labs/dcan_bold_processing/blob/master/
     #       ...matlab_code/filtered_movement_regressors.m
 
-    TR = float(TR.replace("s", ""))
+    if "ms" in TR:
+        TR = float(TR.replace("ms", ""))/1000
+    elif "ms" not in TR and "s" in TR:
+        TR = float(TR.replace("s", ""))
+
     params_data = np.loadtxt(motion_params)
 
     fc_RR_bw = [fc_RR_min, fc_RR_max]
