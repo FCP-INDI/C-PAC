@@ -1379,7 +1379,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
             strat.append_name(seg_preproc_freesurfer.name)
             strat.update_resource_pool({
-                'anatomical_wm_mask': (seg_preproc_freesurfer, 'outputspec.wm_mask')}, override=True)
+                'anatomical_wm_bbr_mask': (seg_preproc_freesurfer, 'outputspec.wm_mask')})
 
     strat_list += new_strat_list
 

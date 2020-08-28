@@ -919,19 +919,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     else:
         
         strat_list += [strat_initial]
-    '''
-    if 1 in c.runFreeSurfer:
-        reconall = pe.Node(interface=freesurfer.ReconAll(), 
-                            name=f'reconall_{num_strat}')
-        
-        reconall.inputs.subject_id = subject_id
-        reconall.inputs.directive = 'all'
-        reconall.inputs.subjects_dir = '.'
-        
-        node, out_file = strat['anatomical']
-        workflow.connect(node, out_file,
-                        reconall, 'T1_files')
-    '''
+   
+    
     new_strat_list = []
 
     if 'anatomical_to_standard' not in strat_list[0]:
@@ -1092,26 +1081,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat_list += [new_strat]
 
-                if "FreeSurfer" in c.skullstrip_option:
-                    anat_preproc = create_anat_preproc(method='freesurfer',
-                                                    config=c,
-                                                    wf_name='anat_preproc_freesurfer_%d' % num_strat)
-
-                    new_strat = strat.fork()
-                    node, out_file = new_strat['anatomical']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.anat')
-                    new_strat.append_name(anat_preproc.name)
-                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                    new_strat.update_resource_pool({
-                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
-                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
-                        'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
-                    })
-
-                    new_strat_list += [new_strat]
-
                 if "unet" in c.skullstrip_option:
                     anat_preproc = create_anat_preproc(method='unet',
                                                     config=c,
@@ -1133,6 +1102,27 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                         'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
                         'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                    })
+
+                    new_strat_list += [new_strat]
+                
+                if "FreeSurfer" in c.skullstrip_option:
+                    anat_preproc = create_anat_preproc(method='freesurfer',
+                                                    config=c,
+                                                    wf_name='anat_preproc_freesurfer_%d' % num_strat,
+                                                    sub_dir=os.path.join(c.workingDirectory, workflow_name))
+
+                    new_strat = strat.fork()
+                    node, out_file = new_strat['anatomical']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.anat')
+                    new_strat.append_name(anat_preproc.name)
+                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                    new_strat.update_resource_pool({
+                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
                     })
 
                     new_strat_list += [new_strat]

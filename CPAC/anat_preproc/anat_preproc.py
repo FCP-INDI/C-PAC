@@ -29,15 +29,31 @@ def patch_cmass_output(lst, index=0):
         raise IndexError("lst index out of range")
     return lst[index]
 
-def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc'):
+def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc', sub_dir=None):
     """The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image
     for later use in registration.
 
+    Parameters
+    ----------
+    method : string or None
+        Skull-stripping method, None if no skullstripping required
+    
+    already_skullstripped : boolean
+
+    config : configuration
+        Pipeline configuration object
+
+    wf_name : string
+        Anatomical preprocessing workflow name
+
+    sub_dir : path
+        Subject-specific working directory
+
     Returns
     -------
     anat_preproc : workflow
-        Anatomical Preprocessing Workflow
+        Anatomical preprocessing workflow
 
     Notes
     -----
@@ -389,8 +405,20 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
             reconall = pe.Node(interface=freesurfer.ReconAll(),
                             name='anat_freesurfer')
             reconall.inputs.directive = 'autorecon1'
-            # TODO update dir
-            reconall.inputs.subjects_dir = os.getcwd()
+            
+            num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
+
+            freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}', 'anat_freesurfer')
+            
+            # create the node dir
+            if not os.path.exists(sub_dir):
+                os.mkdir(sub_dir)
+            if not os.path.exists(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}')):
+                os.mkdir(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}'))
+            if not os.path.exists(freesurfer_subject_dir):
+                os.mkdir(freesurfer_subject_dir)
+            
+            reconall.inputs.subjects_dir = freesurfer_subject_dir
             reconall.inputs.openmp = config.num_omp_threads
             preproc.connect(anat_reorient, 'out_file',
                             reconall, 'T1_files')
