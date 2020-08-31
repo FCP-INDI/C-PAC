@@ -1618,7 +1618,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
 
         # Surface Reconstruction Workflow
-        if 1 in c.surface_reconstruction:
+        if c.surface_reconstruction:
 
             for num_strat, strat in enumerate(strat_list):
 

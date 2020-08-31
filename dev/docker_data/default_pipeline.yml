@@ -639,7 +639,7 @@ gm_erosion_mm: 0
 
 
 # Reconstruct surface via FreeSurfer
-surface_reconstruction: [0]
+surface_reconstruction: False
 
 
 # Run functional preproceessing
@@ -749,9 +749,9 @@ runRegisterFuncToAnat :  [1]
 runBBReg :  [1]
 
 
-# BBR_WM_source :  ['FSL FAST', 'FreeSurfer']
-# FSL uses FAST to get WM segmentation while FreeSurfer uses reconall -autorecon2
-BBR_WM_source : ['FSL FAST']
+# BBR_WM_source :  ['FSL', 'FreeSurfer']
+# Choose FSL (FAST) or FreeSurfer (reconall) to get WM segmentation for BBR 
+BBR_WM_source : ['FSL']
 
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
