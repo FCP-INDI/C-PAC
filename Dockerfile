@@ -160,7 +160,7 @@ RUN apt-get install -y ants
 ENV ANTSPATH=/usr/lib/ants/
 
 # install FreeSurfer
-RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-linux-centos8_x86_64-dev.tar.gz -o /usr/lib/freesurfer.tar.gz && \
+RUN curl -sL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-linux-centos8_x86_64-dev.tar.gz -o /usr/lib/freesurfer.tar.gz && \
     tar -xzvf /usr/lib/freesurfer.tar.gz && \
     export FREESURFER_HOME=/usr/lib/freesurfer && \
     source $FREESURFER_HOME/SetUpFreeSurfer.sh && \
