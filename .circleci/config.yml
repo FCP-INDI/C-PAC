@@ -83,7 +83,8 @@ jobs:
             docker load < cpac-docker-image.tar.gz
             docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_} 
+            SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+          no_output_timeout: 2h
       - store_artifacts:
           path: cpac-docker-image.tar.gz
       - store_artifacts:
