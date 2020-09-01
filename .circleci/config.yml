@@ -64,6 +64,7 @@ jobs:
           command: |
             docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
             docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
+          no_output_timeout: 1h
           # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
       - run:
           name: local-registry
