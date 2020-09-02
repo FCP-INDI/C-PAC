@@ -163,7 +163,7 @@ ENV ANTSPATH=/usr/lib/ants/
 RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-linux-centos8_x86_64-dev.tar.gz -o /usr/lib/freesurfer.tar.gz && \
     tar -xzvf /usr/lib/freesurfer.tar.gz -C /usr/lib && \
     export FREESURFER_HOME=/usr/lib/freesurfer && \
-    bash $FREESURFER_HOME/SetUpFreeSurfer.sh && \
+    . $FREESURFER_HOME/SetUpFreeSurfer.sh && \
     rm /usr/lib/freesurfer.tar.gz
 
 # install ICA-AROMA
