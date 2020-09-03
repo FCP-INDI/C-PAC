@@ -706,9 +706,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     "Options you provided:\nacpc_template_skull: {0}" \
                         '\n\n'.format(str(c.acpc_template_skull))
         raise Exception(err)
-    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false'] and str(c.acpc_template_brain).lower() in ['none', 'false']:
+    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false', ''] and str(c.acpc_template_brain).lower() in ['none', 'false', '']:
         acpc_target = 'whole-head'
-    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false'] and str(c.acpc_template_brain).lower() not in ['none', 'false']:
+    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false', ''] and str(c.acpc_template_brain).lower() not in ['none', 'false', '']:
         acpc_target = 'brain'
     
     # TODO ASH normalize file paths with schema validator
