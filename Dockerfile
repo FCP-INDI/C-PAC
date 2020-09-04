@@ -168,7 +168,7 @@ RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-l
 RUN source $FREESURFER_HOME/SetUpFreeSurfer.sh
 RUN rm /usr/lib/freesurfer.tar.gz
 # restore shell to default (sh)
-SHELL ["/bin/sh" "-c"]
+SHELL ["/bin/sh", "-c"]
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
