@@ -161,10 +161,10 @@ ENV ANTSPATH=/usr/lib/ants/
 
 # install FreeSurfer
 # set shell to BASH
+ENV FREESURFER_HOME=/usr/lib/freesurfer
 SHELL ["/bin/bash", "-c"]
 RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-linux-centos8_x86_64-dev.tar.gz -o /usr/lib/freesurfer.tar.gz && \
-    tar -xzvf /usr/lib/freesurfer.tar.gz -C /usr/lib && \
-    export FREESURFER_HOME=/usr/lib/freesurfer
+    tar -xzvf /usr/lib/freesurfer.tar.gz -C /usr/lib
 RUN source $FREESURFER_HOME/SetUpFreeSurfer.sh
 RUN rm /usr/lib/freesurfer.tar.gz
 # restore shell to default (sh)
