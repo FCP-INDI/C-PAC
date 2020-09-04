@@ -160,11 +160,15 @@ RUN apt-get install -y ants
 ENV ANTSPATH=/usr/lib/ants/
 
 # install FreeSurfer
+# set shell to BASH
+SHELL ["/bin/bash", "-c"]
 RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-linux-centos8_x86_64-dev.tar.gz -o /usr/lib/freesurfer.tar.gz && \
     tar -xzvf /usr/lib/freesurfer.tar.gz -C /usr/lib && \
     export FREESURFER_HOME=/usr/lib/freesurfer
-SHELL ["/bin/bash", "-c", "source $FREESURFER_HOME/SetUpFreeSurfer.sh"]
+RUN source $FREESURFER_HOME/SetUpFreeSurfer.sh
 RUN rm /usr/lib/freesurfer.tar.gz
+# restore shell to default (sh)
+SHELL ["/bin/sh", "-c"]
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
