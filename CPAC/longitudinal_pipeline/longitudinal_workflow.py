@@ -95,7 +95,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
 
     strat_init_new.update_resource_pool({
         'anatomical_brain': (longitudinal_template_node, 'brain_template'),
-        'anatomical_reorient': (longitudinal_template_node, 'skull_template'),
+        'anatomical_skull_leaf': (longitudinal_template_node, 'skull_template'),
         'anatomical_brain_mask': (brain_mask, 'out_file')
     })
 
@@ -200,7 +200,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                                  fnirt_reg_anat_mni, 'inputspec.reference_brain')
 
                 # skull input
-                node, out_file = strat['anatomical_reorient']
+                node, out_file = strat['anatomical_skull_leaf']
                 workflow.connect(node, out_file,
                                  fnirt_reg_anat_mni, 'inputspec.input_skull')
                 
@@ -287,7 +287,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                                 ants_reg_anat_mni, 'inputspec.moving_brain')
 
                 # get the reorient skull-on anatomical from resource pool
-                node, out_file = strat['anatomical_reorient']
+                node, out_file = strat['anatomical_skull_leaf']
 
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
@@ -412,7 +412,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                                      fnirt_reg_anat_symm_mni,
                                      'inputspec.input_brain')
 
-                    node, out_file = strat['anatomical_reorient']
+                    node, out_file = strat['anatomical_skull_leaf']
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni,
                                      'inputspec.input_skull')
@@ -493,7 +493,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                                      ants_reg_anat_symm_mni, 'inputspec.reference_brain')
 
                     # get the reorient skull-on anatomical from resource pool
-                    node, out_file = strat['anatomical_reorient']
+                    node, out_file = strat['anatomical_skull_leaf']
                     
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
@@ -645,7 +645,7 @@ def connect_anat_preproc_inputs(strat, anat_preproc, strat_name, strat_nodes_lis
     new_strat.update_resource_pool({
         'anatomical_brain': (
             anat_preproc, 'outputspec.brain'),
-        'anatomical_reorient': (
+        'anatomical_skull_leaf': (
             anat_preproc, 'outputspec.reorient'),
         'anatomical_brain_mask': (
             anat_preproc, 'outputspec.brain_mask'),
@@ -1213,7 +1213,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                              rsc_name, brain_merge_node,
                              'in{}'.format(i + 1)) # the in{}.format take i+1 because the Merge nodes inputs starts at 1
             
-            rsc_key = 'anatomical_reorient'
+            rsc_key = 'anatomical_skull_leaf'
             anat_preproc_node, rsc_name = strat_nodes_list[i][rsc_key]
             workflow.connect(anat_preproc_node,
                              rsc_name, skull_merge_node,

@@ -1059,7 +1059,7 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
                                         func_to_anat_bbreg, 'inputspec.func')
 
                 # Input anatomical whole-head image (reoriented)
-                node, out_file = strat['anatomical_reorient']
+                node, out_file = strat['anatomical_skull_leaf']
                 workflow.connect(node, out_file,
                                     func_to_anat_bbreg,
                                     'inputspec.anat_skull')
