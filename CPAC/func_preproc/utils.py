@@ -1,8 +1,9 @@
 
 import numpy as np
-from scipy.signal import iirnotch, filtfilt
+from scipy.signal import iirnotch, filtfilt, lfilter
 import nibabel as nb
 import subprocess
+import math
 
 def add_afni_prefix(tpattern):
     if tpattern:
@@ -75,6 +76,15 @@ def oned_text_concat(in_files):
 
     return out_file
 
+# function to convert degrees of motion to mm 
+def degrees_to_mm(degrees, head_radius):
+    mm = 2*math.pi*head_radius*(degrees/360)
+    return mm
+
+# function to convert mm of motion to degrees 
+def mm_to_degrees(mm, head_radius):
+    degrees = 360*mm/(2*math.pi*head_radius)
+    return degrees
 
 def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR, 
                         filter_order=4):
@@ -83,7 +93,11 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     #   https://github.com/DCAN-Labs/dcan_bold_processing/blob/master/
     #       ...matlab_code/filtered_movement_regressors.m
 
-    TR = float(TR.replace("s", ""))
+    if "ms" in TR:
+        TR = float(TR.replace("ms", ""))/1000
+    elif "ms" not in TR and "s" in TR:
+        TR = float(TR.replace("s", ""))
+
     params_data = np.loadtxt(motion_params)
 
     fc_RR_bw = [fc_RR_min, fc_RR_max]
@@ -105,13 +119,20 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
     W_notch = np.divide(fa, fNy)
     Wn = np.mean(W_notch)
     bw = np.diff(W_notch)
-    [b_filt, a_filt] = iirnotch(Wn, bw)
+    Q = Wn/bw
+    [b_filt, a_filt] = iirnotch(Wn, Q)
     num_f_apply = np.floor(filter_order / 2)
 
-    filtered_params = filtfilt(b_filt, a_filt, params_data.T)
+    # convert rotation params from degrees to mm
+    params_data[:,0:3] = degrees_to_mm(params_data[:,0:3], head_radius = 50)
+
+    filtered_params = lfilter(b_filt, a_filt, params_data.T, zi=None)
     
     for i in range(0, int(num_f_apply)-1):
-        filtered_params = filtfilt(b_filt, a_filt, filtered_params)
+        filtered_params = lfilter(b_filt, a_filt, filtered_params, zi=None)
+
+    # back rotation params to degrees
+    filtered_params[0:3,:] = mm_to_degrees(filtered_params[0:3,:], head_radius = 50)
 
     filtered_motion_params = os.path.join(os.getcwd(),
                                           "{0}_notch-filtered.1D".format(os.path.basename(motion_params)))
