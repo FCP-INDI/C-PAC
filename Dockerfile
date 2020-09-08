@@ -168,6 +168,7 @@ RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-l
     rm /usr/lib/freesurfer.tar.gz
 # restore shell to default (sh)
 SHELL ["/bin/sh", "-c"]
+COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
