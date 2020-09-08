@@ -236,7 +236,7 @@ RUN pip install -e /code
 COPY dev/docker_data /code/docker_data
 RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run.py
 
-ENTRYPOINT ["/code/run.py"]
+ENTRYPOINT ["/bin/bash", "-c", "source $FREESURFER_HOME/SetUpFreeSurfer.sh && /code/run.py"]
 
 # Link libraries for Singularity images
 RUN ldconfig
