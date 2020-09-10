@@ -3299,7 +3299,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         scan_ids += ['scan_' + str(scan_id)
                         for scan_id in sub_dict['rest']]
 
-
     for num_strat, strat in enumerate(strat_list):
 
         if pipeline_name is None or pipeline_name == 'None':
@@ -3352,7 +3351,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             if ndmg_out:
                 ds = pe.Node(DataSink(),
                                 name='sinker_{}_{}'.format(num_strat,
-                                                        resource_i))
+                                                           resource_i))
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -3513,6 +3512,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
                     (r"/qc___", '/qc/')
                 ]
+
+                if "info" in resource:
+                    ds.inputs.container = os.path.join(
+                        'pipeline_{0}'.format(pipeline_id), subject_id,
+                        'pipeline_info'
+                )
 
                 output_sink_nodes = []
                 node, out_file = rp[resource]
