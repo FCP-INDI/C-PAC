@@ -1,6 +1,6 @@
 
 import numpy as np
-from scipy.signal import iirnotch, filtfilt, lfilter
+from scipy.signal import iirnotch, firwin, filtfilt, lfilter
 import nibabel as nb
 import subprocess
 import math
@@ -76,19 +76,22 @@ def oned_text_concat(in_files):
 
     return out_file
 
-# function to convert degrees of motion to mm 
+
 def degrees_to_mm(degrees, head_radius):
+    # function to convert degrees of motion to mm
     mm = 2*math.pi*head_radius*(degrees/360)
     return mm
 
-# function to convert mm of motion to degrees 
+
 def mm_to_degrees(mm, head_radius):
+    # function to convert mm of motion to degrees
     degrees = 360*mm/(2*math.pi*head_radius)
     return degrees
 
-def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR, 
-                        filter_order=4):
 
+def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
+                        fc_RR_max=None, center_freq=None, freq_bw=None,
+                        lowpass_cutoff=None, filter_order=4):
     # Adapted from DCAN Labs:
     #   https://github.com/DCAN-Labs/dcan_bold_processing/blob/master/
     #       ...matlab_code/filtered_movement_regressors.m
@@ -100,42 +103,80 @@ def notch_filter_motion(motion_params, fc_RR_min, fc_RR_max, TR,
 
     params_data = np.loadtxt(motion_params)
 
-    fc_RR_bw = [fc_RR_min, fc_RR_max]
-
-    # Respiratory Rate
-    rr = [float(fc_RR_min) / float(60),
-          float(fc_RR_max) / float(60)]
-
     # Sampling frequency
     fs = 1 / TR
 
     # Nyquist frequency
     fNy = fs / 2
 
-    rr_fNy = [rr[0] + fNy, rr[1] + fNy]
+    if filter_type == "notch":
 
-    fa = abs(rr - np.floor(np.divide(rr_fNy, fs)) * fs)
+        # Respiratory Rate
+        if fc_RR_min and fc_RR_max:
+            rr = [float(fc_RR_min) / float(60),
+                  float(fc_RR_max) / float(60)]
 
-    W_notch = np.divide(fa, fNy)
-    Wn = np.mean(W_notch)
-    bw = np.diff(W_notch)
-    Q = Wn/bw
-    [b_filt, a_filt] = iirnotch(Wn, Q)
-    num_f_apply = np.floor(filter_order / 2)
+            rr_fNy = [rr[0] + fNy, rr[1] + fNy]
+            fa = abs(rr - np.floor(np.divide(rr_fNy, fs)) * fs)
+
+            W_notch = np.divide(fa, fNy)
+
+        elif center_freq and freq_bw:
+            tail = float(freq_bw)/float(2)
+            W_notch = [center_freq-tail, center_freq+tail]
+
+        Wn = np.mean(W_notch)
+        bw = np.diff(W_notch)
+
+        Q = Wn/bw
+        [b_filt, a_filt] = iirnotch(Wn, Q)
+        num_f_apply = np.floor(filter_order / 2)
+
+        filter_info = f"Motion estimate filter information\n\nType: Notch\n" \
+                      f"\nCenter freq: f{fa}\nWn: f{Wn}\nbw: f{bw}\n\n" \
+                      f"Based on:\nSampling freq: f{fs}\nNyquist freq: f{fNy}"
+
+    elif filter_type == "lowpass":
+
+        if fc_RR_min:
+            rr = float(fc_RR_min) / float(60)
+            rr_fNy = rr + fNy
+            fa = abs(rr - np.floor(np.divide(rr_fNy, fs)) * fs)
+
+        elif lowpass_cutoff:
+            fa = lowpass_cutoff
+
+        Wn = min(fa)/fNy
+
+        if filter_order:
+            b_filt = firwin(filter_order+1, Wn, fs=fs)
+            a_filt = 1
+
+        num_f_apply = 0
+
+        filter_info = f"Motion estimate filter information\n\nType: Lowpass" \
+                      f"\n\nCutoff freq: f{fa}\nWn: f{Wn}" \
+                      f"Based on:\nSampling freq: f{fs}\nNyquist freq: f{fNy}"
+
+    filter_design = os.path.join(os.getcwd(),
+                                 "motion_estimate_filter_design.txt")
+
+    with open(filter_design, 'wt') as f:
+        f.write(filter_info)
 
     # convert rotation params from degrees to mm
-    params_data[:,0:3] = degrees_to_mm(params_data[:,0:3], head_radius = 50)
+    params_data[:, 0:3] = degrees_to_mm(params_data[:, 0:3], head_radius=50)
 
     filtered_params = lfilter(b_filt, a_filt, params_data.T, zi=None)
-    
-    for i in range(0, int(num_f_apply)-1):
+
+    for i in range(0, int(num_f_apply) - 1):
         filtered_params = lfilter(b_filt, a_filt, filtered_params, zi=None)
 
     # back rotation params to degrees
     filtered_params[0:3,:] = mm_to_degrees(filtered_params[0:3,:], head_radius = 50)
 
     filtered_motion_params = os.path.join(os.getcwd(),
-                                          "{0}_notch-filtered.1D".format(os.path.basename(motion_params)))
+                                          "{0}_filtered.1D".format(os.path.basename(motion_params)))
     np.savetxt(filtered_motion_params, filtered_params.T, fmt='%f')
 
-    return filtered_motion_params
+    return (filtered_motion_params, filter_design)
