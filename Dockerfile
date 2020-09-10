@@ -166,6 +166,7 @@ RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-l
     tar -xzvf /usr/lib/freesurfer.tar.gz -C /usr/lib && \
     source $FREESURFER_HOME/SetUpFreeSurfer.sh && \
     rm /usr/lib/freesurfer.tar.gz
+RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
 # restore shell to default (sh)
 SHELL ["/bin/sh", "-c"]
 COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
