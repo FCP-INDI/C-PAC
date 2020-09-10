@@ -96,6 +96,49 @@ jobs:
           root: /home/circleci/
           # Must be relative path from root
           paths: project
+  build_surface:
+    machine: true
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
+      - run:
+          name: "Set Python Version"
+          command: |
+            pyenv install 3.6.3
+            pyenv global 3.6.3
+      - run:
+          name: build-docker
+          command: |
+            docker load < cpac-docker-image.tar.gz
+            sed -i "s|:latest|:${CIRCLE_BRANCH}|g" variant-surface.Dockerfile
+            docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface -f variant-surface.Dockerfile .
+            docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface | gzip > cpac-surface-docker-image.tar.gz
+          no_output_timeout: 1h
+          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
+      - run:
+          name: local-registry
+          command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+      - run:
+          name: build-singularity
+          command: |
+            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+            cd singularity
+            ./autogen.sh
+            ./configure --prefix=/usr/local --sysconfdir=/etc
+            make
+            sudo make install
+            cd ..
+            docker load < cpac-surface-docker-image.tar.gz
+            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface
+            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface
+            SINGULARITY_NOHTTPS=1 singularity build C-PAC-surface-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface
+          no_output_timeout: 2h
+      - store_artifacts:
+          path: cpac-surface-docker-image.tar.gz
+      - store_artifacts:
+          path: C-PAC-surface-CI.simg
+          destination: cpac-surface-singularity-image.simg
   heatmaps:
     machine: true
     steps:
@@ -138,6 +181,9 @@ workflows:
               ignore:
                 - feature/auto-heatmaps
                 - config/test_config
+      - build_surface:
+          requires:
+            - build
       - test:
           requires:
             - build

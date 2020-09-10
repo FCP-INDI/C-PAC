@@ -156,20 +156,8 @@ RUN mkdir /ants_template && \
 # install ANTs
 ENV PATH=/usr/lib/ants:$PATH
 RUN apt-get install -y ants
+# RUN export ANTSPATH=/usr/lib/ants
 ENV ANTSPATH=/usr/lib/ants/
-
-# install FreeSurfer
-# set shell to BASH
-ENV FREESURFER_HOME=/usr/lib/freesurfer
-SHELL ["/bin/bash", "-c"]
-RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-linux-centos6_x86_64-dev.tar.gz -o /usr/lib/freesurfer.tar.gz && \
-    tar -xzvf /usr/lib/freesurfer.tar.gz -C /usr/lib && \
-    source $FREESURFER_HOME/SetUpFreeSurfer.sh && \
-    rm /usr/lib/freesurfer.tar.gz
-RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
-# restore shell to default (sh)
-SHELL ["/bin/sh", "-c"]
-COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
@@ -236,9 +224,9 @@ COPY . /code
 RUN pip install -e /code
 
 COPY dev/docker_data /code/docker_data
-RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run.py && chmod +x /code/run-with-freesurfer.sh
+RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run.py
 
-ENTRYPOINT ["/code/run-with-freesurfer.sh"]
+ENTRYPOINT ["/code/run.py"]
 
 # Link libraries for Singularity images
 RUN ldconfig
