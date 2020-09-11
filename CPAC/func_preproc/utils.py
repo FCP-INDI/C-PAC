@@ -133,8 +133,8 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
         num_f_apply = np.floor(filter_order / 2)
 
         filter_info = f"Motion estimate filter information\n\nType: Notch\n" \
-                      f"\nCenter freq: f{fa}\nWn: f{Wn}\nbw: f{bw}\n\n" \
-                      f"Based on:\nSampling freq: f{fs}\nNyquist freq: f{fNy}"
+                      f"\nCenter freq: {fa}\nWn: {Wn}\nbw: {bw}\n\n" \
+                      f"Based on:\nSampling freq: {fs}\nNyquist freq: {fNy}"
 
     elif filter_type == "lowpass":
 
@@ -146,7 +146,7 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
         elif lowpass_cutoff:
             fa = lowpass_cutoff
 
-        Wn = min(fa)/fNy
+        Wn = fa/fNy
 
         if filter_order:
             b_filt = firwin(filter_order+1, Wn, fs=fs)
@@ -155,8 +155,8 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
         num_f_apply = 0
 
         filter_info = f"Motion estimate filter information\n\nType: Lowpass" \
-                      f"\n\nCutoff freq: f{fa}\nWn: f{Wn}" \
-                      f"Based on:\nSampling freq: f{fs}\nNyquist freq: f{fNy}"
+                      f"\n\nCutoff freq: {fa}\nWn: {Wn}\n\n" \
+                      f"Based on:\nSampling freq: {fs}\nNyquist freq: {fNy}"
 
     filter_design = os.path.join(os.getcwd(),
                                  "motion_estimate_filter_design.txt")
