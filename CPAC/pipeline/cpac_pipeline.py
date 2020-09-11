@@ -710,6 +710,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         acpc_target = 'whole-head'
     elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false', ''] and str(c.acpc_template_brain).lower() not in ['none', 'false', '']:
         acpc_target = 'brain'
+    else:
+        acpc_target = None
     
     # TODO ASH normalize file paths with schema validator
     template_keys = [

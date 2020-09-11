@@ -165,6 +165,26 @@ def fsl_apply_transform_func_to_mni(
         workflow.connect(node, out_file,
                          func_mni_warp, 'field_file')
 
+        if output_name == "functional_to_standard":
+            write_composite_xfm = pe.Node(interface=fsl.ConvertWarp(),
+                name='combine_fsl_warps_{0}_{1:d}'.format(output_name,\
+                        num_strat))
+
+            workflow.connect(ref_node, ref_out_file,
+                             write_composite_xfm, 'reference')
+
+            node, out_file = strat['functional_to_anat_linear_xfm']
+            workflow.connect(node, out_file,
+                             write_composite_xfm, 'premat')
+
+            node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+            workflow.connect(node, out_file,
+                             write_composite_xfm, 'field_file')
+
+            strat.update_resource_pool(
+                {"functional_to_standard_xfm": (write_composite_xfm,
+                                                'out_file')})
+
     elif 'anat_mni_flirt_register' in strat_nodes:
 
         if 'functional_to_mni_linear_xfm' not in strat:
@@ -183,7 +203,7 @@ def fsl_apply_transform_func_to_mni(
             workflow.connect(node, out_file,
                              combine_transforms, 'in_file')
 
-            strat.update_resource_pool({ 'functional_to_mni_linear_xfm':
+            strat.update_resource_pool({'functional_to_mni_linear_xfm':
                 (combine_transforms, 'out_file')}) 
             strat.append_name(combine_transforms.name)
 
@@ -501,7 +521,7 @@ def ants_apply_warps_func_mni(
                                                             registration_template,
                                                             num_strat))
 
-        # wire in the various tranformations
+        # wire in the various transformations
         for transform_key, input_port in transforms_to_combine:
              node, out_file = strat[ants_transformation_dict[symmetry][transform_key]]
              workflow.connect(node, out_file, collect_transforms, input_port)
@@ -573,6 +593,62 @@ def ants_apply_warps_func_mni(
     collect_node, collect_out = strat[collect_transforms_key]
     workflow.connect(collect_node, collect_out,
                      apply_ants_warp, 'transforms')
+
+    if output_name == "functional_to_standard":
+        # write out the composite functional to standard transforms
+        write_composite_xfm = pe.Node(
+                interface=ants.ApplyTransforms(),
+                name='write_composite_xfm_{0}_{1}_{2}_{3}'.format(output_name,
+                    inverse_string, registration_template, num_strat), mem_gb=1.5)
+        write_composite_xfm.inputs.print_out_composite_warp_file = True
+        write_composite_xfm.inputs.output_image = "func_to_standard_xfm.nii.gz"
+
+        workflow.connect(input_node, input_out,
+                         write_composite_xfm, 'input_image')
+
+        write_composite_xfm.inputs.input_image_type = input_image_type
+        write_composite_xfm.inputs.dimension = 3
+        write_composite_xfm.inputs.interpolation = interpolation_method
+
+        node, out_file = strat[ref_key]
+        workflow.connect(node, out_file,
+                         write_composite_xfm, 'reference_image')
+
+        collect_node, collect_out = strat[collect_transforms_key]
+        workflow.connect(collect_node, collect_out,
+                         write_composite_xfm, 'transforms')
+
+        # write_composite_inv_xfm = pe.Node(
+        #         interface=ants.ApplyTransforms(),
+        #         name='write_composite_xfm_{0}_{1}_{2}_{3}'.format(output_name,
+        #             '_inverse', registration_template, num_strat), mem_gb=1.5)
+        # write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
+        # write_composite_inv_xfm.inputs.output_image = "func_to_standard_inverse-xfm.nii.gz"
+        #
+        # workflow.connect(input_node, input_out,
+        #                  write_composite_inv_xfm, 'input_image')
+        #
+        # workflow.connect(inverse_transform_flags, 'inverse_transform_flags',
+        #                  write_composite_inv_xfm, 'invert_transform_flags')
+        #
+        #
+        # write_composite_inv_xfm.inputs.input_image_type = input_image_type
+        # write_composite_inv_xfm.inputs.dimension = 3
+        # write_composite_inv_xfm.inputs.interpolation = interpolation_method
+        #
+        # node, out_file = strat[ref_key]
+        # workflow.connect(node, out_file,
+        #                  write_composite_inv_xfm, 'reference_image')
+        #
+        # collect_node, collect_out = strat[collect_transforms_key]
+        # workflow.connect(collect_node, collect_out,
+        #                  write_composite_inv_xfm, 'transforms')
+
+        strat.update_resource_pool({
+            "functional_to_standard_xfm": (write_composite_xfm, 'output_image')
+        })
+            #"functional_to_standard_inverse-xfm": (write_composite_inv_xfm, 'output_image')
+        #})
 
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
     if int(num_cpus) > 1 and input_image_type == 3:
