@@ -662,7 +662,9 @@ functional_volreg_twopass :  On
 # Adapted from DCAN Labs filter.
 #     https://www.ohsu.edu/school-of-medicine/developmental-cognition-and-neuroimaging-lab
 #     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
-motion_estimate_filter: Off
+motion_estimate_filter:
+
+    run: False
 
     # options: "notch", "lowpass"
     filter_type: "notch"

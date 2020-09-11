@@ -1124,7 +1124,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                             out_oned_matrix, 'out_file')
 
         if config:
-            if config.motion_estimate_filter:
+            if config.motion_estimate_filter['run']:
                 notch_imports = ['import os', 'import numpy as np',
                                  'from scipy.signal import iirnotch, lfilter',
                                  'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
@@ -1143,13 +1143,13 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                          imports=notch_imports),
                                 name='filter_motion_params')
 
-                notch.inputs.filter_type = config.motion_estimate_filter.filter_type
-                notch.inputs.fc_RR_min = config.motion_estimate_filter.breathing_rate_min
-                notch.inputs.fc_RR_max = config.motion_estimate_filter.breathing_rate_max
-                notch.inputs.center_freq = config.motion_estimate_filter.center_freq
-                notch.inputs.freq_bw = config.motion_estimate_filter.freq_bw
-                notch.inputs.lowpass_cutoff = config.motion_estimate_filter.lowpass_cutoff
-                notch.inputs.filter_order = config.motion_estimate_filter.filter_order
+                notch.inputs.filter_type = config.motion_estimate_filter['filter_type']
+                notch.inputs.fc_RR_min = config.motion_estimate_filter['breathing_rate_min']
+                notch.inputs.fc_RR_max = config.motion_estimate_filter['breathing_rate_max']
+                notch.inputs.center_freq = config.motion_estimate_filter['center_frequency']
+                notch.inputs.freq_bw = config.motion_estimate_filter['filter_bandwidth']
+                notch.inputs.lowpass_cutoff = config.motion_estimate_filter['lowpass_cutoff']
+                notch.inputs.filter_order = config.motion_estimate_filter['filter_order']
 
                 preproc.connect(notch, 'filter_info',
                                 output_node, 'motion_filter_info')
@@ -1210,7 +1210,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                         normalize_motion_params, 'in_file')
 
         if config:
-            if config.motion_estimate_filter:
+            if config.motion_estimate_filter['run']:
                 notch_imports = ['import os', 'import numpy as np',
                                  'from scipy.signal import iirnotch, lfilter',
                                  'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
@@ -1229,13 +1229,13 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                          imports=notch_imports),
                                 name='filter_motion_params')
 
-                notch.inputs.filter_type = config.motion_estimate_filter.filter_type
-                notch.inputs.fc_RR_min = config.motion_estimate_filter.breathing_rate_min
-                notch.inputs.fc_RR_max = config.motion_estimate_filter.breathing_rate_max
-                notch.inputs.center_freq = config.motion_estimate_filter.center_freq
-                notch.inputs.freq_bw = config.motion_estimate_filter.freq_bw
-                notch.inputs.lowpass_cutoff = config.motion_estimate_filter.lowpass_cutoff
-                notch.inputs.filter_order = config.motion_estimate_filter.filter_order
+                notch.inputs.filter_type = config.motion_estimate_filter['filter_type']
+                notch.inputs.fc_RR_min = config.motion_estimate_filter['breathing_rate_min']
+                notch.inputs.fc_RR_max = config.motion_estimate_filter['breathing_rate_max']
+                notch.inputs.center_freq = config.motion_estimate_filter['center_frequency']
+                notch.inputs.freq_bw = config.motion_estimate_filter['filter_bandwidth']
+                notch.inputs.lowpass_cutoff = config.motion_estimate_filter['lowpass_cutoff']
+                notch.inputs.filter_order = config.motion_estimate_filter['filter_order']
 
                 preproc.connect(notch, 'filter_info',
                                 output_node, 'motion_filter_info')
