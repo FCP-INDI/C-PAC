@@ -15,9 +15,11 @@ def seperate_warps_list(warp_list, selection):
                 selected_warp = warp
     return selected_warp
 
+
 def check_transforms(transform_list):
     transform_number = list(filter(None, transform_list))
     return[(transform_number[index]) for index in range(len(transform_number))], len(transform_number)
+
 
 def generate_inverse_transform_flags(transform_list):
     inverse_transform_flags=[]
@@ -25,7 +27,6 @@ def generate_inverse_transform_flags(transform_list):
         # check `blip_warp_inverse` file name and rename it
         if 'WARPINV' in transform:    
             inverse_transform_flags.append(False)
-            
         if 'updated_affine' in transform:
             inverse_transform_flags.append(True)
         if 'Initial' in transform:

@@ -66,7 +66,9 @@ functional_to_anat_linear_xfm,,transform,,,,,,,,,,,,
 functional_to_epi-standard,template,raw,,yes,,,,,,,,yes,,yes
 functional_to_epi-standard_smooth,template,raw,,yes,,,,,yes,,,,,yes
 functional_to_standard,template,raw,,yes,,,,,,,,yes,,yes
+functional_to_standard_inverse-xfm,,transform,,,,,,,,,,,,
 functional_to_standard_smooth,template,raw,,yes,,,,,yes,,,,,yes
+functional_to_standard_xfm,,transform,,,,,,,,,,,,
 ica_aroma_denoised_functional,functional,raw,,,,,,,yes,,,,,
 max_displacement,,,,,,,,,,,,,yes,
 mean_functional,functional,raw,,,,,,,yes,,,,,
