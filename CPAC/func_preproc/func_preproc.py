@@ -1126,7 +1126,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         if config:
             if config.motion_estimate_filter['run']:
                 notch_imports = ['import os', 'import numpy as np',
-                                 'from scipy.signal import iirnotch, lfilter',
+                                 'from scipy.signal import iirnotch, lfilter, firwin',
                                  'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
                 notch = pe.Node(Function(input_names=['motion_params',
                                                       'filter_type',
