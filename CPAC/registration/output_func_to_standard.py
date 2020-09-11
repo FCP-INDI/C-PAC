@@ -109,7 +109,7 @@ def fsl_apply_transform_func_to_mni(
     # parallelize the apply warp, if multiple CPUs, and it's a time series!
     if int(num_cpus) > 1 and func_ts:
 
-        node_id = f'_{output_name}_{inverse_string}_{registration_template}_{num_strat}'
+        node_id = '{0}_{1:d}'.format(output_name, num_strat)
 
         chunk_imports = ['import nibabel as nb']
         chunk = pe.Node(Function(input_names=['func_file',
@@ -147,10 +147,9 @@ def fsl_apply_transform_func_to_mni(
         })
 
     else:
+        workflow.connect(func_node, func_file,
+                         func_mni_warp, 'in_file')
         strat.update_resource_pool({output_name: (func_mni_warp, 'out_file')})
-
-    workflow.connect(func_node, func_file,
-                     func_mni_warp, 'in_file')
 
     workflow.connect(ref_node, ref_out_file,
                      func_mni_warp, 'ref_file')
@@ -179,7 +178,7 @@ def fsl_apply_transform_func_to_mni(
 
             node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
             workflow.connect(node, out_file,
-                             write_composite_xfm, 'field_file')
+                             write_composite_xfm, 'warp1')
 
             strat.update_resource_pool(
                 {"functional_to_standard_xfm": (write_composite_xfm,
