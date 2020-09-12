@@ -10,6 +10,10 @@ class Configuration(object):
         for key in config_map:
             if config_map[key] == 'None':
                 config_map[key] = None
+            if isinstance(config_map[key], dict):
+                for subkey in config_map[key]:
+                    if config_map[key][subkey] == 'None':
+                        config_map[key][subkey] = None
             # set FSLDIR to the environment $FSLDIR if the user sets it to
             # 'FSLDIR' in the pipeline config file
             if key == 'FSLDIR':

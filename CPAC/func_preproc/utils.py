@@ -119,21 +119,26 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
             rr_fNy = [rr[0] + fNy, rr[1] + fNy]
             fa = abs(rr - np.floor(np.divide(rr_fNy, fs)) * fs)
 
-            W_notch = np.divide(fa, fNy)
-
         elif center_freq and freq_bw:
             tail = float(freq_bw)/float(2)
-            W_notch = [center_freq-tail, center_freq+tail]
+            fa = [center_freq-tail, center_freq+tail]
+
+        W_notch = np.divide(fa, fNy)
 
         Wn = np.mean(W_notch)
         bw = np.diff(W_notch)
+
+        # for filter info
+        center_freq = Wn * fNy
+        bandwidth = fa[1] - fa[0]
 
         Q = Wn/bw
         [b_filt, a_filt] = iirnotch(Wn, Q)
         num_f_apply = np.floor(filter_order / 2)
 
         filter_info = f"Motion estimate filter information\n\nType: Notch\n" \
-                      f"\nCenter freq: {fa}\nWn: {Wn}\nbw: {bw}\n\n" \
+                      f"\nCenter freq: {center_freq}\nBandwidth: {bandwidth}\n\n" \
+                      f"Wn: {Wn}\nQ: {Q}\n\n" \
                       f"Based on:\nSampling freq: {fs}\nNyquist freq: {fNy}"
 
     elif filter_type == "lowpass":

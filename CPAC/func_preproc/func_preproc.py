@@ -801,7 +801,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'preprocessed_mask',
                                                          'slice_time_corrected',
                                                          'transform_matrices',
-                                                         'center_of_mass']),
+                                                         'center_of_mass',
+                                                         'motion_filter_info']),
                           name='outputspec')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
@@ -1135,7 +1136,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                       'fc_RR_max',
                                                       'center_freq',
                                                       'freq_bw',
-                                                      'lowpass_cutoff'
+                                                      'lowpass_cutoff',
                                                       'filter_order'],
                                          output_names=['filtered_motion_params',
                                                        'filter_info'],
@@ -1212,7 +1213,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         if config:
             if config.motion_estimate_filter['run']:
                 notch_imports = ['import os', 'import numpy as np',
-                                 'from scipy.signal import iirnotch, lfilter',
+                                 'from scipy.signal import iirnotch, lfilter, firwin',
                                  'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
                 notch = pe.Node(Function(input_names=['motion_params',
                                                       'filter_type',
@@ -1221,7 +1222,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                       'fc_RR_max',
                                                       'center_freq',
                                                       'freq_bw',
-                                                      'lowpass_cutoff'
+                                                      'lowpass_cutoff',
                                                       'filter_order'],
                                          output_names=['filtered_motion_params',
                                                        'filter_info'],
