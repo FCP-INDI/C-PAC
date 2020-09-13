@@ -802,7 +802,9 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'slice_time_corrected',
                                                          'transform_matrices',
                                                          'center_of_mass',
-                                                         'motion_filter_info']),
+                                                         'motion_filter_info',
+                                                         'motion_filter_plot',
+                                                         'motion_filter_plot-norm']),
                           name='outputspec')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
@@ -1127,7 +1129,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         if config:
             if config.motion_estimate_filter['run']:
                 notch_imports = ['import os', 'import numpy as np',
-                                 'from scipy.signal import iirnotch, lfilter, firwin',
+                                 'from scipy.signal import iirnotch, lfilter, firwin, freqz',
+                                 'from matplotlib import pyplot as plt',
                                  'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
                 notch = pe.Node(Function(input_names=['motion_params',
                                                       'filter_type',
@@ -1139,7 +1142,9 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                       'lowpass_cutoff',
                                                       'filter_order'],
                                          output_names=['filtered_motion_params',
-                                                       'filter_info'],
+                                                       'filter_info',
+                                                       'filter_plot',
+                                                       'filter_plot_norm'],
                                          function=notch_filter_motion,
                                          imports=notch_imports),
                                 name='filter_motion_params')
@@ -1154,6 +1159,12 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
                 preproc.connect(notch, 'filter_info',
                                 output_node, 'motion_filter_info')
+
+                preproc.connect(notch, 'filter_plot',
+                                output_node, 'motion_filter_plot')
+
+                preproc.connect(notch, 'filter_plot_norm',
+                                output_node, 'motion_filter_plot-norm')
 
                 preproc.connect(out_oned, 'out_file', notch, 'motion_params')
                 preproc.connect(input_node, 'TR', notch, 'TR')
@@ -1213,7 +1224,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         if config:
             if config.motion_estimate_filter['run']:
                 notch_imports = ['import os', 'import numpy as np',
-                                 'from scipy.signal import iirnotch, lfilter, firwin',
+                                 'from scipy.signal import iirnotch, lfilter, firwin, freqz',
+                                 'from matplotlib import pyplot as plt',
                                  'from CPAC.func_preproc.utils import degrees_to_mm, mm_to_degrees']
                 notch = pe.Node(Function(input_names=['motion_params',
                                                       'filter_type',
@@ -1225,7 +1237,9 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                       'lowpass_cutoff',
                                                       'filter_order'],
                                          output_names=['filtered_motion_params',
-                                                       'filter_info'],
+                                                       'filter_info',
+                                                       'filter_plot',
+                                                       'filter_plot_norm'],
                                          function=notch_filter_motion,
                                          imports=notch_imports),
                                 name='filter_motion_params')
@@ -1240,6 +1254,12 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
                 preproc.connect(notch, 'filter_info',
                                 output_node, 'motion_filter_info')
+
+                preproc.connect(notch, 'filter_plot',
+                                output_node, 'motion_filter_plot')
+
+                preproc.connect(notch, 'filter_plot_norm',
+                                output_node, 'motion_filter_plot-norm')
 
                 preproc.connect(normalize_motion_params, 'out_file',
                                 notch, 'motion_params')
@@ -1800,7 +1820,9 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                 'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
                 'functional_brain_mask': (func_preproc, 'outputspec.mask'),
                 'motion_correct': (func_preproc, 'outputspec.motion_correct'),
-                'motion_estimate_filter_info': (func_preproc, 'outputspec.motion_filter_info')
+                'motion_estimate_filter_info_design': (func_preproc, 'outputspec.motion_filter_info'),
+                'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot'),
+                'motion_estimate_filter_info_plot-norm': (func_preproc, 'outputspec.motion_filter_plot-norm')
             })
 
             if 'func' in c.run_longitudinal:
@@ -1883,7 +1905,9 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                             'functional_brain_mask': (func_preproc, 'outputspec.mask'),
                             'motion_correct': (func_preproc, 'outputspec.motion_correct'),
                             'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
-                            'motion_estimate_filter_info': (func_preproc, 'outputspec.motion_filter_info')
+                            'motion_estimate_filter_info_design': (func_preproc, 'outputspec.motion_filter_info'),
+                            'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot'),
+                            'motion_estimate_filter_info_plot-norm': (func_preproc, 'outputspec.motion_filter_plot-norm')
                         })
 
                         if 'func' in c.run_longitudinal:
