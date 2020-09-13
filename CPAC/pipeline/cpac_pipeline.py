@@ -3577,12 +3577,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     (r"/qc___", '/qc/')
                 ]
 
-                if "info" in resource:
-                    ds.inputs.base_directory = c.logDirectory
-                    ds.inputs.container = os.path.join(
-                        'pipeline_{0}'.format(pipeline_id), subject_id,
-                        'pipeline_info')
-
                 output_sink_nodes = []
                 node, out_file = rp[resource]
 
