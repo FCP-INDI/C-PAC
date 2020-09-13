@@ -1,6 +1,7 @@
 
 import numpy as np
-from scipy.signal import iirnotch, firwin, filtfilt, lfilter
+from scipy.signal import iirnotch, firwin, filtfilt, lfilter, freqz
+from matplotlib import pyplot as plt
 import nibabel as nb
 import subprocess
 import math
@@ -165,6 +166,33 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
 
     filter_design = os.path.join(os.getcwd(),
                                  "motion_estimate_filter_design.txt")
+    filter_plot = os.path.join(os.getcwd(),
+                               "motion_estimate_filter_freq-response.png")
+    filter_plot_norm = os.path.join(os.getcwd(),
+                                    "motion_estimate_filter_norm-freq-response.png")
+
+    # plot frequency response for user info
+    w, h = freqz(b_filt, a_filt, fs=fs)
+
+    fig, ax1 = plt.subplots()
+    ax1.set_title('Motion estimate filter frequency response')
+
+    ax1.plot(w, 20 * np.log10(abs(h)), 'b')
+    ax1.set_ylabel('Amplitude [dB]', color='b')
+    ax1.set_xlabel('Frequency [rad/sample]')
+
+    plt.savefig(filter_plot_norm)
+
+    w, h = freqz(b_filt, a_filt, whole=True, fs=fs)
+
+    fig, ax1 = plt.subplots()
+    ax1.set_title('Motion estimate filter frequency response')
+
+    ax1.plot(w, 20 * np.log10(h), 'b')
+    ax1.set_ylabel('Amplitude [dB]', color='b')
+    ax1.set_xlabel('Frequency [Hz]')
+
+    plt.savefig(filter_plot)
 
     with open(filter_design, 'wt') as f:
         f.write(filter_info)
@@ -184,4 +212,4 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
                                           "{0}_filtered.1D".format(os.path.basename(motion_params)))
     np.savetxt(filtered_motion_params, filtered_params.T, fmt='%f')
 
-    return (filtered_motion_params, filter_design)
+    return (filtered_motion_params, filter_design, filter_plot, filter_plot_norm)
