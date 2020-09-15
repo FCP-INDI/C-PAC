@@ -1812,8 +1812,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                 'functional_brain_mask': (func_preproc, 'outputspec.mask'),
                 'motion_correct': (func_preproc, 'outputspec.motion_correct'),
                 'motion_estimate_filter_info_design': (func_preproc, 'outputspec.motion_filter_info'),
-                'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot'),
-                'motion_estimate_filter_info_plot-norm': (func_preproc, 'outputspec.motion_filter_plot-norm')
+                'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot')
             })
 
             if 'func' in c.run_longitudinal:
