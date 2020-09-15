@@ -803,8 +803,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'transform_matrices',
                                                          'center_of_mass',
                                                          'motion_filter_info',
-                                                         'motion_filter_plot',
-                                                         'motion_filter_plot-norm']),
+                                                         'motion_filter_plot']),
                           name='outputspec')
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
@@ -1143,8 +1142,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                       'filter_order'],
                                          output_names=['filtered_motion_params',
                                                        'filter_info',
-                                                       'filter_plot',
-                                                       'filter_plot_norm'],
+                                                       'filter_plot'],
                                          function=notch_filter_motion,
                                          imports=notch_imports),
                                 name='filter_motion_params')
@@ -1162,9 +1160,6 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
                 preproc.connect(notch, 'filter_plot',
                                 output_node, 'motion_filter_plot')
-
-                preproc.connect(notch, 'filter_plot_norm',
-                                output_node, 'motion_filter_plot-norm')
 
                 preproc.connect(out_oned, 'out_file', notch, 'motion_params')
                 preproc.connect(input_node, 'TR', notch, 'TR')
@@ -1238,8 +1233,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                       'filter_order'],
                                          output_names=['filtered_motion_params',
                                                        'filter_info',
-                                                       'filter_plot',
-                                                       'filter_plot_norm'],
+                                                       'filter_plot'],
                                          function=notch_filter_motion,
                                          imports=notch_imports),
                                 name='filter_motion_params')
@@ -1257,9 +1251,6 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
                 preproc.connect(notch, 'filter_plot',
                                 output_node, 'motion_filter_plot')
-
-                preproc.connect(notch, 'filter_plot_norm',
-                                output_node, 'motion_filter_plot-norm')
 
                 preproc.connect(normalize_motion_params, 'out_file',
                                 notch, 'motion_params')
@@ -1906,8 +1897,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                             'motion_correct': (func_preproc, 'outputspec.motion_correct'),
                             'coordinate_transformation': (func_preproc, 'outputspec.transform_matrices'),
                             'motion_estimate_filter_info_design': (func_preproc, 'outputspec.motion_filter_info'),
-                            'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot'),
-                            'motion_estimate_filter_info_plot-norm': (func_preproc, 'outputspec.motion_filter_plot-norm')
+                            'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot')
                         })
 
                         if 'func' in c.run_longitudinal:
