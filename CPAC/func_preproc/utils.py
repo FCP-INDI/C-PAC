@@ -155,7 +155,7 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
         Wn = fa/fNy
 
         if filter_order:
-            b_filt = firwin(filter_order+1, Wn, fs=fs)
+            b_filt = firwin(filter_order+1, Wn)
             a_filt = 1
 
         num_f_apply = 0
@@ -168,8 +168,6 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
                                  "motion_estimate_filter_design.txt")
     filter_plot = os.path.join(os.getcwd(),
                                "motion_estimate_filter_freq-response.png")
-    filter_plot_norm = os.path.join(os.getcwd(),
-                                    "motion_estimate_filter_norm-freq-response.png")
 
     # plot frequency response for user info
     w, h = freqz(b_filt, a_filt, fs=fs)
@@ -178,17 +176,6 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
     ax1.set_title('Motion estimate filter frequency response')
 
     ax1.plot(w, 20 * np.log10(abs(h)), 'b')
-    ax1.set_ylabel('Amplitude [dB]', color='b')
-    ax1.set_xlabel('Frequency [rad/sample]')
-
-    plt.savefig(filter_plot_norm)
-
-    w, h = freqz(b_filt, a_filt, whole=True, fs=fs)
-
-    fig, ax1 = plt.subplots()
-    ax1.set_title('Motion estimate filter frequency response')
-
-    ax1.plot(w, 20 * np.log10(h), 'b')
     ax1.set_ylabel('Amplitude [dB]', color='b')
     ax1.set_xlabel('Frequency [Hz]')
 
@@ -212,4 +199,4 @@ def notch_filter_motion(motion_params, filter_type, TR, fc_RR_min=None,
                                           "{0}_filtered.1D".format(os.path.basename(motion_params)))
     np.savetxt(filtered_motion_params, filtered_params.T, fmt='%f')
 
-    return (filtered_motion_params, filter_design, filter_plot, filter_plot_norm)
+    return (filtered_motion_params, filter_design, filter_plot)
