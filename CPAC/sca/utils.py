@@ -85,7 +85,7 @@ def check_ts(in_file):
             csv_array = csv_array[1:]
         timepoints, rois = csv_array.shape
         # multiple regression (fsl_glm) needs this format for -design input
-        out_file = os.path.join(os.getcwd(),
+        out_file = os.path.join(os.getcwd(), 
                                 os.path.basename(in_file).replace('.csv', '.txt'))
         np.savetxt(out_file, csv_array, delimiter='\t')
     if rois > timepoints:
