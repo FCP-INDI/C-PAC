@@ -3301,7 +3301,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         scan_ids += ['scan_' + str(scan_id)
                         for scan_id in sub_dict['rest']]
 
-
     for num_strat, strat in enumerate(strat_list):
 
         if pipeline_name is None or pipeline_name == 'None':
@@ -3354,7 +3353,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             if ndmg_out:
                 ds = pe.Node(DataSink(),
                                 name='sinker_{}_{}'.format(num_strat,
-                                                        resource_i))
+                                                           resource_i))
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -3519,6 +3518,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 output_sink_nodes = []
                 node, out_file = rp[resource]
 
+                if "info" in resource:
+                    ds.inputs.base_directory = c.logDirectory
+                    ds.inputs.container = os.path.join('pipeline_info',
+                        'pipeline_{0}'.format(pipeline_id), subject_id)
+                    resource = '{0}.@{1}'.format(resource.split('_info_')[0],
+                                                 resource.split('_info_')[1])
+
                 # exclue Nonetype transforms
                 if resource == 'ants_initial_xfm' or resource == 'ants_rigid_xfm' or resource == 'ants_affine_xfm' \
                     or resource == 'ants_symmetric_initial_xfm' or resource == 'ants_symmetric_rigid_xfm' or resource == 'ants_symmetric_affine_xfm':
@@ -3551,6 +3557,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                             workflow.connect(node, out_file, ds, resource)
                                         if trans_type == 'Affine' and resource == 'func_to_epi_ants_affine_xfm':
                                             workflow.connect(node, out_file, ds, resource)
+
                 if resource not in ['ants_initial_xfm', 'ants_rigid_xfm', 'ants_affine_xfm', 'func_to_epi_ants_initial_xfm', 'func_to_epi_ants_rigid_xfm', 'func_to_epi_ants_affine_xfm',\
                     'ants_symmetric_initial_xfm','ants_symmetric_rigid_xfm','ants_symmetric_affine_xfm']:
                     workflow.connect(node, out_file, ds, resource)
