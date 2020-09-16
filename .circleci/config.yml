@@ -137,8 +137,9 @@ jobs:
               VERSION=$(python -c "from info import __version__; print(__version__)")
               cd ..
               echo "v${VERSION}" > version
+              sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
               find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
-              git add version CPAC/resources/configs
+              git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
               if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
               then
                 git commit -m ":bookmark: Update version to ${VERSION}"
