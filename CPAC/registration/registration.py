@@ -1164,17 +1164,18 @@ def connect_func_to_template_reg(workflow, strat_list, c):
                     )
 
                 # Input registration parameters
-                if c.ANTs_para_EPI_registration is None:
+                if reg.lower() == 'ants' and c.ANTs_para_EPI_registration is None:
                     err_msg = '\n\n[!] C-PAC says: \n'\
                         "You have selected \'regOption: [{0}]\' and \'runRegisterFuncToTemplate :  ['{1}']\'. \n"\
                                 'However, no EPI-to-template ANTs parameters were specified. ' \
                                 'Please specify ANTs parameters properly and try again'.format(str(c.regOption),
-                                                                                                str(c.runRegisterFuncToTemplate))
+                                                                                               str(c.runRegisterFuncToTemplate))
                     raise Exception(err_msg)
-                else:
+                elif reg.lower() == 'ants':
                     func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
-
-                func_to_epi.inputs.inputspec.interp = c.funcRegANTSinterpolation
+                    func_to_epi.inputs.inputspec.interp = c.funcRegANTSinterpolation
+                else:
+                    func_to_epi.inputs.inputspec.interp = c.funcRegFSLinterpolation
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_to_epi, 'inputspec.func_4d')
@@ -1198,7 +1199,7 @@ def connect_func_to_template_reg(workflow, strat_list, c):
                     'functional_to_epi-standard': (func_to_epi, 'outputspec.func_in_epi'),
                 })
 
-                if reg == 'FSL':
+                if reg.lower() == 'fsl':
                     strat.update_resource_pool({
                         'epi_registration_method': 'FSL',
                         'func_to_epi_linear_xfm': (func_to_epi, 'outputspec.fsl_flirt_xfm'),  
@@ -1206,7 +1207,7 @@ def connect_func_to_template_reg(workflow, strat_list, c):
                         'epi_to_func_linear_xfm': (func_to_epi, 'outputspec.invlinear_xfm'),
                     })
 
-                elif reg == 'ANTS':
+                elif reg.lower() == 'ants':
                     strat.update_resource_pool({
                         'epi_registration_method': 'ANTS',
                         'func_to_epi_ants_initial_xfm': (func_to_epi, 'outputspec.ants_initial_xfm'),
