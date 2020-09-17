@@ -78,6 +78,8 @@ commands:
       - run:
           name: "Configuring git user"
           command: |
+            sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 78BD65473CB3BD13
+            curl -L https://packagecloud.io/circleci/trusty/gpgkey | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install git -y
             git config --global user.email "${CIRCLE_USERNAME}@users.noreply.github.com"
