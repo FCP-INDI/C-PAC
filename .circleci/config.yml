@@ -142,8 +142,12 @@ jobs:
               git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
               if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
               then
+                git stash
+                GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i HEAD~100 --empty drop
+                git stash pop
+                git add *
                 git commit -m ":bookmark: Update version to ${VERSION}"
-                git push origin HEAD:${CIRCLE_BRANCH} || true
+                git push origin HEAD:${CIRCLE_BRANCH} -f || true
                 circleci step halt
               fi
               cd ..
