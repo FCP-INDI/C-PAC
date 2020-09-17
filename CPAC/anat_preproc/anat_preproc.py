@@ -30,7 +30,8 @@ def patch_cmass_output(lst, index=0):
     return lst[index]
 
 def create_anat_preproc(method='afni', already_skullstripped=False, config=None, wf_name='anat_preproc', sub_dir=None):
-    """The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
+    """
+    The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image
     for later use in registration.
 
@@ -587,3 +588,76 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
     return preproc
 
+
+def reconstruct_surface(num_omp_threads):
+
+    """
+    Parameters
+    ----------
+    num_omp_threads : int
+        number of openmp threads
+
+    Returns
+    -------
+    surface_reconstruction : Workflow
+        autorecon3 surface reconstruction workflow
+    
+    Notes
+    -----
+    wm_seg is not a necessary input for autorecon3 but make a fake connection 
+    so that nipype can run autorecon2 and 3 sequentially
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    from nipype.interfaces import freesurfer
+
+    surface_reconstruction = pe.Workflow(name='surface_reconstruction')
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir',
+                                                        'wm_seg']), 
+                        name='inputspec')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['curv',
+                                                        'pial',
+                                                        'smoothwm',
+                                                        'sphere',
+                                                        'sulc',
+                                                        'thickness',
+                                                        'volume',
+                                                        'white']),
+                        name='outputspec')
+
+    reconall3 = pe.Node(interface=freesurfer.ReconAll(),
+                        name='anat_autorecon3')
+
+    reconall3.inputs.directive = 'autorecon3'
+    reconall3.inputs.openmp = num_omp_threads
+    surface_reconstruction.connect(inputnode, 'subject_dir',
+                                    reconall3, 'subjects_dir')
+
+    surface_reconstruction.connect(reconall3, 'curv',
+                                    outputnode, 'curv')
+
+    surface_reconstruction.connect(reconall3, 'pial',
+                                    outputnode, 'pial')
+
+    surface_reconstruction.connect(reconall3, 'smoothwm',
+                                    outputnode, 'smoothwm')
+
+    surface_reconstruction.connect(reconall3, 'sphere',
+                                    outputnode, 'sphere')
+
+    surface_reconstruction.connect(reconall3, 'sulc',
+                                    outputnode, 'sulc')
+
+    surface_reconstruction.connect(reconall3, 'thickness',
+                                    outputnode, 'thickness')
+
+    surface_reconstruction.connect(reconall3, 'volume',
+                                    outputnode, 'volume')
+
+    surface_reconstruction.connect(reconall3, 'white',
+                                    outputnode, 'white')
+
+    return surface_reconstruction                           

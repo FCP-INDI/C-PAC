@@ -36,7 +36,8 @@ from CPAC.network_centrality.pipeline import (
 )
 
 from CPAC.anat_preproc.anat_preproc import (
-    create_anat_preproc
+    create_anat_preproc,
+    reconstruct_surface
 )
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
@@ -1622,25 +1623,25 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                reconall3 = pe.Node(interface=freesurfer.ReconAll(),
-                        name='anat_autorecon3')
-
-                reconall3.inputs.directive = 'autorecon3'
-                reconall3.inputs.openmp = c.num_omp_threads
+                reconall3 = reconstruct_surface(num_omp_threads=c.num_omp_threads)
                 
+                node, out_file = strat['anatomical_wm_bbr_mask']
+                workflow.connect(node, out_file,
+                                reconall3, 'inputspec.wm_seg')
+
                 node, out_file = strat['freesurfer_subject_dir']
                 workflow.connect(node, out_file,
-                                reconall3, 'subjects_dir')
+                                reconall3, 'inputspec.subject_dir')
 
                 strat.update_resource_pool({
-                    'surface_curvature': (reconall3, 'curv'),
-                    'pial_surface_mesh': (reconall3, 'pial'),
-                    'smoothed_surface_mesh': (reconall3, 'smoothwm'),
-                    'spherical_surface_mesh': (reconall3, 'sphere'),
-                    'sulcal_depth_surface_maps': (reconall3, 'sulc'),
-                    'cortical_thickness_surface_maps': (reconall3, 'thickness'),
-                    'cortical_volume_surface_maps': (reconall3, 'volume'),
-                    'white_matter_surface_mesh': (reconall3, 'white')
+                    'surface_curvature': (reconall3, 'outputspec.curv'),
+                    'pial_surface_mesh': (reconall3, 'outputspec.pial'),
+                    'smoothed_surface_mesh': (reconall3, 'outputspec.smoothwm'),
+                    'spherical_surface_mesh': (reconall3, 'outputspec.sphere'),
+                    'sulcal_depth_surface_maps': (reconall3, 'outputspec.sulc'),
+                    'cortical_thickness_surface_maps': (reconall3, 'outputspec.thickness'),
+                    'cortical_volume_surface_maps': (reconall3, 'outputspec.volume'),
+                    'white_matter_surface_mesh': (reconall3, 'outputspec.white')
                 })
 
 
