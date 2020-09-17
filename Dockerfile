@@ -78,16 +78,13 @@ RUN curl -sLo /tmp/libpng12.deb http://mirrors.kernel.org/ubuntu/pool/main/libp/
     dpkg -i /tmp/libpng12.deb && \
     rm /tmp/libpng12.deb
 
-# Compiles libxp- this is necessary for some newer versions of Ubuntu
-# where the is no Debian package available.
-RUN git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
-    cd /tmp/libXp && \
-    ./autogen.sh && \
-    ./configure && \
-    make && \
-    make install && \
-    cd - && \
-    rm -rf /tmp/libXp
+# Install libxp from third-party repository
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository --yes ppa:zeehio/libxp && \
+    apt-get update && apt-get install libxp6 libxp-dev && \
+    add-apt-repository --remove --yes ppa:zeehio/libxp && \
+    apt-get update
 
 # Installing and setting up c3d
 RUN mkdir -p /opt/c3d && \
