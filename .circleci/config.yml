@@ -41,6 +41,7 @@ commands:
           command: |
             docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
             docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
+          no_output_timeout: 5h
           # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
       - run:
           name: "Starting local registry"
@@ -56,7 +57,8 @@ commands:
             docker load < cpac-docker-image.tar.gz
             docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
             docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_} 
+            SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+          no_output_timeout: 5h
       - store_artifacts:
           path: cpac-docker-image.tar.gz
       - store_artifacts:
