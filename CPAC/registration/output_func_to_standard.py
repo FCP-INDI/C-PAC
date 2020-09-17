@@ -490,48 +490,46 @@ def ants_apply_warps_func_mni(
                 if distcor is True and func_type not in 'ica-aroma':
                     # Field file from anatomical nonlinear registration
                     transforms_to_combine = [\
-                            ('epi_to_func_nonlinear_xfm', 'in5'),
-                            ('func_to_epi_ants_affine_xfm', 'in4'),
-                            ('func_to_epi_ants_rigid_xfm', 'in3'),
-                            ('func_to_epi_ants_initial_xfm', 'in2'),
-                            # ('fsl_mat_as_itk', 'in2'),
-                            ('blip_warp_inverse', 'in1')]
+                            ('epi_to_func_nonlinear_xfm', 'in4'),
+                            ('func_to_epi_ants_affine_xfm', 'in3'),
+                            ('func_to_epi_ants_rigid_xfm', 'in2'),
+                            ('func_to_epi_ants_initial_xfm', 'in1')]
                 else:
                     transforms_to_combine = [\
-                            ('epi_to_func_nonlinear_xfm', 'in5'),
-                            ('func_to_epi_ants_affine_xfm', 'in4'),
-                            ('func_to_epi_ants_rigid_xfm', 'in3'),
-                            ('func_to_epi_ants_initial_xfm', 'in2')]
-                            # ('fsl_mat_as_itk', 'in1')]
+                            ('epi_to_func_nonlinear_xfm', 'in4'),
+                            ('func_to_epi_ants_affine_xfm', 'in3'),
+                            ('func_to_epi_ants_rigid_xfm', 'in2'),
+                            ('func_to_epi_ants_initial_xfm', 'in1')]
             else:
                 transforms_to_combine = [\
                         ('func_to_epi_nonlinear_xfm', 'in1'),
                         ('func_to_epi_ants_affine_xfm', 'in2'),
                         ('func_to_epi_ants_rigid_xfm', 'in3'),
                         ('func_to_epi_ants_initial_xfm', 'in4')]
-                        # ('fsl_mat_as_itk', 'in5')]
-
-                if distcor is True and func_type not in 'ica-aroma':
-                    transforms_to_combine.append(('blip_warp', 'in5'))
 
         # define the node
         collect_transforms = pe.Node(util.Merge(num_transforms),
-                name='collect_transforms{0}_{1}_{2}'.format(inverse_string,
-                                                            registration_template,
-                                                            num_strat))
+                name='collect_transforms_{0}_{1}_{2}_{3}'.format(output_name,
+                                                                 inverse_string,
+                                                                 registration_template,
+                                                                 num_strat))
 
         # wire in the various transformations
         for transform_key, input_port in transforms_to_combine:
-             node, out_file = strat[ants_transformation_dict[symmetry][transform_key]]
+             try:
+                 node, out_file = strat[ants_transformation_dict[symmetry][transform_key]]
+             except KeyError:
+                 raise Exception(locals())
              workflow.connect(node, out_file, collect_transforms, input_port)
 
         # check transform list (if missing any init/rig/affine) and exclude Nonetype
         check_transform = pe.Node(util.Function(input_names=['transform_list'], 
                                                 output_names=['checked_transform_list', 'list_length'],
                                                 function=check_transforms),
-                                  name='check_transforms{0}_{1}_{2}'.format(inverse_string,
-                                                                            registration_template,
-                                                                            num_strat))
+                                  name='check_transforms{0}_{1}_{2}_{3}'.format(output_name,
+                                                                                inverse_string,
+                                                                                registration_template,
+                                                                                num_strat))
         
         workflow.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -539,9 +537,10 @@ def ants_apply_warps_func_mni(
         inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
                                                         output_names=['inverse_transform_flags'],
                                                         function=generate_inverse_transform_flags), 
-                                          name='inverse_transform_flags{0}_{1}_{2}'.format(inverse_string,
-                                                                                           registration_template,
-                                                                                           num_strat))
+                                          name='inverse_transform_flags_{0}_{1}_{2}_{3}'.format(output_name,
+                                                                                                inverse_string,
+                                                                                                registration_template,
+                                                                                                num_strat))
 
         workflow.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
