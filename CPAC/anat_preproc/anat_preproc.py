@@ -138,10 +138,11 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
     preproc = pe.Workflow(name=wf_name)
 
-    inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
-                                                        'brain_mask']),
+    inputnode = pe.Node(util.IdentityInterface(fields=['anat_data', 
+                                                       'brain_mask',
+                                                       'template_brain_only_for_anat',
+                                                       'template_skull_for_anat']), 
                          name='inputspec')
-
     outputnode = pe.Node(util.IdentityInterface(fields=['skullstrip',
                                                         'brain',
                                                         'brain_mask']),
