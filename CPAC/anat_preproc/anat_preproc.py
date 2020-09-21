@@ -588,7 +588,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
 
     return preproc
 
-
+# TODO multi-thread doens't work - debug!
 def reconstruct_surface(num_omp_threads):
 
     """
@@ -633,6 +633,7 @@ def reconstruct_surface(num_omp_threads):
 
     reconall3.inputs.directive = 'autorecon3'
     reconall3.inputs.openmp = num_omp_threads
+    
     surface_reconstruction.connect(inputnode, 'subject_dir',
                                     reconall3, 'subjects_dir')
 

@@ -1075,7 +1075,8 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
 
 def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer'):
 
-    """Generate the subject's white matter based on freesurfer, if selected to do so.
+    """
+    Generate the subject's white matter based on freesurfer.
 
     Parameters
     ----------
@@ -1099,7 +1100,6 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
 
         outputspec.wm_mask : string (nifti file)
             outputs White Matter mask
-
     """
 
     preproc = pe.Workflow(name = wf_name)
@@ -1107,7 +1107,9 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
     inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir']),
                         name='inputspec')
 
-    outputnode = pe.Node(util.IdentityInterface(fields=['wm_mask']),
+    outputnode = pe.Node(util.IdentityInterface(fields=['wm_mask',
+                                                        'gm_mask',
+                                                        'csf_mask']),
                         name='outputspec')
 
     reconall2 = pe.Node(interface=freesurfer.ReconAll(),
@@ -1119,35 +1121,42 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
     
-    # register FS wm to native space
-    fs_wm_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
-                    name='fs_wm_to_native')
-    fs_wm_to_native.inputs.reg_header = True
+    # register FS segmentations (aseg.mgz) to native space
+    fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                    name='fs_aseg_to_native')
+    fs_aseg_to_native.inputs.reg_header = True
 
-    preproc.connect(reconall2, 'wm',
-                    fs_wm_to_native, 'source_file')
+    preproc.connect(reconall2, 'aseg',
+                    fs_aseg_to_native, 'source_file')
 
     preproc.connect(reconall2, 'rawavg',
-                    fs_wm_to_native, 'target_file')
+                    fs_aseg_to_native, 'target_file')
 
-    # convert wm file from .mgz to .nii.gz
-    fs_wm_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
+    # convert registered FS segmentations from .mgz to .nii.gz
+    fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
                                         output_names=['out_file'],
                                         function=mri_convert),                        
-                            name='fs_wm_to_nifti')
+                            name='fs_aseg_to_nifti')
 
-    preproc.connect(fs_wm_to_native, 'transformed_file',
-                    fs_wm_to_nifti, 'in_file')
+    preproc.connect(fs_aseg_to_native, 'transformed_file',
+                    fs_aseg_to_nifti, 'in_file')
 
-    # binarize wm mask
-    wm_mask = pe.Node(interface=fsl.maths.MathsCommand(), name='wm_mask')
-    wm_mask.inputs.args = '-bin'
+    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels'], 
+                                        output_names=['csf_mask', 'gm_mask', 'wm_mask'],
+                                        function=pick_tissue_from_labels_file), 
+                                        name=f'{wf_name}_tissue_mask')
 
-    preproc.connect(fs_wm_to_nifti, 'out_file',
-                    wm_mask, 'in_file')
-
-    preproc.connect(wm_mask, 'out_file',
+    preproc.connect(fs_aseg_to_nifti, 'out_file',
+                    pick_tissue, 'multiatlas_Labels')
+    
+    preproc.connect(pick_tissue, 'wm_mask',
                     outputnode, 'wm_mask')
+
+    preproc.connect(pick_tissue, 'gm_mask',
+                    outputnode, 'gm_mask')
+
+    preproc.connect(pick_tissue, 'csf_mask',
+                    outputnode, 'csf_mask')
 
     return preproc
 
@@ -1183,7 +1192,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     new_strat_list = []
 
-    if 1 in c.runSegmentationPreprocessing:
+    if 1 in c.runSegmentationPreprocessing and 'FSL FAST' in c.segmentation_method:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1359,7 +1368,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     strat_list += new_strat_list
 
-    if 1 in c.runBBReg and 'FreeSurfer' in c.BBR_WM_source:
+    if 1 in c.runBBReg and 'FreeSurfer' in c.segmentation_method:
         
         for num_strat, strat in enumerate(strat_list):
 
@@ -1378,8 +1387,12 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                 new_strat_list.append(strat)
 
             strat.append_name(seg_preproc_freesurfer.name)
+
             strat.update_resource_pool({
-                'anatomical_wm_bbr_mask': (seg_preproc_freesurfer, 'outputspec.wm_mask')})
+                'anatomical_wm_mask': (seg_preproc_freesurfer, 'outputspec.wm_mask'),
+                'anatomical_gm_mask': (seg_preproc_freesurfer, 'outputspec.gm_mask'),
+                'anatomical_csf_mask': (seg_preproc_freesurfer, 'outputspec.csf_mask')
+            })
 
     strat_list += new_strat_list
 

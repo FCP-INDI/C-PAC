@@ -400,9 +400,9 @@ def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask, temp
     return multiatlas_Intensity, multiatlas_Labels
 
 
-def pick_tissue_from_labels_file(multiatlas_Labels, csf_label, 
-                                left_gm_label, left_wm_label,
-                                right_gm_label, right_wm_label):
+def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24, 
+                                left_gm_label=3, left_wm_label=2,
+                                right_gm_label=42, right_wm_label=41):
 
 
     """
@@ -452,30 +452,17 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label,
     # hard-coded csf/gm/wm label values are based off of FreeSurferColorLUT
 
     csf = data.copy()
-    if csf_label == None:
-        csf[csf != 24] = 0
-        csf[csf == 24] = 1
-    else:
-        csf[csf != csf_label] = 0
-        csf[csf == csf_label] = 1
+    csf[csf != csf_label] = 0
+    csf[csf == csf_label] = 1
 
     gm = data.copy()
-    if left_gm_label == None and right_gm_label == None:
-        gm[np.logical_and(gm != 42, gm != 3)] = 0 
-        gm[np.logical_or(gm == 42, gm == 3)] = 1
-    else:
-        gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0 
-        gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
+    gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0 
+    gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
 
     wm = data.copy()
-    if left_wm_label == None and right_wm_label == None:
-        wm[np.logical_and(wm != 41, wm != 2)] = 0
-        wm[np.logical_or(wm == 41, wm == 2)] = 1
-    else:
-        wm[np.logical_and(wm != right_wm_label, wm != left_wm_label)] = 0
-        wm[np.logical_or(wm == right_wm_label, wm == left_wm_label)] = 1
+    wm[np.logical_and(wm != right_wm_label, wm != left_wm_label)] = 0
+    wm[np.logical_or(wm == right_wm_label, wm == left_wm_label)] = 1
 
-    
     save_img_csf = nb.Nifti1Image(csf, header=img.get_header(), affine=img.get_affine())
     save_img_gm = nb.Nifti1Image(gm, header=img.get_header(), affine=img.get_affine())
     save_img_wm = nb.Nifti1Image(wm, header=img.get_header(), affine=img.get_affine())

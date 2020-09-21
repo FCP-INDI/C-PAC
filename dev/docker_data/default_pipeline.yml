@@ -447,7 +447,7 @@ regWithSkull :  [1]
 runSegmentationPreprocessing :  [1]
 
 
-# segmentation_method: ['FSL FAST', 'ANTs-Prior-Based', 'Template-Based' ]
+# segmentation_method: ['FSL FAST', 'ANTs-Prior-Based', 'Template-Based', 'FreeSurfer']
 segmentation_method: ['FSL FAST']
 
 
@@ -747,11 +747,6 @@ runRegisterFuncToAnat :  [1]
 
 # Run Functional to Anatomical Registration with BB Register
 runBBReg :  [1]
-
-
-# BBR_WM_source :  ['FSL', 'FreeSurfer']
-# Choose FSL (FAST) or FreeSurfer (reconall) to get WM segmentation for BBR 
-BBR_WM_source : ['FSL']
 
 
 # Standard FSL 5.0 Scheduler used for Boundary Based Registration.

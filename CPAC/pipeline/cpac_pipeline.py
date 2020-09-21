@@ -1625,7 +1625,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 reconall3 = reconstruct_surface(num_omp_threads=c.num_omp_threads)
                 
-                node, out_file = strat['anatomical_wm_bbr_mask']
+                node, out_file = strat['anatomical_wm_mask']
                 workflow.connect(node, out_file,
                                 reconall3, 'inputspec.wm_seg')
 
