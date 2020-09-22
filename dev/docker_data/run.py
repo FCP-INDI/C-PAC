@@ -578,17 +578,20 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     if args.analysis_level in ["participant", "test_config"]:
         # build pipeline easy way
-        from CPAC.utils.monitoring import monitor_server
+        from CPAC.utils.monitoring import monitor_wait_lock, monitor_server
         import CPAC.pipeline.cpac_runner
 
         monitoring = None
         if args.monitoring:
             try:
-                monitoring = monitor_server(
-                    c['pipelineName'],
-                    c['logDirectory']
+                monitoring, _ = monitor_server(
+                    wait=True,
                 )
-            except:
+                
+                print("Waiting for monitoring websocket to connect")
+                while monitor_wait_lock.locked():
+                    time.sleep(1)
+            except Exception as e:
                 pass
 
         plugin_args = {
