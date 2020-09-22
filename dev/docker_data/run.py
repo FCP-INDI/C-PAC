@@ -588,7 +588,7 @@ elif args.analysis_level in ["test_config", "participant"]:
                     wait=True,
                 )
                 
-                print("Waiting for monitoring websocket to connect")
+                print("[Waiting for monitoring websocket to connect]")
                 while monitor_wait_lock.locked():
                     time.sleep(1)
             except Exception as e:
