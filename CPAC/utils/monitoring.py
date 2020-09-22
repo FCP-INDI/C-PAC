@@ -1,17 +1,37 @@
 import os
 import glob
 import json
+import time
 import logging
 import datetime
 import threading
-import socketserver
+import queue
+import asyncio
+import websockets
 
 import networkx as nx
 import nipype.pipeline.engine as pe
+import nipype.pipeline.engine.nodes as nodes
 
+is_monitoring = threading.Lock()
+monitor_nodes_queue = queue.Queue()
+monitor_wait_lock = threading.Lock()
 
-# Log initial information from all the nodes
+monitor_message = lambda data: f'{{"time": {time.time()}, "message": {data}}}'
+
 def recurse_nodes(workflow, prefix=''):
+    """
+    Function to traverse the workflow, yielding its nodes
+
+    Parameters
+    ----------
+    workflow : nipype.pipeline.engine.Workflow
+        the workflow
+
+    prefix : string
+        custom prefix to prepend to the node name
+
+    """
     for node in nx.topological_sort(workflow._graph):
         if isinstance(node, pe.Workflow):
             for subnode in recurse_nodes(node, prefix + workflow.name + '.'):
@@ -24,9 +44,21 @@ def recurse_nodes(workflow, prefix=''):
 
 
 def log_nodes_initial(workflow):
+    """
+    Function to record all the existing nodes in the workflow
+
+    Parameters
+    ----------
+    workflow : nipype.pipeline.engine.Workflow
+        the workflow
+
+    """
     logger = logging.getLogger('callback')
     for node in recurse_nodes(workflow):
-        logger.debug(json.dumps(node))
+        data = json.dumps(node)
+        logger.debug(data)
+        if is_monitoring.locked():
+            monitor_nodes_queue.put(monitor_message(data))
 
 
 def log_nodes_cb(node, status):
@@ -51,107 +83,117 @@ def log_nodes_cb(node, status):
     if status != 'end':
         return
 
-    import nipype.pipeline.engine.nodes as nodes
-
-    logger = logging.getLogger('callback')
-
     if isinstance(node, nodes.MapNode):
         return
 
-    runtime = node.result.runtime
+    logger = logging.getLogger('callback')
+
+    try:
+        runtime = node.result.runtime
+    except:
+        runtime = None
 
     status_dict = {
         'id': str(node),
         'hash': node.inputs.get_hashval()[1],
-        'start': getattr(runtime, 'startTime'),
-        'finish': getattr(runtime, 'endTime'),
-        'runtime_threads': getattr(runtime, 'cpu_percent', 'N/A'),
-        'runtime_memory_gb': getattr(runtime, 'mem_peak_gb', 'N/A'),
+        'start': getattr(runtime, 'startTime') if runtime else None,
+        'end': getattr(runtime, 'endTime') if runtime else None,
+        'runtime_threads': getattr(runtime, 'cpu_percent', 'N/A') if runtime else 'N/A',
+        'runtime_memory_gb': getattr(runtime, 'mem_peak_gb', 'N/A') if runtime else 'N/A',
         'estimated_memory_gb': node.mem_gb,
         'num_threads': node.n_procs,
     }
 
-    if status_dict['start'] is None or status_dict['finish'] is None:
+    if status_dict['start'] is None or status_dict['end'] is None:
         status_dict['error'] = True
 
-    logger.debug(json.dumps(status_dict))
+    data = json.dumps(status_dict)
+    logger.debug(data)
+
+    if is_monitoring.locked():
+        monitor_nodes_queue.put(monitor_message(data))
 
 
-class LoggingRequestHandler(socketserver.BaseRequestHandler):
+async def send_logs(websocket, path):
+    """
+    Function executed when a new websocket connection is opened.
 
-    def handle(self):
+    It will iterate through the nodes reporting queue, and send it to
+    the websocked.
+    
+    Parameters
+    ----------
+    websocket : Websocket
+        The websocket object
 
-        tree = {}
+    path : string
+        Path for the websocket (the accepted is ws://0.0.0.0:8080/log)
+    
+    """
+    if path != '/log':
+        return
 
-        logs = glob.glob(
-            os.path.join(
-                self.server.logging_dir,
-                "pipeline_" + self.server.pipeline_name,
-                "*"
-            )
-        )
+    monitor_wait_lock.release()
+    while True:
+        item = monitor_nodes_queue.get()
+        await websocket.send(item)
+        monitor_nodes_queue.task_done()
 
-        for log in logs:
-            subject = log.split('/')[-1]
-            tree[subject] = {}
+def ws(loop, host='0.0.0.0', port=8080):
+    """
+    Function to start the monitoring server.
+    
+    Parameters
+    ----------
+    loop : asyncio.Loop
+        The loop used by the server
 
-            callback_file = os.path.join(log, "callback.log")
+    host : string
+        Address or IP that the websocket server binds to.
 
-            if not os.path.exists(callback_file):
-                continue
-
-            with open(callback_file, 'rb') as lf:
-                for l in lf.readlines():
-                    l = l.strip()
-                    try:
-                        node = json.loads(l)
-                        if node["id"] not in tree[subject]:
-                            tree[subject][node["id"]] = {
-                                "hash": node["hash"]
-                            }
-                            if "start" in node and "finish" in node:
-                                tree[subject][node["id"]]["start"] = node["start"]
-                                tree[subject][node["id"]]["finish"] = node["finish"]
-
-                        else:
-                            if "start" in node and "finish" in node:
-                                if tree[subject][node["id"]]["hash"] == node["hash"]:
-                                    tree[subject][node["id"]]["cached"] = {
-                                        "start": node["start"],
-                                        "finish": node["finish"],
-                                    }
-
-                                # pipeline was changed, and we have a new hash
-                                else:
-                                    tree[subject][node["id"]]["start"] = node["start"]
-                                    tree[subject][node["id"]]["finish"] = node["finish"]
-
-                    except:
-                        break
-
-                tree = {s: t for s, t in tree.items() if t}
-
-        headers = 'HTTP/1.1 200 OK\nConnection: close\n\n'
-        self.request.sendall(headers + json.dumps(tree) + "\n")
+    port : integer
+        Port for the websocket server.
+    
+    """
+    asyncio.set_event_loop(loop)
+    start_server = websockets.serve(send_logs, "0.0.0.0", 8080)
+    loop.run_until_complete(start_server)
+    loop.run_forever()
 
 
-class LoggingHTTPServer(socketserver.ThreadingTCPServer, object):
+def monitor_server(host='0.0.0.0', port=8080, wait=False):
+    """
+    Function to start the monitoring server thread.
+    It sets the `monitor_wait_lock` so the pipeline waits for the websocket
+    to connect. This way, no reported data is lost.
+    
+    Parameters
+    ----------
+    host : string
+        Address or IP that the websocket server binds to.
 
-    def __init__(self, pipeline_name, logging_dir='', host='', port=8080, request=LoggingRequestHandler):
-        super(LoggingHTTPServer, self).__init__((host, port), request)
+    port : integer
+        Port for the websocket server.
 
-        if not logging_dir:
-            logging_dir = os.getcwd()
+    wait : boolean
+        Only sets the lock if required.
+    
+    Returns
+    -------
+    server_thread : threading.Thread
+        The thread the server is running
 
-        self.logging_dir = logging_dir
-        self.pipeline_name = pipeline_name
+    loop: asyncio.Loop
+        The loop used by the server
+    
+    """
+    if wait:
+        monitor_wait_lock.acquire()
+    
+    is_monitoring.acquire()
 
-
-def monitor_server(pipeline_name, logging_dir, host='0.0.0.0', port=8080):
-    httpd = LoggingHTTPServer(pipeline_name, logging_dir, host, port, LoggingRequestHandler)
-
-    server_thread = threading.Thread(target=httpd.serve_forever)
+    loop = asyncio.new_event_loop()
+    server_thread = threading.Thread(target=ws, args=[loop, host, port])
     server_thread.isDaemon = True
     server_thread.start()
-
-    return server_thread
+    return server_thread, loop
