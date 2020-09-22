@@ -434,7 +434,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
                             fs_brain_mask_to_native, 'source_file')
             preproc.connect(reconall, 'rawavg',
                             fs_brain_mask_to_native, 'target_file')
-              
+            
             # convert brain mask file from .mgz to .nii.gz
             fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
                                               output_names=['out_file'],
@@ -633,7 +633,7 @@ def reconstruct_surface(num_omp_threads):
 
     reconall3.inputs.directive = 'autorecon3'
     reconall3.inputs.openmp = num_omp_threads
-    
+
     surface_reconstruction.connect(inputnode, 'subject_dir',
                                     reconall3, 'subjects_dir')
 

@@ -402,11 +402,12 @@ def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask, temp
 
 def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24, 
                                 left_gm_label=3, left_wm_label=2,
-                                right_gm_label=42, right_wm_label=41):
+                                right_gm_label=42, right_wm_label=41,
+                                include_ventricles=False):
 
 
     """
-    pick tissue mask from multiatlas labels file
+    Pick tissue mask from multiatlas labels file
     based off of FreeSurferColorLUT https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
     or user provided label value
 
@@ -430,6 +431,9 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
     right_wm_label: integer 
         label value corresponding to Right White Matter in multiatlas file
 
+    include_ventricles: boolean
+        whether include labels of ventricles in CSF or not
+
     Returns
     -------
 
@@ -451,9 +455,16 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
     # based off of FreeSurferColorLUT or user provided label values
     # hard-coded csf/gm/wm label values are based off of FreeSurferColorLUT
 
+    # FreeSurfer Ventricle Labels:
+    # Left-Lateral-Ventricle 4, 3rd-Ventricle 14, 4th-Ventricle 15, Right-Lateral-Ventricle 43
+
     csf = data.copy()
-    csf[csf != csf_label] = 0
-    csf[csf == csf_label] = 1
+    if include_ventricles:
+        csf[np.logical_and(np.logical_and(np.logical_and(np.logical_and(csf != csf_label, csf != 4), csf != 14), csf != 15), csf != 43)] = 0
+        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] = 1
+    else:
+        csf[csf != csf_label] = 0
+        csf[csf == csf_label] = 1
 
     gm = data.copy()
     gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0 

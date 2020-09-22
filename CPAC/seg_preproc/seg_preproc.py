@@ -971,7 +971,8 @@ def tissue_mask_template_to_t1(wf_name,
 
 def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_based'):
 
-    """Generate the subject's cerebral spinal fluids,
+    """
+    Generate the subject's cerebral spinal fluids,
     white matter and gray matter mask based on provided template, if selected to do so.
 
     Parameters
@@ -1008,8 +1009,6 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
 
         outputspec.wm_mask : string (nifti file)
             outputs White Matter mask
-
-
     """
 
     preproc = pe.Workflow(name = wf_name)
@@ -1076,7 +1075,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
 def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer'):
 
     """
-    Generate the subject's white matter based on freesurfer.
+    Generate the subject's segmentations based on freesurfer.
 
     Parameters
     ----------
@@ -1124,7 +1123,9 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
     # register FS segmentations (aseg.mgz) to native space
     fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
                     name='fs_aseg_to_native')
+    
     fs_aseg_to_native.inputs.reg_header = True
+    fs_aseg_to_native.inputs.interp = 'nearest'
 
     preproc.connect(reconall2, 'aseg',
                     fs_aseg_to_native, 'source_file')
@@ -1138,6 +1139,8 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
                                         function=mri_convert),                        
                             name='fs_aseg_to_nifti')
 
+    fs_aseg_to_nifti.inputs.args = '-rt nearest'
+
     preproc.connect(fs_aseg_to_native, 'transformed_file',
                     fs_aseg_to_nifti, 'in_file')
 
@@ -1145,6 +1148,8 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
                                         output_names=['csf_mask', 'gm_mask', 'wm_mask'],
                                         function=pick_tissue_from_labels_file), 
                                         name=f'{wf_name}_tissue_mask')
+
+    pick_tissue.inputs.include_ventricles = True
 
     preproc.connect(fs_aseg_to_nifti, 'out_file',
                     pick_tissue, 'multiatlas_Labels')
