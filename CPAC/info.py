@@ -180,6 +180,7 @@ REQUIREMENTS = [
     "cython",
     "flowdump==0.1.2",
     "future",
+<<<<<<< HEAD
     "INDI-Tools @ git+https://git@github.com/FCP-INDI/INDI-Tools.git#egg=INDI-Tools",
     "lockfile",
     "joblib",
@@ -207,5 +208,30 @@ REQUIREMENTS = [
     "traits",
     "voluptuous>=0.12.0",
     "xvfbwrapper",
+=======
+    "INDI-Tools",
+    "lockfile==0.12.2",
+    "matplotlib==3.1.3",
+    "networkx==2.4",
+    "nibabel==2.3.3",
+    "nilearn==0.4.1",
+    "nipype==1.1.2",
+    "nose==1.3.7",
+    "numpy==1.16.4",
+    "pandas==0.23.4",
+    "patsy==0.5.0",
+    "prov==1.5.0",
+    "psutil==5.4.6",
+    "pygraphviz==1.3.1",
+    "python-dateutil==2.7.3",
+    "pyyaml==5.3",
+    "scikit-learn==0.22.1",
+    "scipy==1.4.1",
+    "simplejson==3.15.0",
+    "traits==4.6.0",
+    "PyBASC==0.4.5",
+    "pathlib==1.0.1",
+    "websockets==8.1",
+>>>>>>> 8876e6408 (set up monitoring websocket)
 ]
 UNET_REQUIREMENTS = ["torch==1.13.1", "torchvision==0.14.1"]
