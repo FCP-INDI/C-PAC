@@ -193,7 +193,7 @@ def monitor_server(host='0.0.0.0', port=8080, wait=False):
     is_monitoring.acquire()
 
     loop = asyncio.new_event_loop()
-    server_thread = threading.Thread(target=ws, args=[host, port, loop])
+    server_thread = threading.Thread(target=ws, args=[loop, host, port])
     server_thread.isDaemon = True
     server_thread.start()
     return server_thread, loop
