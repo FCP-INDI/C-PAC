@@ -1085,7 +1085,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                     })
 
-                        new_strat_list += [new_strat]
+                    new_strat_list += [new_strat]
 
                     if "FSL" in c.skullstrip_option:
                         anat_preproc = create_anat_preproc(method='fsl',
