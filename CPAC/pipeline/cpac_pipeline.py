@@ -1629,6 +1629,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(node, out_file,
                                 reconall3, 'inputspec.wm_seg')
 
+                node, out_file = strat['freesurfer_subject_id']
+                workflow.connect(node, out_file,
+                                reconall3, 'inputspec.subject_id')                
+
                 node, out_file = strat['freesurfer_subject_dir']
                 workflow.connect(node, out_file,
                                 reconall3, 'inputspec.subject_dir')

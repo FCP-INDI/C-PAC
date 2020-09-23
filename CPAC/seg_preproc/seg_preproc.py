@@ -1108,7 +1108,8 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['wm_mask',
                                                         'gm_mask',
-                                                        'csf_mask']),
+                                                        'csf_mask',
+                                                        'subject_id']),
                         name='outputspec')
 
     reconall2 = pe.Node(interface=freesurfer.ReconAll(),
@@ -1120,6 +1121,9 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
     
+    preproc.connect(reconall2, 'subject_id',
+                    outputnode, 'subject_id')
+
     # register FS segmentations (aseg.mgz) to native space
     fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
                     name='fs_aseg_to_native')
@@ -1132,7 +1136,7 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
 
     preproc.connect(reconall2, 'rawavg',
                     fs_aseg_to_native, 'target_file')
-
+                    
     # convert registered FS segmentations from .mgz to .nii.gz
     fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
                                         output_names=['out_file'],
@@ -1403,7 +1407,8 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             strat.update_resource_pool({
                 'anatomical_wm_mask': (seg_preproc_freesurfer, 'outputspec.wm_mask'),
                 'anatomical_gm_mask': (seg_preproc_freesurfer, 'outputspec.gm_mask'),
-                'anatomical_csf_mask': (seg_preproc_freesurfer, 'outputspec.csf_mask')
+                'anatomical_csf_mask': (seg_preproc_freesurfer, 'outputspec.csf_mask'),
+                'freesurfer_subject_id': (seg_preproc_freesurfer, 'outputspec.subject_id')
             })
 
     strat_list += new_strat_list

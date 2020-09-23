@@ -615,6 +615,7 @@ def reconstruct_surface(num_omp_threads):
     surface_reconstruction = pe.Workflow(name='surface_reconstruction')
 
     inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir',
+                                                        'subject_id',
                                                         'wm_seg']), 
                         name='inputspec')
 
@@ -633,6 +634,9 @@ def reconstruct_surface(num_omp_threads):
 
     reconall3.inputs.directive = 'autorecon3'
     reconall3.inputs.openmp = num_omp_threads
+
+    surface_reconstruction.connect(inputnode, 'subject_id',
+                                    reconall3, 'subject_id')
 
     surface_reconstruction.connect(inputnode, 'subject_dir',
                                     reconall3, 'subjects_dir')
