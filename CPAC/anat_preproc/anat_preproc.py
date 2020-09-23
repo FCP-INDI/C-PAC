@@ -708,6 +708,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                 wf_name="{0}_skullstrip".format(wf_name))
         preproc.connect(anat_leaf2, 'anat_data',
                         anat_skullstrip, 'inputspec.anat_data')
+        preproc.connect(inputnode, 'template_brain_only_for_anat',
+                        anat_skullstrip, 'inputspec.template_brain_only_for_anat') 
+        preproc.connect(inputnode, 'template_skull_for_anat', 
+                        anat_skullstrip, 'inputspec.template_skull_for_anat')
+            
         if method == 'mask' and config.acpc_align:
             preproc.connect(acpc_align, 'outputspec.acpc_brain_mask', 
                             anat_skullstrip, 'inputspec.brain_mask') 
