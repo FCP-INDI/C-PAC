@@ -448,15 +448,9 @@ runSegmentationPreprocessing :  [1]
 
 
 # segmentation method options: ['FSL', 'FreeSurfer', 'ANTs-Prior-Based', 'Template-Based']
-# FSL uses FAST, FreeSurfer runs recon-all to generate segmentations
+# FSL uses FAST; FreeSurfer runs recon-all to generate segmentations;
+# ANTs Prior-based Segmentation workflow uses antsJointLabelFusion and has shown optimal results for non-human primate data;
 segmentation_method: ['FSL']
-
-
-# ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
-# Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
-# If you'd like to set ANTs Prior-based Segmentation as your segmentation option,
-# please set Template based segmentation as 'None' and runSegmentationPreprocessing as [0].
-ANTs_prior_based_segmentation : [0]
 
 
 # The atlas image assumed to be used in ANTs Prior-based Segmentation.

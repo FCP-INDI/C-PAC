@@ -1207,7 +1207,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
         if 1 in c.runSegmentationPreprocessing and 'FSL' in c.segmentation_method:
             pass # TODO
     '''
-    
+
     # original code
     if 1 in c.runSegmentationPreprocessing and 'FSL' in c.segmentation_method:
 
@@ -1370,11 +1370,6 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = c.ANTs_prior_seg_right_GM_label
             seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = c.ANTs_prior_seg_left_WM_label
             seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = c.ANTs_prior_seg_right_WM_label
-
-            # TODO ASH review with forking function
-            if 0 in c.ANTs_prior_based_segmentation:
-                strat = strat.fork()
-                new_strat_list.append(strat)
 
             strat.append_name(seg_preproc_ants_prior_based.name)
             strat.update_resource_pool({
