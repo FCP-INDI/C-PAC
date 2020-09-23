@@ -1197,7 +1197,19 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     new_strat_list = []
 
-    if 1 in c.runSegmentationPreprocessing and 'FSL FAST' in c.segmentation_method:
+    '''
+    for num_strat, strat in enumerate(strat_list):
+        
+        if 0 in c.runSegmentationPreprocessing:
+            strat = strat.fork()
+            new_strat_list.append(strat)
+
+        if 1 in c.runSegmentationPreprocessing and 'FSL' in c.segmentation_method:
+            pass # TODO
+    '''
+    
+    # original code
+    if 1 in c.runSegmentationPreprocessing and 'FSL' in c.segmentation_method:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1324,7 +1336,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     strat_list += new_strat_list
     
-    if 1 in c.ANTs_prior_based_segmentation:
+    if 'ANTs-Prior-Based' in c.segmentation_method:
 
         if 'T1_template' in c.template_based_segmentation or 'EPI_template' in c.template_based_segmentation or 1 in c.runSegmentationPreprocessing:
             err = '\n\n[!] C-PAC says: '\

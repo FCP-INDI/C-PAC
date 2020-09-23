@@ -1071,9 +1071,9 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
 
                 if 'T1_template' in c.template_based_segmentation or \
                         'EPI_template' in c.template_based_segmentation or \
-                            1 in c.ANTs_prior_based_segmentation :
+                            'ANTs-Prior-Based' in c.segmentation_method :
                     # Input segmentation mask,
-                    # since template_based_segmentation or ANTs_prior_based_segmentation cannot generate
+                    # since template-based segmentation or ANTs prior-based segmentation cannot generate
                     # probability maps
                     node, out_file = strat['anatomical_wm_mask']
                     workflow.connect(node, out_file,
