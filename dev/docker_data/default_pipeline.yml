@@ -122,6 +122,20 @@ non_local_means_filtering: False
 n4_bias_field_correction: False
 
 
+# ACPC Alignment
+acpc_align: False
+
+
+# ACPC size of brain in z-dimension in mm. 
+# Default: 150mm for human data. 
+acpc_brainsize: 150
+
+
+# ACPC aligned template
+acpc_template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+acpc_template_brain: None
+
+
 # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
 # Set this to 1 if your input images are already skull-stripped.
 already_skullstripped :  [0]
