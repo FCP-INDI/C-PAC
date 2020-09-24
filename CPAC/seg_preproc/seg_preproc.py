@@ -1136,7 +1136,10 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
 
     preproc.connect(reconall2, 'rawavg',
                     fs_aseg_to_native, 'target_file')
-                    
+
+    preproc.connect(inputnode, 'subject_dir',
+                    fs_aseg_to_native, 'subjects_dir')
+
     # convert registered FS segmentations from .mgz to .nii.gz
     fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
                                         output_names=['out_file'],
