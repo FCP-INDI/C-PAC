@@ -7,6 +7,26 @@ from warnings import warn
 
 
 def bids_decode_fname(file_path, dbg=False):
+    """
+    Parameters
+    ----------
+    file_path: str
+
+    dbg: bool
+
+    Returns
+    -------
+    dict
+
+    Examples
+    --------
+    >>> f_dict = bids_decode_fname(
+    ...     'sub-02/ses-01/anat/sub-02_ses-01_T1w.nii')
+    >>> f_dict['scantype']
+    'T1w'
+    >>> f_dict['sub']
+    '02'
+    """
     import re
 
     f_dict = {}
