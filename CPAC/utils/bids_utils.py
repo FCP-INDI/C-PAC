@@ -2,6 +2,7 @@ import os
 import yaml
 import json
 
+from warnings import warn
 
 def bids_decode_fname(file_path, dbg=False):
     import re
@@ -199,7 +200,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
 
         # first lets try to find any parameters that already apply at this
         # level using the information in the json's file path
-        t_params = bids_retrieve_params(bids_config_dict, f_dict)
+        t_params = bids_retrieve_params(t_dict, f_dict)
 
         # now populate the parameters
         bids_config = {}
@@ -390,8 +391,9 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                 f_dict["ses"] = "1"
 
             if "sub" not in f_dict:
-                raise IOError("sub not found in %s," % (p) +
-                              " perhaps it isn't in BIDS format?")
+                f_dict['sub'] = 'none'
+                warn("sub not found in %s," % (p) +
+                     " perhaps it isn't in BIDS format?")
 
             if f_dict["sub"] not in subdict:
                 subdict[f_dict["sub"]] = {}
