@@ -1,8 +1,10 @@
 import os
+import pytest
 import yaml
 import json
 
 from warnings import warn
+
 
 def bids_decode_fname(file_path, dbg=False):
     import re
@@ -568,6 +570,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     return file_paths, config_dict
 
 
+@pytest.mark.skip(reason="As written, relies on specific local data")
 def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
     (img_files, config) = collect_bids_files_configs(bids_dir, creds_path)
     print("Found %d config files for %d image files" % (len(config),
@@ -587,35 +590,3 @@ def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
         yaml.dump(sublist, ofd, encoding='utf-8')
 
     assert sublist
-
-
-if __name__ == '__main__':
-    test_gen_bids_sublist(
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/data/ADHD200/RawDataBIDS/",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/test/rs_subject_list.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
-
-    test_gen_bids_sublist(
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/data/ADHD200/RawDataBIDS/Peking_3",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC"
-        "/test/rs_subject_list_pk3.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
-
-    test_gen_bids_sublist(
-        "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC/test/"
-        "rs_subject_list_s3.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
-
-    test_gen_bids_sublist(
-        "s3://fcp-indi/data/Projects/ADHD200/RawDataBIDS/Peking_3",
-        "/Users/cameron.craddock/workspace/git_temp/CPAC/test/"
-        "rs_subject_list_pk3_s3.yml",
-        "/Users/cameron.craddock/AWS/ccraddock-fcp-indi-keys2.csv",
-        dbg=False)
