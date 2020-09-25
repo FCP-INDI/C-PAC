@@ -38,8 +38,10 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_leaf', 
                                                        'brain_mask',
-                                                       'template_head',
-                                                       'template_brain']), 
+                                                       'template_brain_only_for_anat',                                                                                                         'template_brain_only_for_anat',
+                                                       'template_skull_for_anat',
+                                                       'template_brain_for_acpc',
+                                                       'template_head_for_acpc']), 
                         name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['acpc_aligned_head',
@@ -63,7 +65,12 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
                         initial_skullstrip, 'inputspec.anat_data')
         if skullstrip_tool == 'mask':
             preproc.connect(inputnode, 'brain_mask',
-                            initial_skullstrip, 'inputspec.brain_mask')   
+                            initial_skullstrip, 'inputspec.brain_mask') 
+        elif skullstrip_tool == 'unet':
+            preproc.connect(inputnode, 'template_brain_only_for_anat',
+                            initial_skullstrip, 'inputspec.template_brain_only_for_anat')   
+            preproc.connect(inputnode, 'template_skull_for_anat',
+                            initial_skullstrip, 'inputspec.template_skull_for_anat') 
         preproc.connect(initial_skullstrip, 'outputspec.brain', 
                         robust_fov, 'in_file')
 
@@ -85,11 +92,11 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
 
     # align head-to-head to get acpc.mat (for human)
     if acpc_target == 'whole-head':
-        preproc.connect(inputnode, 'template_head', align, 'reference')
+        preproc.connect(inputnode, 'template_head_for_acpc', align, 'reference')
     
     # align brain-to-brain to get acpc.mat (for monkey)
     if acpc_target=='brain':
-        preproc.connect(inputnode, 'template_brain', align, 'reference')
+        preproc.connect(inputnode, 'template_brain_for_acpc', align, 'reference')
 
     concat_xfm = pe.Node(interface=fsl_utils.ConvertXFM(),
                             name='anat_acpc_4_concatxfm')
@@ -114,7 +121,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
     apply_xfm.inputs.relwarp = True
 
     preproc.connect(inputnode, 'anat_leaf', apply_xfm, 'in_file')
-    preproc.connect(inputnode, 'template_head', apply_xfm, 'ref_file')
+    preproc.connect(inputnode, 'template_head_for_acpc', apply_xfm, 'ref_file')
     preproc.connect(aff_to_rig, 'out_mat', apply_xfm, 'premat')
     preproc.connect(apply_xfm, 'out_file', output_node, 'acpc_aligned_head')
 
@@ -125,7 +132,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
         apply_xfm_mask.inputs.relwarp = True
 
         preproc.connect(inputnode, 'brain_mask', apply_xfm_mask, 'in_file')
-        preproc.connect(inputnode, 'template_brain', apply_xfm_mask, 'ref_file')
+        preproc.connect(inputnode, 'template_brain_for_acpc', apply_xfm_mask, 'ref_file')
         preproc.connect(aff_to_rig, 'out_mat', apply_xfm_mask, 'premat')
         preproc.connect(apply_xfm_mask, 'out_file', output_node, 'acpc_brain_mask')
 
@@ -603,6 +610,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                        'brain_mask',
                                                        'template_brain_only_for_anat',
                                                        'template_skull_for_anat',
+                                                       'template_brain_only_for_acpc',
+                                                       'template_skull_for_acpc',
                                                        'template_cmass']), 
                         name='inputspec')
 
@@ -643,10 +652,12 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
         preproc.connect(anat_reorient, 'out_file', acpc_align, 'inputspec.anat_leaf')
         preproc.connect(inputnode, 'brain_mask', acpc_align, 'inputspec.brain_mask')
-        preproc.connect(inputnode, 'template_brain_only_for_anat', acpc_align, 'inputspec.template_brain')
-        preproc.connect(inputnode, 'template_skull_for_anat', acpc_align, 'inputspec.template_head')
+        preproc.connect(inputnode, 'template_brain_only_for_acpc', acpc_align, 'inputspec.template_brain_for_acpc')
+        preproc.connect(inputnode, 'template_skull_for_acpc', acpc_align, 'inputspec.template_head_for_acpc')
         preproc.connect(acpc_align, 'outputspec.acpc_aligned_head', anat_leaf, 'anat_data')
-
+        if method == 'unet':
+            preproc.connect(inputnode, 'template_brain_only_for_anat', acpc_align, 'inputspec.template_brain_only_for_anat')
+            preproc.connect(inputnode, 'template_skull_for_anat', acpc_align, 'inputspec.template_skull_for_anat')
     # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
         config.non_local_means_filtering = False
