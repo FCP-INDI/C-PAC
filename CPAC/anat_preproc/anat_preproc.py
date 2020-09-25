@@ -38,7 +38,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_leaf', 
                                                        'brain_mask',
-                                                       'template_brain_only_for_anat',                                                                                                         'template_brain_only_for_anat',
+                                                       'template_brain_only_for_anat',
                                                        'template_skull_for_anat',
                                                        'template_brain_for_acpc',
                                                        'template_head_for_acpc']), 
