@@ -520,9 +520,29 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
 
 def collect_bids_files_configs(bids_dir, aws_input_creds=''):
     """
-    :param bids_dir:
-    :param aws_input_creds:
-    :return:
+    Parameters
+    ----------
+    bids_dir: str
+
+    aws_input_creds: str
+
+    Returns
+    -------
+    file_paths: list
+
+    config_dict: dict
+
+    Examples
+    --------
+    >>> import os
+    >>> from CPAC.utils.tests import get_BIDS_examples_dir
+    >>> f, d = collect_bids_files_configs(os.path.join(
+    ...     os.path.join(get_BIDS_examples_dir(), 'synthetic')
+    ... ))
+    >>> f[0]
+    'sub-02/ses-01/anat/sub-02_ses-01_T1w.nii'
+    >>> list(d.keys())
+    ['task-nback_bold.json', 'task-rest_bold.json']
     """
 
     file_paths = []
@@ -557,8 +577,8 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                                 = json.loads(s3_obj.get()["Body"].read())
                         except Exception as e:
                             print("Error retrieving %s (%s)" %
-                                   (s3_obj.key.replace(prefix, ""),
-                                    e.message))
+                                  (s3_obj.key.replace(prefix, ""),
+                                   e.message))
                             raise
                     elif 'nii' in str(s3_obj.key):
                         file_paths.append(str(s3_obj.key)
@@ -572,14 +592,14 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=''):
                         if 'nii' in f and suf in f:
                             file_paths += [
                                 os.path.join(root, f).replace(bids_dir, '')
-                                    .lstrip('/')]
+                                .lstrip('/')]
                         if f.endswith('json') and suf in f:
                             config_dict.update(
                                 {os.path.join(
-                                    root.replace(bids_dir, '').lstrip('/'),
-                                    f):
-                                     json.load(
-                                         open(os.path.join(root, f), 'r'))})
+                                 root.replace(bids_dir, '').lstrip('/'),
+                                 f):
+                                    json.load(
+                                        open(os.path.join(root, f), 'r'))})
 
     if not file_paths and not config_dict:
         raise IOError("Didn't find any files in {0}. Please verify that the "
