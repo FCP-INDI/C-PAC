@@ -15,7 +15,7 @@ dataFormat: BIDS
 # BIDS Data Format only.
 #
 # This should be the path to the overarching directory containing the entire dataset.
-bidsBaseDir: ./bids-examples/ds051
+bidsBaseDir: ./CPAC/utils/tests/bids-examples/ds051
 
 
 # File Path Template for Anatomical Files

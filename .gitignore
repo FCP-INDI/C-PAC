@@ -22,6 +22,7 @@ pip-log.txt
 
 # Unit test / coverage reports
 bids-examples
+CPAC/utils/tests/bids-examples
 .coverage
 .tox
 
