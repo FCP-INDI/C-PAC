@@ -156,7 +156,7 @@ def ws(loop, host='0.0.0.0', port=8080):
     
     """
     asyncio.set_event_loop(loop)
-    start_server = websockets.serve(send_logs, "0.0.0.0", 8080)
+    start_server = websockets.serve(send_logs, "0.0.0.0", port)
     loop.run_until_complete(start_server)
     loop.run_forever()
 
