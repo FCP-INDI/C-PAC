@@ -1503,9 +1503,10 @@ def create_nuisance_regression_workflow(nuisance_selectors,
             nuisance_wf.connect(inputspec, 'regressor_file',
                                 nuisance_regression, 'ort')
     else:
-        nuisance_wf.connect(inputspec, 'regressor_file',
-                            nuisance_regression, 'ort')
-
+        # there's no regressor file generated if only Bandpass in nuisance_selectors
+        if not ('Bandpass' in nuisance_selectors and len(nuisance_selectors.selector.keys()) == 1):
+            nuisance_wf.connect(inputspec, 'regressor_file',
+                                nuisance_regression, 'ort')
 
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')

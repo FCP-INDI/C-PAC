@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.6.2
+# Version 1.7.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -122,13 +122,27 @@ non_local_means_filtering: False
 n4_bias_field_correction: False
 
 
+# ACPC Alignment
+acpc_align: False
+
+
+# ACPC size of brain in z-dimension in mm. 
+# Default: 150mm for human data. 
+acpc_brainsize: 150
+
+
+# ACPC aligned template
+acpc_template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+acpc_template_brain: None
+
+
 # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
 # Set this to 1 if your input images are already skull-stripped.
 already_skullstripped :  [0]
 
 
 # Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
-# Options: ['AFNI', 'BET', 'niworkflows-ants', 'unet']
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
 skullstrip_option :  ['AFNI']
 
 
@@ -658,13 +672,45 @@ motion_correction_reference_volume :  0
 functional_volreg_twopass :  On
 
 
-notch_filter_motion_estimates: False
+# Filter physiological (respiration) artifacts from the head motion estimates.
+# Adapted from DCAN Labs filter.
+#     https://www.ohsu.edu/school-of-medicine/developmental-cognition-and-neuroimaging-lab
+#     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
+motion_estimate_filter:
 
-notch_filter_breathing_rate_min: None
+    run: False
 
-notch_filter_breathing_rate_max: None
+    # options: "notch", "lowpass"
+    filter_type: "notch"
 
-notch_filter_order: 4
+    # Number of filter coefficients.
+    filter_order: 4
+
+  # Dataset-wide respiratory rate data from breathing belt required.
+    # mutually exclusive with cutoff, center frequency, and bandwidth options further below
+
+    # Lowest Breaths-Per-Minute in dataset.
+    # Required for both notch and lowpass filters.
+    breathing_rate_min:
+
+    # Highest Breaths-Per-Minute in dataset.
+    # Required for the notch filter.
+    breathing_rate_max:
+
+  # notch filter direct customization parameters
+    # mutually exclusive with breathing_rate options above
+
+    # the center frequency of the notch filter
+    center_frequency:
+
+    # the width of the notch filter
+    filter_bandwidth:
+
+  # lowpass filter direct customization parameters
+    # mutually exclusive with breathing_rate options above
+
+    # the frequency cutoff of the filter
+    lowpass_cutoff:
 
 
 # Run AFNI 3dDespike

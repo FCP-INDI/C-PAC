@@ -66,7 +66,9 @@ functional_to_anat_linear_xfm,,transform,,,,,,,,,,,,
 functional_to_epi-standard,template,raw,,yes,,,,,,,,yes,,yes
 functional_to_epi-standard_smooth,template,raw,,yes,,,,,yes,,,,,yes
 functional_to_standard,template,raw,,yes,,,,,,,,yes,,yes
+functional_to_standard_inverse-xfm,,transform,,,,,,,,,,,,
 functional_to_standard_smooth,template,raw,,yes,,,,,yes,,,,,yes
+functional_to_standard_xfm,,transform,,,,,,,,,,,,
 ica_aroma_denoised_functional,functional,raw,,,,,,,yes,,,,,
 max_displacement,,,,,,,,,,,,,yes,
 mean_functional,functional,raw,,,,,,,yes,,,,,
@@ -77,6 +79,9 @@ motion_correct,functional,raw,,,,yes,,,,,,yes,,
 motion_correct_smooth,functional,raw,,yes,,,,,yes,,,,,
 motion_correct_to_standard,template,raw,,yes,,,,,yes,,,yes,,
 motion_correct_to_standard_smooth,template,raw,,yes,,,,,yes,,,,,
+motion_estimate_filter_info_design,,,,,,,,,,,,,,
+motion_estimate_filter_info_plot,,,,,,,,,,,,,,
+motion_estimate_filter_info_plot-norm,,,,,,,,,,,,,,
 motion_params,,,,,,,,,,,,,,
 movement_parameters,,,,,,,,,,,,,yes,
 ndmg_graph,,,,,,,,,,,,,,
