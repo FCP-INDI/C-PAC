@@ -1,3 +1,9 @@
+"""BIDS utils
+
+This module contains functions to help C-PAC interact with the Brain
+Imaging Data Structure (https://bids-specification.readthedocs.io).
+"""
+
 import os
 import pytest
 import yaml
@@ -5,6 +11,8 @@ import json
 
 from warnings import warn
 
+LEVEL_HIERARCHY = ['scantype', 'site', 'sub', 'ses', 'task', 'acq', 'rec',
+                   'dir', 'run']
 
 def bids_decode_fname(file_path, dbg=False):
     """
@@ -96,49 +104,48 @@ def bids_decode_fname(file_path, dbg=False):
 
 def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     """
-
     Retrieve the BIDS parameters from bids_config_dict for BIDS file
-    corresponding to f_dict. If an exact match for f_dict is not found
-    the nearest match is returned, corresponding to the BIDS inheritance
+    corresponding to f_dict corresponding to the BIDS inheritance
     principle.
 
-    :param bids_config_dict: BIDS configuration dictionary, this is a
-      multi-level dictionary that maps the components of a bids filename
-      (i.e. sub, ses, acq, run) to a dictionary that contains the BIDS
-      parameters (RepetitionTime, EchoTime, etc). This information is
-      extracted from sidecar json files using the principle of inheritance
-      using the bids_parse_configs function
-    :param f_dict: Dictionary built from the name of a file in the BIDS
-      format. This is built using the bids_decode_fname by splitting on
-      "-" and "_" delimeters
-    :param dbg: boolean flag that indicates whether or not debug statements
-      should be printed, defaults to "False"
-    :return: returns a dictionary that contains the BIDS parameters
+    Parameters
+    ----------
+    bids_config_dict: dict
+        BIDS configuration dictionary, this is a multi-level
+        dictionary that maps the components of a bids filename to a
+        dictionary that contains the BIDS parameters (RepetitionTime,
+        EchoTime, etc). This information is extracted from sidecar JSON
+        files using the principle of inheritance using the
+        bids_parse_configs function
+
+    f_dict: dict
+        Dictionary built from the name of a file in the BIDS format.
+        This is built using the bids_decode_fname by splitting on "-"
+        and "_" delimeters
+
+    dbg: bool
+        indicates whether or not debug statements should be printed,
+        defaults to "False"
+
+    Returns
+    -------
+    dict
+        the BIDS parameters
     """
     params = {}
 
     t_dict = bids_config_dict  # pointer to current dictionary
     # try to populate the configuration using information
     # already in the list
-    for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                  'rec', 'dir', 'run']:
+    for level in LEVEL_HIERARCHY:
+        key = None
         if level in f_dict:
             key = "-".join([level, f_dict[level]])
-        else:
-            key = "-".join([level, "none"])
 
-        if dbg:
-            print(key)
-        # if the key doesn't exist in the config dictionary, check to see if
-        # the generic key exists and return that
-        if key in t_dict:
-            t_dict = t_dict[key]
-        else:
             if dbg:
-                print("Couldn't find %s, so going with %s" % (key,
-                                                              "-".join([level,
-                                                                        "none"])))
-            key = "-".join([level, "none"])
+                print(key)
+            # if the key doesn't exist in the config dictionary, check to see if
+            # the generic key exists and return that
             if key in t_dict:
                 t_dict = t_dict[key]
 
@@ -163,35 +170,42 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
 
 
 def bids_parse_sidecar(config_dict, dbg=False):
-    # type: (dict, bool) -> dict
     """
     Uses the BIDS principle of inheritance to build a data structure that
-    maps parameters in side car .json files to components in the names of
+    maps parameters in sidecar .json files to components in the names of
     corresponding nifti files.
 
-    :param config_dict: dictionary that maps paths of sidecar json files
-       (the key) to a dictionary containing the contents of the files (the values)
-    :param dbg: boolean flag that indicates whether or not debug statements
-       should be printed
-    :return: a dictionary that maps parameters to components from BIDS filenames
-       such as sub, sess, run, acq, and scan type
-    """
+    Parameters
+    ----------
+    config_dict: dict
+       maps paths of sidecar JSON files (the key) to a dictionary
+       containing the contents of the files (the values)
+   
+    dbg: bool
+        indicates whether or not debug statements should be printed
 
+    Returns
+    -------
+    dict
+        mapping of parameters to components from BIDS filenames
+
+    Examples
+    --------
+    >>> import os
+    >>> from CPAC.utils.tests import get_BIDS_examples_dir
+    >>> synth = os.path.join(
+    ...     os.path.join(get_BIDS_examples_dir(), 'synthetic'))
+    >>> sidecar_dict = bids_parse_sidecar(
+    ...     collect_bids_files_configs(synth)[1])
+    >>> sidecar_dict.get('scantype-bold').get('task-rest')
+    {'TaskName': 'Rest', 'RepetitionTime': 2.5}
+    """
     # we are going to build a large-scale data structure, consisting of many
     # levels of dictionaries to hold the data.
     bids_config_dict = {}
 
-    # initialize 'default' entries, this essentially is a pointer traversal
-    # of the dictionary
+    # initialize
     t_dict = bids_config_dict
-    for level in ['scantype', 'site', 'sub', 'ses', 'task',
-                  'acq', 'rec', 'dir', 'run']:
-        key = '-'.join([level, 'none'])
-        t_dict[key] = {}
-        t_dict = t_dict[key]
-
-    if dbg:
-        print(bids_config_dict)
 
     # get the paths to the json yaml files in config_dict, the paths contain
     # the information needed to map the parameters from the jsons (the vals
@@ -251,17 +265,16 @@ def bids_parse_sidecar(config_dict, dbg=False):
         # e.g. run-1, run-2, ... will all map to run-none if no jsons
         # explicitly define values for those runs
         t_dict = bids_config_dict  # pointer to current dictionary
-        for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                      'rec', 'dir', 'run']:
+        for level in LEVEL_HIERARCHY:
+            key = None
             if level in f_dict:
                 key = "-".join([level, f_dict[level]])
-            else:
-                key = "-".join([level, "none"])
 
-            if key not in t_dict:
-                t_dict[key] = {}
+            if key is not None and key[-5:] != '-none':
+                if key not in t_dict:
+                    t_dict[key] = {}
 
-            t_dict = t_dict[key]
+                t_dict = t_dict[key]
 
         t_dict.update(bids_config)
 

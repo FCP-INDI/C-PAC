@@ -3,8 +3,8 @@ from os import path
 
 
 def get_BIDS_examples_dir(parent_dir=None):
-    """
-    Function to return the path to bids-examples, cloning if necessary
+    """Function to return the path to bids-examples, cloning if
+    necessary
 
     Parameters
     ----------
