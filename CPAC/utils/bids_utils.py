@@ -14,6 +14,7 @@ from warnings import warn
 LEVEL_HIERARCHY = ['scantype', 'site', 'sub', 'ses', 'task', 'acq', 'rec',
                    'dir', 'run']
 
+
 def bids_decode_fname(file_path, dbg=False):
     """
     Parameters
@@ -58,8 +59,8 @@ def bids_decode_fname(file_path, dbg=False):
 
     if len(sub) > 1:
         print("Odd that there is more than one subject directory" +
-               "in (%s), does the filename conform to" % file_path +
-               " BIDS format?")
+              "in (%s), does the filename conform to" % file_path +
+              " BIDS format?")
     if sub:
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
@@ -71,12 +72,12 @@ def bids_decode_fname(file_path, dbg=False):
     elif file_path_vals[-1]:
         if dbg:
             print("looking for subject id didn't pan out settling for last" +
-                   "subdir %s" % (str(file_path_vals[-1])))
+                  "subdir %s" % (str(file_path_vals[-1])))
         f_dict["site"] = file_path_vals[-1]
     else:
         f_dict["site"] = "none"
 
-    f_dict["site"] = re.sub('[\s\-\_]+', '', f_dict["site"])
+    f_dict["site"] = re.sub(r'[\s\-\_]+', '', f_dict["site"])
 
     fname = fname.split(".")[0]
     # convert the filename string into a dictionary to pull out the other
@@ -144,14 +145,14 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
 
             if dbg:
                 print(key)
-            # if the key doesn't exist in the config dictionary, check to see if
-            # the generic key exists and return that
+            # if the key doesn't exist in the config dictionary, check to see
+            # if the generic key exists and return that
             if key in t_dict:
                 t_dict = t_dict[key]
 
     # if we have an image parameter dictionary at this level, use it to
     # initialize our configuration we look for "RepetitionTime", because
-    #  according to the spec it is a mandatory parameter for JSON
+    # according to the spec it is a mandatory parameter for JSON
     # sidecare files
 
     if dbg:
@@ -180,7 +181,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
     config_dict: dict
        maps paths of sidecar JSON files (the key) to a dictionary
        containing the contents of the files (the values)
-   
+
     dbg: bool
         indicates whether or not debug statements should be printed
 
@@ -278,7 +279,7 @@ def bids_parse_sidecar(config_dict, dbg=False):
 
         t_dict.update(bids_config)
 
-    return (bids_config_dict)
+    return update_with_string_encoding(bids_config_dict)
 
 
 def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
@@ -328,7 +329,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
                     'run_info': run_info}
             if resource in subjdict[subj_info]["funcs"][run_info]:
                 print("warning resource %s already exists in subjdict ??" %
-                       (resource))
+                      (resource))
             subjdict[subj_info]["funcs"][run_info][resource] = p
         else:
             subjdict[subj_info][resource] = p
@@ -446,14 +447,14 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                 if "lesion" in f_dict and "mask" in f_dict['lesion']:
                     if "lesion_mask" not in \
                             subdict[f_dict["sub"]][f_dict["ses"]]:
-                        subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"] = \
-                            task_info["scan"]
+                        subdict[f_dict["sub"]][f_dict["ses"]][
+                            "lesion_mask"] = task_info["scan"]
                     else:
                         print("Lesion mask file (%s) already found" %
                               (subdict[f_dict["sub"]]
                                [f_dict["ses"]]
-                               [
-                                   "lesion_mask"]) + " for (%s:%s) discarding %s" %
+                               ["lesion_mask"]) +
+                              " for (%s:%s) discarding %s" %
                               (f_dict["sub"], f_dict["ses"], p))
                 # TODO deal with scan parameters anatomical
                 elif "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
@@ -499,7 +500,8 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                 if "acq" in f_dict:
                     if "fMRI" in f_dict["acq"]:
                         if "fmap" not in subdict[f_dict["sub"]][
-                            f_dict["ses"]]:
+                            f_dict["ses"]
+                        ]:
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
                         if "epi_{0}".format(pe_dir) not in subdict[
                             f_dict["sub"]
@@ -643,3 +645,31 @@ def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
         yaml.dump(sublist, ofd, encoding='utf-8')
 
     assert sublist
+
+
+def update_with_string_encoding(d):
+    """Function to update any bytestrings to strings in a given
+    dictionary.
+
+    Parameters
+    ----------
+    d: any
+
+    Returns
+    -------
+    same as given
+
+    Examples
+    --------
+    >>> update_with_string_encoding({
+    ...     'TaskName': b'N-Back'
+    ... })
+    {'TaskName': 'N-Back'}
+    """
+    if isinstance(d, dict):
+        return({
+            k: update_with_string_encoding(d[k]) for k in d
+        })
+    if isinstance(d, bytes):
+        return(d.decode('utf-8'))
+    return(d)
