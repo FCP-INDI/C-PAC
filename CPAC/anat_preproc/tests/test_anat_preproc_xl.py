@@ -33,12 +33,14 @@ def file_node(path, file_node_num=0):
     return input_node, 'file'
 
 
-def test_anat_preproc_afni(input_path, benchmark_path=None, test_wf_name='test_anat_preproc_afni'):
+def test_anat_preproc_afni(working_path, input_path, benchmark_path=None, test_wf_name='test_anat_preproc_afni'):
     '''
     Test create_anat_preproc() with AFNI
 
     Parameters
     ----------
+    working_path : string
+        nipype working directory
     input_path : string
         input file path
     benchmark_path : string
@@ -54,9 +56,9 @@ def test_anat_preproc_afni(input_path, benchmark_path=None, test_wf_name='test_a
     # create a configuration object
     config = Configuration({
         "num_ants_threads": 4,
-        "workingDirectory": "/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc/working",
-        "crashLogDirectory": "/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc/crash",
-        "outputDirectory": "/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc",
+        "workingDirectory": os.path.join(working_path, "working"),
+        "crashLogDirectory": os.path.join(working_path, "crash"),
+        "outputDirectory": working_path,
         "non_local_means_filtering": False,
         "n4_bias_field_correction": False,
         "skullstrip_mask_vol": False,
@@ -149,18 +151,20 @@ def test_anat_preproc_afni(input_path, benchmark_path=None, test_wf_name='test_a
 
         # calculate corretion between function output and benchmark output
         corr = test_utils.pearson_correlation(out_path, benchmark_path)
-        print(f'\nCorrelation = {round(corr,3)}')
+        print(f'\nCorrelation = {round(corr,3)}\n')
 
         assert(corr > .99)
 
 
 
-def test_anat_preproc_fsl(input_path, benchmark_path=None, test_wf_name='test_anat_preproc_fsl'):
+def test_anat_preproc_fsl(working_path, input_path, benchmark_path=None, test_wf_name='test_anat_preproc_fsl'):
     '''
     Test create_anat_preproc() with FSL
 
     Parameters
     ----------
+    working_path : string
+        nipype working directory
     input_path : string
         input file path
     benchmark_path : string
@@ -175,9 +179,9 @@ def test_anat_preproc_fsl(input_path, benchmark_path=None, test_wf_name='test_an
 
     config = Configuration({
         "num_ants_threads": 4,
-        "workingDirectory": "/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc/working",
-        "crashLogDirectory": "/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc/crash",
-        "outputDirectory": "/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc",
+        "workingDirectory": os.path.join(working_path, "working"),
+        "crashLogDirectory": os.path.join(working_path, "crash"),
+        "outputDirectory": working_path,
         "non_local_means_filtering": False,
         "n4_bias_field_correction": False,
         "bet_frac":  0.5,
@@ -248,37 +252,42 @@ def test_anat_preproc_fsl(input_path, benchmark_path=None, test_wf_name='test_an
         input_path[input_path.rindex('/')+1:input_path.rindex('.nii.gz')]+'_resample_brain.nii.gz')
 
     if benchmark_path is not None:
+
         corr = test_utils.pearson_correlation(out_path, benchmark_path)
-        print(f'\nCorrelation = {round(corr,3)}')
+        print(f'\nCorrelation = {round(corr,3)}\n')
 
         assert(corr > .99)
 
 
 if __name__ == '__main__':
 
+    working_path = '/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc'
     input_path = '/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc/sub-0025427/ses-1/anat/sub-0025427_ses-1_run-1_T1w.nii.gz'
 
     # test AFNI
     benchmark_path = '/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc/afni_output/sub-0025427_ses-1_run-1_T1w_resample_afni_skullstrip.nii.gz'
     start_time = time.time()
-    test_anat_preproc_afni(input_path, benchmark_path, test_wf_name='test_anat_preproc_afni')
+    test_anat_preproc_afni(working_path, input_path, benchmark_path, test_wf_name='test_anat_preproc_afni')
     end_time = time.time()
     print(f'\nRun time = {round(end_time - start_time, 3)} seconds\n')
-    
-    # test AFNI using low resolution data (10mm, 20mm)
-    # start_time = time.time()
-    # test_anat_preproc_afni(input_path, test_wf_name='test_anat_preproc_afni_11mm')
-    # end_time = time.time()
-    # print(f'\nRun time = {round(end_time - start_time, 3)} seconds')
 
-    '''
-    3.5mm Run time = 87.406 seconds
-    10mm Run time = 56.596 seconds
-    11mm Run time = 73.643 seconds
-    12mm or lower resolution cause error; AFNI requires # of slices >= 16
-    build the graph, don't run the workflow Run time = 0.134 seconds
-    '''
+    # test AFNI using low resolution data (10mm, 11mm, 12mm, 15mm, 20mm)
+    # start_time = time.time()
+    # test_anat_preproc_afni(working_path, input_path, benchmark_path=None, test_wf_name='test_anat_preproc_afni_12mm')
+    # end_time = time.time()
+    # print(f'\nRun time = {round(end_time - start_time, 3)} seconds\n')
 
     # test FSL
     # benchmark_path = '/Users/xinhui.li/C-PAC/cpac_runs/test_anat_preproc/fsl_output/sub-0025427_ses-1_run-1_T1w_resample_fsl_skullstrip.nii.gz'
-    # test_anat_preproc_fsl(input_path, benchmark_path, test_wf_name='test_anat_preproc_fsl')
+    # test_anat_preproc_fsl(working_path, input_path, benchmark_path, test_wf_name='test_anat_preproc_fsl')
+
+    '''
+    Run Time Comparison
+
+    3.4mm: 87.406 seconds
+    10mm: 56.596 seconds
+    11mm: 73.643 seconds
+    12mm or lower resolution: ERROR! AFNI requires # of slices >= 16
+
+    build the graph/don't run the workflow: 0.134 seconds
+    '''
