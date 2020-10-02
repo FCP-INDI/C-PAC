@@ -434,6 +434,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
                             fs_brain_mask_to_native, 'source_file')
             preproc.connect(reconall, 'rawavg',
                             fs_brain_mask_to_native, 'target_file')
+            preproc.connect(reconall, 'subjects_dir',
+                            fs_brain_mask_to_native, 'subjects_dir')
             
             # convert brain mask file from .mgz to .nii.gz
             fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
