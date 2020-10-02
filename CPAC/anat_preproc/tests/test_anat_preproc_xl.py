@@ -248,10 +248,10 @@ def test_anat_preproc_fsl(working_path, input_path, benchmark_path=None, test_wf
 
     workflow.run()
 
-    out_path = os.path.join(config.workingDirectory, test_wf_name, 'anat_preproc', 'anat_skullstrip',
-        input_path[input_path.rindex('/')+1:input_path.rindex('.nii.gz')]+'_resample_brain.nii.gz')
-
     if benchmark_path is not None:
+
+        out_path = os.path.join(config.workingDirectory, test_wf_name, 'anat_preproc', 'anat_skullstrip',
+            input_path[input_path.rindex('/')+1:input_path.rindex('.nii.gz')]+'_resample_brain.nii.gz')
 
         corr = test_utils.pearson_correlation(out_path, benchmark_path)
         print(f'\nCorrelation = {round(corr,3)}\n')
