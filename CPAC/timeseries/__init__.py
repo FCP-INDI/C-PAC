@@ -1,4 +1,4 @@
-from timeseries_analysis import get_voxel_timeseries, \
+from .timeseries_analysis import get_voxel_timeseries, \
                                 get_roi_timeseries, \
                                 get_vertices_timeseries, \
                                 gen_vertices_timeseries, \

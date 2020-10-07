@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.6.1
+# Version 1.7.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -108,6 +108,10 @@ reGenerateOutputs: false
 
 # Anatomical preprocessing options.
 # ---------------------------------
+
+# Run anatomical preproceessing
+runAnatomical: [1]
+
 
 # Non-local means filtering via ANTs DenoiseImage
 non_local_means_filtering: false
@@ -287,21 +291,124 @@ bet_vertical_gradient: 0.0
 
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
-resolution_for_anat: 2mm
+resolution_for_anat: 1mm
+
+
+# Run anatomical and/or functional longitudinal pipeline
+# Options: 'anat' and/or 'func'
+# Note: 'func' is still under development and not available yet
+run_longitudinal : []
+
+
+# Freesurfer longitudinal template algorithm using FSL FLIRT
+# Method to average the dataset at each iteration of the template creation
+# Options: median, mean or std
+longitudinal_template_average_method : median
+
+
+# Degree of freedom for FLIRT in the template creation
+# Options: 12 (affine), 9 (traditional), 7 (global rescale) or 6 (rigid body)
+longitudinal_template_dof : 12
+
+
+# Interpolation parameter for FLIRT in the template creation
+# Options: trilinear, nearestneighbour, sinc or spline
+longitudinal_template_interp : trilinear
+
+
+# Cost function for FLIRT in the template creation
+# Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
+longitudinal_template_cost : corratio
+
+
+# Number of threads used for one run of the template generation algorithm
+longitudinal_template_thread_pool : 2
+
+
+# Threshold of transformation distance to consider that the loop converged 
+# (-1 means numpy.finfo(np.float64).eps and is the default)
+longitudinal_template_convergence_threshold : -1
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_skull_for_anat: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+template_skull_for_anat: /code/CPAC/resources/templates/mni_icbm152_t1_tal_nlin_asym_09c.nii
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
 regOption: [ANTS]
+
+
+# ANTs parameters, if select ANTs as regOption
+ANTs_para_T1_registration:
+
+   - collapse-output-transforms: 1
+
+   - dimensionality: 3
+
+   - initial-moving-transform :
+      initializationFeature: 0
+
+   - transforms:
+      - Rigid:
+          gradientStep : 0.05
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 100x100
+            convergenceThreshold : 1e-06
+            convergenceWindowSize : 20
+          smoothing-sigmas : 2.0x1.0vox
+          shrink-factors : 2x1
+          use-histogram-matching : True
+
+      - Affine:
+          gradientStep : 0.08 
+          metric :
+            type : MI
+            metricWeight: 1
+            numberOfBins : 32
+            samplingStrategy : Regular
+            samplingPercentage : 0.25
+          convergence:
+            iteration : 100x100
+            convergenceThreshold : 1e-06
+            convergenceWindowSize : 20
+          smoothing-sigmas : 1.0x0.0vox
+          shrink-factors : 2x1
+          use-histogram-matching : True
+
+      - SyN:
+          gradientStep : 0.1
+          updateFieldVarianceInVoxelSpace : 3.0
+          totalFieldVarianceInVoxelSpace : 0.0
+          metric:
+            type : CC
+            metricWeight: 1
+            radius : 4
+          convergence:
+            iteration : 100x70x50x20
+            convergenceThreshold : 1e-06
+            convergenceWindowSize : 10
+          smoothing-sigmas : 3.0x2.0x1.0x0.0vox
+          shrink-factors : 8x4x2x1
+          use-histogram-matching : True
+          winsorize-image-intensities :
+            lowerQuantile : 0.005
+            upperQuantile : 0.995
+
+
+# Please specify ANTs parameters,if run Functional to EPI Template Registration
+ANTs_para_EPI_registration: None
 
 
 # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
@@ -487,6 +594,22 @@ scaling_factor: 10
 runMotionStatisticsFirst: [1]
 
 
+# Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
+motion_correction : ['mcflirt']
+
+
+# Choose motion correction reference. Options: mean, median, selected volume 
+motion_correction_reference: ['mean']
+
+
+# Choose motion correction reference volume
+motion_correction_reference_volume :  0
+
+
+# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+functional_volreg_twopass :  On
+
+
 # Run AFNI 3dDespike 
 runDespike : [0]
 
@@ -521,15 +644,12 @@ startIdx: 0
 stopIdx: None
 
 
-# This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-functional_volreg_twopass: true
-
 
 # Perform distortion correction.
 # PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
 # Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
 # Options: ["PhaseDiff", "Blip", "None"]
-distortion_correction: [None]
+distortion_correction: ["PhaseDiff", "Blip"]
 
 
 # Options for 'PhaseDiff' distortion correction only.
@@ -546,22 +666,6 @@ fmap_distcorr_frac: [0.5]
 # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
 # The default value is 0.5.
 fmap_distcorr_threshold: 0.6
-
-
-# Set the Delta-TE value, used for preparing field map, time delay between the first and second echo images. Default value is 2.46 ms.
-fmap_distcorr_deltaTE: [2.46]
-
-
-# Set the Dwell Time for the fugue input. This is the time between scans, default value is 0.0005s.
-fmap_distcorr_dwell_time: [0.0005]
-
-
-# Set the asymmetric ratio value for FSL Fugue input.
-fmap_distcorr_dwell_asym_ratio: [0.93902439]
-
-
-# Set the phase-encoding direction. The options are: x, y, z, -x, -y, -z.
-fmap_distcorr_pedir: -y
 
 
 # Run Functional to EPI Template Registration
@@ -624,16 +728,13 @@ functionalMasking: [FSL_AFNI]
 
 
 # Choose whether or not to dilate anatomical mask if choose 'Anatomical_Refined' as functionalMasking option. It will dilate only one voxel if anatomical_mask_dilation : True 
-anatomical_mask_dilation: false
+anatomical_mask_dilation : False
 
 
-# Choose motion correction method - AFNI (3dvolreg), FSL (mcflirt)
-motion_correction: [AFNI]
-
-
-# Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
-runRegisterFuncToMNI: [1]
+# Run Functional to Template Registration
+# This option must be enabled if you wish to calculate any derivatives.
+# Options: ['T1_template', 'EPI_template', 'Off']
+runRegisterFuncToTemplate :  ['T1_template']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
@@ -645,15 +746,15 @@ resolution_for_func_derivative: 3.438mmx3.438mmx3.4mm
 
 
 # A standard template for resampling if using float resolution
-template_for_resample: /templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
+template_for_resample: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-01_desc-brain_T1w.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func: /templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
+template_brain_only_for_func: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func: /templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
+template_skull_for_func: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
 
 
 # EPI template
@@ -674,7 +775,7 @@ aroma_denoise_type: nonaggr
 
 
 # Run Nuisance Signal Regression
-runNuisance: [1]
+runNuisance: [0]
 
 
 # Standard Lateral Ventricles Binary Mask
@@ -692,7 +793,6 @@ Regressors:
     extraction_resolution: 2
   GlobalSignal:
     summary: Mean
-    extraction_resolution: 2
   Motion:
     include_delayed: true
     include_delayed_squared: true
@@ -702,6 +802,7 @@ Regressors:
   WhiteMatter:
     erode_mask: false
     summary: Mean
+    extraction_resolution: 2
   aCompCor:
     summary:
       components: 5
@@ -738,6 +839,16 @@ targetAngleDeg: [90]
 runROITimeseries: [0]
 
 
+# Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
+# 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
+# 'func_to_ROI' will realign the functional time series to the atlas/ROI space
+#
+#     NOTE: in rare cases, realigning the ROI to the functional space may
+#           result in small misalignments for very small ROIs - please double
+#           check your data if you see issues
+realignment : ['ROI_to_func']
+
+
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
 # Available analyses: ['Avg', 'Voxel', 'SpatialReg', 'PearsonCorr', 'PartialCorr'].
 # Denote which analyses to run for each ROI path by listing the names above. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
@@ -749,28 +860,27 @@ tsa_roi_paths:
   /cpac_templates/ho_mask_pad.nii.gz: Avg
   /cpac_templates/rois_3mm.nii.gz: Avg
   /cpac_templates/tt_mask_pad.nii.gz: Avg
-  /ndmg_atlases/label/Human/AAL2zourioMazoyer2002.nii.gz: Avg
-  /ndmg_atlases/label/Human/CorticalAreaParcellationfromRestingStateCorrelationsGordon2014.nii.gz: Avg
+  /ndmg_atlases/label/Human/AAL_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/CAPRSC_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
   /ndmg_atlases/label/Human/DKT_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/DesikanKlein2012.nii.gz: Avg
+  /ndmg_atlases/label/Human/DesikanKlein_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
   /ndmg_atlases/label/Human/HarvardOxfordcort-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
   /ndmg_atlases/label/Human/HarvardOxfordsub-maxprob-thr25_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/Juelichgmthr252mmEickhoff2005.nii.gz: Avg
-  /ndmg_atlases/label/Human/MICCAI2012MultiAtlasLabelingWorkshopandChallengeNeuromorphometrics.nii.gz: Avg
-  /ndmg_atlases/label/Human/Schaefer2018-1000-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/Schaefer2018-200-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/Schaefer2018-300-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/Schaefer2018-400-node_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Juelich_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/MICCAI_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Schaefer1000_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Schaefer200_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Schaefer300_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Schaefer400_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
   /ndmg_atlases/label/Human/Talairach_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/aal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/desikan_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
-  /ndmg_atlases/label/Human/yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Brodmann_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Desikan_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Glasser_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Slab907_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Yeo-17-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Yeo-17_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
+  /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
 
 
 # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.

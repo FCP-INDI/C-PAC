@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 import argparse
 import datetime
@@ -7,13 +6,17 @@ import os
 import subprocess
 import sys
 import time
-from base64 import b64decode
 import shutil
 import yaml
+from base64 import b64decode
 
 from CPAC import __version__
 from CPAC.utils.yaml_template import create_yaml_from_template
 from CPAC.utils.utils import load_preconfig
+
+import yamlordereddictloader
+from warnings import simplefilter
+simplefilter(action='ignore', category=FutureWarning)
 
 DEFAULT_TMP_DIR = "/tmp"
 DEFAULT_PIPELINE = "/cpac_resources/default_pipeline.yml"
@@ -30,7 +33,7 @@ def load_yaml_config(config_filename, aws_input_creds):
         try:
             header, encoded = config_filename.split(",", 1)
             config_content = b64decode(encoded)
-            config_data = yaml.load(config_content)
+            config_data = yaml.safe_load(config_content)
             return config_data
         except:
             print("Error! Could not find load config from data URI")
@@ -56,28 +59,27 @@ def load_yaml_config(config_filename, aws_input_creds):
     config_filename = os.path.realpath(config_filename)
 
     try:
-        with open(config_filename, 'r') as f:
-            config_data = yaml.load(f)
-            return config_data
+        config_data = yaml.safe_load(open(config_filename, 'r'))
+        return config_data
     except IOError:
         print("Error! Could not find config file {0}".format(config_filename))
         raise
 
 
 def run(command, env={}):
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT,
                                shell=True, env=env)
     while True:
         line = process.stdout.readline()
-        line = str(line)[:-1]
-        print(line)
+        line = line.decode()[:-1]
         if line == '' and process.poll() is not None:
             break
 
 
 def parse_yaml(value):
     try:
-        config = yaml.load(value)
+        config = yaml.safe_load(value)
         if type(config) != dict:
             raise
         return config
@@ -88,13 +90,15 @@ def parse_yaml(value):
 def resolve_aws_credential(source):
 
     if source == "env":
-        import urllib2
+        from urllib.request import urlopen
         aws_creds_address = "169.254.170.2{}".format(
             os.environ["AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"]
         )
-        aws_creds = urllib2.urlopen(aws_creds_address).read()
+        aws_creds = urlopen(aws_creds_address).read()
 
-        aws_input_creds = "/tmp/aws_input_creds_%d.csv" % int(round(time.time() * 1000))
+        aws_input_creds = "/tmp/aws_input_creds_%d.csv" % int(
+            round(time.time() * 1000)
+        )
         with open(aws_input_creds) as ofd:
             for key, vname in [
                 ("AccessKeyId", "AWSAcessKeyId"),
@@ -111,7 +115,6 @@ def resolve_aws_credential(source):
             "Could not find aws credentials {0}"
             .format(source)
         )
-
 
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -179,9 +182,12 @@ parser.add_argument('--aws_output_creds', help='Credentials for writing to S3.'
                     ' use the string "env" to indicate that output credentials should'
                     ' read from the environment. (E.g. when using AWS iam roles).',
                     default=None)
-parser.add_argument('--n_cpus', type=int, default=1,
-                    help='Number of execution '
-                         ' resources available for the pipeline.')
+# TODO: restore <default=3> for <--n_cpus> once we remove
+#       <maxCoresPerParticipant> from config file
+#       <https://github.com/FCP-INDI/C-PAC/pull/1264#issuecomment-631643708>
+parser.add_argument('--n_cpus', type=int, default=0,
+                    help='Number of execution resources per participant '
+                         ' available for the pipeline.')
 parser.add_argument('--mem_mb', type=float,
                     help='Amount of RAM available to the pipeline in megabytes.'
                          ' Included for compatibility with BIDS-Apps standard, but mem_gb is preferred')
@@ -215,7 +221,7 @@ parser.add_argument('--participant_ndx', help='The index of the participant'
 parser.add_argument('-v', '--version', action='version',
                     version='C-PAC BIDS-App version {}'.format(__version__))
 parser.add_argument('--bids_validator_config', help='JSON file specifying configuration of '
-                    'bids-validator: See https://github.com/INCF/bids-validator for more info.')
+                    'bids-validator: See https://github.com/bids-standard/bids-validator for more info.')
 parser.add_argument('--skip_bids_validator',
                     help='Skips bids validation.',
                     action='store_true')
@@ -281,14 +287,15 @@ elif args.analysis_level == "group":
 
             if not os.path.exists(output_group):
                 shutil.copyfile(args.group_file, output_group)
-        except Exception, IOError:
+        except (Exception, IOError) as e:
             print("Could not create group analysis configuration file.")
-            print("Please refer to the C-PAC documentation for group analysis set up.")
+            print("Please refer to the C-PAC documentation for group analysis "
+                  "setup.")
             print()
         else:
             print(
-                "Please refer to the output directory for a template of the file "
-                "and, after customizing to your analysis, add the flag"
+                "Please refer to the output directory for a template of the "
+                "file and, after customizing to your analysis, add the flag"
                 "\n\n"
                 "    --group_file {0}"
                 "\n\n"
@@ -309,7 +316,6 @@ elif args.analysis_level == "group":
         sys.exit(0)
 
 elif args.analysis_level in ["test_config", "participant"]:
-
     # check to make sure that the input directory exists
     if not args.data_config_file and \
         not args.bids_dir.lower().startswith("s3://") and \
@@ -325,7 +331,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         try:
             os.makedirs(args.output_dir)
         except:
-            print("Error! Could not find/create output dir {0}".format(args.output_dir))
+            print("Error! Could not find/create output dir {0}".format(
+                args.output_dir
+            ))
             sys.exit(1)
 
     # validate input dir (if skip_bids_validator is not set)
@@ -365,7 +373,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         c['awsCredentialsFile'] = resolve_aws_credential(args.aws_input_creds)
 
     if args.aws_output_creds:
-        c['awsOutputBucketCredentials'] = resolve_aws_credential(args.aws_output_creds)
+        c['awsOutputBucketCredentials'] = resolve_aws_credential(
+            args.aws_output_creds
+        )
 
     c['outputDirectory'] = os.path.join(args.output_dir, "output")
 
@@ -383,14 +393,25 @@ elif args.analysis_level in ["test_config", "participant"]:
     else:
         c['maximumMemoryPerParticipant'] = 6.0
 
-    c['maxCoresPerParticipant'] = int(args.n_cpus)
-    c['numParticipantsAtOnce'] = (
-        int(overrides['numParticipantsAtOnce'])
-        if 'numParticipantsAtOnce' in overrides
-        else 1
+    # Preference: n_cpus if given, override if present, else from config if
+    # present, else n_cpus=3
+    if args.n_cpus == 0:
+        c['maxCoresPerParticipant'] = int(c.get('maxCoresPerParticipant', 3))
+        args.n_cpus = 3
+    else:
+        c['maxCoresPerParticipant'] = args.n_cpus
+    c['numParticipantsAtOnce'] = int(c.get('numParticipantsAtOnce', 1))
+    # Reduce cores per participant if cores times particiapants is more than
+    # available CPUS. n_cpus is a hard upper limit.
+    if (c['maxCoresPerParticipant'] * c['numParticipantsAtOnce']) > int(
+        args.n_cpus
+    ):
+        c['maxCoresPerParticipant'] = int(
+            args.n_cpus
+        ) // c['numParticipantsAtOnce']
+    c['num_ants_threads'] = min(
+        c['maxCoresPerParticipant'], int(c['num_ants_threads'])
     )
-
-    c['num_ants_threads'] = min(int(args.n_cpus), int(c['num_ants_threads']))
 
     c['disable_log'] = args.disable_file_logging
 
@@ -407,7 +428,7 @@ elif args.analysis_level in ["test_config", "participant"]:
                 ' Either change the output directory to something'
                 ' local or turn off the --save_working_dir flag')
 
-    print()
+
     if args.participant_label:
         print(
             "#### Running C-PAC for {0}"
@@ -459,6 +480,8 @@ elif args.analysis_level in ["test_config", "participant"]:
 
         from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
 
+        print("Parsing {0}..".format(args.bids_dir))
+
         (file_paths, config) = collect_bids_files_configs(
             args.bids_dir, args.aws_input_creds)
 
@@ -478,11 +501,14 @@ elif args.analysis_level in ["test_config", "participant"]:
             ))
             sys.exit(1)
 
+        raise_error = not args.skip_bids_validator
+
         sub_list = bids_gen_cpac_sublist(
             args.bids_dir,
             file_paths,
             config,
-            args.aws_input_creds
+            args.aws_input_creds,
+            raise_error=raise_error
         )
 
         if not sub_list:
@@ -531,8 +557,10 @@ elif args.analysis_level in ["test_config", "participant"]:
             data_config_file = "cpac_data_config_idx-%s_%s.yml" % (
                 args.participant_ndx, st)
         else:
-            print("Participant ndx {0} is out of bounds [0, {1})".format(participant_ndx,
-                                                                        len(sub_list)))
+            print("Participant ndx {0} is out of bounds [0, {1})".format(
+                participant_ndx,
+                str(len(sub_list))
+            ))
             sys.exit(1)
     else:
         # write out the data configuration file
@@ -548,8 +576,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         noalias_dumper.ignore_aliases = lambda self, data: True
         yaml.dump(sub_list, f, default_flow_style=False, Dumper=noalias_dumper)
 
-
-    if args.analysis_level == "participant" or args.analysis_level == "test_config":
+    if args.analysis_level in ["participant", "test_config"]:
         # build pipeline easy way
         from CPAC.utils.monitoring import monitor_server
         import CPAC.pipeline.cpac_runner
@@ -557,7 +584,10 @@ elif args.analysis_level in ["test_config", "participant"]:
         monitoring = None
         if args.monitoring:
             try:
-                monitoring = monitor_server(c['pipelineName'], c['logDirectory'])
+                monitoring = monitor_server(
+                    c['pipelineName'],
+                    c['logDirectory']
+                )
             except:
                 pass
 
@@ -582,7 +612,10 @@ elif args.analysis_level in ["test_config", "participant"]:
         if args.analysis_level == "test_config":
             print(
                 '\nPipeline and data configuration files should'
-                ' have been written to {0} and {1} respectively.'.format(pipeline_config_file, data_config_file)
+                ' have been written to {0} and {1} respectively.'.format(
+                    pipeline_config_file,
+                    data_config_file
+                )
             )
 
 sys.exit(0)

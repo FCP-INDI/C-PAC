@@ -40,8 +40,8 @@ source_suffix = '.txt'
 master_doc = 'index'
 
 # General information about the project.
-project = u'C-PAC'
-copyright = u'2016, C-PAC Team'
+project = 'C-PAC'
+copyright = '2016, C-PAC Team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -183,8 +183,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'C-PAC.tex', u'C-PAC Documentation',
-   u'C-PAC Team', 'manual'),
+  ('index', 'C-PAC.tex', 'C-PAC Documentation',
+   'C-PAC Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -213,8 +213,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'c-pac', u'C-PAC Documentation',
-     [u'C-PAC Team'], 1)
+    ('index', 'c-pac', 'C-PAC Documentation',
+     ['C-PAC Team'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -227,8 +227,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'C-PAC', u'C-PAC Documentation',
-   u'C-PAC Team', 'C-PAC', 'One line description of project.',
+  ('index', 'C-PAC', 'C-PAC Documentation',
+   'C-PAC Team', 'C-PAC', 'One line description of project.',
    'Miscellaneous'),
 ]
 

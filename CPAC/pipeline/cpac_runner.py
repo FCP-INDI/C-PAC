@@ -1,26 +1,29 @@
 import os
-import time
+import glob
 import warnings
 from multiprocessing import Process
 from time import strftime
 
 import yaml
+import yamlordereddictloader
 
-from CPAC.utils import Configuration
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
-
+from CPAC.longitudinal_pipeline.longitudinal_workflow import (
+    anat_longitudinal_wf, 
+    func_preproc_longitudinal_wf,
+    func_longitudinal_template_wf
+)
 
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
-    '''
-    '''
 
     # Import packages
-    import commands
+    import subprocess
     from time import strftime
 
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception("Subject list is not in proper YAML format. Please check your file")
 
@@ -28,24 +31,23 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
     subject_bash_file = os.path.join(cluster_files_dir, 'submit_%s.condor' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     f = open(subject_bash_file, 'w')
 
-    print >>f, "Executable = /usr/bin/python"
-    print >>f, "Universe = vanilla"
-    print >>f, "transfer_executable = False"
-    print >>f, "getenv = True"
-    print >>f, "log = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S")))
+    print("Executable = /usr/bin/python", file=f)
+    print("Universe = vanilla", file=f)
+    print("transfer_executable = False", file=f)
+    print("getenv = True", file=f)
+    print("log = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S"))), file=f)
 
-    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     for sidx in range(1,len(sublist)+1):
-        print >>f, "error = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
-        print >>f, "output = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
+        print("error = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx))), file=f)
+        print("output = %s" % os.path.join(cluster_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx))), file=f)
 
-        print >>f, "arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
-        print >>f, "queue"
+        print("arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name), file=f)
+        print("queue", file=f)
 
     f.close()
 
     #commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput("condor_submit %s " % (subject_bash_file))
+    print(subprocess.getoutput("condor_submit %s " % (subject_bash_file)))
 
 
 # Create and run script for CPAC to run on cluster
@@ -57,7 +59,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
     '''
 
     # Import packages
-    import commands
+    import subprocess
     import getpass
     import re
     from time import strftime
@@ -67,14 +69,14 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
     # Load in pipeline config
     try:
-        pipeline_dict = yaml.load(open(os.path.realpath(config_file), 'r'))
+        pipeline_dict = yaml.safe_load(open(os.path.realpath(config_file), 'r'))
         pipeline_config = Configuration(pipeline_dict)
     except:
         raise Exception('Pipeline config is not in proper YAML format. '\
                         'Please check your file')
     # Load in the subject list
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception('Subject list is not in proper YAML format. '\
                         'Please check your file')
@@ -88,7 +90,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
     time_limit = '%d:00:00' % hrs_limit
 
     # Batch file variables
-    shell = commands.getoutput('echo $SHELL')
+    shell = subprocess.getoutput('echo $SHELL')
     user_account = getpass.getuser()
     num_subs = len(sublist)
 
@@ -151,7 +153,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
         f.write(batch_file_contents)
 
     # Get output response from job submission
-    out = commands.getoutput('%s %s' % (exec_cmd, batch_filepath))
+    out = subprocess.getoutput('%s %s' % (exec_cmd, batch_filepath))
 
     # Check for successful qsub submission
     if re.search(confirm_str, out) == None:
@@ -168,15 +170,16 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
 # Run C-PAC subjects via job queue
 def run(subject_list_file, config_file=None, p_name=None, plugin=None,
-        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False, test_config=False):
+        plugin_args=None, tracking=True, num_subs_at_once=None, debug=False,
+        test_config=False):
 
     # Import packages
-    import commands
+    import subprocess
     import os
     import pickle
     import time
 
-    from CPAC.pipeline.cpac_pipeline import prep_workflow
+    from CPAC.pipeline.cpac_pipeline import run_workflow
 
     print('Run called with config file {0}'.format(config_file))
 
@@ -190,7 +193,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
     # Init variables
     sublist = None
-    config_file = os.path.realpath(config_file)
     if '.yaml' in subject_list_file or '.yml' in subject_list_file:
         subject_list_file = os.path.realpath(subject_list_file)
     else:
@@ -210,13 +212,14 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     pipeline_start_stamp = strftime("%Y-%m-%d_%H:%M:%S")
 
     # Load in pipeline config file
+    config_file = os.path.realpath(config_file)
     try:
         if not os.path.exists(config_file):
             raise IOError
         else:
-            c = Configuration(yaml.load(open(config_file, 'r')))
+            c = Configuration(yaml.safe_load(open(config_file, 'r')))
     except IOError:
-        print "config file %s doesn't exist" % config_file
+        print("config file %s doesn't exist" % config_file)
         raise
     except yaml.parser.ParserError as e:
         error_detail = "\"%s\" at line %d" % (
@@ -267,13 +270,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     # Load in subject list
     try:
         if not sublist:
-            with open(subject_list_file, 'r') as sf:
-                sublist = yaml.load(sf)
+            sublist = yaml.safe_load(open(subject_list_file, 'r'))
     except:
-        print "Subject list is not in proper YAML format. Please check " \
-              "your file"
+        print("Subject list is not in proper YAML format. Please check " \
+              "your file")
         raise Exception
-
+    
     # Populate subject scan map
     sub_scan_map = {}
     try:
@@ -294,9 +296,9 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
             sub_scan_map[s] = scan_ids
     except:
-        print "\n\n" + "ERROR: Subject list file not in proper format - " \
+        print("\n\n" + "ERROR: Subject list file not in proper format - " \
               "check if you loaded the correct file?" + "\n" + \
-              "Error name: cpac_runner_0001" + "\n\n"
+              "Error name: cpac_runner_0001" + "\n\n")
         raise Exception
 
     pipeline_timing_info = []
@@ -306,9 +308,12 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
     if tracking:
         try:
-            track_run(level='participant', participants=len(sublist))
+            track_run(
+                level='participant' if not test_config else 'test',
+                participants=len(sublist)
+            )
         except:
-            pass
+            print("Usage tracking failed for this run.")
 
     # If we're running on cluster, execute job scheduler
     if c.runOnGrid:
@@ -327,7 +332,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
     # Run on one computer
     else:
-
+        # Create working dir
         if not os.path.exists(c.workingDirectory):
             try:
                 os.makedirs(c.workingDirectory)
@@ -336,14 +341,196 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                       "directory: %s\n\nMake sure you have permissions " \
                       "to write to this directory.\n\n" % c.workingDirectory
                 raise Exception(err)
+        '''
+        if not os.path.exists(c.logDirectory):
+            try:
+                os.makedirs(c.logDirectory)
+            except:
+                err = "\n\n[!] CPAC says: Could not create the log " \
+                      "directory: %s\n\nMake sure you have permissions " \
+                      "to write to this directory.\n\n" % c.logDirectory
+                raise Exception(err)
+        '''
+
+        # BEGIN LONGITUDINAL TEMPLATE PIPELINE
+        if hasattr(c, 'run_longitudinal') and ('anat' in c.run_longitudinal or 'func' in c.run_longitudinal):
+            subject_id_dict = {}
+            for sub in sublist:
+                if sub['subject_id'] in subject_id_dict:
+                    subject_id_dict[sub['subject_id']].append(sub)
+                else:
+                    subject_id_dict[sub['subject_id']] = [sub]
+            
+            # subject_id_dict has the subject_id as keys and a list of sessions for
+            # each participant as value
+            valid_longitudinal_data = False
+            for subject_id, sub_list in subject_id_dict.items():
+                if len(sub_list) > 1:
+                    valid_longitudinal_data = True
+                    if 'func' in c.run_longitudinal:
+                        raise Exception("\n\n[!] Error: Functional longitudinal pipeline is still in development and will be available in next release. Please only run anatomical longitudinal pipeline for now.\n\n")
+                    if 'anat' in c.run_longitudinal:
+                        strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
+                elif len(sub_list) == 1:
+                    warnings.warn("\n\nThere is only one anatomical session for sub-%s. Longitudinal preprocessing will be skipped for this subject.\n\n" % subject_id)
+                # TODO
+                # if 'func' in c.run_longitudinal:
+                #     strat_list = func_preproc_longitudinal_wf(subject_id, sub_list, c)
+                #     func_longitudinal_template_wf(subject_id, strat_list, c)
+
+            if valid_longitudinal_data:
+                rsc_file_list = []
+                for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
+                    for f in filenames:
+                        # TODO is there a better way to check output folder name?
+                        if f != '.DS_Store' and 'pipeline_analysis_longitudinal' in dirpath:
+                            rsc_file_list.append(os.path.join(dirpath, f))
+
+                subject_specific_dict = {subj: [] for subj in subject_id_dict.keys()}
+                session_specific_dict = {os.path.join(session['subject_id'], session['unique_id']): [] for session in sublist}
+                for rsc_path in rsc_file_list:
+                    key = [s for s in session_specific_dict.keys() if s in rsc_path]
+                    if key:
+                        session_specific_dict[key[0]].append(rsc_path)
+                    else:
+                        subj = [s for s in subject_specific_dict.keys() if s in rsc_path]
+                        if subj:
+                            subject_specific_dict[subj[0]].append(rsc_path)
+                
+                # update individual-specific outputs: 
+                # anatomical_brain, anatomical_brain_mask and anatomical_reorient
+                for key in session_specific_dict.keys():
+                    for f in session_specific_dict[key]:
+                        sub, ses = key.split('/')
+                        ses_list = [subj for subj in sublist if sub in subj['subject_id'] and ses in subj['unique_id']]
+                        if len(ses_list) > 1:
+                            raise Exception("There are several files containing " + f)
+                        if len(ses_list) == 1:
+                            ses = ses_list[0]
+                            subj_id = ses['subject_id']
+                            tmp = f.split(c.outputDirectory)[-1]
+                            keys = tmp.split(os.sep)
+                            if keys[0] == '':
+                                keys = keys[1:]
+                            if len(keys) > 1:
+                                if ses.get('resource_pool') is None:
+                                    ses['resource_pool'] = {
+                                        keys[0].split(c.pipelineName + '_')[-1]: {
+                                            keys[-2]: f
+                                        }
+                                    }
+                                else:
+                                    strat_key = keys[0].split(c.pipelineName + '_')[-1]
+                                    if ses['resource_pool'].get(strat_key) is None:
+                                        ses['resource_pool'].update({
+                                            strat_key: {
+                                                keys[-2]: f
+                                            }
+                                        })
+                                    else:
+                                        ses['resource_pool'][strat_key].update({
+                                                keys[-2]: f
+                                            })
+
+                for key in subject_specific_dict:
+                    for f in subject_specific_dict[key]:
+                        ses_list = [subj for subj in sublist if key in subj['anat']]
+                        for ses in ses_list:
+                            tmp = f.split(c.outputDirectory)[-1]
+                            keys = tmp.split(os.sep)
+                            if keys[0] == '':
+                                keys = keys[1:]
+                            if len(keys) > 1:
+                                if ses.get('resource_pool') is None:
+                                    ses['resource_pool'] = {
+                                        keys[0].split(c.pipelineName + '_')[-1]: {
+                                            keys[-2]: f
+                                        }
+                                    }
+                                else:
+                                    strat_key = keys[0].split(c.pipelineName + '_')[-1]
+                                    if ses['resource_pool'].get(strat_key) is None:
+                                        ses['resource_pool'].update({
+                                            strat_key: {
+                                                keys[-2]: f
+                                            }
+                                        })
+                                    else:
+                                        if keys[-2] == 'anatomical_brain' or keys[-2] == 'anatomical_brain_mask' or keys[-2] == 'anatomical_skull_leaf':
+                                            pass
+                                        elif 'apply_warp_anat_longitudinal_to_standard' in keys[-2] or 'fsl_apply_xfm_longitudinal' in keys[-2]:
+                                            # TODO update!!!
+                                            # it assumes session id == last key (ordered by session count instead of session id) + 1
+                                            # might cause problem if session id is not continuous
+                                            def replace_index(target1, target2, file_path):
+                                                index1 = file_path.index(target1)+len(target1)
+                                                index2 = file_path.index(target2)+len(target2)
+                                                file_str_list = list(file_path)
+                                                file_str_list[index1] = "*"
+                                                file_str_list[index2] = "*"
+                                                file_path_updated = "".join(file_str_list)
+                                                file_list = glob.glob(file_path_updated)
+                                                file_list.sort()
+                                                return file_list
+                                            if ses['unique_id'] == str(int(keys[-2][-1])+1):
+                                                if keys[-3] == 'seg_probability_maps':
+                                                    f_list = replace_index('seg_probability_maps_', 'segment_prob_', f)
+                                                    ses['resource_pool'][strat_key].update({
+                                                        keys[-3]: f_list
+                                                    })
+                                                elif keys[-3] == 'seg_partial_volume_files':
+                                                    f_list = replace_index('seg_partial_volume_files_', 'segment_pve_', f)
+                                                    ses['resource_pool'][strat_key].update({
+                                                        keys[-3]: f_list
+                                                    })
+                                                else:
+                                                    ses['resource_pool'][strat_key].update({
+                                                        keys[-3]: f # keys[-3]: 'anatomical_to_standard'
+                                                    })
+                                        elif keys[-2] != 'warp_list':
+                                            ses['resource_pool'][strat_key].update({
+                                                    keys[-2]: f
+                                                })
+                                        elif keys[-2] == 'warp_list':
+                                            if 'ses-'+ses['unique_id'] in tmp:
+                                                ses['resource_pool'][strat_key].update({
+                                                    keys[-2]: f
+                                                })
+                
+                for key in subject_specific_dict:
+                    ses_list = [subj for subj in sublist if key in subj['anat']]
+                    for ses in ses_list:
+                        for reg_strat in strat_list:
+                            try: 
+                                ss_strat_list = list(ses['resource_pool'])
+                                for strat_key in ss_strat_list:
+                                    try:
+                                        ses['resource_pool'][strat_key].update({
+                                            'registration_method': reg_strat['registration_method']
+                                        })
+                                    except KeyError:
+                                        pass
+                            except KeyError:
+                                pass
+
+                yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
+            
+                print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
+                
+                # skip main preprocessing
+                if 1 not in c.runAnatomical and 1 not in c.runFunctional:
+                    import sys
+                    sys.exit()
+
+        # END LONGITUDINAL TEMPLATE PIPELINE
 
         # If it only allows one, run it linearly
         if c.numParticipantsAtOnce == 1:
             for sub in sublist:
-                prep_workflow(sub, c, True, pipeline_timing_info,
+                run_workflow(sub, c, True, pipeline_timing_info,
                               p_name, plugin, plugin_args, test_config)
             return
-                
+
         pid = open(os.path.join(c.workingDirectory, 'pid.txt'), 'w')
 
         # Init job queue
@@ -351,7 +538,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
 
         # Allocate processes
         processes = [
-            Process(target=prep_workflow,
+            Process(target=run_workflow,
                     args=(sub, c, True, pipeline_timing_info,
                           p_name, plugin, plugin_args, test_config))
             for sub in sublist
@@ -361,7 +548,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         if len(sublist) <= c.numParticipantsAtOnce:
             for p in processes:
                 p.start()
-                print >>pid, p.pid
+                print(p.pid, file=pid)
 
         # Otherwise manage resources to run processes incrementally
         else:
@@ -374,7 +561,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     # Launch processes (one for each subject)
                     for p in processes[idc: idc+c.numParticipantsAtOnce]:
                         p.start()
-                        print >>pid, p.pid
+                        print(p.pid, file=pid)
                         job_queue.append(p)
                         idx += 1
                 # Otherwise, jobs are running - check them
@@ -384,7 +571,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                         # If the job is not alive
                         if not job.is_alive():
                             # Find job and delete it from queue
-                            print 'found dead job ', job
+                            print('found dead job ', job)
                             loc = job_queue.index(job)
                             del job_queue[loc]
                             # ...and start the next available process

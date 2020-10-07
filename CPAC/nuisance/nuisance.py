@@ -34,7 +34,7 @@ from CPAC.utils.datasource import check_for_s3
 
 from scipy.fftpack import fft, ifft
 
-from bandpass import bandpass_voxels
+from .bandpass import bandpass_voxels
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
@@ -264,14 +264,26 @@ def gather_nuisance(functional_file_path,
         regressor_file = censor_file_path
 
         if not regressor_file:
-            raise ValueError("Regressor type Censor specified in selectors but "
-                             "the corresponding file was not found!")
-
-        try:
-            censor_volumes = np.loadtxt(regressor_file)
-        except:
-            raise ValueError("Could not read regressor {0} from {1}."
-                             .format(regressor_type, regressor_file))
+            # ↓ This section is gross and temporary ↓
+            num_thresh = len(selector['thresholds'])
+            plural_s = '' if num_thresh == 1 else 's'
+            thresh_list = [
+                thresh.get('value') for thresh in selector['thresholds']
+            ]
+            print(f"{selector['method']} Censor "
+                  "specified with "
+                  f"{'no ' if num_thresh == 0 else ''}threshold"
+                  f"{plural_s} {str(thresh_list)} in selectors but "
+                  f" threshold was not reached.")
+            # ↑ This section is gross and temporary ↑
+            # All good to pass through if nothing to censor
+            censor_volumes = np.ones((regressor_length,), dtype=int)
+        else:
+            try:
+                censor_volumes = np.loadtxt(regressor_file)
+            except:
+                raise ValueError("Could not read regressor {0} from {1}."
+                                 .format(regressor_type, regressor_file))
 
         if (len(censor_volumes.shape) > 1 and censor_volumes.shape[1] > 1) or \
            not np.all(np.isin(censor_volumes, [0, 1])):
@@ -337,7 +349,7 @@ def gather_nuisance(functional_file_path,
     with open(output_file_path, "w") as ofd:
 
         # write out the header information
-        ofd.write("# CPAC {0}\n".format(CPAC.__version__))
+        ofd.write("# C-PAC {0}\n".format(CPAC.__version__))
         ofd.write("# Nuisance regressors:\n")
         ofd.write("# " + "\t".join(column_names) + "\n")
 
@@ -345,20 +357,6 @@ def gather_nuisance(functional_file_path,
         np.savetxt(ofd, nuisance_regressors.T, fmt='%.18f', delimiter='\t')
 
     return output_file_path
-
-
-def check_regressors_file_type(regressor_file):
-
-    dsort = None
-    ort = None
-
-    if regressor_file.endswith('nii.gz'):
-        dsort = regressor_file
-    else:
-        ort = regressor_file
-
-    return (dsort, ort)
-
 
 
 def create_regressor_workflow(nuisance_selectors,
@@ -589,8 +587,8 @@ def create_regressor_workflow(nuisance_selectors,
     High Level Workflow Graph:
 
     .. exec::
-        from CPAC.nuisance import create_nuisance_workflow
-        wf = create_nuisance_workflow({
+        from CPAC.nuisance import create_nuisance_regression_workflow
+        wf = create_nuisance_regression_workflow({
             'PolyOrt': {'degree': 2},
             'tCompCor': {'summary': {'method': 'PC', 'components': 5}, 'threshold': '1.5SD', 'by_slice': True},
             'aCompCor': {'summary': {'method': 'PC', 'components': 5}, 'tissues': ['WhiteMatter', 'CerebrospinalFluid'], 'extraction_resolution': 2},
@@ -865,12 +863,12 @@ def create_regressor_workflow(nuisance_selectors,
 
                 if regressor_selector.get('erode_mask_mm'):
                     erosion_mm = regressor_selector['erode_mask_mm']
-                else: 
+                else:
                     erosion_mm = False
 
                 if regressor_selector.get('degree'):
                     degree = regressor_selector['degree']
-                else: 
+                else:
                     degree = 1
 
                 temporal_wf = temporal_variance_mask(regressor_selector['threshold'],
@@ -880,8 +878,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                 nuisance_wf.connect(*(pipeline_resource_pool['Functional'] + (temporal_wf, 'inputspec.functional_file_path')))
 
-                if erosion_mm: # TODO: in func/anat space 
-                    # transform eroded anat brain mask to functional space 
+                if erosion_mm: # TODO: in func/anat space
+                    # transform eroded anat brain mask to functional space
                     # convert_xfm
                     anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
                     anat_to_func_linear_xfm.inputs.invert_xfm = True
@@ -1305,7 +1303,9 @@ def create_regressor_workflow(nuisance_selectors,
     )
 
     if has_nuisance_regressors:
-        for regressor_key, (regressor_arg, regressor_node, regressor_target) in regressors.items():
+        for regressor_key, (
+            regressor_arg, regressor_node, regressor_target
+        ) in regressors.items():
             if regressor_target != 'ort':
                 continue
 
@@ -1318,8 +1318,9 @@ def create_regressor_workflow(nuisance_selectors,
     # Check for any regressors to combine into files
     has_voxel_nuisance_regressors = any(
         regressor_node
-        for regressor_key, (regressor_arg, regressor_node, regressor_target)
-        in regressors.items()
+        for regressor_key, (
+            regressor_arg, regressor_node, regressor_target
+        ) in regressors.items()
         if regressor_target == 'dsort'
     )
 
@@ -1327,8 +1328,9 @@ def create_regressor_workflow(nuisance_selectors,
 
         voxel_nuisance_regressors = [
             (regressor_key, (regressor_arg, regressor_node, regressor_target))
-            for regressor_key, (regressor_arg, regressor_node, regressor_target)
-            in regressors.items()
+            for regressor_key, (
+                regressor_arg, regressor_node, regressor_target
+            ) in regressors.items()
             if regressor_target == 'dsort'
         ]
 
@@ -1337,8 +1339,9 @@ def create_regressor_workflow(nuisance_selectors,
             name='voxel_nuisance_regressors_merge'
         )
 
-        for i, (regressor_key, (regressor_arg, regressor_node, regressor_target)) \
-            in enumerate(voxel_nuisance_regressors):
+        for i, (regressor_key, (
+            regressor_arg, regressor_node, regressor_target)
+        ) in enumerate(voxel_nuisance_regressors):
 
             if regressor_target != 'dsort':
                 continue
@@ -1487,21 +1490,24 @@ def create_nuisance_regression_workflow(nuisance_selectors,
     nuisance_wf.connect(inputspec, 'functional_brain_mask_file_path',
                         nuisance_regression, 'mask')
 
-    check_regressor_filetype = pe.Node(Function(
-            input_names=['regressor_file'],
-            output_names=['dsort', 'ort'],
-            function=check_regressors_file_type
-        ), name="check_regressors_file_type")
+    if nuisance_selectors.get('Custom'):
+        if nuisance_selectors['Custom'].get('file'):
+            if nuisance_selectors['Custom']['file'].endswith('.nii') or \
+                    nuisance_selectors['Custom']['file'].endswith('.nii.gz'):
+                nuisance_wf.connect(inputspec, 'regressor_file',
+                                    nuisance_regression, 'dsort')
+            else:
+                nuisance_wf.connect(inputspec, 'regressor_file',
+                                    nuisance_regression, 'ort')
+        else:
+            nuisance_wf.connect(inputspec, 'regressor_file',
+                                nuisance_regression, 'ort')
+    else:
+        # there's no regressor file generated if only Bandpass in nuisance_selectors
+        if not ('Bandpass' in nuisance_selectors and len(nuisance_selectors.selector.keys()) == 1):
+            nuisance_wf.connect(inputspec, 'regressor_file',
+                                nuisance_regression, 'ort')
 
-    nuisance_wf.connect(inputspec, 'regressor_file',
-                        check_regressor_filetype, 'regressor_file')
-
-    nuisance_wf.connect(check_regressor_filetype, 'dsort',
-                        nuisance_regression, 'dsort')
-
-    nuisance_wf.connect(check_regressor_filetype, 'ort',
-                        nuisance_regression, 'ort')
-    
     nuisance_wf.connect(nuisance_regression, 'out_file',
                         outputspec, 'residual_file_path')
 
@@ -1522,13 +1528,14 @@ def filtering_bold_and_regressors(nuisance_selectors,
 
     filtering_wf = pe.Workflow(name=name)
     bandpass_selector = nuisance_selectors.get('Bandpass')
-    
+
     frequency_filter = pe.Node(
                 Function(input_names=['realigned_file',
                                       'regressor_file',
                                       'bandpass_freqs',
                                       'sample_period'],
-                         output_names=['bandpassed_file', 'regressor_file'],
+                         output_names=['bandpassed_file',
+                                       'regressor_file'],
                          function=bandpass_voxels,
                          as_module=True),
                 name='frequency_filter'
@@ -1544,11 +1551,11 @@ def filtering_bold_and_regressors(nuisance_selectors,
 
     filtering_wf.connect(inputspec, 'regressors_file_path',
                          frequency_filter, 'regressor_file')
-        
-    filtering_wf.connect(frequency_filter, 'bandpassed_file',
-                         outputspec, 'regressor_file')
 
-    filtering_wf.connect(frequency_filter, 'residual_file_path',
+    filtering_wf.connect(frequency_filter, 'bandpassed_file',
+                         outputspec, 'residual_file_path')
+
+    filtering_wf.connect(frequency_filter, 'regressor_file',
                          outputspec, 'residual_regressor')
 
     return filtering_wf

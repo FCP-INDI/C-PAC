@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import os
+import re
+
+todo_path = os.path.join(
+    os.getcwd(), '.git', 'rebase-merge', 'git-rebase-todo'
+)
+with open(todo_path, 'r') as etd:
+    todo = etd.read()
+
+with open(todo_path, 'w') as etd:
+    etd.write(re.sub(
+        r"^pick(?=.*\:bookmark\: Update version to.*)",
+        'drop', todo, flags=re.MULTILINE
+    ))

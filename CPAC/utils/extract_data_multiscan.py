@@ -2,20 +2,21 @@ import os
 import glob
 import string
 import yaml
+import yamlordereddictloader
 
 def extract_data(c, param_map):
     """
     Method to generate a CPAC input subject list
     python file. The method extracts anatomical
-    functional data and scan parameters for each 
-    site( if multiple site) and for each scan 
+    functional data and scan parameters for each
+    site( if multiple site) and for each scan
     and put it into a data structure read by python
 
     Note:
     -----
-    Use this tool only if the scan parameters are different 
+    Use this tool only if the scan parameters are different
     for each scan as shown in the example below.
-    
+
     Example:
     --------
     subjects_list = [
@@ -98,18 +99,18 @@ def extract_data(c, param_map):
         return sites
 
     def check_length(scan_name, file_name):
-               
+
         if len(file_name) > 30:
             msg = "filename- %s is too long."\
                    "It should not be more than 30 characters."%(file_name)
             raise Exception(msg)
-        
+
         if len(scan_name) - len(os.path.splitext(os.path.splitext(file_name)[0])[0])>= 20:
             msg = "scan name %s is too long."\
                   "It should not be more than 20 characters"\
                   %(scan_name.replace("_"+os.path.splitext(os.path.splitext(file_name)[0])[0], ''))
             raise Exception(msg)
-        
+
 
 
     def create_site_subject_mapping(base, relative):
@@ -157,16 +158,16 @@ def extract_data(c, param_map):
     func_base, func_relative, subject_map = getPath(c.functionalTemplate)
 
     if not anat_base:
-        print "No such file or directory ", anat_base
+        print("No such file or directory ", anat_base)
         raise Exception("Anatomical Data template incorrect")
 
     if not func_base:
-        print "No such file or directory", func_base
+        print("No such file or directory", func_base)
         raise Exception("Functional Data template incorrect")
 
     if len(anat_base) != len(func_base):
-        print "Some sites are missing, Please check your"\
-              "template", anat_base, "!=", func_base
+        print("Some sites are missing, Please check your"\
+              "template", anat_base, "!=", func_base)
         raise Exception(" Base length Unequal. Some sites are missing."\
                            "extract_data doesn't script support this.Please" \
                            "Provide your own subjects_list file")
@@ -237,36 +238,36 @@ def extract_data(c, param_map):
         try:
 
             def print_begin_of_file(sub, session_id):
-                print >> f, "-"
-                print >> f, "    subject_id: '" + sub + "'"
-                print >> f, "    unique_id: '" + session_id + "'"
+                print("-", file=f)
+                print("    subject_id: '" + sub + "'", file=f)
+                print("    unique_id: '" + session_id + "'", file=f)
 
             def print_end_of_file(sub, scan_list):
                 if param_map is not None:
                     def print_scan_param(index):
                         try:
                             for scan in scan_list:
-                                print>>f,  "            " + scan[1] + ": '" + \
-                                param_map.get((subject_map.get(sub), scan[0]))[index] + "'"
-                        
+                                print("            " + scan[1] + ": '" + \
+                                param_map.get((subject_map.get(sub), scan[0]))[index] + "'", file=f)
+
                         except:
                             raise Exception(" No Parameter values for the %s site and %s scan is defined in the scan"\
                                             " parameters csv file" % (subject_map.get(sub), scan[0]))
 
-                    print "site for sub", sub, "->", subject_map.get(sub)
-                    print >>f, "    scan_parameters: "
-                    print >> f, "        tr:" 
-                    print_scan_param(4) 
-                    print >> f, "        acquisition:" 
-                    print_scan_param(0) 
-                    print >> f, "        reference:" 
-                    print_scan_param(3) 
-                    print >> f, "        first_tr:" 
-                    print_scan_param(1) 
-                    print >> f, "        last_tr:" 
-                    print_scan_param(2) 
+                    print("site for sub", sub, "->", subject_map.get(sub))
+                    print("    scan_parameters: ", file=f)
+                    print("        tr:", file=f)
+                    print_scan_param(4)
+                    print("        acquisition:", file=f)
+                    print_scan_param(0)
+                    print("        reference:", file=f)
+                    print_scan_param(3)
+                    print("        first_tr:", file=f)
+                    print_scan_param(1)
+                    print("        last_tr:", file=f)
+                    print_scan_param(2)
 
- 
+
             #get anatomical file
             anat_base_path = os.path.join(anat_base[i], anat_sub)
             func_base_path = os.path.join(func_base[i], func_sub)
@@ -279,8 +280,8 @@ def extract_data(c, param_map):
             scan_list = []
             if anat and func:
                 print_begin_of_file(anat_sub.split("/")[0], session_id)
-                print >> f, "    anat: '" + anat[0] + "'" 
-                print >>f, "    rest: "
+                print("    anat: '" + anat[0] + "'", file=f)
+                print("    rest: ", file=f)
 
                 #iterate for each rest session
                 for iter in func:
@@ -289,7 +290,7 @@ def extract_data(c, param_map):
                     scan_name = iterable.replace("/", "_")
                     scan_list.append((os.path.dirname(iterable), scan_name))
                     check_length(scan_name, os.path.basename(iter))
-                    print>>f,  "      " + scan_name + ": '" + iter +  "'"
+                    print("      " + scan_name + ": '" + iter +  "'", file=f)
                 print_end_of_file(anat_sub.split("/")[0], scan_list)
 
         except Exception:
@@ -330,14 +331,14 @@ def extract_data(c, param_map):
                     else:
                         fetch_path(index, sub, os.path.join(sub, session_id), session_id)
             else:
-                print "No sessions"
+                print("No sessions")
                 session_id = ''
                 fetch_path(index, sub, sub, session_id)
 
         except Exception:
             raise
         except:
-            print "Please make sessions are consistent across all subjects"
+            print("Please make sessions are consistent across all subjects")
             raise
 
     try:
@@ -346,16 +347,16 @@ def extract_data(c, param_map):
                 #check if subject is present in subject_list
                 if subject_list:
                     if sub in subject_list and sub not in exclusion_list:
-                        print "extracting data for subject: ", sub
+                        print("extracting data for subject: ", sub)
                         walk(i, sub)
                 #check that subject is not in exclusion list
                 elif sub not in exclusion_list and sub not in '.DS_Store':
-                    print "extracting data for subject: ", sub
+                    print("extracting data for subject: ", sub)
                     walk(i, sub)
 
-        
+
         name = os.path.join(c.outputSubjectListLocation, 'CPAC_subject_list.yml')
-        print "Extraction Complete...Input Subjects_list for CPAC - %s" % name
+        print("Extraction Complete...Input Subjects_list for CPAC - %s" % name)
     except Exception:
         raise
     finally:
@@ -370,7 +371,7 @@ def generate_suplimentary_files(output_path):
     from sets import Set
     import csv
 
-    subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_subject_list.yml'), 'r'))
+    subjects_list = yaml.safe_load(open(os.path.join(output_path, 'CPAC_subject_list.yml'), 'r'))
 
     subject_scan_set = Set()
     subject_set = Set()
@@ -378,13 +379,13 @@ def generate_suplimentary_files(output_path):
     data_list = []
 
     for sub in subjects_list:
-        
+
         if sub['unique_id']:
             subject_id = sub['subject_id'] + "_" + sub['unique_id']
         else:
             subject_id = sub['subject_id']
-        
-        for scan in sub['rest'].keys():
+
+        for scan in list(sub['rest']):
             subject_scan_set.add((subject_id, scan))
             subject_set.add(subject_id)
             scan_set.add(scan)
@@ -426,15 +427,15 @@ def generate_suplimentary_files(output_path):
 
     f.close()
 
-    print "Template Phenotypic file for group analysis - %s" % file_name
+    print("Template Phenotypic file for group analysis - %s" % file_name)
 
     file_name = os.path.join(output_path, "subject_list_group_analysis.txt")
     f = open(file_name, 'w')
 
     for sub in subject_set:
-        print >> f, sub
+        print(sub, file=f)
 
-    print "Subject list required later for group analysis - %s" % file_name
+    print("Subject list required later for group analysis - %s" % file_name)
     f.close()
 
 
@@ -454,16 +455,16 @@ def read_csv(csv_input):
         reader = csv.DictReader(open(csv_input, "U"))
         dict_labels = defaultdict(list)
         for line in reader:
-            csv_dict = dict((k.lower(), v) for k, v in line.iteritems())
+            csv_dict = dict((k.lower(), v) for k, v in line.items())
             dict_labels[csv_dict.get('site'), csv_dict.get('scan')] = \
             [csv_dict[key] for key in sorted(csv_dict.keys()) \
              if key != 'site' and key != 'scan']
 
-        if len(dict_labels.keys()) < 1:
+        if len(dict_labels) < 1:
             raise Exception("Scan Parameters File is either empty"\
                             "or missing header")
     except:
-        print "Error reading scan parameters csv"
+        print("Error reading scan parameters csv")
         raise
 
     return dict_labels
@@ -477,7 +478,7 @@ class Configuration(object):
             if config_map[key] == 'None':
                 config_map[key] = None
             setattr(self, key, config_map[key])
-        
+
 
 def run(data_config):
     """
@@ -485,17 +486,15 @@ def run(data_config):
     file as the input argument
     """
 
-    import sys
+    c = Configuration(yaml.safe_load(open(os.path.realpath(data_config), 'r')))
 
-    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r')))
-    
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
-        print "no scan parameters csv included"\
+        print("no scan parameters csv included"\
               "make sure you turn off slice timing correction option"\
-              "in CPAC configuration"
+              "in CPAC configuration")
         s_param_map = None
-    
+
     extract_data(c, s_param_map)
     generate_suplimentary_files(c.outputSubjectListLocation)

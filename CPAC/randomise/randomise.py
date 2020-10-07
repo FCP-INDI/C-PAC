@@ -9,7 +9,7 @@ def select(input_list):
         img = nb.load(i)
         hdr = img.header
         if hdr['cal_min'] == 0 and hdr['cal_max'] == 0:
-            print ("Warning! {} is an empty image because of no positive "
+            print("Warning! {} is an empty image because of no positive "
                    "values in the unpermuted statistic image, and it could "
                    "not be processed with tfce.".format('i'))
         if not hdr['cal_max'] == 0 and hdr['cal_min'] == 0:
@@ -116,8 +116,8 @@ def prep_randomise_workflow(c, merged_file, mask_file, f_test, mat_file,
 
 def run(group_config_path):
     import re
-    import commands
-    commands.getoutput('source ~/.bashrc')
+    import subprocess
+    subprocess.getoutput('source ~/.bashrc')
     import os
     import sys
     import pickle
@@ -125,12 +125,12 @@ def run(group_config_path):
 
     group_config_obj = load_config_yml(group_config_path)
     pipeline_output_folder = group_config_obj.pipeline_dir
-    
+
     if not group_config_obj.participant_list == None:
         s_paths = group_config_obj.participant_list
     else:
         s_paths = [x for x in os.listdir(pipeline_output_folder) if os.path.isdir(x)]
-    
+
     merged_file = randomise_merged_file(s_paths)
 
     out_file = randomise_merged_mask(s_paths)

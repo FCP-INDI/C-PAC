@@ -1,12 +1,11 @@
-import os
 import yaml
 import glob
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from CPAC.utils.interfaces.function import Function
-from CPAC.nuisance import create_nuisance_workflow, NuisanceRegressor
+from CPAC.nuisance import create_nuisance_regression_workflow
+from CPAC.nuisance.utils import NuisanceRegressor
 
 selector_config = """
 Regressors:
@@ -89,12 +88,12 @@ def test_nuisance_workflow_type1():
     except:
         pass
 
-    selector_test = yaml.load(selector_config)['Regressors']
+    selector_test = yaml.safe_load(selector_config)['Regressors']
 
     for selector in selector_test:
 
         nuisance_regression_workflow = \
-            create_nuisance_workflow(
+            create_nuisance_regression_workflow(
                 nuisance_selectors=NuisanceRegressor(selector),
                 use_ants=True,
                 name='nuisance'

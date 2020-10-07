@@ -9,7 +9,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # full release.  '.dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
-_version_minor = 6
+_version_minor = 7
 _version_micro = 1
 _version_extra = ''
 
@@ -20,7 +20,8 @@ def get_cpac_gitversion():
     Returns
     -------
     None or str
-      Version of Nipype according to git.
+
+        Version of C-PAC according to git.
     """
     import os
     import subprocess
@@ -35,14 +36,16 @@ def get_cpac_gitversion():
     ver = None
 
     try:
-        o, _ = subprocess.Popen('git describe --always', shell=True, cwd=gitpath,
-                                stdout=subprocess.PIPE).communicate()
+        o, _ = subprocess.Popen('git describe --always', shell=True,
+                                cwd=gitpath, stdout=subprocess.PIPE
+                                ).communicate()
     except Exception:
         pass
     else:
-        ver = o.strip().split('-')[-1]
+        ver = o.decode().strip().split('-')[-1]
 
     return ver
+
 
 if 'dev' in _version_extra:
     gitversion = get_cpac_gitversion()
@@ -135,26 +138,26 @@ REQUIREMENTS        = [
     "boto3==1.7.37",
     "click==6.7",
     "configparser==3.7.4",
-    "cython==0.26",
-    "future==0.16.0",
-    "INDI-Tools==0.0.6",
+    "cython",
+    "future",
+    "INDI-Tools",
     "lockfile==0.12.2",
-    "matplotlib==2.0.2",
-    "networkx==1.11",
-    "nibabel==2.3.0",
+    "matplotlib==3.1.3",
+    "networkx==2.4",
+    "nibabel==2.3.3",
     "nilearn==0.4.1",
     "nipype==1.1.2",
     "nose==1.3.7",
-    "numpy==1.13.0",
+    "numpy==1.16.4",
     "pandas==0.23.4",
     "patsy==0.5.0",
     "prov==1.5.0",
     "psutil==5.4.6",
     "pygraphviz==1.3.1",
     "python-dateutil==2.7.3",
-    "pyyaml==4.2b1",
-    "scikit-learn==0.19.1",
-    "scipy==1.2.1",
+    "pyyaml==5.3",
+    "scikit-learn==0.22.1",
+    "scipy==1.4.1",
     "simplejson==3.15.0",
     "traits==4.6.0",
     "PyBASC==0.4.5",

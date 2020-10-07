@@ -1,4 +1,4 @@
-from median_angle import create_median_angle_correction, \
+from .median_angle import create_median_angle_correction, \
                          create_target_angle, \
                          median_angle_correct, \
                          calc_median_angle_params, \

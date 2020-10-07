@@ -1,6 +1,6 @@
-from reho import create_reho
+from .reho import create_reho
 
-from utils import f_kendall, \
+from .utils import f_kendall, \
                   compute_reho, \
                   getOpString
 
