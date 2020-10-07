@@ -151,6 +151,8 @@ non_local_means_filtering: False
 # N4 bias field correction via ANTs
 n4_bias_field_correction: False
 
+  # Non-local means filtering via ANTs DenoiseImage
+  non_local_means_filtering: False
 
 # ACPC Alignment
 acpc_align: False
@@ -170,155 +172,162 @@ acpc_template_brain: None
 # Set this to 1 if your input images are already skull-stripped.
 already_skullstripped :  [0]
 
+  acpc_alignment:
+  
+    run: Off
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
-skullstrip_option :  ['AFNI']
+    # ACPC size of brain in z-dimension in mm. 
+    # Default: 150mm for human data. 
+    brain_size: 150
 
-    # UNet model
-    unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
+    # ACPC aligned template
+    template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+    template_brain: None
 
-    # For skullstrip option 'niworkflows-ants' only.
+  brain_extraction:
 
-    # Template to be used during niworkflows-ants.
-    # It is not necessary to change this path unless you intend to use a non-standard template.
+    # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
+    # Set this to True if your input images are already skull-stripped.
+    already_skullstripped: False
 
-    # niworkflows-ants Brain extraction template
-    niworkflows_ants_template_path : /ants_template/oasis/T_template0.nii.gz
+    AFNI-3dSkullStrip:
+    
+      run: On
+      
+      # Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
+      mask_vol: False
 
-    # niworkflows-ants probability mask
-    niworkflows_ants_mask_path : /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
+      # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
+      shrink_factor: 0.6
 
-    # niworkflows-ants registration mask (can be optional)
-    niworkflows_ants_regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
+      # Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
+      var_shrink_fac: True
 
+      # The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, for when edge detection is used (which is On by default), otherwise the default value is 0.65.
+      shrink_factor_bot_lim: 0.4
 
-    # Options to be used for AFNI 3dSkullStrip only.
+      # Avoids ventricles while skullstripping.
+      avoid_vent: True
 
-    # Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
-    skullstrip_mask_vol: False
+      # Set the number of iterations. Default is 250.The number of iterations should depend upon the density of your mesh.
+      n_iterations: 250
 
+      # While expanding, consider the voxels above and not only the voxels below
+      pushout: True
 
-    # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
-    skullstrip_shrink_factor :  0.6
+      # Perform touchup operations at the end to include areas not covered by surface expansion.
+      touchup: True
 
+      # Give the maximum number of pixels on either side of the hole that can be filled. The default is 10 only if 'Touchup' is On - otherwise, the default is 0.
+      fill_hole: 10
 
-    # Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
-    skullstrip_var_shrink_fac :  True
+      # Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
+      NN_smooth: 72
 
+      # Perform final surface smoothing after all iterations. Default is 20.
+      smooth_final: 20
 
-    # The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, for when edge detection is used (which is On by default), otherwise the default value is 0.65.
-    skullstrip_shrink_factor_bot_lim :  0.4
+      # Avoid eyes while skull stripping. Default is On.
+      avoid_eyes: True
 
+      # Use edge detection to reduce leakage into meninges and eyes. Default is On.
+      use_edge: True
 
-    # Avoids ventricles while skullstripping.
-    skullstrip_avoid_vent :  True
+      # Speed of expansion.
+      exp_frac: 0.1
 
+      # Perform aggressive push to edge. This might cause leakage. Default is Off.
+      push_to_edge: False
 
-    # Set the number of iterations. Default is 250.The number of iterations should depend upon the density of your mesh.
-    skullstrip_n_iterations :  250
+      # Use outer skull to limit expansion of surface into the skull in case of very strong shading artifacts. Use this only if you have leakage into the skull.
+      use_skull: Off
 
+      # Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection).
+      perc_int: 0
 
-    # While expanding, consider the voxels above and not only the voxels below
-    skullstrip_pushout :  True
+      # Number of iterations to remove intersection problems. With each iteration, the program automatically increases the amount of smoothing to get rid of intersections. Default is 4.
+      max_inter_iter: 4
 
+      # Multiply input dataset by FAC if range of values is too small.
+      fac: 1
 
-    # Perform touchup operations at the end to include areas not covered by surface expansion.
-    skullstrip_touchup :  True
+      # Blur dataset after spatial normalization. Recommended when you have lots of CSF in brain and when you have protruding gyri (finger like). If so, recommended value range is 2-4. Otherwise, leave at 0.
+      blur_fwhm: 0
 
+      # Set it as True if processing monkey data with AFNI
+      monkey: False
 
-    # Give the maximum number of pixels on either side of the hole that can be filled. The default is 10 only if 'Touchup' is On - otherwise, the default is 0.
-    skullstrip_fill_hole :  10
+    FSL-BET:
+    
+      run: Off
+      
+      # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
+      frac: 0.5
 
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: On
 
-    # Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
-    skullstrip_NN_smooth :  72
+      # Mesh created along with skull stripping
+      mesh_boolean: Off
 
+      # Create a surface outline image
+      outline: Off
 
-    # Perform final surface smoothing after all iterations. Default is 20.
-    skullstrip_smooth_final :  20
+      # Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      padding: Off
 
+      # Integer value of head radius
+      radius: 0
 
-    # Avoid eyes while skull stripping. Default is On.
-    skullstrip_avoid_eyes :  True
+      # Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      reduce_bias: Off
 
-
-    # Use edge detection to reduce leakage into meninges and eyes. Default is On.
-    skullstrip_use_edge :  True
-
-
-    # Speed of expansion.
-    skullstrip_exp_frac :  0.1
-
-
-    # Perform aggressive push to edge. This might cause leakage. Default is Off.
-    skullstrip_push_to_edge :  False
-
-
-    # Use outer skull to limit expansion of surface into the skull in case of very strong shading artifacts. Use this only if you have leakage into the skull.
-    skullstrip_use_skull :  Off
-
-
-    # Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection).
-    skullstrip_perc_int :  0
-
-
-    # Number of iterations to remove intersection problems. With each iteration, the program automatically increases the amount of smoothing to get rid of intersections. Default is 4.
-    skullstrip_max_inter_iter :  4
-
-
-    # Multiply input dataset by FAC if range of values is too small.
-    skullstrip_fac :  1
-
-
-    # Blur dataset after spatial normalization. Recommended when you have lots of CSF in brain and when you have protruding gyri (finger like). If so, recommended value range is 2-4. Otherwise, leave at 0.
-    skullstrip_blur_fwhm :  0
+      # Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      remove_eyes: Off
 
 # Set it as True if processing monkey data with AFNI
 skullstrip_monkey : False
 
+      # Create a skull image
+      skull: Off
 
-    # Options to be used for FSL-BET skull-stripping only.
+      # Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
+      surfaces: Off
 
-    # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
-    bet_frac :  0.5
+      # Apply thresholding to segmented brain image and mask
+      threshold: Off
 
+      # Vertical gradient in fractional intensity threshold (-1,1)
+      vertical_gradient : 0.0
 
-    # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-    bet_mask_boolean :  On
+    UNet:
 
+      run: Off
 
-    # Mesh created along with skull stripping
-    bet_mesh_boolean :  Off
+      # UNet model
+      unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 
+    niworkflows-ants:
+    
+      run: Off
 
-    # Create a surface outline image
-    bet_outline :  Off
+      # Template to be used during niworkflows-ants.
+      # It is not necessary to change this path unless you intend to use a non-standard template.
 
+      # niworkflows-ants Brain extraction template
+      template_path : /ants_template/oasis/T_template0.nii.gz
 
-    # Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-    bet_padding :  Off
+      # niworkflows-ants probability mask
+      mask_path : /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
 
+      # niworkflows-ants registration mask (can be optional)
+      regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
-    # Integer value of head radius
-    bet_radius :  0
+  registration:
 
-
-    # Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-    bet_reduce_bias :  Off
-
-
-    # Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-    bet_remove_eyes :  Off
-
-
-    # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-    bet_robust :  Off
-
-
-    # Create a skull image
-    bet_skull :  Off
-
+    # The resolution to which anatomical images should be transformed during registration.
+    # This is the resolution at which processed anatomical files will be output.
+    resolution_for_anat: 2mm
 
     # Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
     bet_surfaces :  Off
@@ -603,16 +612,221 @@ seg_use_threshold : ['FSL-FAST Thresholding']
         # White matter threshold.
         seg_WM_threshold_value : 0.95
 
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    template_skull_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
 
-        # Gray matter threshold.
-        seg_GM_threshold_value : 0.95
+    # Register skull-on anatomical image to a template.
+    reg_with_skull: True
 
+    ANTs:
 
-    # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
-    brain_use_erosion: False
+      run: On
 
+      # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
+      # ANTS registration only.
+      use_lesion_mask: False
 
-        # Erosion proportion, if use erosion.
+      # ANTs parameters for T1-template-based registration
+      T1_registration:
+
+        - collapse-output-transforms: 0
+        - dimensionality: 3
+        - initial-moving-transform :
+           initializationFeature: 0
+
+        - transforms:
+           - Rigid:
+               gradientStep : 0.1
+               metric :
+                 type : MI
+                 metricWeight: 1
+                 numberOfBins : 32
+                 samplingStrategy : Regular
+                 samplingPercentage : 0.25
+               convergence:
+                 iteration : 1000x500x250x100
+                 convergenceThreshold : 1e-08
+                 convergenceWindowSize : 10
+               smoothing-sigmas : 3.0x2.0x1.0x0.0
+               shrink-factors : 8x4x2x1
+               use-histogram-matching : True
+
+           - Affine:
+               gradientStep : 0.1
+               metric :
+                 type : MI
+                 metricWeight: 1
+                 numberOfBins : 32
+                 samplingStrategy : Regular
+                 samplingPercentage : 0.25
+               convergence:
+                 iteration : 1000x500x250x100
+                 convergenceThreshold : 1e-08
+                 convergenceWindowSize : 10
+               smoothing-sigmas : 3.0x2.0x1.0x0.0
+               shrink-factors : 8x4x2x1
+               use-histogram-matching : True
+
+           - SyN:
+               gradientStep : 0.1
+               updateFieldVarianceInVoxelSpace : 3.0
+               totalFieldVarianceInVoxelSpace : 0.0
+               metric:
+                 type : CC
+                 metricWeight: 1
+                 radius : 4
+               convergence:
+                 iteration : 100x100x70x20
+                 convergenceThreshold : 1e-09
+                 convergenceWindowSize : 15
+               smoothing-sigmas : 3.0x2.0x1.0x0.0
+               shrink-factors : 6x4x2x1
+               use-histogram-matching : True
+               winsorize-image-intensities :
+                 lowerQuantile : 0.01
+                 upperQuantile : 0.99
+
+      EPI_registration:
+        - None
+
+    FSL-FNIRT:
+
+      run: Off
+
+      # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
+      fsl_linear_reg_only :  [0]
+
+      # Configuration file to be used by FSL to set FNIRT parameters.
+      # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+      fnirt_config :  T1_2_MNI152_2mm
+
+      # Configuration file to be used by FSL to set FNIRT parameters.
+      # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+      ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+
+  segmentation:
+  
+    # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
+    run: On
+
+    FSL-FAST:
+
+      run: On
+
+    ANTs_Prior_Based:
+    
+      # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
+      # Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
+      run: Off
+
+      # The atlas image assumed to be used in ANTs Prior-based Segmentation.
+      template_brain_list : 
+        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
+        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
+
+      # The atlas segmentation images. 
+      # For performing ANTs Prior-based segmentation method 
+      # the number of specified segmentations should be identical to the number of atlas brain image sets. 
+      # eg.
+      # ANTs_prior_seg_template_brain_list : 
+      #   - atlas1.nii.gz 
+      #   - atlas2.nii.gz 
+      # ANTs_prior_seg_template_segmentation_list:
+      #   - segmentation1.nii.gz 
+      #   - segmentation1.nii.gz 
+      template_segmentation_list:
+        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
+        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
+
+      # Label values corresponding to CSF/GM/WM in atlas file
+      # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
+      # https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
+      
+      # Label value corresponding to CSF in multiatlas file
+      CSF_label : 24
+      
+      # Label value corresponding to Left Gray Matter in multiatlas file
+      left_GM_label : 3
+      
+      # Label value corresponding to Right Gray Matter in multiatlas file
+      right_GM_label : 42
+      
+      # Label value corresponding to Left White Matter in multiatlas file
+      left_WM_label : 2
+      
+      # Label value corresponding to Right White Matter in multiatlas file
+      right_WM_label : 41
+
+    Template_Based:
+
+      run: Off
+
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI_template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['EPI Template', 'T1 Template']
+      template_for_segmentation: ['EPI Template']
+
+      # These masks are included as part of the 'Image Resource Files' package available
+      # on the Install page of the User Guide.
+
+      # Full path to a binarized White Matter mask.
+      WHITE: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_white_bin.nii.gz
+
+      # Full path to a binarized Gray Matter mask.
+      GRAY: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_gray_bin.nii.gz
+
+      # Full path to a binarized CSF mask.
+      CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
+
+    use_priors:
+
+      # Use template-space tissue priors to refine the binary tissue masks generated by segmentation.
+      run: On
+
+      # Full path to a directory containing binarized prior probability maps.
+      # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+      # It is not necessary to change this path unless you intend to use non-standard priors.
+      priors_path: $FSLDIR/data/standard/tissuepriors/2mm
+
+      # Full path to a binarized White Matter prior probability map.
+      # It is not necessary to change this path unless you intend to use non-standard priors.
+      PRIORS_WHITE: $priors_path/avg152T1_white_bin.nii.gz
+
+      # Full path to a binarized Gray Matter prior probability map.
+      # It is not necessary to change this path unless you intend to use non-standard priors.
+      PRIORS_GRAY: $priors_path/avg152T1_gray_bin.nii.gz
+
+      # Full path to a binarized CSF prior probability map.
+      # It is not necessary to change this path unless you intend to use non-standard priors.
+      PRIORS_CSF: $priors_path/avg152T1_csf_bin.nii.gz
+
+    custom_thresholding:
+
+      # Use threshold to further refine the resulting segmentation tissue masks.
+      run: On
+
+      # Set the threshold value for refining the resulting segmentation tissue masks (CSF, White Matter, and Gray Matter)
+      # The default value is 0.95.
+
+      # CSF (cerebrospinal fluid) threshold.
+      CSF_threshold_value : 0.95
+
+      # White matter threshold.
+      WM_threshold_value : 0.95
+
+      # Gray matter threshold.
+      GM_threshold_value : 0.95
+
+    erosion:
+
+      erode_anatomical_brain_mask:
+
+        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        run: Off
+
+        # Erosion proportion, if using erosion.
         # Default proportion is 0 for anatomical brain mask.
         # Recommend that do not use erosion in both proportion and millimeter method.
         brain_mask_erosion_prop : 0
@@ -623,28 +837,26 @@ seg_use_threshold : ['FSL-FAST Thresholding']
 # Recommend that do not use erosion in both proportion and millimeter method.
 brain_mask_erosion_prop : 0
 
-
         # Erode binarized brain mask in millimeter
         brain_erosion_mm: 0
 
+      erode_csf:
 
-    # Erode binarized csf tissue mask.
-    seg_csf_use_erosion: False
-
+        # Erode binarized csf tissue mask.
+        run: Off
 
 # Erosion proportion, if use erosion.
 # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
 # Recommend to do not use erosion in both proportion and millimeter method.
 csf_erosion_prop : 0
 
-
         # Erode binarized CSF (cerebrospinal fluid)  mask in millimeter
         csf_erosion_mm: 0
 
+      erode_wm:
 
-    # Erode WM binarized tissue mask.
-    seg_wm_use_erosion : False
-
+        # Erode WM binarized tissue mask.
+        run: Off
 
 # Erode WM binarized tissue mask.
 seg_wm_use_erosion : False
@@ -656,14 +868,13 @@ seg_wm_use_erosion : False
 # White Matter erosion default is using proportion erosion method when use erosion for White Matter.
 wm_erosion_prop : 0.6
 
-
         # Erode binarized White Matter mask in millimeter
         wm_erosion_mm: 0
 
+      erode_gm:
 
-    # Erode GM binarized tissue mask.
-    seg_gm_use_erosion : False
-
+        # Erode GM binarized tissue mask.
+        run: Off
 
         # Erosion proportion, if use erosion.
         # Recommend to do not use erosion in both proportion and millimeter method.
@@ -673,7 +884,6 @@ wm_erosion_prop : 0.6
 # Erosion proportion, if use erosion.
 # Recommend to do not use erosion in both proportion and millimeter method.
 gm_erosion_prop : 0.6
-
 
         # Erode binarized White Matter mask in millimeter
         gm_erosion_mm: 0
