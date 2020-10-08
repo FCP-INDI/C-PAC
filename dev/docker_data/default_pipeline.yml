@@ -867,6 +867,7 @@ runDespike : [0]
 
       # using: ['ANTS', 'FSL']
       # this is a fork point
+      #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
       using: ['ANTS']
 
       # option parameters
@@ -1115,7 +1116,9 @@ functionalMasking :  ['AFNI']
 bold_bet_functional_mean_boolean : Off
 
     # Interpolate voxel time courses so they are sampled at the same time points.
-    run: On
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
 
   motion_estimates_and_correction:
 
@@ -1188,7 +1191,7 @@ bold_bet_functional_mean_boolean : Off
     #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
     #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
     #   NOTE:
-    #     this is not a fork point - instead, which technique is used will depend on what type of distortion correction field data accompanies the dataset
+    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
     #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
     using: ['PhaseDiff', 'Blip']
 
@@ -1210,43 +1213,43 @@ runRegisterFuncToTemplate :  ['T1_template']
       # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off.
       # Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
       # It must be 'on' if select 'bold_bet_reduce_bias','bold_bet_robust','bold_bet_padding','bold_bet_remove_eyes',or 'bold_bet_surfaces' on
-      functional_mean_boolean : Off
+      functional_mean_boolean: Off
 
       # Set the threshold value controling the brain vs non-brain voxels.
-      frac :  0.3
+      frac: 0.3
 
       # Mesh created along with skull stripping
-      mesh_boolean :  Off
+      mesh_boolean: Off
 
       # Create a surface outline image
-      outline :  Off
+      outline: Off
 
       # Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-      padding :  Off
+      padding: Off
 
       # Integer value of head radius
-      radius :  0
+      radius: 0
 
       # Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-      reduce_bias :  Off
+      reduce_bias: Off
 
       # Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-      remove_eyes :  Off
+      remove_eyes: Off
 
       # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-      robust :  Off
+      robust: Off
 
       # Create a skull image
-      skull :  Off
+      skull: Off
 
       # Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
-      surfaces :  Off
+      surfaces: Off
 
       # Apply thresholding to segmented brain image and mask
-      threshold :  Off
+      threshold: Off
 
       # Vertical gradient in fractional intensity threshold (-1,1)
-      vertical_gradient : 0.0
+      vertical_gradient: 0.0
 
     Anatomical_Refined:
 
@@ -1583,7 +1586,7 @@ timeseries_extraction:
   #     NOTE: in rare cases, realigning the ROI to the functional space may
   #           result in small misalignments for very small ROIs - please double
   #           check your data if you see issues
-  realignment: ['ROI_to_func']
+  realignment: 'ROI_to_func'
 
   # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
   roi_tse_outputs: ['csv', 'numpy']
