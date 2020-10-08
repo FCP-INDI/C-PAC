@@ -1694,6 +1694,7 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
                 'despiked': (despike, 'out_file')
             })
 
+            new_strat.append_name(despike.name)
             new_strat_list.append(new_strat)
 
     strat_list = new_strat_list
