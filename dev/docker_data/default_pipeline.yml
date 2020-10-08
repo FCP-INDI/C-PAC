@@ -613,7 +613,9 @@ functional_preproc:
   despiking:
 
     # Run AFNI 3dDespike
-    run: Off
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [Off]
 
   slice_timing_correction:
 
@@ -687,6 +689,8 @@ functional_preproc:
 
   distortion_correction:
 
+    # this is a fork point
+    #   run: [True, False] - this will run both and fork the pipeline
     run: True
 
     # using: ['PhaseDiff', 'Blip']
@@ -770,6 +774,8 @@ nuisance_corrections:
 
   1-ICA-AROMA:
 
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
     run: True
 
     # Types of denoising strategy:
@@ -779,6 +785,8 @@ nuisance_corrections:
 
   2-nuisance_regression:
 
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
     run: True
 
     # Select which nuisance signal corrections to apply
