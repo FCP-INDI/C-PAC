@@ -162,7 +162,9 @@ class Strategy(object):
                     fork_label = 'freq-filter'
                 
                 if 'gen_motion_stats_before_stc' in fork:
-                    fork_label = 'motion_stats_before_stc' 
+                    fork_label = 'motion_stats_before_stc'
+                if 'despike' in fork:
+                    fork_label = 'despike'
                 if 'slice' in fork:
                     fork_label = 'slice'
                 if 'anat_preproc_afni' in fork:
