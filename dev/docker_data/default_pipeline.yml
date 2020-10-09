@@ -678,7 +678,9 @@ functional_volreg_twopass :  On
 #     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
 motion_estimate_filter:
 
-    run: False
+    # run: [On, Off]
+    # this is a fork option
+    run: [Off]
 
     # options: "notch", "lowpass"
     filter_type: "notch"
