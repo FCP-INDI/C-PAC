@@ -148,6 +148,8 @@ class Strategy(object):
                     fork_label += '_func-3dvolreg'     
                 if 'anat_refined' in fork:
                     fork_label = 'func-anat-refined' 
+                if 'motion_filter' in fork:
+                    fork_label = 'motion-filter'
                 # distortion correction
                 if 'epi_distcorr' in fork:
                     fork_label = 'dist-corr'
