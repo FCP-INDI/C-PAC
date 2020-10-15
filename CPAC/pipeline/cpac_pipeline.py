@@ -1551,7 +1551,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                      ants_reg_anat_symm_mni,
                                      'inputspec.reference_skull')
 
-                    if 'lesion_mask' in sub_dict and c.use_lesion_mask:
+                    if 'lesion_mask' in sub_dict and c.anatomical_preproc[
+                        'registration_workflow'
+                    ]['registration']['ANTs']['use_lesion_mask']:
                         # Create lesion preproc node to apply afni
                         # Refit & Resample
                         lesion_preproc = create_lesion_preproc(
