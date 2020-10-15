@@ -1527,13 +1527,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
-                                        ants_reg_anat_symm_mni,
-                                        'inputspec.moving_brain')
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.moving_brain')
 
                     # pass the reference file
                     node, out_file = strat['template_symmetric_brain']
                     workflow.connect(node, out_file,
-                                    ants_reg_anat_symm_mni, 'inputspec.reference_brain')
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.reference_brain')
 
                     # get the reorient skull-on anatomical from resource
                     # pool
@@ -1541,24 +1542,26 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # pass the anatomical to the workflow
                     workflow.connect(node, out_file,
-                                        ants_reg_anat_symm_mni,
-                                        'inputspec.moving_skull')
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.moving_skull')
 
                     # pass the reference file
                     node, out_file = strat['template_symmetric_skull']
                     workflow.connect(node, out_file,
-                                        ants_reg_anat_symm_mni, 'inputspec.reference_skull')
-
+                                     ants_reg_anat_symm_mni,
+                                     'inputspec.reference_skull')
 
                     if 'lesion_mask' in sub_dict and c.use_lesion_mask:
-                        # Create lesion preproc node to apply afni Refit & Resample
+                        # Create lesion preproc node to apply afni
+                        # Refit & Resample
                         lesion_preproc = create_lesion_preproc(
                             wf_name='lesion_preproc_%d' % num_strat
                         )
                         # Add the name of the node in the strat object
                         strat.append_name(lesion_preproc.name)
 
-                        # I think I don't need to set this node as leaf but not sure
+                        # I think I don't need to set this node as
+                        # leaf but not sure
                         # strat.set_leaf_properties(lesion_preproc,
                         # 'inputspec.lesion')
 
@@ -1567,8 +1570,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             'lesion_reorient': (
                                 lesion_preproc, 'outputspec.reorient')
                         })
-                        # The Refit lesion is not added to the resource pool because
-                        # it is not used afterward
+                        # The Refit lesion is not added to the resource
+                        # pool because it is not used afterward
 
                         # Retieve the lesion mask from the resource pool
                         node, out_file = strat['lesion_mask']
@@ -1582,15 +1585,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         # fixed_image_mask option
                         workflow.connect(
                             lesion_preproc, 'outputspec.reorient',
-                            ants_reg_anat_symm_mni, 'inputspec.fixed_image_mask'
+                            ants_reg_anat_symm_mni,
+                            'inputspec.fixed_image_mask'
                         )
                     else:
-                        ants_reg_anat_symm_mni.inputs.inputspec.fixed_image_mask = \
-                            None
+                        ants_reg_anat_symm_mni.inputs.inputspec. \
+                            fixed_image_mask = None
 
                     strat.append_name(ants_reg_anat_symm_mni.name)
-                    strat.set_leaf_properties(ants_reg_anat_symm_mni,
-                                            'outputspec.normalized_output_brain')
+                    strat.set_leaf_properties(
+                        ants_reg_anat_symm_mni,
+                        'outputspec.normalized_output_brain')
 
                     strat.update_resource_pool({
                         'ants_symmetric_initial_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_initial_xfm'),
