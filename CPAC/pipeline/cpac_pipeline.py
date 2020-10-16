@@ -1787,10 +1787,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                  seg_preproc_template_based,
                                  'inputspec.WHITE_template')
 
-                if 'None' in template_for_segmentation:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
                 strat.append_name(seg_preproc_template_based.name)
                 strat.update_resource_pool({
                     'epi_gm_mask': (
