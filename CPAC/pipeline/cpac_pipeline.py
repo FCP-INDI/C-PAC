@@ -1562,11 +1562,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         # Add the name of the node in the strat object
                         strat.append_name(lesion_preproc.name)
 
-                        # I think I don't need to set this node as
-                        # leaf but not sure
-                        # strat.set_leaf_properties(lesion_preproc,
-                        # 'inputspec.lesion')
-
                         # Add the lesion preprocessed to the resource pool
                         strat.update_resource_pool({
                             'lesion_reorient': (
@@ -1657,7 +1652,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                              fmap_rp_list)
 
         for num_strat, strat in enumerate(strat_list):
-
             # Resample brain mask with derivative resolution
             node, out_file = strat['functional_brain_mask']
             resampled_template = pe.Node(
@@ -1704,10 +1698,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
 
-        # Just a shorter variable for a multiply called long selector
-        template_for_segmentation = c.anatomical_preproc[
+        # these are just a shorter variables for config variables that are
+        # called multiple times
+        template_based_segmentation = c.anatomical_preproc[
             'segmentation_workflow'
-        ]['1-segmentation']['Template_Based']['template_for_segmentation']
+        ]['1-segmentation']['Template_Based']
+        template_for_segmentation = template_based_segmentation[
+            'template_for_segmentation']
 
         if 'EPI_template' in template_for_segmentation:
 
@@ -1738,7 +1735,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         wf_name='seg_preproc_epi_template_{0}'.format(
                             num_strat))
 
-                # TODO ASH review
                 if seg_preproc_template_based is None:
                     continue
 
@@ -1762,26 +1758,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                      'inputspec.brain')
 
                     node, out_file = strat['func_to_epi_ants_initial_xfm']
-                    # node, out_file = strat['ants_initial_xfm']
                     workflow.connect(node, out_file,
                                      seg_preproc_template_based,
                                      'inputspec.standard2highres_init')
 
                     node, out_file = strat['func_to_epi_ants_rigid_xfm']
-                    # node, out_file = strat['ants_rigid_xfm']
                     workflow.connect(node, out_file,
                                      seg_preproc_template_based,
                                      'inputspec.standard2highres_rig')
 
                     node, out_file = strat['func_to_epi_ants_affine_xfm']
-                    # node, out_file = strat['ants_affine_xfm']
                     workflow.connect(node, out_file,
                                      seg_preproc_template_based,
                                      'inputspec.standard2highres_mat')
-
-                template_based_segmentation = c.anatomical_preproc[
-                    'segmentation_workflow'
-                ]['1-segmentation']['Template_Based']
 
                 workflow.connect(template_based_segmentation['CSF'],
                                  'local_path',
@@ -1798,7 +1787,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                  seg_preproc_template_based,
                                  'inputspec.WHITE_template')
 
-                # TODO ASH review with forking function
                 if 'None' in template_for_segmentation:
                     strat = strat.fork()
                     new_strat_list.append(strat)
@@ -1813,10 +1801,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         seg_preproc_template_based, 'outputspec.wm_mask')
                 })
 
-            del template_for_segmentation  # don't need this shorthand anymore
+            # We don't need these shorthand variables anymore after this loop
+            del template_based_segmentation, template_for_segmentation
 
         strat_list += new_strat_list
-
 
         # Inserting Generate Motion Statistics Workflow
         new_strat_list = []
