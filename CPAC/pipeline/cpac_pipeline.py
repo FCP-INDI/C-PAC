@@ -1894,7 +1894,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                          num_strat)
 
                     aroma_preproc.inputs.params.denoise_type = \
-                        c.aroma_denoise_type
+                        c.nuisance_corrections['1-ICA-AROMA']['denoising_type']
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, aroma_preproc,
@@ -1908,7 +1908,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file, aroma_preproc,
                                     'inputspec.fnirt_warp_file')
 
-                    if c.aroma_denoise_type == 'nonaggr':
+                    if c.nuisance_corrections['1-ICA-AROMA'][
+                        'denoising_type'
+                    ] == 'nonaggr':
 
                         strat.set_leaf_properties(aroma_preproc,
                                                   'outputspec.nonaggr_denoised_file')
@@ -1919,7 +1921,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             }
                         )
 
-                    elif c.aroma_denoise_type == 'aggr':
+                    elif c.nuisance_corrections[
+                        '1-ICA-AROMA'
+                    ]['denoising_type'] == 'aggr':
                         strat.set_leaf_properties(aroma_preproc,
                                                   'outputspec.aggr_denoised_file')
 
@@ -1952,19 +1956,24 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1',func_type='ica-aroma')
 
                     aroma_preproc = create_aroma(tr=None, wf_name='create_aroma_{0}'.format(num_strat))
-                    aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
+                    aroma_preproc.inputs.params.denoise_type = \
+                        c.nuisance_corrections['1-ICA-AROMA']['denoising_type']
 
                     node, out_file = strat['ica_aroma_functional_to_standard']
                     workflow.connect(node, out_file, aroma_preproc,
                                     'inputspec.denoise_file')
 
                     # warp back
-                    if c.aroma_denoise_type == 'nonaggr':
+                    if c.nuisance_corrections[
+                        '1-ICA-AROMA'
+                    ]['denoising_type'] == 'nonaggr':
                         node, out_file = (
                             aroma_preproc, 'outputspec.nonaggr_denoised_file'
                         )
 
-                    elif c.aroma_denoise_type == 'aggr':
+                    elif c.nuisance_corrections[
+                        '1-ICA-AROMA'
+                    ]['denoising_type'] == 'aggr':
                         node, out_file = (
                             aroma_preproc, 'outputspec.aggr_denoised_file'
                         )
