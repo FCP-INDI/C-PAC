@@ -1874,9 +1874,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         for num_strat, strat in enumerate(strat_list):
 
-            if 1 in c.runICA:
+            if True in c.nuisance_corrections['1-ICA-AROMA']['run']:
 
-                if 0 in c.runICA:
+                if False in c.nuisance_corrections['1-ICA-AROMA']['run']:
                     new_strat_list += [strat.fork()]
 
                 if 'none' in str(c.TR).lower():
