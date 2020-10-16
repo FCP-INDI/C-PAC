@@ -1321,34 +1321,6 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(func_normalize, 'out_file',
                     output_node, 'preprocessed')
 
-    # TODO XL review forking
-    if 'func' in config.run_longitudinal:
-        # get median brain for longitudinal
-        func_get_preprocessed_median = pe.Node(interface=afni_utils.TStat(),
-                            name='func_get_preprocessed_median')
-
-        func_get_preprocessed_median.inputs.options = '-median'
-        func_get_preprocessed_median.inputs.outputtype = 'NIFTI_GZ'
-
-        preproc.connect(func_normalize, 'out_file',
-                        func_get_preprocessed_median, 'in_file')
-
-        preproc.connect(func_get_preprocessed_median, 'out_file',
-                    output_node, 'preprocessed_median')   
-
-        # get median skull for longitudinal
-        func_get_motion_correct_median = pe.Node(interface=afni_utils.TStat(),
-                            name='func_get_motion_correct_median')
-
-        func_get_motion_correct_median.inputs.options = '-median'
-        func_get_motion_correct_median.inputs.outputtype = 'NIFTI_GZ'
-
-        preproc.connect(func_motion_correct_A, 'out_file',
-                        func_get_motion_correct_median, 'in_file')
-
-        preproc.connect(func_get_motion_correct_median, 'out_file',
-                    output_node, 'motion_correct_median')
-
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
                                   name='func_mask_normalize')
     func_mask_normalize.inputs.op_string = '-Tmin -bin'
@@ -1828,12 +1800,6 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                 'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot')
             })
 
-            if 'func' in c.run_longitudinal:
-                strat.update_resource_pool({
-                    'functional_preprocessed_median': (func_preproc, 'outputspec.preprocessed_median'),
-                    'motion_correct_median': (func_preproc, 'outputspec.motion_correct_median'),                                
-                })
-
             new_strat_list.append(strat)
 
         else:
@@ -1920,12 +1886,6 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                                 'motion_estimate_filter_info_design': (func_preproc, 'outputspec.motion_filter_info'),
                                 'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot')
                             })
-
-                            if 'func' in c.run_longitudinal:
-                                new_strat.update_resource_pool({
-                                    'functional_preprocessed_median': (func_preproc, 'outputspec.preprocessed_median'),
-                                    'motion_correct_median': (func_preproc, 'outputspec.motion_correct_median'),                                
-                                })
                             
                             new_strat_list.append(new_strat)
 

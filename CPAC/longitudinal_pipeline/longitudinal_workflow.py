@@ -854,29 +854,6 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     config=config,
                     wf_name=preproc_wf_name)
 
-                anat_preproc.inputs.AFNI_options.set(
-                    shrink_factor=config.skullstrip_shrink_factor,
-                    var_shrink_fac=config.skullstrip_var_shrink_fac,
-                    shrink_fac_bot_lim=config.skullstrip_shrink_factor_bot_lim,
-                    avoid_vent=config.skullstrip_avoid_vent,
-                    niter=config.skullstrip_n_iterations,
-                    pushout=config.skullstrip_pushout,
-                    touchup=config.skullstrip_touchup,
-                    fill_hole=config.skullstrip_fill_hole,
-                    avoid_eyes=config.skullstrip_avoid_eyes,
-                    use_edge=config.skullstrip_use_edge,
-                    exp_frac=config.skullstrip_exp_frac,
-                    smooth_final=config.skullstrip_smooth_final,
-                    push_to_edge=config.skullstrip_push_to_edge,
-                    use_skull=config.skullstrip_use_skull,
-                    perc_int=config.skullstrip_perc_int,
-                    max_inter_iter=config.skullstrip_max_inter_iter,
-                    blur_fwhm=config.skullstrip_blur_fwhm,
-                    fac=config.skullstrip_fac,
-                    monkey=config.skullstrip_monkey,
-                    mask_vol=config.skullstrip_mask_vol
-                )
-
                 new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
                     strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
                 strat_list.append(new_strat)
@@ -889,22 +866,6 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     method=skullstrip_method,
                     config=config,
                     wf_name=preproc_wf_name)
-
-                anat_preproc.inputs.BET_options.set(
-                    frac=config.bet_frac,
-                    mask_boolean=config.bet_mask_boolean,
-                    mesh_boolean=config.bet_mesh_boolean,
-                    outline=config.bet_outline,
-                    padding=config.bet_padding,
-                    radius=config.bet_radius,
-                    reduce_bias=config.bet_reduce_bias,
-                    remove_eyes=config.bet_remove_eyes,
-                    robust=config.bet_robust,
-                    skull=config.bet_skull,
-                    surfaces=config.bet_surfaces,
-                    threshold=config.bet_threshold,
-                    vertical_gradient=config.bet_vertical_gradient,
-                )
 
                 new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
                     strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
@@ -982,12 +943,12 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         unique_id_list = [i.get_name()[0].split('_')[-1] for i in strat_nodes_list]
 
         template_node.inputs.set(
-            avg_method=config.longitudinal_template_average_method,
-            dof=config.longitudinal_template_dof,
-            interp=config.longitudinal_template_interp,
-            cost=config.longitudinal_template_cost,
-            convergence_threshold=config.longitudinal_template_convergence_threshold,
-            thread_pool=config.longitudinal_template_thread_pool,
+            avg_method=config.longitudinal_template_generation['average_method'],
+            dof=config.longitudinal_template_generation['dof'],
+            interp=config.longitudinal_template_generation['interp'],
+            cost=config.longitudinal_template_generation['cost'],
+            convergence_threshold=config.longitudinal_template_generation['convergence_threshold'],
+            thread_pool=config.longitudinal_template_generation['thread_pool'],
             unique_id_list=unique_id_list
         )
 
@@ -1653,12 +1614,12 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
     )
 
     template_node.inputs.set(
-        avg_method=config.longitudinal_template_average_method,
-        dof=config.longitudinal_template_dof,
-        interp=config.longitudinal_template_interp,
-        cost=config.longitudinal_template_cost,
-        convergence_threshold=config.longitudinal_template_convergence_threshold,
-        thread_pool=config.longitudinal_template_thread_pool,
+        avg_method=config.longitudinal_template_generation['average_method'],
+        dof=config.longitudinal_template_generation['dof'],
+        interp=config.longitudinal_template_generation['interp'],
+        cost=config.longitudinal_template_generation['cost'],
+        convergence_threshold=config.longitudinal_template_generation['convergence_threshold'],
+        thread_pool=config.longitudinal_template_generation['thread_pool'],
     )
 
     workflow.connect(merge_func_preproc_node, 'brain_list', 
