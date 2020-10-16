@@ -1858,13 +1858,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                  'inputspec.transformations')
 
                 strat.update_resource_pool({
-                    'frame_wise_displacement_power': (gen_motion_stats, 'outputspec.FDP_1D'),
-                    'frame_wise_displacement_jenkinson': (gen_motion_stats, 'outputspec.FDJ_1D'),
-                    'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
-                    'power_params': (gen_motion_stats, 'outputspec.power_params'),
-                    'motion_params': (gen_motion_stats, 'outputspec.motion_params')
+                    'frame_wise_displacement_power': (
+                        gen_motion_stats, 'outputspec.FDP_1D'),
+                    'frame_wise_displacement_jenkinson': (
+                        gen_motion_stats, 'outputspec.FDJ_1D'),
+                    'dvars': (
+                        gen_motion_stats, 'outputspec.DVARS_1D'),
+                    'power_params': (
+                        gen_motion_stats, 'outputspec.power_params'),
+                    'motion_params': (
+                        gen_motion_stats, 'outputspec.motion_params')
                 })
-
 
         new_strat_list = []
 
@@ -1885,9 +1889,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         strat.get('registration_method') != 'ANTS':
 
                     aroma_preproc = create_aroma(tr=TR,
-                                                wf_name='create_aroma_%d' % num_strat)
+                                                 wf_name='create_aroma_%d' %
+                                                         num_strat)
 
-                    aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
+                    aroma_preproc.inputs.params.denoise_type = \
+                        c.aroma_denoise_type
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, aroma_preproc,
