@@ -2001,17 +2001,31 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     if strat.get('epi_registration_method') == 'ANTS':
 
-                        for output_name, func_key, ref_key, image_type in [ \
-                                ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
+                        for output_name, func_key, ref_key, image_type in [
+                            ('ica_aroma_denoised_functional',
+                             'ica_aroma_denoised_functional_to_standard',
+                             'mean_functional', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='epi', func_type='ica-aroma')
+                            output_func_to_standard(
+                                workflow, func_key, ref_key, output_name,
+                                strat, num_strat, c,
+                                input_image_type=image_type,
+                                inverse=True, registration_template='epi',
+                                func_type='ica-aroma')
 
                     else:
 
-                        for output_name, func_key, ref_key, image_type in [ \
-                                ('ica_aroma_denoised_functional', 'ica_aroma_denoised_functional_to_standard', 'mean_functional', 'func_4d'),
+                        for output_name, func_key, ref_key, image_type in [
+                            ('ica_aroma_denoised_functional',
+                             'ica_aroma_denoised_functional_to_standard',
+                             'mean_functional', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, inverse=True, registration_template='t1', func_type='ica-aroma')
+                            output_func_to_standard(
+                                workflow, func_key, ref_key, output_name,
+                                strat, num_strat, c,
+                                input_image_type=image_type, inverse=True,
+                                registration_template='t1',
+                                func_type='ica-aroma')
 
                     node, out_file = strat["ica_aroma_denoised_functional"]
                     strat.set_leaf_properties(node, out_file)
@@ -2021,7 +2035,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         }, override=True
                     )
 
-        # We don't need these shorthand variables anymore after this loop
+        # We don't need this shorthand variable anymore after this loop
         del regOption
 
         strat_list += new_strat_list
@@ -2044,7 +2058,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             ]['run'] or True in c.PyPEER['run']:
                 new_strat_list.append(strat.fork())
 
-            has_segmentation = 'anatomical_csf_mask' in strat or 'epi_csf_mask' in strat
+            has_segmentation = 'anatomical_csf_mask' in strat or \
+                'epi_csf_mask' in strat
             use_ants = strat.get('registration_method') == 'ANTS'
 
             for regressors_selector_i, regressors_selector in enumerate(
@@ -2053,7 +2068,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 new_strat = strat.fork()
 
-                # Before start nuisance_wf, covert OrderedDict(regressors_selector) to dict
+                # Before start nuisance_wf, covert
+                # OrderedDict(regressors_selector) to dict
                 regressors_selector = ordereddict_to_dict(regressors_selector)
 
                 # to guarantee immutability
@@ -2076,8 +2092,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     regressors_selector,
                     use_ants=use_ants,
                     ventricle_mask_exist=ventricle_mask_exist,
-                    name='nuisance_regressor_{0}_{1}'.format(regressors_selector_i, num_strat)
-                )
+                    name='nuisance_regressor_{0}_{1}'.format(
+                        regressors_selector_i, num_strat))
 
                 node, node_out = strat['tr']
                 workflow.connect(node, node_out,
@@ -2086,8 +2102,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical_brain']
                 workflow.connect(
                     node, out_file,
-                    regressor_workflow, 'inputspec.anatomical_file_path'
-                )
+                    regressor_workflow, 'inputspec.anatomical_file_path')
 
                 if has_segmentation:
 
