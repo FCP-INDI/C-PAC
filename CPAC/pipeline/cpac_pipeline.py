@@ -1703,19 +1703,25 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
+        
+        # Just a shorter variable for a multiply called long selector
+        template_for_segmentation = c.anatomical_preproc[
+            'segmentation_workflow'
+        ]['1-segmentation']['Template_Based']['template_for_segmentation']
 
-        if 'EPI_template' in c.template_based_segmentation:
+        if 'EPI_template' in template_for_segmentation:
 
             for num_strat, strat in enumerate(strat_list):
 
                 if 'functional_to_epi-standard' not in strat:
                     continue
 
-                if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
+                if not any(o in template_for_segmentation for o in [
+                    'EPI_template', 'T1_template', 'None']):
                     err = '\n\n[!] C-PAC says: Your template based segmentation ' \
                         'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
                         'Options you provided:\ntemplate_based_segmentation: {0}' \
-                        '\n\n'.format(str(c.template_based_segmentation))
+                        '\n\n'.format(str(template_for_segmentation))
                     raise Exception(err)
 
                 if strat.get('epi_registration_method') == 'FSL':
@@ -1785,6 +1791,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'epi_csf_mask': (seg_preproc_template_based, 'outputspec.csf_mask'),
                     'epi_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
                 })
+
+            del template_for_segmentation  # don't need this shorthand anymore
 
         strat_list += new_strat_list
 
