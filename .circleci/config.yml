@@ -141,11 +141,10 @@ jobs:
               VERSION=$(python -c "from info import __version__; print(__version__)")
               cd ..
               if ! [[ $CIRCLE_BRANCH = 'master' ]]
-                then if [[ $CIRCLE_BRANCH = 'develop' || ${CIRCLE_BRANCH:0:7} = 'hotfix/' ]]
-                  then REBASE_BASE_BRANCH=master
-                  else REBASE_BASE_BRANCH=develop
-                fi
-                GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i origin/$REBASE_BASE_BRANCH --empty drop
+                then
+                  git fetch --all
+                  REBASE_BASE=$(git merge-base --fork-point HEAD)
+                  GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i $REBASE_BASE --empty drop
               fi
               echo "v${VERSION}" > version
               sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
