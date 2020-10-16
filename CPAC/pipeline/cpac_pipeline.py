@@ -1703,7 +1703,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
-        
+
         # Just a shorter variable for a multiply called long selector
         template_for_segmentation = c.anatomical_preproc[
             'segmentation_workflow'
@@ -1717,11 +1717,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     continue
 
                 if not any(o in template_for_segmentation for o in [
-                    'EPI_template', 'T1_template', 'None']):
-                    err = '\n\n[!] C-PAC says: Your template based segmentation ' \
-                        'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
-                        'Options you provided:\ntemplate_based_segmentation: {0}' \
-                        '\n\n'.format(str(template_for_segmentation))
+                    'EPI_template', 'T1_template', 'None'
+                ]):
+                    err = '\n\n[!] C-PAC says: Your template based ' \
+                          'segmentation setting does not include either '\
+                          '\'EPI_template\' or \'T1_template\'.\n\n' \
+                          'Options you provided:\n' \
+                          f'template_based_segmentation: {0}' \
+                          '\n\n'.format(str(template_for_segmentation))
                     raise Exception(err)
 
                 if strat.get('epi_registration_method') == 'FSL':
@@ -1729,8 +1732,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 elif strat.get('epi_registration_method') == 'ANTS':
                     use_ants = True
 
-                seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
-                                                                wf_name='seg_preproc_epi_template_{0}'.format(num_strat))
+                seg_preproc_template_based = \
+                    create_seg_preproc_template_based(
+                        use_ants=use_ants,
+                        wf_name='seg_preproc_epi_template_{0}'.format(
+                            num_strat))
 
                 # TODO ASH review
                 if seg_preproc_template_based is None:
@@ -1740,45 +1746,53 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
-                                    seg_preproc_template_based, 'inputspec.brain')
+                                     seg_preproc_template_based,
+                                     'inputspec.brain')
 
                     node, out_file = strat['func_to_epi_invlinear_xfm']
                     workflow.connect(node, out_file,
-                                    seg_preproc_template_based,
-                                    'inputspec.standard2highres_mat')
+                                     seg_preproc_template_based,
+                                     'inputspec.standard2highres_mat')
 
                 elif strat.get('epi_registration_method') == 'ANTS':
 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
-                                    seg_preproc_template_based, 'inputspec.brain')
+                                     seg_preproc_template_based,
+                                     'inputspec.brain')
 
                     node, out_file = strat['func_to_epi_ants_initial_xfm']
                     # node, out_file = strat['ants_initial_xfm']
                     workflow.connect(node, out_file,
-                                    seg_preproc_template_based,
-                                    'inputspec.standard2highres_init')
+                                     seg_preproc_template_based,
+                                     'inputspec.standard2highres_init')
 
                     node, out_file = strat['func_to_epi_ants_rigid_xfm']
                     # node, out_file = strat['ants_rigid_xfm']
                     workflow.connect(node, out_file,
-                                    seg_preproc_template_based,
-                                    'inputspec.standard2highres_rig')
+                                     seg_preproc_template_based,
+                                     'inputspec.standard2highres_rig')
 
                     node, out_file = strat['func_to_epi_ants_affine_xfm']
                     # node, out_file = strat['ants_affine_xfm']
                     workflow.connect(node, out_file,
-                                    seg_preproc_template_based,
-                                    'inputspec.standard2highres_mat')
+                                     seg_preproc_template_based,
+                                     'inputspec.standard2highres_mat')
 
-                workflow.connect(c.template_based_segmentation_CSF, 'local_path',
-                                    seg_preproc_template_based, 'inputspec.CSF_template')
+                workflow.connect(c.template_based_segmentation_CSF,
+                                 'local_path',
+                                 seg_preproc_template_based,
+                                 'inputspec.CSF_template')
 
-                workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
-                                    seg_preproc_template_based, 'inputspec.GRAY_template')
+                workflow.connect(c.template_based_segmentation_GRAY,
+                                 'local_path',
+                                 seg_preproc_template_based,
+                                 'inputspec.GRAY_template')
 
-                workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
-                                    seg_preproc_template_based, 'inputspec.WHITE_template')
+                workflow.connect(c.template_based_segmentation_WHITE,
+                                 'local_path',
+                                 seg_preproc_template_based,
+                                 'inputspec.WHITE_template')
 
                 # TODO ASH review with forking function
                 if 'None' in c.template_based_segmentation:
@@ -1787,9 +1801,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 strat.append_name(seg_preproc_template_based.name)
                 strat.update_resource_pool({
-                    'epi_gm_mask': (seg_preproc_template_based, 'outputspec.gm_mask'),
-                    'epi_csf_mask': (seg_preproc_template_based, 'outputspec.csf_mask'),
-                    'epi_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
+                    'epi_gm_mask': (
+                        seg_preproc_template_based, 'outputspec.gm_mask'),
+                    'epi_csf_mask': (
+                        seg_preproc_template_based, 'outputspec.csf_mask'),
+                    'epi_wm_mask': (
+                        seg_preproc_template_based, 'outputspec.wm_mask')
                 })
 
             del template_for_segmentation  # don't need this shorthand anymore
