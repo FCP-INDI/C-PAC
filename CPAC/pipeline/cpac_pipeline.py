@@ -1872,6 +1872,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         new_strat_list = []
 
+        # this is just a shorter variable for a config variable that is
+        # called multiple times
+        regOption = c.anatomical_preproc[
+            'registration_workflow'
+        ]['registration']['using']
+
         for num_strat, strat in enumerate(strat_list):
 
             if True in c.nuisance_corrections['1-ICA-AROMA']['run']:
@@ -1880,7 +1886,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     new_strat_list += [strat.fork()]
 
                 # FNIRT ONLY! ANTS further below!
-                if 'FSL' in c.regOption and \
+                if 'FSL' in regOption and \
                         strat.get('registration_method') != 'ANTS':
 
                     aroma_preproc = create_aroma(tr=None,
@@ -1925,7 +1931,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     strat.append_name(aroma_preproc.name)
 
-                elif 'ANTS' in c.regOption and \
+                elif 'ANTS' in regOption and \
                     strat.get('registration_method') != 'FSL':
 
                     # we don't have the FNIRT warp file, so we need to calculate
@@ -1989,6 +1995,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'ica_aroma_denoised_functional': (node, out_file)
                         }, override=True
                     )
+
+        # We don't need these shorthand variables anymore after this loop
+        del regOption
 
         strat_list += new_strat_list
 
