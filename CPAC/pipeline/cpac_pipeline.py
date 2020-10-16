@@ -2183,7 +2183,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file, regressor_workflow,
                     'inputspec.functional_brain_mask_file_path')
 
-                if c.brain_use_erosion:
+                if c.anatomical_preproc[
+                    'segmentation_workflow'
+                ]['4-erosion']['erode_anatomical_brain_mask']['run']:
                     node, out_file = new_strat['anatomical_eroded_brain_mask']
                     workflow.connect(
                         node, out_file, regressor_workflow,
