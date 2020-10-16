@@ -1898,71 +1898,86 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file, aroma_preproc,
-                                    'inputspec.denoise_file')
+                                     'inputspec.denoise_file')
 
                     node, out_file = strat['functional_to_anat_linear_xfm']
                     workflow.connect(node, out_file, aroma_preproc,
-                                    'inputspec.mat_file')
+                                     'inputspec.mat_file')
 
                     node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
                     workflow.connect(node, out_file, aroma_preproc,
-                                    'inputspec.fnirt_warp_file')
+                                     'inputspec.fnirt_warp_file')
 
                     if c.nuisance_corrections['1-ICA-AROMA'][
                         'denoising_type'
                     ] == 'nonaggr':
 
-                        strat.set_leaf_properties(aroma_preproc,
-                                                  'outputspec.nonaggr_denoised_file')
+                        strat.set_leaf_properties(
+                            aroma_preproc,
+                            'outputspec.nonaggr_denoised_file')
 
                         strat.update_resource_pool({
                             'ica_aroma_denoised_functional': (
-                                aroma_preproc, 'outputspec.nonaggr_denoised_file')
-                            }
-                        )
+                                aroma_preproc,
+                                'outputspec.nonaggr_denoised_file')
+                        })
 
                     elif c.nuisance_corrections[
                         '1-ICA-AROMA'
                     ]['denoising_type'] == 'aggr':
-                        strat.set_leaf_properties(aroma_preproc,
-                                                  'outputspec.aggr_denoised_file')
+                        strat.set_leaf_properties(
+                            aroma_preproc,
+                            'outputspec.aggr_denoised_file')
 
                         strat.update_resource_pool({
                             'ica_aroma_denoised_functional': (
                                 aroma_preproc, 'outputspec.aggr_denoised_file')
-                            }
-                        )
+                        })
 
                     strat.append_name(aroma_preproc.name)
 
-                elif 'ANTS' in regOption and \
-                    strat.get('registration_method') != 'FSL':
+                elif 'ANTS' in regOption and strat.get(
+                    'registration_method'
+                ) != 'FSL':
 
-                    # we don't have the FNIRT warp file, so we need to calculate
-                    # ICA-AROMA de-noising in template space
+                    # we don't have the FNIRT warp file, so we need to
+                    # calculate ICA-AROMA de-noising in template space
 
                     if strat.get('epi_registration_method') == 'ANTS':
 
-                        for output_name, func_key, ref_key, image_type in [ \
-                                ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                        for output_name, func_key, ref_key, image_type in [
+                            ('ica_aroma_functional_to_standard', 'leaf',
+                             'template_brain_for_func_preproc', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='ica-aroma')
+                            output_func_to_standard(
+                                workflow, func_key, ref_key, output_name,
+                                strat, num_strat, c,
+                                input_image_type=image_type,
+                                registration_template='epi',
+                                func_type='ica-aroma')
 
                     elif 'T1_template' in c.functional_registration[
                         '2-func_registration_to_template'
                     ]['target_template']['using']:
-                        for output_name, func_key, ref_key, image_type in [ \
-                                ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                        for output_name, func_key, ref_key, image_type in [
+                                ('ica_aroma_functional_to_standard', 'leaf',
+                                 'template_brain_for_func_preproc', 'func_4d'),
                         ]:
-                            output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1',func_type='ica-aroma')
+                            output_func_to_standard(
+                                workflow, func_key, ref_key, output_name,
+                                strat, num_strat, c,
+                                input_image_type=image_type,
+                                registration_template='t1',
+                                func_type='ica-aroma')
 
-                    aroma_preproc = create_aroma(tr=None, wf_name='create_aroma_{0}'.format(num_strat))
+                    aroma_preproc = create_aroma(
+                        tr=None, wf_name='create_aroma_{0}'.format(num_strat))
                     aroma_preproc.inputs.params.denoise_type = \
                         c.nuisance_corrections['1-ICA-AROMA']['denoising_type']
 
                     node, out_file = strat['ica_aroma_functional_to_standard']
                     workflow.connect(node, out_file, aroma_preproc,
-                                    'inputspec.denoise_file')
+                                     'inputspec.denoise_file')
 
                     # warp back
                     if c.nuisance_corrections[
@@ -1980,9 +1995,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         )
 
                     strat.update_resource_pool({
-                        'ica_aroma_denoised_functional_to_standard': (node, out_file)
-                        }
-                    )
+                        'ica_aroma_denoised_functional_to_standard': (
+                            node, out_file)
+                    })
 
                     if strat.get('epi_registration_method') == 'ANTS':
 
