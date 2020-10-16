@@ -1664,8 +1664,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 name='functional_brain_mask_derivative_%d' % (num_strat)
             )
 
-            resampled_template.inputs.resolution = \
-                c.resolution_for_func_derivative
+            resampled_template.inputs.resolution = c.functional_registration[
+                '2-func_registration_to_template'
+            ]['output_resolution']['func_derivative_outputs']
             resampled_template.inputs.template_name = \
                 'functional_brain_mask_derivative'
             workflow.connect(node, out_file, resampled_template, 'template')
