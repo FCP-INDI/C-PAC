@@ -1779,23 +1779,27 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                      seg_preproc_template_based,
                                      'inputspec.standard2highres_mat')
 
-                workflow.connect(c.template_based_segmentation_CSF,
+                template_based_segmentation = c.anatomical_preproc[
+                    'segmentation_workflow'
+                ]['1-segmentation']['Template_Based']
+
+                workflow.connect(template_based_segmentation['CSF'],
                                  'local_path',
                                  seg_preproc_template_based,
                                  'inputspec.CSF_template')
 
-                workflow.connect(c.template_based_segmentation_GRAY,
+                workflow.connect(template_based_segmentation['GRAY'],
                                  'local_path',
                                  seg_preproc_template_based,
                                  'inputspec.GRAY_template')
 
-                workflow.connect(c.template_based_segmentation_WHITE,
+                workflow.connect(template_based_segmentation['WHITE'],
                                  'local_path',
                                  seg_preproc_template_based,
                                  'inputspec.WHITE_template')
 
                 # TODO ASH review with forking function
-                if 'None' in c.template_based_segmentation:
+                if 'None' in template_for_segmentation:
                     strat = strat.fork()
                     new_strat_list.append(strat)
 
