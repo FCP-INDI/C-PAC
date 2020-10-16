@@ -1948,8 +1948,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ]:
                             output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='ica-aroma')
 
-                    elif 'T1_template' in c.runRegisterFuncToTemplate:
-
+                    elif 'T1_template' in c.functional_registration[
+                        '2-func_registration_to_template'
+                    ]['target_template']['using']:
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                         ]:
@@ -2203,7 +2204,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             'inputspec.anat_to_mni_affine_xfm_file_path'
                         )
 
-                    elif 'T1_template' in c.runRegisterFuncToTemplate:
+                    elif 'T1_template' in c.functional_registration[
+                        '2-func_registration_to_template'
+                    ]['target_template']['using']:
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
@@ -2497,7 +2500,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 ]:
                     output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
-            elif 'T1_template' in c.runRegisterFuncToTemplate:
+            elif 'T1_template' in c.functional_registration[
+                '2-func_registration_to_template'
+            ]['target_template']['using']:
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
