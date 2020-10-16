@@ -1879,16 +1879,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if False in c.nuisance_corrections['1-ICA-AROMA']['run']:
                     new_strat_list += [strat.fork()]
 
-                if 'none' in str(c.TR).lower():
-                    TR = None
-                else:
-                    TR = float(c.TR)
-
                 # FNIRT ONLY! ANTS further below!
                 if 'FSL' in c.regOption and \
                         strat.get('registration_method') != 'ANTS':
 
-                    aroma_preproc = create_aroma(tr=TR,
+                    aroma_preproc = create_aroma(tr=None,
                                                  wf_name='create_aroma_%d' %
                                                          num_strat)
 
@@ -1950,7 +1945,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ]:
                             output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1',func_type='ica-aroma')
 
-                    aroma_preproc = create_aroma(tr=TR, wf_name='create_aroma_{0}'.format(num_strat))
+                    aroma_preproc = create_aroma(tr=None, wf_name='create_aroma_{0}'.format(num_strat))
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
 
                     node, out_file = strat['ica_aroma_functional_to_standard']
