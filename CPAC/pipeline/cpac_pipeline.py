@@ -2110,106 +2110,83 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         c.nuisance_corrections[
                             '2-nuisance_regression'
                         ]['lateral_ventricles_mask'],
-                        'local_path',
-                        regressor_workflow,
-                        'inputspec.lat_ventricles_mask_file_path'
-                    )
+                        'local_path', regressor_workflow,
+                        'inputspec.lat_ventricles_mask_file_path')
 
                     if 'anatomical_csf_mask' in strat:
 
                         node, out_file = new_strat['anatomical_gm_mask']
                         workflow.connect(
                             node, out_file,
-                            regressor_workflow, 'inputspec.gm_mask_file_path'
-                        )
+                            regressor_workflow, 'inputspec.gm_mask_file_path')
 
                         node, out_file = new_strat['anatomical_wm_mask']
                         workflow.connect(
                             node, out_file,
-                            regressor_workflow, 'inputspec.wm_mask_file_path'
-                        )
+                            regressor_workflow, 'inputspec.wm_mask_file_path')
 
                         node, out_file = new_strat['anatomical_csf_mask']
                         workflow.connect(
                             node, out_file,
-                            regressor_workflow, 'inputspec.csf_mask_file_path'
-                        )
+                            regressor_workflow, 'inputspec.csf_mask_file_path')
 
                     if 'epi_csf_mask' in strat:
 
                         node, out_file = new_strat['epi_gm_mask']
                         workflow.connect(
                             node, out_file,
-                            regressor_workflow, 'inputspec.gm_mask_file_path'
-                        )
+                            regressor_workflow, 'inputspec.gm_mask_file_path')
 
                         node, out_file = new_strat['epi_wm_mask']
                         workflow.connect(
                             node, out_file,
-                            regressor_workflow, 'inputspec.wm_mask_file_path'
-                        )
+                            regressor_workflow, 'inputspec.wm_mask_file_path')
 
                         node, out_file = new_strat['epi_csf_mask']
                         workflow.connect(
                             node, out_file,
-                            regressor_workflow, 'inputspec.csf_mask_file_path'
-                        )
+                            regressor_workflow, 'inputspec.csf_mask_file_path')
 
                 node, out_file = new_strat['movement_parameters']
                 workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.motion_parameters_file_path'
-                )
+                    node, out_file, regressor_workflow,
+                    'inputspec.motion_parameters_file_path')
 
-                node, out_file= new_strat['functional_to_anat_linear_xfm']
+                node, out_file = new_strat['functional_to_anat_linear_xfm']
                 workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.func_to_anat_linear_xfm_file_path'
-                )
+                    node, out_file, regressor_workflow,
+                    'inputspec.func_to_anat_linear_xfm_file_path')
 
                 node, out_file = new_strat.get_leaf_properties()
                 workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.functional_file_path'
-                )
+                    node, out_file, regressor_workflow,
+                    'inputspec.functional_file_path')
 
                 node, out_file = new_strat['frame_wise_displacement_jenkinson']
                 workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.fd_j_file_path'
-                )
+                    node, out_file, regressor_workflow,
+                    'inputspec.fd_j_file_path')
 
                 node, out_file = new_strat['frame_wise_displacement_power']
                 workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.fd_p_file_path'
-                )
+                    node, out_file, regressor_workflow,
+                    'inputspec.fd_p_file_path')
 
                 node, out_file = new_strat['dvars']
                 workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.dvars_file_path'
-                )
+                    node, out_file, regressor_workflow,
+                    'inputspec.dvars_file_path')
 
                 node, out_file = new_strat['functional_brain_mask']
                 workflow.connect(
-                    node, out_file,
-                    regressor_workflow,
-                    'inputspec.functional_brain_mask_file_path'
-                )
+                    node, out_file, regressor_workflow,
+                    'inputspec.functional_brain_mask_file_path')
 
                 if c.brain_use_erosion:
                     node, out_file = new_strat['anatomical_eroded_brain_mask']
                     workflow.connect(
-                        node, out_file,
-                        regressor_workflow, 'inputspec.anatomical_eroded_brain_mask_file_path'
-                    )
+                        node, out_file, regressor_workflow,
+                        'inputspec.anatomical_eroded_brain_mask_file_path')
 
                 regressor_workflow.get_node('inputspec').iterables = ([
                     ('selector', [regressors_selector]),
