@@ -2092,8 +2092,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if has_segmentation:
 
                     workflow.connect(
-                        c.lateral_ventricles_mask, 'local_path',
-                        regressor_workflow, 'inputspec.lat_ventricles_mask_file_path'
+                        c.nuisance_corrections[
+                            '2-nuisance_regression'
+                        ]['lateral_ventricles_mask'],
+                        'local_path',
+                        regressor_workflow,
+                        'inputspec.lat_ventricles_mask_file_path'
                     )
 
                     if 'anatomical_csf_mask' in strat:
