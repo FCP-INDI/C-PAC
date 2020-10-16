@@ -2047,7 +2047,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             has_segmentation = 'anatomical_csf_mask' in strat or 'epi_csf_mask' in strat
             use_ants = strat.get('registration_method') == 'ANTS'
 
-            for regressors_selector_i, regressors_selector in enumerate(c.Regressors):
+            for regressors_selector_i, regressors_selector in enumerate(
+                c.nuisance_corrections['2-nuisance_regression']['Regressors']
+            ):
 
                 new_strat = strat.fork()
 
