@@ -776,7 +776,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On]
+    run: ['On']
 
     # Types of denoising strategy:
     #   nonaggr: nonaggressive-partial component regression
@@ -787,7 +787,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On]
+    run: ['On']
 
     # Select which nuisance signal corrections to apply
     Regressors:
