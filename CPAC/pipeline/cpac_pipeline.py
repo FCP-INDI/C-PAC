@@ -2039,9 +2039,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             })
 
             # for each strategy, create a new one without nuisance
-            if 'Off' in c.nuisance_corrections[
+            if False in c.nuisance_corrections[
                 '2-nuisance_regression'
-            ]['run'] or 1 in c.run_pypeer:
+            ]['run'] or True in c.PyPEER['run']:
                 new_strat_list.append(strat.fork())
 
             has_segmentation = 'anatomical_csf_mask' in strat or 'epi_csf_mask' in strat
@@ -2265,7 +2265,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 })
 
                 # Inserting Nuisance REGRESSION Workflow
-                if 'On' in c.nuisance_corrections[
+                if True in c.nuisance_corrections[
                     '2-nuisance_regression'
                 ]['run']:
 
