@@ -393,7 +393,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                             subject_specific_dict[subj[0]].append(rsc_path)
                 
                 # update individual-specific outputs: 
-                # anatomical_brain, anatomical_brain_mask and anatomical_reorient
+                # anatomical_brain, anatomical_brain_mask and anatomical_skull_leaf
                 for key in session_specific_dict.keys():
                     for f in session_specific_dict[key]:
                         sub, ses = key.split('/')
