@@ -1600,20 +1600,34 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'outputspec.normalized_output_brain')
 
                     strat.update_resource_pool({
-                        'ants_symmetric_initial_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_initial_xfm'),
-                        'ants_symmetric_rigid_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_rigid_xfm'),
-                        'ants_symmetric_affine_xfm': (ants_reg_anat_symm_mni, 'outputspec.ants_affine_xfm'),
-                        'anatomical_to_symmetric_mni_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.warp_field'),
-                        'symmetric_mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.inverse_warp_field'),
-                        'anat_to_symmetric_mni_ants_composite_xfm': (ants_reg_anat_symm_mni, 'outputspec.composite_transform'),
-                        'symmetric_anatomical_to_standard': (ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain')
+                        'ants_symmetric_initial_xfm': (
+                            ants_reg_anat_symm_mni,
+                            'outputspec.ants_initial_xfm'),
+                        'ants_symmetric_rigid_xfm': (
+                            ants_reg_anat_symm_mni,
+                            'outputspec.ants_rigid_xfm'),
+                        'ants_symmetric_affine_xfm': (
+                            ants_reg_anat_symm_mni,
+                            'outputspec.ants_affine_xfm'),
+                        'anatomical_to_symmetric_mni_nonlinear_xfm': (
+                            ants_reg_anat_symm_mni,
+                            'outputspec.warp_field'),
+                        'symmetric_mni_to_anatomical_nonlinear_xfm': (
+                            ants_reg_anat_symm_mni,
+                            'outputspec.inverse_warp_field'),
+                        'anat_to_symmetric_mni_ants_composite_xfm': (
+                            ants_reg_anat_symm_mni,
+                            'outputspec.composite_transform'),
+                        'symmetric_anatomical_to_standard': (
+                            ants_reg_anat_symm_mni,
+                            'outputspec.normalized_output_brain')
                     })
 
             strat_list += new_strat_list
 
         # Inserting Segmentation Preprocessing Workflow
-        workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
-
+        workflow, strat_list = connect_anat_segmentation(
+            workflow, strat_list, c)
 
     # Functional / BOLD time
     if ('func' in sub_dict or 'rest' in sub_dict) and \
@@ -1621,11 +1635,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         #  pipeline needs to have explicit [0] to disable functional workflow
 
         # Functional Ingress Workflow
-        workflow, diff, blip, fmap_rp_list = connect_func_ingress(workflow,
-                                                                  strat_list, c,
-                                                                  sub_dict,
-                                                                  subject_id,
-                                                                  input_creds_path)
+        workflow, diff, blip, fmap_rp_list = \
+            connect_func_ingress(workflow,
+                                 strat_list,
+                                 c,
+                                 sub_dict,
+                                 subject_id,
+                                 input_creds_path)
 
         # Functional Initial Prep Workflow
         workflow, strat_list = connect_func_init(workflow, strat_list, c)
@@ -1654,8 +1670,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 name='functional_brain_mask_derivative_%d' % (num_strat)
             )
 
-            resampled_template.inputs.resolution = c.resolution_for_func_derivative
-            resampled_template.inputs.template_name = 'functional_brain_mask_derivative'
+            resampled_template.inputs.resolution = \
+                c.resolution_for_func_derivative
+            resampled_template.inputs.template_name = \
+                'functional_brain_mask_derivative'
             workflow.connect(node, out_file, resampled_template, 'template')
             strat.update_resource_pool({
                 'functional_brain_mask_derivative': (
@@ -1666,18 +1684,22 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         # Func -> T1 Registration (Initial Linear reg)
         # Depending on configuration, either passes output matrix to
-        # Func -> Template ApplyWarp, or feeds into linear reg of BBReg operation
-        # (if BBReg is enabled)
-        workflow, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow, strat_list, c)
+        # Func -> Template ApplyWarp, or feeds into linear reg of
+        # BBReg operation (if BBReg is enabled)
+        workflow, strat_list, diff_complete = \
+            connect_func_to_anat_init_reg(workflow, strat_list, c)
 
         # Func -> T1 Registration (BBREG)
         # Outputs 'functional_to_anat_linear_xfm', a matrix file of the
         # functional-to-anatomical registration warp to be applied LATER in
         # func_mni_warp, which accepts it as input 'premat'
-        workflow, strat_list = connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete)
+        workflow, strat_list = connect_func_to_anat_bbreg(workflow,
+                                                          strat_list, c,
+                                                          diff_complete)
 
         # Func -> T1/EPI Template
-        workflow, strat_list = connect_func_to_template_reg(workflow, strat_list, c)
+        workflow, strat_list = connect_func_to_template_reg(workflow,
+                                                            strat_list, c)
 
         # Inserting epi-template-based-segmentation Workflow
         new_strat_list = []
