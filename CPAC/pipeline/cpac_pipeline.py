@@ -2664,16 +2664,16 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         "\n\n"
                     raise Exception(err)
 
-        # TODO ASH normalize w schema val
-        if 1 in c.runSCA:
+        if c.seed_based_correlation_analysis['run'] is True:
 
-            # TODO ASH normalize w schema val
-            if c.sca_roi_paths:
-                sca_roi_dict = c.sca_roi_paths[0]
-            else:
-                err = "\n\n[!] CPAC says: Seed-based Correlation Analysis is " \
-                    "set to run, but no ROI NIFTI file paths were provided!" \
-                    "\n\n"
+            try:
+                sca_roi_dict = c.seed_based_correlation_analysis[
+                    'sca_roi_paths'
+                ]
+            except KeyError
+                err = "\n\n[!] CPAC says: Seed-based Correlation Analysis " \
+                    "is set to run, but no ROI NIFTI file paths were " \
+                    "provided!\n\n"
                 raise Exception(err)
 
             # flip the dictionary

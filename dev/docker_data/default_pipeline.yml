@@ -1037,7 +1037,7 @@ timeseries_extraction:
   roi_tse_outputs: ['csv', 'numpy']
 
 
-seed-based_correlation_analysis:
+seed_based_correlation_analysis:
 
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
@@ -1049,14 +1049,14 @@ seed-based_correlation_analysis:
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths:
-    - /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
-      /cpac_templates/CC400.nii.gz: Avg, MultReg
-      /cpac_templates/ez_mask_pad.nii.gz: Avg, MultReg
-      /cpac_templates/aal_mask_pad.nii.gz: Avg, MultReg
-      /cpac_templates/CC200.nii.gz: Avg, MultReg
-      /cpac_templates/tt_mask_pad.nii.gz: Avg, MultReg
-      /cpac_templates/ho_mask_pad.nii.gz: Avg, MultReg
-      /cpac_templates/rois_3mm.nii.gz: Avg, MultReg
+    /cpac_templates/PNAS_Smith09_rsn10.nii.gz: DualReg
+    /cpac_templates/CC400.nii.gz: Avg, MultReg
+    /cpac_templates/ez_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/aal_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/CC200.nii.gz: Avg, MultReg
+    /cpac_templates/tt_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/ho_mask_pad.nii.gz: Avg, MultReg
+    /cpac_templates/rois_3mm.nii.gz: Avg, MultReg
 
   # Normalize each time series before running Dual Regression SCA.
   norm_timeseries_for_DR: True
