@@ -1088,7 +1088,7 @@ regional_homogeneity:
   cluster_size: 27
 
 
-voxel-mirrored_homotopic_connectivity:
+voxel_mirrored_homotopic_connectivity:
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.

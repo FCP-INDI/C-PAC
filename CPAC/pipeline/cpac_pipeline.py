@@ -2590,7 +2590,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         new_strat_list = []
 
-        if 1 in c.runVMHC:
+        if c.voxel_mirrored_homotopic_connectivity['run'] is True:
 
             for num_strat, strat in enumerate(strat_list):
 
