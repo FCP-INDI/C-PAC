@@ -2201,21 +2201,27 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
 
-                        node, out_file = new_strat['func_to_epi_ants_initial_xfm']
+                        node, out_file = new_strat[
+                            'func_to_epi_ants_initial_xfm'
+                        ]
                         workflow.connect(
                             node, out_file,
                             regressor_workflow,
                             'inputspec.anat_to_mni_initial_xfm_file_path'
                         )
 
-                        node, out_file = new_strat['func_to_epi_ants_rigid_xfm']
+                        node, out_file = new_strat[
+                            'func_to_epi_ants_rigid_xfm'
+                        ]
                         workflow.connect(
                             node, out_file,
                             regressor_workflow,
                             'inputspec.anat_to_mni_rigid_xfm_file_path'
                         )
 
-                        node, out_file = new_strat['func_to_epi_ants_affine_xfm']
+                        node, out_file = new_strat[
+                            'func_to_epi_ants_affine_xfm'
+                        ]
                         workflow.connect(
                             node, out_file,
                             regressor_workflow,
@@ -2272,19 +2278,27 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     if 'Bandpass' in regressors_selector:
                         nuis_name = 'nuisance_regression_before-filt_{0}_' \
-                                    '{1}'.format(regressors_selector_i, num_strat)
+                                    '{1}'.format(
+                                        regressors_selector_i,
+                                        num_strat)
                     else:
                         nuis_name = 'nuisance_regression_{0}_' \
-                                    '{1}'.format(regressors_selector_i, num_strat)
+                                    '{1}'.format(
+                                        regressors_selector_i,
+                                        num_strat)
 
-                    nuisance_regression_before_workflow = create_nuisance_regression_workflow(
-                        regressors_selector,
-                        name=nuis_name)
+                    nuisance_regression_before_workflow = \
+                        create_nuisance_regression_workflow(
+                            regressors_selector,
+                            name=nuis_name)
 
                     if 'Bandpass' in regressors_selector:
-                        filtering = filtering_bold_and_regressors(regressors_selector,
-                                                                  name='frequency_filtering_'
-                                                                       '{0}_{1}'.format(regressors_selector_i, num_strat))
+                        filtering = \
+                            filtering_bold_and_regressors(
+                                regressors_selector,
+                                name='frequency_filtering_',
+                                '{0}_{1}'.format(
+                                    regressors_selector_i, num_strat))
 
                     node, out_file = new_strat.get_leaf_properties()
 
