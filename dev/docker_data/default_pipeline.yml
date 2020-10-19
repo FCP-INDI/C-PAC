@@ -1079,7 +1079,7 @@ regional_homogeneity:
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: True
+  run: On
 
   # Number of neighboring voxels used when calculating ReHo
   # 7 (Faces)

@@ -2600,19 +2600,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         strat_list += new_strat_list
 
         # Inserting REHO Workflow
-
-        if 1 in c.runReHo:
+        if c.regional_homogeneity['run'] is True:
 
             for num_strat, strat in enumerate(strat_list):
 
                 preproc = create_reho()
-                cluster_size = c.clusterSize
+                cluster_size = c.regional_homogeneity['cluster_size']
 
-                # TODO ASH schema validator
                 # Check the cluster size is supported
                 if cluster_size not in [7, 19, 27]:
-                    err_msg = 'Cluster size specified: %d, is not supported. ' \
-                            'Change to 7, 19, or 27 and try again' % cluster_size
+                    err_msg = 'Cluster size specified: %d, is not ' \
+                              'supported. Change to 7, 19, or 27 and try ' \
+                              'again' % cluster_size
                     raise Exception(err_msg)
                 else:
                     preproc.inputs.inputspec.cluster_size = cluster_size
