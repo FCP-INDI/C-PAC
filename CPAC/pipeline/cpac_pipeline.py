@@ -2352,7 +2352,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     )
 
                     if 'Bandpass' in regressors_selector:
-                        if 'Before' in c.filtering_order:
+                        if 'Before' == c.nuisance_corrections[
+                            '2-nuisance_regression'
+                        ]['bandpass_filtering_order']:
                             nuisance_regression_after_workflow = create_nuisance_regression_workflow(
                                 regressors_selector,
                                 name='nuisance_regression_after-filt_{0}_'
@@ -2428,7 +2430,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                             new_strat.append_name(nuisance_regression_after_workflow.name)
 
-                        elif 'After' in c.filtering_order:
+                        elif 'After' == c.nuisance_corrections[
+                            '2-nuisance_regression'
+                        ]['bandpass_filtering_order']:
                             workflow.connect(
                                 nuisance_regression_before_workflow,
                                 'outputspec.residual_file_path',
