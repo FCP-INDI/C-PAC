@@ -2632,10 +2632,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ts_analysis_dict = {}
         sca_analysis_dict = {}
 
-        # TODO ASH normalize w schema val
-        if c.tsa_roi_paths:
+        if c.timeseries_extraction:
 
-            tsa_roi_dict = c.tsa_roi_paths[0]
+            tsa_roi_dict = c.timeseries_extraction['tse_roi_paths']
 
             # Timeseries and SCA config selections processing
 
@@ -2657,15 +2656,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ts_analysis_dict[analysis_type] = []
                     ts_analysis_dict[analysis_type].append(roi_path)
 
-        # TODO ASH normalize w schema val
-        if 1 in c.runROITimeseries:
+            if c.timeseries_extraction['run'] is True:
 
-            # TODO ASH normalize w schema val
-            if not c.tsa_roi_paths:
-                err = "\n\n[!] CPAC says: Time Series Extraction is " \
-                    "set to run, but no ROI NIFTI file paths were provided!" \
-                    "\n\n"
-                raise Exception(err)
+                if not tsa_roi_dict:
+                    err = "\n\n[!] CPAC says: Time Series Extraction is " \
+                        "set to run, but no ROI NIFTI file paths were provided!" \
+                        "\n\n"
+                    raise Exception(err)
 
         # TODO ASH normalize w schema val
         if 1 in c.runSCA:
