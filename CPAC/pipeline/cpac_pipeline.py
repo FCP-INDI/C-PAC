@@ -2556,17 +2556,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         #           before frequency filtering and beyond
         new_strat_list = []
 
-        if 1 in c.runALFF:
+        if c.amplitude_low_frequency_fluctuation['run'] is True:
             for num_strat, strat in enumerate(strat_list):
 
                 alff = create_alff('alff_falff_{0}'.format(num_strat))
 
-                alff.inputs.hp_input.hp = c.highPassFreqALFF
-                alff.inputs.lp_input.lp = c.lowPassFreqALFF
-                alff.get_node('hp_input').iterables = ('hp',
-                                                    c.highPassFreqALFF)
-                alff.get_node('lp_input').iterables = ('lp',
-                                                    c.lowPassFreqALFF)
+                alff.inputs.hp_input.hp = \
+                    c.amplitude_low_frequency_fluctuation['highpass_cutoff']
+                alff.inputs.lp_input.lp = \
+                    c.amplitude_low_frequency_fluctuation['lowpass_cutoff']
+                alff.get_node('hp_input').iterables = (
+                    'hp', alff.inputs.hp_input.hp)
+                alff.get_node('lp_input').iterables = (
+                    'lp', alff.inputs.lp_input.lp)
 
                 node, out_file = strat['functional_freq_unfiltered']
                 workflow.connect(node, out_file,
