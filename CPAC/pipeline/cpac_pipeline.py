@@ -2506,35 +2506,46 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Inserting Median Angle Correction Workflow
         new_strat_list = []
 
-        if 1 in c.runMedianAngleCorrection:
+        if '3-median-angle-correction' in c.nuisance_corrections:
+            # this is just a shorter variable for a config variable that is
+            # called multiple times
+            median_angle_correction = c.nuisance_corrections[
+                '3-median-angle-correction'
+            ]
+            if True in median_angle_correction['run']:
 
-            for num_strat, strat in enumerate(strat_list):
+                for num_strat, strat in enumerate(strat_list):
 
-                # for each strategy, create a new one without median angle
-                if 0 in c.runMedianAngleCorrection:
-                    new_strat_list.append(strat.fork())
+                    # for each strategy, create a new one without median angle
+                    if False in median_angle_correction['run']:
+                        new_strat_list.append(strat.fork())
 
-                median_angle_corr = create_median_angle_correction(
-                    'median_angle_corr_%d' % num_strat
-                )
+                    median_angle_corr = create_median_angle_correction(
+                        'median_angle_corr_%d' % num_strat
+                    )
 
-                median_angle_corr.get_node(
-                    'median_angle_correct'
-                ).iterables = ('target_angle_deg', c.targetAngleDeg)
+                    median_angle_corr.get_node(
+                        'median_angle_correct'
+                    ).iterables = (
+                        'target_angle_deg',
+                        median_angle_correction['target_angle_deg'])
 
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file,
-                                 median_angle_corr, 'inputspec.subject')
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file,
+                                     median_angle_corr, 'inputspec.subject')
 
-                strat.append_name(median_angle_corr.name)
+                    strat.append_name(median_angle_corr.name)
 
-                strat.set_leaf_properties(median_angle_corr,
-                                          'outputspec.subject')
+                    strat.set_leaf_properties(median_angle_corr,
+                                              'outputspec.subject')
 
-                strat.update_resource_pool({
-                    'functional_median_angle_corrected': (median_angle_corr,
-                                                          'outputspec.subject')
-                })
+                    strat.update_resource_pool({
+                        'functional_median_angle_corrected': (
+                            median_angle_corr,
+                            'outputspec.subject')
+                    })
+            # We don't need this shorthand variable anymore after this loop
+            del median_angle_correction
 
         strat_list += new_strat_list
 
