@@ -796,6 +796,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'mask',
                                                          'skullstrip',
                                                          'func_mean',
+                                                         'get_func_volume',
                                                          'preprocessed',
                                                          'preprocessed_median',
                                                          'preprocessed_mask',
@@ -1296,7 +1297,35 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(skullstrip_func, 'outputspec.func_brain', 
                     func_mean, 'in_file')
 
-    if config.n4_correct_mean_EPI :
+    if "Selected Functional Volume" in conig.func_reg_input:
+        get_func_volume = pe.Node(interface=afni.Calc(),
+                                    name='get_func_volume')
+
+        get_func_volume.inputs.set(
+            expr='a',
+            single_idx=config.func_reg_input_volume,
+            outputtype='NIFTI_GZ'
+        )
+        workflow.connect(skullstrip_func, 'outputspec.func_brain', 
+                        get_func_volume, 'in_file_a')
+    
+        if config.n4_correct_func_reg_input :
+
+            get_func_volume_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
+                                            name='func_mean_n4_corrected')
+            get_func_volume_n4_corrected.inputs.args = '-r True'
+            
+            preproc.connect(get_func_volume, 'out_file', 
+                            get_func_volume_n4_corrected, 'input_image')
+            preproc.connect(get_func_volume_n4_corrected, 'output_image',
+                            output_node, 'get_func_volume')
+
+        else:
+            preproc.connect(get_func_volume, 'out_file',
+                            output_node, 'get_func_volume')
+
+    if config.n4_correct_func_reg_input :
+
         func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_mean_n4_corrected')
         func_mean_n4_corrected.inputs.args = '-r True'
@@ -1820,6 +1849,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
 
             strat.update_resource_pool({
                 'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                'selected_func_volume': (func_preproc, 'outputspec.get_func_volume'),
                 'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),                              
                 'functional_preprocessed': (func_preproc, 'outputspec.preprocessed'),
                 'functional_brain_mask': (func_preproc, 'outputspec.mask'),
@@ -1910,6 +1940,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                                 'motion_correction_method': motion_correct_tool,
                                 'motion_correction_ref': motion_correct_ref,
                                 'mean_functional': (func_preproc, 'outputspec.func_mean'),
+                                'selected_func_volume': (func_preproc, 'outputspec.get_func_volume'),
                                 'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask'),
                                 'movement_parameters': (func_preproc, 'outputspec.movement_parameters'),
                                 'max_displacement': (func_preproc, 'outputspec.max_displacement'),
