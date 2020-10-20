@@ -337,7 +337,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
 
     new_strat_list = []
 
-    if 1 in c.runVMHC and 1 in getattr(c, 'runFunctional', [1]):
+    if 1 in c.runVMHC and c.functional_preproc['run']:
 
         for num_strat, strat in enumerate(strat_list):
 

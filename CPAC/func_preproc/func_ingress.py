@@ -189,8 +189,8 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
 
         # connect in constants
         scan_params.inputs.set(
-            pipeconfig_start_indx=c.startIdx,
-            pipeconfig_stop_indx=c.stopIdx
+            pipeconfig_start_indx=c.functional_preproc['truncation']['start_tr'],
+            pipeconfig_stop_indx=c.functional_preproc['truncation']['stop_tr']
         )
 
         strat.update_resource_pool({

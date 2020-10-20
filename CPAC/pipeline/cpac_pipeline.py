@@ -1367,7 +1367,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         new_strat_list = []
 
-        if 1 in c.runVMHC and 1 in getattr(c, 'runFunctional', [1]):
+        if 1 in c.runVMHC and c.functional_preproc['run']:
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1609,8 +1609,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
 
     # Functional / BOLD time
-    if ('func' in sub_dict or 'rest' in sub_dict) and \
-            1 in getattr(c, 'runFunctional', [1]):
+    if ('func' in sub_dict or 'rest' in sub_dict) and c.functional_preproc['run']:
         #  pipeline needs to have explicit [0] to disable functional workflow
 
         # Functional Ingress Workflow
@@ -1833,17 +1832,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if 0 in c.runICA:
                     new_strat_list += [strat.fork()]
 
-                if 'none' in str(c.TR).lower():
-                    TR = None
-                else:
-                    TR = float(c.TR)
-
                 # FNIRT ONLY! ANTS further below!
                 if 'FSL' in c.regOption and \
                         strat.get('registration_method') != 'ANTS':
 
-                    aroma_preproc = create_aroma(tr=TR,
-                                                wf_name='create_aroma_%d' % num_strat)
+                    aroma_preproc = create_aroma(wf_name='create_aroma_%d' % num_strat)
 
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
 
@@ -1902,7 +1895,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ]:
                             output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1',func_type='ica-aroma')
 
-                    aroma_preproc = create_aroma(tr=TR, wf_name='create_aroma_{0}'.format(num_strat))
+                    aroma_preproc = create_aroma(wf_name='create_aroma_{0}'.format(num_strat))
                     aroma_preproc.inputs.params.denoise_type = c.aroma_denoise_type
 
                     node, out_file = strat['ica_aroma_functional_to_standard']

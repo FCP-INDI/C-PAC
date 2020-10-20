@@ -640,113 +640,295 @@ gm_mask_erosion_mm: 30
 gm_erosion_mm: 0
 
 
+functional_preproc:
+
+  run: On
+
+  truncation:
+
+    # First timepoint to include in analysis.
+    # Default is 0 (beginning of timeseries).
+    # First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
+    # Note: the selection here applies to all scans of all participants.
+    start_tr: 0
+
+    # Last timepoint to include in analysis.
+    # Default is None or End (end of timeseries).
+    # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
+    # Note: the selection here applies to all scans of all participants.
+    stop_tr: None
+
+  scaling:
+
+    # Scale functional raw data, usually used in rodent pipeline
+    run: Off
+
+    # Scale the size of the dataset voxels by the factor.
+    scaling_factor: 10
+
+  despiking:
+
+    # Run AFNI 3dDespike
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [Off]
+
+  slice_timing_correction:
+
+    # Interpolate voxel time courses so they are sampled at the same time points.
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
+
+  motion_estimates_and_correction:
+
+    # calculate motion statistics BEFORE slice-timing correction
+    # this is a fork point
+    #   calculate_motion_first: [On, Off] - this will run both and fork the pipeline
+    calculate_motion_first: [Off]
+
+    motion_correction:
+
+      # using: ['3dvolreg', 'mcflirt']
+      # this is a fork point
+      using: ['3dvolreg']
+
+      # option parameters
+      AFNI-3dvolreg:
+
+        # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+        functional_volreg_twopass: On
+
+      # Choose motion correction reference. Options: mean, median, selected volume
+      motion_correction_reference: ['mean']
+
+      # Choose motion correction reference volume
+      motion_correction_reference_volume: 0
+
+    motion_estimate_filter:
+
+      # Filter physiological (respiration) artifacts from the head motion estimates.
+      # Adapted from DCAN Labs filter.
+      #     https://www.ohsu.edu/school-of-medicine/developmental-cognition-and-neuroimaging-lab
+      #     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
+      run: [Off]
+
+      # options: "notch", "lowpass"
+      filter_type: "notch"
+
+      # Number of filter coefficients.
+      filter_order: 4
+
+      # Dataset-wide respiratory rate data from breathing belt required.
+      # mutually exclusive with cutoff, center frequency, and bandwidth options further below
+
+      # Lowest Breaths-Per-Minute in dataset.
+      # Required for both notch and lowpass filters.
+      breathing_rate_min:
+
+      # Highest Breaths-Per-Minute in dataset.
+      # Required for the notch filter.
+      breathing_rate_max:
+
+      # notch filter direct customization parameters
+      # mutually exclusive with breathing_rate options above
+
+      # the center frequency of the notch filter
+      center_frequency:
+
+      # the width of the notch filter
+      filter_bandwidth:
+
+      # lowpass filter direct customization parameters
+      # mutually exclusive with breathing_rate options above
+
+      # the frequency cutoff of the filter
+      lowpass_cutoff:
+
+  distortion_correction:
+
+    # this is a fork point
+    #   run: [True, False] - this will run both and fork the pipeline
+    run: True
+
+    # using: ['PhaseDiff', 'Blip']
+    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
+    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
+    #   NOTE:
+    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
+    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
+    using: ['PhaseDiff', 'Blip']
+
+    # option parameters
+    PhaseDiff:
+
+      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
+      fmap_skullstrip_option: 'BET'
+
+      # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+      # The default value is 0.5.
+      fmap_skullstrip_frac: 0.5
+
+      # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+      # The default value is 0.6.
+      fmap_skullstrip_threshold:  0.6
+
+  func_masking:
+
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
+    # this is a fork point
+    using: ['AFNI']
+
+    FSL-BET:
+
+      # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off.
+      # Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      # It must be 'on' if select 'bold_bet_reduce_bias','bold_bet_robust','bold_bet_padding','bold_bet_remove_eyes',or 'bold_bet_surfaces' on
+      functional_mean_boolean: Off
+
+      # Set the threshold value controling the brain vs non-brain voxels.
+      frac: 0.3
+
+      # Mesh created along with skull stripping
+      mesh_boolean: Off
+
+      # Create a surface outline image
+      outline: Off
+
+      # Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      padding: Off
+
+      # Integer value of head radius
+      radius: 0
+
+      # Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      reduce_bias: Off
+
+      # Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      remove_eyes: Off
+
+      # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      robust: Off
+
+      # Create a skull image
+      skull: Off
+
+      # Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
+      surfaces: Off
+
+      # Apply thresholding to segmented brain image and mask
+      threshold: Off
+
+      # Vertical gradient in fractional intensity threshold (-1,1)
+      vertical_gradient: 0.0
+
+    Anatomical_Refined:
+
+      # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
+      anatomical_mask_dilation: False
+
+
 # Run functional preproceessing
-runFunctional: [1]
+# runFunctional: [1]
 
 
 # Scale functional raw data, usually used in rodent pipeline
-runScaling : False
+# runScaling : False
 
 
 # Set scaling factor, if runScaling : True. Scale the size of the dataset voxels by the factor.
-scaling_factor : 10
+# scaling_factor : 10
 
 
 # run motion statistics before slice timing correction
-runMotionStatisticsFirst : [0]
+# runMotionStatisticsFirst : [0]
 
 
 # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
-motion_correction : ['3dvolreg']
+# motion_correction : ['3dvolreg']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume
-motion_correction_reference: ['mean']
+# motion_correction_reference: ['mean']
 
 
 # Choose motion correction reference volume
-motion_correction_reference_volume :  0
+# motion_correction_reference_volume :  0
 
 
 # This options is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-functional_volreg_twopass :  On
+# functional_volreg_twopass :  On
 
 
 # Filter physiological (respiration) artifacts from the head motion estimates.
 # Adapted from DCAN Labs filter.
 #     https://www.ohsu.edu/school-of-medicine/developmental-cognition-and-neuroimaging-lab
 #     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
-motion_estimate_filter:
+# motion_estimate_filter:
 
-    # run: [On, Off]
-    # this is a fork option
-    run: [Off]
+#     # run: [On, Off]
+#     # this is a fork option
+#     run: [Off]
 
-    # options: "notch", "lowpass"
-    filter_type: "notch"
+#     # options: "notch", "lowpass"
+#     filter_type: "notch"
 
-    # Number of filter coefficients.
-    filter_order: 4
+#     # Number of filter coefficients.
+#     filter_order: 4
 
-  # Dataset-wide respiratory rate data from breathing belt required.
-    # mutually exclusive with cutoff, center frequency, and bandwidth options further below
+#   # Dataset-wide respiratory rate data from breathing belt required.
+#     # mutually exclusive with cutoff, center frequency, and bandwidth options further below
 
-    # Lowest Breaths-Per-Minute in dataset.
-    # Required for both notch and lowpass filters.
-    breathing_rate_min:
+#     # Lowest Breaths-Per-Minute in dataset.
+#     # Required for both notch and lowpass filters.
+#     breathing_rate_min:
 
-    # Highest Breaths-Per-Minute in dataset.
-    # Required for the notch filter.
-    breathing_rate_max:
+#     # Highest Breaths-Per-Minute in dataset.
+#     # Required for the notch filter.
+#     breathing_rate_max:
 
-  # notch filter direct customization parameters
-    # mutually exclusive with breathing_rate options above
+#   # notch filter direct customization parameters
+#     # mutually exclusive with breathing_rate options above
 
-    # the center frequency of the notch filter
-    center_frequency:
+#     # the center frequency of the notch filter
+#     center_frequency:
 
-    # the width of the notch filter
-    filter_bandwidth:
+#     # the width of the notch filter
+#     filter_bandwidth:
 
-  # lowpass filter direct customization parameters
-    # mutually exclusive with breathing_rate options above
+#   # lowpass filter direct customization parameters
+#     # mutually exclusive with breathing_rate options above
 
-    # the frequency cutoff of the filter
-    lowpass_cutoff:
+#     # the frequency cutoff of the filter
+#     lowpass_cutoff:
 
 
 # Run AFNI 3dDespike
-runDespike : [0]
+# runDespike : [0]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.
-slice_timing_correction :  [1]
+# slice_timing_correction :  [1]
 
 
 # Specify the TR (in seconds) at which images were acquired.
 # Default is None- TR information is then read from scan parameters in the data configuration file, or the image file header if there is no scan information in the data configuration.
 # Note: the selection chosen here applies to all scans of all participants.
-TR :  None
-
-
-# Acquisition strategy for acquiring image slices.
-# Slice acquisition information is read from scan parameters in the data configuration file- if this is not provided, then this option will apply.
-# Note: the selection here applies to all scans of all participants.
-slice_timing_pattern :  Use NIFTI Header
+# TR :  None
 
 
 # First timepoint to include in analysis.
 # Default is 0 (beginning of timeseries).
 # First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
 # Note: the selection here applies to all scans of all participants.
-startIdx :  0
+# startIdx :  0
 
 
 # Last timepoint to include in analysis.
 # Default is None or End (end of timeseries).
 # Last timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
 # Note: the selection here applies to all scans of all participants.
-stopIdx :  None
+# stopIdx :  None
 
 
 

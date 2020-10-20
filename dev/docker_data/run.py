@@ -366,6 +366,8 @@ elif args.analysis_level in ["test_config", "participant"]:
         c.update(overrides)
 
     if args.anat_only:
+        # TODO
+        # c.update({'functional_preproc': 'run': Off})?
         c.update({"runFunctional": [0]})
 
     # get the aws_input_credentials, if any are specified

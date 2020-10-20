@@ -431,7 +431,7 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
 
     return wf
 
-# TODO
+
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
 
     """Workflow to scale func data.
@@ -964,7 +964,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
         func_get_selected_RPI.inputs.set(
             expr='a',
-            single_idx=config.motion_correction_reference_volume,
+            single_idx=config.functional_preproc['motion_estimates_and_correction']['motion_correction']['motion_correction_reference_volume'],
             outputtype='NIFTI_GZ'
         )
 
@@ -1147,13 +1147,13 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                          imports=notch_imports),
                                 name='filter_motion_params')
 
-                notch.inputs.filter_type = config.motion_estimate_filter['filter_type']
-                notch.inputs.fc_RR_min = config.motion_estimate_filter['breathing_rate_min']
-                notch.inputs.fc_RR_max = config.motion_estimate_filter['breathing_rate_max']
-                notch.inputs.center_freq = config.motion_estimate_filter['center_frequency']
-                notch.inputs.freq_bw = config.motion_estimate_filter['filter_bandwidth']
-                notch.inputs.lowpass_cutoff = config.motion_estimate_filter['lowpass_cutoff']
-                notch.inputs.filter_order = config.motion_estimate_filter['filter_order']
+                notch.inputs.filter_type = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['filter_type']
+                notch.inputs.fc_RR_min = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['breathing_rate_min']
+                notch.inputs.fc_RR_max = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['breathing_rate_max']
+                notch.inputs.center_freq = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['center_frequency']
+                notch.inputs.freq_bw = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['filter_bandwidth']
+                notch.inputs.lowpass_cutoff = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['lowpass_cutoff']
+                notch.inputs.filter_order = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['filter_order']
 
                 preproc.connect(notch, 'filter_info',
                                 output_node, 'motion_filter_info')
@@ -1238,13 +1238,13 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                          imports=notch_imports),
                                 name='filter_motion_params')
 
-                notch.inputs.filter_type = config.motion_estimate_filter['filter_type']
-                notch.inputs.fc_RR_min = config.motion_estimate_filter['breathing_rate_min']
-                notch.inputs.fc_RR_max = config.motion_estimate_filter['breathing_rate_max']
-                notch.inputs.center_freq = config.motion_estimate_filter['center_frequency']
-                notch.inputs.freq_bw = config.motion_estimate_filter['filter_bandwidth']
-                notch.inputs.lowpass_cutoff = config.motion_estimate_filter['lowpass_cutoff']
-                notch.inputs.filter_order = config.motion_estimate_filter['filter_order']
+                notch.inputs.filter_type = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['filter_type']
+                notch.inputs.fc_RR_min = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['breathing_rate_min']
+                notch.inputs.fc_RR_max = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['breathing_rate_max']
+                notch.inputs.center_freq = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['center_frequency']
+                notch.inputs.freq_bw = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['filter_bandwidth']
+                notch.inputs.lowpass_cutoff = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['lowpass_cutoff']
+                notch.inputs.filter_order = config.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['filter_order']
 
                 preproc.connect(notch, 'filter_info',
                                 output_node, 'motion_filter_info')
@@ -1320,34 +1320,6 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
     preproc.connect(func_normalize, 'out_file',
                     output_node, 'preprocessed')
-
-    # TODO XL review forking
-    if 'func' in config.run_longitudinal:
-        # get median brain for longitudinal
-        func_get_preprocessed_median = pe.Node(interface=afni_utils.TStat(),
-                            name='func_get_preprocessed_median')
-
-        func_get_preprocessed_median.inputs.options = '-median'
-        func_get_preprocessed_median.inputs.outputtype = 'NIFTI_GZ'
-
-        preproc.connect(func_normalize, 'out_file',
-                        func_get_preprocessed_median, 'in_file')
-
-        preproc.connect(func_get_preprocessed_median, 'out_file',
-                    output_node, 'preprocessed_median')   
-
-        # get median skull for longitudinal
-        func_get_motion_correct_median = pe.Node(interface=afni_utils.TStat(),
-                            name='func_get_motion_correct_median')
-
-        func_get_motion_correct_median.inputs.options = '-median'
-        func_get_motion_correct_median.inputs.outputtype = 'NIFTI_GZ'
-
-        preproc.connect(func_motion_correct_A, 'out_file',
-                        func_get_motion_correct_median, 'in_file')
-
-        preproc.connect(func_get_motion_correct_median, 'out_file',
-                    output_node, 'motion_correct_median')
 
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
                                   name='func_mask_normalize')
@@ -1459,26 +1431,26 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     # Grab the number of volumes
     nvols = int(hdr.get_data_shape()[3])
 
-    if (start_idx == None) or (start_idx < 0) or (start_idx > (nvols - 1)):
+    if (start_idx == 'None') or (int(start_idx) < 0) or (int(start_idx) > (nvols - 1)):
         startidx = 0
     else:
-        startidx = start_idx
+        startidx = int(start_idx)
 
-    if (stop_idx == None) or (stop_idx > (nvols - 1)):
+    if (stop_idx == 'None') or (int(stop_idx) > (nvols - 1)):
         stopidx = nvols - 1
     else:
-        stopidx = stop_idx
+        stopidx = int(stop_idx)
 
     return stopidx, startidx
 
 
 def connect_func_init(workflow, strat_list, c, unique_id=None):
 
-    if c.runScaling is True:
+    if c.functional_preproc['scaling']['run']:
         for num_strat, strat in enumerate(strat_list):
             # scale func data based on configuration information
             scale_func_wf = create_scale_func_wf(
-                scaling_factor=c.scaling_factor,
+                scaling_factor=c.functional_preproc['scaling']['scaling_factor'],
                 wf_name="scale_func_%d" % (num_strat)
             )
 
@@ -1528,27 +1500,27 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
 
     for num_strat, strat in enumerate(strat_list):
 
-        if 0 in c.runMotionStatisticsFirst:
+        if False in c.functional_preproc['motion_estimates_and_correction']['calculate_motion_first']:
             new_strat_list += [strat.fork()]
 
-        if 1 in c.runMotionStatisticsFirst:
+        if True in c.functional_preproc['motion_estimates_and_correction']['calculate_motion_first']:
 
             for skullstrip_tool in c.functionalMasking:
 
                 skullstrip_tool = skullstrip_tool.lower()
 
-                for motion_correct_ref in c.motion_correction_reference:
+                for motion_correct_ref in c.functional_preproc['motion_estimates_and_correction']['motion_correction']['motion_correction_reference']:
 
                     motion_correct_ref = motion_correct_ref.lower()
 
                     if " " in motion_correct_ref:
                         motion_correct_ref = motion_correct_ref.replace(" ", "_")
 
-                    for motion_correct_tool in c.motion_correction:
+                    for motion_correct_tool in c.functional_preproc['motion_estimates_and_correction']['motion_correction']['using']:
 
                         motion_correct_tool = motion_correct_tool.lower()
 
-                        for motion_estimate_filter_option in  c.motion_estimate_filter['run']:
+                        for motion_estimate_filter_option in  c.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['run']:
 
                             if motion_estimate_filter_option:
                                 func_preproc_workflow_name=f'func_preproc_before_stc_{skullstrip_tool}_{motion_correct_ref}_{motion_correct_tool}_motion_filter_{num_strat}'
@@ -1589,7 +1561,7 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
                                             'inputspec.TR')
 
                             func_preproc.inputs.inputspec.twopass = \
-                                getattr(c, 'functional_volreg_twopass', True)
+                                c.functional_preproc['motion_estimates_and_correction']['motion_correction']['AFNI-3dvolreg']['functional_volreg_twopass']
 
                             new_strat.update_resource_pool({
                                 'bold_masking_method': skullstrip_tool,
@@ -1674,10 +1646,10 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
 
     for num_strat, strat in enumerate(strat_list):
 
-        if 0 in c.runDespike:
+        if False in c.functional_preproc['despiking']['run']:
             new_strat_list += [strat.fork()]
 
-        if 1 in c.runDespike:
+        if True in c.functional_preproc['despiking']['run']:
             new_strat = strat.fork()
 
             despike = pe.Node(interface=preprocess.Despike(),
@@ -1704,10 +1676,10 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
 
     for num_strat, strat in enumerate(strat_list):
 
-        if 0 in c.slice_timing_correction:
+        if False in c.functional_preproc['slice_timing_correction']['run']:
             new_strat_list += [strat.fork()]
 
-        if 1 in c.slice_timing_correction:
+        if True in c.functional_preproc['slice_timing_correction']['run']:
             new_strat = strat.fork()
 
             if unique_id is None:
@@ -1813,7 +1785,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                              'inputspec.TR')
 
             func_preproc.inputs.inputspec.twopass = \
-                getattr(c, 'functional_volreg_twopass', True)
+                c.functional_preproc['motion_estimates_and_correction']['motion_correction']['AFNI-3dvolreg']['functional_volreg_twopass']
 
             strat.append_name(func_preproc.name)
             strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
@@ -1842,18 +1814,18 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                 
                 skullstrip_tool = skullstrip_tool.lower()
 
-                for motion_correct_ref in c.motion_correction_reference:
+                for motion_correct_ref in c.functional_preproc['motion_estimates_and_correction']['motion_correction']['motion_correction_reference']:
 
                     motion_correct_ref = motion_correct_ref.lower()
 
                     if " " in motion_correct_ref:
                         motion_correct_ref = motion_correct_ref.replace(" ", "_")
 
-                    for motion_correct_tool in c.motion_correction:
+                    for motion_correct_tool in c.functional_preproc['motion_estimates_and_correction']['motion_correction']['using']:
 
                         motion_correct_tool = motion_correct_tool.lower()
                         
-                        for motion_estimate_filter_option in  c.motion_estimate_filter['run']:
+                        for motion_estimate_filter_option in  c.functional_preproc['motion_estimates_and_correction']['motion_estimate_filter']['run']:
 
                             if motion_estimate_filter_option:
                                 if unique_id is None:
@@ -1900,7 +1872,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                                             'inputspec.TR')
 
                             func_preproc.inputs.inputspec.twopass = \
-                                getattr(c, 'functional_volreg_twopass', True)
+                                c.functional_preproc['motion_estimates_and_correction']['motion_correction']['AFNI-3dvolreg']['functional_volreg_twopass']
 
                             new_strat.append_name(func_preproc.name)
                             new_strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
@@ -1920,12 +1892,6 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                                 'motion_estimate_filter_info_design': (func_preproc, 'outputspec.motion_filter_info'),
                                 'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot')
                             })
-
-                            if 'func' in c.run_longitudinal:
-                                new_strat.update_resource_pool({
-                                    'functional_preprocessed_median': (func_preproc, 'outputspec.preprocessed_median'),
-                                    'motion_correct_median': (func_preproc, 'outputspec.motion_correct_median'),                                
-                                })
                             
                             new_strat_list.append(new_strat)
 
