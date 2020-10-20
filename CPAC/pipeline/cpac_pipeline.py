@@ -2296,9 +2296,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         filtering = \
                             filtering_bold_and_regressors(
                                 regressors_selector,
-                                name='frequency_filtering_',
-                                '{0}_{1}'.format(
-                                    regressors_selector_i, num_strat))
+                                name='frequency_filtering_'
+                                     '{0}_{1}'.format(
+                                         regressors_selector_i, num_strat))
 
                     node, out_file = new_strat.get_leaf_properties()
 
@@ -2330,7 +2330,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'inputspec.functional_brain_mask_file_path'
                     )
 
-                    node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                    node, out_file = new_strat[
+                        'frame_wise_displacement_jenkinson'
+                    ]
                     workflow.connect(
                         node, out_file,
                         nuisance_regression_before_workflow,
@@ -2355,10 +2357,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         if 'Before' == c.nuisance_corrections[
                             '2-nuisance_regression'
                         ]['bandpass_filtering_order']:
-                            nuisance_regression_after_workflow = create_nuisance_regression_workflow(
-                                regressors_selector,
-                                name='nuisance_regression_after-filt_{0}_'
-                                     '{1}'.format(regressors_selector_i, num_strat))
+                            nuisance_regression_after_workflow = \
+                                create_nuisance_regression_workflow(
+                                    regressors_selector,
+                                    name='nuisance_regression_after-filt_{0}_'
+                                         '{1}'.format(
+                                            regressors_selector_i, num_strat))
 
                             workflow.connect(
                                 filtering,
@@ -2381,14 +2385,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                 'inputspec.functional_brain_mask_file_path'
                             )
 
-                            node, out_file = new_strat['frame_wise_displacement_jenkinson']
+                            node, out_file = new_strat[
+                                'frame_wise_displacement_jenkinson'
+                            ]
                             workflow.connect(
                                 node, out_file,
                                 nuisance_regression_after_workflow,
                                 'inputspec.fd_j_file_path'
                             )
 
-                            node, out_file = new_strat['frame_wise_displacement_power']
+                            node, out_file = new_strat[
+                                'frame_wise_displacement_power'
+                            ]
                             workflow.connect(
                                 node, out_file,
                                 nuisance_regression_after_workflow,
@@ -2422,13 +2430,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             })
 
                             new_strat.update_resource_pool({
-                                 'functional_nuisance_residuals': (
+                                'functional_nuisance_residuals': (
                                     nuisance_regression_after_workflow,
                                     'outputspec.residual_file_path'
                                 ),
                             })
 
-                            new_strat.append_name(nuisance_regression_after_workflow.name)
+                            new_strat.append_name(
+                                nuisance_regression_after_workflow.name)
 
                         elif 'After' == c.nuisance_corrections[
                             '2-nuisance_regression'
@@ -2480,22 +2489,23 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     }, override=True)
 
                     new_strat.append_name(regressor_workflow.name)
-                    new_strat.append_name(nuisance_regression_before_workflow.name)
-                
+                    new_strat.append_name(
+                        nuisance_regression_before_workflow.name)
+
                     if 'Bandpass' in regressors_selector:
                         new_strat.append_name(filtering.name)
 
                 new_strat_list.append(new_strat)
 
-        # Be aware that this line is supposed to override the current strat_list: it is not a typo/mistake!
-        # Each regressor forks the strategy, instead of reusing it, to keep the code simple
+        # Be aware that this line is supposed to override the current
+        # strat_list: it is not a typo/mistake!
+        # Each regressor forks the strategy, instead of reusing it, to keep
+        # the code simple
         strat_list = new_strat_list
-
 
         # Inserting Median Angle Correction Workflow
         new_strat_list = []
 
-        # TODO ASH normalize w schema val
         if 1 in c.runMedianAngleCorrection:
 
             for num_strat, strat in enumerate(strat_list):
@@ -2508,46 +2518,58 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'median_angle_corr_%d' % num_strat
                 )
 
-                median_angle_corr.get_node('median_angle_correct').iterables = \
-                    ('target_angle_deg', c.targetAngleDeg)
+                median_angle_corr.get_node(
+                    'median_angle_correct'
+                ).iterables = ('target_angle_deg', c.targetAngleDeg)
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
-                                median_angle_corr, 'inputspec.subject')
+                                 median_angle_corr, 'inputspec.subject')
 
                 strat.append_name(median_angle_corr.name)
 
-                strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
+                strat.set_leaf_properties(median_angle_corr,
+                                          'outputspec.subject')
 
                 strat.update_resource_pool({
-                    'functional_median_angle_corrected': (median_angle_corr, 'outputspec.subject')
+                    'functional_median_angle_corrected': (median_angle_corr,
+                                                          'outputspec.subject')
                 })
 
         strat_list += new_strat_list
 
-
-        # Denoised Func -> Template, uses antsApplyTransforms (ANTS) or ApplyWarp (FSL) to
-        #  apply the warp; also includes mean functional warp
+        # Denoised Func -> Template, uses antsApplyTransforms (ANTS) or
+        # ApplyWarp (FSL) to apply the warp; also includes mean functional
+        # warp
         new_strat_list = []
 
         for num_strat, strat in enumerate(strat_list):
 
             if 'functional_to_epi-standard' in strat:
-                for output_name, func_key, ref_key, image_type in [ \
-                        ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                for output_name, func_key, ref_key, image_type in [
+                        ('functional_to_standard', 'leaf',
+                         'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
+                    output_func_to_standard(workflow, func_key, ref_key,
+                                            output_name, strat, num_strat, c,
+                                            input_image_type=image_type,
+                                            registration_template='epi',
+                                            func_type='non-ica-aroma')
 
             elif 'T1_template' in c.functional_registration[
                 '2-func_registration_to_template'
             ]['target_template']['using']:
-                for output_name, func_key, ref_key, image_type in [ \
-                        ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
+                for output_name, func_key, ref_key, image_type in [
+                        ('functional_to_standard', 'leaf',
+                         'template_brain_for_func_preproc', 'func_4d'),
                 ]:
-                    output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='t1', func_type='non-ica-aroma')
+                    output_func_to_standard(workflow, func_key, ref_key,
+                                            output_name, strat, num_strat, c,
+                                            input_image_type=image_type,
+                                            registration_template='t1',
+                                            func_type='non-ica-aroma')
 
         strat_list += new_strat_list
-
 
         # Derivatives
 
@@ -2587,7 +2609,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         strat_list += new_strat_list
 
         # Inserting VMHC Workflow
-
         new_strat_list = []
 
         if c.voxel_mirrored_homotopic_connectivity['run'] is True:
@@ -2595,7 +2616,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             for num_strat, strat in enumerate(strat_list):
 
                 create_vmhc(workflow, num_strat, strat, c,
-                        output_name='vmhc_{0}'.format(num_strat))
+                            output_name='vmhc_{0}'.format(num_strat))
 
         strat_list += new_strat_list
 
@@ -2619,11 +2640,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
-                                reho, 'inputspec.rest_res_filt')
+                                 reho, 'inputspec.rest_res_filt')
 
                 node, out_file = strat['functional_brain_mask']
                 workflow.connect(node, out_file,
-                                reho, 'inputspec.rest_mask')
+                                 reho, 'inputspec.rest_mask')
 
                 strat.update_resource_pool({
                     'reho': (reho, 'outputspec.raw_reho_map')
@@ -2660,8 +2681,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 if not tsa_roi_dict:
                     err = "\n\n[!] CPAC says: Time Series Extraction is " \
-                        "set to run, but no ROI NIFTI file paths were provided!" \
-                        "\n\n"
+                          "set to run, but no ROI NIFTI file paths were " \
+                          "provided!\n\n"
                     raise Exception(err)
 
         if c.seed_based_correlation_analysis['run'] is True:
@@ -2670,10 +2691,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 sca_roi_dict = c.seed_based_correlation_analysis[
                     'sca_roi_paths'
                 ]
-            except KeyError
+            except KeyError:
                 err = "\n\n[!] CPAC says: Seed-based Correlation Analysis " \
-                    "is set to run, but no ROI NIFTI file paths were " \
-                    "provided!\n\n"
+                      "is set to run, but no ROI NIFTI file paths were " \
+                      "provided!\n\n"
                 raise Exception(err)
 
             # flip the dictionary
@@ -2700,7 +2721,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     resample_spatial_map_to_native_space = pe.Node(
                         interface=fsl.FLIRT(),
-                        name='resample_spatial_map_to_native_space_%d' % num_strat
+                        name='resample_spatial_map_to_native_space_%d' %
+                             num_strat
                     )
                     resample_spatial_map_to_native_space.inputs.set(
                         interp='nearestneighbour',
@@ -2721,43 +2743,48 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     spatial_map_timeseries = get_spatial_map_timeseries(
                         'spatial_map_timeseries_%d' % num_strat
                     )
-                    spatial_map_timeseries.inputs.inputspec.demean = True  # c.spatialDemean
+                    spatial_map_timeseries.inputs.inputspec.demean = True
 
                     node, out_file = strat['functional_to_standard']
-                    node2, out_file2 = strat['functional_brain_mask_to_standard']
+                    node2, out_file2 = strat[
+                        'functional_brain_mask_to_standard'
+                    ]
 
                     # resample the input functional file and functional mask
                     # to spatial map
                     workflow.connect(node, out_file,
-                                    resample_spatial_map_to_native_space,
-                                    'reference')
+                                     resample_spatial_map_to_native_space,
+                                     'reference')
                     workflow.connect(spatial_map_dataflow,
-                                    'select_spatial_map.out_file',
-                                    resample_spatial_map_to_native_space,
-                                    'in_file')
+                                     'select_spatial_map.out_file',
+                                     resample_spatial_map_to_native_space,
+                                     'in_file')
 
                     # connect it to the spatial_map_timeseries
                     workflow.connect(resample_spatial_map_to_native_space,
-                                    'out_file',
-                                    spatial_map_timeseries,
-                                    'inputspec.spatial_map')
+                                     'out_file',
+                                     spatial_map_timeseries,
+                                     'inputspec.spatial_map')
                     workflow.connect(node2, out_file2,
-                                    spatial_map_timeseries,
-                                    'inputspec.subject_mask')
+                                     spatial_map_timeseries,
+                                     'inputspec.subject_mask')
                     workflow.connect(node, out_file,
-                                    spatial_map_timeseries,
-                                    'inputspec.subject_rest')
+                                     spatial_map_timeseries,
+                                     'inputspec.subject_rest')
 
                     strat.append_name(spatial_map_timeseries.name)
 
                     strat.update_resource_pool({
-                        'spatial_map_timeseries': (spatial_map_timeseries, 'outputspec.subject_timeseries')
+                        'spatial_map_timeseries': (
+                            spatial_map_timeseries,
+                            'outputspec.subject_timeseries')
                     })
 
                 if "DualReg" in sca_analysis_dict.keys():
                     resample_spatial_map_to_native_space_for_dr = pe.Node(
                         interface=fsl.FLIRT(),
-                        name='resample_spatial_map_to_native_space_for_DR_%d' % num_strat
+                        name='resample_spatial_map_to_native_space_for'
+                             '_DR_%d' % num_strat
                     )
                     resample_spatial_map_to_native_space_for_dr.inputs.set(
                         interp='nearestneighbour',
@@ -2779,20 +2806,25 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'spatial_map_timeseries_for_DR_%d' % num_strat
                     )
 
-                    spatial_map_timeseries_for_dr.inputs.inputspec.demean = True  # c.spatialDemean
+                    spatial_map_timeseries_for_dr.inputs.inputspec.demean = \
+                        True
 
                     node, out_file = strat['functional_to_standard']
-                    node2, out_file2 = strat['functional_brain_mask_to_standard']
+                    node2, out_file2 = strat[
+                        'functional_brain_mask_to_standard'
+                    ]
 
                     # resample the input functional file and functional mask
                     # to spatial map
-                    workflow.connect(node, out_file,
-                                    resample_spatial_map_to_native_space_for_dr,
-                                    'reference')
-                    workflow.connect(spatial_map_dataflow_for_dr,
-                                    'select_spatial_map.out_file',
-                                    resample_spatial_map_to_native_space_for_dr,
-                                    'in_file')
+                    workflow.connect(
+                        node, out_file,
+                        resample_spatial_map_to_native_space_for_dr,
+                        'reference')
+                    workflow.connect(
+                        spatial_map_dataflow_for_dr,
+                        'select_spatial_map.out_file',
+                        resample_spatial_map_to_native_space_for_dr,
+                        'in_file')
 
                     # connect it to the spatial_map_timeseries
                     workflow.connect(
@@ -2809,8 +2841,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     strat.update_resource_pool({
                         'spatial_map_timeseries_for_DR': (
-                        spatial_map_timeseries_for_dr,
-                        'outputspec.subject_timeseries')
+                            spatial_map_timeseries_for_dr,
+                            'outputspec.subject_timeseries')
                     })
 
         strat_list += new_strat_list
