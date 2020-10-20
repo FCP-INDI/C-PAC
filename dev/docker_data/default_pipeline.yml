@@ -1,5 +1,7 @@
-# CPAC Pipeline Configuration YAML file
-# Version 1.6.2
+%YAML 1.1
+---
+# C-PAC Pipeline Configuration YAML file
+# Version 1.7.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -1024,7 +1026,7 @@ timeseries_extraction:
     /ndmg_atlases/label/Human/Yeo-7-liberal_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
     /ndmg_atlases/label/Human/Yeo-7_space-MNI152NLin6_res-1x1x1.nii.gz: Avg
 
-  # Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
+  # Functional time-series and ROI realignment method: 'ROI_to_func' or 'func_to_ROI'
   # 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
   # 'func_to_ROI' will realign the functional time series to the atlas/ROI space
   #
@@ -1042,7 +1044,7 @@ seed_based_correlation_analysis:
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: True
+  run: On
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
@@ -1066,7 +1068,7 @@ amplitude_low_frequency_fluctuation:
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: True
+  run: On
 
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
   highpass_cutoff: [0.01]

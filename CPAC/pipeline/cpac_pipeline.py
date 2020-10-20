@@ -1715,7 +1715,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     continue
 
                 if not any(o in template_for_segmentation for o in [
-                    'EPI_template', 'T1_template', 'None'
+                    'EPI_template', 'T1_template'
                 ]):
                     err = '\n\n[!] C-PAC says: Your template based ' \
                           'segmentation setting does not include either '\
@@ -2664,7 +2664,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ts_analysis_dict = {}
         sca_analysis_dict = {}
 
-        if c.timeseries_extraction:
+        if hasattr(c, 'timeseries_extraction'):
 
             tsa_roi_dict = c.timeseries_extraction['tse_roi_paths']
 
