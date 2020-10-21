@@ -1306,7 +1306,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
             single_idx=config.func_reg_input_volume,
             outputtype='NIFTI_GZ'
         )
-        workflow.connect(skullstrip_func, 'outputspec.func_brain', 
+        preproc.connect(skullstrip_func, 'outputspec.func_brain', 
                         get_func_volume, 'in_file_a')
     
         if config.n4_correct_func_reg_input :
