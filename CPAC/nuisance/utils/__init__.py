@@ -324,13 +324,6 @@ def generate_summarize_tissue_mask(nuisance_wf,
             mask_to_epi.inputs.interp = 'nearestneighbour'
 
             if regressor_selector['extraction_resolution'] == "Functional":
-                # invert func2anat matrix to get anat2func_linear_xfm
-                anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='{}_anat2func_linear_xfm'.format(prev_mask_key))
-                anat2func_linear_xfm.inputs.invert_xfm = True
-                nuisance_wf.connect(*(
-                    pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + 
-                    (anat2func_linear_xfm, 'in_file')
-                ))
                 # apply anat2func matrix
                 mask_to_epi.inputs.apply_xfm = True
                 mask_to_epi.inputs.output_type = 'NIFTI_GZ'
@@ -338,8 +331,11 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     pipeline_resource_pool['Functional_mean'] +
                     (mask_to_epi, 'reference')
                 ))
-                nuisance_wf.connect(anat2func_linear_xfm, 'out_file', 
-                                    mask_to_epi, 'in_matrix_file')
+                nuisance_wf.connect(*(
+                    pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] + 
+                    (mask_to_epi, 'in_matrix_file')
+                ))
+
             else:
                 resolution = regressor_selector['extraction_resolution']
                 mask_to_epi.inputs.apply_isoxfm = resolution
