@@ -1297,7 +1297,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(skullstrip_func, 'outputspec.func_brain', 
                     func_mean, 'in_file')
 
-    if "Selected Functional Volume" in conig.func_reg_input:
+    if "Selected Functional Volume" in config.func_reg_input:
         get_func_volume = pe.Node(interface=afni.Calc(),
                                     name='get_func_volume')
 
