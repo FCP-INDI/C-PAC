@@ -325,7 +325,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
             if regressor_selector['extraction_resolution'] == "Functional":
                 # invert func2anat matrix to get anat2func_linear_xfm
-                anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat2func_linear_xfm')
+                anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='{}_anat2func_linear_xfm'.format(prev_mask_key))
                 anat2func_linear_xfm.inputs.invert_xfm = True
                 nuisance_wf.connect(*(
                     pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + 
