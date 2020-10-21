@@ -132,6 +132,17 @@ jobs:
       - set-python-version
       - configure-git-user
       - run:
+          name: "Prepping branch for merge"
+          command: |
+            if [[ -n ${CIRCLE_PR_NUMBER} && -n ${GITHUB_PR_BASE_TOKEN} ]]
+              then
+                curl -L "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" -o jq
+                chmod +x jq
+                BASE_BRANCH=origin/$(curl -u shnizzedy:$GITHUB_PR_BASE_TOKEN "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER" | jq '.base.ref' | tr -d '"')
+                git rebase $BASE_BRANCH HEAD || true
+                GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i $BASE_BRANCH --empty drop
+            fi
+      - run:
           name: "Checking if version needs updated"
           # update version if version needs updated, otherwise just move on
           command: |
@@ -141,17 +152,7 @@ jobs:
               VERSION=$(python -c "from info import __version__; print(__version__)")
               cd ..
               if ! [[ $CIRCLE_BRANCH = 'master' ]]
-                then
-                  git fetch --all
-                  if [[ -n ${CIRCLE_PR_NUMBER} && -n ${GITHUB_PR_BASE_TOKEN} ]]
-                    then
-                      curl -L "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" -o jq
-                      chmod +x jq
-                      REBASE_BASE=origin/$(curl -u shnizzedy:$GITHUB_PR_BASE_TOKEN "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER" | jq '.base.ref' | tr -d '"')
-                  else
-                    REBASE_BASE=$(git rev-parse --short HEAD~30)
-                  fi
-                GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i $REBASE_BASE --empty drop
+                then GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i HEAD~5 --empty drop
               fi
               echo "v${VERSION}" > version
               sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
