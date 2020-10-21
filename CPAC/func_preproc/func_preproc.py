@@ -1312,7 +1312,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         if config.n4_correct_func_reg_input :
 
             get_func_volume_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
-                                            name='func_mean_n4_corrected')
+                                            name='get_func_volume_n4_corrected')
             get_func_volume_n4_corrected.inputs.args = '-r True'
             
             preproc.connect(get_func_volume, 'out_file', 
