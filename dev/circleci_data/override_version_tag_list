@@ -50,10 +50,7 @@ def overwrite_list(file_diff_stats):
                 'dev/docker_data/default_pipeline.yml',
                 'version'
             }
-        ) and fd[1] == '2 +-') or (
-            fd[0] == 'CPAC/info.py' and
-            fd[1] == '6 +++---'
-        )
+        ) and fd[1] == '2 +-')
     }
 
 
