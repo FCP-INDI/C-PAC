@@ -214,15 +214,23 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
       
       A seperate workflow called easythresh is called to run easythresh steps.
       
+    .. exec::
+        from CPAC.group_analysis import create_fsl_flame_wf
+        wf = create_fsl_flame_wf()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/group_analysis.dot'
+        )
+
     High Level Workflow Graph:
     
-    .. image:: ../images/group_analysis.dot.png
+    .. image:: ../../images/generated/group_analysis.png
        :width: 800
     
     
     Detailed Workflow Graph:
     
-    .. image:: ../images/group_analysis_detailed.dot.png
+    .. image:: ../../images/generated/group_analysis_detailed.png
        :width: 800
 
     Examples
@@ -497,4 +505,3 @@ def run_feat_pipeline(group_config, merge_file, merge_mask, f_test,
 
     # Run the actual group analysis workflow
     wf.run()
-

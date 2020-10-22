@@ -200,14 +200,22 @@ def create_median_angle_correction(name='median_angle_correction'):
     1. Compute the median angle with respect to the first principal component of the subject
     2. Shift the angle of every voxel so that the new median angle equals the target angle
 
+    .. exec::
+        from CPAC.median_angle import create_median_angle_correction
+        wf = create_median_angle_correction()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/median_angle_correction.dot'
+        )
+
     Workflow Graph:
     
-    .. image:: ../images/median_angle_correction.dot.png
+    .. image:: ../../images/generated/median_angle_correction.png
         :width: 500
     
     Detailed Workflow Graph:
     
-    .. image:: ../images/median_angle_correction_detailed.dot.png
+    .. image:: ../../images/generated/median_angle_correction_detailed.png
         :width: 500    
 
     """
@@ -272,14 +280,22 @@ def create_target_angle(name='target_angle'):
     3. Calculate the corresponding median_angle on the fitted model for the subject 
        with the smallest mean bold amplitude of the group.
     
+    .. exec::
+        from CPAC.median_angle import create_target_angle
+        wf = create_target_angle()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/target_angle.dot'
+        )
+
     Workflow Graph:
     
-    .. image:: ../images/target_angle.dot.png
+    .. image:: ../../images/generated/target_angle.png
         :width: 500
     
     Detailed Workflow Graph:
     
-    .. image:: ../images/target_angle_detailed.dot.png
+    .. image:: ../../images/generated/target_angle_detailed.png
         :width: 500
         
     """
@@ -313,4 +329,3 @@ def create_target_angle(name='target_angle'):
                          outputspec, 'target_angle')
     
     return target_angle
-    

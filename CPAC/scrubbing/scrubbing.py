@@ -54,12 +54,20 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
                
     High Level Workflow Graph:
     
-    .. image:: ../images/scrubbing.dot.png
+    .. exec::
+        from CPAC.scrubbing import create_scrubbing_preproc
+        wf = create_scrubbing_preproc()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/scrubbing.dot'
+        )
+
+    .. image:: ../../images/generated/scrubbing.png
        :width: 500
     
     Detailed Workflow Graph:
     
-    .. image:: ../images/scrubbing_detailed.dot.png
+    .. image:: ../../images/generated/scrubbing_detailed.png
        :width: 500
        
     Example
