@@ -158,13 +158,12 @@ jobs:
               sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
               find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
               git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
-              if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
-              then
-                git commit -m ":bookmark: Update version to ${VERSION}"
-                git push origin HEAD:${CIRCLE_BRANCH} -f || true
-                circleci step halt
-              fi
-              cd ..
+            fi
+            if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
+            then
+              git commit -m ":bookmark: Update version to ${VERSION}"
+              git push origin HEAD:${CIRCLE_BRANCH} -f || true
+              circleci step halt
             fi
       - build-images
 
