@@ -28,11 +28,11 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
     Returns
     -------
 
-    vmhc_workflow : workflow
+    vmhc_workflow : Workflow
 
         Voxel Mirrored Homotopic Connectivity Analysis Workflow
 
-
+    strat : Strategy
 
     Notes
     -----
@@ -179,14 +179,32 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
         rest_res_2symmstandard.nii.gz
         tmp_LRflipped.nii.gz
 
+    .. exec::
+        import nipype.pipeline.engine as pe
+        from CPAC.utils.interfaces.function import Function
+        from CPAC.utils.test_mocks import configuration_strategy_mock
+        from CPAC.vmhc import create_vmhc
+        pipeline_config_object, strat = configuration_strategy_mock(
+            method="ANTS")
+        pipeline_config_object.update('smoothing_method', ['AFNI'])
+        pipeline_config_object.update('maxCoresPerParticipant', '1')
+        strat.set_leaf_properties(
+            pe.Node(Function([]), 'vhmc_leaf_node'), 'vhmc_outfile')
+        wf = create_vmhc(
+            pe.Workflow('vmhc'), 0, strat, pipeline_config_object)[0]
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/vmhc.dot'
+        )
+
     Workflow:
 
-    .. image:: ../images/vmhc_graph.dot.png
+    .. image:: ../../images/generated/vmhc.png
         :width: 500
 
     Workflow Detailed:
 
-    .. image:: ../images/vmhc_detailed_graph.dot.png
+    .. image:: ../../images/generated/vmhc_detailed.png
         :width: 500
 
 

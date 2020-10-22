@@ -135,12 +135,12 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
 
     High Level Workflow Graph:
 
-    .. image:: ../images/generated/motion_statistics.png
+    .. image:: ../../images/generated/motion_statistics.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/generated/motion_statistics_detailed.png
+    .. image:: ../../images/generated/motion_statistics_detailed.png
        :width: 1000
 
     Examples
