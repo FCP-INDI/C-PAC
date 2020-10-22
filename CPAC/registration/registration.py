@@ -95,14 +95,22 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
     2. Invert the affine transformation to provide the user a transformation (affine only) from the
        space of the reference file to the input file.
        
+    .. exec::
+        from CPAC.registration import create_fsl_fnirt_nonlinear_reg
+        wf = create_fsl_fnirt_nonlinear_reg()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/nonlinear_register.dot'
+        )
+
     Workflow Graph:
     
-    .. image:: ../images/nonlinear_register.dot.png
+    .. image:: ../../images/generated/nonlinear_register.png
         :width: 500
     
     Detailed Workflow Graph:
     
-    .. image:: ../images/nonlinear_register_detailed.dot.png
+    .. image:: ../../images/generated/nonlinear_register_detailed.png
         :width: 500    
        
     """
@@ -212,14 +220,22 @@ def create_register_func_to_mni(name='register_func_to_mni'):
         outputspec.mni_func : string (nifti file)
             Functional scan registered to MNI standard space
             
+    .. exec::
+        from CPAC.registration import create_register_func_to_mni
+        wf = create_register_func_to_mni()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/register_func_to_mni.dot'
+        )
+
     Workflow Graph:
     
-    .. image:: ../images/register_func_to_mni.dot.png
+    .. image:: ../../images/generated/register_func_to_mni.png
         :width: 500
         
     Detailed Workflow Graph:
     
-    .. image:: ../images/register_func_to_mni_detailed.dot.png
+    .. image:: ../../images/generated/register_func_to_mni_detailed.png
         :width: 500
     """
     register_func_to_mni = pe.Workflow(name=name)
@@ -769,14 +785,22 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
     
     1. Calculates a nonlinear anatomical-to-template registration.
 
+    .. exec::
+        from CPAC.registration import create_wf_calculate_ants_warp
+        wf = create_wf_calculate_ants_warp()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/calculate_ants_warp.dot'
+        )
+
     Workflow Graph:
     
-    .. image:: 
+    .. image:: ../../images/generated/calculate_ants_warp.png
         :width: 500
 
     Detailed Workflow Graph:
     
-    .. image:: 
+    .. image:: ../../images/generated/calculate_ants_warp_detailed.png
         :width: 500      
     '''
 

@@ -138,13 +138,21 @@ def easy_thresh(wf_name):
       
     High Level Workflow Graph:
     
-    .. image:: ../images/easy_thresh.dot.png
+    .. exec::
+        from CPAC.easy_thresh import easy_thresh
+        wf = easy_thresh('easy_thresh_wf')
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/easy_thresh.dot'
+        )
+
+    .. image:: ../../images/generated/easy_thresh.png
        :width: 800
     
     
     Detailed Workflow Graph:
     
-    .. image:: ../images/easy_thresh_detailed.dot.png
+    .. image:: ../../images/generated/generated.easy_thresh_detailed.png
        :width: 800
                
     Examples
@@ -479,6 +487,3 @@ def get_tuple(infile_a, infile_b):
     """
     out_file = (infile_a, infile_b[1])
     return out_file
-
-
-

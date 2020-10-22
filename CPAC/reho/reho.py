@@ -52,15 +52,22 @@ def create_reho():
     1. Generate ReHo map from the input EPI 4D volume, EPI mask and cluster_size
     2. Compute Z score of the ReHo map by subtracting mean and dividing by standard deviation
 
+    .. exec::
+        from CPAC.reho import create_reho
+        wf = create_reho()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/reho.dot'
+        )
 
     Workflow Graph:
 
-    .. image:: ../images/reho.dot.png
+    .. image:: ../../images/generated/reho.png
         :width: 500
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/reho_detailed.dot.png
+    .. image:: ../../images/generated/reho_detailed.png
         :width: 500
 
     References
