@@ -225,18 +225,18 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
         func_get_brain_mask.inputs.mask = True
 
         inputnode_bet.inputs.set(
-                frac=config.bold_bet_frac, # 0.3
-                mesh_boolean=config.bold_bet_mesh_boolean,
-                outline=config.bold_bet_outline,
-                padding=config.bold_bet_padding,
-                radius=config.bold_bet_radius,
-                reduce_bias=config.bold_bet_reduce_bias,
-                remove_eyes=config.bold_bet_remove_eyes,
-                robust=config.bold_bet_robust,
-                skull=config.bold_bet_skull,
-                surfaces=config.bold_bet_surfaces,
-                threshold=config.bold_bet_threshold,
-                vertical_gradient=config.bold_bet_vertical_gradient,
+                frac=config.functional_preproc['func_masking']['FSL-BET']['frac'], # 0.3
+                mesh_boolean=config.functional_preproc['func_masking']['FSL-BET']['mesh_boolean'],
+                outline=config.functional_preproc['func_masking']['FSL-BET']['outline'],
+                padding=config.functional_preproc['func_masking']['FSL-BET']['padding'],
+                radius=config.functional_preproc['func_masking']['FSL-BET']['radius'],
+                reduce_bias=config.functional_preproc['func_masking']['FSL-BET']['reduce_bias'],
+                remove_eyes=config.functional_preproc['func_masking']['FSL-BET']['remove_eyes'],
+                robust=config.functional_preproc['func_masking']['FSL-BET']['robust'],
+                skull=config.functional_preproc['func_masking']['FSL-BET']['skull'],
+                surfaces=config.functional_preproc['func_masking']['FSL-BET']['surfaces'],
+                threshold=config.functional_preproc['func_masking']['FSL-BET']['threshold'],
+                vertical_gradient=config.functional_preproc['func_masking']['FSL-BET']['vertical_gradient'],
             )
 
         wf.connect([
@@ -256,7 +256,7 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
             ])
         ])
 
-        if config.bold_bet_functional_mean_boolean : 
+        if config.functional_preproc['func_masking']['FSL-BET']['functional_mean_boolean']:
             func_skull_mean = pe.Node(interface=afni_utils.TStat(),
                                         name='func_mean_skull_{0}'.format(wf_name))
             func_skull_mean.inputs.options = '-mean'
@@ -377,8 +377,8 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
         wf.connect(func_tmp_brain_mask, 'out_file', 
                     refined_bold_mask, 'inputspec.init_func_brain_mask')
 
-        # Dialate anatomical mask, if 'anatomical_mask_dilation : True' in config file
-        if config.anatomical_mask_dilation :
+        # Dialate anatomical mask
+        if config.functional_preproc['func_masking']['Anatomical_Refined']['anatomical_mask_dilation']:
             anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
                             name='anat_mask_dilate')
             anat_mask_dilate.inputs.dilate_inputs = '1'
@@ -1505,7 +1505,7 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
 
         if True in c.functional_preproc['motion_estimates_and_correction']['calculate_motion_first']:
 
-            for skullstrip_tool in c.functionalMasking:
+            for skullstrip_tool in c.functional_preproc['func_masking']['using']:
 
                 skullstrip_tool = skullstrip_tool.lower()
 
@@ -1810,7 +1810,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
 
         else:
 
-            for skullstrip_tool in c.functionalMasking:
+            for skullstrip_tool in c.functional_preproc['func_masking']['using']:
                 
                 skullstrip_tool = skullstrip_tool.lower()
 
