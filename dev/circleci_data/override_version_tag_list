@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""
+Helper for CI handling of auto-tagged version info. Leaves version-tagged files with other changes.
+"""
+import re
+
+from sys import argv, stdin
+
+
+def file_diffs(x):
+    """
+    Takes a git diff --stat (plain text) and returns a list of 2-tuples
+    of (filename, diff_stat)
+
+    Parameters
+    ----------
+    x: str
+       git diff --stat output
+
+    Returns
+    -------
+    file_diff_stats: list
+       of 2-tuples of (filename, diff_stat)
+    """
+    return [
+        tuple([
+            z.strip() for z in y.split('|')
+        ]) for y in x.strip().split('\n')[:-1]
+    ]
+
+
+def overwrite_list(file_diff_stats):
+    """
+    Parameters
+    ----------
+    file_diff_stats: list
+       of 2-tuples of (filename, diff_stat)
+
+    Returns
+    -------
+    set
+       of strings
+    """
+    config_pattern = 'CPAC/resources/configs/.*\.yml$'
+    s = set()
+    return {
+        fd[0] for fd in file_diff_stats if ((
+            re.match(config_pattern, fd[0]) or
+            fd[0] in {
+                'dev/docker_data/default_pipeline.yml',
+                'version'
+            }
+        ) and fd[1] == '2 +-') or (
+            fd[0] == 'CPAC/info.py' and
+            fd[1] == '6 +++---'
+        )
+    }
+
+
+def print_checkout_file_list(git_diff_stat):
+    """
+    Parameters
+    ----------
+    git_diff_stat: str
+        git diff --stat output
+
+    Returns
+    -------
+    str
+        space-delimited list of filepaths to checkout from base branch
+    """
+    print(' '.join(overwrite_list(file_diffs(git_diff_stat))))
+
+
+if __name__ == '__main__':
+    if (
+        len(argv) > 1 and argv[1] in {'-h', '--help'}
+    ) or stdin.isatty():
+        print("""Usage:
+git diff enh/nested_config --stat=99999 | override_version_tag_list""")
+    else:
+        print_checkout_file_list(stdin.read())

@@ -139,6 +139,8 @@ jobs:
                 curl -L "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" -o jq
                 chmod +x jq
                 BASE_BRANCH=origin/$(curl -u shnizzedy:$GITHUB_PR_BASE_TOKEN "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER" | jq '.base.ref' | tr -d '"')
+                git checkout $BASE_BRANCH -- $(git diff $BASE_BRANCH --stat=99999 | ./dev/circleci_data/override_version_tag_list)
+                git commit -m ":twisted_rightwards_arrows: Prepare for merging"
                 git rebase $BASE_BRANCH HEAD || true
                 GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i $BASE_BRANCH --empty drop
             fi
