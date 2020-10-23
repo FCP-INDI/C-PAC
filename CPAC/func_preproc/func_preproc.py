@@ -149,6 +149,85 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
 
     return wf
 
+def anat_based_mask(wf_name='bold_mask'):
+# reference DCAN lab BOLD mask
+# https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
+    wf = pe.Workflow(name=wf_name)
+
+    input_node = pe.Node(util.IdentityInterface(fields=['func',
+                                                        'anat_brain',
+                                                        'anat_head']),
+                         name='inputspec')
+
+    output_node = pe.Node(util.IdentityInterface(fields=['func_brain_mask']),
+                         name='outputspec')
+
+    # 0. Take single volume of func 
+    func_single_volume = pe.Node(interface=afni.Calc(),
+                            name='func_single_volume')
+
+    func_single_volume.inputs.set(
+        expr='a',
+        single_idx=1,
+        outputtype='NIFTI_GZ'
+    )
+
+    wf.connect(input_node, 'func',
+                func_single_volume, 'in_file_a')
+
+    # 1. Register func head to anat head to get func2anat matrix
+    linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
+                        name='func_to_anat_linear_reg')
+    linear_reg_func_to_anat.inputs.dof = 6
+    linear_reg_func_to_anat.inputs.interp = 'spline'
+    linear_reg_func_to_anat.inputs.searchr_x = [30, 30]
+    linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
+    linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
+
+    wf.connect(func_single_volume, 'out_file', 
+                linear_reg_func_to_anat, 'in_file')
+
+    wf.connect(input_node, 'anat_head', 
+                linear_reg_func_to_anat, 'reference')
+
+    # 2. Inverse func to anat affine, to get anat-to-func transform 
+    inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
+                            name='inv_func2anat_affine')
+    inv_func_to_anat_affine.inputs.invert_xfm = True
+
+    wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
+                inv_func_to_anat_affine, 'in_file')
+
+    # 3. get BOLD mask
+    # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space 
+    reg_anat_brain_to_func = pe.Node(interface=fsl.ApplyWarp(),
+                            name='reg_anat_brain_to_func')
+    reg_anat_brain_to_func.inputs.interp = 'nn'
+    reg_anat_brain_to_func.inputs.relwarp = True
+
+    wf.connect(input_node, 'anat_brain', 
+                reg_anat_brain_to_func, 'in_file')
+
+    wf.connect(input_node, 'func', 
+                reg_anat_brain_to_func, 'ref_file')
+
+    wf.connect(inv_func_to_anat_affine, 'out_file', 
+                reg_anat_brain_to_func, 'premat')
+
+    # 3.2 Binarize transfered image and fill holes to get BOLD mask. 
+    # Binarize
+    func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
+                                name='func_mask')
+    func_mask_bin.inputs.op_string = '-bin'
+
+    wf.connect(reg_anat_brain_to_func, 'out_file', 
+                func_mask_bin, 'in_file')
+
+    wf.connect(func_mask_bin, 'out_file', 
+                output_node, 'func_brain_mask')
+
+    return wf
+
 
 def normalize_motion_parameters(in_file):
     """
@@ -175,10 +254,10 @@ def normalize_motion_parameters(in_file):
 def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstrip_functional'):
 
     skullstrip_tool = skullstrip_tool.lower()
-    if skullstrip_tool != 'afni' and skullstrip_tool != 'fsl' and skullstrip_tool != 'fsl_afni' and skullstrip_tool != 'anatomical_refined':
+    if skullstrip_tool != 'afni' and skullstrip_tool != 'fsl' and skullstrip_tool != 'fsl_afni' and skullstrip_tool != 'anatomical_refined' and skullstrip_tool != 'anatomical_based':
         raise Exception("\n\n[!] Error: The 'tool' parameter of the "
                         "'skullstrip_functional' workflow must be either "
-                        "'afni' or 'fsl' or 'fsl_afni' or 'anatomical_refined'.\n\nTool input: "
+                        "'afni' or 'fsl' or 'fsl_afni' or 'anatomical_refined' or 'anatomical_based'.\n\nTool input: "
                         "{0}\n\n".format(skullstrip_tool))
                
     wf = pe.Workflow(name=wf_name)
@@ -186,7 +265,8 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
     input_node = pe.Node(util.IdentityInterface(fields=['raw_func',
                                                         'func',
                                                         'anatomical_brain_mask',
-                                                        'anat_brain']),
+                                                        'anat_brain',
+                                                        'anat_head']),
                          name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['func_brain',
@@ -405,6 +485,24 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
 
         wf.connect(func_mask_final, 'out_file', 
                     output_node, 'func_brain_mask')
+    
+    # simply transforms the anatomical brain mask to the functional BOLD data.
+    elif skullstrip_tool == 'anatomical_based':
+
+        # refined_bold_mask : input motion corrected func 
+        bold_mask = anat_based_mask(wf_name='bold_mask')
+
+        wf.connect(input_node, 'func',
+                    bold_mask, 'inputspec.func')
+
+        wf.connect(input_node, 'anat_brain', 
+                    bold_mask, 'inputspec.anat_brain')
+
+        wf.connect(input_node, 'anat_head', 
+                    bold_mask, 'inputspec.anat_head')
+
+        wf.connect(bold_mask, 'outputspec.func_brain_mask', 
+                    output_node, 'func_brain_mask')
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
                                name='func_extract_brain')
@@ -425,6 +523,9 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
                     func_edge_detect, 'in_file_b')
     elif skullstrip_tool == 'anatomical_refined':
         wf.connect(func_mask_final, 'out_file',
+                    func_edge_detect, 'in_file_b')
+    elif skullstrip_tool == 'anatomical_based':
+        wf.connect(bold_mask, 'outputspec.func_brain_mask', 
                     func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
@@ -782,6 +883,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                         'twopass',
                                                         'anatomical_brain_mask',
                                                         'anat_brain',
+                                                        'anat_head',
                                                         'TR']),
                          name='inputspec')
 
@@ -796,7 +898,6 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'mask',
                                                          'skullstrip',
                                                          'func_mean',
-                                                         'get_func_volume',
                                                          'preprocessed',
                                                          'preprocessed_median',
                                                          'preprocessed_mask',
@@ -1281,6 +1382,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(input_node, 'anat_brain',
                     skullstrip_func, 'inputspec.anat_brain')                
 
+    preproc.connect(input_node, 'anat_head',
+                    skullstrip_func, 'inputspec.anat_head')                
 
     preproc.connect(skullstrip_func, 'outputspec.func_brain',
                     output_node, 'skullstrip')
@@ -1613,6 +1716,10 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
                             workflow.connect(node, out_file, func_preproc,
                                             'inputspec.anatomical_brain_mask')
 
+                            node, out_file = new_strat['anatomical_skull_leaf']
+                            workflow.connect(node, out_file, func_preproc,
+                                            'inputspec.anat_head')
+
                             node, out_file = strat['tr']
                             workflow.connect(node, out_file, func_preproc,
                                             'inputspec.TR')
@@ -1837,6 +1944,10 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
             workflow.connect(node, out_file, func_preproc,
                             'inputspec.anatomical_brain_mask')
 
+            node, out_file = strat['anatomical_skull_leaf']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anat_head')
+
             node, out_file = strat['tr']
             workflow.connect(node, out_file, func_preproc,
                              'inputspec.TR')
@@ -1915,8 +2026,12 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                             workflow.connect(node, out_file, func_preproc,
                                             'inputspec.func')
                             
-                            if skullstrip_tool == 'anatomical_refined':
+                            if skullstrip_tool == 'anatomical_refined' or skullstrip_tool == 'anatomical_based':
                                 
+                                node, out_file = new_strat['anatomical_skull_leaf']
+                                workflow.connect(node, out_file, func_preproc,
+                                                'inputspec.anat_head')
+
                                 node, out_file = new_strat['anatomical_brain']
                                 workflow.connect(node, out_file, func_preproc,
                                                 'inputspec.anat_brain')
