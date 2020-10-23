@@ -162,6 +162,19 @@ def anat_based_mask(wf_name='bold_mask'):
     output_node = pe.Node(util.IdentityInterface(fields=['func_brain_mask']),
                          name='outputspec')
 
+    # 0. Take single volume of func 
+    func_single_volume = pe.Node(interface=afni.Calc(),
+                            name='func_single_volume')
+
+    func_single_volume.inputs.set(
+        expr='a',
+        single_idx=1,
+        outputtype='NIFTI_GZ'
+    )
+
+    wf.connect(input_node, 'func',
+                func_single_volume, 'in_file_a')
+
     # 1. Register func head to anat head to get func2anat matrix
     linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                         name='func_to_anat_linear_reg')
@@ -171,7 +184,7 @@ def anat_based_mask(wf_name='bold_mask'):
     linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
     linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
 
-    wf.connect(input_node, 'func', 
+    wf.connect(func_single_volume, 'out_file', 
                 linear_reg_func_to_anat, 'in_file')
 
     wf.connect(input_node, 'anat_head', 
