@@ -225,7 +225,7 @@ def anat_based_mask(wf_name='bold_mask'):
 
     # fill holes of anat mask 
     func_mask_filled = pe.Node(interface=afni.MaskTool(),
-                    name='func_mask')
+                    name='func_mask_final')
     func_mask_filled.inputs.fill_holes = True
     func_mask_filled.inputs.outputtype = 'NIFTI_GZ'
 
