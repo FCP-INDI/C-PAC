@@ -85,8 +85,22 @@ schema = Schema({
         Required('registration_workflow'): {
             Required('registration'): {
                 Required('using'): [In({'ANTS', 'FSL'})],
-                'ANTs': {'use_lesion_mask': bool},
-            }
+                'ANTs': {
+                    'EPI_registration': Any([
+                        None, 'None', dict, [dict]
+                    ]),
+                    'interpolation': In({
+                        'Linear', 'BSpline', 'LanczosWindowedSinc'
+                    }),
+                    'use_lesion_mask': bool
+                },
+                'FSL-FNIRT': {
+                    'interpolation': In({
+                        'trilinear', 'sinc', 'spline'
+                    }),
+                },
+            },
+            'reg_with_skull': bool,
         },
         Required('segmentation_workflow'): {
             '1-segmentation': {
@@ -163,7 +177,6 @@ schema = Schema({
     # 'fmap_distcorr_dwell_asym_ratio': float, # check if it needs to be a list
     # 'fmap_distcorr_pedir': In(["x", "y", "z", "-x", "-y", "-z"]),
     # 
-    # 'runRegisterFuncToAnat': [bool], # check/normalize
     # 'runBBReg': [bool], # check/normalize
     # 'boundaryBasedRegistrationSchedule': str,
     # 
@@ -174,6 +187,17 @@ schema = Schema({
     # 'runRegisterFuncToMNI': [bool], # check/normalize
     # 'resolution_for_func_preproc': All(str, Match(r'^[0-9]+mm$')),
     Required('functional_registration'): {
+        Required('1-coregistration'): {
+            Required('run'): [bool],
+            'func_input_prep': {
+                Required('input'): [In({
+                    'Mean Functional', 'Selected Functional Volume'})]
+            },
+            'boundary_based_registration': {
+                Required('run'): [bool],
+                'bbr_schedule': str
+            }
+        },
         Required('2-func_registration_to_template'): {
             Required('target_template'): {
                 Required('using'): [In({'T1_template', 'EPI_template'})]
