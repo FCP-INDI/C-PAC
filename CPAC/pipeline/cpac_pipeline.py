@@ -2069,6 +2069,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'inputspec.func_to_anat_linear_xfm_file_path'
                 )
 
+                # invert func2anat matrix to get anat2func_linear_xfm
+                anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm_{0}_{1}'.format(regressors_selector_i, num_strat))
+                anat2func_linear_xfm.inputs.invert_xfm = True
+                workflow.connect(
+                    node, out_file,
+                    anat2func_linear_xfm, 'in_file')
+                workflow.connect(
+                    anat2func_linear_xfm, 'out_file', 
+                    regressor_workflow,
+                    'inputspec.anat_to_func_linear_xfm_file_path'
+                )
+
                 node, out_file = new_strat.get_leaf_properties()
                 workflow.connect(
                     node, out_file,
