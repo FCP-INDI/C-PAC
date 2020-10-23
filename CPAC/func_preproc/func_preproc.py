@@ -217,22 +217,13 @@ def anat_based_mask(wf_name='bold_mask'):
     # 3.2 Binarize transfered image and fill holes to get BOLD mask. 
     # Binarize
     func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
-                                name='func_mask_bin')
+                                name='func_mask')
     func_mask_bin.inputs.op_string = '-bin'
 
     wf.connect(reg_anat_brain_to_func, 'out_file', 
                 func_mask_bin, 'in_file')
 
-    # fill holes of anat mask 
-    func_mask_filled = pe.Node(interface=afni.MaskTool(),
-                    name='func_mask_final')
-    func_mask_filled.inputs.fill_holes = True
-    func_mask_filled.inputs.outputtype = 'NIFTI_GZ'
-
     wf.connect(func_mask_bin, 'out_file', 
-                func_mask_filled, 'in_file')
-
-    wf.connect(func_mask_filled, 'out_file', 
                 output_node, 'func_brain_mask')
 
     return wf
