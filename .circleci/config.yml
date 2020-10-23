@@ -132,18 +132,6 @@ jobs:
       - set-python-version
       - configure-git-user
       - run:
-          name: "Prepping branch for merge"
-          command: |
-            if [[ -n ${CIRCLE_PULL_REQUEST} && -n ${GITHUB_PR_BASE_TOKEN} ]]
-              then
-                curl -L "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" -o ~/jq
-                chmod +x ~/jq
-                BASE_BRANCH=origin/$(curl -u shnizzedy:$GITHUB_PR_BASE_TOKEN "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/${CIRCLE_PULL_REQUEST##*/}" | ~/jq '.base.ref' | tr -d '"')
-                dev/circleci_data/prep_merge $BASE_BRANCH
-                git rebase $BASE_BRANCH HEAD || git rebase --abort
-                GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i $BASE_BRANCH --empty drop
-            fi
-      - run:
           name: "Checking if version needs updated"
           # update version if version needs updated, otherwise just move on
           command: |
@@ -159,10 +147,27 @@ jobs:
               sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
               find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
               git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
+              if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
+              then
+                git commit -m ":bookmark: Update version to ${VERSION}"
+              fi
             fi
+      - run:
+          name: "Prepping branch for merge"
+          command: |
+            if [[ -n ${CIRCLE_PULL_REQUEST} && -n ${GITHUB_PR_BASE_TOKEN} ]]
+              then
+                curl -L "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" -o ~/jq
+                chmod +x ~/jq
+                BASE_BRANCH=origin/$(curl -u shnizzedy:$GITHUB_PR_BASE_TOKEN "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/${CIRCLE_PULL_REQUEST##*/}" | ~/jq '.base.ref' | tr -d '"')
+                dev/circleci_data/prep_merge $BASE_BRANCH
+                git rebase $BASE_BRANCH HEAD || git rebase --abort
+            fi
+      - run:
+          name: "Git-pushing if changed"
+          command: |
             if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
             then
-              git commit -m ":bookmark: Update version to ${VERSION}"
               git push origin HEAD:${CIRCLE_BRANCH} -f || true
               circleci step halt
             fi
