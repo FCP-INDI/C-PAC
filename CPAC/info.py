@@ -146,7 +146,7 @@ REQUIREMENTS        = [
     "networkx==2.4",
     "nibabel==2.3.3",
     "nilearn==0.4.1",
-    "nipype==1.1.2",
+    "nipype==1.5.1",
     "nose==1.3.7",
     "numpy==1.16.4",
     "pandas==0.23.4",
