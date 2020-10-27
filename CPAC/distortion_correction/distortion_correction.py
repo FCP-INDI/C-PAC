@@ -400,7 +400,7 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
                 epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
                     c.fmap_distcorr_threshold
 
-            node, out_file = strat['anatomical_reorient']
+            node, out_file = strat['anatomical_skull_leaf']
             workflow.connect(node, out_file, epi_distcorr,
                              'inputspec.anat_file')
 

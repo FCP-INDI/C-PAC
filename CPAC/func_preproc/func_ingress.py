@@ -164,19 +164,6 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                 as_module=True
             ), name=workflow_name)
         
-        if "Selected Functional Volume" in c.func_reg_input:
-            get_func_volume = pe.Node(interface=afni.Calc(),
-                                      name='get_func_volume_{0}'.format(
-                                          num_strat))
-
-            get_func_volume.inputs.set(
-                expr='a',
-                single_idx=c.func_reg_input_volume,
-                outputtype='NIFTI_GZ'
-            )
-            workflow.connect(func_wf, 'outputspec.rest',
-                             get_func_volume, 'in_file_a')
-
         # wire in the scan parameter workflow
         workflow.connect(func_wf, 'outputspec.scan_params',
                          scan_params, 'data_config_scan_params')
@@ -204,10 +191,5 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
         })
 
         strat.set_leaf_properties(func_wf, 'outputspec.rest')
-
-        if "Selected Functional Volume" in c.func_reg_input:
-            strat.update_resource_pool({
-                'selected_func_volume': (get_func_volume, 'out_file')
-            })
 
     return (workflow, diff, blip, fmap_rp_list)

@@ -10,7 +10,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # version
 _version_major = 1
 _version_minor = 7
-_version_micro = 0
+_version_micro = 1
 _version_extra = ''
 
 
@@ -20,7 +20,8 @@ def get_cpac_gitversion():
     Returns
     -------
     None or str
-      Version of Nipype according to git.
+
+        Version of C-PAC according to git.
     """
     import os
     import subprocess
@@ -35,14 +36,16 @@ def get_cpac_gitversion():
     ver = None
 
     try:
-        o, _ = subprocess.Popen('git describe --always', shell=True, cwd=gitpath,
-                                stdout=subprocess.PIPE).communicate()
+        o, _ = subprocess.Popen('git describe --always', shell=True,
+                                cwd=gitpath, stdout=subprocess.PIPE
+                                ).communicate()
     except Exception:
         pass
     else:
-        ver = o.strip().split('-')[-1]
+        ver = o.decode().strip().split('-')[-1]
 
     return ver
+
 
 if 'dev' in _version_extra:
     gitversion = get_cpac_gitversion()
