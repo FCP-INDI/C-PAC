@@ -1,39 +1,6 @@
 version: 2.1
 
 commands:
-  check-for-built-images:
-    steps:
-      - run:
-          name: "Checking for locally built images"
-          command: |
-            if [[ ! -f cpac-docker-image.tar.gz || ! -f cpac-singularity-image.simg ]]
-            then
-              circleci step halt
-            fi
-  set-python-version:
-    steps:
-      - run:
-          name: "Setting Python Version"
-          command: |
-            pyenv install 3.9.0
-            pyenv global 3.9.0
-  install-singularity-requirements:
-    steps:
-      - run:
-          name: "Installing Singularity requirements"
-          command: |
-           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
-  set-up-singularity:
-    steps:
-      - run:
-         name: "Setting up Singularity"
-         command: |
-           cd singularity
-           ./autogen.sh
-           ./configure --prefix=/usr/local --sysconfdir=/etc
-           make
-           sudo make install
-           cd ..
   build-images:
     steps:
       - run:
@@ -70,6 +37,22 @@ commands:
           root: /home/circleci/
           # Must be relative path from root
           paths: project
+  check-for-built-images:
+    steps:
+      - run:
+          name: "Checking for locally built images"
+          command: |
+            if [[ ! -f cpac-docker-image.tar.gz || ! -f cpac-singularity-image.simg ]]
+            then
+              circleci step halt
+            fi
+  combine-coverage:
+    steps:
+      - run:
+          name: "Combining and reporting coverage"
+          command: |
+            coverage combine
+            coverage html
   configure-git-user:
     steps:
       - add_ssh_keys:
@@ -84,47 +67,152 @@ commands:
             sudo apt-get install git -y
             git config --global user.email "${CIRCLE_USERNAME}@users.noreply.github.com"
             git config --global user.name "${CIRCLE_USERNAME} @ CircleCI"
+  create-docker-test-container:
+    parameters:
+      coverage-file:
+        description: "Filename for coverage file"
+        type: string
+        default: .coverage.docker
+    steps:
+      - load-docker-image
+      - run:
+          name: "Creating Docker container"
+          command: docker run -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project:/home/circleci/project -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
+  generate-random-run:
+    steps:
+      - run:
+          name: "Generating run command"
+          command: python dev/circleci_data/generate_run_command.py
+  install-singularity:
+    steps:
+      - install-singularity-requirements
+      - run:
+          name: "Cloning Singularity v2.5.2 source code"
+          command: git clone -b 2.5.2 https://github.com/sylabs/singularity
+      - set-up-singularity
+  install-singularity-requirements:
+    steps:
+      - run:
+          name: "Installing Singularity v2.5.2 requirements"
+          command: sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+  load-docker-image:
+    steps:
+      - run:
+          name: "Loading Docker image"
+          command: docker load < cpac-docker-image.tar.gz
+  set-python-version:
+    steps:
+      - run:
+          name: "Setting Python Version"
+          command: |
+            pyenv install 3.9.0
+            pyenv global 3.9.0
+            pip install -r dev/circleci_data/requirements.txt
+  set-up-singularity:
+    steps:
+      - install-singularity-requirements
+      - run:
+          name: "Setting up Singularity v2.5.2"
+          command: |
+            cd singularity
+            ./autogen.sh
+            ./configure --prefix=/usr/local --sysconfdir=/etc
+            make
+            sudo make install
+            cd ..
 
 jobs:
+  combine-coverage:
+    machine: true
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - set-python-version
+      - combine-coverage
+      - store_test_results:        
+          path: test-results
+      - store_artifacts:
+          path: htmlcov
   pytest-docker:
     machine: true
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: /home/circleci/
       - check-for-built-images
       - set-python-version
       - run:
           name: Getting Sample BIDS Data
           command: git clone https://github.com/bids-standard/bids-examples.git
+      - create-docker-test-container
       - run:
-          name: Running pytest on Docker image
-          command: |
-            docker load < cpac-docker-image.tar.gz
-            docker run -dit -P -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project/htmlcov:/code/htmlcov --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            docker exec docker_test /bin/bash ./code/dev/circleci_data/test_in_image.sh
+          name: "Running unit tests in Docker image"
+          command: docker exec docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
       - store_test_results:
           path: test-results
-      - store_artifacts:
-          path: test-results
-      - store_artifacts:
-          path: htmlcov
-          no_output_timeout: 5h
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths: project/.coverage*
   pytest-singularity:
     machine: true
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
+      - set-python-version
+      - set-up-singularity
+      - run:
+          name: "Testing C-PAC installation in Singularity Image"
+          command: |
+            COVERAGE_FILE=.coverage.singularity-install
+            coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors dev/circleci_data/test_install.py
+      - run:
+          name: "Running unit tests in Singularity image"
+          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity singularity exec -B $PWD:/code C-PAC-CI.simg ./dev/circleci_data/test_in_image.sh
+      - store_test_results:
+          path: test-results
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths: project/.coverage*
+  run-docker:
+    machine: true
+    steps:
+      - attach_workspace:
+          at: /home/circleci/
+      - set-python-version
+      - generate-random-run
+      - create-docker-test-container:
+          coverage-file: .coverage.docker-run
+      - run:
+          name: "Running one participant in Docker"
+          command: docker exec docker_test dev/circleci_data/run_command.sh
+          no_output_timeout: 5h
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths: project/.coverage*
+      - store_artifacts:
+          path: dev/circleci_data/run_command.sh
+      - store_artifacts:
+          path: outputs
+  run-singularity:
+    machine: true
+    steps:
+      - attach_workspace:
           at: /home/circleci/
       - check-for-built-images
       - set-python-version
       - install-singularity-requirements
       - set-up-singularity
+      - generate-random-run
       - run:
-          name: Testing Singularity installation
-          command: |
-            pip install -r dev/circleci_data/requirements.txt
-            coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
+          name: "Running one participant in Singularity"
+          command: SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs C-PAC-CI.simg dev/circleci_data/run_command.sh
+          no_output_timeout: 5h
+      - persist_to_workspace:
+          root: /home/circleci/
+          paths: project/.coverage*
+      - store_artifacts:
+          path: dev/circleci_data/run_command.sh
+      - store_artifacts:
+          path: outputs
   build:
     machine: true
     steps:
@@ -172,9 +260,29 @@ workflows:
   build-and-test:
     jobs:
       - build
+      - test:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - develop
+                - master
       - pytest-docker:
           requires:
             - build
       - pytest-singularity:
           requires:
             - build
+      - run-docker:
+          requires:
+            - build
+      - run-singularity:
+          requires:
+            - build
+      - combine-coverage:
+          requires:
+            - pytest-docker
+            - pytest-singularity
+            - run-docker
+            - run-singularity
