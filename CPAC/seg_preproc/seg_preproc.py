@@ -1387,7 +1387,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     strat_list += new_strat_list
 
-    if 1 in c.runBBReg and 'FreeSurfer' in c.segmentation_method:
+    if True in c.functional_registration['1-coregistration']['boundary_based_registration']['run'] and 'FreeSurfer' in c.segmentation_method:
         
         for num_strat, strat in enumerate(strat_list):
 

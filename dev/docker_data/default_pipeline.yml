@@ -740,6 +740,26 @@ fmap_distcorr_threshold :  0.6
 runRegisterFuncToAnat :  [1]
 
 
+functional_registration:
+
+  1-coregistration:
+    # functional (BOLD/EPI) registration to anatomical (structural/T1)
+
+    boundary_based_registration:
+
+      # this is a fork point
+      #   run: [On, Off] - this will run both and fork the pipeline
+      run: [On]
+
+      # this is a fork point
+      #   using: ['FSL', 'FreeSurfer']
+      using: ['FSL']
+
+      # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
+      # It is not necessary to change this path unless you intend to use non-standard MNI registration.
+      bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+
+
 # Run Functional to Anatomical Registration with BB Register
 runBBReg :  [1]
 
