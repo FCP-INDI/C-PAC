@@ -465,7 +465,8 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
                 node, node_out = strat[epi_param_rp_key]
                 workflow.connect(node, node_out,
                                  match_epi_fmaps_node, 'epi_fmap_params_one')
-                if len(epi_rp_key) > 1:
+
+                if len(fmap_rp_list) > 1:
                     epi_rp_key = fmap_rp_list[1]
                     epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
                     node, node_out = strat[epi_rp_key]
