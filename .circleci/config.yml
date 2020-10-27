@@ -260,14 +260,6 @@ workflows:
   build-and-test:
     jobs:
       - build
-      - test:
-          requires:
-            - build
-          filters:
-            branches:
-              only:
-                - develop
-                - master
       - pytest-docker:
           requires:
             - build
