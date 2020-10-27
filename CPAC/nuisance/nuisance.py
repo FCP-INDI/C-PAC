@@ -1215,7 +1215,7 @@ def create_regressor_workflow(nuisance_selectors,
                             mean_node, 'mask'
                         )
 
-                        summary_method_input = (mean_node, 'stats')
+                        summary_method_input = (mean_node, 'out_file')
 
                     if 'PC' in summary_method:
 

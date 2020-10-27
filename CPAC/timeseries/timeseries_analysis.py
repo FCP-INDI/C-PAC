@@ -258,7 +258,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                                       imports=clean_csv_imports),
                         name='clean_roi_csv')
 
-    wflow.connect(timeseries_roi, 'stats', clean_csv, 'roi_csv')
+    wflow.connect(timeseries_roi, 'out_file', clean_csv, 'roi_csv')
 
     write_npz_imports = ['import os', 'import numpy as np',
                          'from numpy import genfromtxt']
