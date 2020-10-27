@@ -15,8 +15,8 @@ commands:
       - run:
           name: "Setting Python Version"
           command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
+            pyenv install -v 3.9.0
+            pyenv global 3.9.0
   install-singularity-requirements:
     steps:
       - run:
