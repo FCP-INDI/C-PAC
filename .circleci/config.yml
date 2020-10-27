@@ -15,6 +15,7 @@ commands:
       - run:
           name: "Setting Python Version"
           command: |
+            cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
             pyenv install -v 3.9.0
             pyenv global 3.9.0
   install-singularity-requirements:
