@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]
+  then
+    echo "usage: prep_merge \$BASE_BRANCH"
+else
+  CIRCLECI_DATA=$(dirname $0)
+  FILES_TO_REVERT=$(git diff $1 --stat=999999 | $CIRCLECI_DATA/override_version_tag_list)
+  if [[ -n $FILES_TO_REVERT ]]
+    then
+      echo "git checkout $1 -- $FILES_TO_REVERT"
+      git checkout $1 -- $FILES_TO_REVERT
+      git commit -m ":twisted_rightwards_arrows: Prep for merging"
+  fi
+fi
+exit 0
