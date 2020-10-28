@@ -1296,7 +1296,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(skullstrip_func, 'outputspec.func_brain', 
                     func_mean, 'in_file')
 
-    if config.n4_correct_mean_EPI :
+    if config.functional_registration['1-coregistration']['func_input_prep']['Mean Functional']['n4_correct_func']:
         func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_mean_n4_corrected')
         func_mean_n4_corrected.inputs.args = '-r True'

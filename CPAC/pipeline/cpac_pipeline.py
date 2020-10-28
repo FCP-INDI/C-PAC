@@ -812,16 +812,16 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         (c.resolution_for_anat, c.template_symmetric_skull, 'template_symmetric_skull', 'resolution_for_anat'),
         (c.resolution_for_anat, c.dilated_symmetric_brain_mask, 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
-        (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
-        (c.resolution_for_func_derivative, c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
-        (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
 
     if 1 in c.run_pypeer:
-        templates_for_resampling.append((c.resolution_for_func_preproc, c.eye_mask_path, 'template_eye_mask', 'resolution_for_func_preproc'))
+        templates_for_resampling.append((c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.eye_mask_path, 'template_eye_mask', 'resolution_for_func_preproc'))
         Outputs.any.append("template_eye_mask")
 
     # update resampled template to resource pool

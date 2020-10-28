@@ -828,17 +828,107 @@ functional_preproc:
       anatomical_mask_dilation: False
 
 
-# Run Functional to Anatomical Registration
-runRegisterFuncToAnat :  [1]
+functional_registration:
 
+  1-coregistration:
 
-# Run Functional to Anatomical Registration with BB Register
-runBBReg :  [1]
+    # functional (BOLD/EPI) registration to anatomical (structural/T1)
+    run: [On]
 
+    func_input_prep:
 
-# Standard FSL 5.0 Scheduler used for Boundary Based Registration.
-# It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+      # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+      # input: ['Mean Functional', 'Selected Functional Volume']
+      input: ['Mean Functional']
+
+      Mean Functional:
+
+        # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
+        # this can increase tissue contrast which may improve registration quality in some data
+        n4_correct_func: False
+
+      Selected Functional Volume:
+
+        # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
+        #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
+        func_reg_input_volume: 0
+
+    boundary_based_registration:
+
+      run: [On]
+
+      # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
+      # It is not necessary to change this path unless you intend to use non-standard MNI registration.
+      bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+
+  2-func_registration_to_template:
+
+    # these options modify the application (to the functional data), not the calculation, of the
+    # T1-to-template transforms calculated earlier during anatomical registration
+    run: True
+
+    output_resolution:
+
+      # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
+      # NOTE:
+      #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
+      #   for most cases, 3 mm or 4 mm resolutions are suggested.
+      # NOTE:
+      #   this also includes the single-volume 3D preprocessed functional data,
+      #   such as the mean functional (mean EPI) in template space
+      func_preproc_outputs: 3mm
+
+      # The resolution (in mm) to which the registered derivative outputs are written into.
+      # NOTE:
+      #   this is for the single-volume functional-space outputs (i.e. derivatives)
+      #   thus, a higher resolution may not result in a large increase in RAM needs as above
+      func_derivative_outputs: 3mm
+
+      # a standard template for resampling if using float resolution
+      template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+
+    target_template:
+
+      # using: ['T1_template', 'EPI_template']
+      # this is a fork point
+      # NOTE:
+      #   'EPI_template' registers the mean-functional directly to the template (chosen below under EPI_template)
+      #   instead of applying the anatomical T1-to-template transform to the functional data that has been
+      #   coregistered to anatomical/T1 space
+      using: ['T1_template']
+
+      # option parameters
+      T1_template:
+
+        # Standard Skull Stripped Template. Used as a reference image for functional registration.
+        # This can be different than the template used as the reference/fixed for T1-to-template registration.
+        template_brain: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+
+        # Standard Anatomical Brain Image with Skull.
+        # This can be different than the template used as the reference/fixed for T1-to-template registration.
+        template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
+      EPI_template:
+
+        # EPI template for direct functional-to-template registration
+        # (bypassing coregistration and the anatomical-to-template transforms)
+        template_epi: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
+
+    ANTs_pipelines:
+
+      # Interpolation method for writing out transformed functional images.
+      # Possible values: Linear, BSpline, LanczosWindowedSinc
+      interpolation: LanczosWindowedSinc
+
+    FNIRT_pipelines:
+
+      # Interpolation method for writing out transformed functional images.
+      # Possible values: trilinear, sinc, spline
+      interpolation: sinc
+
+      # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
+      # It is not necessary to change this path unless you intend to use a different template.
+      identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Interpolation method for writing out transformed anatomical images.
@@ -863,19 +953,6 @@ funcRegANTSinterpolation: LanczosWindowedSinc
 # FSL registration tools only.
 # Possible values: trilinear, sinc, spline
 funcRegFSLinterpolation: sinc
-
-
-# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
-# Options: ['Mean Functional', 'Selected Functional Volume']
-func_reg_input :  ['Mean Functional']
-
-
-# Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
-n4_correct_mean_EPI : False
-
-
-# Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
-func_reg_input_volume :  0
 
 
 # Run Functional to Template Registration

@@ -932,7 +932,7 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
 
     diff_complete = False
     
-    if 1 in c.runRegisterFuncToAnat:
+    if True in c.functional_registration['1-coregistration']['run']:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -951,16 +951,6 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
 
             # TODO: if we're moving the distortion correction warp
             #       application, then the below is unnecessary
-            '''
-            dist_corr = False
-            if 'diff_distcor' in nodes and 1 not in c.runBBReg:
-                dist_corr = True
-                # TODO: for now, disabling dist corr when BBR is disabled
-                err = "\n\n[!] Field map distortion correction is enabled, " \
-                    "but Boundary-Based Registration is off- BBR is " \
-                    "required for distortion correction.\n\n"
-                raise Exception(err)
-            '''
 
             func_to_anat = create_register_func_to_anat(diff_complete,
                                                         f'func_to_anat_FLIRT_{num_strat}')
@@ -968,13 +958,13 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
             # Input registration parameters
             func_to_anat.inputs.inputspec.interp = 'trilinear'
 
-            if 'Mean Functional' in c.func_reg_input:
+            if 'Mean Functional' in c.functional_registration['1-coregistration']['func_input_prep']['input']:
                 # Input functional image (mean functional)
                 node, out_file = strat['mean_functional']
                 workflow.connect(node, out_file,
                                     func_to_anat, 'inputspec.func')
 
-            elif 'Selected Functional Volume' in c.func_reg_input:
+            elif 'Selected Functional Volume' in c.functional_registration['1-coregistration']['func_input_prep']['input']:
                 # Input functional image (specific volume)
                 node, out_file = strat['selected_func_volume']
                 workflow.connect(node, out_file,
@@ -1005,7 +995,7 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
                 workflow.connect(node, out_file,
                                     func_to_anat, 'inputspec.fieldmapmask')
 
-            if 0 in c.runRegisterFuncToAnat:
+            if False in c.functional_registration['1-coregistration']['run']:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
@@ -1027,7 +1017,7 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
 
     new_strat_list = []
 
-    if 1 in c.runRegisterFuncToAnat and 1 in c.runBBReg:
+    if True in c.functional_registration['1-coregistration']['run'] and True in c.functional_registration['1-coregistration']['boundary_based_registration']['run']:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1044,15 +1034,15 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
 
                 # Input registration parameters
                 func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
-                    c.boundaryBasedRegistrationSchedule
+                    c.functional_registration['1-coregistration']['boundary_based_registration']['bbr_schedule']
 
-                if 'Mean Functional' in c.func_reg_input:
+                if 'Mean Functional' in c.functional_registration['1-coregistration']['func_input_prep']['input']:
                     # Input functional image (mean functional)
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
                                         func_to_anat_bbreg, 'inputspec.func')
 
-                elif 'Selected Functional Volume' in c.func_reg_input:
+                elif 'Selected Functional Volume' in c.functional_registration['1-coregistration']['func_input_prep']['input']:
                     # Input functional image (specific volume)
                     node, out_file = strat['selected_func_volume']
                     workflow.connect(node, out_file,
@@ -1110,7 +1100,7 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
                                         func_to_anat_bbreg,
                                         'inputspec.fieldmapmask')
 
-                if 0 in c.runBBReg:
+                if False in c.functional_registration['1-coregistration']['boundary_based_registration']['run']:
                     strat = strat.fork()
                     new_strat_list.append(strat)
 
@@ -1149,11 +1139,11 @@ def connect_func_to_template_reg(workflow, strat_list, c):
 
     for num_strat, strat in enumerate(strat_list):
 
-        if 'EPI_template' in c.runRegisterFuncToTemplate:
+        if 'EPI_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using']:
 
             for reg in c.regOption:
 
-                if 'T1_template' in c.runRegisterFuncToTemplate:
+                if 'T1_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using']:
                     strat = strat.fork()
 
                 func_to_epi = \
@@ -1173,18 +1163,18 @@ def connect_func_to_template_reg(workflow, strat_list, c):
                     raise Exception(err_msg)
                 elif reg.lower() == 'ants':
                     func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration
-                    func_to_epi.inputs.inputspec.interp = c.funcRegANTSinterpolation
+                    func_to_epi.inputs.inputspec.interp = c.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation']
                 else:
-                    func_to_epi.inputs.inputspec.interp = c.funcRegFSLinterpolation
+                    func_to_epi.inputs.inputspec.interp = c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['interpolation']
 
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_to_epi, 'inputspec.func_4d')
 
-                if 'Mean Functional' in c.func_reg_input:
+                if 'Mean Functional' in c.functional_registration['1-coregistration']['func_input_prep']['input']:
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d')
 
-                elif 'Selected Functional Volume' in c.func_reg_input:
+                elif 'Selected Functional Volume' in c.functional_registration['1-coregistration']['func_input_prep']['input']:
                     node, out_file = strat['selected_func_volume']
                     workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d')
 
@@ -1233,7 +1223,7 @@ def connect_func_to_template_reg(workflow, strat_list, c):
                                             registration_template='epi',
                                             func_type='non-ica-aroma')
 
-                if 'T1_template' in c.runRegisterFuncToTemplate:
+                if 'T1_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using']:
                     new_strat_list.append(strat)
 
     strat_list += new_strat_list
@@ -1241,7 +1231,7 @@ def connect_func_to_template_reg(workflow, strat_list, c):
 
     for num_strat, strat in enumerate(strat_list):
 
-        if 'T1_template' in c.runRegisterFuncToTemplate and \
+        if 'T1_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using'] and \
                 'functional_to_epi-standard' not in strat:
 
             for output_name, func_key, ref_key, image_type in [ \

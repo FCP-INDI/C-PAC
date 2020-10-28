@@ -1506,12 +1506,12 @@ def register_func_longitudinal_template_to_standard(longitudinal_template_node, 
             if not hasattr(c, 'funcRegANTSinterpolation'):
                 setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
 
-            if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+            if c.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation'] not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
                 err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
                 raise Exception(err_msg)
 
             # Input registration parameters
-            ants_reg_func_mni.inputs.inputspec.interp = c.funcRegANTSinterpolation
+            ants_reg_func_mni.inputs.inputspec.interp = c.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation']
 
             # calculating the transform with the skullstripped is
             # reported to be better, but it requires very high
