@@ -1,7 +1,8 @@
 import nipype.pipeline.engine as pe
-import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import nipype.interfaces.afni as afni
+
+from nipype.interfaces import fsl
+from nipype.interfaces import afni
 from nipype import logging
 
 
@@ -248,7 +249,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                   timeseries_roi, 'in_file')
 
     wflow.connect(inputnode_roi, 'roi',
-                  timeseries_roi, 'mask')
+                  timeseries_roi, 'mask_file')
 
     clean_csv_imports = ['import os']
     clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
