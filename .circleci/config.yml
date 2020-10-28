@@ -88,7 +88,8 @@ commands:
 
 jobs:
   pytest-docker:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
@@ -112,7 +113,8 @@ jobs:
           path: htmlcov
           no_output_timeout: 5h
   pytest-singularity:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
@@ -127,7 +129,8 @@ jobs:
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
   build:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - checkout
       - set-python-version
