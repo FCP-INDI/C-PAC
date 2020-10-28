@@ -23,7 +23,7 @@ commands:
       - run:
           name: "Installing Singularity requirements"
           command: |
-           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.1 libarchive-dev libgpgme11-dev libseccomp-dev -y
   set-up-singularity:
     steps:
       - run:
