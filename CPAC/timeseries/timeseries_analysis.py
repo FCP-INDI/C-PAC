@@ -119,11 +119,6 @@ def clean_roi_csv(roi_csv):
     # flag whether to re-write
     modified = False
 
-    # uncomment the header if commented:
-    if csv_lines[1].lstrip()[0] == '#':
-        csv_lines[1] = csv_lines[1].lstrip()[1:].lstrip()
-        modified = True
-
     edited_lines = []
     for line in csv_lines:
         line = line.replace('\t\t\t', '')
