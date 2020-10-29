@@ -1,0 +1,9 @@
+#!/bin/bash
+# Helper script to prepare for merging. Takes the branch name or SHA of the merge base ($BASE_BRANCH)..
+if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]
+  then
+    echo "Usage: drop_version_commits_back_to \$BASE_BRANCH"
+else
+  GIT_SEQUENCE_EDITOR="${BASH_SOURCE%/*}/drop_version_bump_commits" git rebase -X ours -i $1 --empty drop
+fi
+exit 0
