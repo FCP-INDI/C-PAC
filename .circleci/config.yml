@@ -135,10 +135,11 @@ jobs:
           name: "Checking if version needs updated"
           # update version if version needs updated, otherwise just move on
           command: |
-            if [[ ! $(git log -1 --pretty=%B) == *"Update version to"* ]]
+            COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+            if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
             then
               cd $HOME/project/CPAC
-              VERSION=$(python -c "from info import __version__; print(__version__)")
+              VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
               cd ..
               if ! [[ $CIRCLE_BRANCH = 'master' ]]
                 then
@@ -159,8 +160,8 @@ jobs:
               git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
               if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
               then
-                git commit -m ":bookmark: Update version to ${VERSION}"
-                git push origin HEAD:${CIRCLE_BRANCH} -f || true
+                git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+                git push origin HEAD:${CIRCLE_BRANCH} || true
                 circleci step halt
               fi
               cd ..

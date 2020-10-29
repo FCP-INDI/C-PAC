@@ -1,16 +1,30 @@
 #!/usr/bin/env python3
-
+"""
+Helper to drop auto-tag commits back to a given SHA or branch name ($BASE_BRANCH).
+"""
 import os
 import re
 
-todo_path = os.path.join(
-    os.getcwd(), '.git', 'rebase-merge', 'git-rebase-todo'
-)
-with open(todo_path, 'r') as etd:
-    todo = etd.read()
+from sys import argv, stdin
 
-with open(todo_path, 'w') as etd:
-    etd.write(re.sub(
-        r"^pick(?=.*\:bookmark\: Update version to.*)",
-        'drop', todo, flags=re.MULTILINE
-    ))
+if __name__ == '__main__':
+    if stdin.isatty and (
+        len(argv) == 1 or (len(argv) > 1 and argv[1] in {'-h', '--help'})
+    ):
+        print("""Usage:
+Use `drop_version_commits_back_to` to just give a branch or SHA ($BASE_BRANCH) to drop version-tagging commits back to.
+
+Direct usage:
+GIT_SEQUENCE_EDITOR=drop_version_bump_commits git rebase -X ours -i $BASE_BRANCH --empty drop""")
+    else:
+        todo_path = os.path.join(
+            os.getcwd(), '.git', 'rebase-merge', 'git-rebase-todo'
+        )
+        with open(todo_path, 'r') as etd:
+            todo = etd.read()
+
+        with open(todo_path, 'w') as etd:
+            etd.write(re.sub(
+                r"^pick(?=.*\:bookmark\: Update version to.*)",
+                'drop', todo, flags=re.MULTILINE
+            ))
