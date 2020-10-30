@@ -1390,17 +1390,12 @@ def register_func_longitudinal_template_to_standard(longitudinal_template_node, 
                 'func_mni_flirt_register_%s_%d' % (strat_name, num_strat)
             )
 
-            # if someone doesn't have anatRegFSLinterpolation in their pipe config,
-            # sinc will be default option
-            if not hasattr(c, 'funcRegFSLinterpolation'):
-                setattr(c, 'funcRegFSLinterpolation', 'sinc')
-
-            if c.funcRegFSLinterpolation not in ["trilinear", "sinc", "spline"]:
+            if c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['interpolation'] not in ["trilinear", "sinc", "spline"]:
                 err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
                 raise Exception(err_msg)
 
             # Input registration parameters
-            flirt_reg_func_mni.inputs.inputspec.interp = c.funcRegFSLinterpolation
+            flirt_reg_func_mni.inputs.inputspec.interp = c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['interpolation']
 
             node, out_file = strat['functional_preprocessed_median']
             workflow.connect(node, out_file,
@@ -1503,9 +1498,6 @@ def register_func_longitudinal_template_to_standard(longitudinal_template_node, 
                     reg_ants_skull=c.regWithSkull
                 )
             
-            if not hasattr(c, 'funcRegANTSinterpolation'):
-                setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
-
             if c.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation'] not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
                 err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
                 raise Exception(err_msg)
@@ -1618,8 +1610,8 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         (config.resolution_for_func_preproc, config.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (config.resolution_for_func_preproc, config.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
         (config.resolution_for_func_preproc, config.ref_mask_for_func, 'template_ref_mask', 'resolution_for_func_preproc'), # TODO check float resolution
-        (config.resolution_for_func_preproc, config.template_epi, 'template_epi', 'resolution_for_func_preproc'),
-        (config.resolution_for_func_derivative, config.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),
+        (config.resolution_for_func_preproc, config.functional_registration['2-func_registration_to_template']['target_template']['EPI_template']['template_epi'], 'template_epi', 'resolution_for_func_preproc'),
+        (config.resolution_for_func_derivative, config.functional_registration['2-func_registration_to_template']['target_template']['EPI_template']['template_epi'], 'template_epi_derivative', 'resolution_for_func_derivative'),
         (config.resolution_for_func_derivative, config.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (config.resolution_for_func_derivative, config.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]

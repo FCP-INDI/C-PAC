@@ -1156,10 +1156,9 @@ def connect_func_to_template_reg(workflow, strat_list, c):
                 # Input registration parameters
                 if reg.lower() == 'ants' and c.ANTs_para_EPI_registration is None:
                     err_msg = '\n\n[!] C-PAC says: \n'\
-                        "You have selected \'regOption: [{0}]\' and \'runRegisterFuncToTemplate :  ['{1}']\'. \n"\
+                        "You have selected EPI registration and used ANTs as registration option. \n"\
                                 'However, no EPI-to-template ANTs parameters were specified. ' \
-                                'Please specify ANTs parameters properly and try again'.format(str(c.regOption),
-                                                                                               str(c.runRegisterFuncToTemplate))
+                                'Please specify ANTs parameters properly and try again'
                     raise Exception(err_msg)
                 elif reg.lower() == 'ants':
                     func_to_epi.inputs.inputspec.ants_para = c.ANTs_para_EPI_registration

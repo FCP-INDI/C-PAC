@@ -647,12 +647,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
             raise Exception(err_msg)
 
-        # if someone doesn't have funcRegANTSinterpolation in their pipe config,
-        # it will default to LanczosWindowedSinc
-        if not hasattr(c, 'funcRegANTSinterpolation'):
-               setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
-
-        if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+        if c.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation'] not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
             err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
             raise Exception(err_msg)
 
@@ -814,8 +809,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
-        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['EPI_template']['template_epi'], 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['EPI_template']['template_epi'], 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
         (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
@@ -1888,7 +1883,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         ]:
                             output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='ica-aroma')
 
-                    elif 'T1_template' in c.runRegisterFuncToTemplate:
+                    elif 'T1_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using']:
 
                         for output_name, func_key, ref_key, image_type in [ \
                                 ('ica_aroma_functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
@@ -2135,7 +2130,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             'inputspec.anat_to_mni_affine_xfm_file_path'
                         )
 
-                    elif 'T1_template' in c.runRegisterFuncToTemplate:
+                    elif 'T1_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using']:
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
@@ -2429,7 +2424,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 ]:
                     output_func_to_standard(workflow, func_key, ref_key, output_name, strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
-            elif 'T1_template' in c.runRegisterFuncToTemplate:
+            elif 'T1_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using']:
                 for output_name, func_key, ref_key, image_type in [ \
                         ('functional_to_standard', 'leaf', 'template_brain_for_func_preproc', 'func_4d'),
                 ]:
@@ -2596,7 +2591,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_spatial_map_to_native_space.inputs.set(
                         interp='nearestneighbour',
                         apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
+                        in_matrix_file=c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
                     )
 
                     spatial_map_dataflow = create_spatial_map_dataflow(
@@ -2653,7 +2648,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_spatial_map_to_native_space_for_dr.inputs.set(
                         interp='nearestneighbour',
                         apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
+                        in_matrix_file=c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
                     )
 
                     spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
@@ -2729,7 +2724,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                         name = 'resample_functional_roi_{0}'.format(num_strat))
 
                     resample_functional_roi.inputs.realignment = c.realignment
-                    resample_functional_roi.inputs.identity_matrix = c.identityMatrix
+                    resample_functional_roi.inputs.identity_matrix = c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -2803,7 +2798,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                         name = 'resample_functional_roi_for_sca_{0}'.format(num_strat))
 
                     resample_functional_roi_for_sca.inputs.realignment = c.realignment
-                    resample_functional_roi_for_sca.inputs.identity_matrix = c.identityMatrix
+                    resample_functional_roi_for_sca.inputs.identity_matrix = c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
@@ -2854,7 +2849,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                         name = 'resample_functional_roi_for_multreg_{0}'.format(num_strat))
 
                     resample_functional_roi_for_multreg.inputs.realignment = c.realignment
-                    resample_functional_roi_for_multreg.inputs.identity_matrix = c.identityMatrix
+                    resample_functional_roi_for_multreg.inputs.identity_matrix = c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
                         sca_analysis_dict["MultReg"],
@@ -2952,7 +2947,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                         name = 'resample_functional_to_mask_{0}'.format(num_strat))
 
                 resample_functional_to_mask.inputs.realignment = c.realignment
-                resample_functional_to_mask.inputs.identity_matrix = c.identityMatrix
+                resample_functional_to_mask.inputs.identity_matrix = c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
                                                         'mask_dataflow_%d' % num_strat)
@@ -3128,7 +3123,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         output_func_to_standard(workflow, key, 'template_epi_derivative',
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
-            elif 'T1_template' in c.runRegisterFuncToTemplate:
+            elif 'T1_template' in c.functional_registration['2-func_registration_to_template']['target_template']['using']:
 
                 rp = strat.get_resource_pool()
 
@@ -3329,7 +3324,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     if resource in Outputs.debugging:
                         continue
 
-                if 'Off' not in c.runRegisterFuncToTemplate:
+                if False not in c.functional_registration['2-func_registration_to_template']['run']:
                     if resource in Outputs.native_nonsmooth or \
                         resource in Outputs.native_nonsmooth_mult or \
                             resource in Outputs.native_smooth:

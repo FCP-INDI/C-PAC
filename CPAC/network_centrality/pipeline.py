@@ -30,7 +30,7 @@ def create_network_centrality_workflow(workflow, c, strategies):
         )
         resample_functional_to_template.inputs.set(
             interp='trilinear',
-            in_matrix_file=c.identityMatrix,
+            in_matrix_file=c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix'],
             apply_xfm=True
         )
 

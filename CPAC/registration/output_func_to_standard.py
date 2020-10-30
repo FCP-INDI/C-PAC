@@ -729,7 +729,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'nn'
         else:
-            interp = pipeline_config_obj.funcRegFSLinterpolation
+            interp = pipeline_config_obj.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['interpolation']
 
         func_ts = True if input_image_type == 'func_4d' else False
 

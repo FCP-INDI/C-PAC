@@ -865,7 +865,7 @@ functional_registration:
 
     # these options modify the application (to the functional data), not the calculation, of the
     # T1-to-template transforms calculated earlier during anatomical registration
-    run: True
+    run: [On]
 
     output_resolution:
 
@@ -885,7 +885,7 @@ functional_registration:
       func_derivative_outputs: 3mm
 
       # a standard template for resampling if using float resolution
-      template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+      template_for_resample :  /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm_brain.nii.gz
 
     target_template:
 
@@ -946,19 +946,19 @@ anatRegFSLinterpolation: sinc
 # Interpolation method for writing out transformed functional images.
 # ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-funcRegANTSinterpolation: LanczosWindowedSinc
+# funcRegANTSinterpolation: LanczosWindowedSinc
 
 
 # Interpolation method for writing out transformed functional images.
 # FSL registration tools only.
 # Possible values: trilinear, sinc, spline
-funcRegFSLinterpolation: sinc
+# funcRegFSLinterpolation: sinc
 
 
 # Run Functional to Template Registration
 # This option must be enabled if you wish to calculate any derivatives.
 # Options: ['T1_template', 'EPI_template', 'Off']
-runRegisterFuncToTemplate :  ['T1_template']
+# runRegisterFuncToTemplate :  ['T1_template']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
@@ -970,7 +970,8 @@ resolution_for_func_derivative :  3mm
 
 
 # A standard template for resampling if using float resolution
-template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+# TODO check where it's used
+# template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
@@ -982,12 +983,12 @@ template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 
 # EPI template
-template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
+# template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+# identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 # Run ICA-AROMA de-noising.
