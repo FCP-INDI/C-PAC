@@ -3173,7 +3173,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         if 'centrality' in key or key in Outputs.native_nonsmooth + Outputs.native_nonsmooth_mult + \
                                 Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
                             spatial_smooth_outputs(workflow, key, strat, num_strat, c)
-                            # c.smoothing_mehod can be FSL or AFNI, FSL as default
 
                 if c.post_processing['z-scoring']['run'] == 'on':
                     rp = strat.get_resource_pool()
@@ -3205,7 +3204,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                         strat, num_strat,
                                                         map_node=True)
 
-            elif c.post_processing['spatial_smoothing']['smoothing_order'] == '"After":
+            elif c.post_processing['spatial_smoothing']['smoothing_order'] == "After":
                 # run smoothing after Z-scoring
                 if c.post_processing['z-scoring']['run'] == 'on':
                     rp = strat.get_resource_pool()
