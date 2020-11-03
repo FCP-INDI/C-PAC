@@ -710,46 +710,71 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     
     # TODO ASH normalize file paths with schema validator
     template_keys = [
-        ("anat", "templateSpecificationFile"),
-        ("anat", "lateral_ventricles_mask"),
-        ("anat", "PRIORS_CSF"),
-        ("anat", "PRIORS_GRAY"),
-        ("anat", "PRIORS_WHITE"),
-        ("other", "configFileTwomm"),
-        ("anat", "template_based_segmentation_CSF"),
-        ("anat", "template_based_segmentation_GRAY"),
-        ("anat", "template_based_segmentation_WHITE"),
-        ("anat", "template_based_segmentation_WHITE"),
-        ("anat", "acpc_template_skull"),
-        ("anat", "acpc_template_brain"),
+        ("anat", ["network_centrality", "template_specification_file"]),
+        ("anat", ["nuisance_corrections", "2-nuisance_regression", "lateral_ventricles_mask"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "2-use_priors", "CSF_path"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "2-use_priors", "GM_path"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "2-use_priors", "WM_path"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "Template_Based", "CSF"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "Template_Based", "GRAY"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "Template_Based", "WHITE"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "template_skull"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "template_brain"]),
+        ("other", ["voxel-mirrored_homotopic_connectivity", "symmetric_registration", "FNIRT_pipelines", "config_file"]),
     ]
 
-    for key_type, key in template_keys:
+    def get_nested_attr(c, template_key):
+        attr = getattr(c, template_key[0])
+        keys = template_key[1:]
+        def _get_nested(attr, keys):
+            if len(keys) > 1:
+                return(_get_nested(attr[keys[0]], keys[1:]))
+            elif len(keys):
+                return(attr[keys[0]])
+            else:
+                return(attr)
+        return(_get_nested(attr, keys))
 
-        if isinstance(getattr(c, key), str) or getattr(c, key) == None:
+    def set_nested_attr(c, template_key, value):
+        attr = getattr(c, template_key[0])
+        keys = template_key[1:]
+        def _set_nested(attr, keys):
+            if len(keys) > 1:
+                return(_set_nested(attr[keys[0]], keys[1:]))
+            elif len(keys):
+                attr[keys[0]]=value
+            else:
+                return(attr)
+        return(_set_nested(attr, keys))
+
+    for key_type, key in template_keys:
+        
+        attr = get_nested_attr(c, key)
+
+        if isinstance(attr, str) or attr == None:
             
             node = create_check_for_s3_node(
-                key,
-                getattr(c, key), key_type,
+                key[-1],
+                attr, key_type,
                 input_creds_path, c.workingDirectory, map_node=False
             )
 
-            setattr(c, key, node)
-    
+            set_nested_attr(c, key, node)
+
     template_keys_in_list = [
-        ("anat", "ANTs_prior_seg_template_brain_list"),
-        ("anat", "ANTs_prior_seg_template_segmentation_list"),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "ANTs_Prior_Based", "template_brain_list"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "ANTs_Prior_Based", "template_segmentation_list"]),
     ]
 
     for key_type, key in template_keys_in_list:
 
         node = create_check_for_s3_node(
-            key,
-            getattr(c, key), key_type,
+            key[-1],
+            get_nested_attr(c, key), key_type,
             input_creds_path, c.workingDirectory, map_node=True
         )
 
-        setattr(c, key, node)
+        set_nested_attr(c, key, node)
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
