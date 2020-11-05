@@ -1,19 +1,14 @@
 import os
 import warnings
 
-"""
-Class to set dictionary keys as map attributes
-"""
-class Configuration(object):
 
+class Configuration(object):
+    """
+    Class to set dictionary keys as map attributes
+    """
     def __init__(self, config_map):
+        config_map = self.nonestr_to_None(config_map)
         for key in config_map:
-            if config_map[key] == 'None':
-                config_map[key] = None
-            if isinstance(config_map[key], dict):
-                for subkey in config_map[key]:
-                    if config_map[key][subkey] == 'None':
-                        config_map[key][subkey] = None
             # set FSLDIR to the environment $FSLDIR if the user sets it to
             # 'FSLDIR' in the pipeline config file
             if key == 'FSLDIR':
@@ -23,17 +18,42 @@ class Configuration(object):
             setattr(self, key, config_map[key])
         self.__update_attr()
 
+    def nonestr_to_None(self, d):
+        """
+        recursive method to type convert 'None' to None in nested
+        config
+
+        Parameters
+        ----------
+        d: any
+            config item to check
+
+        Returns
+        -------
+        d: any
+            same item, same type, but with 'none' strings converted to
+            Nonetypes
+        """
+        if isinstance(d, str) and d.lower() == 'none':
+            return(None)
+        elif isinstance(d, list):
+            return([self.nonestr_to_None(i) for i in d])
+        elif isinstance(d, set):
+            return({self.nonestr_to_None(i) for i in d})
+        elif isinstance(d, dict):
+            return({i: self.nonestr_to_None(d[i]) for i in d})
+        else:
+            return(d)
+
     def return_config_elements(self):
         # this returns a list of tuples
         # each tuple contains the name of the element in the yaml config file
         # and its value
-
-        # TODO ASH use __dict__ to retrieve elements
         attributes = [
             (attr, getattr(self, attr))
             for attr in dir(self)
             if not callable(attr) and not attr.startswith("__")
-        ] 
+        ]
         return attributes
         
     # method to find any pattern ($) in the configuration
@@ -91,7 +111,6 @@ class Configuration(object):
                 new_key = check_pattern(attr_value, 'FSLDIR')
             else:    
                 new_key = check_pattern(attr_value)
-                #check_path(new_key)
             setattr(self, attr_key, new_key)
 
     __update_attr = update_attr
