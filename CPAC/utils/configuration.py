@@ -1,13 +1,15 @@
 import os
 import warnings
 
+from CPAC.pipeline.schema import schema
+
 
 class Configuration(object):
     """
     Class to set dictionary keys as map attributes
     """
     def __init__(self, config_map):
-        config_map = self.nonestr_to_None(config_map)
+        config_map = schema(self.nonestr_to_None(config_map))
         for key in config_map:
             # set FSLDIR to the environment $FSLDIR if the user sets it to
             # 'FSLDIR' in the pipeline config file
