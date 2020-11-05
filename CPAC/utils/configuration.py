@@ -19,6 +19,12 @@ class Configuration(object):
                         config_map[key] = os.environ['FSLDIR']
             setattr(self, key, config_map[key])
         self.__update_attr()
+        
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
 
     def nonestr_to_None(self, d):
         """
