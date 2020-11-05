@@ -591,13 +591,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False, config=None,
     return preproc
 
 # TODO multi-thread doens't work - debug!
-def reconstruct_surface(num_omp_threads):
+def reconstruct_surface(config):
 
     """
     Parameters
     ----------
-    num_omp_threads : int
-        number of openmp threads
+    config : Configuration
+        pipeline configuration
 
     Returns
     -------
@@ -606,7 +606,7 @@ def reconstruct_surface(num_omp_threads):
     
     Notes
     -----
-    wm_seg is not a necessary input for autorecon3 but make a fake connection 
+    wm_seg is not a mandatory input for autorecon3 but make a fake connection 
     so that nipype can run autorecon2 and 3 sequentially
     """
     
@@ -618,7 +618,8 @@ def reconstruct_surface(num_omp_threads):
 
     inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir',
                                                         'subject_id',
-                                                        'wm_seg']), 
+                                                        'wm_seg',
+                                                        'T1wRestoreImage']), 
                         name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['curv',
@@ -628,14 +629,16 @@ def reconstruct_surface(num_omp_threads):
                                                         'sulc',
                                                         'thickness',
                                                         'volume',
-                                                        'white']),
+                                                        'white',
+                                                        # 'wmparc',
+                                                        'brainmask']),
                         name='outputspec')
 
     reconall3 = pe.Node(interface=freesurfer.ReconAll(),
                         name='anat_autorecon3')
 
     reconall3.inputs.directive = 'autorecon3'
-    reconall3.inputs.openmp = num_omp_threads
+    reconall3.inputs.openmp = config.num_omp_threads
 
     surface_reconstruction.connect(inputnode, 'subject_id',
                                     reconall3, 'subject_id')
@@ -666,5 +669,64 @@ def reconstruct_surface(num_omp_threads):
 
     surface_reconstruction.connect(reconall3, 'white',
                                     outputnode, 'white')
+
+    # ABCD code
+
+    # mri_convert -rt nearest -rl "$T1wFolder"/"$T1wRestoreImage".nii.gz "$FreeSurferFolder"/mri/wmparc.mgz "$T1wFolder"/wmparc_1mm.nii.gz
+    
+    # convert wmparc.mgz to wmparc.nii.gz
+    # TODO what's T1wRestoreImage?
+
+    wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','args'],
+                                        output_names=['out_file'],
+                                        function=mri_convert),
+                            name='wmparc_to_nifti')
+    
+    wmparc_to_nifti.inputs.args = '-rt nearest -rl T1wRestoreImage.nii.gz' # TODO                       
+    
+    surface_reconstruction.connect(reconall3, 'wmparc',
+                                    wmparc_to_nifti, 'in_file')
+
+    # fslmaths "$T1wFolder"/wmparc_1mm.nii.gz -bin -dilD -dilD -dilD -ero -ero "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    binary_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
+                            name='binarize_wmparc')
+    binary_mask.inputs.args = '-bin -dilD -dilD -dilD -ero -ero'
+
+    surface_reconstruction.connect(wmparc_to_nifti, 'out_file',
+                                    binary_mask, 'in_file')
+
+    # ${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file','args'],
+                                        output_names=['out_file'],
+                                        function=wb_command),
+                            name='wb_command_fill_holes')
+    
+    surface_reconstruction.connect(binary_mask, 'out_file',
+                                    wb_command_fill_holes, 'in_file')
+
+    # fslmaths "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -bin "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
+                            name='binarize_wmparc2')
+    binary_mask2.inputs.args = '-bin'
+
+    surface_reconstruction.connect(wmparc_to_nifti, 'out_file',
+                                    binary_mask2, 'in_file')
+
+    # applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$T1wFolder"/"$T1wRestoreImage".nii.gz 
+    # --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
+    brain_mask_to_native = pe.Node(interface=fsl.ApplyWarp(),
+                name='brain_mask_to_native')
+
+    brain_mask_to_native.inputs.interp = 'nn'
+    brain_mask_to_native.inputs.premat = config.identityMatrix
+
+    surface_reconstruction.connect(binary_mask2, 'out_file', 
+                                    brain_mask_to_native, 'in_file')
+
+    surface_reconstruction.connect(inputspec, 'T1wRestoreImage', 
+                                    brain_mask_to_native, 'ref_file')
+
+    surface_reconstruction.connect(brain_mask_to_native, 'out_file',
+                                    wmparc_to_native, 'brainmask')
 
     return surface_reconstruction                           

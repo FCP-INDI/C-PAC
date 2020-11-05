@@ -61,8 +61,9 @@ RUN apt-get install -y \
       xauth \
       zlib1g-dev
 
-# Install 16.04 dependencies
+# Install 16.04 dependencies & Connectome Workbench
 RUN apt-get install -y \
+      connectome-workbench \
       dh-autoreconf \
       libgsl-dev \
       libmotif-dev \

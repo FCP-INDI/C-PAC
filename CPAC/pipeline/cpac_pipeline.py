@@ -1623,7 +1623,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                reconall3 = reconstruct_surface(num_omp_threads=c.num_omp_threads)
+                reconall3 = reconstruct_surface(config=c)
                 
                 node, out_file = strat['anatomical_wm_mask']
                 workflow.connect(node, out_file,
@@ -1638,6 +1638,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                 reconall3, 'inputspec.subject_dir')
 
                 strat.update_resource_pool({
+                    'wmparc': (reconall3, 'outputspec.wmparc'),
                     'surface_curvature': (reconall3, 'outputspec.curv'),
                     'pial_surface_mesh': (reconall3, 'outputspec.pial'),
                     'smoothed_surface_mesh': (reconall3, 'outputspec.smoothwm'),
