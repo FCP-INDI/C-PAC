@@ -1,3 +1,4 @@
+import csv
 import json
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
@@ -487,7 +488,35 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
 
     # Check if it exists or it is successfully downloaded
     if not os.path.exists(local_path):
-        raise IOError('File {0} does not exist!'.format(local_path))
+        # alert users to 2020-07-20 Neuroparc atlas update (v0 to v1)
+        ndmg_atlases = {}
+        with open(
+            os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                'resources/templates/ndmg_atlases.csv'
+            )
+        ) as ndmg_atlases_file:
+            ndmg_atlases['v0'], ndmg_atlases['v1'] = zip(*[(
+                f'/ndmg_atlases/label/Human/{atlas[0]}',
+                f'/ndmg_atlases/label/Human/{atlas[1]}'
+            ) for atlas in csv.reader(ndmg_atlases_file)])
+        if local_path in ndmg_atlases['v0']:
+            raise FileNotFoundError(
+                ''.join([
+                    'Neuroparc atlas paths were updated on July 20, 2020. '
+                    'C-PAC configuration files using Neuroparc v0 atlas paths '
+                    '(including C-PAC default and preconfigured pipeline '
+                    'configurations from v1.6.2a and earlier) need to be '
+                    'updated to use Neuroparc atlases. Your current '
+                    'configuration includes the Neuroparc v0 path '
+                    f'{local_path} which needs to be updated to ',
+                    ndmg_atlases['v1'][ndmg_atlases['v0'].index(local_path)],
+                    '. For a full list such paths, see https://fcp-indi.'
+                    'github.io/docs/nightly/user/ndmg_atlases'
+                ])
+            )
+        else:
+            raise FileNotFoundError(f'File {local_path} does not exist!')
 
     if verbose:
         print("Downloaded file:\n{0}\n".format(local_path))

@@ -16,16 +16,16 @@ The C-PAC website is located here: http://fcp-indi.github.com/
 How to Run
 ----------
 
-Instructions can be found within our quick-start guide: http://fcp-indi.github.io/docs/user/quick.html
+Instructions can be found within our quick-start guide: https://fcp-indi.github.io/docs/latest/user/quick
 
 Documentation
 -------------
 
-User documentation can be found here: http://fcp-indi.github.com/docs/user/index.html
+User documentation can be found here: https://fcp-indi.github.io/docs/latest/user
 
-Developer documentation can be found here: http://fcp-indi.github.com/docs/developer/index.html
+Developer documentation can be found here: https://fcp-indi.github.io/docs/latest/developer and here: https://github.com/FCP-INDI/.github/blob/primary/CONTRIBUTING.md
 
-Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.6.0
+Documentation pertaining to this latest release can be found here: https://fcp-indi.github.io/docs/latest/user/release_notes/latest
 
 
 Discussion Forum

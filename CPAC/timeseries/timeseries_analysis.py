@@ -133,6 +133,9 @@ def clean_roi_csv(roi_csv):
             if '/' in line and '.' in line:
                 modified = True
                 continue
+            if 'Sub-brick' in line:
+                modified = True
+                continue
         edited_lines.append(line)
 
     if modified:

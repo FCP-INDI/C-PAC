@@ -538,7 +538,7 @@ class DataSink(IOBase):
                     s3tempoutdir = os.path.join(s3tempoutdir, d)
 
             # flattening list
-            if isinstance(files, list):
+            if files and isinstance(files, list):
                 if isinstance(files[0], list):
                     files = [item for sublist in files for item in sublist]
 
