@@ -86,9 +86,9 @@ schema = Schema({
             Required('registration'): {
                 Required('using'): [In({'ANTS', 'FSL'})],
                 'ANTs': {
-                    'EPI_registration': Any([
+                    'EPI_registration': Any(
                         None, 'None', dict, [dict]
-                    ]),
+                    ),
                     'interpolation': In({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'
                     }),
@@ -104,6 +104,9 @@ schema = Schema({
         },
         Required('segmentation_workflow'): {
             '1-segmentation': {
+                'ANTs_Prior_Based': {
+                    Required('run'): [bool],
+                },
                 'Template_Based': {
                     'template_for_segmentation': [
                         In({'EPI Template', 'T1 Template'})
@@ -191,7 +194,8 @@ schema = Schema({
             Required('run'): [bool],
             'func_input_prep': {
                 Required('input'): [In({
-                    'Mean Functional', 'Selected Functional Volume'})]
+                    'Mean Functional', 'Selected Functional Volume'
+                })]
             },
             'boundary_based_registration': {
                 Required('run'): [bool],
@@ -262,7 +266,7 @@ schema = Schema({
     },
     Required('regional_homogeneity'): {
         Required('run'): bool,
-        'clusterSize': Any([7, 19, 27]),
+        'clusterSize': In({7, 19, 27}),
     },
     # 
     # 'nComponents': int, # check if list
