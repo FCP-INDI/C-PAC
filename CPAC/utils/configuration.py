@@ -19,7 +19,7 @@ class Configuration(object):
                         config_map[key] = os.environ['FSLDIR']
             setattr(self, key, config_map[key])
         self.__update_attr()
-        
+
     def __getitem__(self, key):
         return getattr(self, key)
 
@@ -63,14 +63,14 @@ class Configuration(object):
             if not callable(attr) and not attr.startswith("__")
         ]
         return attributes
-        
+
     # method to find any pattern ($) in the configuration
     # and update the attributes with its pattern value
     def update_attr(self):
-        from string import Template 
-        
+        from string import Template
+
         # TODO remove function from here
-        def check_pattern(orig_key, tags = None):
+        def check_pattern(orig_key, tags=None):
             temp = Template(orig_key)
             if type(temp.template) is str:
                 patterns = temp.pattern.findall(temp.template)
@@ -85,47 +85,52 @@ class Configuration(object):
                                     continue
                                 if getattr(self, val):
                                     pattern_map[val] = getattr(self, val)
-                                else: 
-                                    raise ValueError("No value found for attribute %s. "\
-                                                    "Please check the configuration file" %val)
+                                else:
+                                    raise ValueError(
+                                        f"No value found for attribute %s. "
+                                        "Please check the configuration "
+                                        "file" % val)
                 if pattern_map:
                     pattern_map.update(keep_tags_map)
-                    return check_pattern(Template(orig_key).substitute(pattern_map), tags=tags)
+                    return check_pattern(
+                        Template(orig_key).substitute(pattern_map), tags=tags)
                 else:
                     return orig_key
             else:
                 return orig_key
-                
+
         def check_path(key):
             if type(key) is str and '/' in key:
                 if not os.path.exists(key):
-                    warnings.warn("Invalid path- %s. Please check your configuration file"%key)
-            
-        attributes = [(attr, getattr(self, attr)) for attr in dir(self) \
-                      if not callable(attr) and not attr.startswith("__")]     
-        
+                    warnings.warn(
+                        "Invalid path- %s. Please check your configuration "
+                        "file" % key)
+
+        attributes = [(attr, getattr(self, attr)) for attr in dir(self)
+                      if not callable(attr) and not attr.startswith("__")]
+
         template_list = ['template_brain_only_for_anat',
-                        'template_skull_for_anat',
-                        'ref_mask',
-                        'template_brain_only_for_func',
-                        'template_skull_for_func',
-                        'template_symmetric_brain_only',
-                        'template_symmetric_skull',
-                        'dilated_symmetric_brain_mask']
-        
+                         'template_skull_for_anat',
+                         'ref_mask',
+                         'template_brain_only_for_func',
+                         'template_skull_for_func',
+                         'template_symmetric_brain_only',
+                         'template_symmetric_skull',
+                         'dilated_symmetric_brain_mask']
+
         for attr_key, attr_value in attributes:
 
             if attr_key in template_list:
                 new_key = check_pattern(attr_value, 'FSLDIR')
-            else:    
+            else:
                 new_key = check_pattern(attr_value)
             setattr(self, attr_key, new_key)
 
     __update_attr = update_attr
-    
+
     def update(self, key, val):
         setattr(self, key, val)
-        
+
     def __copy__(self):
         newone = type(self)({})
         newone.__dict__.update(self.__dict__)
