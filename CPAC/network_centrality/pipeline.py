@@ -96,10 +96,9 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
 
     # Format method and threshold options properly and check for
     # errors
-    method_option, threshold_option = \
-        check_centrality_params(method_option,
-                                threshold_option,
-                                threshold)
+    method_option, threshold_option = check_centrality_params(method_option,
+                                                              threshold_option,
+                                                              threshold)
 
     # Change sparsity thresholding to % to work with afni
     if threshold_option == 'sparsity':
@@ -107,8 +106,10 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
 
     afni_centrality_wf = \
         create_centrality_wf(wf_name, method_option,
-                             threshold_option,
-                             threshold, num_threads, memory)
+                             c.network_centrality[method_option][
+                                 'weight_options'
+                             ], threshold_option, threshold, num_threads,
+                             memory)
 
     workflow.connect(resample_functional_to_template, 'out_file',
                      afni_centrality_wf, 'inputspec.in_file')

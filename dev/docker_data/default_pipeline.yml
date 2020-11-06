@@ -1186,7 +1186,7 @@ network_centrality:
 
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
+    #   'Significance threshold', 'Correlation threshold'
     correlation_threshold_option: 'Correlation threshold'
 
     # Based on the Threshold Type selected above, enter a Threshold Value.
