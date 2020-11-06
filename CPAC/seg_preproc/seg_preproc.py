@@ -224,16 +224,23 @@ def create_seg_preproc(use_ants,
     >>> seg.inputs.inputspec.brain = '/home/data/Projects/C-PAC/working_directory/s1001/anat_preproc/mprage_brain.nii.gz'
     >>> seg_preproc.run() # doctest: +SKIP
 
+    .. exec::
+        from CPAC.seg_preproc import create_seg_preproc
+        wf = create_seg_preproc(False, False, ['FSL-FAST Thresholding'])
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/seg_preproc.dot'
+        )
 
     High Level Graph:
 
-    .. image:: ../images/seg_preproc.dot.png
+    .. image:: ../../images/generated/seg_preproc.png
         :width: 1100
-        :height: 480
+        :height: 100
 
     Detailed Graph:
 
-    .. image:: ../images/seg_preproc_detailed.dot.png
+    .. image:: ../../images/generated/seg_preproc_detailed.png
         :width: 1100
         :height: 480
     """
@@ -518,16 +525,27 @@ def process_segment_map(wf_name,
 
     - Generate segment mask, by applying tissue prior in t1 space to thresholded binarized segment probability map
 
+    .. exec::
+        from CPAC.seg_preproc import process_segment_map
+        wf = process_segment_map('segment_map_wf',
+                                False,
+                                False,
+                                ['FSL-FAST Thresholding'],
+                                False)
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/process_segment_map.dot'
+        )
 
     High Level Graph:
 
-    .. image:: ../images/process_segment_map.dot.png
+    .. image:: ../../images/generated/process_segment_map.png
         :width: 1100
         :height: 480
 
     Detailed Graph:
 
-    .. image:: ../images/process_segment_map_detailed.dot.png
+    .. image:: ../../images/generated/process_segment_map_detailed.png
         :width: 1100
         :height: 480
 

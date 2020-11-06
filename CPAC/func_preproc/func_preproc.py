@@ -731,8 +731,17 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                -odt char
 
     .. exec::
+        import yaml
+        from urllib.request import urlopen
         from CPAC.func_preproc import create_func_preproc
-        wf = create_func_preproc()
+        from CPAC.utils.configuration import Configuration
+
+        wf = create_func_preproc('fsl', '3dvolreg', 'mean',
+            config=Configuration(yaml.safe_load(urlopen(
+                'https://raw.githubusercontent.com/FCP-INDI/C-PAC/develop/'
+                'dev/docker_data/default_pipeline.yml'
+            )))
+        )
         wf.write_graph(
             graph2use='orig',
             dotfilename='./images/generated/func_preproc.dot'
@@ -740,12 +749,12 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
     High Level Workflow Graph:
 
-    .. image:: ../images/generated/func_preproc.png
+    .. image:: ../../images/generated/func_preproc.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/generated/func_preproc_detailed.png
+    .. image:: ../../images/generated/func_preproc_detailed.png
        :width: 1000
 
     Examples

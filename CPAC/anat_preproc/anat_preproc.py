@@ -588,12 +588,31 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                -expr 'a*step(b)'
                -prefix mprage_RPI_3dc.nii.gz
 
+    .. exec::
+        import yaml
+        from urllib.request import urlopen
+        from CPAC.anat_preproc import create_anat_preproc
+        from CPAC.utils.configuration import Configuration
+
+        wf = create_anat_preproc(
+            config=Configuration(yaml.safe_load(urlopen(
+                'https://raw.githubusercontent.com/FCP-INDI/C-PAC/develop/'
+                'dev/docker_data/default_pipeline.yml'
+            )))
+        )
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/anatpreproc.dot'
+        )
+
     High Level Workflow Graph:
-    .. image:: ../images/anatpreproc_graph.dot.png
+
+    .. image:: ../../images/generated/anatpreproc.png
        :width: 500
 
     Detailed Workflow Graph:
-    .. image:: ../images/anatpreproc_graph_detailed.dot.png
+
+    .. image:: ../../images/generated/anatpreproc_detailed.png
        :width: 500
 
     Examples
@@ -738,5 +757,3 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     preproc.connect(anat_leaf2, 'anat_data', outputnode, 'anat_skull_leaf')
 
     return preproc
-
-
