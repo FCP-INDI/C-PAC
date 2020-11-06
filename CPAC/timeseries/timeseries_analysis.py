@@ -1,7 +1,8 @@
 import nipype.pipeline.engine as pe
-import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import nipype.interfaces.afni as afni
+
+from nipype.interfaces import fsl
+from nipype.interfaces import afni
 from nipype import logging
 
 
@@ -117,11 +118,6 @@ def clean_roi_csv(roi_csv):
 
     # flag whether to re-write
     modified = False
-
-    # uncomment the header if commented:
-    if csv_lines[1].lstrip()[0] == '#':
-        csv_lines[1] = csv_lines[1].lstrip()[1:].lstrip()
-        modified = True
 
     edited_lines = []
     for line in csv_lines:
@@ -248,7 +244,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                   timeseries_roi, 'in_file')
 
     wflow.connect(inputnode_roi, 'roi',
-                  timeseries_roi, 'mask')
+                  timeseries_roi, 'mask_file')
 
     clean_csv_imports = ['import os']
     clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
@@ -258,7 +254,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                                       imports=clean_csv_imports),
                         name='clean_roi_csv')
 
-    wflow.connect(timeseries_roi, 'stats', clean_csv, 'roi_csv')
+    wflow.connect(timeseries_roi, 'out_file', clean_csv, 'roi_csv')
 
     write_npz_imports = ['import os', 'import numpy as np',
                          'from numpy import genfromtxt']

@@ -72,14 +72,14 @@ def check_ts(in_file):
     import os
     import numpy as np
 
-    if '.txt' in in_file:
+    if in_file.endswith('.txt'):
         try:
             timepoints, rois = np.loadtxt(in_file).shape
         except ValueError:
             timepoints = np.loadtxt(in_file).shape[0]
             rois = 1
         out_file = in_file
-    elif '.csv' in in_file:
+    elif in_file.endswith('.csv') or in_file.endswith('.1D'):
         csv_array = np.genfromtxt(in_file, delimiter=',')
         if np.isnan(csv_array[0][0]):
             csv_array = csv_array[1:]

@@ -15,14 +15,15 @@ commands:
       - run:
           name: "Setting Python Version"
           command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
+            cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
+            pyenv install -v 3.9.0
+            pyenv global 3.9.0
   install-singularity-requirements:
     steps:
       - run:
           name: "Installing Singularity requirements"
           command: |
-           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
+           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.1 libarchive-dev libgpgme11-dev libseccomp-dev -y
   set-up-singularity:
     steps:
       - run:
@@ -87,7 +88,8 @@ commands:
 
 jobs:
   pytest-docker:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
@@ -111,7 +113,8 @@ jobs:
           path: htmlcov
           no_output_timeout: 5h
   pytest-singularity:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
@@ -126,7 +129,8 @@ jobs:
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
   build:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - checkout
       - set-python-version
@@ -135,32 +139,20 @@ jobs:
           name: "Checking if version needs updated"
           # update version if version needs updated, otherwise just move on
           command: |
-            if [[ ! $(git log -1 --pretty=%B) == *"Update version to"* ]]
+            COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+            if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
             then
               cd $HOME/project/CPAC
-              VERSION=$(python -c "from info import __version__; print(__version__)")
+              VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
               cd ..
-              if ! [[ $CIRCLE_BRANCH = 'master' ]]
-                then
-                  git fetch --all
-                  if [[ -n ${CIRCLE_PR_NUMBER} && -n ${GITHUB_PR_BASE_TOKEN} ]]
-                    then
-                      curl -L "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" -o jq
-                      chmod +x jq
-                      REBASE_BASE=origin/$(curl -u shnizzedy:$GITHUB_PR_BASE_TOKEN "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER" | jq '.base.ref' | tr -d '"')
-                  else
-                    REBASE_BASE=$(git rev-parse --short HEAD~30)
-                  fi
-                GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i $REBASE_BASE --empty drop
-              fi
               echo "v${VERSION}" > version
               sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
               find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
               git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
               if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
               then
-                git commit -m ":bookmark: Update version to ${VERSION}"
-                git push origin HEAD:${CIRCLE_BRANCH} -f || true
+                git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+                git push origin HEAD:${CIRCLE_BRANCH} || true
                 circleci step halt
               fi
               cd ..
