@@ -55,14 +55,8 @@ def create_network_centrality_workflow(workflow, c, strategies):
 
         [connect_centrality_workflow(workflow, c, strat, num_strat,
                                      resample_functional_to_template,
-                                     c.network_centrality[
-                                         'template_specification_file'
-                                     ], merge_node, option,
-                                     c.network_centrality[option][
-                                         'correlation_threshold_option'
-                                     ], c.network_centrality[option][
-                                         'correlation_threshold'
-                                     ]) for option in centrality_options]
+                                     merge_node, option) for option in
+         centrality_options if c.network_centrality[option]['weight_options']]
 
         if False in c.network_centrality['run']:
             strategies += [strat.fork()]
@@ -77,12 +71,8 @@ def create_network_centrality_workflow(workflow, c, strategies):
 # Function to connect the into pipeline
 def connect_centrality_workflow(workflow, c, strat, num_strat,
                                 resample_functional_to_template,
-                                template,
-                                merge_node,
-                                method_option, threshold_option,
-                                threshold):
-    # TODO: drop method_option, threshold_option, threshold from signature
-    #       since we can get those from `method_option` with nested config
+                                merge_node, method_option):
+    template = c.network_centrality['template_specification_file']
 
     # Set method_options variables
     if method_option == 'degree_centrality':
@@ -91,6 +81,11 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
         out_list = 'eig_list'
     elif method_option == 'local_functional_connectivity_density':
         out_list = 'lfcd_list'
+
+    threshold_option = c.network_centrality[method_option][
+        'correlation_threshold_option'
+    ]
+    threshold = c.network_centrality[method_option]['correlation_threshold']
 
     # Init workflow name and resource limits
     wf_name = 'afni_centrality_%d_%s' % (num_strat, method_option)
