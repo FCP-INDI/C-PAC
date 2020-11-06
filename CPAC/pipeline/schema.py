@@ -1,6 +1,7 @@
 from itertools import chain, permutations
 from voluptuous import Schema, Required, All, Any, Length, Range, Match, In, \
                        ALLOW_EXTRA
+from voluptuous.validators import Maybe
 
 
 schema = Schema({
@@ -15,6 +16,12 @@ schema = Schema({
         },
         Required('output_directory'): {
             Required('path'): str,
+        },
+        Required('system_config'): {
+            'maximum_memory_per_participant': Any(float, int),
+            'max_cores_per_participant': int,
+            'num_ants_threads': int,
+            'num_participants_at_once': int
         },
     },
     # 
@@ -279,30 +286,6 @@ schema = Schema({
     # }),
     # 'mrsNorm': bool,
     # 
-    # 'runNetworkCentrality': bool,
-    # 'templateSpecificationFile': str,
-    # 'degWeightOptions': {
-    #     'binarized': bool,
-    #     'weighted': bool,
-    # },
-    # 'degCorrelationThresholdOption': Any(In(["significance", "sparsity", "correlation"])),
-    # 'degCorrelationThreshold': float,
-    # 
-    # 'eigWeightOptions': {
-    #     'binarized': bool,
-    #     'weighted': bool,
-    # },
-    # 'eigCorrelationThresholdOption': Any(In(["significance", "sparsity", "correlation"])),
-    # 'eigCorrelationThreshold': float,
-    # 
-    # 'lfcdWeightOptions': {
-    #     'binarized': bool,
-    #     'weighted': bool,
-    # },
-    # 'lfcdCorrelationThresholdOption': Any(In(["significance", "sparsity", "correlation"])),
-    # 'lfcdCorrelationThreshold': float,
-    # 
-    # 'memoryAllocatedForDegreeCentrality': float,
     # 
     # 'run_smoothing': [bool], # check/normalize
     # 'fwhm': float,
@@ -347,6 +330,35 @@ schema = Schema({
     # 'isc_voxelwise': bool,
     # 'isc_roiwise': bool,
     # 'isc_permutations': int,
+    Required('network_centrality'): {
+        Required('run'): [bool],
+        'memory_allocation': Any(float, int),
+        'template_specification_file': str,
+        'degree_centrality': {
+            'weight_options': [Maybe(In({'Binarized', 'Weighted'}))],
+            'correlation_threshold_option': In({
+                'Significance threshold', 'Sparsity threshold',
+                'Correlation threshold'
+            }),
+            'correlation_threshold': float
+        },
+        'eigenvector_centrality': {
+            'weight_options': [Maybe(In({'Binarized', 'Weighted'}))],
+            'correlation_threshold_option': In({
+                'Significance threshold', 'Sparsity threshold',
+                'Correlation threshold'
+            }),
+            'correlation_threshold': float
+        },
+        'local_functional_connectivity_density': {
+            'weight_options': [Maybe(In({'Binarized', 'Weighted'}))],
+            'correlation_threshold_option': In({
+                'Significance threshold', 'Sparsity threshold',
+                'Correlation threshold'
+            }),
+            'correlation_threshold': float
+        },
+    },
     Required('PyPEER'): {
         Required('run'): [bool],
     },

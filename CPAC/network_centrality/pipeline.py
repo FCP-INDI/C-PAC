@@ -11,14 +11,14 @@ logger = logging.getLogger('workflow')
 
 
 def create_network_centrality_workflow(workflow, c, strategies):
+    centrality_options = {'degree_centrality', 'eigenvector_centrality',
+                          'local_functional_connectivity_density'}
 
-    if not any((
-        True in c.degWeightOptions,
-        True in c.eigWeightOptions,
-        True in c.lfcdWeightOptions
-    )):
+    if True not in c.network_centrality['run'] or not any([
+        c.network_centrality[option]['weight_options'] for option in
+        centrality_options
+    ]):
         return strategies
-
 
     for num_strat, strat in enumerate(strategies[:]):
 
@@ -30,7 +30,9 @@ def create_network_centrality_workflow(workflow, c, strategies):
         )
         resample_functional_to_template.inputs.set(
             interp='trilinear',
-            in_matrix_file=c.identityMatrix,
+            in_matrix_file=c.functional_registration[
+                '2-func_registration_to_template'
+            ]['FNIRT_pipelines']['identity_matrix'],
             apply_xfm=True
         )
 
@@ -39,8 +41,9 @@ def create_network_centrality_workflow(workflow, c, strategies):
         workflow.connect(node, out_file,
                          resample_functional_to_template, 'in_file')
 
-        workflow.connect(c.templateSpecificationFile, 'local_path',
-                         resample_functional_to_template, 'reference')
+        workflow.connect(c.network_centrality['template_specification_file'],
+                         'local_path', resample_functional_to_template,
+                         'reference')
 
         merge_node = pe.Node(Function(input_names=['deg_list',
                                                    'eig_list',
@@ -50,37 +53,18 @@ def create_network_centrality_workflow(workflow, c, strategies):
                                       as_module=True),
                              name='merge_node_%d' % num_strat)
 
-        if True in c.degWeightOptions:
-            connect_centrality_workflow(
-                workflow, c, strat, num_strat,
-                resample_functional_to_template,
-                c.templateSpecificationFile, merge_node,
-                'degree',
-                c.degCorrelationThresholdOption,
-                c.degCorrelationThreshold
-            )
-            
-        if True in c.eigWeightOptions:
-            connect_centrality_workflow(
-                workflow, c, strat, num_strat,
-                resample_functional_to_template,
-                c.templateSpecificationFile, merge_node,
-                'eigenvector',
-                c.eigCorrelationThresholdOption,
-                c.eigCorrelationThreshold
-            )
-                
-        if True in c.lfcdWeightOptions:
-            connect_centrality_workflow(
-                workflow, c, strat, num_strat,
-                resample_functional_to_template,
-                c.templateSpecificationFile, merge_node,
-                'lfcd',
-                c.lfcdCorrelationThresholdOption,
-                c.lfcdCorrelationThreshold
-            )
+        [connect_centrality_workflow(workflow, c, strat, num_strat,
+                                     resample_functional_to_template,
+                                     c.network_centrality[
+                                         'template_specification_file'
+                                     ], merge_node, option,
+                                     c.network_centrality[option][
+                                         'correlation_threshold_option'
+                                     ], c.network_centrality[option][
+                                         'correlation_threshold'
+                                     ]) for option in centrality_options]
 
-        if 0 in c.runNetworkCentrality:
+        if False in c.network_centrality['run']:
             strategies += [strat.fork()]
 
         strat.update_resource_pool({
@@ -97,19 +81,23 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
                                 merge_node,
                                 method_option, threshold_option,
                                 threshold):
+    # TODO: drop method_option, threshold_option, threshold from signature
+    #       since we can get those from `method_option` with nested config
 
     # Set method_options variables
-    if method_option == 'degree':
+    if method_option == 'degree_centrality':
         out_list = 'deg_list'
-    elif method_option == 'eigenvector':
+    elif method_option == 'eigenvector_centrality':
         out_list = 'eig_list'
-    elif method_option == 'lfcd':
+    elif method_option == 'local_functional_connectivity_density':
         out_list = 'lfcd_list'
 
     # Init workflow name and resource limits
     wf_name = 'afni_centrality_%d_%s' % (num_strat, method_option)
-    num_threads = c.maxCoresPerParticipant
-    memory = c.memoryAllocatedForDegreeCentrality
+    num_threads = c.pipeline_setup['system_config'][
+        'max_cores_per_participant'
+    ]
+    memory = c.network_centrality['memory_allocation']
 
     # Format method and threshold options properly and check for
     # errors
