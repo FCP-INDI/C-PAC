@@ -18,9 +18,7 @@ class Configuration(object):
 
     c.attribute['key0']['key1']
     c['attribute']['key0']['key1']
-    c.attribute['key0', 'key1']
     c['attribute', 'key0', 'key1']
-    c.attribute[keys[1:]]
     c[keys]
     """
     def __init__(self, config_map):
