@@ -1127,7 +1127,9 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality:
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: True
+  # this is a fork point
+  #   run: [On, Off] - this will run both and fork the pipeline
+  run: [On]
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
