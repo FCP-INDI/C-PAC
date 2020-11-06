@@ -841,7 +841,7 @@ def reconstruct_surface(config):
     inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir',
                                                         'subject_id',
                                                         'wm_seg',
-                                                        'T1wRestoreImage']), 
+                                                        'anat_restore']),
                         name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['curv',
@@ -852,7 +852,6 @@ def reconstruct_surface(config):
                                                         'thickness',
                                                         'volume',
                                                         'white',
-                                                        # 'wmparc',
                                                         'brainmask']),
                         name='outputspec')
 
@@ -899,15 +898,18 @@ def reconstruct_surface(config):
     # convert wmparc.mgz to wmparc.nii.gz
     # TODO what's T1wRestoreImage?
 
-    wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','args'],
+    wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','reslice_like','args'],
                                         output_names=['out_file'],
                                         function=mri_convert),
                             name='wmparc_to_nifti')
     
-    wmparc_to_nifti.inputs.args = '-rt nearest -rl T1wRestoreImage.nii.gz' # TODO                       
+    wmparc_to_nifti.inputs.args = '-rt nearest'
     
     surface_reconstruction.connect(reconall3, 'wmparc',
                                     wmparc_to_nifti, 'in_file')
+
+    surface_reconstruction.connect(inputnode, 'anat_restore',
+                                    wmparc_to_nifti, 'reslice_like')
 
     # fslmaths "$T1wFolder"/wmparc_1mm.nii.gz -bin -dilD -dilD -dilD -ero -ero "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
     binary_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
@@ -918,20 +920,20 @@ def reconstruct_surface(config):
                                     binary_mask, 'in_file')
 
     # ${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
-    wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file','args'],
-                                        output_names=['out_file'],
-                                        function=wb_command),
-                            name='wb_command_fill_holes')
+    # wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file','args'],
+    #                                     output_names=['out_file'],
+    #                                     function=wb_command),
+    #                         name='wb_command_fill_holes')
     
-    surface_reconstruction.connect(binary_mask, 'out_file',
-                                    wb_command_fill_holes, 'in_file')
+    # surface_reconstruction.connect(binary_mask, 'out_file',
+    #                                 wb_command_fill_holes, 'in_file')
 
     # fslmaths "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -bin "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
     binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
                             name='binarize_wmparc2')
     binary_mask2.inputs.args = '-bin'
 
-    surface_reconstruction.connect(wmparc_to_nifti, 'out_file',
+    surface_reconstruction.connect(binary_mask, 'out_file',
                                     binary_mask2, 'in_file')
 
     # applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$T1wFolder"/"$T1wRestoreImage".nii.gz 
@@ -942,13 +944,13 @@ def reconstruct_surface(config):
     brain_mask_to_native.inputs.interp = 'nn'
     brain_mask_to_native.inputs.premat = config.identityMatrix
 
-    surface_reconstruction.connect(binary_mask2, 'out_file', 
+    surface_reconstruction.connect(binary_mask2, 'out_file',
                                     brain_mask_to_native, 'in_file')
 
-    surface_reconstruction.connect(inputspec, 'T1wRestoreImage', 
+    surface_reconstruction.connect(inputnode, 'anat_restore',
                                     brain_mask_to_native, 'ref_file')
 
     surface_reconstruction.connect(brain_mask_to_native, 'out_file',
-                                    wmparc_to_native, 'brainmask')
+                                    outputnode, 'brainmask')
 
     return surface_reconstruction                           
