@@ -8,13 +8,11 @@ from nipype.interfaces.fsl import preprocess as fsl_preproc
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
-from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
-    fsl_aff_to_rigid
 from nipype.interfaces import freesurfer
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-from CPAC.anat_preproc.ants import init_brain_extraction_wf
-from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, mri_convert
+from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
+    fsl_aff_to_rigid, \
+    mri_convert, \
+    wb_command
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
@@ -941,13 +939,15 @@ def reconstruct_surface(config):
                                     binary_mask, 'in_file')
 
     # ${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
-    # wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file','args'],
-    #                                     output_names=['out_file'],
-    #                                     function=wb_command),
-    #                         name='wb_command_fill_holes')
-    
-    # surface_reconstruction.connect(binary_mask, 'out_file',
-    #                                 wb_command_fill_holes, 'in_file')
+    wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file','args'],
+                                        output_names=['out_file'],
+                                        function=wb_command),
+                            name='wb_command_fill_holes')
+
+    wb_command_fill_holes.inputs.args = '-volume-fill-holes'
+
+    surface_reconstruction.connect(binary_mask, 'out_file',
+                                    wb_command_fill_holes, 'in_file')
 
     # fslmaths "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -bin "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
     binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
