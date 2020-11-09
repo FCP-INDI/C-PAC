@@ -1638,7 +1638,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             for num_strat, strat in enumerate(strat_list):
 
-                reconall3 = reconstruct_surface(num_omp_threads=c.num_omp_threads)
+                reconall3 = reconstruct_surface(config=c)
                 
                 node, out_file = strat['anatomical_wm_mask']
                 workflow.connect(node, out_file,
@@ -1660,8 +1660,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'sulcal_depth_surface_maps': (reconall3, 'outputspec.sulc'),
                     'cortical_thickness_surface_maps': (reconall3, 'outputspec.thickness'),
                     'cortical_volume_surface_maps': (reconall3, 'outputspec.volume'),
-                    'white_matter_surface_mesh': (reconall3, 'outputspec.white')
-                })
+                    'white_matter_surface_mesh': (reconall3, 'outputspec.white'),
+                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                }, override=True)
 
 
     # Functional / BOLD time

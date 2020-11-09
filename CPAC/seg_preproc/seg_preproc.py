@@ -1117,7 +1117,7 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
 
     reconall2.inputs.directive = 'autorecon2'
     reconall2.inputs.openmp = config.num_omp_threads
-    
+
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
     
@@ -1396,7 +1396,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
             if seg_preproc_freesurfer is None:
                 continue
-
+            
             node, out_file = strat['freesurfer_subject_dir']
             workflow.connect(node, out_file,
                              seg_preproc_freesurfer, 'inputspec.subject_dir')

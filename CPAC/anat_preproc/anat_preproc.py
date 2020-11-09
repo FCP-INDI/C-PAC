@@ -144,7 +144,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
 
     return preproc
 
-def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatomical', sub_dir=None):
+def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatomical'):
 
     method = method.lower()
 
@@ -152,8 +152,10 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_data', 
                                                        'brain_mask',
+                                                       'rawavg',
                                                        'template_brain_only_for_anat',
-                                                       'template_skull_for_anat']), 
+                                                       'template_skull_for_anat',
+                                                       'freesurfer_subject_dir']), 
                          name='inputspec')
     outputnode = pe.Node(util.IdentityInterface(fields=['skullstrip',
                                                         'brain',
@@ -401,38 +403,15 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
     elif method == 'freesurfer':
 
-        reconall = pe.Node(interface=freesurfer.ReconAll(),
-                        name='anat_freesurfer')
-        reconall.inputs.directive = 'autorecon1'
-        
-        num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
-
-        freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}', 'anat_freesurfer')
-        
-        # create the node dir
-        if not os.path.exists(sub_dir):
-            os.mkdir(sub_dir)
-        if not os.path.exists(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}')):
-            os.mkdir(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}'))
-        if not os.path.exists(freesurfer_subject_dir):
-            os.mkdir(freesurfer_subject_dir)
-        
-        reconall.inputs.subjects_dir = freesurfer_subject_dir
-        reconall.inputs.openmp = config.num_omp_threads
-        preproc.connect(inputnode, 'anat_data',
-                        reconall, 'T1_files')
-        preproc.connect(reconall, 'subjects_dir',
-                        outputnode, 'freesurfer_subject_dir')
-
         # register FS brain mask to native space
         fs_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
                         name='fs_brain_mask_to_native')
         fs_brain_mask_to_native.inputs.reg_header = True
-        preproc.connect(reconall, 'brainmask',
+        preproc.connect(inputnode, 'brain_mask',
                         fs_brain_mask_to_native, 'source_file')
-        preproc.connect(reconall, 'rawavg',
+        preproc.connect(inputnode, 'rawavg',
                         fs_brain_mask_to_native, 'target_file')
-        preproc.connect(reconall, 'subjects_dir',
+        preproc.connect(inputnode, 'freesurfer_subject_dir',
                         fs_brain_mask_to_native, 'subjects_dir')
         
         # convert brain mask file from .mgz to .nii.gz
@@ -793,8 +772,35 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     else:
 
-        anat_skullstrip = skullstrip_anatomical(method=method, config=config, 
-                                                wf_name="{0}_skullstrip".format(wf_name), sub_dir=sub_dir)
+        if method == 'freesurfer':
+            reconall = pe.Node(interface=freesurfer.ReconAll(),
+                name='anat_freesurfer')
+            reconall.inputs.directive = 'autorecon1'
+            
+            num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
+
+            freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}', 'anat_freesurfer')
+            
+            # create the node dir
+            if not os.path.exists(sub_dir):
+                os.mkdir(sub_dir)
+            if not os.path.exists(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}')):
+                os.mkdir(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}'))
+            if not os.path.exists(freesurfer_subject_dir):
+                os.mkdir(freesurfer_subject_dir)
+
+            reconall.inputs.subjects_dir = freesurfer_subject_dir
+            reconall.inputs.openmp = config.num_omp_threads
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            reconall, 'T1_files')
+
+            preproc.connect(reconall, 'subjects_dir',
+                            outputnode, 'freesurfer_subject_dir')
+        
+        anat_skullstrip = skullstrip_anatomical(method=method, config=config,
+                                                wf_name="{0}_skullstrip".format(wf_name))
+
         preproc.connect(anat_leaf2, 'anat_data',
                         anat_skullstrip, 'inputspec.anat_data')
         preproc.connect(inputnode, 'template_brain_only_for_anat',
@@ -805,9 +811,19 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         if method == 'mask' and config.acpc_align:
             preproc.connect(acpc_align, 'outputspec.acpc_brain_mask', 
                             anat_skullstrip, 'inputspec.brain_mask') 
-        else:             
+        elif method == 'freesurfer':
+            preproc.connect(reconall, 'brainmask',
+                            anat_skullstrip, 'inputspec.brain_mask')
+
+            preproc.connect(reconall, 'rawavg',
+                            anat_skullstrip, 'inputspec.rawavg')
+
+            preproc.connect(reconall, 'subjects_dir',
+                            anat_skullstrip, 'inputspec.freesurfer_subject_dir')
+        else:
             preproc.connect(inputnode, 'brain_mask',
-                            anat_skullstrip, 'inputspec.brain_mask') 
+                            anat_skullstrip, 'inputspec.brain_mask')
+        
         preproc.connect(anat_skullstrip, 'outputspec.brain_mask',
                         outputnode, 'brain_mask')
         preproc.connect(anat_skullstrip, 'outputspec.brain', 
@@ -818,13 +834,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     return preproc
 
 # TODO multi-thread doens't work - debug!
-def reconstruct_surface(num_omp_threads):
+def reconstruct_surface(config):
 
     """
     Parameters
     ----------
-    num_omp_threads : int
-        number of openmp threads
+    config : Configuration
+        pipeline configuration
 
     Returns
     -------
@@ -845,7 +861,8 @@ def reconstruct_surface(num_omp_threads):
 
     inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir',
                                                         'subject_id',
-                                                        'wm_seg']), 
+                                                        'wm_seg',
+                                                        'anat_restore']), 
                         name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['curv',
@@ -855,14 +872,15 @@ def reconstruct_surface(num_omp_threads):
                                                         'sulc',
                                                         'thickness',
                                                         'volume',
-                                                        'white']),
+                                                        'white',
+                                                        'brain_mask']),
                         name='outputspec')
 
     reconall3 = pe.Node(interface=freesurfer.ReconAll(),
                         name='anat_autorecon3')
 
     reconall3.inputs.directive = 'autorecon3'
-    reconall3.inputs.openmp = num_omp_threads
+    reconall3.inputs.openmp = config.num_omp_threads
 
     surface_reconstruction.connect(inputnode, 'subject_id',
                                     reconall3, 'subject_id')
@@ -893,5 +911,67 @@ def reconstruct_surface(num_omp_threads):
 
     surface_reconstruction.connect(reconall3, 'white',
                                     outputnode, 'white')
+
+    # ABCD code
+
+    # mri_convert -rt nearest -rl "$T1wFolder"/"$T1wRestoreImage".nii.gz "$FreeSurferFolder"/mri/wmparc.mgz "$T1wFolder"/wmparc_1mm.nii.gz
+    
+    # convert wmparc.mgz to wmparc.nii.gz
+    # TODO what's T1wRestoreImage?
+
+    wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','reslice_like','args'],
+                                        output_names=['out_file'],
+                                        function=mri_convert),
+                            name='wmparc_to_nifti')
+    
+    wmparc_to_nifti.inputs.args = '-rt nearest'
+    
+    surface_reconstruction.connect(reconall3, 'wmparc',
+                                    wmparc_to_nifti, 'in_file')
+
+    surface_reconstruction.connect(inputnode, 'anat_restore',
+                                    wmparc_to_nifti, 'reslice_like')
+
+    # fslmaths "$T1wFolder"/wmparc_1mm.nii.gz -bin -dilD -dilD -dilD -ero -ero "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    binary_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
+                            name='binarize_wmparc')
+    binary_mask.inputs.args = '-bin -dilD -dilD -dilD -ero -ero'
+
+    surface_reconstruction.connect(wmparc_to_nifti, 'out_file',
+                                    binary_mask, 'in_file')
+
+    # ${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    # wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file','args'],
+    #                                     output_names=['out_file'],
+    #                                     function=wb_command),
+    #                         name='wb_command_fill_holes')
+    
+    # surface_reconstruction.connect(binary_mask, 'out_file',
+    #                                 wb_command_fill_holes, 'in_file')
+
+    # fslmaths "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -bin "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
+    binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
+                            name='binarize_wmparc2')
+    binary_mask2.inputs.args = '-bin'
+
+    surface_reconstruction.connect(binary_mask, 'out_file',
+                                    binary_mask2, 'in_file')
+
+    # applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$T1wFolder"/"$T1wRestoreImage".nii.gz 
+    # --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
+    brain_mask_to_native = pe.Node(interface=fsl.ApplyWarp(),
+                name='brain_mask_to_native')
+
+    brain_mask_to_native.inputs.interp = 'nn'
+    brain_mask_to_native.inputs.premat = config.identityMatrix
+
+    surface_reconstruction.connect(binary_mask2, 'out_file',
+                                    brain_mask_to_native, 'in_file')
+
+    surface_reconstruction.connect(inputnode, 'anat_restore',
+                                    brain_mask_to_native, 'ref_file')
+
+    surface_reconstruction.connect(brain_mask_to_native, 'out_file',
+                                    outputnode, 'brain_mask')
 
     return surface_reconstruction                           
