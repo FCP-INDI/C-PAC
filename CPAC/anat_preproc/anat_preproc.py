@@ -144,7 +144,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
 
     return preproc
 
-def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatomical'):
+def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatomical', sub_dir=None):
 
     method = method.lower()
 
@@ -399,6 +399,62 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         preproc.connect(anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask',
                         outputnode, 'brain_mask')
 
+    elif method == 'freesurfer':
+
+        reconall = pe.Node(interface=freesurfer.ReconAll(),
+                        name='anat_freesurfer')
+        reconall.inputs.directive = 'autorecon1'
+        
+        num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
+
+        freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}', 'anat_freesurfer')
+        
+        # create the node dir
+        if not os.path.exists(sub_dir):
+            os.mkdir(sub_dir)
+        if not os.path.exists(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}')):
+            os.mkdir(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}'))
+        if not os.path.exists(freesurfer_subject_dir):
+            os.mkdir(freesurfer_subject_dir)
+        
+        reconall.inputs.subjects_dir = freesurfer_subject_dir
+        reconall.inputs.openmp = config.num_omp_threads
+        preproc.connect(inputnode, 'anat_data',
+                        reconall, 'T1_files')
+        preproc.connect(reconall, 'subjects_dir',
+                        outputnode, 'freesurfer_subject_dir')
+
+        # register FS brain mask to native space
+        fs_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                        name='fs_brain_mask_to_native')
+        fs_brain_mask_to_native.inputs.reg_header = True
+        preproc.connect(reconall, 'brainmask',
+                        fs_brain_mask_to_native, 'source_file')
+        preproc.connect(reconall, 'rawavg',
+                        fs_brain_mask_to_native, 'target_file')
+        preproc.connect(reconall, 'subjects_dir',
+                        fs_brain_mask_to_native, 'subjects_dir')
+        
+        # convert brain mask file from .mgz to .nii.gz
+        fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
+                                            output_names=['out_file'],
+                                            function=mri_convert),                        
+                                name='fs_brain_mask_to_nifti')
+        preproc.connect(fs_brain_mask_to_native, 'transformed_file',
+                        fs_brain_mask_to_nifti, 'in_file')
+        preproc.connect(fs_brain_mask_to_nifti, 'out_file',
+                        outputnode, 'brain_mask')
+
+        # apply mask
+        fs_brain = pe.Node(interface=fsl.ApplyMask(),
+                        name='anat_skullstrip')
+        preproc.connect(inputnode, 'anat_data',
+                        fs_brain, 'in_file')
+        preproc.connect(fs_brain_mask_to_nifti, 'out_file',
+                        fs_brain, 'mask_file')
+        preproc.connect(fs_brain, 'out_file',
+                        outputnode, 'brain')
+
     elif method == 'mask':
 
         brain_mask_deoblique = pe.Node(interface=afni.Refit(),
@@ -533,7 +589,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
     return preproc
 
 def create_anat_preproc(method='afni', already_skullstripped=False,
-                        config=None, acpc_target='whole-head', wf_name='anat_preproc'):
+                        config=None, acpc_target='whole-head', wf_name='anat_preproc', sub_dir=None):
     """The main purpose of this workflow is to process T1 scans. Raw mprage
     file is deobliqued, reoriented into RPI and skullstripped. Also, a whole
     brain only mask is generated from the skull stripped image for later use
@@ -738,7 +794,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     else:
 
         anat_skullstrip = skullstrip_anatomical(method=method, config=config, 
-                                                wf_name="{0}_skullstrip".format(wf_name))
+                                                wf_name="{0}_skullstrip".format(wf_name), sub_dir=sub_dir)
         preproc.connect(anat_leaf2, 'anat_data',
                         anat_skullstrip, 'inputspec.anat_data')
         preproc.connect(inputnode, 'template_brain_only_for_anat',

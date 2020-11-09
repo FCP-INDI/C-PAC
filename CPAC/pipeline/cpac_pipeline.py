@@ -1104,7 +1104,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.template_skull_for_anat')
                     workflow.connect(c.acpc_template_skull, 'local_path',
-                                    anat_preproc, 'inputspec.template_skull_for_acpc')                               
+                                    anat_preproc, 'inputspec.template_skull_for_acpc')
                     workflow.connect(c.acpc_template_brain, 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
@@ -1120,6 +1120,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if "FreeSurfer" in c.skullstrip_option:
                     anat_preproc = create_anat_preproc(method='freesurfer',
                                                     config=c,
+                                                    acpc_target=acpc_target,
                                                     wf_name='anat_preproc_freesurfer_%d' % num_strat,
                                                     sub_dir=os.path.join(c.workingDirectory, workflow_name))
 
@@ -1127,11 +1128,15 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
+                    workflow.connect(c.acpc_template_skull, 'local_path',
+                                    anat_preproc, 'inputspec.template_skull_for_acpc')
+                    workflow.connect(c.acpc_template_brain, 'local_path',
+                                    anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
                         'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_reorient': (anat_preproc, 'outputspec.reorient'),
+                        'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
                         'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                         'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
                     })
