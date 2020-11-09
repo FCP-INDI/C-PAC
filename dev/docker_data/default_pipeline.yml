@@ -47,6 +47,10 @@ numParticipantsAtOnce :  1
 num_ants_threads :  4
 
 
+# The number of cores to allocate to FreeSurfer recon-all per participant. This number cannot be greater than the number of cores per participant.
+num_omp_threads: 1
+
+
 # Name for this pipeline configuration - useful for identification.
 pipelineName :  analysis
 
@@ -114,6 +118,10 @@ reGenerateOutputs :  False
 runAnatomical: [1]
 
 
+# Run FreeSurfer recon-all
+runFreeSurfer: [0]
+
+
 # Non-local means filtering via ANTs DenoiseImage
 non_local_means_filtering: False
 
@@ -141,8 +149,8 @@ acpc_template_brain: None
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI or FSL-BET or niworkflows-ants or UNet for monkey data to perform SkullStripping
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet']
+# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer (recon-all) or UNet for monkey data to perform skull-stripping.
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer', 'unet']
 skullstrip_option :  ['AFNI']
 
 
@@ -453,11 +461,10 @@ regWithSkull :  [1]
 runSegmentationPreprocessing :  [1]
 
 
-# ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
-# Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
-# If you'd like to set ANTs Prior-based Segmentation as your segmentation option,
-# please set Template based segmentation as 'None' and runSegmentationPreprocessing as [0].
-ANTs_prior_based_segmentation : [0]
+# segmentation method options: ['FSL', 'FreeSurfer', 'ANTs-Prior-Based', 'Template-Based']
+# FSL uses FAST; FreeSurfer runs recon-all to generate segmentations;
+# ANTs Prior-based Segmentation workflow uses antsJointLabelFusion and has shown optimal results for non-human primate data;
+segmentation_method: ['FSL']
 
 
 # The atlas image assumed to be used in ANTs Prior-based Segmentation.
@@ -640,6 +647,10 @@ gm_mask_erosion_mm: 30
 gm_erosion_mm: 0
 
 
+# Reconstruct surface via FreeSurfer
+surface_reconstruction: False
+
+
 # Run functional preproceessing
 runFunctional: [1]
 
@@ -775,6 +786,26 @@ fmap_distcorr_threshold :  0.6
 
 # Run Functional to Anatomical Registration
 runRegisterFuncToAnat :  [1]
+
+
+functional_registration:
+
+  1-coregistration:
+    # functional (BOLD/EPI) registration to anatomical (structural/T1)
+
+    boundary_based_registration:
+
+      # this is a fork point
+      #   run: [On, Off] - this will run both and fork the pipeline
+      run: [On]
+
+      # this is a fork point
+      #   using: ['FSL', 'FreeSurfer']
+      using: ['FSL']
+
+      # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
+      # It is not necessary to change this path unless you intend to use non-standard MNI registration.
+      bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
 
 # Run Functional to Anatomical Registration with BB Register

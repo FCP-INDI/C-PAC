@@ -396,6 +396,42 @@ def create_register_func_to_anat(phase_diff_distcor=False,
     return register_func_to_anat
 
 
+def create_bbr_fs:
+# ${FREESURFER_HOME}/bin/bbregister --s "${FreeSurferSubjectID}_1mm" --mov ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_init_1mm.nii.gz --surf white.deformed --init-reg ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/eye.dat --bold --reg ${WD}/EPItoT1w.dat --${dof} --o ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_1mm.nii.gz
+# tkregister2 --noedit --reg ${WD}/EPItoT1w.dat --mov ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_init_1mm.nii.gz --targ ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/T1w_hires.nii.gz --fslregout ${WD}/fMRI2str_1mm.mat
+# applywarp --interp=spline -i ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_init_1mm.nii.gz -r ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/T1w_hires.nii.gz --premat=${WD}/fMRI2str_1mm.mat -o ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_1mm.nii.gz
+
+# convert_xfm -omat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/temp.mat -concat ${WD}/fMRI2str_1mm.mat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/real2fs.mat
+# convert_xfm -omat ${WD}/fMRI2str_refinement.mat -concat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/fs2real.mat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/temp.mat
+
+    bbreg = BBRegister(name='bbregister_func_to_anat_fs')
+
+    # --s subject_id
+    bbreg.connect(inputnode, 'subject_id',
+                    bbreg, 'subject_id')
+
+    # --mov source_file func in anat space
+    # bbreg.connect(inputnode, 'anat_skull',
+    #                 bbreg, 'source_file') 
+
+    # --init-reg init_reg_file
+    # mri/transforms/eye.dat 
+    # identity matrix, no such an matrix in FS output
+
+    # --bold
+
+    # --surf white.deformed 
+    # what's it? a prefix
+    # change surface to surfname from ?h.white
+
+    # --reg out_reg_file
+
+    # --o registered_file
+
+    # cmd = 'tkregister2'
+    # os.system(cmd)
+
+
 def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                    name='bbregister_func_to_anat'):
   
@@ -1027,7 +1063,7 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
 
     new_strat_list = []
 
-    if 1 in c.runRegisterFuncToAnat and 1 in c.runBBReg:
+    if 1 in c.runRegisterFuncToAnat and True in c.functional_registration['1-coregistration']['boundary_based_registration']['run']:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1044,7 +1080,7 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
 
                 # Input registration parameters
                 func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
-                    c.boundaryBasedRegistrationSchedule
+                    c.functional_registration['1-coregistration']['boundary_based_registration']['bbr_schedule']
 
                 if 'Mean Functional' in c.func_reg_input:
                     # Input functional image (mean functional)
@@ -1071,14 +1107,19 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
 
                 if 'T1_template' in c.template_based_segmentation or \
                         'EPI_template' in c.template_based_segmentation or \
-                            1 in c.ANTs_prior_based_segmentation :
+                            'ANTs-Prior-Based' in c.segmentation_method :
                     # Input segmentation mask,
-                    # since template_based_segmentation or ANTs_prior_based_segmentation cannot generate
+                    # since template-based segmentation or ANTs prior-based segmentation cannot generate
                     # probability maps
                     node, out_file = strat['anatomical_wm_mask']
                     workflow.connect(node, out_file,
-                                    func_to_anat_bbreg,
-                                    'inputspec.anat_wm_segmentation')
+                                        func_to_anat_bbreg,
+                                        'inputspec.anat_wm_segmentation')
+                elif 'FreeSurfer' in c.segmentation_method:
+                    node, out_file = strat['anatomical_wm_mask']
+                    workflow.connect(node, out_file,
+                                        func_to_anat_bbreg,
+                                        'inputspec.anat_wm_segmentation')
                 else:
                     # Input segmentation probability maps for white matter
                     # segmentation
@@ -1110,7 +1151,7 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
                                         func_to_anat_bbreg,
                                         'inputspec.fieldmapmask')
 
-                if 0 in c.runBBReg:
+                if False in c.functional_registration['1-coregistration']['boundary_based_registration']['run']:
                     strat = strat.fork()
                     new_strat_list.append(strat)
 

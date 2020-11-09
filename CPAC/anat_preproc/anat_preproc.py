@@ -10,6 +10,11 @@ import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fsl_aff_to_rigid
+from nipype.interfaces import freesurfer
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
+from CPAC.anat_preproc.ants import init_brain_extraction_wf
+from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, mri_convert
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
@@ -534,10 +539,26 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     brain only mask is generated from the skull stripped image for later use
     in registration.
 
+    Parameters
+    ----------
+    method : string or None
+        Skull-stripping method, None if no skullstripping required
+    
+    already_skullstripped : boolean
+
+    config : configuration
+        Pipeline configuration object
+
+    wf_name : string
+        Anatomical preprocessing workflow name
+
+    sub_dir : path
+        Subject-specific working directory
+
     Returns
     -------
     anat_preproc : workflow
-        Anatomical Preprocessing Workflow
+        Anatomical preprocessing workflow
 
     Notes
     -----
@@ -621,6 +642,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                         'brain',
                                                         'brain_mask',
                                                         'anat_skull_leaf',
+                                                        'freesurfer_subject_dir',
                                                         'center_of_mass']),
                         name='outputspec')
 
@@ -739,4 +761,81 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     return preproc
 
+# TODO multi-thread doens't work - debug!
+def reconstruct_surface(num_omp_threads):
 
+    """
+    Parameters
+    ----------
+    num_omp_threads : int
+        number of openmp threads
+
+    Returns
+    -------
+    surface_reconstruction : Workflow
+        autorecon3 surface reconstruction workflow
+    
+    Notes
+    -----
+    wm_seg is not a necessary input for autorecon3 but make a fake connection 
+    so that nipype can run autorecon2 and 3 sequentially
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    from nipype.interfaces import freesurfer
+
+    surface_reconstruction = pe.Workflow(name='surface_reconstruction')
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir',
+                                                        'subject_id',
+                                                        'wm_seg']), 
+                        name='inputspec')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['curv',
+                                                        'pial',
+                                                        'smoothwm',
+                                                        'sphere',
+                                                        'sulc',
+                                                        'thickness',
+                                                        'volume',
+                                                        'white']),
+                        name='outputspec')
+
+    reconall3 = pe.Node(interface=freesurfer.ReconAll(),
+                        name='anat_autorecon3')
+
+    reconall3.inputs.directive = 'autorecon3'
+    reconall3.inputs.openmp = num_omp_threads
+
+    surface_reconstruction.connect(inputnode, 'subject_id',
+                                    reconall3, 'subject_id')
+
+    surface_reconstruction.connect(inputnode, 'subject_dir',
+                                    reconall3, 'subjects_dir')
+
+    surface_reconstruction.connect(reconall3, 'curv',
+                                    outputnode, 'curv')
+
+    surface_reconstruction.connect(reconall3, 'pial',
+                                    outputnode, 'pial')
+
+    surface_reconstruction.connect(reconall3, 'smoothwm',
+                                    outputnode, 'smoothwm')
+
+    surface_reconstruction.connect(reconall3, 'sphere',
+                                    outputnode, 'sphere')
+
+    surface_reconstruction.connect(reconall3, 'sulc',
+                                    outputnode, 'sulc')
+
+    surface_reconstruction.connect(reconall3, 'thickness',
+                                    outputnode, 'thickness')
+
+    surface_reconstruction.connect(reconall3, 'volume',
+                                    outputnode, 'volume')
+
+    surface_reconstruction.connect(reconall3, 'white',
+                                    outputnode, 'white')
+
+    return surface_reconstruction                           

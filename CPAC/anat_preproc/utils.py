@@ -282,3 +282,35 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
         expr += ' -fac {0}'.format(fac)
 
     return expr
+
+
+def mri_convert(in_file, args=None):
+    """
+    Method to convert files from mgz to nifti format 
+    
+    Parameters
+    ----------
+    in_file : string
+        A path of mgz input file
+        
+    args : string
+        Arguments of mri_convert
+
+    Returns
+    -------
+    out_file : string
+        A path of nifti output file
+    """
+
+    import os
+    
+    out_file = in_file.replace('.mgz','.nii.gz')
+
+    cmd = 'mri_convert %s %s' % (in_file, out_file)
+
+    if args != None:
+        cmd = cmd + ' ' +args
+
+    os.system(cmd)
+
+    return out_file
