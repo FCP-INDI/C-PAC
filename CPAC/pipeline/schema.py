@@ -2,6 +2,25 @@ from itertools import chain, permutations
 from voluptuous import Schema, Required, All, Any, Length, Range, Match, In, \
                        ALLOW_EXTRA
 
+mutex = {  # mutually exclusive booleans
+    'FSL-BET': {
+        # exactly zero or one of each of the following can be True for FSL-BET
+        'mutex': ['reduce_bias', 'robust', 'padding', 'remove_eyes',
+                  'surfaces'],
+        # the remaining keys: validators for FSL-BET
+        'rem': {
+            'frac': float,
+            'mesh_boolean': bool,
+            'outline': bool,
+            'radius': int,
+            'skull': bool,
+            'threshold': bool,
+            'vertical_gradient': Range(min=-1, max=1, min_included=False,
+                                       max_included=False),
+        }
+    }
+}
+
 
 schema = Schema({
     Required('pipeline_setup'): {
@@ -68,19 +87,6 @@ schema = Schema({
     # 'skullstrip_max_inter_iter': int,
     # 'skullstrip_fac': int,
     # 'skullstrip_blur_fwhm': int,
-    # 'bet_frac': float,
-    # 'bet_mask_boolean': bool,  # check/normalize
-    # 'bet_mesh_boolean': bool,  # check/normalize
-    # 'bet_outline': bool,  # check/normalize
-    # 'bet_padding': bool,  # check/normalize
-    # 'bet_radius': int,
-    # 'bet_reduce_bias': bool,  # check/normalize
-    # 'bet_remove_eyes': bool,  # check/normalize
-    # 'bet_robust': bool,  # check/normalize
-    # 'bet_skull': bool,  # check/normalize
-    # 'bet_surfaces': bool,  # check/normalize
-    # 'bet_threshold': bool,  # check/normalize
-    # 'bet_vertical_gradient': float,
     Required('anatomical_preproc'): {
         Required('registration_workflow'): {
             Required('registration'): {
@@ -140,6 +146,55 @@ schema = Schema({
             }
         }
     },
+    Required('functional_preproc'): {
+        Required('run'): bool,
+        Required('distortion_correction'): {
+            Required('run'): [bool],
+        },
+        'using': [In(['PhaseDiff', 'Blip'])],
+        'PhaseDiff': {
+            'fmap_skullstrip_option': [In(['BET', 'AFNI'])],
+            'fmap_skullstrip_frac': float,
+            'fmap_distcorr_threshold': float,
+        },
+        'func_masking': {
+            'using': [In(['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined'])],
+            # handle validating mutually-exclusive booleans for FSL-BET
+            # functional_mean_boolean must be True if one of the mutually-
+            # exclusive options are
+            # see mutex definition for more definition
+            'FSL-BET': Any(*(
+                # exactly one mutually exclusive option on
+                [{k: d[k] for d in r for k in d} for r in [[
+                    {
+                        **mutex['FSL-BET']['rem'],
+                        'functional_mean_boolean': True,
+                        k1: True,
+                        k2: False
+                    } for k2 in mutex['FSL-BET']['mutex'] if k2 != k1
+                ] for k1 in mutex['FSL-BET']['mutex']]] +
+                # no mutually-exclusive options on
+                [{
+                    **mutex['FSL-BET']['rem'],
+                    'functional_mean_boolean': bool,
+                    **{k: False for k in mutex['FSL-BET']['mutex']}
+                }])
+            ),  
+            'Anatomical_Refined': {
+                'anatomical_mask_dilation': bool,
+            },
+        },          
+    # 'runEPI_DistCorr': [bool], # check/normalize
+    # 'fmap_distcorr_deltaTE': float, # check if it needs to be a list
+    # 'fmap_distcorr_dwell_time': float, # check if it needs to be a list
+    # 'fmap_distcorr_dwell_asym_ratio': float, # check if it needs to be a list
+    # 'fmap_distcorr_pedir': In(["x", "y", "z", "-x", "-y", "-z"]),
+      # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+      # The default value is 0.5.
+
+      # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+      # The default value is 0.6.
+    },
     # 
     # 'fnirtConfig': str,
     # 'ref_mask': str,
@@ -153,15 +208,6 @@ schema = Schema({
     # 'slice_timing_pattern': Any(str, int), # check for nifti header option
     # 'startIdx': All(int, Range(min=0)),
     # 'stopIdx': Any(None, All(int, Range(min=1))),
-    # 
-    # 'runEPI_DistCorr': [bool], # check/normalize
-    # 'fmap_distcorr_skullstrip': [In(['BET', 'AFNI'])],
-    # 'fmap_distcorr_frac': float, # check if it needs to be a list
-    # 'fmap_distcorr_threshold': float,
-    # 'fmap_distcorr_deltaTE': float, # check if it needs to be a list
-    # 'fmap_distcorr_dwell_time': float, # check if it needs to be a list
-    # 'fmap_distcorr_dwell_asym_ratio': float, # check if it needs to be a list
-    # 'fmap_distcorr_pedir': In(["x", "y", "z", "-x", "-y", "-z"]),
     # 
     # 'runRegisterFuncToAnat': [bool], # check/normalize
     # 'runBBReg': [bool], # check/normalize
