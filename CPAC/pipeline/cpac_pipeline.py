@@ -1652,6 +1652,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(node, out_file,
                                 reconall3, 'inputspec.subject_dir')
 
+                node, out_file = strat['anatomical_skull_leaf']
+                workflow.connect(node, out_file,
+                                reconall3, 'inputspec.anat_restore')
+
                 strat.update_resource_pool({
                     'surface_curvature': (reconall3, 'outputspec.curv'),
                     'pial_surface_mesh': (reconall3, 'outputspec.pial'),
