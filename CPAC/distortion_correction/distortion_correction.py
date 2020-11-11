@@ -406,6 +406,10 @@ def blip_distcor_wf(wf_name='blip_distcor'):
 def connect_distortion_correction(workflow, strat_list, c, diff, blip,
                                   fmap_rp_list, unique_id=None):
 
+    # No need to fork if not running distortion_correction
+    if True not in c.functional_preproc['distortion_correction']['run']:
+        return (workflow, strat_list)
+
     # Distortion Correction
     new_strat_list = []
 
