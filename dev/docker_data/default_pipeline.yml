@@ -778,7 +778,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [True]
+    run: [On]
 
     # Types of denoising strategy:
     #   nonaggr: nonaggressive-partial component regression
@@ -789,7 +789,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [True]
+    run: [On]
 
     # Select which nuisance signal corrections to apply
     Regressors:
@@ -1129,7 +1129,9 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality:
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: True
+  # this is a fork point
+  #   run: [On, Off] - this will run both and fork the pipeline
+  run: [On]
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
@@ -1186,7 +1188,7 @@ network_centrality:
 
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
+    #   'Significance threshold', 'Correlation threshold'
     correlation_threshold_option: 'Correlation threshold'
 
     # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -1201,7 +1203,7 @@ network_centrality:
 PyPEER:
 
   # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [False]
+  run: [Off]
 
   # PEER scan names to use for training
   # Example: ['peer_run-1', 'peer_run-2']
