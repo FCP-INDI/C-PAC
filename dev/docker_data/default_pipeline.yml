@@ -1,5 +1,7 @@
+%YAML 1.1
+---
 # CPAC Pipeline Configuration YAML file
-# Version 1.7.1
+# Version 1.8.0.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -776,7 +778,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [True]
+    run: [On]
 
     # Types of denoising strategy:
     #   nonaggr: nonaggressive-partial component regression
@@ -787,7 +789,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [True]
+    run: [On]
 
     # Select which nuisance signal corrections to apply
     Regressors:
@@ -1201,7 +1203,7 @@ network_centrality:
 PyPEER:
 
   # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [False]
+  run: [Off]
 
   # PEER scan names to use for training
   # Example: ['peer_run-1', 'peer_run-2']
