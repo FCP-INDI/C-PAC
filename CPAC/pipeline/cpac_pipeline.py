@@ -206,6 +206,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         plugin_args['n_procs'] = num_cores_per_sub
     else:
         plugin_args = {'memory_gb': sub_mem_gb, 'n_procs': num_cores_per_sub}
+        
+    if plugin == 'MultiProc' and 'niworkflows-ants' in c.skullstrip_option:
+        plugin = 'LegacyMultiProc'
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
