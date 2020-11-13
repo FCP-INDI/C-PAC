@@ -2713,7 +2713,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         strat_list += new_strat_list
 
-        if c.timeseries_extraction['run'].lower() == 'on' and (
+        if c.timeseries_extraction['run'] is True and (
             "Avg" in ts_analysis_dict.keys() or
             "Avg" in sca_analysis_dict.keys() or
             "MultReg" in sca_analysis_dict.keys()
@@ -3143,7 +3143,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         output_func_to_standard(workflow, key, 'template_epi_derivative',
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
-            elif c.functional_registration['2-func_registration_to_template']['run'] == 'on' and \
+            elif c.functional_registration['2-func_registration_to_template']['run'] is True and \
                 'T1_template' in c.functional_registration[
                     '2-func_registration_to_template'
                 ]['target_template']['using']:
@@ -3167,14 +3167,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             if "Before" in c.post_processing['spatial_smoothing']['smoothing_order']:
 
                 # run smoothing before Z-scoring
-                if c.post_processing['spatial_smoothing']['run'] == 'on':
+                if c.post_processing['spatial_smoothing']['run'] is True:
                     rp = strat.get_resource_pool()
                     for key in sorted(rp.keys()):
                         if 'centrality' in key or key in Outputs.native_nonsmooth + Outputs.native_nonsmooth_mult + \
                                 Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
                             spatial_smooth_outputs(workflow, key, strat, num_strat, c)
 
-                if c.post_processing['z-scoring']['run'] == 'on':
+                if c.post_processing['z-scoring']['run'] is True:
                     rp = strat.get_resource_pool()
 
                     for key in sorted(rp.keys()):
@@ -3206,7 +3206,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             elif c.post_processing['spatial_smoothing']['smoothing_order'] == "After":
                 # run smoothing after Z-scoring
-                if c.post_processing['z-scoring']['run'] == 'on':
+                if c.post_processing['z-scoring']['run'] is True:
                     rp = strat.get_resource_pool()
                     for key in sorted(rp.keys()):
                         # connect nodes for z-score standardization
@@ -3234,7 +3234,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                         strat, num_strat,
                                                         map_node=True)
 
-                if c.post_processing['spatial_smoothing']['run'] == 'on':
+                if c.post_processing['spatial_smoothing']['run'] is True:
 
                     rp = strat.get_resource_pool()
 
@@ -3353,19 +3353,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 if c.functional_registration[
                     '2-func_registration_to_template'
-                ]['run'] == 'on':
+                ]['run'] is True:
                     if resource in Outputs.native_nonsmooth or \
                         resource in Outputs.native_nonsmooth_mult or \
                             resource in Outputs.native_smooth:
                         continue
 
-                if c.post_processing['z-scoring']['run'] == 'on':
+                if c.post_processing['z-scoring']['run'] is True:
                     # write out only the z-scored outputs
                     if resource in Outputs.template_raw or \
                             resource in Outputs.template_raw_mult:
                         continue
 
-                if c.post_processing['spatial_smoothing']['run'] == 'on':
+                if c.post_processing['spatial_smoothing']['run'] is True:
                     # write out only the smoothed outputs
                     if resource in Outputs.native_nonsmooth or \
                         resource in Outputs.template_nonsmooth or \
