@@ -893,7 +893,7 @@ functional_registration:
 
     # these options modify the application (to the functional data), not the calculation, of the
     # T1-to-template transforms calculated earlier during anatomical registration
-    run: True
+    run: On
 
     output_resolution:
 
@@ -961,12 +961,12 @@ functional_registration:
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------
-post-processing:
+post_processing:
 
   spatial_smoothing:
 
     # Smooth the derivative outputs.
-    run: True
+    run: On
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
@@ -985,12 +985,12 @@ post-processing:
   z-scoring:
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: True
+    run: On
 
 
 timeseries_extraction:
 
-  run: True
+  run: On
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg

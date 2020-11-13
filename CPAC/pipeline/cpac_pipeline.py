@@ -2858,7 +2858,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         strat_list += new_strat_list
 
-        if 1 in c.runROITimeseries and (
+        if c.timeseries_extraction['run'] is True and (
             "Avg" in ts_analysis_dict.keys() or
             "Avg" in sca_analysis_dict.keys() or
             "MultReg" in sca_analysis_dict.keys()
@@ -2880,8 +2880,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                               as_module = True),
                                         name = 'resample_functional_roi_{0}'.format(num_strat))
 
-                    resample_functional_roi.inputs.realignment = c.realignment
-                    resample_functional_roi.inputs.identity_matrix = c.identityMatrix
+                    resample_functional_roi.inputs.realignment = c.timeseries_extraction['realignment']
+                    resample_functional_roi.inputs.identity_matrix = c.functional_registration[
+                        '2-func_registration_to_template'
+                    ]['FNIRT_pipelines']['identityMatrix']
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -2890,13 +2892,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     roi_dataflow.inputs.inputspec.set(
                         creds_path=input_creds_path,
-                        dl_dir=c.workingDirectory
+                        dl_dir=c.pipeline_setup['working_directory']['path']
                     )
 
                     roi_timeseries = get_roi_timeseries(
                         'roi_timeseries_%d' % num_strat
                     )
-                    roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
+                    roi_timeseries.inputs.inputspec.output_type = c.timeseries_extraction['roi_tse_outputs']
 
                     node, out_file = strat['functional_to_standard']
 
@@ -2954,8 +2956,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                               as_module = True),
                                         name = 'resample_functional_roi_for_sca_{0}'.format(num_strat))
 
-                    resample_functional_roi_for_sca.inputs.realignment = c.realignment
-                    resample_functional_roi_for_sca.inputs.identity_matrix = c.identityMatrix
+                    resample_functional_roi_for_sca.inputs.realignment = c.timeseries_extraction['realignment']
+                    resample_functional_roi_for_sca.inputs.identity_matrix = c.functional_registration[
+                        '2-func_registration_to_template'
+                    ]['FNIRT_pipelines']['identityMatrix']
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
@@ -3005,8 +3009,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                               as_module = True),
                                         name = 'resample_functional_roi_for_multreg_{0}'.format(num_strat))
 
-                    resample_functional_roi_for_multreg.inputs.realignment = c.realignment
-                    resample_functional_roi_for_multreg.inputs.identity_matrix = c.identityMatrix
+                    resample_functional_roi_for_multreg.inputs.realignment = c.timeseries_extraction['realignment']
+                    resample_functional_roi_for_multreg.inputs.identity_matrix = c.functional_registration[
+                        '2-func_registration_to_template'
+                    ]['FNIRT_pipelines']['identityMatrix']
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
                         sca_analysis_dict["MultReg"],
@@ -3015,7 +3021,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     roi_dataflow_for_multreg.inputs.inputspec.set(
                         creds_path=input_creds_path,
-                        dl_dir=c.workingDirectory
+                        dl_dir=c.pipeline_setup['working_directory']['path']
                     )
 
                     roi_timeseries_for_multreg = get_roi_timeseries(
@@ -3103,15 +3109,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                               as_module = True),
                                         name = 'resample_functional_to_mask_{0}'.format(num_strat))
 
-                resample_functional_to_mask.inputs.realignment = c.realignment
-                resample_functional_to_mask.inputs.identity_matrix = c.identityMatrix
+                resample_functional_to_mask.inputs.realignment = c.timeseries_extraction['realignment']
+                resample_functional_to_mask.inputs.identity_matrix = c.functional_registration[
+                        '2-func_registration_to_template'
+                ]['FNIRT_pipelines']['identityMatrix']
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
                                                         'mask_dataflow_%d' % num_strat)
 
                 voxel_timeseries = get_voxel_timeseries(
                     'voxel_timeseries_%d' % num_strat)
-                voxel_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
+                voxel_timeseries.inputs.inputspec.output_type = c.timeseries_extraction['roi_tse_outputs']
 
                 node, out_file = strat['functional_to_standard']
 
@@ -3170,7 +3178,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 dr_temp_reg = create_temporal_reg(
                     'temporal_dual_regression_%d' % num_strat
                 )
-                dr_temp_reg.inputs.inputspec.normalize = c.mrsNorm
+                dr_temp_reg.inputs.inputspec.normalize = c.seed_based_correlation_analysis['norm_timeseries_for_DR']
                 dr_temp_reg.inputs.inputspec.demean = True
 
                 node, out_file = strat['spatial_map_timeseries_for_DR']
@@ -3208,7 +3216,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'temporal_regression_sca_%d' % num_strat,
                     which='RT'
                 )
-                sc_temp_reg.inputs.inputspec.normalize = c.mrsNorm
+                sc_temp_reg.inputs.inputspec.normalize = c.seed_based_correlation_analysis['norm_timeseries_for_DR']
                 sc_temp_reg.inputs.inputspec.demean = True
 
                 node, out_file = strat['functional_to_standard']
@@ -3280,7 +3288,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         output_func_to_standard(workflow, key, 'template_epi_derivative',
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='epi', func_type='non-ica-aroma')
 
-            elif 'T1_template' in c.runRegisterFuncToTemplate:
+            elif c.functional_registration['2-func_registration_to_template']['run'] is True and \
+                'T1_template' in c.functional_registration[
+                    '2-func_registration_to_template'
+                ]['target_template']['using']:
 
                 rp = strat.get_resource_pool()
 
@@ -3298,18 +3309,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         output_func_to_standard(workflow, key, 'template_brain_for_func_derivative',
                             '{0}_to_standard'.format(key), strat, num_strat, c, input_image_type=image_type, registration_template='t1', func_type='non-ica-aroma')
 
-            if "Before" in c.smoothing_order:
+            if "Before" in c.post_processing['spatial_smoothing']['smoothing_order']:
 
                 # run smoothing before Z-scoring
-                if 1 in c.run_smoothing:
+                if c.post_processing['spatial_smoothing']['run'] is True:
                     rp = strat.get_resource_pool()
                     for key in sorted(rp.keys()):
                         if 'centrality' in key or key in Outputs.native_nonsmooth + Outputs.native_nonsmooth_mult + \
                                 Outputs.template_nonsmooth + Outputs.template_nonsmooth_mult:
                             spatial_smooth_outputs(workflow, key, strat, num_strat, c)
-                            # c.smoothing_mehod can be FSL or AFNI, FSL as default
 
-                if 1 in c.runZScoring:
+                if c.post_processing['z-scoring']['run'] is True:
                     rp = strat.get_resource_pool()
 
                     for key in sorted(rp.keys()):
@@ -3339,9 +3349,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                         strat, num_strat,
                                                         map_node=True)
 
-            elif "After" in c.smoothing_order:
+            elif c.post_processing['spatial_smoothing']['smoothing_order'] == "After":
                 # run smoothing after Z-scoring
-                if 1 in c.runZScoring:
+                if c.post_processing['z-scoring']['run'] is True:
                     rp = strat.get_resource_pool()
                     for key in sorted(rp.keys()):
                         # connect nodes for z-score standardization
@@ -3369,7 +3379,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                         strat, num_strat,
                                                         map_node=True)
 
-                if 1 in c.run_smoothing:
+                if c.post_processing['spatial_smoothing']['run'] is True:
 
                     rp = strat.get_resource_pool()
 
@@ -3390,13 +3400,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                     num_strat, map_node=True)
 
     # Quality Control
-    if 1 in c.generateQualityControlImages:
+    if c.pipeline_setup['output_directory']['generate_quality_control_images']:
         create_qc_workflow(workflow, c, strat_list, Outputs.qc)
 
 
     ndmg_out = False
     try:
-        if "ndmg" in c.output_tree:
+        if c.pipeline_setup['output_directory']['output_tree'] == "ndmg":
             ndmg_out = True
     except:
         pass
@@ -3404,7 +3414,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     # TODO enforce value with schema validation
     try:
-        encrypt_data = bool(c.s3Encryption[0])
+        encrypt_data = bool(c.pipeline_setup['Amazon-AWS']['s3_encryption'])
     except:
         encrypt_data = False
 
@@ -3415,20 +3425,21 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Get path to creds file
         creds_path = ''
         if c.awsOutputBucketCredentials:
-            creds_path = str(c.awsOutputBucketCredentials)
+            creds_path = str(c.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials'])
             creds_path = os.path.abspath(creds_path)
 
-        if c.outputDirectory.lower().startswith('s3://'):
+        if c.pipeline_setup['output_directory']['path'].lower().startswith('s3://'):
             # Test for s3 write access
             s3_write_access = \
                 aws_utils.test_bucket_access(creds_path,
-                                                c.outputDirectory)
+                                             c.pipeline_setup[
+                                                 'output_directory']['path'])
 
             if not s3_write_access:
                 raise Exception('Not able to write to bucket!')
 
     except Exception as e:
-        if c.outputDirectory.lower().startswith('s3://'):
+        if c.pipeline_setup['output_directory']['path'].lower().startswith('s3://'):
             err_msg = 'There was an error processing credentials or ' \
                         'accessing the S3 bucket. Check and try again.\n' \
                         'Error: %s' % e
@@ -3455,7 +3466,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     for num_strat, strat in enumerate(strat_list):
 
         if pipeline_name is None or pipeline_name == 'None':
-            pipeline_id = c.pipelineName
+            pipeline_id = c.pipeline_setup['pipeline_name']
         else:
             pipeline_id = pipeline_name
 
@@ -3473,27 +3484,33 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             if resource not in Outputs.override_optional and not ndmg_out:
 
-                if 1 not in c.write_func_outputs:
+                if not c.pipeline_setup[
+                    'output_directory'
+                ]['path']['write_func_outputs']:
                     if resource in Outputs.extra_functional:
                         continue
 
-                if 1 not in c.write_debugging_outputs:
+                if not c.pipeline_setup[
+                    'output_directory'
+                ]['path']['write_debugging_outputs']:
                     if resource in Outputs.debugging:
                         continue
 
-                if 'Off' not in c.runRegisterFuncToTemplate:
+                if c.functional_registration[
+                    '2-func_registration_to_template'
+                ]['run'] is True:
                     if resource in Outputs.native_nonsmooth or \
                         resource in Outputs.native_nonsmooth_mult or \
                             resource in Outputs.native_smooth:
                         continue
 
-                if 0 not in c.runZScoring:
+                if c.post_processing['z-scoring']['run'] is True:
                     # write out only the z-scored outputs
                     if resource in Outputs.template_raw or \
                             resource in Outputs.template_raw_mult:
                         continue
 
-                if 0 not in c.run_smoothing:
+                if c.post_processing['spatial_smoothing']['run'] is True:
                     # write out only the smoothed outputs
                     if resource in Outputs.native_nonsmooth or \
                         resource in Outputs.template_nonsmooth or \
@@ -3505,7 +3522,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 ds = pe.Node(DataSink(),
                                 name='sinker_{}_{}'.format(num_strat,
                                                            resource_i))
-                ds.inputs.base_directory = c.outputDirectory
+                ds.inputs.base_directory = c.pipeline_setup[
+                    'output_directory'
+                ]['path']
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.parameterization = True
@@ -3556,15 +3575,20 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 func_template_tag = 'standard'
 
                 try:
-                    if 'FSL' in c.regOption and 'ANTS' not in c.regOption:
-                        if 'MNI152' in c.fnirtConfig:
+                    if 'FSL' in c.registration_workflow['using'] and \
+                            'ANTS' not in c.registration_workflow['using']:
+                        if 'MNI152' in c.registration_workflow[
+                            'registration'
+                        ]['FSL-FNIRT']['fnirt_config']:
                             anat_template_tag = 'MNI152'
                             func_template_tag = 'MNI152'
                 except:
                     pass
 
-                anat_res_tag = c.resolution_for_anat.replace('mm','')
-                func_res_tag = c.resolution_for_func_preproc.replace('mm','')
+                anat_res_tag = c.registration['resolution_for_anat'].replace('mm','')
+                func_res_tag = c.functional_registration[
+                    '2-func_registration_to_template'
+                ]['output_resolution']['func_preproc_outputs'].replace('mm','')
 
                 ndmg_key_dct = {
                     'anatomical_brain': (
@@ -3620,7 +3644,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     continue
 
                 ds.inputs.container = '{0}/{1}'.format(container,
-                                                        ndmg_key_dct[resource][0])
+                                                       ndmg_key_dct[resource][0])
                 node, out_file = rp[resource]
 
                 # rename the file
@@ -3651,7 +3675,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     DataSink(),
                     name='sinker_{}_{}'.format(num_strat, resource)
                 )
-                ds.inputs.base_directory = c.outputDirectory
+                ds.inputs.base_directory = c.pipeline_setup[
+                    'output_directory'
+                ]['path']
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join(
@@ -3670,7 +3696,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = rp[resource]
 
                 if "info" in resource:
-                    ds.inputs.base_directory = c.logDirectory
+                    ds.inputs.base_directory = c.pipeline_setup[
+                        'log_directory'
+                    ]['path']
                     ds.inputs.container = os.path.join('pipeline_info',
                         'pipeline_{0}'.format(pipeline_id), subject_id)
                     resource = '{0}.@{1}'.format(resource.split('_info_')[0],
@@ -3680,7 +3708,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if resource == 'ants_initial_xfm' or resource == 'ants_rigid_xfm' or resource == 'ants_affine_xfm' \
                     or resource == 'ants_symmetric_initial_xfm' or resource == 'ants_symmetric_rigid_xfm' or resource == 'ants_symmetric_affine_xfm':
 
-                    ants_para = c.ANTs_para_T1_registration
+                    ants_para = c.registration_workflow[
+                        'registration'
+                    ]['ANTs']['T1_registration']
                     for para_index in range(len(ants_para)):
                         for para_type in ants_para[para_index]:
                             if para_type == 'initial-moving-transform':
