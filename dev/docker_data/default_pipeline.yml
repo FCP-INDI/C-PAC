@@ -274,6 +274,10 @@ anatomical_preproc:
       ANTs_Prior_Based:
 
         # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
+        # this is a fork point
+        #   run: [On, Off] - this will run both and fork the pipeline
+        run: [Off]
+        
         # Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
 
         # The atlas image assumed to be used in ANTs Prior-based Segmentation.
@@ -317,7 +321,7 @@ anatomical_preproc:
       Template_Based:
 
         # These masks should be in the same space of your registration template, e.g. if
-        # you choose 'EPI_template' , below tissue masks should also be EPI template tissue masks.
+        # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
         #
         # Options: ['EPI Template', 'T1 Template']
         template_for_segmentation: ['EPI Template']
@@ -532,8 +536,10 @@ anatomical_preproc:
                    lowerQuantile : 0.01
                    upperQuantile : 0.99
 
-        EPI_registration:
-          - None
+        # See "Configuration Without the GUI" at
+        # https://fcp-indi.github.io/docs/latest/user/func for example
+        # EPI_registration configuration
+        EPI_registration: 
 
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
@@ -862,6 +868,10 @@ functional_registration:
 
   1-coregistration:
     # functional (BOLD/EPI) registration to anatomical (structural/T1)
+    
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
 
     func_input_prep:
 
@@ -882,8 +892,9 @@ functional_registration:
         func_reg_input_volume: 0
 
     boundary_based_registration:
-
-      run: True
+      # this is a fork point
+      #   run: [On, Off] - this will run both and fork the pipeline
+      run: [On]
 
       # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
       # It is not necessary to change this path unless you intend to use non-standard MNI registration.
