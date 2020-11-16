@@ -976,11 +976,11 @@ def reconstruct_surface(config):
                             name='binarize_wmparc2')
     binary_mask2.inputs.args = '-bin'
 
-    # surface_reconstruction.connect(wb_command_fill_holes, 'out_file',
-    #                                 binary_mask2, 'in_file')
-
-    surface_reconstruction.connect(binary_mask, 'out_file',
+    surface_reconstruction.connect(wb_command_fill_holes, 'out_file',
                                     binary_mask2, 'in_file')
+
+    # surface_reconstruction.connect(binary_mask, 'out_file',
+    #                                 binary_mask2, 'in_file')
 
     # applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$T1wFolder"/"$T1wRestoreImage".nii.gz 
     # --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
