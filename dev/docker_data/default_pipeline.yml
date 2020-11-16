@@ -1,5 +1,7 @@
+%YAML 1.1
+---
 # CPAC Pipeline Configuration YAML file
-# Version 1.7.1
+# Version 1.8.0.dev
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -776,7 +778,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [True]
+    run: [On]
 
     # Types of denoising strategy:
     #   nonaggr: nonaggressive-partial component regression
@@ -787,7 +789,7 @@ nuisance_corrections:
 
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
-    run: [True]
+    run: [On]
 
     # Select which nuisance signal corrections to apply
     Regressors:
@@ -891,7 +893,7 @@ functional_registration:
 
     # these options modify the application (to the functional data), not the calculation, of the
     # T1-to-template transforms calculated earlier during anatomical registration
-    run: True
+    run: On
 
     output_resolution:
 
@@ -959,12 +961,12 @@ functional_registration:
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------
-post-processing:
+post_processing:
 
   spatial_smoothing:
 
     # Smooth the derivative outputs.
-    run: True
+    run: On
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
@@ -983,12 +985,12 @@ post-processing:
   z-scoring:
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: True
+    run: On
 
 
 timeseries_extraction:
 
-  run: True
+  run: On
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
@@ -1127,7 +1129,9 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality:
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  run: True
+  # this is a fork point
+  #   run: [On, Off] - this will run both and fork the pipeline
+  run: [On]
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
   # Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes.
@@ -1184,7 +1188,7 @@ network_centrality:
 
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
+    #   'Significance threshold', 'Correlation threshold'
     correlation_threshold_option: 'Correlation threshold'
 
     # Based on the Threshold Type selected above, enter a Threshold Value.
@@ -1199,7 +1203,7 @@ network_centrality:
 PyPEER:
 
   # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [False]
+  run: [Off]
 
   # PEER scan names to use for training
   # Example: ['peer_run-1', 'peer_run-2']
