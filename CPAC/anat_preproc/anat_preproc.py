@@ -698,6 +698,17 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     anat_leaf = pe.Node(util.IdentityInterface(fields=['anat_data']),
                         name='anat_leaf')
 
+    if config.non_local_means_filtering and config.n4_bias_field_correction and config.acpc_run_preprocessing=='before':
+        denoise_before_acpc = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise_before_acpc')
+        # align ABCD pipeline
+        denoise_before_acpc.inputs.dimension = 3
+        denoise_before_acpc.inputs.noise_model = 'Rician'
+        preproc.connect(anat_reorient, 'out_file', denoise_before_acpc, 'input_image')
+
+        n4_before_acpc = pe.Node(interface = ants.N4BiasFieldCorrection(), name='anat_n4_before_acpc')
+        n4_before_acpc.inputs.dimension = 3
+        preproc.connect(denoise_before_acpc, 'output_image', n4_before_acpc, 'input_image')
+    
     if not config.acpc_align:
         preproc.connect(anat_reorient, 'out_file', anat_leaf, 'anat_data')
 
@@ -705,7 +716,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     if config.acpc_align:
         acpc_align = acpc_alignment(skullstrip_tool=method, config=config, acpc_target=acpc_target, wf_name='acpc_align')
 
-        preproc.connect(anat_reorient, 'out_file', acpc_align, 'inputspec.anat_leaf')
+        if config.acpc_run_preprocessing=='before':
+            preproc.connect(n4_before_acpc, 'output_image', acpc_align, 'inputspec.anat_leaf')
+        else:
+            preproc.connect(anat_reorient, 'out_file', acpc_align, 'inputspec.anat_leaf')
+
         preproc.connect(inputnode, 'brain_mask', acpc_align, 'inputspec.brain_mask')
         preproc.connect(inputnode, 'template_brain_only_for_acpc', acpc_align, 'inputspec.template_brain_for_acpc')
         preproc.connect(inputnode, 'template_skull_for_acpc', acpc_align, 'inputspec.template_head_for_acpc')
@@ -713,37 +728,44 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         if method == 'unet':
             preproc.connect(inputnode, 'template_brain_only_for_anat', acpc_align, 'inputspec.template_brain_only_for_anat')
             preproc.connect(inputnode, 'template_skull_for_anat', acpc_align, 'inputspec.template_skull_for_anat')
+    
     # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
         config.non_local_means_filtering = False
         config.n4_bias_field_correction = False
-        
-    if config.non_local_means_filtering and config.n4_bias_field_correction:
-        denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
-        preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
 
-        n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
-            name='anat_n4')
-        preproc.connect(denoise, 'output_image', n4, 'input_image')
+    if config.acpc_run_preprocessing=='after':
 
-    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
-        denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
-        preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
+        if config.non_local_means_filtering and config.n4_bias_field_correction:
+            denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
+            preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
 
-    elif not config.non_local_means_filtering and config.n4_bias_field_correction:
-        n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
-            name='anat_n4')
-        preproc.connect(anat_leaf, 'anat_data', n4, 'input_image')
+            n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
+                name='anat_n4')
+            preproc.connect(denoise, 'output_image', n4, 'input_image')
+
+        elif config.non_local_means_filtering and not config.n4_bias_field_correction:
+            denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
+            preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
+
+        elif not config.non_local_means_filtering and config.n4_bias_field_correction:
+            n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
+                name='anat_n4')
+            preproc.connect(anat_leaf, 'anat_data', n4, 'input_image')
 
     anat_leaf2 = pe.Node(util.IdentityInterface(fields=['anat_data']),
                          name='anat_leaf2')
-    
-    if config.n4_bias_field_correction:
-        preproc.connect(n4, 'output_image', anat_leaf2, 'anat_data')
-    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
-        preproc.connect(denoise, 'output_image', anat_leaf2, 'anat_data')
+
+    if config.acpc_run_preprocessing=='after':
+        if config.n4_bias_field_correction:
+            preproc.connect(n4, 'output_image', anat_leaf2, 'anat_data')
+        elif config.non_local_means_filtering and not config.n4_bias_field_correction:
+            preproc.connect(denoise, 'output_image', anat_leaf2, 'anat_data')
+        else:
+            preproc.connect(anat_leaf, 'anat_data', anat_leaf2, 'anat_data')
     else:
         preproc.connect(anat_leaf, 'anat_data', anat_leaf2, 'anat_data')
+
 
     if already_skullstripped:
         anat_skullstrip = pe.Node(interface=util.IdentityInterface(fields=['out_file']),
@@ -953,6 +975,9 @@ def reconstruct_surface(config):
     binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
                             name='binarize_wmparc2')
     binary_mask2.inputs.args = '-bin'
+
+    # surface_reconstruction.connect(wb_command_fill_holes, 'out_file',
+    #                                 binary_mask2, 'in_file')
 
     surface_reconstruction.connect(binary_mask, 'out_file',
                                     binary_mask2, 'in_file')

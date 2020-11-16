@@ -134,6 +134,10 @@ n4_bias_field_correction: False
 acpc_align: False
 
 
+# Run DenoiseImage and N4BiasFieldCorrection before or after ACPC
+acpc_run_preprocessing: after
+
+
 # ACPC size of brain in z-dimension in mm. 
 # Default: 150mm for human data. 
 acpc_brainsize: 150
