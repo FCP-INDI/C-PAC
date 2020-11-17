@@ -314,7 +314,21 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                 node, out_file = strat['template_brain_for_anat']
                 workflow.connect(node, out_file,
                                 ants_reg_anat_mni, 'inputspec.reference_brain')
+            
+            # pass the reference mask file
+            node, out_file = strat['template_brain_mask_for_anat']
+            workflow.connect(
+                node, out_file,
+                ants_reg_anat_mni, 'inputspec.reference_mask'
+                )
 
+            # pass the reference mask file
+            node, out_file = strat['anatomical_brain_mask']
+            workflow.connect(
+                node, out_file,
+                ants_reg_anat_mni, 'inputspec.moving_mask'
+                )
+                
             ants_reg_anat_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
             ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = None
 
@@ -515,6 +529,20 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
                     node, out_file = strat['template_symmetric_brain']
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni, 'inputspec.reference_brain')
+                
+                # pass the reference mask file
+                node, out_file = strat['template_brain_mask_for_anat']
+                workflow.connect(
+                    node, out_file,
+                    ants_reg_anat_symm_mni, 'inputspec.reference_mask'
+                    )
+
+                # pass the reference mask file
+                node, out_file = strat['anatomical_brain_mask']
+                workflow.connect(
+                    node, out_file,
+                    ants_reg_anat_symm_mni, 'inputspec.moving_mask'
+                    )
 
                 ants_reg_anat_symm_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
 
@@ -1554,6 +1582,20 @@ def register_func_longitudinal_template_to_standard(longitudinal_template_node, 
                 node, out_file = strat['template_brain_for_func_preproc']
                 workflow.connect(node, out_file,
                                 ants_reg_func_mni, 'inputspec.reference_brain')
+            
+            # pass the reference mask file
+            node, out_file = strat['template_brain_mask_for_func_preproc']
+            workflow.connect(
+                node, out_file,
+                ants_reg_func_mni, 'inputspec.reference_mask'
+                )
+
+            # pass the reference mask file
+            node, out_file = strat['functional_brain_mask']
+            workflow.connect(
+                node, out_file,
+                ants_reg_func_mni, 'inputspec.moving_mask'
+                )
 
             ants_reg_func_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
             ants_reg_func_mni.inputs.inputspec.fixed_image_mask = None

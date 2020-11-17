@@ -823,6 +823,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                 'reference_brain',
                 'moving_skull',
                 'reference_skull',
+                'reference_mask', 
+                'moving_mask', 
                 'fixed_image_mask',
                 'ants_para',
                 'interp']), 
@@ -852,6 +854,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                                                      'reference_brain',
                                                      'moving_skull',
                                                      'reference_skull',
+                                                     'reference_mask', 
+                                                     'moving_mask', 
                                                      'ants_para',
                                                      'fixed_image_mask',
                                                      'interp'],
@@ -915,6 +919,12 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     calc_ants_warp_wf.connect(inputspec, 'fixed_image_mask',
             calculate_ants_warp, 'fixed_image_mask')
+
+    calc_ants_warp_wf.connect(inputspec, 'reference_mask',
+            calculate_ants_warp, 'reference_mask')
+
+    calc_ants_warp_wf.connect(inputspec, 'moving_mask',
+            calculate_ants_warp, 'moving_mask')
 
     calc_ants_warp_wf.connect(inputspec, 'ants_para',
             calculate_ants_warp, 'ants_para')

@@ -41,7 +41,7 @@ def generate_inverse_transform_flags(transform_list):
 
 
 def hardcoded_reg(moving_brain, reference_brain, moving_skull,
-                  reference_skull, ants_para, fixed_image_mask=None, interp=None):
+                  reference_skull, reference_mask, moving_mask, ants_para, fixed_image_mask=None, interp=None):
 
     #TODO: expand transforms to cover all in ANTs para
     
@@ -55,6 +55,24 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                     raise Exception(err_msg)
                 else:
                     regcmd.append("--dimensionality")
+                    regcmd.append(str(ants_para[para_index][para_type]))
+
+            elif para_type == 'verbose':
+                if ants_para[para_index][para_type] not in [0,1]:
+                    err_msg = 'Verbose output option in ANTs parameters: %d, is not supported. ' \
+                        'Change to 0 or 1 and try again' % ants_para[para_index][para_type]
+                    raise Exception(err_msg)
+                else:
+                    regcmd.append("--verbose")
+                    regcmd.append(str(ants_para[para_index][para_type]))
+
+            elif para_type == 'float':
+                if ants_para[para_index][para_type] not in [0,1]:
+                    err_msg = 'Float option in ANTs parameters: %d, is not supported. ' \
+                        'Change to 0 or 1 and try again' % ants_para[para_index][para_type]
+                    raise Exception(err_msg)
+                else:
+                    regcmd.append("--float")
                     regcmd.append(str(ants_para[para_index][para_type]))
 
             elif para_type == 'collapse-output-transforms':
@@ -184,17 +202,32 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                             regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type][trans_index][trans_type]['winsorize-image-intensities']
                                                             ['lowerQuantile'], ants_para[para_index][para_type][trans_index][trans_type]['winsorize-image-intensities']['upperQuantile']))
     
+            elif para_type == 'masks':
+                # lesion preproc has 
+                if fixed_image_mask is not None:
+                    regcmd.append("--masks")
+                    regcmd.append(str(fixed_image_mask))
+                else: 
+                    if ants_para[para_index][para_type]['fixed_image_mask'] == False and ants_para[para_index][para_type]['moving_image_mask'] == True:
+                        err_msg = 'Masks option in ANTs parameters: %d is not supported. ' \
+                            'Please set `fixed_image_mask` as True. ' \
+                                'Or set both `fixed_image_mask` and `moving_image_mask` as False' % ants_para[para_index][para_type]
+                        raise Exception(err_msg)
+                    elif ants_para[para_index][para_type]['fixed_image_mask'] == True and ants_para[para_index][para_type]['moving_image_mask'] == True:
+                        regcmd.append("--masks")
+                        regcmd.append('['+str(reference_mask)+','+str(moving_mask)+']')
+                    elif ants_para[para_index][para_type]['fixed_image_mask'] == True and ants_para[para_index][para_type]['moving_image_mask'] == False:
+                        regcmd.append("--masks")
+                        regcmd.append('['+str(reference_mask)+']')
+                    else:
+                        continue
+
     if interp is not None: 
         regcmd.append("--interpolation")
         regcmd.append("{0}".format(interp))
 
     regcmd.append("--output")
     regcmd.append("[transform,transform_Warped.nii.gz]")
-
-
-    if fixed_image_mask is not None:
-        regcmd.append("-x")
-        regcmd.append(str(fixed_image_mask))
 
     # write out the actual command-line entry for testing/validation later
     command_file = os.path.join(os.getcwd(), 'command.txt')

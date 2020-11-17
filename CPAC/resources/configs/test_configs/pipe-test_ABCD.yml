@@ -354,12 +354,12 @@ longitudinal_template_convergence_threshold : -1
 
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
-resolution_for_anat :  2mm
+resolution_for_anat :  1mm
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
 
 # Template to be used during registration.
@@ -369,7 +369,7 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_mask_for_anat: /usr/share/fsl/5.0/data/standar/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+template_brain_mask_for_anat: /ABCD_pipeline_template/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -379,7 +379,7 @@ regOption :  ['ANTS']
 # ANTs parameters, if select ANTs as regOption
 ANTs_para_T1_registration:
 
-   - verbose : 1 
+   - verbose : 1
 
    - float : 0
 
@@ -388,11 +388,11 @@ ANTs_para_T1_registration:
    - dimensionality: 3
 
    - initial-moving-transform :
-      initializationFeature: 0
+      initializationFeature: 1 #changed
 
    - masks:
-      fixed_image_mask : False 
-      moving_image_mask : False 
+      fixed_image_mask : True  #changed
+      moving_image_mask : True  #changed
 
    - transforms:
       - Rigid:
@@ -405,11 +405,11 @@ ANTs_para_T1_registration:
             samplingPercentage : 0.25
           convergence:
             iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
+            convergenceThreshold : 1e-6 #changed
             convergenceWindowSize : 10
           smoothing-sigmas : 3.0x2.0x1.0x0.0
           shrink-factors : 8x4x2x1
-          use-histogram-matching : True
+          use-histogram-matching : False #changed
 
       - Affine:
           gradientStep : 0.1
@@ -421,11 +421,11 @@ ANTs_para_T1_registration:
             samplingPercentage : 0.25
           convergence:
             iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
+            convergenceThreshold : 1e-6 #changed
             convergenceWindowSize : 10
           smoothing-sigmas : 3.0x2.0x1.0x0.0
           shrink-factors : 8x4x2x1
-          use-histogram-matching : True
+          use-histogram-matching : False #changed
 
       - SyN:
           gradientStep : 0.1
@@ -436,15 +436,16 @@ ANTs_para_T1_registration:
             metricWeight: 1
             radius : 4
           convergence:
-            iteration : 100x100x70x20
-            convergenceThreshold : 1e-09
-            convergenceWindowSize : 15
+            iteration : 100x70x50x20 #changed
+            convergenceThreshold : 1e-6
+            convergenceWindowSize : 10 #changed
           smoothing-sigmas : 3.0x2.0x1.0x0.0
-          shrink-factors : 6x4x2x1
-          use-histogram-matching : True
+          shrink-factors : 8x4x2x1 #changed
+          use-histogram-matching : False #changed
           winsorize-image-intensities :
-            lowerQuantile : 0.01
-            upperQuantile : 0.99
+            lowerQuantile : 0.005 #changed
+            upperQuantile : 0.995 #changed
+
 
 
 # Please specify ANTs parameters,if run Functional to EPI Template Registration
@@ -837,7 +838,7 @@ boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 # Interpolation method for writing out transformed anatomical images.
 # ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-anatRegANTSinterpolation: LanczosWindowedSinc
+anatRegANTSinterpolation: Linear #changed
 
 
 # Interpolation method for writing out transformed anatomical images.
@@ -849,7 +850,7 @@ anatRegFSLinterpolation: sinc
 # Interpolation method for writing out transformed functional images.
 # ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-funcRegANTSinterpolation: LanczosWindowedSinc
+funcRegANTSinterpolation: Linear #changed
 
 
 # Interpolation method for writing out transformed functional images.
@@ -955,7 +956,8 @@ template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+# changed
+template_brain_only_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
@@ -963,7 +965,8 @@ template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 
 # Standard FSL Anatomical Brain Mask Image
-template_brain_mask_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain_mask.nii.gz
+# changed
+template_brain_mask_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}_brain_mask.nii.gz
 
 
 # EPI template

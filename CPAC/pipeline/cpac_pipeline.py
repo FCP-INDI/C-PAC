@@ -809,12 +809,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     templates_for_resampling = [
         (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
         (c.resolution_for_anat, c.template_skull_for_anat, 'template_skull_for_anat', 'resolution_for_anat'),
+        (c.resolution_for_anat, c.template_brain_mask_for_anat, 'template_brain_mask_for_anat', 'resolution_for_anat'),
         (c.resolution_for_anat, c.template_symmetric_brain_only, 'template_symmetric_brain', 'resolution_for_anat'),
         (c.resolution_for_anat, c.template_symmetric_skull, 'template_symmetric_skull', 'resolution_for_anat'),
         (c.resolution_for_anat, c.dilated_symmetric_brain_mask, 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
         (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
         (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.resolution_for_func_preproc, c.template_brain_mask_for_func, 'template_brain_mask_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
         (c.resolution_for_func_derivative, c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
@@ -1336,6 +1338,20 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     ants_reg_anat_mni, 'inputspec.reference_skull'
                     )
 
+                # pass the reference mask file
+                node, out_file = strat['template_brain_mask_for_anat']
+                workflow.connect(
+                    node, out_file,
+                    ants_reg_anat_mni, 'inputspec.reference_mask'
+                    )
+
+                # pass the reference mask file
+                node, out_file = strat['anatomical_brain_mask']
+                workflow.connect(
+                    node, out_file,
+                    ants_reg_anat_mni, 'inputspec.moving_mask'
+                    )
+
                 # Test if a lesion mask is found for the anatomical image
                 if 'lesion_mask' in sub_dict and c.use_lesion_mask:
                     # Create lesion preproc node to apply afni Refit and Resample
@@ -1575,6 +1591,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                                         ants_reg_anat_symm_mni, 'inputspec.reference_skull')
 
+                    # pass the reference mask file
+                    node, out_file = strat['template_brain_mask_for_anat']
+                    workflow.connect(
+                        node, out_file,
+                        ants_reg_anat_symm_mni, 'inputspec.reference_mask'
+                        )
+
+                    # pass the reference mask file
+                    node, out_file = strat['anatomical_brain_mask']
+                    workflow.connect(
+                        node, out_file,
+                        ants_reg_anat_symm_mni, 'inputspec.moving_mask'
+                        )
 
                     if 'lesion_mask' in sub_dict and c.use_lesion_mask:
                         # Create lesion preproc node to apply afni Refit & Resample
