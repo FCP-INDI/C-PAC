@@ -44,7 +44,7 @@ numParticipantsAtOnce :  1
 
 
 # The number of cores to allocate to ANTS-based anatomical registration per participant. Multiple cores can greatly speed up this preprocessing step. This number cannot be greater than the number of cores per participant.
-num_ants_threads :  4
+num_ants_threads :  1
 
 
 # The number of cores to allocate to FreeSurfer recon-all per participant. This number cannot be greater than the number of cores per participant.
@@ -116,10 +116,6 @@ reGenerateOutputs :  False
 
 # Run anatomical preproceessing
 runAnatomical: [1]
-
-
-# Run FreeSurfer recon-all
-runFreeSurfer: [0]
 
 
 # Non-local means filtering via ANTs DenoiseImage
