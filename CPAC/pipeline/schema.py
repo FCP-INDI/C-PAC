@@ -265,10 +265,6 @@ schema = Schema({
             'lateral_ventricles_mask': str,
             Required('bandpass_filtering_order'): In({'After', 'Before'})
         },
-        '3-median-angle-correction': {
-            Required('run'): [bool],
-            Required('target_angle_deg'): Any(int, float),
-        }
     },
     Required('amplitude_low_frequency_fluctuation'): {
         Required('run'): bool,

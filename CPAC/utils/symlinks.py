@@ -53,7 +53,6 @@ output_renamings = {
     'frame_wise_displacement_jenkinson': 'parameters',
     'functional_nuisance_residuals': 'func',
     'functional_nuisance_regressors': 'func',
-    'functional_median_angle_corrected': 'func',
     'power_spectrum_distribution': 'alff',
     'functional_freq_filtered': 'func',
     'scrubbing_movement_parameters': 'parameters',
@@ -151,7 +150,6 @@ output_renamings = {
 fork_ids = {
     'compcor': 'nuis',
     'selector': 'nuis',
-    'target_angle_deg': 'medang'
 }
 
 def group_files_in_strategies(output_dir, paths):
