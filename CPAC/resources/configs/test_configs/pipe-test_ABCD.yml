@@ -123,19 +123,19 @@ runFreeSurfer: [0]
 
 
 # Non-local means filtering via ANTs DenoiseImage
-non_local_means_filtering: False
+non_local_means_filtering: True
 
 
 # N4 bias field correction via ANTs
-n4_bias_field_correction: False
+n4_bias_field_correction: True
 
 
 # ACPC Alignment
-acpc_align: False
+acpc_align: True
 
 
 # Run DenoiseImage and N4BiasFieldCorrection before or after ACPC
-acpc_run_preprocessing: after
+acpc_run_preprocessing: before
 
 
 # ACPC size of brain in z-dimension in mm. 
@@ -155,7 +155,7 @@ already_skullstripped :  [0]
 
 # Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer (recon-all) or UNet for monkey data to perform skull-stripping.
 # Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer', 'unet']
-skullstrip_option :  ['AFNI']
+skullstrip_option :  ['FreeSurfer']
 
 
 # UNet model
@@ -482,7 +482,7 @@ runSegmentationPreprocessing :  [1]
 # segmentation method options: ['FSL', 'FreeSurfer', 'ANTs-Prior-Based', 'Template-Based']
 # FSL uses FAST; FreeSurfer runs recon-all to generate segmentations;
 # ANTs Prior-based Segmentation workflow uses antsJointLabelFusion and has shown optimal results for non-human primate data;
-segmentation_method: ['FSL']
+segmentation_method: ['FreeSurfer']
 
 
 # The atlas image assumed to be used in ANTs Prior-based Segmentation.
@@ -666,7 +666,7 @@ gm_erosion_mm: 0
 
 
 # Reconstruct surface via FreeSurfer
-surface_reconstruction: False
+surface_reconstruction: True
 
 
 # Run functional preproceessing
@@ -874,7 +874,7 @@ func_reg_input_volume :  0
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space.
 # Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
-functionalMasking :  ['AFNI']
+functionalMasking :  ['Anatomical_Refined']
 
 
 # Options to be used for FSL skull-stripping of functional masking.
