@@ -961,12 +961,10 @@ def reconstruct_surface(config):
                                     binary_mask, 'in_file')
 
     # ${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
-    wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file','args'],
+    wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file'],
                                         output_names=['out_file'],
                                         function=wb_command),
                             name='wb_command_fill_holes')
-
-    wb_command_fill_holes.inputs.args = '-volume-fill-holes'
 
     surface_reconstruction.connect(binary_mask, 'out_file',
                                     wb_command_fill_holes, 'in_file')

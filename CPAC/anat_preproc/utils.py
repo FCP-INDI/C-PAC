@@ -319,16 +319,13 @@ def mri_convert(in_file, reslice_like=None, out_file=None, args=None):
     return out_file
 
 
-def wb_command(in_file, args=None):
+def wb_command(in_file):
 
     import os
 
     out_file = in_file.replace('.nii.gz','_fill_holes.nii.gz')
 
-    cmd = 'wb_command %s %s' % (in_file, out_file)
-
-    if args != None:
-        cmd = cmd + ' ' +args
+    cmd = 'wb_command -volume-fill-holes %s %s' % (in_file, out_file)
 
     os.system(cmd)
 
