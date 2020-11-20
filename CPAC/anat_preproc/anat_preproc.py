@@ -893,12 +893,12 @@ def reconstruct_surface(config):
                                                         'thickness',
                                                         'volume',
                                                         'white',
+                                                        'brain',
                                                         'brain_mask']),
                         name='outputspec')
 
     reconall3 = pe.Node(interface=freesurfer.ReconAll(),
                         name='anat_autorecon3')
-
     reconall3.inputs.directive = 'autorecon3'
     reconall3.inputs.openmp = config.num_omp_threads
 
@@ -932,23 +932,16 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(reconall3, 'white',
                                     outputnode, 'white')
 
-    # ABCD code
-
+    ### ABCD harmonization ###
     # mri_convert -rt nearest -rl "$T1wFolder"/"$T1wRestoreImage".nii.gz "$FreeSurferFolder"/mri/wmparc.mgz "$T1wFolder"/wmparc_1mm.nii.gz
-    
-    # convert wmparc.mgz to wmparc.nii.gz
-    # TODO what's T1wRestoreImage?
-
     wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','reslice_like','args'],
                                         output_names=['out_file'],
                                         function=mri_convert),
                             name='wmparc_to_nifti')
-    
     wmparc_to_nifti.inputs.args = '-rt nearest'
-    
+
     surface_reconstruction.connect(reconall3, 'wmparc',
                                     wmparc_to_nifti, 'in_file')
-
     surface_reconstruction.connect(inputnode, 'anat_restore',
                                     wmparc_to_nifti, 'reslice_like')
 
@@ -977,14 +970,10 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(wb_command_fill_holes, 'out_file',
                                     binary_mask2, 'in_file')
 
-    # surface_reconstruction.connect(binary_mask, 'out_file',
-    #                                 binary_mask2, 'in_file')
-
     # applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$T1wFolder"/"$T1wRestoreImage".nii.gz 
     # --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
     brain_mask_to_native = pe.Node(interface=fsl.ApplyWarp(),
                 name='brain_mask_to_native')
-
     brain_mask_to_native.inputs.interp = 'nn'
     brain_mask_to_native.inputs.premat = config.identityMatrix
 
@@ -997,4 +986,16 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(brain_mask_to_native, 'out_file',
                                     outputnode, 'brain_mask')
 
-    return surface_reconstruction                           
+    fs_brain = pe.Node(interface=fsl.MultiImageMaths(), name='fs_brain')
+    fs_brain.inputs.op_string = "-mul %s"
+
+    surface_reconstruction.connect(brain_mask_to_native, 
+                                    'out_file', fs_brain, 'in_file')
+
+    surface_reconstruction.connect(inputnode, 'anat_restore', 
+                                    fs_brain, 'operand_files')
+
+    surface_reconstruction.connect(fs_brain, 'out_file', 
+                                    outputnode, 'brain')
+
+    return surface_reconstruction

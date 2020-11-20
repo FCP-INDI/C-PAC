@@ -1694,7 +1694,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'cortical_thickness_surface_maps': (reconall3, 'outputspec.thickness'),
                     'cortical_volume_surface_maps': (reconall3, 'outputspec.volume'),
                     'white_matter_surface_mesh': (reconall3, 'outputspec.white'),
-                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                    'anatomical_brain': (reconall3, 'outputspec.brain'),
+                    'anatomical_brain_mask': (reconall3, 'outputspec.brain_mask'),
                 }, override=True)
 
 
