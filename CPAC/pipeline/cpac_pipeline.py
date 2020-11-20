@@ -1137,9 +1137,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
-                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                        # 'anatomical_brain': (anat_preproc, 'outputspec.brain'),
                         'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
-                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        # 'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                         'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
                     })
 
@@ -1147,6 +1147,47 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
 
         strat_list = new_strat_list
+
+
+        # Inserting Segmentation Preprocessing Workflow
+        workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
+
+        # Surface Reconstruction Workflow
+        if c.surface_reconstruction:
+
+            for num_strat, strat in enumerate(strat_list):
+
+                reconall3 = reconstruct_surface(config=c)
+                
+                node, out_file = strat['anatomical_wm_mask']
+                workflow.connect(node, out_file,
+                                reconall3, 'inputspec.wm_seg')
+
+                node, out_file = strat['freesurfer_subject_id']
+                workflow.connect(node, out_file,
+                                reconall3, 'inputspec.subject_id')                
+
+                node, out_file = strat['freesurfer_subject_dir']
+                workflow.connect(node, out_file,
+                                reconall3, 'inputspec.subject_dir')
+
+                node, out_file = strat['anatomical_skull_leaf']
+                workflow.connect(node, out_file,
+                                reconall3, 'inputspec.anat_restore')
+
+                strat.update_resource_pool({
+                    'surface_curvature': (reconall3, 'outputspec.curv'),
+                    'pial_surface_mesh': (reconall3, 'outputspec.pial'),
+                    'smoothed_surface_mesh': (reconall3, 'outputspec.smoothwm'),
+                    'spherical_surface_mesh': (reconall3, 'outputspec.sphere'),
+                    'sulcal_depth_surface_maps': (reconall3, 'outputspec.sulc'),
+                    'cortical_thickness_surface_maps': (reconall3, 'outputspec.thickness'),
+                    'cortical_volume_surface_maps': (reconall3, 'outputspec.volume'),
+                    'white_matter_surface_mesh': (reconall3, 'outputspec.white'),
+                    'anatomical_brain': (reconall3, 'outputspec.brain'),
+                    'anatomical_brain_mask': (reconall3, 'outputspec.brain_mask'),
+                })
+
 
         new_strat_list = []
 
@@ -1658,45 +1699,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     })
 
             strat_list += new_strat_list
-
-        # Inserting Segmentation Preprocessing Workflow
-        workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
-
-        # Surface Reconstruction Workflow
-        if c.surface_reconstruction:
-
-            for num_strat, strat in enumerate(strat_list):
-
-                reconall3 = reconstruct_surface(config=c)
-                
-                node, out_file = strat['anatomical_wm_mask']
-                workflow.connect(node, out_file,
-                                reconall3, 'inputspec.wm_seg')
-
-                node, out_file = strat['freesurfer_subject_id']
-                workflow.connect(node, out_file,
-                                reconall3, 'inputspec.subject_id')                
-
-                node, out_file = strat['freesurfer_subject_dir']
-                workflow.connect(node, out_file,
-                                reconall3, 'inputspec.subject_dir')
-
-                node, out_file = strat['anatomical_skull_leaf']
-                workflow.connect(node, out_file,
-                                reconall3, 'inputspec.anat_restore')
-
-                strat.update_resource_pool({
-                    'surface_curvature': (reconall3, 'outputspec.curv'),
-                    'pial_surface_mesh': (reconall3, 'outputspec.pial'),
-                    'smoothed_surface_mesh': (reconall3, 'outputspec.smoothwm'),
-                    'spherical_surface_mesh': (reconall3, 'outputspec.sphere'),
-                    'sulcal_depth_surface_maps': (reconall3, 'outputspec.sulc'),
-                    'cortical_thickness_surface_maps': (reconall3, 'outputspec.thickness'),
-                    'cortical_volume_surface_maps': (reconall3, 'outputspec.volume'),
-                    'white_matter_surface_mesh': (reconall3, 'outputspec.white'),
-                    'anatomical_brain': (reconall3, 'outputspec.brain'),
-                    'anatomical_brain_mask': (reconall3, 'outputspec.brain_mask'),
-                }, override=True)
 
 
     # Functional / BOLD time

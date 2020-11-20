@@ -411,7 +411,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                         fs_brain_mask_to_native, 'target_file')
         preproc.connect(inputnode, 'freesurfer_subject_dir',
                         fs_brain_mask_to_native, 'subjects_dir')
-        
+
         # convert brain mask file from .mgz to .nii.gz
         fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
                                             output_names=['out_file'],

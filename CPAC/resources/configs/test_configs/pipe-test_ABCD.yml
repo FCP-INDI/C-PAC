@@ -682,7 +682,7 @@ runMotionStatisticsFirst : [0]
 
 
 # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
-motion_correction : ['3dvolreg']
+motion_correction : ['mcflirt']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume
@@ -815,7 +815,7 @@ functional_registration:
 
       # this is a fork point
       #   using: ['FSL', 'FreeSurfer']
-      using: ['FSL']
+      using: ['FreeSurfer']
 
       # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
       # It is not necessary to change this path unless you intend to use non-standard MNI registration.
@@ -861,7 +861,7 @@ func_reg_input :  ['Mean Functional']
 
 
 # Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
-n4_correct_mean_EPI : False
+n4_correct_mean_EPI : True
 
 
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
@@ -957,7 +957,7 @@ template_brain_only_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_f
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+template_skull_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 
 # Standard FSL Anatomical Brain Mask Image
@@ -1008,7 +1008,7 @@ targetAngleDeg : [90]
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [1]
+runROITimeseries :  [0]
 
 
 # Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
@@ -1061,7 +1061,7 @@ roiTSOutputs :  [True, True]
 
 # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
 # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-runSCA :  [1]
+runSCA :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
@@ -1083,7 +1083,7 @@ mrsNorm :  True
 
 
 # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-runVMHC :  [1]
+runVMHC :  [0]
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
@@ -1119,7 +1119,7 @@ configFileTwomm :  $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
 
 
 # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-runALFF :  [1]
+runALFF :  [0]
 
 
 # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
@@ -1131,7 +1131,7 @@ lowPassFreqALFF : [0.1]
 
 
 # Calculate Regional Homogeneity (ReHo) for all voxels.
-runReHo :  [1]
+runReHo :  [0]
 
 
 # Number of neighboring voxels used when calculating ReHo
@@ -1203,7 +1203,7 @@ memoryAllocatedForDegreeCentrality :  1.0
 # On - Run smoothing and output only the smoothed outputs.
 # On/Off - Run smoothing and output both the smoothed and non-smoothed outputs.
 # Off - Don't run smoothing.
-run_smoothing :  [1]
+run_smoothing :  [0]
 
 
 # Tool to use for smoothing.
@@ -1226,7 +1226,7 @@ smoothing_order :  ['Before']
 # On - Run z-scoring and output only the z-scored outputs.
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.
-runZScoring :  [1]
+runZScoring :  [0]
 
 
 # PyPEER integration

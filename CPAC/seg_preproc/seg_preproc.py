@@ -1127,7 +1127,7 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
     # register FS segmentations (aseg.mgz) to native space
     fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
                     name='fs_aseg_to_native')
-    
+
     fs_aseg_to_native.inputs.reg_header = True
     fs_aseg_to_native.inputs.interp = 'nearest'
 
@@ -1367,7 +1367,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file,
                              seg_preproc_ants_prior_based, 'inputspec.anatomical_brain_mask')
-                             
+
             workflow.connect(c.ANTs_prior_seg_template_brain_list, 'local_path',
                              seg_preproc_ants_prior_based, 'inputspec.template_brain_list')
             workflow.connect(c.ANTs_prior_seg_template_segmentation_list, 'local_path',
@@ -1388,7 +1388,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
     strat_list += new_strat_list
 
     if True in c.functional_registration['1-coregistration']['boundary_based_registration']['run'] and 'FreeSurfer' in c.segmentation_method:
-        
+
         for num_strat, strat in enumerate(strat_list):
 
             seg_preproc_freesurfer = create_seg_preproc_freesurfer(config=c, 
@@ -1396,7 +1396,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
             if seg_preproc_freesurfer is None:
                 continue
-            
+
             node, out_file = strat['freesurfer_subject_dir']
             workflow.connect(node, out_file,
                              seg_preproc_freesurfer, 'inputspec.subject_dir')
