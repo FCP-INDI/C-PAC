@@ -312,6 +312,10 @@ bet_threshold :  Off
 bet_vertical_gradient : 0.0
 
 
+# recon-all arguments
+reconall_args : None
+
+
 # Run anatomical and/or functional longitudinal pipeline
 # Options: 'anat' and/or 'func'
 # Note: 'func' is still under development and not available yet

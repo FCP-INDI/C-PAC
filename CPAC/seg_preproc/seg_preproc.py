@@ -1118,6 +1118,9 @@ def create_seg_preproc_freesurfer(config=None, wf_name='seg_preproc_freesurfer')
     reconall2.inputs.directive = 'autorecon2'
     reconall2.inputs.openmp = config.num_omp_threads
 
+    if config.reconall_args is not None:
+        reconall2.inputs.args = config.reconall_args
+
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
     

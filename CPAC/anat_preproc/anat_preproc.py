@@ -812,6 +812,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             reconall.inputs.subjects_dir = freesurfer_subject_dir
             reconall.inputs.openmp = config.num_omp_threads
 
+            if config.reconall_args is not None:
+                reconall.inputs.args = config.reconall_args
+
             preproc.connect(anat_leaf2, 'anat_data',
                             reconall, 'T1_files')
 
@@ -832,6 +835,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(acpc_align, 'outputspec.acpc_brain_mask', 
                             anat_skullstrip, 'inputspec.brain_mask') 
         elif method == 'freesurfer':
+            # TODO it's not a binary mask!
             preproc.connect(reconall, 'brainmask',
                             anat_skullstrip, 'inputspec.brain_mask')
 
@@ -902,6 +906,9 @@ def reconstruct_surface(config):
     reconall3.inputs.directive = 'autorecon3'
     reconall3.inputs.openmp = config.num_omp_threads
 
+    if config.reconall_args is not None:
+        reconall3.inputs.args = config.reconall_args
+    
     surface_reconstruction.connect(inputnode, 'subject_id',
                                     reconall3, 'subject_id')
 
