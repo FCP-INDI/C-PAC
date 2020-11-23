@@ -858,18 +858,19 @@ funcRegFSLinterpolation: sinc
 # Options: ['Mean Functional', 'Selected Functional Volume']
 func_reg_input :  ['Mean Functional']
 
-
-# Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
-n4_correct_mean_EPI : False
-
-
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space.
-# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
-functionalMasking :  ['AFNI']
+# Run ANTs’ N4 Bias Field Correction on the input of functional-to-anatomical registration (mean of the functional/EPI or one of the volumes from the functional 4D timeseries)
+n4_correct_func_reg_input : False
+
+
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET), FSL_AFNI (BET+3dAutoMask), Anatomical_Refined, or Anatomical_Based method 
+# 'Anatomical_Refined' : refine functional mask by registering anatomical mask to functional space. 
+# 'Anatomical_Based' : simply transforms the anatomical brain to the functional space to get BOLD mask. 
+# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based'] 
+functionalMasking : ['AFNI'] 
 
 
 # Options to be used for FSL skull-stripping of functional masking.
