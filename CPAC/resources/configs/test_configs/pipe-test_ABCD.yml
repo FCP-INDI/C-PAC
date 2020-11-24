@@ -313,7 +313,9 @@ bet_vertical_gradient : 0.0
 
 
 # recon-all arguments
-reconall_args : '-motioncor -talairach -nuintensitycor -normalization'
+autorecon1_args : '-motioncor -talairach -nuintensitycor -normalization'
+autorecon2_args : '-nosmooth2 -noinflate2 -nocurvstats -nosegstats'
+autorecon3_args : None
 
 
 # Run anatomical and/or functional longitudinal pipeline
