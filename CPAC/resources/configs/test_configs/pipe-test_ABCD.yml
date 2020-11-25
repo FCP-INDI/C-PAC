@@ -140,7 +140,7 @@ acpc_brainsize: 150
 
 
 # ACPC aligned template
-acpc_template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+acpc_template_skull: /ABCD_pipeline_template/MNI152_T1_1mm.nii.gz
 acpc_template_brain: None
 
 
