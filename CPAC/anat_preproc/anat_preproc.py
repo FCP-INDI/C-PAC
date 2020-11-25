@@ -385,10 +385,10 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         preproc.connect(inputnode, 'anat_data',
                         anat_skullstrip_ants, 'inputnode.in_files')
 
-        preproc.connect(anat_skullstrip_ants, 'copy_xform.out_file',
+        preproc.connect(anat_skullstrip_ants, 'outputnode.out_file',
                         outputnode, 'skullstrip')
 
-        preproc.connect(anat_skullstrip_ants, 'copy_xform.out_file',
+        preproc.connect(anat_skullstrip_ants, 'outputnode.out_file',
                         outputnode, 'brain')
 
         preproc.connect(anat_skullstrip_ants, 'atropos_wf.copy_xform.out_mask',
