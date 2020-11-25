@@ -150,12 +150,6 @@ RUN mkdir /ants_template && \
     mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
     rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
 
-# install ANTs
-ENV PATH=/usr/lib/ants:$PATH
-RUN apt-get install -y ants
-# RUN export ANTSPATH=/usr/lib/ants
-ENV ANTSPATH=/usr/lib/ants/
-
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
 RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
@@ -216,8 +210,12 @@ RUN mkdir -p /ndmg_atlases/label && \
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
-
 COPY . /code
+# install ANTs
+RUN /code/dev/docker_data/install_ants.sh v2.3.4
+ENV ANTSPATH=/usr/lib/ants/bin/
+ENV PATH=${ANTSPATH}:$PATH
+
 RUN pip install -e /code
 
 COPY dev/docker_data /code/docker_data

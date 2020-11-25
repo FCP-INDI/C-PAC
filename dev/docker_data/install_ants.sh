@@ -26,6 +26,9 @@ Build will proceed in 5 seconds
 
 sleep 5
 
+mkdir -p /antsinstall
+cd /antsinstall
+
 workingDir=${PWD}
 
 # Clone the repo
@@ -41,9 +44,9 @@ buildThreads=4
 
 # Where to build, should be an empty directory
 buildDir=${workingDir}/build
-installDir=${workingDir}/install
+installDir=/usr/lib/ants
 
-mkdir $buildDir $installDir
+mkdir -p $buildDir $installDir
 
 cd $buildDir
 
