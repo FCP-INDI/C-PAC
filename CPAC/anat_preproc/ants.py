@@ -84,6 +84,30 @@ def init_brain_extraction_wf(tpl_target_path,
     '''We monkeypatch `init_brain_extraction_wf` from niworkflows.anat
     to use `tpl_target_path`, `tpl_mask_path` and `tpl_regmask_path`
     from pipeline config instead of from datalad templates.
+    
+    .. exec::
+        from CPAC.anat_preproc.ants import init_brain_extraction_wf
+        wf = init_brain_extraction_wf(
+            '/ants_template/oasis/T_template0.nii.gz',
+            '/ants_template/oasis/'
+            'T_template0_BrainCerebellumProbabilityMask.nii.gz',
+            '/ants_template/oasis/'
+            'T_template0_BrainCerebellumRegistrationMask.nii.gz'
+        )
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/niworkflows_ants.dot'
+        )
+
+    High Level Workflow Graph:
+
+    .. image:: ../../images/generated/niworkflows_ants.png
+        :width: 500
+
+    Detailed Workflow Graph:
+
+    .. image:: ../../images/generated/niworkflows_ants_detailed.png
+        :width: 500
 
     Parameters
     ----------
@@ -103,6 +127,24 @@ def init_brain_extraction_wf(tpl_target_path,
     Returns
     -------
     wf: Workflow
+
+    Examples
+    --------
+    >>> from CPAC.anat_preproc.ants import init_brain_extraction_wf
+    >>> wf = init_brain_extraction_wf(
+    ...     '/ants_template/oasis/T_template0.nii.gz',
+    ...     '/ants_template/oasis/'
+    ...     'T_template0_BrainCerebellumProbabilityMask.nii.gz',
+    ...     '/ants_template/oasis/'
+    ...     'T_template0_BrainCerebellumRegistrationMask.nii.gz')
+    >>> wf.name
+    'brain_extraction_wf'
+    >>> wf.inputs.lap_tmpl.op1
+    '/ants_template/oasis/T_template0.nii.gz'
+    >>> wf.inputs.res_tmpl.in_file
+    '/ants_template/oasis/T_template0.nii.gz'
+    >>> getattr(wf.inputs.atropos_wf, '01_atropos').number_of_tissue_classes
+    3
     '''
     # monkeypatch `get_template_specs` and `get_template` to use paths
     # specified in pipeline config rather than datalad templates
