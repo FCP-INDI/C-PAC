@@ -175,6 +175,7 @@ ENV PATH=/usr/local/miniconda/bin:$PATH
 RUN conda update conda -y && \
     conda install -y  \
         blas \
+        cython \
         matplotlib==3.1.3 \
         networkx==2.4 \
         nose==1.3.7 \
