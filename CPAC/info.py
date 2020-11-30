@@ -151,7 +151,7 @@ REQUIREMENTS        = [
     "numpy==1.16.4",
     "pandas==0.23.4",
     "patsy==0.5.0",
-    "prov==1.5.0",
+    "prov==1.5.2",
     "psutil==5.4.6",
     "pygraphviz==1.3.1",
     "python-dateutil==2.7.3",
