@@ -1,7 +1,6 @@
 boto3==1.7.37
 click==6.7
 configparser==3.7.4
-cython
 future==0.16.0
 git+git://github.com/FCP-INDI/INDI-Tools.git@master
 lockfile==0.12.2
