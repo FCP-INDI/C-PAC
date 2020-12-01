@@ -149,7 +149,7 @@ jobs:
                       chmod +x jq
                       REBASE_BASE=origin/$(curl -u shnizzedy:$GITHUB_PR_BASE_TOKEN "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER" | jq '.base.ref' | tr -d '"')
                   else
-                    REBASE_BASE=$(git rev-parse --short HEAD~30)
+                    REBASE_BASE=$(git rev-parse --short HEAD~2)
                   fi
                 GIT_SEQUENCE_EDITOR=dev/circleci_data/drop_version_bump_commits git rebase -X ours -i $REBASE_BASE --empty drop
               fi
