@@ -149,8 +149,9 @@ acpc_template_brain: None
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer (recon-all) or UNet for monkey data to perform skull-stripping.
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer', 'unet']
+# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, UNet for monkey data to perform skull-stripping.
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet'] 
+# Developer note: 'FreeSurfer' option to be re-evaluated as multicores won't work autorecon 1/2/3 separately
 skullstrip_option :  ['AFNI']
 
 
@@ -162,7 +163,7 @@ unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 # For skullstrip option 'niworkflows-ants' only.
 # It is not necessary to change this path unless you intend to use a non-standard template.
 
-# niworkflows-ants Brain extraction template
+# niworkflows-ants brain extraction template
 niworkflows_ants_template_path : /ants_template/oasis/T_template0.nii.gz
 
 # niworkflows-ants probability mask
@@ -312,10 +313,12 @@ bet_threshold :  Off
 bet_vertical_gradient : 0.0
 
 
+# Run FreeSurfer recon-all command
+run_freesurfer : False
+
 # recon-all arguments
-autorecon1 : true
-autorecon1_args : '-motioncor -talairach -nuintensitycor -normalization'
-autorecon2_args : '-nosmooth2 -noinflate2 -nocurvstats -nosegstats'
+autorecon1_args : None
+autorecon2_args : None
 autorecon3_args : None
 
 
@@ -481,9 +484,10 @@ regWithSkull :  [1]
 runSegmentationPreprocessing :  [1]
 
 
-# segmentation method options: ['FSL', 'FreeSurfer', 'ANTs-Prior-Based', 'Template-Based']
+# segmentation method options: ['FSL', 'ANTs-Prior-Based', 'Template-Based']
 # FSL uses FAST; FreeSurfer runs recon-all to generate segmentations;
 # ANTs Prior-based Segmentation workflow uses antsJointLabelFusion and has shown optimal results for non-human primate data;
+# Developer note: 'FreeSurfer' option to be re-evaluated as multicores won't work autorecon 1/2/3 separately
 segmentation_method: ['FSL']
 
 
@@ -668,7 +672,7 @@ gm_erosion_mm: 0
 
 
 # Reconstruct surface via FreeSurfer
-surface_reconstruction: False
+# surface_reconstruction: False
 
 
 # Run functional preproceessing

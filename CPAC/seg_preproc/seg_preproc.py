@@ -1392,6 +1392,9 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     if True in c.functional_registration['1-coregistration']['boundary_based_registration']['run'] and 'FreeSurfer' in c.segmentation_method:
 
+        pass
+
+        '''
         for num_strat, strat in enumerate(strat_list):
 
             seg_preproc_freesurfer = create_seg_preproc_freesurfer(config=c, 
@@ -1416,6 +1419,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                 'anatomical_csf_mask': (seg_preproc_freesurfer, 'outputspec.csf_mask'),
                 'freesurfer_subject_id': (seg_preproc_freesurfer, 'outputspec.subject_id')
             })
+        '''
 
     strat_list += new_strat_list
 

@@ -150,8 +150,8 @@ already_skullstripped :  [0]
 
 
 # Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer (recon-all) or UNet for monkey data to perform skull-stripping.
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer', 'unet']
-skullstrip_option :  ['FreeSurfer']
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer-ABCD', 'unet']
+skullstrip_option :  ['FreeSurfer-ABCD']
 
 
 # UNet model

@@ -16,6 +16,9 @@ from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
+from CPAC.seg_preproc.utils import pick_tissue_from_labels_file
+
+
 def patch_cmass_output(lst, index=0):
     """
     Parameters
@@ -416,11 +419,25 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
                                             output_names=['out_file'],
                                             function=mri_convert),                        
-                                name='fs_brain_mask_to_nifti')
+                                name='fs_brainmask_to_nifti')                                
         preproc.connect(fs_brain_mask_to_native, 'transformed_file',
                         fs_brain_mask_to_nifti, 'in_file')
+
+        # binarize the brain mask                
+        binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                        name='binarize_fs_brainmask')
+        binarize_fs_brain_mask.inputs.args = '-bin'
         preproc.connect(fs_brain_mask_to_nifti, 'out_file',
-                        outputnode, 'brain_mask')
+                        binarize_fs_brain_mask, 'in_file')
+
+        # fill holes
+        fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
+                            name='fill_fs_brainmask')
+        fill_fs_brain_mask.inputs.fill_holes = True
+        preproc.connect(binarize_fs_brain_mask, 'out_file', 
+                    fill_fs_brain_mask, 'in_file')
+        preproc.connect(fill_fs_brain_mask, 'out_file', 
+                    outputnode, 'brain_mask')
 
         # apply mask
         fs_brain = pe.Node(interface=fsl.ApplyMask(),
@@ -565,6 +582,41 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
     return preproc
 
+
+# TODO function node for fnirt-based brain extraction
+### ABCD Harmonization - FNIRT-based brain extraction ###
+# Ref: https://github.com/Washington-University/HCPpipelines/blob/master/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh
+
+# Register to 2mm reference image (linear then non-linear)
+# linear registration to 2mm reference
+# ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$Input" -ref "$Reference2mm" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
+
+# non-linear registration to 2mm reference
+# ${FSLDIR}/bin/fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
+
+# # Overwrite the image output from FNIRT with a spline interpolated highres version
+# creating spline interpolated hires version
+# ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
+
+# # Invert warp and transform dilated brain mask back into native space, and use it to mask input image
+# # Input and reference spaces are the same, using 2mm reference to save time
+# computing inverse warp
+# ${FSLDIR}/bin/invwarp --ref="$Reference2mm" -w "$WD"/str2standard.nii.gz -o "$WD"/standard2str.nii.gz
+
+# applying inverse warp
+# ${FSLDIR}/bin/applywarp --rel --interp=nn --in="$ReferenceMask" --ref="$Input" -w "$WD"/standard2str.nii.gz -o "$OutputBrainMask"
+
+# creating mask
+# ${FSLDIR}/bin/fslmaths "$Input" -mas "$OutputBrainMask" "$OutputBrainExtractedImage"
+
+
+# TODO function node for FAST bias field correction
+### ABCD Harmonization - FAST bias field correction ###
+# Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/PreFreeSurfer/PreFreeSurferPipeline.sh#L688-L694
+
+
+
+
 def create_anat_preproc(method='afni', already_skullstripped=False,
                         config=None, acpc_target='whole-head', wf_name='anat_preproc', sub_dir=None):
     """The main purpose of this workflow is to process T1 scans. Raw mprage
@@ -676,7 +728,18 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                         'brain_mask',
                                                         'anat_skull_leaf',
                                                         'freesurfer_subject_dir',
-                                                        'center_of_mass']),
+                                                        'center_of_mass',
+                                                        'wm_mask',
+                                                        'gm_mask',
+                                                        'csf_mask',
+                                                        'curv',
+                                                        'pial',
+                                                        'smoothwm',
+                                                        'sphere',
+                                                        'sulc',
+                                                        'thickness',
+                                                        'volume',
+                                                        'white']),
                         name='outputspec')
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
@@ -793,15 +856,155 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     else:
 
         if method == 'freesurfer':
+            ### recon-all -all ###
+            reconall = pe.Node(interface=freesurfer.ReconAll(),
+                name='anat_freesurfer')
             
-            ### ABCD Harmonization - FNIRT-based brain extraction ###
-            # Ref: https://github.com/Washington-University/HCPpipelines/blob/master/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh
-            # TODO
-            
-            ### ABCD Harmonization - FAST bias field correction ###
-            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/PreFreeSurfer/PreFreeSurferPipeline.sh#L688-L694
-            # TODO
+            num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
 
+            freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}', 'anat_freesurfer')
+            
+            # create the node dir
+            if not os.path.exists(sub_dir):
+                os.mkdir(sub_dir)
+            if not os.path.exists(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}')):
+                os.mkdir(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}'))
+            if not os.path.exists(freesurfer_subject_dir):
+                os.mkdir(freesurfer_subject_dir)
+
+            reconall.inputs.directive = 'all'
+            reconall.inputs.subjects_dir = freesurfer_subject_dir
+            reconall.inputs.openmp = config.num_omp_threads
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            reconall, 'T1_files')
+
+            preproc.connect(reconall, 'subjects_dir',
+                            outputnode, 'freesurfer_subject_dir')
+
+            '''
+            ### brain mask output ###
+            # register FS brain mask to native space
+            fs_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                            name='fs_brainmask_to_native')
+            fs_brain_mask_to_native.inputs.reg_header = True
+
+            preproc.connect(reconall, 'brainmask',
+                            fs_brain_mask_to_native, 'source_file')
+            preproc.connect(reconall, 'rawavg',
+                            fs_brain_mask_to_native, 'target_file')
+            preproc.connect(reconall, 'subjects_dir',
+                            fs_brain_mask_to_native, 'subjects_dir')
+            
+            # convert brain mask file from .mgz to .nii.gz
+            fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
+                                              output_names=['out_file'],
+                                              function=mri_convert),                    
+                                    name='fs_brain_mask_to_nifti')
+
+            preproc.connect(fs_brain_mask_to_native, 'transformed_file',
+                            fs_brain_mask_to_nifti, 'in_file')
+
+            # binarize the brain mask                
+            binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                            name='binarize_fs_brainmask')
+            binarize_fs_brain_mask.inputs.args = '-bin'
+
+            preproc.connect(fs_brain_mask_to_nifti, 'out_file',
+                            binarize_fs_brain_mask, 'in_file')
+
+            # fill holes
+            fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
+                                name='fill_fs_brainmask')
+            fill_fs_brain_mask.inputs.fill_holes = True
+
+            preproc.connect(binarize_fs_brain_mask, 'out_file', 
+                        fill_fs_brain_mask, 'in_file')
+            preproc.connect(fill_fs_brain_mask, 'out_file', 
+                        outputnode, 'brain_mask')
+
+            # apply mask
+            fs_brain = pe.Node(interface=fsl.ApplyMask(),
+                            name='anat_skullstrip')
+
+            preproc.connect(anat_reorient, 'out_file',
+                            fs_brain, 'in_file')
+            preproc.connect(fill_fs_brain_mask, 'out_file',
+                            fs_brain, 'mask_file')
+            preproc.connect(fs_brain, 'out_file',
+                            outputnode, 'brain')
+            '''
+
+            ### segmentation output ###
+            # register FS segmentations (aseg.mgz) to native space
+            fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                            name='fs_aseg_to_native')
+            fs_aseg_to_native.inputs.reg_header = True
+            fs_aseg_to_native.inputs.interp = 'nearest'
+            fs_aseg_to_native.inputs.subjects_dir = freesurfer_subject_dir
+
+            preproc.connect(reconall, 'aseg',
+                            fs_aseg_to_native, 'source_file')
+            preproc.connect(reconall, 'rawavg',
+                            fs_aseg_to_native, 'target_file')
+
+            # convert registered FS segmentations from .mgz to .nii.gz
+            fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
+                                                output_names=['out_file'],
+                                                function=mri_convert),                        
+                                                name='fs_aseg_to_nifti')
+            fs_aseg_to_nifti.inputs.args = '-rt nearest'
+
+            preproc.connect(fs_aseg_to_native, 'transformed_file',
+                            fs_aseg_to_nifti, 'in_file')
+
+            pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels'], 
+                                                output_names=['csf_mask', 'gm_mask', 'wm_mask'],
+                                                function=pick_tissue_from_labels_file), 
+                                                name=f'anat_preproc_freesurfer_tissue_mask')
+
+            pick_tissue.inputs.include_ventricles = True
+
+            preproc.connect(fs_aseg_to_nifti, 'out_file',
+                            pick_tissue, 'multiatlas_Labels')
+            
+            preproc.connect(pick_tissue, 'wm_mask',
+                            outputnode, 'wm_mask')
+
+            preproc.connect(pick_tissue, 'gm_mask',
+                            outputnode, 'gm_mask')
+
+            preproc.connect(pick_tissue, 'csf_mask',
+                            outputnode, 'csf_mask')
+
+            preproc.connect(reconall, 'curv',
+                            outputnode, 'curv')
+
+            preproc.connect(reconall, 'pial',
+                            outputnode, 'pial')
+
+            preproc.connect(reconall, 'smoothwm',
+                            outputnode, 'smoothwm')
+
+            preproc.connect(reconall, 'sphere',
+                            outputnode, 'sphere')
+
+            preproc.connect(reconall, 'sulc',
+                            outputnode, 'sulc')
+
+            preproc.connect(reconall, 'thickness',
+                            outputnode, 'thickness')
+
+            preproc.connect(reconall, 'volume',
+                            outputnode, 'volume')
+
+            preproc.connect(reconall, 'white',
+                            outputnode, 'white')
+
+
+        elif method == 'freesurfer-abcd':
+
+            '''
             ### ABCD Harmonization ###
             # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L140-L144
 
@@ -815,7 +1018,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             
             preproc.connect(anat_leaf2, 'anat_data',
                             resample_head_1mm, 'reference')
-            
+
             # applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
             applywarp_head_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
                         name='applywarp_head_to_head_1mm')
@@ -861,6 +1064,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             # TODO -div $Mean
             wf.connect(average_brain, 'out_file', 
                         normalize_head, 'operand_files')
+            '''
 
             ### recon-all autorecon1 step ###
             reconall = pe.Node(interface=freesurfer.ReconAll(),
@@ -872,13 +1076,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
             num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
 
-            freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}', 'anat_freesurfer')
+            freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_abcd_{num_strat}', 'anat_freesurfer')
             
             # create the node dir
             if not os.path.exists(sub_dir):
                 os.mkdir(sub_dir)
-            if not os.path.exists(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}')):
-                os.mkdir(os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}'))
+            if not os.path.exists(os.path.join(sub_dir, f'anat_preproc_freesurfer_abcd_{num_strat}')):
+                os.mkdir(os.path.join(sub_dir, f'anat_preproc_freesurfer_abcd_{num_strat}'))
             if not os.path.exists(freesurfer_subject_dir):
                 os.mkdir(freesurfer_subject_dir)
 
@@ -888,15 +1092,16 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             if config.autorecon1_args is not None:
                 reconall.inputs.args = config.autorecon1_args
 
-            # preproc.connect(anat_leaf2, 'anat_data',
-            #                 reconall, 'T1_files')
-
-            preproc.connect(normalize_head, 'out_file',
+            preproc.connect(anat_leaf2, 'anat_data',
                             reconall, 'T1_files')
+
+            # preproc.connect(normalize_head, 'out_file',
+            #                 reconall, 'T1_files')
 
             preproc.connect(reconall, 'subjects_dir',
                             outputnode, 'freesurfer_subject_dir')
             
+            '''
             ### ABCD Harmonization ###
             # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L169-L172
 
@@ -916,7 +1121,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             #                 mri_em_register, 'brain_mask')
 
             # mri_watershed -T1 -brain_atlas $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta "$SubjectDIR"/"$SubjectID"/mri/T1.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz 
-
+            '''
 
         anat_skullstrip = skullstrip_anatomical(method=method, config=config,
                                                 wf_name="{0}_skullstrip".format(wf_name))
@@ -949,7 +1154,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                         outputnode, 'brain_mask')
         preproc.connect(anat_skullstrip, 'outputspec.brain', 
                         outputnode, 'brain')
-    
+
     preproc.connect(anat_leaf2, 'anat_data', outputnode, 'anat_skull_leaf')
 
     return preproc
@@ -1036,8 +1241,9 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(reconall3, 'white',
                                     outputnode, 'white')
 
-    ### ABCD harmonization ###
-    # mri_convert -rt nearest -rl "$T1wFolder"/"$T1wRestoreImage".nii.gz "$FreeSurferFolder"/mri/wmparc.mgz "$T1wFolder"/wmparc_1mm.nii.gz
+    ### ABCD harmonization - anatomical brain mask generation ###
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L159
+    
     wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','reslice_like','args'],
                                         output_names=['out_file'],
                                         function=mri_convert),
@@ -1049,7 +1255,6 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(inputnode, 'anat_restore',
                                     wmparc_to_nifti, 'reslice_like')
 
-    # fslmaths "$T1wFolder"/wmparc_1mm.nii.gz -bin -dilD -dilD -dilD -ero -ero "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
     binary_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
                             name='binarize_wmparc')
     binary_mask.inputs.args = '-bin -dilD -dilD -dilD -ero -ero'
@@ -1057,7 +1262,6 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(wmparc_to_nifti, 'out_file',
                                     binary_mask, 'in_file')
 
-    # ${CARET7DIR}/wb_command -volume-fill-holes "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
     wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file'],
                                         output_names=['out_file'],
                                         function=wb_command),
@@ -1066,7 +1270,6 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(binary_mask, 'out_file',
                                     wb_command_fill_holes, 'in_file')
 
-    # fslmaths "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -bin "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz
     binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
                             name='binarize_wmparc2')
     binary_mask2.inputs.args = '-bin'
@@ -1074,8 +1277,6 @@ def reconstruct_surface(config):
     surface_reconstruction.connect(wb_command_fill_holes, 'out_file',
                                     binary_mask2, 'in_file')
 
-    # applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$T1wFolder"/"$T1wRestoreImage".nii.gz 
-    # --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
     brain_mask_to_t1_restore = pe.Node(interface=fsl.ApplyWarp(),
                 name='brain_mask_to_t1_restore')
     brain_mask_to_t1_restore.inputs.interp = 'nn'
