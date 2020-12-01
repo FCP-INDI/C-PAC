@@ -793,10 +793,83 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     else:
 
         if method == 'freesurfer':
+            
+            ### ABCD Harmonization - FNIRT-based brain extraction ###
+            # Ref: https://github.com/Washington-University/HCPpipelines/blob/master/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh
+            # TODO
+            
+            ### ABCD Harmonization - FAST bias field correction ###
+            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/PreFreeSurfer/PreFreeSurferPipeline.sh#L688-L694
+            # TODO
+
+            ### ABCD Harmonization ###
+            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L140-L144
+
+            # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
+            resample_head_1mm = pe.Node(interface=fsl.FLIRT(),
+                            name='resample_anat_head_1mm')
+            resample_head_1mm.inputs.apply_isoxfm = 1
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            resample_head_1mm, 'in_file')
+            
+            preproc.connect(anat_leaf2, 'anat_data',
+                            resample_head_1mm, 'reference')
+            
+            # applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
+            applywarp_head_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
+                        name='applywarp_head_to_head_1mm')
+            applywarp_head_to_head_1mm.inputs.interp = 'spline'
+            applywarp_head_to_head_1mm.inputs.premat = config.identityMatrix
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            applywarp_head_to_head_1mm, 'in_file')
+
+            preproc.connect(resample_anat_head_1mm, 'out_file',
+                            applywarp_head_to_head_1mm, 'ref_file')
+
+            # applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
+            applywarp_brain_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
+                        name='applywarp_brain_to_head_1mm')
+            applywarp_brain_to_head_1mm.inputs.interp = 'nn' # why?
+            applywarp_brain_to_head_1mm.inputs.premat = config.identityMatrix
+
+            # TODO FNIRT+FAST brain
+            preproc.connect(anat_leaf2, 'anat_data',
+                            applywarp_brain_to_head_1mm, 'in_file')
+
+            preproc.connect(resample_anat_head_1mm, 'out_file',
+                            applywarp_brain_to_head_1mm, 'ref_file')
+
+            # fslstats $T1wImageBrain -M
+            average_brain = pe.Node(interface=fsl.ImageStats(),
+                        name='average_brain')
+            average_brain.inputs.op_string= '-M'
+
+            # TODO FNIRT+FAST brain
+            preproc.connect(anat_leaf2, 'anat_data',
+                            average_brain, 'in_file')
+
+            # fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
+            normalize_head = pe.Node(interface=fsl.ImageMaths(),
+                                    name='normalize_head')
+            normalize_head.inputs.op_string = '-div %s -mul 150 -abs'
+
+            wf.connect(applywarp_head_to_head_1mm, 'out_file', 
+                        normalize_head, 'in_file')
+
+            # TODO -div $Mean
+            wf.connect(average_brain, 'out_file', 
+                        normalize_head, 'operand_files')
+
+            ### recon-all autorecon1 step ###
             reconall = pe.Node(interface=freesurfer.ReconAll(),
                 name='anat_freesurfer')
-            reconall.inputs.directive = 'autorecon1'
-            
+
+            # ABCD performs autorecon1 without brain extraction
+            if config.autorecon1:
+                reconall.inputs.directive = 'autorecon1'
+
             num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
 
             freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_{num_strat}', 'anat_freesurfer')
@@ -815,12 +888,36 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             if config.autorecon1_args is not None:
                 reconall.inputs.args = config.autorecon1_args
 
-            preproc.connect(anat_leaf2, 'anat_data',
+            # preproc.connect(anat_leaf2, 'anat_data',
+            #                 reconall, 'T1_files')
+
+            preproc.connect(normalize_head, 'out_file',
                             reconall, 'T1_files')
 
             preproc.connect(reconall, 'subjects_dir',
                             outputnode, 'freesurfer_subject_dir')
-        
+            
+            ### ABCD Harmonization ###
+            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L169-L172
+
+            # mri_convert "$T1wImageBrainFile"_1mm.nii.gz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz --conform
+            t1_brain_to_mgz = pe.Node(util.Function(input_names=['in_file'], 
+                                                            output_names=['out_file'],
+                                                            function=mri_convert),                        
+                                                        name='t1_brain_to_mgz')
+
+            preproc.connect(applywarp_brain_to_head_1mm, 'out_file',
+                            t1_brain_to_mgz, 'in_file')
+
+            # mri_em_register -mask "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz "$SubjectDIR"/"$SubjectID"/mri/nu.mgz $FREESURFER_HOME/average/RB_all_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta
+            # TODO write a function node
+
+            # preproc.connect(t1_brain_to_mgz, 'out_file',
+            #                 mri_em_register, 'brain_mask')
+
+            # mri_watershed -T1 -brain_atlas $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta "$SubjectDIR"/"$SubjectID"/mri/T1.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz 
+
+
         anat_skullstrip = skullstrip_anatomical(method=method, config=config,
                                                 wf_name="{0}_skullstrip".format(wf_name))
 
@@ -979,25 +1076,25 @@ def reconstruct_surface(config):
 
     # applywarp --rel --interp=nn -i "$T1wFolder"/"$T1wImageBrainMask"_1mm.nii.gz -r "$T1wFolder"/"$T1wRestoreImage".nii.gz 
     # --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wFolder"/"$T1wImageBrainMask".nii.gz
-    brain_mask_to_native = pe.Node(interface=fsl.ApplyWarp(),
-                name='brain_mask_to_native')
-    brain_mask_to_native.inputs.interp = 'nn'
-    brain_mask_to_native.inputs.premat = config.identityMatrix
+    brain_mask_to_t1_restore = pe.Node(interface=fsl.ApplyWarp(),
+                name='brain_mask_to_t1_restore')
+    brain_mask_to_t1_restore.inputs.interp = 'nn'
+    brain_mask_to_t1_restore.inputs.premat = config.identityMatrix
 
     surface_reconstruction.connect(binary_mask2, 'out_file',
-                                    brain_mask_to_native, 'in_file')
+                                    brain_mask_to_t1_restore, 'in_file')
 
     surface_reconstruction.connect(inputnode, 'anat_restore',
-                                    brain_mask_to_native, 'ref_file')
+                                    brain_mask_to_t1_restore, 'ref_file')
 
-    surface_reconstruction.connect(brain_mask_to_native, 'out_file',
+    surface_reconstruction.connect(brain_mask_to_t1_restore, 'out_file',
                                     outputnode, 'brain_mask')
 
     fs_brain = pe.Node(interface=fsl.MultiImageMaths(), name='fs_brain')
     fs_brain.inputs.op_string = "-mul %s"
 
-    surface_reconstruction.connect(brain_mask_to_native, 
-                                    'out_file', fs_brain, 'in_file')
+    surface_reconstruction.connect(brain_mask_to_t1_restore, 'out_file', 
+                                    fs_brain, 'in_file')
 
     surface_reconstruction.connect(inputnode, 'anat_restore', 
                                     fs_brain, 'operand_files')

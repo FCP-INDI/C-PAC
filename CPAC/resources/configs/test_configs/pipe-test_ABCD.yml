@@ -313,6 +313,7 @@ bet_vertical_gradient : 0.0
 
 
 # recon-all arguments
+autorecon1 : false
 autorecon1_args : '-motioncor -talairach -nuintensitycor -normalization'
 autorecon2_args : '-nosmooth2 -noinflate2 -nocurvstats -nosegstats'
 autorecon3_args : None
