@@ -49,7 +49,7 @@ mkdir -p $buildDir $installDir
 
 cd $buildDir
 
-cmake ${workingDir}/ANTs
+cmake ${workingDir}/ANTs -DCMAKE_INSTALL_PREFIX=${installDir}
 make 2>&1 | tee build.log
 cd ANTS-build
-CMAKE_INSTALL_PREFIX=${installDir} make install 2>&1 | tee install.log
+make install 2>&1 | tee install.log
