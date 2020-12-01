@@ -156,7 +156,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                                                        'rawavg',
                                                        'template_brain_only_for_anat',
                                                        'template_skull_for_anat',
-                                                       'freesurfer_subject_dir']), 
+                                                       'freesurfer_subject_dir',
+                                                       'wmparc']), 
                          name='inputspec')
     outputnode = pe.Node(util.IdentityInterface(fields=['skullstrip',
                                                         'brain',
@@ -447,6 +448,69 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         preproc.connect(fs_brain_mask_to_nifti, 'out_file',
                         fs_brain, 'mask_file')
         preproc.connect(fs_brain, 'out_file',
+                        outputnode, 'brain')
+    
+    elif method == 'freesurfer-abcd':
+        ### ABCD harmonization - anatomical brain mask generation ###
+        # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L159
+        
+        wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','reslice_like','args'],
+                                            output_names=['out_file'],
+                                            function=mri_convert),
+                                name='wmparc_to_nifti')
+        wmparc_to_nifti.inputs.args = '-rt nearest'
+
+        preproc.connect(inputnode, 'wmparc',
+                        wmparc_to_nifti, 'in_file')
+        preproc.connect(inputnode, 'anat_data',
+                        wmparc_to_nifti, 'reslice_like')
+
+        binary_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
+                                name='binarize_wmparc')
+        binary_mask.inputs.args = '-bin -dilD -dilD -dilD -ero -ero'
+
+        preproc.connect(wmparc_to_nifti, 'out_file',
+                        binary_mask, 'in_file')
+
+        wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file'],
+                                            output_names=['out_file'],
+                                            function=wb_command),
+                                name='wb_command_fill_holes')
+
+        preproc.connect(binary_mask, 'out_file',
+                        wb_command_fill_holes, 'in_file')
+
+        binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
+                                name='binarize_wmparc2')
+        binary_mask2.inputs.args = '-bin'
+
+        preproc.connect(wb_command_fill_holes, 'out_file',
+                        binary_mask2, 'in_file')
+
+        brain_mask_to_t1_restore = pe.Node(interface=fsl.ApplyWarp(),
+                    name='brain_mask_to_t1_restore')
+        brain_mask_to_t1_restore.inputs.interp = 'nn'
+        brain_mask_to_t1_restore.inputs.premat = config.identityMatrix
+
+        preproc.connect(binary_mask2, 'out_file',
+                        brain_mask_to_t1_restore, 'in_file')
+
+        preproc.connect(inputnode, 'anat_data',
+                        brain_mask_to_t1_restore, 'ref_file')
+
+        preproc.connect(brain_mask_to_t1_restore, 'out_file',
+                        outputnode, 'brain_mask')
+
+        fs_brain = pe.Node(interface=fsl.MultiImageMaths(), name='fs_brain')
+        fs_brain.inputs.op_string = "-mul %s"
+
+        preproc.connect(brain_mask_to_t1_restore, 'out_file', 
+                        fs_brain, 'in_file')
+
+        preproc.connect(inputnode, 'anat_data', 
+                        fs_brain, 'operand_files')
+
+        preproc.connect(fs_brain, 'out_file', 
                         outputnode, 'brain')
 
     elif method == 'mask':
@@ -1066,14 +1130,12 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                         normalize_head, 'operand_files')
             '''
 
-            ### recon-all autorecon1 step ###
+            ### recon-all -all step ###
             reconall = pe.Node(interface=freesurfer.ReconAll(),
                 name='anat_freesurfer')
 
+            # TODO split recon-all -all into 4 steps as ABCD does
             # ABCD performs autorecon1 without brain extraction
-            if config.autorecon1:
-                reconall.inputs.directive = 'autorecon1'
-
             num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
 
             freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_abcd_{num_strat}', 'anat_freesurfer')
@@ -1086,6 +1148,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             if not os.path.exists(freesurfer_subject_dir):
                 os.mkdir(freesurfer_subject_dir)
 
+            reconall.inputs.directive = 'all'
             reconall.inputs.subjects_dir = freesurfer_subject_dir
             reconall.inputs.openmp = config.num_omp_threads
 
@@ -1137,7 +1200,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(acpc_align, 'outputspec.acpc_brain_mask', 
                             anat_skullstrip, 'inputspec.brain_mask') 
         elif method == 'freesurfer':
-            # TODO it's not a binary mask!
             preproc.connect(reconall, 'brainmask',
                             anat_skullstrip, 'inputspec.brain_mask')
 
@@ -1146,6 +1208,12 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
             preproc.connect(reconall, 'subjects_dir',
                             anat_skullstrip, 'inputspec.freesurfer_subject_dir')
+        elif method == 'freesurfer-abcd':
+            preproc.connect(reconall, 'wmparc',
+                            anat_skullstrip, 'inputspec.wmparc')
+
+            preproc.connect(reconall, 'subjects_dir',
+                            anat_skullstrip, 'inputspec.freesurfer_subject_dir')                    
         else:
             preproc.connect(inputnode, 'brain_mask',
                             anat_skullstrip, 'inputspec.brain_mask')
@@ -1159,7 +1227,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     return preproc
 
-# TODO multi-thread doens't work - debug!
+
+# TODO multi-thread doens't work if using autorecon1/2/3 - debug!
 def reconstruct_surface(config):
 
     """

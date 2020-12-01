@@ -1209,7 +1209,6 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     '''
     for num_strat, strat in enumerate(strat_list):
-        
         if 0 in c.runSegmentationPreprocessing:
             strat = strat.fork()
             new_strat_list.append(strat)
@@ -1218,8 +1217,8 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             pass # TODO
     '''
 
-    # original code
-    if 1 in c.runSegmentationPreprocessing and 'FSL' in c.segmentation_method:
+
+    if 1 in c.runSegmentationPreprocessing:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1390,38 +1389,6 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     strat_list += new_strat_list
 
-    if True in c.functional_registration['1-coregistration']['boundary_based_registration']['run'] and 'FreeSurfer' in c.segmentation_method:
-
-        pass
-
-        '''
-        for num_strat, strat in enumerate(strat_list):
-
-            seg_preproc_freesurfer = create_seg_preproc_freesurfer(config=c, 
-                                        wf_name='seg_preproc_freesurfer_{0}'.format(num_strat))
-
-            if seg_preproc_freesurfer is None:
-                continue
-
-            node, out_file = strat['freesurfer_subject_dir']
-            workflow.connect(node, out_file,
-                             seg_preproc_freesurfer, 'inputspec.subject_dir')
-
-            if 0 in c.runSegmentationPreprocessing:
-                strat = strat.fork()
-                new_strat_list.append(strat)
-
-            strat.append_name(seg_preproc_freesurfer.name)
-
-            strat.update_resource_pool({
-                'anatomical_wm_mask': (seg_preproc_freesurfer, 'outputspec.wm_mask'),
-                'anatomical_gm_mask': (seg_preproc_freesurfer, 'outputspec.gm_mask'),
-                'anatomical_csf_mask': (seg_preproc_freesurfer, 'outputspec.csf_mask'),
-                'freesurfer_subject_id': (seg_preproc_freesurfer, 'outputspec.subject_id')
-            })
-        '''
-
-    strat_list += new_strat_list
 
     if 'T1_template' in c.template_based_segmentation:
 

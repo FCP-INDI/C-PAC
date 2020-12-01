@@ -149,9 +149,8 @@ acpc_template_brain: None
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, UNet for monkey data to perform skull-stripping.
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'unet'] 
-# Developer note: 'FreeSurfer' option to be re-evaluated as multicores won't work autorecon 1/2/3 separately
+# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer-ABCD (recon-all + ABCD anat mask generation), UNet for monkey data to perform skull-stripping.
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer-ABCD', 'unet'] 
 skullstrip_option :  ['AFNI']
 
 
@@ -315,11 +314,6 @@ bet_vertical_gradient : 0.0
 
 # Run FreeSurfer recon-all command
 run_freesurfer : False
-
-# recon-all arguments
-autorecon1_args : None
-autorecon2_args : None
-autorecon3_args : None
 
 
 # Run anatomical and/or functional longitudinal pipeline
@@ -487,7 +481,6 @@ runSegmentationPreprocessing :  [1]
 # segmentation method options: ['FSL', 'ANTs-Prior-Based', 'Template-Based']
 # FSL uses FAST; FreeSurfer runs recon-all to generate segmentations;
 # ANTs Prior-based Segmentation workflow uses antsJointLabelFusion and has shown optimal results for non-human primate data;
-# Developer note: 'FreeSurfer' option to be re-evaluated as multicores won't work autorecon 1/2/3 separately
 segmentation_method: ['FSL']
 
 
@@ -671,10 +664,6 @@ gm_mask_erosion_mm: 30
 gm_erosion_mm: 0
 
 
-# Reconstruct surface via FreeSurfer
-# surface_reconstruction: False
-
-
 # Run functional preproceessing
 runFunctional: [1]
 
@@ -822,10 +811,6 @@ functional_registration:
       # this is a fork point
       #   run: [On, Off] - this will run both and fork the pipeline
       run: [On]
-
-      # this is a fork point
-      #   using: ['FSL', 'FreeSurfer']
-      using: ['FSL']
 
       # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
       # It is not necessary to change this path unless you intend to use non-standard MNI registration.
