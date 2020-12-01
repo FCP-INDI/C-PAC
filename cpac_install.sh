@@ -100,7 +100,7 @@ pip_packages=(
     "lockfile==0.12.2"
     "nibabel==3.0.1"
     "nilearn==0.4.1"
-    "nipype==1.5.1"
+    "nipype==1.6.0"
     "patsy==0.5.0"
     "prov==1.5.2"
     "psutil==5.4.6"
