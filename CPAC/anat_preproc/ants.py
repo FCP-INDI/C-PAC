@@ -232,7 +232,7 @@ def init_brain_extraction_wf(tpl_target_path,
         'CPAC.anat_preproc', 'data/'+settings_file % normalization_quality)),
         name='norm',
         n_procs=omp_nthreads,
-        mem_gb=mem_gb)
+        mem_gb=(mem_gb / omp_nthreads))
     norm.inputs.float = use_float
     fixed_mask_trait = 'fixed_image_mask'
     if _ants_version and parseversion(_ants_version) >= Version('2.2.0'):
@@ -329,7 +329,7 @@ def init_brain_extraction_wf(tpl_target_path,
         atropos_wf = init_atropos_wf(
             use_random_seed=atropos_use_random_seed,
             omp_nthreads=omp_nthreads,
-            mem_gb=mem_gb,
+            mem_gb=(mem_gb / omp_nthreads),
             in_segmentation_model=atropos_model,
         )
         sel_wm = pe.Node(niu.Select(index=atropos_model[-1] - 1), name='sel_wm',
