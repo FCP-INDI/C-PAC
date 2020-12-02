@@ -1,6 +1,5 @@
-#using neurodebian runtime as parent image
-FROM neurodebian:bionic-non-free
-MAINTAINER The C-PAC Team <cnl@childmind.org>
+#using neurodebian (Bionic non-free)+ ANTs 2.3.4 as parent image
+FROM docker.pkg.github.com/shnizzedy/neurodebian-bionic-non-free-ants-2.3.4/neurodebian_bionic-non-free_ants-2.3.4:latest
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -149,12 +148,6 @@ RUN mkdir /ants_template && \
     unzip /tmp/Oasis.zip -d /tmp &&\
     mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
     rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
-
-# install ANTs
-ENV PATH=/usr/lib/ants:$PATH
-RUN apt-get install -y ants
-# RUN export ANTSPATH=/usr/lib/ants
-ENV ANTSPATH=/usr/lib/ants/
 
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
