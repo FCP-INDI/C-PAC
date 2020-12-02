@@ -312,8 +312,11 @@ bet_threshold :  Off
 bet_vertical_gradient : 0.0
 
 
+# Run FreeSurfer recon-all command
+run_freesurfer : False
+
+
 # recon-all arguments
-autorecon1 : false
 autorecon1_args : '-motioncor -talairach -nuintensitycor -normalization'
 autorecon2_args : '-nosmooth2 -noinflate2 -nocurvstats -nosegstats'
 autorecon3_args : None
@@ -373,6 +376,11 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
 template_brain_mask_for_anat: /ABCD_pipeline_template/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+
+
+# Template to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+template_skull_for_anat_2mm :  /ABCD_pipeline_template/MNI152_T1_2mm.nii.gz
+
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
