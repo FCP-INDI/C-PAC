@@ -38,6 +38,9 @@ commands:
   build-images:
     steps:
       - run:
+          name: "Logging into GitHub Container Registry"
+          command: echo "${GITHUB_REGISTRY_TOKEN}" | docker login https://docker.pkg.github.com -u ${GITHUB_REGISTRY_NAME} --password-stdin
+      - run:
           name: "Building Docker image"
           command: |
             docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
