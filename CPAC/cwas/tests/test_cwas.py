@@ -98,7 +98,7 @@ class RegressionTester(object):
     
         # Run it!
         start = time.clock()
-        c.run(plugin='MultiProc', plugin_args={'n_procs' : 4})
+        c.run(plugin='LegacyMultiProc', plugin_args={'n_procs' : 4})
         end = time.clock()
         print("time: %.2gs" % (end-start))
 

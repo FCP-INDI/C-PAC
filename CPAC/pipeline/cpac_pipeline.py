@@ -137,7 +137,7 @@ logger = logging.getLogger('nipype.workflow')
 # config.enable_debug_mode()
 
 def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
-                 plugin='MultiProc', plugin_args=None, test_config=False):
+                 plugin='LegacyMultiProc', plugin_args=None, test_config=False):
     '''
     Function to prepare and, optionally, run the C-PAC workflow
 
@@ -199,7 +199,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     sub_mem_gb, num_cores_per_sub, num_ants_cores = check_config_resources(c)
 
     if not plugin:
-        plugin = 'MultiProc'
+        plugin = 'LegacyMultiProc'
 
     if plugin_args:
         plugin_args['memory_gb'] = sub_mem_gb

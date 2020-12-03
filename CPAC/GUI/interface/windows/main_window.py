@@ -268,7 +268,7 @@ class ListBox(wx.Frame):
             pass
 
         CPAC.pipeline.cpac_runner.run(sublist, pipeline, p,
-                                      plugin='MultiProc',
+                                      plugin='LegacyMultiProc',
                                       plugin_args=plugin_args)
 
     def runIndividualAnalysis(self, event):

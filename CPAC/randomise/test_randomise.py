@@ -40,7 +40,7 @@ def run_randomize(inputs,output_dir=None,run=True):
    randomise_workflow.connect(t_node,'outputspec.tstat_files',dataSink,'tstat_files')
    randomise_workflow.connect(t_node,'outputspec.t_corrected_p_files',dataSink,'t_corrected_p_files')
    if run == True:
-       randomise_workflow.run(plugin='MultiProc', plugin_args ={'n_procs': num_of_cores})
+       randomise_workflow.run(plugin='LegacyMultiProc', plugin_args ={'n_procs': num_of_cores})
    else:
        return randomise_workflow, randomise_workflow.base_dir
 

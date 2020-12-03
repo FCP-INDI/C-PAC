@@ -276,7 +276,7 @@ def run_alff(input_fmri, func_brain_mask, hp=0.01, lp=0.1, out_dir=None,
 
     if run:
         workflow.run(
-            plugin='MultiProc', plugin_args={'n_procs': num_cores_per_subject})
+            plugin='LegacyMultiProc', plugin_args={'n_procs': num_cores_per_subject})
         outpath = glob.glob(os.path.join(workflow_dir, output, '*'))
         return outpath
 

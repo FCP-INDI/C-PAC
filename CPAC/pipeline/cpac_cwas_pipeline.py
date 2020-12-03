@@ -37,7 +37,7 @@ def prep_cwas_workflow(c, subject_infos):
     wf.connect(cw, 'outputspec.p_map',
                ds, 'p_map')
 
-    wf.run(plugin='MultiProc',
+    wf.run(plugin='LegacyMultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
 

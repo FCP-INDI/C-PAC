@@ -676,7 +676,6 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
 
 
 def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_threads=1, reg_ants_skull=1):
-
     '''
     Calculates the nonlinear ANTS registration transform. This workflow
     employs the antsRegistration tool:

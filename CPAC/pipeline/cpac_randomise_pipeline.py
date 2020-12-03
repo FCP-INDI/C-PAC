@@ -70,7 +70,7 @@ def prep_randomise_workflow(c, subject_infos):
     wf.connect(rw,'outputspec.pval_file',ds,'pval_file')
     wf.connect(rw,'outputspec.size_file',ds,'size_file')
 
-    wf.run(plugin='MultiProc',
+    wf.run(plugin='LegacyMultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
     return wf

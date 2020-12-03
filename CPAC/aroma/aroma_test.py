@@ -64,7 +64,7 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    warp_workflow.connect(t_node,'outputspec.struct',dataSink,'epi2struct')
    warp_workflow.connect(t_node,'outputspec.anat_func',dataSink,'anat_func')
    if run == True:
-       warp_workflow.run(plugin='MultiProc', plugin_args ={'n_procs': num_of_cores})
+       warp_workflow.run(plugin='LegacyMultiProc', plugin_args ={'n_procs': num_of_cores})
        #outpath = glob.glob(os.path.join(workflow_dir, "EPI_DistCorr","*"))[0]
        #return outpath
    else:
