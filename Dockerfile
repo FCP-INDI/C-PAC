@@ -1,6 +1,5 @@
 #using neurodebian runtime as parent image
-FROM neurodebian:bionic-non-free
-MAINTAINER The C-PAC Team <cnl@childmind.org>
+FROM docker.pkg.github.com/fcp-indi/c-pac/neurodebian_bionic-non-free_ants-2.3.4:ants
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -150,12 +149,6 @@ RUN mkdir /ants_template && \
     mv /tmp/MICCAI2012-Multi-Atlas-Challenge-Data /ants_template/oasis && \
     rm -rf /tmp/Oasis.zip /tmp/MICCAI2012-Multi-Atlas-Challenge-Data
 
-# install ANTs
-ENV PATH=/usr/lib/ants:$PATH
-RUN apt-get install -y ants
-# RUN export ANTSPATH=/usr/lib/ants
-ENV ANTSPATH=/usr/lib/ants/
-
 # install ICA-AROMA
 RUN mkdir -p /opt/ICA-AROMA
 RUN curl -sL https://github.com/rhr-pruim/ICA-AROMA/archive/v0.4.3-beta.tar.gz | tar -xzC /opt/ICA-AROMA --strip-components 1
@@ -216,7 +209,6 @@ RUN mkdir -p /ndmg_atlases/label && \
 
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
-
 
 COPY . /code
 RUN pip install -e /code
