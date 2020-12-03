@@ -369,7 +369,7 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_mask_for_anat: /usr/share/fsl/5.0/data/standar/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+template_brain_mask_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
