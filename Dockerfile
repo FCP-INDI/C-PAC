@@ -1,6 +1,5 @@
 #using neurodebian runtime as parent image
-FROM neurodebian:bionic-non-free
-MAINTAINER The C-PAC Team <cnl@childmind.org>
+FROM docker.pkg.github.com/fcp-indi/c-pac/neurodebian_bionic-non-free_ants-2.3.4:ants
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -212,10 +211,6 @@ COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
 COPY . /code
-# install ANTs
-RUN /code/dev/docker_data/install_ants.sh v2.3.4
-ENV ANTSPATH=/usr/lib/ants/bin/
-ENV PATH=${ANTSPATH}:$PATH
 
 RUN pip install -e /code
 
