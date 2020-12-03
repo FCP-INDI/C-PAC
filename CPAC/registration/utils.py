@@ -195,6 +195,9 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
     if fixed_image_mask is not None:
         regcmd.append("-x")
         regcmd.append(str(fixed_image_mask))
+        
+    # DEBUG: Add verbosity
+    regcmd.append('-v 1')
 
     # write out the actual command-line entry for testing/validation later
     command_file = os.path.join(os.getcwd(), 'command.txt')
