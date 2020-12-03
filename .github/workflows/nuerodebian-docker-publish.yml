@@ -2,13 +2,9 @@ name: Build Docker image for Neurodebian (Bionic non-free) with ANTs 2.3.4
 
 on:
   push:
-    # Publish `main` as Docker `latest` image.
-    branches:
-      - "**"
-
-    # Publish `v1.2.3` tags as releases.
-    tags:
-      - v*
+    # Publish neurodebian_bionic-non-free_ants-2.3.4 to GH only when updated
+    paths:
+      - 'dev/docker_data/neurodebian_ants-2.3.4.Dockerfile'
 
   # Run tests for any PRs.
   pull_request:
