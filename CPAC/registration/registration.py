@@ -395,42 +395,6 @@ def create_register_func_to_anat(phase_diff_distcor=False,
 
     return register_func_to_anat
 
-'''
-def create_bbr_fs:
-# ${FREESURFER_HOME}/bin/bbregister --s "${FreeSurferSubjectID}_1mm" --mov ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_init_1mm.nii.gz --surf white.deformed --init-reg ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/eye.dat --bold --reg ${WD}/EPItoT1w.dat --${dof} --o ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_1mm.nii.gz
-# tkregister2 --noedit --reg ${WD}/EPItoT1w.dat --mov ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_init_1mm.nii.gz --targ ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/T1w_hires.nii.gz --fslregout ${WD}/fMRI2str_1mm.mat
-# applywarp --interp=spline -i ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_init_1mm.nii.gz -r ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/T1w_hires.nii.gz --premat=${WD}/fMRI2str_1mm.mat -o ${WD}/${ScoutInputFile}${ScoutExtension}2T1w_1mm.nii.gz
-
-# convert_xfm -omat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/temp.mat -concat ${WD}/fMRI2str_1mm.mat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/real2fs.mat
-# convert_xfm -omat ${WD}/fMRI2str_refinement.mat -concat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/fs2real.mat ${FreeSurferSubjectFolder}/${FreeSurferSubjectID}_1mm/mri/transforms/temp.mat
-
-    bbreg = BBRegister(name='bbregister_func_to_anat_fs')
-
-    # --s subject_id
-    bbreg.connect(inputnode, 'subject_id',
-                    bbreg, 'subject_id')
-
-    # --mov source_file func in anat space
-    # bbreg.connect(inputnode, 'anat_skull',
-    #                 bbreg, 'source_file') 
-
-    # --init-reg init_reg_file
-    # mri/transforms/eye.dat 
-    # identity matrix, no such an matrix in FS output
-
-    # --bold
-
-    # --surf white.deformed 
-    # what's it? a prefix
-    # change surface to surfname from ?h.white
-
-    # --reg out_reg_file
-
-    # --o registered_file
-
-    # cmd = 'tkregister2'
-    # os.system(cmd)
-'''
 
 def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                    name='bbregister_func_to_anat'):
