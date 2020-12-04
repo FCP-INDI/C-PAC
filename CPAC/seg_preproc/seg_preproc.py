@@ -25,6 +25,7 @@ import numpy as np
 from CPAC.registration.utils import (
     check_transforms,
     generate_inverse_transform_flags)
+from CPAC.pipeline.schema import valid_options
 
 
 def create_seg_preproc(use_ants,
@@ -42,8 +43,19 @@ def create_seg_preproc(use_ants,
     ----------
     use_ants: boolean
         Whether we are using ANTs or FSL-FNIRT for registration purposes.
-    wf_name : string
+    use_priors: boolean
+
+    use_threshold: list
+
+    csf_use_erosion: boolean
+
+    wm_use_erosion: boolean
+
+    gm_use_erosion: boolean
+
+    wf_name: string
         name of the workflow
+
 
     Returns
     -------
@@ -455,7 +467,7 @@ def process_segment_map(wf_name,
     use_priors: boolean
         Whether or not to use template-space tissue priors to further refine
         the resulting segmentation tissue masks.
-    use_threshold: String
+    use_threshold: List
         Choose threshold to further refine
         the resulting segmentation tissue masks.
     use_erosion: boolean
@@ -618,7 +630,7 @@ def process_segment_map(wf_name,
         preproc.connect(check_transform, 'checked_transform_list',
                         tissueprior_mni_to_t1, 'transforms')
 
-        if 'FSL-FAST Thresholding' in use_threshold:
+        if 'FSL-FAST' in use_threshold:
             input_1, value_1 = (inputNode, 'tissue_class_file')
         else:
             input_1, value_1 = (inputNode, 'probability_tissue_map')
@@ -637,7 +649,7 @@ def process_segment_map(wf_name,
 
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
-        if 'Customized Thresholding' in use_threshold:
+        if 'Custom' in use_threshold:
             segmentmap_threshold = pe.Node(
                 interface=fsl.ImageMaths(),
                 name='threshold_segmentmap_%s' % (wf_name))
@@ -716,7 +728,7 @@ def process_segment_map(wf_name,
         preproc.connect(inputNode, 'standard2highres_mat',
                         tissueprior_mni_to_t1, 'in_matrix_file')
 
-        if 'FSL-FAST Thresholding' in use_threshold:
+        if 'FSL-FAST' in use_threshold:
             input_1, value_1 = (inputNode, 'tissue_class_file')
         else:
             input_1, value_1 = (inputNode, 'probability_tissue_map')
@@ -735,7 +747,7 @@ def process_segment_map(wf_name,
 
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
-        if 'Customized Thresholding' in use_threshold:
+        if 'Custom' in use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(),
                                            name='threshold_segmentmap_%s' % (
                                                wf_name))
@@ -1187,7 +1199,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     new_strat_list = []
 
-    if 1 in c.runSegmentationPreprocessing:
+    if True in c.anatomical_preproc['segmentation_workflow']['run']:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1195,14 +1207,21 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
             seg_preproc = None
 
-            if not any(o in c.seg_use_threshold for o in [
-                "FSL-FAST Thresholding", "Customized Thresholding"
-            ]):
+            if not any(
+                o in c.anatomical_preproc['segmentation_workflow'][
+                    '1-segmentation'
+                ]['using'] for o in valid_options['segmentation']['using']
+            ):
                 err = '\n\n[!] C-PAC says: Your segmentation thresholding ' \
-                      'options setting does not include either \'FSL-FAST ' \
-                      'Thresholding\' or \'Customized Thresholding\'.\n\n' \
-                      'Options you provided:\nseg_use_threshold: {0}' \
-                      '\n\n'.format(str(c.seg_use_threshold))
+                      'options setting does not include any of {0}.\n\n' \
+                      'Options you provided:\nanatomical_preproc' \
+                      '[\'segmentation_workflow\'][\'1-segmentation\']' \
+                      '[\'using\']: {1}\n\n'.format(
+                          str(valid_options['segmentation']['using']),
+                          str(c.anatomical_preproc['segmentation_workflow'][
+                              '1-segmentation'
+                          ]['using'])
+                      )
                 raise Exception(err)
 
             if strat.get('registration_method') == 'FSL':
@@ -1215,39 +1234,71 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             else:
                 seg_preproc_wf_name = f'seg_preproc_{num_strat}'
 
+            use_threshold = []
+            if c.anatomical_preproc['segmentation_workflow'][
+                '3-custom_thresholding'
+            ]['run'] is True:
+                if 'FSL-FAST' in c.anatomical_preproc[
+                    'segmentation_workflow'
+                ]['1-segmentation']['using']:
+                    use_threshold.append('FSL-FAST')
+                if c.anatomical_preproc[
+                    'segmentation_workflow'
+                ]['3-custom_thresholding']['run'] is True:
+                    use_threshold.append('Custom')
+
             seg_preproc = create_seg_preproc(
                 use_ants=use_ants,
-                use_priors=c.seg_use_priors,
-                use_threshold=c.seg_use_threshold,
-                csf_use_erosion=c.seg_csf_use_erosion,
-                wm_use_erosion=c.seg_wm_use_erosion,
-                gm_use_erosion=c.seg_gm_use_erosion,
+                use_priors=c.anatomical_preproc['segmentation_workflow'][
+                    '2-use_priors']['run'],
+                use_threshold=use_threshold,
+                csf_use_erosion=c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_csf']['run'],
+                wm_use_erosion=c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_wm']['run'],
+                gm_use_erosion=c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_gm']['run'],
                 wf_name=seg_preproc_wf_name)
 
             seg_preproc.inputs.csf_threshold.csf_threshold = \
-                c.seg_CSF_threshold_value
+                c.anatomical_preproc['segmentation_workflow'][
+                    '3-custom_thresholding']['CSF_threshold_value']
             seg_preproc.inputs.wm_threshold.wm_threshold = \
-                c.seg_WM_threshold_value
+                c.anatomical_preproc['segmentation_workflow'][
+                    '3-custom_thresholding']['WM_threshold_value']
             seg_preproc.inputs.gm_threshold.gm_threshold = \
-                c.seg_GM_threshold_value
+                c.anatomical_preproc['segmentation_workflow'][
+                    '3-custom_thresholding']['GM_threshold_value']
 
             seg_preproc.inputs.csf_erosion_prop.csf_erosion_prop = \
-                c.csf_erosion_prop
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_csf']['csf_erosion_prop']
             seg_preproc.inputs.wm_erosion_prop.wm_erosion_prop = \
-                c.wm_erosion_prop
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_wm']['wm_erosion_prop']
             seg_preproc.inputs.gm_erosion_prop.gm_erosion_prop = \
-                c.gm_erosion_prop
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_gm']['gm_erosion_prop']
 
             seg_preproc.inputs.csf_mask_erosion_mm.csf_mask_erosion_mm = \
-                c.csf_mask_erosion_mm
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_csf']['csf_mask_erosion_mm']
             seg_preproc.inputs.wm_mask_erosion_mm.wm_mask_erosion_mm = \
-                c.wm_mask_erosion_mm
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_wm']['wm_mask_erosion_mm']
             seg_preproc.inputs.gm_mask_erosion_mm.gm_mask_erosion_mm = \
-                c.gm_mask_erosion_mm
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_gm']['gm_mask_erosion_mm']
 
-            seg_preproc.inputs.csf_erosion_mm.csf_erosion_mm = c.csf_erosion_mm
-            seg_preproc.inputs.wm_erosion_mm.wm_erosion_mm = c.wm_erosion_mm
-            seg_preproc.inputs.gm_erosion_mm.gm_erosion_mm = c.gm_erosion_mm
+            seg_preproc.inputs.csf_erosion_mm.csf_erosion_mm = \
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_csf']['csf_erosion_mm']
+            seg_preproc.inputs.wm_erosion_mm.wm_erosion_mm = \
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_wm']['wm_erosion_mm']
+            seg_preproc.inputs.gm_erosion_mm.gm_erosion_mm = \
+                c.anatomical_preproc['segmentation_workflow'][
+                    '4-erosion']['erode_gm']['gm_erosion_mm']
 
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file,
@@ -1282,20 +1333,25 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                                  seg_preproc,
                                  'inputspec.standard2highres_mat')
 
-            workflow.connect(c.PRIORS_CSF, 'local_path',
+            priors_c = c.anatomical_preproc['segmentation_workflow'][
+                '2-use_priors']
+
+            workflow.connect(priors_c['CSF_path'], 'local_path',
                              seg_preproc, 'inputspec.PRIOR_CSF')
 
-            workflow.connect(c.PRIORS_GRAY, 'local_path',
+            workflow.connect(priors_c['GM_path'], 'local_path',
                              seg_preproc, 'inputspec.PRIOR_GRAY')
 
-            workflow.connect(c.PRIORS_WHITE, 'local_path',
+            workflow.connect(priors_c['WM_path'], 'local_path',
                              seg_preproc, 'inputspec.PRIOR_WHITE')
 
-            if 0 in c.runSegmentationPreprocessing:
+            if False in c.anatomical_preproc['segmentation_workflow']['run']:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
-            if c.brain_use_erosion:
+            if c.anatomical_preproc['segmentation_workflow'][
+                '4-erosion'
+            ]['erode_anatomical_brain_mask']['run'] is True:
                 ero_imports = ['import scipy.ndimage as nd',
                                'import numpy as np', 'import nibabel as nb',
                                'import os']
@@ -1308,7 +1364,10 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                                   function=mask_erosion,
                                   imports=ero_imports),
                     name='erode_skullstrip_brain_mask')
-                eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm
+                eroded_mask.inputs.mask_erosion_mm = c.anatomical_preproc[
+                    'segmentation_workflow'
+                ]['4-erosion']['erode_anatomical_brain_mask'][
+                    'brain_mask_erosion_mm']
 
                 node, out_file = strat['anatomical_brain_mask']
                 workflow.connect(node, out_file,
@@ -1339,18 +1398,10 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     strat_list += new_strat_list
 
-    if 1 in c.ANTs_prior_based_segmentation:
+    ANTs_Prior_c = c.anatomical_preproc['segmentation_workflow'][
+        '1-segmentation']['ANTs_Prior_Based']
 
-        if (
-            'T1_template' in c.template_based_segmentation or
-            'EPI_template' in c.template_based_segmentation or
-            1 in c.runSegmentationPreprocessing
-        ):
-            err = '\n\n[!] C-PAC says: If you would like to set ANTs ' \
-                  'Prior-based Segmentation as your segmentation option, ' \
-                  'please set Template based segmentation as \'None\' and ' \
-                  'runSegmentationPreprocessing as \'0\'.\n\n\n\n'
-            raise Exception(err)
+    if True in ANTs_Prior_c['run']:
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -1372,24 +1423,24 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                              'inputspec.anatomical_brain_mask')
 
             workflow.connect(
-                c.ANTs_prior_seg_template_brain_list, 'local_path',
+                ANTs_Prior_c['template_brain_list'], 'local_path',
                 seg_preproc_ants_prior_based, 'inputspec.template_brain_list')
             workflow.connect(
-                c.ANTs_prior_seg_template_segmentation_list, 'local_path',
+                ANTs_Prior_c['template_segmentation_list'], 'local_path',
                 seg_preproc_ants_prior_based,
                 'inputspec.template_segmentation_list')
             seg_preproc_ants_prior_based.inputs.inputspec.csf_label = \
-                c.ANTs_prior_seg_CSF_label
+                ANTs_Prior_c['CSF_label']
             seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = \
-                c.ANTs_prior_seg_left_GM_label
+                ANTs_Prior_c['left_GM_label']
             seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = \
-                c.ANTs_prior_seg_right_GM_label
+                ANTs_Prior_c['right_GM_label']
             seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = \
-                c.ANTs_prior_seg_left_WM_label
+                ANTs_Prior_c['left_WM_label']
             seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = \
-                c.ANTs_prior_seg_right_WM_label
+                ANTs_Prior_c['right_WM_label']
 
-            if 0 in c.ANTs_prior_based_segmentation:
+            if False in ANTs_Prior_c['run']:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
@@ -1405,21 +1456,17 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
     strat_list += new_strat_list
 
-    if 'T1_template' in c.template_based_segmentation:
+    template_based_c = c.anatomical_preproc['segmentation_workflow'][
+        '1-segmentation']['Template_Based']
+
+    if (
+        True in template_based_c['run'] and
+        'T1 Template' in template_based_c['template_for_segmentation']
+    ):
 
         for num_strat, strat in enumerate(strat_list):
 
             nodes = strat.get_nodes_names()
-
-            if not any(
-                o in c.template_based_segmentation for o in [
-                    'EPI_template', 'T1_template', 'None']):
-                err = '\n\n[!] C-PAC says: Your template based segmentation ' \
-                      'setting does not include either \'EPI_template\' or ' \
-                      '\'T1_template\'.\n\nOptions you provided:\n' \
-                      'template_based_segmentation: {0}' \
-                      '\n\n'.format(str(c.template_based_segmentation))
-                raise Exception(err)
 
             if strat.get('registration_method') == 'FSL':
                 use_ants = False
@@ -1459,19 +1506,19 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                                  seg_preproc_template_based,
                                  'inputspec.standard2highres_mat')
 
-            workflow.connect(c.template_based_segmentation_CSF, 'local_path',
+            workflow.connect(template_based_c['CSF'], 'local_path',
                              seg_preproc_template_based,
                              'inputspec.CSF_template')
 
-            workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
+            workflow.connect(template_based_c['GRAY'], 'local_path',
                              seg_preproc_template_based,
                              'inputspec.GRAY_template')
 
-            workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
+            workflow.connect(template_based_c['WHITE'], 'local_path',
                              seg_preproc_template_based,
                              'inputspec.WHITE_template')
 
-            if 'None' in c.template_based_segmentation:
+            if False in template_based_c['run']:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 

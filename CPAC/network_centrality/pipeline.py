@@ -6,17 +6,15 @@ from nipype import logging
 from CPAC.utils.interfaces.function import Function
 from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.network_centrality.utils import merge_lists, check_centrality_params
+from CPAC.pipeline.schema import valid_options
 
 logger = logging.getLogger('workflow')
 
 
 def create_network_centrality_workflow(workflow, c, strategies):
-    centrality_options = {'degree_centrality', 'eigenvector_centrality',
-                          'local_functional_connectivity_density'}
-
     if True not in c.network_centrality['run'] or not any([
         c.network_centrality[option]['weight_options'] for option in
-        centrality_options
+        valid_options['centrality']['method_options']
     ]):
         return strategies
 
@@ -56,7 +54,8 @@ def create_network_centrality_workflow(workflow, c, strategies):
         [connect_centrality_workflow(workflow, c, strat, num_strat,
                                      resample_functional_to_template,
                                      merge_node, option) for option in
-         centrality_options if c.network_centrality[option]['weight_options']]
+         valid_options['centrality']['method_options'] if
+         c.network_centrality[option]['weight_options']]
 
         if False in c.network_centrality['run']:
             strategies += [strat.fork()]

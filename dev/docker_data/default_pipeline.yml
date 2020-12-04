@@ -319,6 +319,9 @@ anatomical_preproc:
         right_WM_label : 41
 
       Template_Based:
+        # this is a fork point
+        #   run: [On, Off] - this will run both and fork the pipeline
+        run: [On]
 
         # These masks should be in the same space of your registration template, e.g. if
         # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
