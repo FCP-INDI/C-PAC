@@ -12,7 +12,8 @@ from nipype.interfaces import freesurfer
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fsl_aff_to_rigid, \
     mri_convert, \
-    wb_command
+    wb_command, \
+    fslmaths_command
 from CPAC.utils.datasource import create_check_for_s3_node
 from CPAC.unet.function import predict_volumes
 
@@ -436,10 +437,10 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
                             name='fill_fs_brainmask')
         fill_fs_brain_mask.inputs.fill_holes = True
-        fill_fs_brain_mask.inputs.outputtype = "NIFTI"
-        preproc.connect(binarize_fs_brain_mask, 'out_file', 
+        fill_fs_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+        preproc.connect(binarize_fs_brain_mask, 'out_file',
                     fill_fs_brain_mask, 'in_file')
-        preproc.connect(fill_fs_brain_mask, 'out_file', 
+        preproc.connect(fill_fs_brain_mask, 'out_file',
                     outputnode, 'brain_mask')
 
         # apply mask
@@ -658,6 +659,7 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     preproc = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
+                                                       'ref_mask_2mm',
                                                        'template_skull_for_anat_2mm',
                                                        'template_brain_mask_for_anat']), 
                          name='inputspec')
@@ -671,7 +673,7 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     linear_reg = pe.Node(interface=fsl.FLIRT(),
                          name='linear_reg')
     linear_reg.inputs.dof = 12
-    linear_reg.inputs.interp = spline
+    linear_reg.inputs.interp = 'spline'
     linear_reg.inputs.no_search = True
 
     preproc.connect(inputnode, 'anat_data',
@@ -684,20 +686,28 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     # fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" \
     # --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz \
     # --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz \
-    # --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
+    # --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz \
+    # --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
     non_linear_reg = pe.Node(interface=fsl.FNIRT(),
                          name='non_linear_reg')
+    non_linear_reg.inputs.field_file = True # --fout
+    non_linear_reg.inputs.jacobian_file = True # --jout
+    non_linear_reg.inputs.modulatedref_file = True # --refout
+    # non_linear_reg.inputs.warped_file = True # --iout
+    # non_linear_reg.inputs.log_file = True # --logout
+    non_linear_reg.inputs.out_intensitymap_file = True # --intout
+    non_linear_reg.inputs.fieldcoeff_file = True # --cout
 
     preproc.connect(inputnode, 'anat_data',
                     non_linear_reg, 'in_file')
-    
+
     preproc.connect(inputnode, 'template_skull_for_anat_2mm',
-                    non_linear_reg, 'reference')
+                    non_linear_reg, 'ref_file')
 
     preproc.connect(linear_reg, 'out_matrix_file',
                     non_linear_reg, 'affine_file')
 
-    preproc.connect(inputnode, 'template_brain_mask_for_anat',
+    preproc.connect(inputnode, 'ref_mask_2mm',
                     non_linear_reg, 'refmask_file')
 
     # # Overwrite the image output from FNIRT with a spline interpolated highres version
@@ -722,9 +732,10 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     # computing inverse warp
     # invwarp --ref="$Reference2mm" -w "$WD"/str2standard.nii.gz -o "$WD"/standard2str.nii.gz
     inverse_warp = pe.Node(interface=fsl.InvWarp(), name='inverse_warp')
+    inverse_warp.inputs.output_type = 'NIFTI_GZ'
 
     preproc.connect(inputnode, 'template_skull_for_anat_2mm',
-                    inverse_warp, 'in_file')
+                    inverse_warp, 'reference')
 
     preproc.connect(non_linear_reg, 'field_file',
                     inverse_warp, 'warp')
@@ -750,19 +761,19 @@ def fnirt_based_brain_extraction(wf_name='fnirt_based_brain_extraction', config=
     
     # creating mask
     # fslmaths "$Input" -mas "$OutputBrainMask" "$OutputBrainExtractedImage"
-    apply_mask = pe.Node(interface=fsl.ImageMaths(),
+    apply_mask = pe.Node(interface=fsl.MultiImageMaths(),
                             name='apply_mask')
-    apply_mask.inputs.op_string = '-mas'
+    apply_mask.inputs.op_string = '-mas %s'
 
     preproc.connect(inputnode, 'anat_data', 
                     apply_mask, 'in_file')
-    
+
     preproc.connect(apply_inv_warp, 'out_file',
                     apply_mask, 'operand_files')
 
-    preproc.connect(inputnode, 'anat_data',
+    preproc.connect(apply_mask, 'out_file',
                     outputnode, 'anat_brain')
-
+    
     return preproc
 
 
@@ -776,10 +787,11 @@ def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None
 
     inputnode = pe.Node(util.IdentityInterface(fields=['anat_data',
                                                        'anat_brain',
-                                                       'anat_brain_mask',
-                                                       'template_brain_mask_for_anat']), 
+                                                       'anat_brain_mask']), 
                          name='inputspec')
-    outputnode = pe.Node(util.IdentityInterface(fields=['anat_restore']),
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['anat_restore',
+                                                        'anat_brain_restore']),
                         name='outputspec')
 
     # fast -b -B -o ${T1wFolder}/T1w_fast -t 1 ${T1wFolder}/T1w_acpc_dc_brain.nii.gz
@@ -791,6 +803,9 @@ def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None
 
     preproc.connect(inputnode, 'anat_brain',
                     fast_bias_field_correction, 'in_files')
+
+    preproc.connect(fast_bias_field_correction, 'restored_image',
+                    outputnode, 'anat_brain_restore')
 
     # FAST does not output a non-brain extracted image so create an inverse mask, 
     # apply it to T1w_acpc_dc.nii.gz, insert the T1w_fast_restore to the skull of 
@@ -806,9 +821,9 @@ def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None
 
     # fslmaths ${T1wFolder}/T1w_acpc_dc.nii.gz -mul ${T1wFolder}/T1w_acpc_inverse_brain_mask.nii.gz ${T1wFolder}/T1w_acpc_dc_skull.nii.gz
     # TODO what's this step doing?
-    apply_mask = pe.Node(interface=fsl.ImageMaths(),
+    apply_mask = pe.Node(interface=fsl.MultiImageMaths(),
                             name='apply_mask')
-    apply_mask.inputs.op_string = '-mul'
+    apply_mask.inputs.op_string = '-mul %s'
 
     preproc.connect(inputnode, 'anat_data',
                     apply_mask, 'in_file')
@@ -818,19 +833,19 @@ def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None
 
     # fslmaths ${T1wFolder}/T1w_fast_restore.nii.gz -add ${T1wFolder}/T1w_acpc_dc_skull.nii.gz ${T1wFolder}/${T1wImage}_acpc_dc_restore
     # TODO what's this step doing?
-    anat_restore = pe.Node(interface=fsl.ImageMaths(),
+    anat_restore = pe.Node(interface=fsl.MultiImageMaths(),
                             name='anat_restore')
-    anat_restore.inputs.op_string = '-add'
+    anat_restore.inputs.op_string = '-add %s'
 
     preproc.connect(fast_bias_field_correction, 'restored_image',
                     anat_restore, 'in_file')
 
-    preproc.connect(anat_restore, 'out_file',
+    preproc.connect(apply_mask, 'out_file',
                     anat_restore, 'operand_files')
 
     preproc.connect(anat_restore, 'out_file',
                     outputnode, 'anat_restore')
-    
+
     return preproc
 
 
@@ -936,6 +951,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                        'template_skull_for_anat',
                                                        'template_brain_only_for_acpc',
                                                        'template_skull_for_acpc',
+                                                       'ref_mask_2mm',
+                                                       'template_skull_for_anat_2mm',
+                                                       'template_brain_mask_for_anat',
                                                        'template_cmass']), 
                         name='inputspec')
 
@@ -1100,59 +1118,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(reconall, 'subjects_dir',
                             outputnode, 'freesurfer_subject_dir')
 
-            '''
-            ### brain mask output ###
-            # register FS brain mask to native space
-            fs_brain_mask_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
-                            name='fs_brainmask_to_native')
-            fs_brain_mask_to_native.inputs.reg_header = True
-
-            preproc.connect(reconall, 'brainmask',
-                            fs_brain_mask_to_native, 'source_file')
-            preproc.connect(reconall, 'rawavg',
-                            fs_brain_mask_to_native, 'target_file')
-            preproc.connect(reconall, 'subjects_dir',
-                            fs_brain_mask_to_native, 'subjects_dir')
-            
-            # convert brain mask file from .mgz to .nii.gz
-            fs_brain_mask_to_nifti = pe.Node(util.Function(input_names=['in_file'], 
-                                              output_names=['out_file'],
-                                              function=mri_convert),                    
-                                    name='fs_brain_mask_to_nifti')
-
-            preproc.connect(fs_brain_mask_to_native, 'transformed_file',
-                            fs_brain_mask_to_nifti, 'in_file')
-
-            # binarize the brain mask                
-            binarize_fs_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                            name='binarize_fs_brainmask')
-            binarize_fs_brain_mask.inputs.args = '-bin'
-
-            preproc.connect(fs_brain_mask_to_nifti, 'out_file',
-                            binarize_fs_brain_mask, 'in_file')
-
-            # fill holes
-            fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
-                                name='fill_fs_brainmask')
-            fill_fs_brain_mask.inputs.fill_holes = True
-
-            preproc.connect(binarize_fs_brain_mask, 'out_file', 
-                        fill_fs_brain_mask, 'in_file')
-            preproc.connect(fill_fs_brain_mask, 'out_file', 
-                        outputnode, 'brain_mask')
-
-            # apply mask
-            fs_brain = pe.Node(interface=fsl.ApplyMask(),
-                            name='anat_skullstrip')
-
-            preproc.connect(anat_reorient, 'out_file',
-                            fs_brain, 'in_file')
-            preproc.connect(fill_fs_brain_mask, 'out_file',
-                            fs_brain, 'mask_file')
-            preproc.connect(fs_brain, 'out_file',
-                            outputnode, 'brain')
-            '''
-
             ### segmentation output ###
             # register FS segmentations (aseg.mgz) to native space
             fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
@@ -1221,8 +1186,32 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
 
         elif method == 'freesurfer-abcd':
+            
+            brain_extraction = fnirt_based_brain_extraction(config=config)
 
-            '''
+            preproc.connect(anat_leaf2, 'anat_data',
+                            brain_extraction, 'inputspec.anat_data')
+
+            preproc.connect(inputnode, 'ref_mask_2mm',
+                            brain_extraction, 'inputspec.ref_mask_2mm')
+
+            preproc.connect(inputnode, 'template_skull_for_anat_2mm',
+                            brain_extraction, 'inputspec.template_skull_for_anat_2mm')
+
+            preproc.connect(inputnode, 'template_brain_mask_for_anat',
+                            brain_extraction, 'inputspec.template_brain_mask_for_anat')
+
+            fast_correction = fast_bias_field_correction(config=config)
+
+            preproc.connect(anat_leaf2, 'anat_data',
+                            fast_correction, 'inputspec.anat_data')
+
+            preproc.connect(brain_extraction, 'outputspec.anat_brain',
+                            fast_correction, 'inputspec.anat_brain')
+
+            preproc.connect(brain_extraction, 'outputspec.anat_brain_mask',
+                            fast_correction, 'inputspec.anat_brain_mask')
+
             ### ABCD Harmonization ###
             # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L140-L144
 
@@ -1246,7 +1235,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(anat_leaf2, 'anat_data',
                             applywarp_head_to_head_1mm, 'in_file')
 
-            preproc.connect(resample_anat_head_1mm, 'out_file',
+            preproc.connect(resample_head_1mm, 'out_file',
                             applywarp_head_to_head_1mm, 'ref_file')
 
             # applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
@@ -1255,34 +1244,43 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             applywarp_brain_to_head_1mm.inputs.interp = 'nn' # why?
             applywarp_brain_to_head_1mm.inputs.premat = config.identityMatrix
 
-            # TODO FNIRT+FAST brain
-            preproc.connect(anat_leaf2, 'anat_data',
+            preproc.connect(fast_correction, 'outputspec.anat_brain_restore',
                             applywarp_brain_to_head_1mm, 'in_file')
 
-            preproc.connect(resample_anat_head_1mm, 'out_file',
+            preproc.connect(resample_head_1mm, 'out_file',
                             applywarp_brain_to_head_1mm, 'ref_file')
 
             # fslstats $T1wImageBrain -M
             average_brain = pe.Node(interface=fsl.ImageStats(),
                         name='average_brain')
-            average_brain.inputs.op_string= '-M'
+            average_brain.inputs.op_string = '-M'
+            average_brain.inputs.output_type = 'NIFTI_GZ'
 
-            # TODO FNIRT+FAST brain
-            preproc.connect(anat_leaf2, 'anat_data',
+            preproc.connect(fast_correction, 'outputspec.anat_brain_restore',
                             average_brain, 'in_file')
 
             # fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
-            normalize_head = pe.Node(interface=fsl.ImageMaths(),
+            normalize_head = pe.Node(util.Function(input_names=['in_file', 'number', 'out_file_suffix'],
+                                                    output_names=['out_file'],
+                                                    function=fslmaths_command),
                                     name='normalize_head')
-            normalize_head.inputs.op_string = '-div %s -mul 150 -abs'
+            normalize_head.inputs.out_file_suffix = '_norm'
 
-            wf.connect(applywarp_head_to_head_1mm, 'out_file', 
-                        normalize_head, 'in_file')
+            preproc.connect(applywarp_head_to_head_1mm, 'out_file', 
+                            normalize_head, 'in_file')
 
-            # TODO -div $Mean
-            wf.connect(average_brain, 'out_file', 
-                        normalize_head, 'operand_files')
-            '''
+            preproc.connect(average_brain, 'out_stat',
+                            normalize_head, 'number')
+
+            # normalize_head = pe.Node(interface=fsl.MultiImageMaths(),
+            #                         name='normalize_head')
+            # normalize_head.inputs.op_string = '-div %s -mul 150 -abs'
+
+            # preproc.connect(applywarp_head_to_head_1mm, 'out_file', 
+            #             normalize_head, 'in_file')
+
+            # preproc.connect(average_brain, 'out_stat',
+            #             normalize_head, 'operand_files')
 
             ### recon-all -all step ###
             reconall = pe.Node(interface=freesurfer.ReconAll(),
@@ -1309,11 +1307,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             # if config.autorecon1_args is not None:
             #     reconall.inputs.args = config.autorecon1_args
 
-            preproc.connect(anat_leaf2, 'anat_data',
-                            reconall, 'T1_files')
-
-            # preproc.connect(normalize_head, 'out_file',
+            # preproc.connect(anat_leaf2, 'anat_data',
             #                 reconall, 'T1_files')
+
+            preproc.connect(normalize_head, 'out_file',
+                            reconall, 'T1_files')
 
             preproc.connect(reconall, 'subjects_dir',
                             outputnode, 'freesurfer_subject_dir')
@@ -1323,9 +1321,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L169-L172
 
             # mri_convert "$T1wImageBrainFile"_1mm.nii.gz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz --conform
-            t1_brain_to_mgz = pe.Node(util.Function(input_names=['in_file'], 
+            t1_brain_to_mgz = pe.Node(util.Function(input_names=['in_file'],
                                                             output_names=['out_file'],
-                                                            function=mri_convert),                        
+                                                            function=mri_convert),
                                                         name='t1_brain_to_mgz')
 
             preproc.connect(applywarp_brain_to_head_1mm, 'out_file',

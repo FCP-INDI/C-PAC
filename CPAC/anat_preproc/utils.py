@@ -330,3 +330,18 @@ def wb_command(in_file):
     os.system(cmd)
 
     return out_file
+
+
+def fslmaths_command(in_file, number, out_file_suffix):
+
+    import os
+
+    out_filename = in_file.replace('.nii.gz', out_file_suffix+'.nii.gz')
+
+    out_file = os.path.join(os.getcwd(), out_filename[out_filename.rindex('/')+1:])
+
+    cmd = 'fslmaths %s -div %f -mul 150 -abs %s' % (in_file, number, out_file)
+
+    os.system(cmd)
+
+    return out_file

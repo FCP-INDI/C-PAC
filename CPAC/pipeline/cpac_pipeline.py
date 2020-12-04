@@ -730,6 +730,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("anat", "acpc_template_brain"),
     ]
 
+    if 'FreeSurfer-ABCD' in c.skullstrip_option:
+        template_keys.append(("anat", "template_skull_for_anat_2mm"))
+        template_keys.append(("anat", "ref_mask_2mm"))
+
     for key_type, key in template_keys:
 
         if isinstance(getattr(c, key), str) or getattr(c, key) == None:
@@ -1170,10 +1174,23 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
+
                     workflow.connect(c.acpc_template_skull, 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_acpc')
+
                     workflow.connect(c.acpc_template_brain, 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
+
+                    workflow.connect(c.template_skull_for_anat_2mm, 'local_path',
+                                    anat_preproc, 'inputspec.template_skull_for_anat_2mm')
+
+                    workflow.connect(c.ref_mask_2mm, 'local_path',
+                                    anat_preproc, 'inputspec.ref_mask_2mm')
+
+                    node, out_file = strat['template_brain_mask_for_anat']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.template_brain_mask_for_anat')
+
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({

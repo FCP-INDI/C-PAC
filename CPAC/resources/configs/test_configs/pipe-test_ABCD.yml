@@ -382,6 +382,9 @@ template_brain_mask_for_anat: /ABCD_pipeline_template/MNI152_T1_${resolution_for
 template_skull_for_anat_2mm :  /ABCD_pipeline_template/MNI152_T1_2mm.nii.gz
 
 
+# Reference mask for FNIRT to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+ref_mask_2mm :  /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
 regOption :  ['ANTS']
