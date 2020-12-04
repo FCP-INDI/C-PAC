@@ -1,5 +1,3 @@
-import numpy as np
-
 from nipype.interfaces.utility import Function
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
@@ -24,17 +22,18 @@ from CPAC.seg_preproc.utils import (
 import nipype.pipeline.engine as pe
 import scipy.ndimage as nd
 import numpy as np
-from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+from CPAC.registration.utils import (
+    check_transforms,
+    generate_inverse_transform_flags)
 
 
 def create_seg_preproc(use_ants,
-                        use_priors,
-                        use_threshold,
-                        csf_use_erosion=False,
-                        wm_use_erosion=False,
-                        gm_use_erosion=False,
-                        wf_name='seg_preproc'):
-
+                       use_priors,
+                       use_threshold,
+                       csf_use_erosion=False,
+                       wm_use_erosion=False,
+                       gm_use_erosion=False,
+                       wf_name='seg_preproc'):
     """Segment the subject's anatomical brain into cerebral spinal fluids,
     white matter and gray matter and refine them using template-space tissue
     priors, if selected to do so.
@@ -236,9 +235,8 @@ def create_seg_preproc(use_ants,
     .. image:: ../images/seg_preproc_detailed.dot.png
         :width: 1100
         :height: 480
-    """
-
-    preproc = pe.Workflow(name = wf_name)
+    """  # noqa
+    preproc = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['brain',
                                                        'brain_mask',
                                                        'standard2highres_init',
@@ -297,16 +295,17 @@ def create_seg_preproc(use_ants,
                                     fields=['gm_erosion_mm']),
                              name='gm_erosion_mm')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',
-                                                        'gm_mask',
-                                                        'wm_mask',
-                                                        'csf_probability_map',
-                                                        'probability_maps',
-                                                        'tissue_class_files',
-                                                        'mixeltype',
-                                                        'partial_volume_map',
-                                                        'partial_volume_files']),
-                        name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=['csf_mask',
+                                       'gm_mask',
+                                       'wm_mask',
+                                       'csf_probability_map',
+                                       'probability_maps',
+                                       'tissue_class_files',
+                                       'mixeltype',
+                                       'partial_volume_map',
+                                       'partial_volume_files']),
+        name='outputspec')
 
     segment = pe.Node(interface=fsl.FAST(), name='segment', mem_gb=1.5)
     segment.inputs.img_type = 1
@@ -314,9 +313,15 @@ def create_seg_preproc(use_ants,
     segment.inputs.probability_maps = True
     segment.inputs.out_basename = 'segment'
 
-    check_wm = pe.Node(name='check_wm', interface=Function(function=check_if_file_is_empty, input_names=['in_file'], output_names=['out_file']))
-    check_gm = pe.Node(name='check_gm', interface=Function(function=check_if_file_is_empty, input_names=['in_file'], output_names=['out_file']))
-    check_csf = pe.Node(name='check_csf', interface=Function(function=check_if_file_is_empty, input_names=['in_file'], output_names=['out_file']))
+    check_wm = pe.Node(name='check_wm', interface=Function(
+        function=check_if_file_is_empty, input_names=['in_file'],
+        output_names=['out_file']))
+    check_gm = pe.Node(name='check_gm', interface=Function(
+        function=check_if_file_is_empty, input_names=['in_file'],
+        output_names=['out_file']))
+    check_csf = pe.Node(name='check_csf', interface=Function(
+        function=check_if_file_is_empty, input_names=['in_file'],
+        output_names=['out_file']))
 
     preproc.connect(inputNode, 'brain', segment, 'in_files')
 
@@ -331,8 +336,9 @@ def create_seg_preproc(use_ants,
     preproc.connect(segment, 'probability_maps',
                     outputNode, 'probability_maps')
 
-    process_csf = process_segment_map('CSF', use_ants, use_priors, use_threshold, use_erosion=csf_use_erosion)
-
+    process_csf = process_segment_map('CSF', use_ants, use_priors,
+                                      use_threshold,
+                                      use_erosion=csf_use_erosion)
 
     if use_ants:
         preproc.connect(inputNode, 'standard2highres_init',
@@ -365,8 +371,8 @@ def create_seg_preproc(use_ants,
     preproc.connect(process_csf, 'outputspec.probability_tissue_map',
                     outputNode, 'csf_probability_map')
 
-    process_wm = process_segment_map('WM', use_ants, use_priors, use_threshold, use_erosion=wm_use_erosion)
-
+    process_wm = process_segment_map('WM', use_ants, use_priors,
+                                     use_threshold, use_erosion=wm_use_erosion)
 
     if use_ants:
         preproc.connect(inputNode, 'standard2highres_init',
@@ -397,7 +403,8 @@ def create_seg_preproc(use_ants,
     preproc.connect(process_wm, 'outputspec.segment_mask',
                     outputNode, 'wm_mask')
 
-    process_gm = process_segment_map('GM', use_ants, use_priors, use_threshold, use_erosion=gm_use_erosion)
+    process_gm = process_segment_map('GM', use_ants, use_priors,
+                                     use_threshold, use_erosion=gm_use_erosion)
 
     if use_ants:
         preproc.connect(inputNode, 'standard2highres_init',
@@ -531,29 +538,30 @@ def process_segment_map(wf_name,
         :width: 1100
         :height: 480
 
-    """
-
+    """  # noqa
     import nipype.interfaces.utility as util
 
     preproc = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['tissue_prior',
-                                                       'threshold',
-                                                       'erosion_prop',
-                                                       'mask_erosion_mm',
-                                                       'erosion_mm',
-                                                       'brain',
-                                                       'brain_mask',
-                                                       'tissue_class_file',
-                                                       'probability_tissue_map',
-                                                       'standard2highres_init',
-                                                       'standard2highres_mat',
-                                                       'standard2highres_rig']),
-                        name='inputspec')
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=['tissue_prior',
+                                       'threshold',
+                                       'erosion_prop',
+                                       'mask_erosion_mm',
+                                       'erosion_mm',
+                                       'brain',
+                                       'brain_mask',
+                                       'tissue_class_file',
+                                       'probability_tissue_map',
+                                       'standard2highres_init',
+                                       'standard2highres_mat',
+                                       'standard2highres_rig']),
+        name='inputspec')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['segment_mask',
-                                                        'probability_tissue_map']),
-                        name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=['segment_mask',
+                                       'probability_tissue_map']),
+        name='outputspec')
 
     def form_threshold_string(threshold):
         return '-thr %f ' % (threshold)
@@ -562,37 +570,53 @@ def process_segment_map(wf_name,
         return erosion_prop**3
 
     if use_ants:
-        collect_linear_transforms = pe.Node(util.Merge(3),
-                                            name='{0}_collect_linear_transforms'.format(wf_name))
-        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
-        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
-        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
+        collect_linear_transforms = pe.Node(
+            util.Merge(3), name='{0}_collect_linear_transforms'.format(
+                wf_name))
+        preproc.connect(inputNode, 'standard2highres_init',
+                        collect_linear_transforms, 'in1')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        collect_linear_transforms, 'in2')
+        preproc.connect(inputNode, 'standard2highres_mat',
+                        collect_linear_transforms, 'in3')
 
         # check transform list to exclude Nonetype (missing) init/rig/affine
-        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
-                                                output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms), name='{0}_check_transforms'.format(wf_name))
-        
-        preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
+        check_transform = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['checked_transform_list',
+                                        'list_length'],
+                          function=check_transforms),
+            name='{0}_check_transforms'.format(wf_name))
 
-        # generate inverse transform flags, which depends on the number of transforms
-        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
-                                                        output_names=['inverse_transform_flags'],
-                                                        function=generate_inverse_transform_flags), 
-                                                        name='{0}_inverse_transform_flags'.format(wf_name))
+        preproc.connect(collect_linear_transforms, 'out',
+                        check_transform, 'transform_list')
 
-        preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
+        # generate inverse transform flags, which depends on the
+        # number of transforms
+        inverse_transform_flags = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['inverse_transform_flags'],
+                          function=generate_inverse_transform_flags),
+            name='{0}_inverse_transform_flags'.format(wf_name))
+
+        preproc.connect(check_transform, 'checked_transform_list',
+                        inverse_transform_flags, 'transform_list')
 
         # mni to t1
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
-                                        name='{0}_prior_mni_to_t1'.format(wf_name))
+                                        name='{0}_prior_mni_to_t1'.format(
+                                            wf_name))
 
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
-        preproc.connect(inverse_transform_flags, 'inverse_transform_flags', tissueprior_mni_to_t1, 'invert_transform_flags')
-        preproc.connect(inputNode, 'tissue_prior', tissueprior_mni_to_t1, 'input_image')
-        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
-        preproc.connect(check_transform, 'checked_transform_list', tissueprior_mni_to_t1, 'transforms')
+        preproc.connect(inverse_transform_flags, 'inverse_transform_flags',
+                        tissueprior_mni_to_t1, 'invert_transform_flags')
+        preproc.connect(inputNode, 'tissue_prior',
+                        tissueprior_mni_to_t1, 'input_image')
+        preproc.connect(inputNode, 'brain',
+                        tissueprior_mni_to_t1, 'reference_image')
+        preproc.connect(check_transform, 'checked_transform_list',
+                        tissueprior_mni_to_t1, 'transforms')
 
         if 'FSL-FAST Thresholding' in use_threshold:
             input_1, value_1 = (inputNode, 'tissue_class_file')
@@ -600,78 +624,97 @@ def process_segment_map(wf_name,
             input_1, value_1 = (inputNode, 'probability_tissue_map')
 
         if use_priors:
-            overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(),
-                                                    name='overlap_%s_map_with_prior' % (wf_name))
+            overlap_segmentmap_with_prior = pe.Node(
+                interface=fsl.MultiImageMaths(),
+                name='overlap_%s_map_with_prior' % (wf_name))
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
-            preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
+            preproc.connect(input_1, value_1,
+                            overlap_segmentmap_with_prior, 'in_file')
 
-            preproc.connect(tissueprior_mni_to_t1, 'output_image', overlap_segmentmap_with_prior, 'operand_files')
+            preproc.connect(tissueprior_mni_to_t1, 'output_image',
+                            overlap_segmentmap_with_prior, 'operand_files')
 
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
-
         if 'Customized Thresholding' in use_threshold:
-            segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(),
-                                                name='threshold_segmentmap_%s' % (wf_name))
-            preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')
+            segmentmap_threshold = pe.Node(
+                interface=fsl.ImageMaths(),
+                name='threshold_segmentmap_%s' % (wf_name))
+            preproc.connect(inputNode, ('threshold', form_threshold_string),
+                            segmentmap_threshold, 'op_string')
 
             preproc.connect(input_1, value_1, segmentmap_threshold, 'in_file')
 
             input_1, value_1 = (segmentmap_threshold, 'out_file')
 
-
         binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
                                                 name='binarize_%s' % (wf_name))
         binarize_threshold_segmentmap.inputs.op_string = '-bin '
 
-        preproc.connect(input_1, value_1, binarize_threshold_segmentmap, 'in_file')
+        preproc.connect(input_1, value_1,
+                        binarize_threshold_segmentmap, 'in_file')
 
         input_1, value_1 = (binarize_threshold_segmentmap, 'out_file')
 
         preproc.connect(input_1, value_1, outputNode, 'probability_tissue_map')
 
-        ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
+        ero_imports = ['import scipy.ndimage as nd', 'import numpy as np',
+                       'import nibabel as nb', 'import os']
 
         if use_erosion:
             # mask erosion
-            eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_mm', 'mask_erosion_prop'],
-                                                output_names = ['output_roi_mask', 'eroded_skullstrip_mask'],
-                                                function = mask_erosion,
-                                                imports = ero_imports),
-                                                name='erode_skullstrip_mask_%s' % (wf_name))
-            preproc.connect(inputNode, ('erosion_prop', form_mask_erosion_prop), eroded_mask, 'mask_erosion_prop')
-            preproc.connect(inputNode, 'mask_erosion_mm', eroded_mask, 'mask_erosion_mm')
-            preproc.connect(inputNode, 'brain_mask', eroded_mask, 'skullstrip_mask')
+            eroded_mask = pe.Node(
+                util.Function(input_names=['roi_mask', 'skullstrip_mask',
+                                           'mask_erosion_mm',
+                                           'mask_erosion_prop'],
+                              output_names=['output_roi_mask',
+                                            'eroded_skullstrip_mask'],
+                              function=mask_erosion,
+                              imports=ero_imports),
+                name='erode_skullstrip_mask_%s' % (wf_name))
+            preproc.connect(
+                inputNode, ('erosion_prop', form_mask_erosion_prop),
+                eroded_mask, 'mask_erosion_prop')
+            preproc.connect(inputNode, 'mask_erosion_mm',
+                            eroded_mask, 'mask_erosion_mm')
+            preproc.connect(inputNode, 'brain_mask',
+                            eroded_mask, 'skullstrip_mask')
             preproc.connect(input_1, value_1, eroded_mask, 'roi_mask')
 
             input_1, value_1 = (eroded_mask, 'output_roi_mask')
 
             # erosion
-            erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_mm', 'erosion_prop'],
-                                                output_names = ['eroded_roi_mask'],
-                                                function = erosion,
-                                                imports = ero_imports),
-                                                name='erosion_segmentmap_%s' % (wf_name))
-            preproc.connect(inputNode, 'erosion_prop', erosion_segmentmap, 'erosion_prop')
-            preproc.connect(inputNode, 'erosion_mm', erosion_segmentmap, 'erosion_mm')
+            erosion_segmentmap = pe.Node(
+                util.Function(input_names=['roi_mask', 'erosion_mm',
+                                           'erosion_prop'],
+                              output_names=['eroded_roi_mask'],
+                              function=erosion,
+                              imports=ero_imports),
+                name='erosion_segmentmap_%s' % (wf_name))
+            preproc.connect(inputNode, 'erosion_prop',
+                            erosion_segmentmap, 'erosion_prop')
+            preproc.connect(inputNode, 'erosion_mm',
+                            erosion_segmentmap, 'erosion_mm')
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
             input_1, value_1 = (erosion_segmentmap, 'eroded_roi_mask')
 
-        preproc.connect (input_1, value_1, outputNode, 'segment_mask')
-
+        preproc.connect(input_1, value_1, outputNode, 'segment_mask')
 
     else:
         tissueprior_mni_to_t1 = pe.Node(interface=fsl.FLIRT(),
-                                        name='{0}_prior_mni_to_t1'.format(wf_name))
+                                        name='{0}_prior_mni_to_t1'.format(
+                                            wf_name))
         tissueprior_mni_to_t1.inputs.apply_xfm = True
         tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
 
         # mni to t1
-        preproc.connect(inputNode, 'tissue_prior', tissueprior_mni_to_t1, 'in_file')
+        preproc.connect(inputNode, 'tissue_prior',
+                        tissueprior_mni_to_t1, 'in_file')
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference')
 
-        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'in_matrix_file')
+        preproc.connect(inputNode, 'standard2highres_mat',
+                        tissueprior_mni_to_t1, 'in_matrix_file')
 
         if 'FSL-FAST Thresholding' in use_threshold:
             input_1, value_1 = (inputNode, 'tissue_class_file')
@@ -679,69 +722,87 @@ def process_segment_map(wf_name,
             input_1, value_1 = (inputNode, 'probability_tissue_map')
 
         if use_priors:
-            overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(),
-                                                    name='overlap_%s_map_with_prior' % (wf_name))
+            overlap_segmentmap_with_prior = pe.Node(
+                interface=fsl.MultiImageMaths(),
+                name='overlap_%s_map_with_prior' % (wf_name))
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
-            preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
+            preproc.connect(input_1, value_1,
+                            overlap_segmentmap_with_prior, 'in_file')
 
-            preproc.connect(tissueprior_mni_to_t1, 'out_file', overlap_segmentmap_with_prior, 'operand_files')
+            preproc.connect(tissueprior_mni_to_t1, 'out_file',
+                            overlap_segmentmap_with_prior, 'operand_files')
 
             input_1, value_1 = (overlap_segmentmap_with_prior, 'out_file')
 
-
         if 'Customized Thresholding' in use_threshold:
             segmentmap_threshold = pe.Node(interface=fsl.ImageMaths(),
-                                                name='threshold_segmentmap_%s' % (wf_name))
-            preproc.connect(inputNode, ('threshold', form_threshold_string), segmentmap_threshold, 'op_string')
+                                           name='threshold_segmentmap_%s' % (
+                                               wf_name))
+            preproc.connect(inputNode, ('threshold', form_threshold_string),
+                            segmentmap_threshold, 'op_string')
 
             preproc.connect(input_1, value_1, segmentmap_threshold, 'in_file')
 
             input_1, value_1 = (segmentmap_threshold, 'out_file')
 
-
         binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
                                                 name='binarize_%s' % (wf_name))
         binarize_threshold_segmentmap.inputs.op_string = '-bin '
 
-        preproc.connect(input_1, value_1, binarize_threshold_segmentmap, 'in_file')
+        preproc.connect(input_1, value_1,
+                        binarize_threshold_segmentmap, 'in_file')
 
         input_1, value_1 = (binarize_threshold_segmentmap, 'out_file')
 
-        ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
+        ero_imports = ['import scipy.ndimage as nd', 'import numpy as np',
+                       'import nibabel as nb', 'import os']
 
         if use_erosion:
             # mask erosion
-            eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_mm', 'mask_erosion_prop'],
-                                                output_names = ['output_roi_mask', 'eroded_skullstrip_mask'],
-                                                function = mask_erosion,
-                                                imports = ero_imports),
-                                                name='erode_skullstrip_mask_%s' % (wf_name))
-            preproc.connect(inputNode, ('erosion_prop', form_mask_erosion_prop), eroded_mask, 'mask_erosion_prop')
-            preproc.connect(inputNode, 'mask_erosion_mm', eroded_mask, 'mask_erosion_mm')
-            preproc.connect(inputNode, 'brain_mask', eroded_mask, 'skullstrip_mask')
+            eroded_mask = pe.Node(
+                util.Function(input_names=['roi_mask', 'skullstrip_mask',
+                                           'mask_erosion_mm',
+                                           'mask_erosion_prop'],
+                              output_names=['output_roi_mask',
+                                            'eroded_skullstrip_mask'],
+                              function=mask_erosion,
+                              imports=ero_imports),
+                name='erode_skullstrip_mask_%s' % (wf_name))
+            preproc.connect(
+                inputNode, ('erosion_prop', form_mask_erosion_prop),
+                eroded_mask, 'mask_erosion_prop')
+            preproc.connect(inputNode, 'mask_erosion_mm',
+                            eroded_mask, 'mask_erosion_mm')
+            preproc.connect(inputNode, 'brain_mask',
+                            eroded_mask, 'skullstrip_mask')
             preproc.connect(input_1, value_1, eroded_mask, 'roi_mask')
 
             input_1, value_1 = (eroded_mask, 'output_roi_mask')
 
             # erosion
-            erosion_segmentmap = pe.Node(util.Function(input_names = ['roi_mask', 'erosion_mm', 'erosion_prop'],
-                                                output_names = ['eroded_roi_mask'],
-                                                function = erosion,
-                                                imports = ero_imports),
-                                                name='erosion_segmentmap_%s' % (wf_name))
-            preproc.connect(inputNode, 'erosion_prop', erosion_segmentmap, 'erosion_prop')
-            preproc.connect(inputNode, 'erosion_mm', erosion_segmentmap, 'erosion_mm')
+            erosion_segmentmap = pe.Node(
+                util.Function(input_names=['roi_mask', 'erosion_mm',
+                                           'erosion_prop'],
+                              output_names=['eroded_roi_mask'],
+                              function=erosion,
+                              imports=ero_imports),
+                name='erosion_segmentmap_%s' % (wf_name))
+            preproc.connect(inputNode, 'erosion_prop',
+                            erosion_segmentmap, 'erosion_prop')
+            preproc.connect(inputNode, 'erosion_mm',
+                            erosion_segmentmap, 'erosion_mm')
             preproc.connect(input_1, value_1, erosion_segmentmap, 'roi_mask')
             input_1, value_1 = (erosion_segmentmap, 'eroded_roi_mask')
 
-        preproc.connect (input_1, value_1, outputNode, 'segment_mask')
+        preproc.connect(input_1, value_1, outputNode, 'segment_mask')
 
     return preproc
 
-def create_seg_preproc_template_based(use_ants,
-                                    wf_name='seg_preproc_templated_based'):
 
+def create_seg_preproc_template_based(
+    use_ants, wf_name='seg_preproc_templated_based'
+):
     """Generate the subject's cerebral spinal fluids,
     white matter and gray matter mask based on provided template, if selected to do so.
 
@@ -824,24 +885,22 @@ def create_seg_preproc_template_based(use_ants,
         -init standard2highres.mat
         -out gm_mni2t1
 
-    """
-
-    preproc = pe.Workflow(name = wf_name)
-    inputNode = pe.Node(util.IdentityInterface(fields=['brain',
-                                                       'standard2highres_init',
-                                                       'standard2highres_mat',
-                                                       'standard2highres_rig',
-                                                       'CSF_template',
-                                                       'WHITE_template',
-                                                       'GRAY_template']),
-                        name='inputspec')
-
+    """  # noqa
+    preproc = pe.Workflow(name=wf_name)
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=['brain',
+                                       'standard2highres_init',
+                                       'standard2highres_mat',
+                                       'standard2highres_rig',
+                                       'CSF_template',
+                                       'WHITE_template',
+                                       'GRAY_template']),
+        name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',
                                                         'gm_mask',
                                                         'wm_mask']),
-                        name='outputspec')
-
+                         name='outputspec')
 
     csf_template2t1 = tissue_mask_template_to_t1('CSF', use_ants)
 
@@ -860,7 +919,6 @@ def create_seg_preproc_template_based(use_ants,
     preproc.connect(csf_template2t1, 'outputspec.segment_mask_temp2t1',
                     outputNode, 'csf_mask')
 
-
     wm_template2t1 = tissue_mask_template_to_t1('WM', use_ants)
 
     if use_ants:
@@ -877,7 +935,6 @@ def create_seg_preproc_template_based(use_ants,
                     wm_template2t1, 'inputspec.standard2highres_mat')
     preproc.connect(wm_template2t1, 'outputspec.segment_mask_temp2t1',
                     outputNode, 'wm_mask')
-
 
     gm_template2t1 = tissue_mask_template_to_t1('GM', use_ants)
 
@@ -899,45 +956,57 @@ def create_seg_preproc_template_based(use_ants,
     return preproc
 
 
-def tissue_mask_template_to_t1(wf_name,
-                                use_ants):
+def tissue_mask_template_to_t1(wf_name, use_ants):
 
     import nipype.interfaces.utility as util
 
     preproc = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['brain',
-                                                       'standard2highres_init',
-                                                       'standard2highres_mat',
-                                                       'standard2highres_rig',
-                                                       'tissue_mask_template']),
-                        name='inputspec')
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=['brain',
+                                       'standard2highres_init',
+                                       'standard2highres_mat',
+                                       'standard2highres_rig',
+                                       'tissue_mask_template']),
+        name='inputspec')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['segment_mask_temp2t1']),
-                        name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=['segment_mask_temp2t1']),
+        name='outputspec')
 
     if use_ants:
-        collect_linear_transforms = pe.Node(util.Merge(3),
-                                            name='{0}_collect_linear_transforms'.format(wf_name))
+        collect_linear_transforms = pe.Node(
+            util.Merge(3),
+            name='{0}_collect_linear_transforms'.format(wf_name))
 
-        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
-        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
-        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
+        preproc.connect(inputNode, 'standard2highres_init',
+                        collect_linear_transforms, 'in1')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        collect_linear_transforms, 'in2')
+        preproc.connect(inputNode, 'standard2highres_mat',
+                        collect_linear_transforms, 'in3')
 
         # check transform list to exclude Nonetype (missing) init/rig/affine
-        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
-                                                output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms), name='{0}_check_transforms'.format(wf_name))
-        
-        preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
+        check_transform = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['checked_transform_list',
+                                        'list_length'],
+                          function=check_transforms),
+            name='{0}_check_transforms'.format(wf_name))
 
-        # generate inverse transform flags, which depends on the number of transforms
-        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
-                                                        output_names=['inverse_transform_flags'],
-                                                        function=generate_inverse_transform_flags), 
-                                                        name='{0}_inverse_transform_flags'.format(wf_name))
+        preproc.connect(collect_linear_transforms, 'out',
+                        check_transform, 'transform_list')
 
-        preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
+        # generate inverse transform flags, which depends on the
+        # number of transforms
+        inverse_transform_flags = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['inverse_transform_flags'],
+                          function=generate_inverse_transform_flags),
+            name='{0}_inverse_transform_flags'.format(wf_name))
+
+        preproc.connect(check_transform, 'checked_transform_list',
+                        inverse_transform_flags, 'transform_list')
 
         # mni to t1
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
@@ -945,12 +1014,17 @@ def tissue_mask_template_to_t1(wf_name,
 
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
-        preproc.connect(inverse_transform_flags, 'inverse_transform_flags', tissueprior_mni_to_t1, 'invert_transform_flags')
-        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
-        preproc.connect(check_transform, 'checked_transform_list', tissueprior_mni_to_t1, 'transforms')
-        preproc.connect(inputNode, 'tissue_mask_template', tissueprior_mni_to_t1, 'input_image')
+        preproc.connect(inverse_transform_flags, 'inverse_transform_flags',
+                        tissueprior_mni_to_t1, 'invert_transform_flags')
+        preproc.connect(inputNode, 'brain',
+                        tissueprior_mni_to_t1, 'reference_image')
+        preproc.connect(check_transform, 'checked_transform_list',
+                        tissueprior_mni_to_t1, 'transforms')
+        preproc.connect(inputNode, 'tissue_mask_template',
+                        tissueprior_mni_to_t1, 'input_image')
 
-        preproc.connect (tissueprior_mni_to_t1, 'output_image', outputNode, 'segment_mask_temp2t1')
+        preproc.connect(tissueprior_mni_to_t1, 'output_image',
+                        outputNode, 'segment_mask_temp2t1')
 
     else:
         tissueprior_mni_to_t1 = pe.Node(interface=fsl.FLIRT(),
@@ -959,17 +1033,21 @@ def tissue_mask_template_to_t1(wf_name,
         tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
 
         # mni to t1
-        preproc.connect(inputNode, 'tissue_mask_template', tissueprior_mni_to_t1, 'in_file')
+        preproc.connect(inputNode, 'tissue_mask_template',
+                        tissueprior_mni_to_t1, 'in_file')
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference')
-        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'in_matrix_file')
+        preproc.connect(inputNode, 'standard2highres_mat',
+                        tissueprior_mni_to_t1, 'in_matrix_file')
 
-        preproc.connect (tissueprior_mni_to_t1, 'out_file', outputNode, 'segment_mask_temp2t1')
+        preproc.connect(tissueprior_mni_to_t1, 'out_file',
+                        outputNode, 'segment_mask_temp2t1')
 
     return preproc
 
 
-def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_based'):
-
+def create_seg_preproc_antsJointLabel_method(
+    wf_name='seg_preproc_templated_based'
+):
     """Generate the subject's cerebral spinal fluids,
     white matter and gray matter mask based on provided template, if selected to do so.
 
@@ -1009,31 +1087,34 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
             outputs White Matter mask
 
 
-    """
-
-    preproc = pe.Workflow(name = wf_name)
+    """  # noqa
+    preproc = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['anatomical_brain',
                                                        'anatomical_brain_mask',
                                                        'template_brain_list',
-                                                       'template_segmentation_list',
-                                                       'csf_label', 
-                                                       'left_gm_label', 
-                                                       'left_wm_label', 
-                                                       'right_gm_label', 
+                                                       'template_segmentation'
+                                                       '_list',
+                                                       'csf_label',
+                                                       'left_gm_label',
+                                                       'left_wm_label',
+                                                       'right_gm_label',
                                                        'right_wm_label']),
                         name='inputspec')
-
 
     outputNode = pe.Node(util.IdentityInterface(fields=['csf_mask',
                                                         'gm_mask',
                                                         'wm_mask']),
-                        name='outputspec')
+                         name='outputspec')
 
-
-    seg_preproc_antsJointLabel = pe.Node(util.Function(input_names=['anatomical_brain', 'anatomical_brain_mask', 'template_brain_list', 'template_segmentation_list'], 
-                                                        output_names=['multiatlas_Intensity', 'multiatlas_Labels'],
-                                                        function=hardcoded_antsJointLabelFusion), 
-                                                        name='{0}_antsJointLabel'.format(wf_name))
+    seg_preproc_antsJointLabel = pe.Node(
+        util.Function(input_names=['anatomical_brain',
+                                   'anatomical_brain_mask',
+                                   'template_brain_list',
+                                   'template_segmentation_list'],
+                      output_names=['multiatlas_Intensity',
+                                    'multiatlas_Labels'],
+                      function=hardcoded_antsJointLabelFusion),
+        name='{0}_antsJointLabel'.format(wf_name))
 
     preproc.connect(inputNode, 'anatomical_brain',
                     seg_preproc_antsJointLabel, 'anatomical_brain')
@@ -1042,30 +1123,36 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
     preproc.connect(inputNode, 'template_brain_list',
                     seg_preproc_antsJointLabel, 'template_brain_list')
     preproc.connect(inputNode, 'template_segmentation_list',
-                    seg_preproc_antsJointLabel, 'template_segmentation_list')                 
-    
-    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels', 'csf_label', 'left_gm_label', 'left_wm_label', 'right_gm_label', 'right_wm_label'], 
-                                        output_names=['csf_mask', 'gm_mask', 'wm_mask'],
-                                        function=pick_tissue_from_labels_file), 
-                                        name='{0}_tissue_mask'.format(wf_name))
-    
+                    seg_preproc_antsJointLabel, 'template_segmentation_list')
+
+    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels',
+                                                     'csf_label',
+                                                     'left_gm_label',
+                                                     'left_wm_label',
+                                                     'right_gm_label',
+                                                     'right_wm_label'],
+                                        output_names=['csf_mask', 'gm_mask',
+                                                      'wm_mask'],
+                                        function=pick_tissue_from_labels_file),
+                          name='{0}_tissue_mask'.format(wf_name))
+
     preproc.connect(seg_preproc_antsJointLabel, 'multiatlas_Labels',
-                    pick_tissue, 'multiatlas_Labels') 
+                    pick_tissue, 'multiatlas_Labels')
     preproc.connect(inputNode, 'csf_label',
-                    pick_tissue, 'csf_label') 
+                    pick_tissue, 'csf_label')
     preproc.connect(inputNode, 'left_gm_label',
-                    pick_tissue, 'left_gm_label') 
+                    pick_tissue, 'left_gm_label')
     preproc.connect(inputNode, 'left_wm_label',
-                    pick_tissue, 'left_wm_label')                    
+                    pick_tissue, 'left_wm_label')
     preproc.connect(inputNode, 'right_gm_label',
-                    pick_tissue, 'right_gm_label') 
+                    pick_tissue, 'right_gm_label')
     preproc.connect(inputNode, 'right_wm_label',
-                    pick_tissue, 'right_wm_label') 
+                    pick_tissue, 'right_wm_label')
 
     preproc.connect(pick_tissue, 'csf_mask',
                     outputNode, 'csf_mask')
     preproc.connect(pick_tissue, 'gm_mask',
-                    outputNode, 'gm_mask')   
+                    outputNode, 'gm_mask')
     preproc.connect(pick_tissue, 'wm_mask',
                     outputNode, 'wm_mask')
 
@@ -1073,9 +1160,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_base
 
 
 def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
-    
-    """
-    Segmentation Preprocessing Workflow
+    """Segmentation Preprocessing Workflow
     
     Parameters
     ----------
@@ -1094,8 +1179,7 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             updated main preprocessing workflow
         strat_list : list
             list of updated strategies
-    """
-    
+    """  # noqa
     from CPAC.seg_preproc.seg_preproc import (
         create_seg_preproc,
         create_seg_preproc_template_based
@@ -1111,11 +1195,14 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
             seg_preproc = None
 
-            if not any(o in c.seg_use_threshold for o in ["FSL-FAST Thresholding", "Customized Thresholding"]):
-                err = '\n\n[!] C-PAC says: Your segmentation thresholding options ' \
-                    'setting does not include either \'FSL-FAST Thresholding\' or \'Customized Thresholding\'.\n\n' \
-                    'Options you provided:\nseg_use_threshold: {0}' \
-                    '\n\n'.format(str(c.seg_use_threshold))
+            if not any(o in c.seg_use_threshold for o in [
+                "FSL-FAST Thresholding", "Customized Thresholding"
+            ]):
+                err = '\n\n[!] C-PAC says: Your segmentation thresholding ' \
+                      'options setting does not include either \'FSL-FAST ' \
+                      'Thresholding\' or \'Customized Thresholding\'.\n\n' \
+                      'Options you provided:\nseg_use_threshold: {0}' \
+                      '\n\n'.format(str(c.seg_use_threshold))
                 raise Exception(err)
 
             if strat.get('registration_method') == 'FSL':
@@ -1123,39 +1210,49 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             elif strat.get('registration_method') == 'ANTS':
                 use_ants = True
 
-            if strat_name != None:
+            if strat_name is not None:
                 seg_preproc_wf_name = f'seg_preproc_{strat_name}_{num_strat}'
             else:
                 seg_preproc_wf_name = f'seg_preproc_{num_strat}'
 
-            seg_preproc = create_seg_preproc(use_ants=use_ants,
-                                             use_priors=c.seg_use_priors,
-                                             use_threshold=c.seg_use_threshold,
-                                             csf_use_erosion=c.seg_csf_use_erosion,
-                                             wm_use_erosion=c.seg_wm_use_erosion,
-                                             gm_use_erosion=c.seg_gm_use_erosion,
-                                             wf_name=seg_preproc_wf_name)
+            seg_preproc = create_seg_preproc(
+                use_ants=use_ants,
+                use_priors=c.seg_use_priors,
+                use_threshold=c.seg_use_threshold,
+                csf_use_erosion=c.seg_csf_use_erosion,
+                wm_use_erosion=c.seg_wm_use_erosion,
+                gm_use_erosion=c.seg_gm_use_erosion,
+                wf_name=seg_preproc_wf_name)
 
-            seg_preproc.inputs.csf_threshold.csf_threshold=c.seg_CSF_threshold_value
-            seg_preproc.inputs.wm_threshold.wm_threshold=c.seg_WM_threshold_value
-            seg_preproc.inputs.gm_threshold.gm_threshold=c.seg_GM_threshold_value
+            seg_preproc.inputs.csf_threshold.csf_threshold = \
+                c.seg_CSF_threshold_value
+            seg_preproc.inputs.wm_threshold.wm_threshold = \
+                c.seg_WM_threshold_value
+            seg_preproc.inputs.gm_threshold.gm_threshold = \
+                c.seg_GM_threshold_value
 
-            seg_preproc.inputs.csf_erosion_prop.csf_erosion_prop=c.csf_erosion_prop
-            seg_preproc.inputs.wm_erosion_prop.wm_erosion_prop=c.wm_erosion_prop
-            seg_preproc.inputs.gm_erosion_prop.gm_erosion_prop=c.gm_erosion_prop
+            seg_preproc.inputs.csf_erosion_prop.csf_erosion_prop = \
+                c.csf_erosion_prop
+            seg_preproc.inputs.wm_erosion_prop.wm_erosion_prop = \
+                c.wm_erosion_prop
+            seg_preproc.inputs.gm_erosion_prop.gm_erosion_prop = \
+                c.gm_erosion_prop
 
-            seg_preproc.inputs.csf_mask_erosion_mm.csf_mask_erosion_mm=c.csf_mask_erosion_mm
-            seg_preproc.inputs.wm_mask_erosion_mm.wm_mask_erosion_mm=c.wm_mask_erosion_mm
-            seg_preproc.inputs.gm_mask_erosion_mm.gm_mask_erosion_mm=c.gm_mask_erosion_mm
+            seg_preproc.inputs.csf_mask_erosion_mm.csf_mask_erosion_mm = \
+                c.csf_mask_erosion_mm
+            seg_preproc.inputs.wm_mask_erosion_mm.wm_mask_erosion_mm = \
+                c.wm_mask_erosion_mm
+            seg_preproc.inputs.gm_mask_erosion_mm.gm_mask_erosion_mm = \
+                c.gm_mask_erosion_mm
 
-            seg_preproc.inputs.csf_erosion_mm.csf_erosion_mm=c.csf_erosion_mm
-            seg_preproc.inputs.wm_erosion_mm.wm_erosion_mm=c.wm_erosion_mm
-            seg_preproc.inputs.gm_erosion_mm.gm_erosion_mm=c.gm_erosion_mm
+            seg_preproc.inputs.csf_erosion_mm.csf_erosion_mm = c.csf_erosion_mm
+            seg_preproc.inputs.wm_erosion_mm.wm_erosion_mm = c.wm_erosion_mm
+            seg_preproc.inputs.gm_erosion_mm.gm_erosion_mm = c.gm_erosion_mm
 
             node, out_file = strat['anatomical_brain_mask']
-            workflow.connect(node, out_file, seg_preproc, 'inputspec.brain_mask')
+            workflow.connect(node, out_file,
+                             seg_preproc, 'inputspec.brain_mask')
 
-            # TODO ASH review
             if seg_preproc is None:
                 continue
 
@@ -1186,95 +1283,124 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                                  'inputspec.standard2highres_mat')
 
             workflow.connect(c.PRIORS_CSF, 'local_path',
-                                seg_preproc, 'inputspec.PRIOR_CSF')
+                             seg_preproc, 'inputspec.PRIOR_CSF')
 
             workflow.connect(c.PRIORS_GRAY, 'local_path',
-                                seg_preproc, 'inputspec.PRIOR_GRAY')
+                             seg_preproc, 'inputspec.PRIOR_GRAY')
 
             workflow.connect(c.PRIORS_WHITE, 'local_path',
-                                seg_preproc, 'inputspec.PRIOR_WHITE')
+                             seg_preproc, 'inputspec.PRIOR_WHITE')
 
-            # TODO ASH review with forking function
             if 0 in c.runSegmentationPreprocessing:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
             if c.brain_use_erosion:
-                ero_imports = ['import scipy.ndimage as nd' , 'import numpy as np', 'import nibabel as nb', 'import os']
-                eroded_mask = pe.Node(util.Function(input_names = ['roi_mask', 'skullstrip_mask', 'mask_erosion_mm', 'mask_erosion_prop'],
-                                                    output_names = ['output_roi_mask', 'eroded_skullstrip_mask'],
-                                                    function = mask_erosion,
-                                                    imports = ero_imports),
-                                                    name='erode_skullstrip_brain_mask')
+                ero_imports = ['import scipy.ndimage as nd',
+                               'import numpy as np', 'import nibabel as nb',
+                               'import os']
+                eroded_mask = pe.Node(
+                    util.Function(input_names=['roi_mask', 'skullstrip_mask',
+                                               'mask_erosion_mm',
+                                               'mask_erosion_prop'],
+                                  output_names=['output_roi_mask',
+                                                'eroded_skullstrip_mask'],
+                                  function=mask_erosion,
+                                  imports=ero_imports),
+                    name='erode_skullstrip_brain_mask')
                 eroded_mask.inputs.mask_erosion_mm = c.brain_mask_erosion_mm
-                
-                node, out_file = strat['anatomical_brain_mask']
-                workflow.connect(node, out_file, 
-                                    eroded_mask, 'skullstrip_mask')
-                
-                workflow.connect(seg_preproc, 'outputspec.csf_probability_map', 
-                                    eroded_mask, 'roi_mask')
 
-                strat.update_resource_pool({'anatomical_eroded_brain_mask': (eroded_mask, 'eroded_skullstrip_mask')})
+                node, out_file = strat['anatomical_brain_mask']
+                workflow.connect(node, out_file,
+                                 eroded_mask, 'skullstrip_mask')
+
+                workflow.connect(
+                    seg_preproc, 'outputspec.csf_probability_map',
+                    eroded_mask, 'roi_mask')
+
+                strat.update_resource_pool({
+                    'anatomical_eroded_brain_mask': (
+                        eroded_mask, 'eroded_skullstrip_mask')
+                })
 
             strat.append_name(seg_preproc.name)
             strat.update_resource_pool({
                 'anatomical_gm_mask': (seg_preproc, 'outputspec.gm_mask'),
                 'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask'),
                 'anatomical_wm_mask': (seg_preproc, 'outputspec.wm_mask'),
-                'seg_probability_maps': (seg_preproc, 'outputspec.probability_maps'),
+                'seg_probability_maps': (seg_preproc,
+                                         'outputspec.probability_maps'),
                 'seg_mixeltype': (seg_preproc, 'outputspec.mixeltype'),
-                'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
-                'seg_partial_volume_files': (seg_preproc, 'outputspec.partial_volume_files')
+                'seg_partial_volume_map': (seg_preproc,
+                                           'outputspec.partial_volume_map'),
+                'seg_partial_volume_files': (seg_preproc,
+                                             'outputspec.partial_volume_files')
             })
 
     strat_list += new_strat_list
-    
+
     if 1 in c.ANTs_prior_based_segmentation:
 
-        if 'T1_template' in c.template_based_segmentation or 'EPI_template' in c.template_based_segmentation or 1 in c.runSegmentationPreprocessing:
-            err = '\n\n[!] C-PAC says: '\
-                    'If you would like to set ANTs Prior-based Segmentation as your segmentation option,'\
-                    'please set Template based segmentation as \'None\' and runSegmentationPreprocessing as \'0\'.\n\n' \
-                    '\n\n'
+        if (
+            'T1_template' in c.template_based_segmentation or
+            'EPI_template' in c.template_based_segmentation or
+            1 in c.runSegmentationPreprocessing
+        ):
+            err = '\n\n[!] C-PAC says: If you would like to set ANTs ' \
+                  'Prior-based Segmentation as your segmentation option, ' \
+                  'please set Template based segmentation as \'None\' and ' \
+                  'runSegmentationPreprocessing as \'0\'.\n\n\n\n'
             raise Exception(err)
 
         for num_strat, strat in enumerate(strat_list):
 
-            seg_preproc_ants_prior_based = create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_ants_prior_{0}'.format(num_strat))
+            seg_preproc_ants_prior_based = \
+                create_seg_preproc_antsJointLabel_method(
+                    wf_name='seg_preproc_ants_prior_{0}'.format(num_strat))
 
-            # TODO ASH review
             if seg_preproc_ants_prior_based is None:
                 continue
 
             node, out_file = strat['anatomical_brain']
             workflow.connect(node, out_file,
-                             seg_preproc_ants_prior_based, 'inputspec.anatomical_brain')
+                             seg_preproc_ants_prior_based,
+                             'inputspec.anatomical_brain')
 
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file,
-                             seg_preproc_ants_prior_based, 'inputspec.anatomical_brain_mask')
-                             
-            workflow.connect(c.ANTs_prior_seg_template_brain_list, 'local_path',
-                             seg_preproc_ants_prior_based, 'inputspec.template_brain_list')
-            workflow.connect(c.ANTs_prior_seg_template_segmentation_list, 'local_path',
-                             seg_preproc_ants_prior_based, 'inputspec.template_segmentation_list')
-            seg_preproc_ants_prior_based.inputs.inputspec.csf_label = c.ANTs_prior_seg_CSF_label
-            seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = c.ANTs_prior_seg_left_GM_label
-            seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = c.ANTs_prior_seg_right_GM_label
-            seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = c.ANTs_prior_seg_left_WM_label
-            seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = c.ANTs_prior_seg_right_WM_label
+                             seg_preproc_ants_prior_based,
+                             'inputspec.anatomical_brain_mask')
 
-            # TODO ASH review with forking function
+            workflow.connect(
+                c.ANTs_prior_seg_template_brain_list, 'local_path',
+                seg_preproc_ants_prior_based, 'inputspec.template_brain_list')
+            workflow.connect(
+                c.ANTs_prior_seg_template_segmentation_list, 'local_path',
+                seg_preproc_ants_prior_based,
+                'inputspec.template_segmentation_list')
+            seg_preproc_ants_prior_based.inputs.inputspec.csf_label = \
+                c.ANTs_prior_seg_CSF_label
+            seg_preproc_ants_prior_based.inputs.inputspec.left_gm_label = \
+                c.ANTs_prior_seg_left_GM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.right_gm_label = \
+                c.ANTs_prior_seg_right_GM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.left_wm_label = \
+                c.ANTs_prior_seg_left_WM_label
+            seg_preproc_ants_prior_based.inputs.inputspec.right_wm_label = \
+                c.ANTs_prior_seg_right_WM_label
+
             if 0 in c.ANTs_prior_based_segmentation:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
             strat.append_name(seg_preproc_ants_prior_based.name)
             strat.update_resource_pool({
-                'anatomical_gm_mask': (seg_preproc_ants_prior_based, 'outputspec.gm_mask'),
-                'anatomical_csf_mask': (seg_preproc_ants_prior_based, 'outputspec.csf_mask'),
-                'anatomical_wm_mask': (seg_preproc_ants_prior_based, 'outputspec.wm_mask')
+                'anatomical_gm_mask': (
+                    seg_preproc_ants_prior_based, 'outputspec.gm_mask'),
+                'anatomical_csf_mask': (
+                    seg_preproc_ants_prior_based, 'outputspec.csf_mask'),
+                'anatomical_wm_mask': (
+                    seg_preproc_ants_prior_based, 'outputspec.wm_mask')
             })
 
     strat_list += new_strat_list
@@ -1285,11 +1411,14 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
             nodes = strat.get_nodes_names()
 
-            if not any(o in c.template_based_segmentation for o in ['EPI_template', 'T1_template', 'None']):
+            if not any(
+                o in c.template_based_segmentation for o in [
+                    'EPI_template', 'T1_template', 'None']):
                 err = '\n\n[!] C-PAC says: Your template based segmentation ' \
-                    'setting does not include either \'EPI_template\' or \'T1_template\'.\n\n' \
-                    'Options you provided:\ntemplate_based_segmentation: {0}' \
-                    '\n\n'.format(str(c.template_based_segmentation))
+                      'setting does not include either \'EPI_template\' or ' \
+                      '\'T1_template\'.\n\nOptions you provided:\n' \
+                      'template_based_segmentation: {0}' \
+                      '\n\n'.format(str(c.template_based_segmentation))
                 raise Exception(err)
 
             if strat.get('registration_method') == 'FSL':
@@ -1297,8 +1426,9 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
             elif strat.get('registration_method') == 'ANTS':
                 use_ants = True
 
-            seg_preproc_template_based = create_seg_preproc_template_based(use_ants=use_ants,
-                                                             wf_name='seg_preproc_t1_template_{0}'.format(num_strat))
+            seg_preproc_template_based = create_seg_preproc_template_based(
+                use_ants=use_ants,
+                wf_name='seg_preproc_t1_template_{0}'.format(num_strat))
 
             if seg_preproc_template_based is None:
                 continue
@@ -1330,13 +1460,16 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
                                  'inputspec.standard2highres_mat')
 
             workflow.connect(c.template_based_segmentation_CSF, 'local_path',
-                                seg_preproc_template_based, 'inputspec.CSF_template')
+                             seg_preproc_template_based,
+                             'inputspec.CSF_template')
 
             workflow.connect(c.template_based_segmentation_GRAY, 'local_path',
-                                seg_preproc_template_based, 'inputspec.GRAY_template')
+                             seg_preproc_template_based,
+                             'inputspec.GRAY_template')
 
             workflow.connect(c.template_based_segmentation_WHITE, 'local_path',
-                                seg_preproc_template_based, 'inputspec.WHITE_template')
+                             seg_preproc_template_based,
+                             'inputspec.WHITE_template')
 
             if 'None' in c.template_based_segmentation:
                 strat = strat.fork()
@@ -1344,9 +1477,12 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
 
             strat.append_name(seg_preproc_template_based.name)
             strat.update_resource_pool({
-                'anatomical_gm_mask': (seg_preproc_template_based, 'outputspec.gm_mask'),
-                'anatomical_csf_mask': (seg_preproc_template_based, 'outputspec.csf_mask'),
-                'anatomical_wm_mask': (seg_preproc_template_based, 'outputspec.wm_mask')
+                'anatomical_gm_mask': (
+                    seg_preproc_template_based, 'outputspec.gm_mask'),
+                'anatomical_csf_mask': (
+                    seg_preproc_template_based, 'outputspec.csf_mask'),
+                'anatomical_wm_mask': (
+                    seg_preproc_template_based, 'outputspec.wm_mask')
             })
 
     strat_list += new_strat_list
