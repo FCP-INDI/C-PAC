@@ -145,6 +145,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
 
     return preproc
 
+
 def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatomical'):
 
     method = method.lower()
@@ -435,6 +436,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         fill_fs_brain_mask = pe.Node(interface=afni.MaskTool(),
                             name='fill_fs_brainmask')
         fill_fs_brain_mask.inputs.fill_holes = True
+        fill_fs_brain_mask.inputs.outputtype = "NIFTI"
         preproc.connect(binarize_fs_brain_mask, 'out_file', 
                     fill_fs_brain_mask, 'in_file')
         preproc.connect(fill_fs_brain_mask, 'out_file', 
@@ -445,7 +447,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                         name='anat_skullstrip')
         preproc.connect(inputnode, 'anat_data',
                         fs_brain, 'in_file')
-        preproc.connect(fs_brain_mask_to_nifti, 'out_file',
+        preproc.connect(fill_fs_brain_mask, 'out_file',
                         fs_brain, 'mask_file')
         preproc.connect(fs_brain, 'out_file',
                         outputnode, 'brain')

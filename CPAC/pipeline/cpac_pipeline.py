@@ -1009,6 +1009,43 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 new_strat_list += [new_strat]
 
+            elif c.run_freesurfer:
+
+                anat_preproc = create_anat_preproc(method='freesurfer',
+                                                config=c,
+                                                acpc_target=acpc_target,
+                                                wf_name='anat_preproc_freesurfer_%d' % num_strat,
+                                                sub_dir=os.path.join(c.workingDirectory, workflow_name))
+
+                new_strat = strat.fork()
+                node, out_file = new_strat['anatomical']
+                workflow.connect(node, out_file,
+                                anat_preproc, 'inputspec.anat')
+                workflow.connect(c.acpc_template_skull, 'local_path',
+                                anat_preproc, 'inputspec.template_skull_for_acpc')
+                workflow.connect(c.acpc_template_brain, 'local_path',
+                                anat_preproc, 'inputspec.template_brain_only_for_acpc')
+                new_strat.append_name(anat_preproc.name)
+                new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                new_strat.update_resource_pool({
+                    'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                    'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
+                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                    'anatomical_wm_mask': (anat_preproc, 'outputspec.wm_mask'),
+                    'anatomical_gm_mask': (anat_preproc, 'outputspec.gm_mask'),
+                    'anatomical_csf_mask': (anat_preproc, 'outputspec.csf_mask'),
+                    'surface_curvature': (anat_preproc, 'outputspec.curv'),
+                    'pial_surface_mesh': (anat_preproc, 'outputspec.pial'),
+                    'smoothed_surface_mesh': (anat_preproc, 'outputspec.smoothwm'),
+                    'spherical_surface_mesh': (anat_preproc, 'outputspec.sphere'),
+                    'sulcal_depth_surface_maps': (anat_preproc, 'outputspec.sulc'),
+                    'cortical_thickness_surface_maps': (anat_preproc, 'outputspec.thickness'),
+                    'cortical_volume_surface_maps': (anat_preproc, 'outputspec.volume'),
+                    'white_matter_surface_mesh': (anat_preproc, 'outputspec.white'),
+                })
+
+                new_strat_list += [new_strat]
+
             else:
                 if not any(o in c.skullstrip_option for o in ["AFNI", "FSL", "niworkflows-ants", "FreeSurfer-ABCD", "unet"]):
                     err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
@@ -1120,41 +1157,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     new_strat_list += [new_strat]
                 
                 # if "FreeSurfer" in c.skullstrip_option:
-                if c.run_freesurfer:
-                    anat_preproc = create_anat_preproc(method='freesurfer',
-                                                    config=c,
-                                                    acpc_target=acpc_target,
-                                                    wf_name='anat_preproc_freesurfer_%d' % num_strat,
-                                                    sub_dir=os.path.join(c.workingDirectory, workflow_name))
-
-                    new_strat = strat.fork()
-                    node, out_file = new_strat['anatomical']
-                    workflow.connect(node, out_file,
-                                    anat_preproc, 'inputspec.anat')
-                    workflow.connect(c.acpc_template_skull, 'local_path',
-                                    anat_preproc, 'inputspec.template_skull_for_acpc')
-                    workflow.connect(c.acpc_template_brain, 'local_path',
-                                    anat_preproc, 'inputspec.template_brain_only_for_acpc')
-                    new_strat.append_name(anat_preproc.name)
-                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-                    new_strat.update_resource_pool({
-                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
-                        'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
-                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
-                        'anatomical_wm_mask': (anat_preproc, 'outputspec.wm_mask'),
-                        'anatomical_gm_mask': (anat_preproc, 'outputspec.gm_mask'),
-                        'anatomical_csf_mask': (anat_preproc, 'outputspec.csf_mask'),
-                        'surface_curvature': (anat_preproc, 'outputspec.curv'),
-                        'pial_surface_mesh': (anat_preproc, 'outputspec.pial'),
-                        'smoothed_surface_mesh': (anat_preproc, 'outputspec.smoothwm'),
-                        'spherical_surface_mesh': (anat_preproc, 'outputspec.sphere'),
-                        'sulcal_depth_surface_maps': (anat_preproc, 'outputspec.sulc'),
-                        'cortical_thickness_surface_maps': (anat_preproc, 'outputspec.thickness'),
-                        'cortical_volume_surface_maps': (anat_preproc, 'outputspec.volume'),
-                        'white_matter_surface_mesh': (anat_preproc, 'outputspec.white'),
-                    })
-
-                    new_strat_list += [new_strat]
 
                 if "FreeSurfer-ABCD" in c.skullstrip_option:
                     
@@ -1700,7 +1702,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
 
         # Inserting Segmentation Preprocessing Workflow
-        workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
+        if not c.run_freesurfer:
+            workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
 
 
     # Functional / BOLD time
