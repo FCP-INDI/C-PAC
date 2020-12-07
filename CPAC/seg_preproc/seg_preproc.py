@@ -1208,10 +1208,10 @@ def create_seg_preproc_freesurfer(config=None,
                         name='anat_autorecon2')
 
     reconall2.inputs.directive = 'autorecon2'
-    reconall2.inputs.openmp = config.num_omp_threads
+    reconall2.inputs.openmp = config.num_omp_threads  # TODO: update nested
 
-    if config.autorecon2_args is not None:
-        reconall2.inputs.args = config.autorecon2_args
+    if config.autorecon2_args is not None:  # TODO: update nested
+        reconall2.inputs.args = config.autorecon2_args  # TODO: update nested
 
     preproc.connect(inputnode, 'subject_dir',
                     reconall2, 'subjects_dir')
@@ -1256,7 +1256,7 @@ def create_seg_preproc_freesurfer(config=None,
 
     preproc.connect(fs_aseg_to_nifti, 'out_file',
                     pick_tissue, 'multiatlas_Labels')
-    
+
     preproc.connect(pick_tissue, 'wm_mask',
                     outputnode, 'wm_mask')
 
