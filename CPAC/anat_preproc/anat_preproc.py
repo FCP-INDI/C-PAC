@@ -1241,7 +1241,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             # applywarp --rel --interp=nn -i "$T1wImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageBrainFile"_1mm.nii.gz
             applywarp_brain_to_head_1mm = pe.Node(interface=fsl.ApplyWarp(),
                         name='applywarp_brain_to_head_1mm')
-            applywarp_brain_to_head_1mm.inputs.interp = 'nn' # why?
+            applywarp_brain_to_head_1mm.inputs.interp = 'nn'
             applywarp_brain_to_head_1mm.inputs.premat = config.identityMatrix
 
             preproc.connect(fast_correction, 'outputspec.anat_brain_restore',
@@ -1272,16 +1272,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(average_brain, 'out_stat',
                             normalize_head, 'number')
 
-            # normalize_head = pe.Node(interface=fsl.MultiImageMaths(),
-            #                         name='normalize_head')
-            # normalize_head.inputs.op_string = '-div %s -mul 150 -abs'
-
-            # preproc.connect(applywarp_head_to_head_1mm, 'out_file', 
-            #             normalize_head, 'in_file')
-
-            # preproc.connect(average_brain, 'out_stat',
-            #             normalize_head, 'operand_files')
-
             ### recon-all -all step ###
             reconall = pe.Node(interface=freesurfer.ReconAll(),
                 name='anat_freesurfer')
@@ -1304,9 +1294,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             reconall.inputs.subjects_dir = freesurfer_subject_dir
             reconall.inputs.openmp = config.num_omp_threads
 
-            # if config.autorecon1_args is not None:
-            #     reconall.inputs.args = config.autorecon1_args
-
             # preproc.connect(anat_leaf2, 'anat_data',
             #                 reconall, 'T1_files')
 
@@ -1317,14 +1304,14 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                             outputnode, 'freesurfer_subject_dir')
             
             '''
-            ### ABCD Harmonization ###
+            ### ABCD Harmonization - FreeSurfer brain mask refinement ###
             # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L169-L172
 
             # mri_convert "$T1wImageBrainFile"_1mm.nii.gz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz --conform
             t1_brain_to_mgz = pe.Node(util.Function(input_names=['in_file'],
-                                                            output_names=['out_file'],
-                                                            function=mri_convert),
-                                                        name='t1_brain_to_mgz')
+                                                    output_names=['out_file'],
+                                                    function=mri_convert),
+                                        name='t1_brain_to_mgz')
 
             preproc.connect(applywarp_brain_to_head_1mm, 'out_file',
                             t1_brain_to_mgz, 'in_file')
@@ -1378,150 +1365,3 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     preproc.connect(anat_leaf2, 'anat_data', outputnode, 'anat_skull_leaf')
 
     return preproc
-
-
-# TODO multi-thread doens't work if using autorecon1/2/3 - debug!
-def reconstruct_surface(config):
-
-    """
-    Parameters
-    ----------
-    config : Configuration
-        pipeline configuration
-
-    Returns
-    -------
-    surface_reconstruction : Workflow
-        autorecon3 surface reconstruction workflow
-    
-    Notes
-    -----
-    wm_seg is not a necessary input for autorecon3 but make a fake connection 
-    so that nipype can run autorecon2 and 3 sequentially
-    """
-    
-    import nipype.pipeline.engine as pe
-    import nipype.interfaces.utility as util
-    from nipype.interfaces import freesurfer
-
-    surface_reconstruction = pe.Workflow(name='surface_reconstruction')
-
-    inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir',
-                                                        'subject_id',
-                                                        'wm_seg',
-                                                        'anat_restore']), 
-                        name='inputspec')
-
-    outputnode = pe.Node(util.IdentityInterface(fields=['curv',
-                                                        'pial',
-                                                        'smoothwm',
-                                                        'sphere',
-                                                        'sulc',
-                                                        'thickness',
-                                                        'volume',
-                                                        'white',
-                                                        'brain',
-                                                        'brain_mask']),
-                        name='outputspec')
-
-    reconall3 = pe.Node(interface=freesurfer.ReconAll(),
-                        name='anat_autorecon3')
-    reconall3.inputs.directive = 'autorecon3'
-    reconall3.inputs.openmp = config.num_omp_threads
-
-    if config.autorecon3_args is not None:
-        reconall3.inputs.args = config.autorecon3_args
-    
-    surface_reconstruction.connect(inputnode, 'subject_id',
-                                    reconall3, 'subject_id')
-
-    surface_reconstruction.connect(inputnode, 'subject_dir',
-                                    reconall3, 'subjects_dir')
-
-    surface_reconstruction.connect(reconall3, 'curv',
-                                    outputnode, 'curv')
-
-    surface_reconstruction.connect(reconall3, 'pial',
-                                    outputnode, 'pial')
-
-    surface_reconstruction.connect(reconall3, 'smoothwm',
-                                    outputnode, 'smoothwm')
-
-    surface_reconstruction.connect(reconall3, 'sphere',
-                                    outputnode, 'sphere')
-
-    surface_reconstruction.connect(reconall3, 'sulc',
-                                    outputnode, 'sulc')
-
-    surface_reconstruction.connect(reconall3, 'thickness',
-                                    outputnode, 'thickness')
-
-    surface_reconstruction.connect(reconall3, 'volume',
-                                    outputnode, 'volume')
-
-    surface_reconstruction.connect(reconall3, 'white',
-                                    outputnode, 'white')
-
-    ### ABCD harmonization - anatomical brain mask generation ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L159
-    
-    wmparc_to_nifti = pe.Node(util.Function(input_names=['in_file','reslice_like','args'],
-                                        output_names=['out_file'],
-                                        function=mri_convert),
-                            name='wmparc_to_nifti')
-    wmparc_to_nifti.inputs.args = '-rt nearest'
-
-    surface_reconstruction.connect(reconall3, 'wmparc',
-                                    wmparc_to_nifti, 'in_file')
-    surface_reconstruction.connect(inputnode, 'anat_restore',
-                                    wmparc_to_nifti, 'reslice_like')
-
-    binary_mask = pe.Node(interface=fsl.maths.MathsCommand(), 
-                            name='binarize_wmparc')
-    binary_mask.inputs.args = '-bin -dilD -dilD -dilD -ero -ero'
-
-    surface_reconstruction.connect(wmparc_to_nifti, 'out_file',
-                                    binary_mask, 'in_file')
-
-    wb_command_fill_holes = pe.Node(util.Function(input_names=['in_file'],
-                                        output_names=['out_file'],
-                                        function=wb_command),
-                            name='wb_command_fill_holes')
-
-    surface_reconstruction.connect(binary_mask, 'out_file',
-                                    wb_command_fill_holes, 'in_file')
-
-    binary_mask2 = pe.Node(interface=fsl.maths.MathsCommand(),
-                            name='binarize_wmparc2')
-    binary_mask2.inputs.args = '-bin'
-
-    surface_reconstruction.connect(wb_command_fill_holes, 'out_file',
-                                    binary_mask2, 'in_file')
-
-    brain_mask_to_t1_restore = pe.Node(interface=fsl.ApplyWarp(),
-                name='brain_mask_to_t1_restore')
-    brain_mask_to_t1_restore.inputs.interp = 'nn'
-    brain_mask_to_t1_restore.inputs.premat = config.identityMatrix
-
-    surface_reconstruction.connect(binary_mask2, 'out_file',
-                                    brain_mask_to_t1_restore, 'in_file')
-
-    surface_reconstruction.connect(inputnode, 'anat_restore',
-                                    brain_mask_to_t1_restore, 'ref_file')
-
-    surface_reconstruction.connect(brain_mask_to_t1_restore, 'out_file',
-                                    outputnode, 'brain_mask')
-
-    fs_brain = pe.Node(interface=fsl.MultiImageMaths(), name='fs_brain')
-    fs_brain.inputs.op_string = "-mul %s"
-
-    surface_reconstruction.connect(brain_mask_to_t1_restore, 'out_file', 
-                                    fs_brain, 'in_file')
-
-    surface_reconstruction.connect(inputnode, 'anat_restore', 
-                                    fs_brain, 'operand_files')
-
-    surface_reconstruction.connect(fs_brain, 'out_file', 
-                                    outputnode, 'brain')
-
-    return surface_reconstruction

@@ -35,10 +35,7 @@ from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
 
-from CPAC.anat_preproc.anat_preproc import (
-    create_anat_preproc,
-    reconstruct_surface
-)
+from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 
@@ -1160,8 +1157,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat_list += [new_strat]
                 
-                # if "FreeSurfer" in c.skullstrip_option:
-
                 if "FreeSurfer-ABCD" in c.skullstrip_option:
                     
                     anat_preproc = create_anat_preproc(method='freesurfer-abcd',
