@@ -1017,6 +1017,11 @@ lateral_ventricles_mask :  $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-late
 # Select which nuisance signal corrections to apply
 Regressors :
 
+ - Motion:
+     include_delayed: true
+     include_squared: true
+     include_delayed_squared: true
+
 
 # Whether to run frequency filtering before or after nuisance regression.
 # ['Before'] or ['After']

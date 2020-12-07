@@ -226,6 +226,7 @@ def anat_based_mask(wf_name='bold_mask'):
     func_mask_fill_holes = pe.Node(interface=afni.MaskTool(),
                                 name='func_mask_fill_holes')
     func_mask_fill_holes.inputs.fill_holes = True
+    func_mask_fill_holes.inputs.outputtype = 'NIFTI_GZ'
 
     wf.connect(func_mask_bin, 'out_file', 
                 func_mask_fill_holes, 'in_file')
