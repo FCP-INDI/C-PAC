@@ -1,21 +1,114 @@
-version: 2
+version: 2.1
+
+commands:
+  check-for-built-images:
+    steps:
+      - run:
+          name: "Checking for locally built images"
+          command: |
+            if [[ ! -f cpac-docker-image.tar.gz || ! -f cpac-singularity-image.simg ]]
+            then
+              circleci step halt
+            fi
+  set-python-version:
+    steps:
+      - run:
+          name: "Setting Python Version"
+          command: |
+            cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
+            pyenv install -v 3.9.0
+            pyenv global 3.9.0
+  install-singularity-requirements:
+    steps:
+      - run:
+          name: "Installing Singularity requirements"
+          command: |
+           sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.1 libarchive-dev libgpgme11-dev libseccomp-dev -y
+  set-up-singularity:
+    steps:
+      - run:
+         name: "Setting up Singularity"
+         command: |
+           cd singularity
+           ./autogen.sh
+           ./configure --prefix=/usr/local --sysconfdir=/etc
+           make
+           sudo make install
+           cd ..
+  build-images:
+    parameters:
+      variant:
+        type: string
+        default: ""
+    steps:
+      - run:
+          name: "Setting up variant"
+          command: |
+            DOCKER_TARBALL="cpac-docker-image"
+            if [[ -n "<< parameters.variant >>" ]]
+            then
+              docker load < ${DOCKER_TARBALL}.tar.gz
+              DOCKERFILE="-f variant-<< parameters.variant >>.Dockerfile"
+              sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
+              DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
+              VARIANT="-<< parameters.variant >>"
+            fi
+            echo 'export DOCKER_TARBALL="${DOCKER_TARBALL}"' >> $BASH_ENV
+            echo 'export DOCKERFILE="${DOCKERFILE}"' >> $BASH_ENV
+            echo 'export VARIANT="${VARIANT}"' >> $BASH_ENV
+      - run:
+          name: "Building Docker image"
+          command: |
+            docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} . ${DOCKERFILE}
+            docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} | gzip > ${DOCKER_TARBALL}.tar.gz
+          no_output_timeout: 5h
+          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
+      - run:
+          name: "Starting local registry"
+          command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+      - install-singularity-requirements
+      - run: 
+          name: "Cloning Singularity 2.5.2"
+          command: git clone -b 2.5.2 https://github.com/sylabs/singularity
+      - set-up-singularity
+      - run:
+          name: "Building Singularity image from Docker image"
+          command: |
+            docker load < ${DOCKER_TARBALL}.tar.gz
+            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
+            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
+            SINGULARITY_NOHTTPS=1 singularity build cpac-singularity-image${VARIANT}.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT}
+          no_output_timeout: 5h
+  configure-git-user:
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "12:bc:f2:e4:31:cc:72:54:54:bc:f5:5b:89:e6:d8:ee"
+      - run:
+          name: "Configuring git user"
+          command: |
+            sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 78BD65473CB3BD13
+            curl -L https://packagecloud.io/circleci/trusty/gpgkey | sudo apt-key add -
+            sudo apt-get update
+            sudo apt-get install git -y
+            git config --global user.email "${CIRCLE_USERNAME}@users.noreply.github.com"
+            git config --global user.name "${CIRCLE_USERNAME} @ CircleCI"
+
 jobs:
   pytest-docker:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - check-for-built-images
+      - set-python-version
       - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: Get Sample BIDS Data
+          name: Getting Sample BIDS Data
           command: git clone https://github.com/bids-standard/bids-examples.git
       - run:
-          name: pytest
+          name: Running pytest on Docker image
           command: |
             docker load < cpac-docker-image.tar.gz
             docker run -dit -P -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project/htmlcov:/code/htmlcov --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
@@ -28,177 +121,88 @@ jobs:
           path: htmlcov
           no_output_timeout: 5h
   pytest-singularity:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - check-for-built-images
+      - set-python-version
+      - install-singularity-requirements
+      - set-up-singularity
       - run:
-          name: "Set Python Version"
+          name: Testing Singularity installation
           command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: test_install
-          command: |
-            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
-            cd singularity
-            ./autogen.sh
-            ./configure --prefix=/usr/local --sysconfdir=/etc
-            make
-            sudo make install
-            cd ..
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
   build:
-    machine: true
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - checkout
+      - set-python-version
+      - configure-git-user
       - run:
-          name: "Set Python Version"
+          name: "Checking if version needs updated"
+          # update version if version needs updated, otherwise just move on
           command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: build-docker
-          command: |
-            docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_} .
-            docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_} | gzip > cpac-docker-image.tar.gz
-          no_output_timeout: 1h
-          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
-      - run:
-          name: local-registry
-          command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - run:
-          name: build-singularity
-          command: |
-            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
-            git clone -b 2.5.2 https://github.com/sylabs/singularity
-            cd singularity
-            ./autogen.sh
-            ./configure --prefix=/usr/local --sysconfdir=/etc
-            make
-            sudo make install
-            cd ..
-            docker load < cpac-docker-image.tar.gz
-            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_} localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-            SINGULARITY_NOHTTPS=1 singularity build C-PAC-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}
-          no_output_timeout: 2h
+            COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+            if [[ ! "$COMMIT_MESSAGE" == *"Update version to"* ]]
+            then
+              cd $HOME/project/CPAC
+              VERSION=$(python -c "from info import __version__; print('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__)")
+              cd ..
+              echo "v${VERSION}" > version
+              sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" dev/docker_data/default_pipeline.yml
+              find ./CPAC/resources/configs -name "*.yml" -exec sed -i -r "s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g" {} \;
+              git add version CPAC/resources/configs dev/docker_data/default_pipeline.yml
+              if [[ ! -z $(git diff origin/${CIRCLE_BRANCH}) ]]
+              then
+                git commit -m ":bookmark: Update version to ${VERSION} ($COMMIT_MESSAGE)"
+                git push origin HEAD:${CIRCLE_BRANCH} || true
+                circleci step halt
+              fi
+              cd ..
+            fi
+      - build-images
       - store_artifacts:
           path: cpac-docker-image.tar.gz
       - store_artifacts:
-          path: C-PAC-CI.simg
-          destination: cpac-singularity-image.simg
+          path: cpac-singularity-image.simg
       - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
           root: /home/circleci/
-          # Must be relative path from root
-          paths: project
-  build_surface:
-    machine: true
+          paths:
+            - cpac-docker-image.tar.gz
+            - cpac-singularity-image.simg
+            - project
+  build-surface:
+    machine:
+      image: ubuntu-2004:202010-01
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: /home/circleci/
+      - check-for-built-images
       - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: build-docker
-          command: |
-            docker load < cpac-docker-image.tar.gz
-            sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" variant-surface.Dockerfile
-            docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface -f variant-surface.Dockerfile .
-            docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface | gzip > cpac-surface-docker-image.tar.gz
-          no_output_timeout: 1h
-          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
-      - run:
-          name: local-registry
-          command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - run:
-          name: build-singularity
-          command: |
-            sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl1.0.0 libarchive-dev libgpgme11-dev libseccomp-dev -y
-            cd singularity
-            ./autogen.sh
-            ./configure --prefix=/usr/local --sysconfdir=/etc
-            make
-            sudo make install
-            cd ..
-            docker load < cpac-surface-docker-image.tar.gz
-            docker tag fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface
-            docker push localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface
-            SINGULARITY_NOHTTPS=1 singularity build C-PAC-surface-CI.simg docker://localhost:5000/fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-surface
-          no_output_timeout: 2h
+          name: "Loading original Docker image"
+          command: docker load < cpac-docker-image.tar.gz
+      - set-python-version
+      - build-images:
+          variant: surface
       - store_artifacts:
-          path: cpac-surface-docker-image.tar.gz
+          path: cpac-docker-image-surface.tar.gz
       - store_artifacts:
-          path: C-PAC-surface-CI.simg
-          destination: cpac-surface-singularity-image.simg
-  heatmaps:
-    machine: true
-    steps:
-      - attach_workspace:
-          # Must be absolute path or relative path from working_directory
-          at: /home/circleci/
-      - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: ≟
-          command: python dev/circleci_data/scripts/compare.py
-  test:
-    machine: true
-    steps:
-      - attach_workspace:
-          # Must be absolute path or relative path from working_directory
-          at: /home/circleci/
-      - run:
-          name: "Set Python Version"
-          command: |
-            pyenv install 3.6.3
-            pyenv global 3.6.3
-      - run:
-          name: Run C-PAC
-          command: |
-            docker load < cpac-docker-image.tar.gz
-            docker run -i --rm -v $HOME:/output -v /tmp:/tmp cpac:${CIRCLE_BRANCH//\//_} s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS /output participant --participant_label A00028185 --pipeline_file /cpac_resources/pipe-test_ci.yml
-          no_output_timeout: 3h
+          path: cpac-singularity-image-surface.simg
 
 workflows:
   version: 2
-  build_and_test:
+  build-and-test:
     jobs:
-      - build:
-          filters:
-            branches:
-              ignore:
-                - feature/auto-heatmaps
-                - config/test_config
-      - build_surface:
+      - build
+      - build-surface:
           requires:
             - build
-      - test:
-          requires:
-            - build
-          filters:
-            branches:
-              only:
-                - develop
-                - master
-      - heatmaps:
-          requires:
-            - build
-            - test
-          filters:
-            branches:
-              only: feature/auto-heatmaps
       - pytest-docker:
           requires:
             - build
