@@ -1,11 +1,8 @@
 from nipype.interfaces.utility import Function
 import nipype.algorithms.rapidart as ra
-import nipype.interfaces.afni as afni
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.io as nio
-import nipype.interfaces.utility as util
-import nipype.interfaces.ants as ants
+from nipype.interfaces import afni, ants, freesurfer, fsl, utility as util
 from nipype.interfaces.ants import WarpImageMultiTransform
+from CPAC.anat_preproc.utils import mri_convert
 from CPAC.seg_preproc.utils import (
     check_if_file_is_empty,
     pick_wm_prob_0,
@@ -55,7 +52,6 @@ def create_seg_preproc(use_ants,
 
     wf_name: string
         name of the workflow
-
 
     Returns
     -------
@@ -467,7 +463,7 @@ def process_segment_map(wf_name,
     use_priors: boolean
         Whether or not to use template-space tissue priors to further refine
         the resulting segmentation tissue masks.
-    use_threshold: List
+    use_threshold: list
         Choose threshold to further refine
         the resulting segmentation tissue masks.
     use_erosion: boolean
@@ -1097,8 +1093,6 @@ def create_seg_preproc_antsJointLabel_method(
 
         outputspec.wm_mask : string (nifti file)
             outputs White Matter mask
-
-
     """  # noqa
     preproc = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['anatomical_brain',
@@ -1167,6 +1161,110 @@ def create_seg_preproc_antsJointLabel_method(
                     outputNode, 'gm_mask')
     preproc.connect(pick_tissue, 'wm_mask',
                     outputNode, 'wm_mask')
+
+    return preproc
+
+
+def create_seg_preproc_freesurfer(config=None,
+                                  wf_name='seg_preproc_freesurfer'):
+    """
+    Generate the subject's segmentations based on freesurfer.
+
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+
+    Returns
+    -------
+    seg_preproc_freesurfer : workflow
+        workflow object for segmentation workflow
+
+    Notes
+    -----
+
+    Workflow Inputs: ::
+
+        inputspec.subject_dir : string (existing nifti file)
+            FreeSurfer autorecon1 dir
+
+    Workflow Outputs: ::
+
+        outputspec.wm_mask : string (nifti file)
+            outputs White Matter mask
+    """  # noqa
+    preproc = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['subject_dir']),
+                        name='inputspec')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['wm_mask',
+                                                        'gm_mask',
+                                                        'csf_mask',
+                                                        'subject_id']),
+                         name='outputspec')
+
+    reconall2 = pe.Node(interface=freesurfer.ReconAll(),
+                        name='anat_autorecon2')
+
+    reconall2.inputs.directive = 'autorecon2'
+    reconall2.inputs.openmp = config.num_omp_threads
+
+    if config.autorecon2_args is not None:
+        reconall2.inputs.args = config.autorecon2_args
+
+    preproc.connect(inputnode, 'subject_dir',
+                    reconall2, 'subjects_dir')
+
+    preproc.connect(reconall2, 'subject_id',
+                    outputnode, 'subject_id')
+
+    # register FS segmentations (aseg.mgz) to native space
+    fs_aseg_to_native = pe.Node(interface=freesurfer.ApplyVolTransform(),
+                                name='fs_aseg_to_native')
+
+    fs_aseg_to_native.inputs.reg_header = True
+    fs_aseg_to_native.inputs.interp = 'nearest'
+
+    preproc.connect(reconall2, 'aseg',
+                    fs_aseg_to_native, 'source_file')
+
+    preproc.connect(reconall2, 'rawavg',
+                    fs_aseg_to_native, 'target_file')
+
+    preproc.connect(inputnode, 'subject_dir',
+                    fs_aseg_to_native, 'subjects_dir')
+
+    # convert registered FS segmentations from .mgz to .nii.gz
+    fs_aseg_to_nifti = pe.Node(util.Function(input_names=['in_file'],
+                                             output_names=['out_file'],
+                                             function=mri_convert),
+                               name='fs_aseg_to_nifti')
+
+    fs_aseg_to_nifti.inputs.args = '-rt nearest'
+
+    preproc.connect(fs_aseg_to_native, 'transformed_file',
+                    fs_aseg_to_nifti, 'in_file')
+
+    pick_tissue = pe.Node(util.Function(input_names=['multiatlas_Labels'],
+                                        output_names=['csf_mask', 'gm_mask',
+                                                      'wm_mask'],
+                                        function=pick_tissue_from_labels_file),
+                          name=f'{wf_name}_tissue_mask')
+
+    pick_tissue.inputs.include_ventricles = True
+
+    preproc.connect(fs_aseg_to_nifti, 'out_file',
+                    pick_tissue, 'multiatlas_Labels')
+    
+    preproc.connect(pick_tissue, 'wm_mask',
+                    outputnode, 'wm_mask')
+
+    preproc.connect(pick_tissue, 'gm_mask',
+                    outputnode, 'gm_mask')
+
+    preproc.connect(pick_tissue, 'csf_mask',
+                    outputnode, 'csf_mask')
 
     return preproc
 
