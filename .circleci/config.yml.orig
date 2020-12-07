@@ -48,18 +48,26 @@ commands:
             if [[ -n "<< parameters.variant >>" ]]
             then
               docker load < ${DOCKER_TARBALL}.tar.gz
+<<<<<<< HEAD
+              DOCKERFILE="-f variant-<< parameters.variant >>.Dockerfile"
+=======
               DOCKERFILE="variant-<< parameters.variant >>.Dockerfile"
+>>>>>>> feature/abcd
               sed -i "s|:latest|:${CIRCLE_BRANCH//\//_}|g" ${DOCKERFILE}
               DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
               VARIANT="-<< parameters.variant >>"
-              echo "export DOCKERFILE=-f ${DOCKERFILE}" >> $BASH_ENV
             fi
             echo "export DOCKER_TARBALL=${DOCKER_TARBALL}" >> $BASH_ENV
+            echo "export DOCKERFILE=${DOCKERFILE}" >> $BASH_ENV
             echo "export VARIANT=${VARIANT}" >> $BASH_ENV
       - run:
           name: "Building Docker image"
           command: |
+<<<<<<< HEAD
             docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} . ${DOCKERFILE}
+=======
+            docker build -t fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} . -f ${DOCKERFILE}
+>>>>>>> feature/abcd
             docker save fcpindi/c-pac:${CIRCLE_BRANCH//\//_}${VARIANT} | gzip > ${DOCKER_TARBALL}.tar.gz
           no_output_timeout: 5h
           # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
