@@ -171,7 +171,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     if sub_dict['unique_id']:
         subject_id += "_" + sub_dict['unique_id']
 
-    log_dir = os.path.join(c.logDirectory, 'pipeline_%s' % c.pipelineName,
+    log_dir = os.path.join(c.pipeline_setup['log_directory']['path'], 'pipeline_%s' % c.pipeline_setup['pipeline_name'],
                            subject_id)
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
@@ -181,7 +181,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     config.update_config({
         'logging': {
             'log_directory': log_dir,
-            'log_to_file': bool(getattr(c, 'run_logging', True))
+            'log_to_file': bool(getattr(c.pipeline_setup['log_directory'],'run_logging', True))
         }
     })
 
@@ -216,8 +216,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     # TODO: TEMPORARY
     # TODO: solve the UNet model hanging issue during MultiProc
-    if "unet" in c.skullstrip_option:
-        c.maxCoresPerParticipant = 1
+    if "unet" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
+        c.pipeline_setup['system_config']['max_cores_per_participant'] = 1
         logger.info("\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "
                     "MODEL.\n\nThis is a temporary measure due to a known "
                     "issue preventing Nipype's parallelization from running "
@@ -225,12 +225,12 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
-    max_core_usage = int(c.maxCoresPerParticipant) * \
-        int(c.numParticipantsAtOnce)
+    max_core_usage = int(c.pipeline_setup['system_config']['max_cores_per_participant']) * \
+        int(c.pipeline_setup['system_config']['num_participants_at_once'])
 
     ndmg_out = False
     try:
-        if "ndmg" in c.output_tree:
+        if "ndmg" in c.pipeline_setup['output_directory']['output_tree']:
             ndmg_out = True
     except:
         pass
@@ -252,7 +252,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     # TODO enforce value with schema validation
     try:
-        encrypt_data = bool(c.s3Encryption[0])
+        encrypt_data = bool(config.pipeline_setup['Amazon-AWS']['s3_encryption'])
     except:
         encrypt_data = False
 
@@ -286,10 +286,10 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     logger.info(information.format(
         cpac_version=CPAC.__version__,
-        cores=c.maxCoresPerParticipant,
-        participants=c.numParticipantsAtOnce,
+        cores=c.pipeline_setup['system_config']['max_cores_per_participant'],
+        participants=c.pipeline_setup['system_config']['num_participants_at_once'],
         threads=numThreads,
-        ants_threads=c.num_ants_threads,
+        ants_threads=c.pipeline_setup['system_config']['num_ants_threads'],
         max_cores=max_core_usage
     ))
 
@@ -311,9 +311,9 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                       check_centrality_lfcd=check_centrality_lfcd)
 
     # absolute paths of the dirs
-    c.workingDirectory = os.path.abspath(c.workingDirectory)
-    if 's3://' not in c.outputDirectory:
-        c.outputDirectory = os.path.abspath(c.outputDirectory)
+    c.pipeline_setup['working_directory']['path'] = os.path.abspath(c.pipeline_setup['working_directory']['path'])
+    if 's3://' not in c.pipeline_setup['output_directory']['path']:
+        c.pipeline_setup['output_directory']['path'] = os.path.abspath(c.pipeline_setup['output_directory']['path'])
 
     workflow, strat_list, pipeline_ids = build_workflow(
         subject_id, sub_dict, c, p_name, num_ants_cores
@@ -330,13 +330,13 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                     'file, the pipeline was built successfully, but was '
                     'not run')
     else:
-        working_dir = os.path.join(c.workingDirectory, workflow.name)
+        working_dir = os.path.join(c.pipeline_setup['working_directory']['path'], workflow.name)
 
         #if c.write_debugging_outputs:
         #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
         #        pickle.dump(strat_list, f)
 
-        if c.reGenerateOutputs is True:
+        if c.pipeline_setup['working_directory']['regenerate_outputs'] is True:
 
             erasable = list(find_files(working_dir, '*sink*')) + \
                 list(find_files(working_dir, '*link*')) + \
@@ -364,7 +364,7 @@ Please, make yourself aware of how it works and its assumptions:
 
             workflow, _ = the_trimmer(
                 workflow,
-                output_dir=c.outputDirectory,
+                output_dir=c.pipeline_setup['output_directory']['path'],
                 s3_creds_path=input_creds_path,
             )
 
@@ -432,12 +432,12 @@ Please, make yourself aware of how it works and its assumptions:
                 )
 
             # PyPEER kick-off
-            if 1 in c.run_pypeer:
+            if False in c.PyPEER['run']:
                 from CPAC.pypeer.peer import prep_for_pypeer
-                prep_for_pypeer(c.peer_eye_scan_names, c.peer_data_scan_names,
-                                c.eye_mask_path, c.outputDirectory, subject_id,
-                                pipeline_ids, c.peer_stimulus_path, c.peer_gsr,
-                                c.peer_scrub, c.peer_scrub_thresh)
+                prep_for_pypeer(c.PyPEER['eye_scan_names'], c.PyPEER['data_scan_names'],
+                                c.PyPEER['eye_mask_path'], c.pipeline_setup['output_directory']['path'], subject_id,
+                                pipeline_ids, c.PyPEER['stimulus_path'], c.PyPEER['minimal_nuisance_correction']['peer_gsr'],
+                                c.PyPEER['minimal_nuisance_correction']['peer_scrub'], c.PyPEER['minimal_nuisance_correction']['scrub_thresh'])
 
             # Dump subject info pickle file to subject log dir
             subject_info['status'] = 'Completed'
@@ -477,7 +477,7 @@ Please, make yourself aware of how it works and its assumptions:
                 # warning in .csv that some runs may be partial
                 # code to delete .tmp file
 
-                timing_temp_file_path = os.path.join(c.logDirectory,
+                timing_temp_file_path = os.path.join(c.pipeline_setup['log_directory']['path'],
                                                     '%s_pipeline_timing.tmp' % unique_pipeline_id)
 
                 if not os.path.isfile(timing_temp_file_path):
@@ -501,9 +501,9 @@ Please, make yourself aware of how it works and its assumptions:
                 if elapsedTimeBin[1] == num_subjects:
 
                     pipelineTimeDict = {}
-                    pipelineTimeDict['Pipeline'] = c.pipelineName
-                    pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
-                    pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
+                    pipelineTimeDict['Pipeline'] = c.pipeline_setup['pipeline_name']
+                    pipelineTimeDict['Cores_Per_Subject'] = c.pipeline_setup['system_config']['max_cores_per_participant']
+                    pipelineTimeDict['Simultaneous_Subjects'] = c.pipeline_setup['system_config']['num_participants_at_once']
                     pipelineTimeDict['Number_of_Subjects'] = num_subjects
                     pipelineTimeDict['Start_Time'] = pipeline_start_stamp
                     pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
@@ -520,11 +520,11 @@ Please, make yourself aware of how it works and its assumptions:
                     timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
 
                     with open(os.path.join(
-                        c.logDirectory,
-                        'cpac_individual_timing_%s.csv' % c.pipelineName
+                        c.pipeline_setup['log_directory']['path'],
+                        'cpac_individual_timing_%s.csv' % c.pipeline_setup['pipeline_name']
                     ), 'a') as timeCSV, open(os.path.join(
-                        c.logDirectory,
-                        'cpac_individual_timing_%s.csv' % c.pipelineName
+                        c.pipeline_setup['log_directory']['path'],
+                        'cpac_individual_timing_%s.csv' % c.pipeline_setup['pipeline_name']
                     ), 'r') as readTimeCSV:
 
                         timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
@@ -544,16 +544,16 @@ Please, make yourself aware of how it works and its assumptions:
                     os.remove(timing_temp_file_path)
 
             # Upload logs to s3 if s3_str in output directory
-            if c.outputDirectory.lower().startswith('s3://'):
+            if c.pipeline_setup['output_directory']['path'].lower().startswith('s3://'):
 
                 try:
                     # Store logs in s3 output director/logs/...
                     s3_log_dir = os.path.join(
-                        c.outputDirectory,
+                        c.pipeline_setup['output_directory']['path'],
                         'logs',
                         os.path.basename(log_dir)
                     )
-                    bucket_name = c.outputDirectory.split('/')[2]
+                    bucket_name = c.pipeline_setup['output_directory']['path'].split('/')[2]
                     bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
                     # Collect local log files
@@ -594,9 +594,9 @@ CPAC run error:
 
         finally:
 
-            if 1 in c.generateQualityControlImages and not ndmg_out:
+            if c.pipeline_setup['output_directory']['generate_quality_control_images'] and not ndmg_out:
                 for pip_id in pipeline_ids:
-                    pipeline_base = os.path.join(c.outputDirectory,
+                    pipeline_base = os.path.join(c.pipeline_setup['output_directory']['path'],
                                                  'pipeline_{0}'.format(pip_id))
 
                     sub_output_dir = os.path.join(pipeline_base, subject_id)
@@ -607,15 +607,15 @@ CPAC run error:
 
                 logger.info(execution_info.format(
                     workflow=workflow.name,
-                    pipeline=c.pipelineName,
-                    log_dir=c.logDirectory,
+                    pipeline=c.pipeline_setup['pipeline_name'],
+                    log_dir=c.pipeline_setup['log_directory']['path'],
                     elapsed=(time.time() - pipeline_start_time) / 60,
                     run_start=pipeline_start_datetime,
                     run_finish=strftime("%Y-%m-%d %H:%M:%S")
                 ))
 
                 # Remove working directory when done
-                if c.removeWorkingDir:
+                if c.pipeline_setup['working_directory']['remove_working_dir']:
                     try:
                         if os.path.exists(working_dir):
                             logger.info("Removing working dir: %s", working_dir)
@@ -670,10 +670,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=workflow_name)
-    workflow.base_dir = c.workingDirectory
+    workflow.base_dir = c.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(c.crashLogDirectory)
+        'crashdump_dir': os.path.abspath(c.pipeline_setup['crash_directory']['path'])
     }
 
     # Extract credentials path if it exists
@@ -735,7 +735,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             node = create_check_for_s3_node(
                 key,
                 getattr(c, key), key_type,
-                input_creds_path, c.workingDirectory, map_node=False
+                input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=False
             )
 
             setattr(c, key, node)
@@ -750,7 +750,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         node = create_check_for_s3_node(
             key,
             getattr(c, key), key_type,
-            input_creds_path, c.workingDirectory, map_node=True
+            input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=True
         )
 
         setattr(c, key, node)
@@ -770,7 +770,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         subject = subject_id,
         anat = sub_dict['anat'],
         creds_path = input_creds_path,
-        dl_dir = c.workingDirectory,
+        dl_dir = c.pipeline_setup['working_directory']['path'],
         img_type = 'anat'
     )
     
@@ -795,7 +795,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 anat_ingress_flow.inputs.inputnode.subject = subject_id
                 anat_ingress_flow.inputs.inputnode.anat = sub_dict[key]
                 anat_ingress_flow.inputs.inputnode.creds_path = input_creds_path
-                anat_ingress_flow.inputs.inputnode.dl_dir = c.workingDirectory
+                anat_ingress_flow.inputs.inputnode.dl_dir = c.pipeline_setup['working_directory']['path']
 
                 if key == 'brain_mask':
                     key = 'anatomical_brain_mask'
@@ -819,8 +819,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
 
-    if 1 in c.run_pypeer:
-        templates_for_resampling.append((c.resolution_for_func_preproc, c.eye_mask_path, 'template_eye_mask', 'resolution_for_func_preproc'))
+    if True in c.PyPEER['run']:
+        templates_for_resampling.append((c.resolution_for_func_preproc, c.PyPEER['eye_mask_path'], 'template_eye_mask', 'resolution_for_func_preproc'))
         Outputs.any.append("template_eye_mask")
 
     # update resampled template to resource pool
@@ -861,7 +861,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         subject = subject_id,
                         anat = resource_pool_dict[key],
                         creds_path = input_creds_path,
-                        dl_dir = c.workingDirectory,
+                        dl_dir = c.pipeline_setup['working_directory']['path'],
                         img_type = 'other'
                     )
 
@@ -880,7 +880,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                 subject = subject_id,
                                 anat = file_path,
                                 creds_path = input_creds_path,
-                                dl_dir = c.workingDirectory,
+                                dl_dir = c.pipeline_setup['working_directory']['path'],
                                 img_type = 'anat'
                             )
 
@@ -915,7 +915,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             subject = subject_id,
                             anat = resource_pool_dict[key],
                             creds_path = input_creds_path,
-                            dl_dir = c.workingDirectory,
+                            dl_dir = c.pipeline_setup['working_directory']['path'],
                             img_type = 'anat'
                         )
                         new_strat.update_resource_pool({
@@ -2701,7 +2701,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     spatial_map_dataflow.inputs.inputspec.set(
                         creds_path=input_creds_path,
-                        dl_dir=c.workingDirectory
+                        dl_dir=c.pipeline_setup['working_directory']['path']
                     )
 
                     spatial_map_timeseries = get_spatial_map_timeseries(
@@ -2763,7 +2763,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     spatial_map_dataflow_for_dr.inputs.inputspec.set(
                         creds_path=input_creds_path,
-                        dl_dir=c.workingDirectory
+                        dl_dir=c.pipeline_setup['working_directory']['path']
                     )
 
                     spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
@@ -2921,7 +2921,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     roi_dataflow_for_sca.inputs.inputspec.set(
                         creds_path=input_creds_path,
-                        dl_dir=c.workingDirectory
+                        dl_dir=c.pipeline_setup['working_directory']['path']
                     )
 
                     roi_timeseries_for_sca = get_roi_timeseries(
@@ -3377,7 +3377,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     try:
         # Get path to creds file
         creds_path = ''
-        if c.awsOutputBucketCredentials:
+        if c.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']:
             creds_path = str(c.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials'])
             creds_path = os.path.abspath(creds_path)
 
@@ -3439,13 +3439,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 if not c.pipeline_setup[
                     'output_directory'
-                ]['path']['write_func_outputs']:
+                ]['write_func_outputs']:
                     if resource in Outputs.extra_functional:
                         continue
 
                 if not c.pipeline_setup[
                     'output_directory'
-                ]['path']['write_debugging_outputs']:
+                ]['write_debugging_outputs']:
                     if resource in Outputs.debugging:
                         continue
 
@@ -3661,7 +3661,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 if resource == 'ants_initial_xfm' or resource == 'ants_rigid_xfm' or resource == 'ants_affine_xfm' \
                     or resource == 'ants_symmetric_initial_xfm' or resource == 'ants_symmetric_rigid_xfm' or resource == 'ants_symmetric_affine_xfm':
 
-                    ants_para = c.registration_workflow[
+                    ants_para = c.anatomical_preproc['registration_workflow'][
                         'registration'
                     ]['ANTs']['T1_registration']
                     for para_index in range(len(ants_para)):

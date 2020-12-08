@@ -49,6 +49,10 @@ pipeline_setup:
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
     remove_working_dir: True
 
+    # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
+    # Requires an intact Working Directory from a previous CPAC run.
+    regenerate_outputs :  False
+
   log_directory:
 
     # Whether to write log details of the pipeline run to the logging files.
@@ -56,7 +60,31 @@ pipeline_setup:
 
     path: /logs
 
+  crash_directory:
+
+    # Directory where CPAC should write crash logs.
+    path: /crash
+
   system_config:
+
+    # Select Off if you intend to run CPAC on a single machine.
+    # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
+    on_grid:  
+
+      run: Off
+
+      # Sun Grid Engine (SGE), Portable Batch System (PBS), or Simple Linux Utility for Resource Management (SLURM).
+      # Only applies if you are running on a grid or compute cluster.
+      resource_manager: SGE
+        
+      SGE:
+        # SGE Parallel Environment to use when running CPAC.
+        # Only applies when you are running on a grid or compute cluster using SGE.
+        parallel_environment:  mpi_smp
+
+        # SGE Queue to use when running CPAC.
+        # Only applies when you are running on a grid or compute cluster using SGE.
+        queue:  all.q
 
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.
@@ -96,6 +124,11 @@ pipeline_setup:
     s3_encryption: False
 
   pipeline_IMPORT: None
+
+
+# Full path to the FSL version to be used by CPAC.
+# If you have specified an FSL path in your .bashrc file, this path will be set automatically.
+FSLDIR :  /usr/share/fsl/5.0
 
 
 # PREPROCESSING

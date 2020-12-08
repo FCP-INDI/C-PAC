@@ -720,7 +720,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
     distcor = True if 'epi_distcorr' in nodes or \
             'blip_correct' in nodes else False
 
-    num_cpus = pipeline_config_obj.maxCoresPerParticipant
+    num_cpus = pipeline_config_obj.pipeline_setup['system_config']['max_cores_per_participant']
 
     if 'anat_mni_fnirt_register' in nodes or \
         'anat_mni_flirt_register' in nodes or \
@@ -750,7 +750,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 num_strat, strat, interpolation_method=interp,
                 distcor=distcor, map_node=map_node, inverse=inverse,
                 symmetry=symmetry, input_image_type=image_type,
-                num_ants_cores=pipeline_config_obj.num_ants_threads, 
+                num_ants_cores=pipeline_config_obj.pipeline_setup['system_config']['num_ants_threads'], 
                 registration_template=registration_template, 
                 func_type=func_type)
 

@@ -559,7 +559,7 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
 
     """
     try:
-        encrypt_data = bool(config.s3Encryption[0])
+        encrypt_data = bool(config.pipeline_setup['Amazon-AWS']['s3_encryption'])
     except:
         encrypt_data = False
 
@@ -568,21 +568,21 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
     try:
         # Get path to creds file
         creds_path = ''
-        if config.awsOutputBucketCredentials:
-            creds_path = str(config.awsOutputBucketCredentials)
+        if config.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']:
+            creds_path = str(config.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials'])
             creds_path = os.path.abspath(creds_path)
 
-        if config.outputDirectory.lower().startswith('s3://'):
+        if config.pipeline_setup['output_directory']['path'].lower().startswith('s3://'):
             # Test for s3 write access
             s3_write_access = \
                 aws_utils.test_bucket_access(creds_path,
-                                             config.outputDirectory)
+                                             config.pipeline_setup['output_directory']['path'])
 
             if not s3_write_access:
                 raise Exception('Not able to write to bucket!')
 
     except Exception as e:
-        if config.outputDirectory.lower().startswith('s3://'):
+        if config.pipeline_setup['output_directory']['path'].lower().startswith('s3://'):
             err_msg = 'There was an error processing credentials or ' \
                       'accessing the S3 bucket. Check and try again.\n' \
                       'Error: %s' % e
@@ -600,11 +600,11 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
             name='sinker_{}'.format(datasink_name)
         )
 
-    ds.inputs.base_directory = config.outputDirectory
+    ds.inputs.base_directory = config.pipeline_setup['output_directory']['path']
     ds.inputs.creds_path = creds_path
     ds.inputs.encrypt_bucket_keys = encrypt_data
     ds.inputs.container = os.path.join(
-        'pipeline_%s_%s' % (config.pipelineName, strat_name),
+        'pipeline_%s_%s' % (config.pipeline_setup['pipeline_name'], strat_name),
         subject_id, session_id
     )
     return ds
@@ -687,10 +687,10 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     """
 
     workflow = pe.Workflow(name="anat_longitudinal_template_" + str(subject_id))
-    workflow.base_dir = config.workingDirectory
+    workflow.base_dir = config.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+        'crashdump_dir': os.path.abspath(config.pipeline_setup['crash_directory']['path'])
     }
 
     # For each participant we have a list of dict (each dict is a session)
@@ -769,7 +769,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     file_path=getattr(config, key),
                     img_type=key_type,
                     creds_path=input_creds_path, 
-                    dl_dir=config.workingDirectory
+                    dl_dir=config.pipeline_setup['working_directory']['path']
                 )
                 
                 setattr(config, key, node)
@@ -784,7 +784,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             subject = subject_id,
             anat = session['anat'],
             creds_path = input_creds_path,
-            dl_dir = config.workingDirectory,
+            dl_dir = config.pipeline_setup['working_directory']['path'],
             img_type = 'anat'
         )
 
@@ -806,7 +806,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 subject = subject_id,
                 anat = session['brain_mask'],
                 creds_path = input_creds_path,
-                dl_dir = config.workingDirectory,
+                dl_dir = config.pipeline_setup['working_directory']['path'],
                 img_type = 'anat'
             )
 
@@ -1246,17 +1246,17 @@ def func_preproc_longitudinal_wf(subject_id, sub_list, config):
     """
 
     datasink = pe.Node(nio.DataSink(), name='sinker')
-    datasink.inputs.base_directory = config.workingDirectory
+    datasink.inputs.base_directory = config.pipeline_setup['working_directory']['path']
 
     session_id_list = []
     ses_list_strat_list = {}
 
     workflow_name = 'func_preproc_longitudinal_' + str(subject_id) 
     workflow = pe.Workflow(name=workflow_name)
-    workflow.base_dir = config.workingDirectory
+    workflow.base_dir = config.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+        'crashdump_dir': os.path.abspath(config.pipeline_setup['crash_directory']['path'])
     }
 
     for sub_dict in sub_list:
@@ -1605,10 +1605,10 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
 
     workflow_name = 'func_longitudinal_template_' + str(subject_id) 
     workflow = pe.Workflow(name=workflow_name)
-    workflow.base_dir = config.workingDirectory
+    workflow.base_dir = config.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+        'crashdump_dir': os.path.abspath(config.pipeline_setup['crash_directory']['path'])
     }
 
     # strat_nodes_list = strat_list['func_default']
@@ -1646,7 +1646,7 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
                                                as_module=True),
                                         name='merge_func_preproc')
                                         
-    merge_func_preproc_node.inputs.working_directory = config.workingDirectory
+    merge_func_preproc_node.inputs.working_directory = config.pipeline_setup['working_directory']['path']
 
     template_node = subject_specific_template(
         workflow_name='subject_specific_func_template_' + subject_id
