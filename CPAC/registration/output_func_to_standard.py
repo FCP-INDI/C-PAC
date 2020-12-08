@@ -737,7 +737,9 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 ref_key, num_strat, strat, interp, distcor=distcor,
                 map_node=map_node, func_ts=func_ts, num_cpus=num_cpus)
 
-    elif 'ANTS' in pipeline_config_obj.regOption:
+    elif 'ANTS' in pipeline_config_obj.anatomical_preproc[
+            'registration_workflow'
+        ]['registration']['using']:
 
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'NearestNeighbor'

@@ -18,7 +18,7 @@ valid_options = {
 }
 
 schema = Schema({
-    Required('pipeline_setup'): {
+    'pipeline_setup': {
         Required('pipeline_name'): All(str, Length(min=1)),
         Required('working_directory'): {
             Required('path'): str,
@@ -101,7 +101,7 @@ schema = Schema({
     # 'bet_surfaces': bool,  # check/normalize
     # 'bet_threshold': bool,  # check/normalize
     # 'bet_vertical_gradient': float,
-    Required('anatomical_preproc'): {
+    'anatomical_preproc': {
         Required('registration_workflow'): {
             Required('registration'): {
                 Required('using'): [In({'ANTS', 'FSL'})],
@@ -218,7 +218,7 @@ schema = Schema({
     #
     # 'runRegisterFuncToMNI': [bool], # check/normalize
     # 'resolution_for_func_preproc': All(str, Match(r'^[0-9]+mm$')),
-    Required('functional_registration'): {
+    'functional_registration': {
         Required('1-coregistration'): {
             Required('run'): [bool],
             'func_input_prep': {
@@ -244,7 +244,7 @@ schema = Schema({
     # 'template_skull_for_func': str,
     # 'identityMatrix': str,
     # 'configFileTwomm': str,
-    Required('nuisance_corrections'): {
+    'nuisance_corrections': {
         Required('1-ICA-AROMA'): {
             Required('run'): [bool],
             'denoising_type': In({'aggr', 'nonaggr'}),
@@ -281,15 +281,15 @@ schema = Schema({
             Required('bandpass_filtering_order'): In({'After', 'Before'})
         },
     },
-    Required('amplitude_low_frequency_fluctuation'): {
+    'amplitude_low_frequency_fluctuation': {
         Required('run'): bool,
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
-    Required('voxel_mirrored_homotopic_connectivity'): {
+    'voxel_mirrored_homotopic_connectivity': {
         Required('run'): bool,
     },
-    Required('regional_homogeneity'): {
+    'regional_homogeneity': {
         Required('run'): bool,
         'clusterSize': In({7, 19, 27}),
     },
@@ -316,7 +316,7 @@ schema = Schema({
         'roi_tse_outputs': Any(None, [In({None, 'csv', 'numpy'})]),
     },
 
-    Required('seed_based_correlation_analysis'): {
+    'seed_based_correlation_analysis': {
         Required('run'): bool,
         'sca_roi_paths': Any(None, {
             str: In({', '.join([
@@ -376,7 +376,7 @@ schema = Schema({
     # 'isc_voxelwise': bool,
     # 'isc_roiwise': bool,
     # 'isc_permutations': int,
-    Required('network_centrality'): {
+    'network_centrality': {
         Required('run'): [bool],
         'memory_allocation': Any(float, int),
         'template_specification_file': str,
@@ -408,7 +408,7 @@ schema = Schema({
             'correlation_threshold': Range(min=-1, max=1)
         },
     },
-    Required('PyPEER'): {
+    'PyPEER': {
         Required('run'): [bool],
     },
 }, extra=ALLOW_EXTRA)

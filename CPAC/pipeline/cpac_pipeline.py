@@ -432,7 +432,7 @@ Please, make yourself aware of how it works and its assumptions:
                 )
 
             # PyPEER kick-off
-            if False in c.PyPEER['run']:
+            if True in c.PyPEER['run']:
                 from CPAC.pypeer.peer import prep_for_pypeer
                 prep_for_pypeer(c.PyPEER['eye_scan_names'], c.PyPEER['data_scan_names'],
                                 c.PyPEER['eye_mask_path'], c.pipeline_setup['output_directory']['path'], subject_id,
@@ -634,35 +634,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         already_skullstripped = 0
     elif already_skullstripped == 3:
         already_skullstripped = 1
-
-    # Not neccessary, schema validator will check it. 
-    '''
-    if 'ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using']:
-
-        # if someone doesn't have anatomical Registration ANTs interpolation in their pipe config,
-        # it will default to LanczosWindowedSinc
-        if not hasattr(c, 'anatomical_preproc['registration_workflow']['registration']['ANTs']['interpolation']'):
-            setattr(c, 'anatomical_preproc['registration_workflow']['registration']['ANTs']['interpolation']', 'LanczosWindowedSinc')
-
-        if c.anatomical_preproc['registration_workflow']['registration']['ANTs']['interpolation'] not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
-            raise Exception(err_msg)
-
-        if c.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation'] not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
-            raise Exception(err_msg)
-
-    if 'FSL' in c.anatomical_preproc['registration_workflow']['registration']['using']:
-
-        # if someone doesn't have anatomical Registration FSL interpolation in their pipe config,
-        # it will default to sinc
-        if not hasattr(c, 'anatRegFSLinterpolation'):
-            setattr(c, 'anatRegFSLinterpolation', 'sinc')
-
-        if c.anatRegFSLinterpolation not in ["trilinear", "sinc", "spline"]:
-            err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
-            raise Exception(err_msg)
-    '''
 
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)
@@ -1176,7 +1147,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 )
 
                 # Input registration parameters
-                flirt_reg_anat_mni.inputs.inputspec.interp = c.anatRegFSLinterpolation
+                flirt_reg_anat_mni.inputs.inputspec.interp = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['interpolation']
 
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
@@ -1426,7 +1397,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
 
                     # Input registration parameters
-                    flirt_reg_anat_symm_mni.inputs.inputspec.interp = c.anatRegFSLinterpolation
+                    flirt_reg_anat_symm_mni.inputs.inputspec.interp = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['interpolation']
 
                     node, out_file = strat['anatomical_brain']
                     workflow.connect(node, out_file,
@@ -2853,7 +2824,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_functional_roi.inputs.realignment = c.timeseries_extraction['realignment']
                     resample_functional_roi.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                    ]['FNIRT_pipelines']['identityMatrix']
+                    ]['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -2929,7 +2900,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_functional_roi_for_sca.inputs.realignment = c.timeseries_extraction['realignment']
                     resample_functional_roi_for_sca.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                    ]['FNIRT_pipelines']['identityMatrix']
+                    ]['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
@@ -2982,7 +2953,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_functional_roi_for_multreg.inputs.realignment = c.timeseries_extraction['realignment']
                     resample_functional_roi_for_multreg.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                    ]['FNIRT_pipelines']['identityMatrix']
+                    ]['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
                         sca_analysis_dict["MultReg"],
@@ -3082,7 +3053,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 resample_functional_to_mask.inputs.realignment = c.timeseries_extraction['realignment']
                 resample_functional_to_mask.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                ]['FNIRT_pipelines']['identityMatrix']
+                ]['FNIRT_pipelines']['identity_matrix']
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
                                                         'mask_dataflow_%d' % num_strat)
@@ -3214,7 +3185,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Section: Network centrality
 
         # TODO ASH handle as boolean on schema validator / normalizer
-        if 1 in c.runNetworkCentrality:
+        if True in c.network_centrality['run']:
 
             # TODO ASH move to schema validator
             # validate the mask file path

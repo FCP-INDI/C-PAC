@@ -219,15 +219,15 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                 )
 
                 workflow.connect(
-                    c.PRIORS_GRAY, 'local_path',
+                    c.anatomical_preproc['segmentation_workflow']['2-use_priors']['GM_path'], 'local_path',
                     carpet_seg, 'inputspec.anatomical_gm_mask'
                 )
                 workflow.connect(
-                    c.PRIORS_WHITE, 'local_path',
+                    c.anatomical_preproc['segmentation_workflow']['2-use_priors']['WM_path'], 'local_path',
                     carpet_seg, 'inputspec.anatomical_wm_mask'
                 )
                 workflow.connect(
-                    c.PRIORS_CSF, 'local_path',
+                    c.anatomical_preproc['segmentation_workflow']['2-use_priors']['CSF_path'], 'local_path',
                     carpet_seg, 'inputspec.anatomical_csf_mask'
                 )
 

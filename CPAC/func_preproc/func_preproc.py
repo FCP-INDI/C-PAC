@@ -1431,12 +1431,12 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     # Grab the number of volumes
     nvols = int(hdr.get_data_shape()[3])
 
-    if (start_idx == 'None') or (int(start_idx) < 0) or (int(start_idx) > (nvols - 1)):
+    if (start_idx == None) or (int(start_idx) < 0) or (int(start_idx) > (nvols - 1)):
         startidx = 0
     else:
         startidx = int(start_idx)
 
-    if (stop_idx == 'None') or (int(stop_idx) > (nvols - 1)):
+    if (stop_idx == None) or (int(stop_idx) > (nvols - 1)):
         stopidx = nvols - 1
     else:
         stopidx = int(stop_idx)
