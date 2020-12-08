@@ -34,7 +34,7 @@ def load_config_yml(config_file, individual=False):
         config.pipeline_setup['log_directory']['path'] = os.path.abspath(config.pipeline_setup['log_directory']['path'])
         config.pipeline_setup['working_directory']['path'] = os.path.abspath(config.pipeline_setup['working_directory']['path'])
         config.pipeline_setup['output_directory']['path'] = os.path.abspath(config.pipeline_setup['output_directory']['path'])
-        config.pipeline_setup['crash_directory']['path'] = os.path.abspath(config.pipeline_setup['crash_directory']['path'])
+        config.pipeline_setup['crash_log_directory']['path'] = os.path.abspath(config.pipeline_setup['crash_log_directory']['path'])
 
     return config
 

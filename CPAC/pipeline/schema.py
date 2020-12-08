@@ -14,23 +14,45 @@ centrality_options = {
 schema = Schema({
     'pipeline_setup': {
         Required('pipeline_name'): All(str, Length(min=1)),
+        Required('output_directory'): {
+            Required('path'): str,
+            'write_func_outputs': bool,
+            'write_debugging_outputs': bool,
+            'output_tree': str,
+            'generate_quality_control_images': bool,
+        },
         Required('working_directory'): {
             Required('path'): str,
+            'remove_working_dir': bool,
         },
-        # Required('crash_log_directory'): str,
         Required('log_directory'): {
+            'run_logging': bool,
             Required('path'): str,
         },
-        Required('output_directory'): {
+        Required('crash_log_directory'): {
             Required('path'): str,
         },
         Required('system_config'): {
+            'on_grid':{
+                Required('run'): bool,
+                'resource_manager': Any(None, str),
+                'SGE': {
+                    'parallel_environment': Any(None, str),
+                    'queue': Any(None, str),
+                },
+            },
             'maximum_memory_per_participant': Any(float, int),
             'max_cores_per_participant': int,
             'num_ants_threads': int,
             'num_participants_at_once': int
         },
+        'Amazon-AWS':{
+            'aws_output_bucket_credentials': Any(None, str),
+            's3_encryption': bool,
+        },
+        'pipeline_IMPORT': Any(None, str),
     },
+    'FSLDIR': Any(None, str),
 
     'anatomical_preproc': {
         Required('run'): bool,

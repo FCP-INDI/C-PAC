@@ -380,10 +380,10 @@ elif args.analysis_level in ["test_config", "participant"]:
     c['pipeline_setup']['output_directory']['path'] = os.path.join(args.output_dir, "output")
 
     if "s3://" not in args.output_dir.lower():
-        c['pipeline_setup']['crash_directory']['path'] = os.path.join(args.output_dir, "crash")
+        c['pipeline_setup']['crash_log_directory']['path'] = os.path.join(args.output_dir, "crash")
         c['pipeline_setup']['log_directory']['path'] = os.path.join(args.output_dir, "log")
     else:
-        c['pipeline_setup']['crash_directory']['path'] = os.path.join(DEFAULT_TMP_DIR, "crash")
+        c['pipeline_setup']['crash_log_directory']['path'] = os.path.join(DEFAULT_TMP_DIR, "crash")
         c['pipeline_setup']['log_directory']['path'] = os.path.join(DEFAULT_TMP_DIR, "log")
 
     if args.mem_gb:
@@ -445,7 +445,7 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     print("Output directory: {0}".format(c['pipeline_setup']['output_directory']['path']))
     print("Working directory: {0}".format(c['pipeline_setup']['working_directory']['path']))
-    print("Crash directory: {0}".format(c['pipeline_setup']['crash_directory']['path']))
+    print("Crash directory: {0}".format(c['pipeline_setup']['crash_log_directory']['path']))
     print("Log directory: {0}".format(c['pipeline_setup']['log_directory']['path']))
     print("Remove working directory: {0}".format(c['pipeline_setup']['working_directory']['remove_working_dir']))
     print("Available memory: {0} (GB)".format(c['pipeline_setup']['system_config']['maximum_memory_per_participant']))

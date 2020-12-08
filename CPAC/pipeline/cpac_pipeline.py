@@ -675,7 +675,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     workflow.base_dir = c.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(c.pipeline_setup['crash_directory']['path'])
+        'crashdump_dir': os.path.abspath(c.pipeline_setup['crash_log_directory']['path'])
     }
 
     # Extract credentials path if it exists

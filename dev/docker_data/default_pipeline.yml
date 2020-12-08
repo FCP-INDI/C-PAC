@@ -57,7 +57,7 @@ pipeline_setup:
 
     path: /logs
 
-  crash_directory:
+  crash_log_directory:
 
     # Directory where CPAC should write crash logs.
     path: /crash
