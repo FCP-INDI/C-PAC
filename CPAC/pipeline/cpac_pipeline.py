@@ -432,7 +432,7 @@ Please, make yourself aware of how it works and its assumptions:
                 )
 
             # PyPEER kick-off
-            if False in c.PyPEER['run']:
+            if True in c.PyPEER['run']:
                 from CPAC.pypeer.peer import prep_for_pypeer
                 prep_for_pypeer(c.PyPEER['eye_scan_names'], c.PyPEER['data_scan_names'],
                                 c.PyPEER['eye_mask_path'], c.pipeline_setup['output_directory']['path'], subject_id,
