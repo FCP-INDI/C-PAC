@@ -108,7 +108,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
     elif already_skullstripped == 3:
         already_skullstripped = 1
 
-    sub_mem_gb, num_cores_per_sub, num_ants_cores = \
+    sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = \
         check_config_resources(c)
     
     new_strat_list = []
@@ -1396,7 +1396,7 @@ def merge_func_preproc(working_directory):
 
 def register_func_longitudinal_template_to_standard(longitudinal_template_node, c, workflow, strat_init, strat_name):
 
-    sub_mem_gb, num_cores_per_sub, num_ants_cores = \
+    sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = \
         check_config_resources(c)
 
     strat_init_new = strat_init.fork()
