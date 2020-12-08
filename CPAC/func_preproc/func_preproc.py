@@ -1799,13 +1799,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                 'motion_estimate_filter_info_design': (func_preproc, 'outputspec.motion_filter_info'),
                 'motion_estimate_filter_info_plot': (func_preproc, 'outputspec.motion_filter_plot')
             })
-
-            if 'func' in c.run_longitudinal:
-                strat.update_resource_pool({
-                    'functional_preprocessed_median': (func_preproc, 'outputspec.preprocessed_median'),
-                    'motion_correct_median': (func_preproc, 'outputspec.motion_correct_median'),                                
-                })
-
+            
             new_strat_list.append(strat)
 
         else:

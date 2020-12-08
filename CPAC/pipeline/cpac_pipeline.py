@@ -1219,7 +1219,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # assign the FSL FNIRT config file specified in pipeline
                     # config.yml
-                    fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
+                    fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['fnirt_config']
 
                     if 1 in fsl_linear_reg_only:
                         strat = strat.fork()

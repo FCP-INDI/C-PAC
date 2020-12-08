@@ -214,7 +214,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
 
                 # assign the FSL FNIRT config file specified in pipeline
                 # config.yml
-                fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
+                fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['fnirt_config']
 
                 if 1 in fsl_linear_reg_only:
                     strat = strat.fork()
@@ -1490,7 +1490,7 @@ def register_func_longitudinal_template_to_standard(longitudinal_template_node, 
 
                 # assign the FSL FNIRT config file specified in pipeline
                 # config.yml
-                fnirt_reg_func_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
+                fnirt_reg_func_mni.inputs.inputspec.fnirt_config = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['fnirt_config']
 
                 if 1 in fsl_linear_reg_only:
                     strat = strat.fork()
