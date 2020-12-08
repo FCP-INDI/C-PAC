@@ -216,7 +216,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     # TODO: TEMPORARY
     # TODO: solve the UNet model hanging issue during MultiProc
-    if "unet" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
+    if "UNet" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
         c.pipeline_setup['system_config']['max_cores_per_participant'] = 1
         logger.info("\n\n[!] LOCKING CPUs PER PARTICIPANT TO 1 FOR U-NET "
                     "MODEL.\n\nThis is a temporary measure due to a known "
@@ -297,16 +297,16 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
 
-    check_centrality_degree = 1 in c.runNetworkCentrality and \
-                              (True in c.degWeightOptions or \
-                               True in c.eigWeightOptions)
+    check_centrality_degree = True in c.network_centrality['run'] and \
+                              (len(c.network_centrality['degree_centrality']['weight_options']) != 0 or \
+                               len(c.network_centrality['eigenvector_centrality']['weight_options']) != 0 )
 
-    check_centrality_lfcd = 1 in c.runNetworkCentrality and \
-                            True in c.lfcdWeightOptions
+    check_centrality_lfcd = True in c.network_centrality['run'] and \
+                            len(c.network_centrality['local_functional_connectivity_density']['weight_options']) != 0
 
     # Check system dependencies
-    check_system_deps(check_ants='ANTS' in c.regOption,
-                      check_ica_aroma='1' in str(c.runICA[0]),
+    check_system_deps(check_ants='ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using'],
+                      check_ica_aroma=True in c.nuisance_corrections['1-ICA-AROMA']['run'],
                       check_centrality_degree=check_centrality_degree,
                       check_centrality_lfcd=check_centrality_lfcd)
 
@@ -336,17 +336,17 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
         #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
         #        pickle.dump(strat_list, f)
 
-        if c.pipeline_setup['working_directory']['regenerate_outputs'] is True:
+        # if c.pipeline_setup['working_directory']['regenerate_outputs'] is True:
 
-            erasable = list(find_files(working_dir, '*sink*')) + \
-                list(find_files(working_dir, '*link*')) + \
-                list(find_files(working_dir, '*log*'))
+        #     erasable = list(find_files(working_dir, '*sink*')) + \
+        #         list(find_files(working_dir, '*link*')) + \
+        #         list(find_files(working_dir, '*log*'))
 
-            for f in erasable:
-                if os.path.isfile(f):
-                    os.remove(f)
-                else:
-                    shutil.rmtree(f)
+        #     for f in erasable:
+        #         if os.path.isfile(f):
+        #             os.remove(f)
+        #         else:
+        #             shutil.rmtree(f)
 
         if hasattr(c, 'trim') and c.trim:
 
@@ -629,25 +629,27 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
     # TODO ASH temporary code, remove
     # TODO ASH maybe scheme validation/normalization
-    already_skullstripped = c.already_skullstripped[0]
+    already_skullstripped = c.anatomical_preproc['brain_extraction']['already_skullstripped']
     if already_skullstripped == 2:
         already_skullstripped = 0
     elif already_skullstripped == 3:
         already_skullstripped = 1
 
-    if 'ANTS' in c.regOption:
+    # Not neccessary, schema validator will check it. 
+    '''
+    if 'ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using']:
 
-        # if someone doesn't have anatRegANTSinterpolation in their pipe config,
+        # if someone doesn't have anatomical Registration ANTs interpolation in their pipe config,
         # it will default to LanczosWindowedSinc
         if not hasattr(c, 'anatRegANTSinterpolation'):
             setattr(c, 'anatRegANTSinterpolation', 'LanczosWindowedSinc')
 
-        if c.anatRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
+        if c.anatomical_preproc['registration_workflow']['registration']['ANTs']['interpolation'] not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
             err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
             raise Exception(err_msg)
 
-        # if someone doesn't have funcRegANTSinterpolation in their pipe config,
-        # it will default to LanczosWindowedSinc
+        # # if someone doesn't have functional Registration ANTs interpolation in their pipe config,
+        # # it will default to LanczosWindowedSinc
         if not hasattr(c, 'funcRegANTSinterpolation'):
                setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
 
@@ -655,9 +657,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
             raise Exception(err_msg)
 
-    if 'FSL' in c.regOption:
+    if 'FSL' in c.anatomical_preproc['registration_workflow']['registration']['using']:
 
-        # if someone doesn't have anatRegFSLinterpolation in their pipe config,
+        # if someone doesn't have anatomical Registration FSL interpolation in their pipe config,
         # it will default to sinc
         if not hasattr(c, 'anatRegFSLinterpolation'):
             setattr(c, 'anatRegFSLinterpolation', 'sinc')
@@ -665,7 +667,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         if c.anatRegFSLinterpolation not in ["trilinear", "sinc", "spline"]:
             err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
             raise Exception(err_msg)
-
+    '''
 
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)
@@ -693,67 +695,92 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         input_creds_path = None
 
     # check if lateral_ventricles_mask exist
-    if str(c.lateral_ventricles_mask).lower() in ['none', 'false']:
+    if str(c.nuisance_corrections['2-nuisance_regression']['lateral_ventricles_mask']).lower() in ['none', 'false']:
         ventricle_mask_exist = False
     else:
         ventricle_mask_exist = True
 
     # check acpc alignment target
-    if c.acpc_align and str(c.acpc_template_skull).lower() in ['none', 'false']:
+    if c.anatomical_preproc['acpc_alignment']['run'] and str(c.anatomical_preproc['acpc_alignment']['template_skull']).lower() in ['none', 'false']:
         err = "\n\n[!] C-PAC says: You have choosed ACPC alignment, " \
                     "but you did not provide ACPC alignment template. " \
-                    "Options you provided:\nacpc_template_skull: {0}" \
-                        '\n\n'.format(str(c.acpc_template_skull))
+                    "Options you provided:\nacpc_alignment: template_skull: {0}" \
+                        '\n\n'.format(str(c.anatomical_preproc['acpc_alignment']['template_skull']))
         raise Exception(err)
-    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false', ''] and str(c.acpc_template_brain).lower() in ['none', 'false', '']:
+    elif c.anatomical_preproc['acpc_alignment']['run'] and str(c.anatomical_preproc['acpc_alignment']['template_skull']).lower() not in ['none', 'false', ''] and str(c.anatomical_preproc['acpc_alignment']['template_brain']).lower() in ['none', 'false', '']:
         acpc_target = 'whole-head'
-    elif c.acpc_align and str(c.acpc_template_skull).lower() not in ['none', 'false', ''] and str(c.acpc_template_brain).lower() not in ['none', 'false', '']:
+    elif c.anatomical_preproc['acpc_alignment']['run'] and str(c.anatomical_preproc['acpc_alignment']['template_skull']).lower() not in ['none', 'false', ''] and str(c.anatomical_preproc['acpc_alignment']['template_brain']).lower() not in ['none', 'false', '']:
         acpc_target = 'brain'
     else:
         acpc_target = None
     
     # TODO ASH normalize file paths with schema validator
     template_keys = [
-        ("anat", "templateSpecificationFile"),
-        ("anat", "lateral_ventricles_mask"),
-        ("anat", "PRIORS_CSF"),
-        ("anat", "PRIORS_GRAY"),
-        ("anat", "PRIORS_WHITE"),
-        ("other", "configFileTwomm"),
-        ("anat", "template_based_segmentation_CSF"),
-        ("anat", "template_based_segmentation_GRAY"),
-        ("anat", "template_based_segmentation_WHITE"),
-        ("anat", "template_based_segmentation_WHITE"),
-        ("anat", "acpc_template_skull"),
-        ("anat", "acpc_template_brain"),
+        ("anat", ["network_centrality", "template_specification_file"]),
+        ("anat", ["nuisance_corrections", "2-nuisance_regression", "lateral_ventricles_mask"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "2-use_priors", "CSF_path"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "2-use_priors", "GM_path"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "2-use_priors", "WM_path"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "Template_Based", "CSF"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "Template_Based", "GRAY"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "Template_Based", "WHITE"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "template_skull"]),
+        ("anat", ["anatomical_preproc", "acpc_alignment", "template_brain"]),
+        ("other", ["voxel_mirrored_homotopic_connectivity", "symmetric_registration", "FNIRT_pipelines", "config_file"]),
     ]
 
-    for key_type, key in template_keys:
+    def get_nested_attr(c, template_key):
+        attr = getattr(c, template_key[0])
+        keys = template_key[1:]
+        def _get_nested(attr, keys):
+            if len(keys) > 1:
+                return(_get_nested(attr[keys[0]], keys[1:]))
+            elif len(keys):
+                return(attr[keys[0]])
+            else:
+                return(attr)
+        return(_get_nested(attr, keys))
 
-        if isinstance(getattr(c, key), str) or getattr(c, key) == None:
+    def set_nested_attr(c, template_key, value):
+        attr = getattr(c, template_key[0])
+        keys = template_key[1:]
+        def _set_nested(attr, keys):
+            if len(keys) > 1:
+                return(_set_nested(attr[keys[0]], keys[1:]))
+            elif len(keys):
+                attr[keys[0]]=value
+            else:
+                return(attr)
+        return(_set_nested(attr, keys))
+
+    for key_type, key in template_keys:
+        
+        attr = get_nested_attr(c, key)
+
+        if isinstance(attr, str) or attr == None:
             
             node = create_check_for_s3_node(
-                key,
-                getattr(c, key), key_type,
+                key[-1],
+                attr, key_type,
                 input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=False
             )
 
-            setattr(c, key, node)
-    
+            set_nested_attr(c, key, node)
+
     template_keys_in_list = [
-        ("anat", "ANTs_prior_seg_template_brain_list"),
-        ("anat", "ANTs_prior_seg_template_segmentation_list"),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "ANTs_Prior_Based", "template_brain_list"]),
+        ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "ANTs_Prior_Based", "template_segmentation_list"]),
     ]
 
     for key_type, key in template_keys_in_list:
 
         node = create_check_for_s3_node(
-            key,
-            getattr(c, key), key_type,
+            key[-1],
+            get_nested_attr(c, key), key_type,
             input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=True
         )
 
-        setattr(c, key, node)
+        set_nested_attr(c, key, node)
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
@@ -958,9 +985,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical_brain_mask']
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.brain_mask')
-                workflow.connect(c.acpc_template_skull, 'local_path',
+                workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
                                 anat_preproc, 'inputspec.template_skull_for_acpc')                               
-                workflow.connect(c.acpc_template_brain, 'local_path',
+                workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                 anat_preproc, 'inputspec.template_brain_only_for_acpc')
 
                 new_strat.append_name(anat_preproc.name)
@@ -990,9 +1017,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 node, out_file = new_strat['anatomical']
                 workflow.connect(node, out_file,
                                  anat_preproc, 'inputspec.anat')
-                workflow.connect(c.acpc_template_skull, 'local_path',
+                workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
                                 anat_preproc, 'inputspec.template_skull_for_acpc')                               
-                workflow.connect(c.acpc_template_brain, 'local_path',
+                workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                 anat_preproc, 'inputspec.template_brain_only_for_acpc')
 
                 new_strat.append_name(anat_preproc.name)
@@ -1006,14 +1033,17 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 new_strat_list += [new_strat]
 
             else:
-                if not any(o in c.skullstrip_option for o in ["AFNI", "FSL", "niworkflows-ants", "unet"]):
+                if not any(o in c.anatomical_preproc['brain_extraction']['extraction']['using'] for o in ["3dSkullStrip", "BET", "UNet", "niworkflows-ants"]):
                     err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
-                        'setting does not include either \'AFNI\' or \'FSL\' or \'niworkflows-ants\'.\n\n' \
-                        'Options you provided:\nskullstrip_option: {0}' \
-                        '\n\n'.format(str(c.skullstrip_option))
+                        'setting does not include either \'3dSkullStrip\' or \'BET\' or \'UNet\' or \'niworkflows-ants\'.\n\n' \
+                        'Options you provided:\nbrain_extraction: \n' \
+                        'extraction: \n' \
+                        'using:[{0}]\n\n'.format(
+                        str(c.anatomical_preproc['brain_extraction']['extraction']['using']))
+ 
                     raise Exception(err)
 
-                if "AFNI" in c.skullstrip_option:
+                if "3dSkullStrip" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
 
                     anat_preproc = create_anat_preproc(method='afni',
                                                     config=c,
@@ -1024,9 +1054,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    workflow.connect(c.acpc_template_skull, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_acpc')                               
-                    workflow.connect(c.acpc_template_brain, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
@@ -1038,7 +1068,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat_list += [new_strat]
 
-                if "FSL" in c.skullstrip_option:
+                if "BET" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
                     anat_preproc = create_anat_preproc(method='fsl',
                                                     config=c,
                                                     acpc_target=acpc_target,
@@ -1048,9 +1078,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    workflow.connect(c.acpc_template_skull, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_acpc')                               
-                    workflow.connect(c.acpc_template_brain, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
@@ -1062,7 +1092,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat_list += [new_strat]
 
-                if "niworkflows-ants" in c.skullstrip_option:
+                if "niworkflows-ants" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
                     anat_preproc = create_anat_preproc(method='niworkflows-ants',
                                                     config=c,
                                                     acpc_target=acpc_target,
@@ -1072,9 +1102,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['anatomical']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
-                    workflow.connect(c.acpc_template_skull, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_acpc')                               
-                    workflow.connect(c.acpc_template_brain, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
@@ -1086,7 +1116,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat_list += [new_strat]
 
-                if "unet" in c.skullstrip_option:
+                if "UNet" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
                     anat_preproc = create_anat_preproc(method='unet',
                                                     config=c,
                                                     acpc_target=acpc_target,
@@ -1102,9 +1132,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['template_skull_for_anat']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.template_skull_for_anat')
-                    workflow.connect(c.acpc_template_skull, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
                                     anat_preproc, 'inputspec.template_skull_for_acpc')                               
-                    workflow.connect(c.acpc_template_brain, 'local_path',
+                    workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')

@@ -130,7 +130,7 @@ def fsl_aff_to_rigid(in_xfm, out_name):
 def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
                                    shrink_fac_bot_lim, avoid_vent, niter,
                                    pushout, touchup, fill_hole, avoid_eyes,
-                                   use_edge, exp_frac, smooth_final,
+                                   use_edge, exp_frac, NN_smooth, smooth_final,
                                    push_to_edge, use_skull, perc_int,
                                    max_inter_iter, blur_fwhm, fac, monkey, mask_vol):
     """
@@ -170,6 +170,9 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     exp_frac : float
         Speed of expansion
+
+    NN_smooth : float
+        Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
 
     smooth_final : float
         Perform final surface smoothing after all iterations
@@ -212,6 +215,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
         shrink_fac_bot_lim=0.4 if use_edge else 0.65,
         niter=250,
         exp_frac=0.1,
+        NN_smooth=72,
         smooth_final=20,
         perc_int=0,
         max_inter_iter=4,
@@ -260,6 +264,9 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
     if float(exp_frac) != defaults['exp_frac']:
         expr += ' -exp_frac {0}'.format(exp_frac)
 
+    if int(NN_smooth) != defaults['NN_smooth']:
+        expr += ' -NN_smooth {0}'.format(NN_smooth)
+        
     if int(smooth_final) != defaults['smooth_final']:
         expr += ' -smooth_final {0}'.format(smooth_final)
 

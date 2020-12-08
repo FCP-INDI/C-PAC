@@ -517,7 +517,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
                 
                 # skip main preprocessing
-                if 1 not in c.runAnatomical and 1 not in c.runFunctional:
+                if not c.anatomical_preproc['run'] and not c.functional_preproc['run']:
                     import sys
                     sys.exit()
 

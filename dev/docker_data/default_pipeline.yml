@@ -49,9 +49,6 @@ pipeline_setup:
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
     remove_working_dir: True
 
-    # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
-    # Requires an intact Working Directory from a previous CPAC run.
-    regenerate_outputs :  False
 
   log_directory:
 
@@ -135,6 +132,8 @@ FSLDIR :  /usr/share/fsl/5.0
 # -------------
 
 anatomical_preproc:
+
+  run: On
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering: False

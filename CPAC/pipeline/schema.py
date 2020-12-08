@@ -33,6 +33,7 @@ schema = Schema({
     },
 
     'anatomical_preproc': {
+        Required('run'): bool,
         Required('non_local_means_filtering'): bool,
         Required('n4_bias_field_correction'): bool,
         Required('acpc_alignment'): {
