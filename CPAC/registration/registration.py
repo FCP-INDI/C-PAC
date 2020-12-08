@@ -1089,11 +1089,11 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
                     workflow.connect(node, out_file,
                                         func_to_anat_bbreg,
                                         'inputspec.anat_wm_segmentation')
-                elif 'FreeSurfer' in c.segmentation_method:
-                    node, out_file = strat['anatomical_wm_mask']
-                    workflow.connect(node, out_file,
-                                        func_to_anat_bbreg,
-                                        'inputspec.anat_wm_segmentation')
+                # elif 'FreeSurfer' in c.segmentation_method:
+                #     node, out_file = strat['anatomical_wm_mask']
+                #     workflow.connect(node, out_file,
+                #                         func_to_anat_bbreg,
+                #                         'inputspec.anat_wm_segmentation')
                 else:
                     # Input segmentation probability maps for white matter
                     # segmentation
