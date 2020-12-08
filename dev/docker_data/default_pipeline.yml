@@ -262,7 +262,9 @@ anatomical_preproc:
   segmentation_workflow:
 
     # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
-    run: On
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
 
     1-segmentation:
 
