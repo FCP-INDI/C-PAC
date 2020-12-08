@@ -105,7 +105,7 @@ pipeline_setup:
     # The number of cores to allocate to ANTS-based anatomical registration per participant.
     # - Multiple cores can greatly speed up this preprocessing step.
     # - This number cannot be greater than the number of cores per participant.
-    num_ants_threads: 4
+    num_ants_threads: 1
 
     # The number of participant workflows to run at the same time.
     # - The maximum number of cores your run can possibly employ will be this setting
