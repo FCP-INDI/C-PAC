@@ -3,12 +3,12 @@ MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 # install FreeSurfer
 # set shell to BASH
-ENV FREESURFER_HOME=/usr/lib/freesurfer
+ENV FREESURFER_HOME="/usr/lib/freesurfer" \
+    PATH="/usr/lib/freesurfer/bin:$PATH"
 SHELL ["/bin/bash", "-c"]
-RUN curl https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/dev/freesurfer-linux-centos6_x86_64-dev.tar.gz -o /usr/lib/freesurfer.tar.gz && \
-    tar -xzvf /usr/lib/freesurfer.tar.gz -C /usr/lib && \
-    source $FREESURFER_HOME/SetUpFreeSurfer.sh && \
-    rm /usr/lib/freesurfer.tar.gz
+RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/c3earkfhhvdyuo4/freesurfer-7.1.1-min.tgz | \
+    tar -xz -C /usr/lib/freesurfer --strip-components 1 && \
+    source $FREESURFER_HOME/SetUpFreeSurfer.sh
 RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
 # restore shell to default (sh)
 SHELL ["/bin/sh", "-c"]

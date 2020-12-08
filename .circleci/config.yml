@@ -53,9 +53,9 @@ commands:
               DOCKER_TARBALL="${DOCKER_TARBALL}-<< parameters.variant >>"
               VARIANT="-<< parameters.variant >>"
             fi
-            echo 'export DOCKER_TARBALL="${DOCKER_TARBALL}"' >> $BASH_ENV
-            echo 'export DOCKERFILE="${DOCKERFILE}"' >> $BASH_ENV
-            echo 'export VARIANT="${VARIANT}"' >> $BASH_ENV
+            echo "export DOCKER_TARBALL=${DOCKER_TARBALL}" >> $BASH_ENV
+            echo "export DOCKERFILE=${DOCKERFILE}" >> $BASH_ENV
+            echo "export VARIANT=${VARIANT}" >> $BASH_ENV
       - run:
           name: "Building Docker image"
           command: |
