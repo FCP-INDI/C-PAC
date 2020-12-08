@@ -134,30 +134,6 @@ The box below contains an example of what these parameters might look like when 
           gm : 0
     nComponents : [5]
 
-Configuring Median Angle Correction Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. figure:: /_images/median_angle.png
-
-#. **Run Nuisance Signal Correction - [Off, On, On/Off]:** Correct for the global signal using median angle regression.
-
-#. **Target Angle (degrees) - [number]:** The target angle used during median angle correction.
-
-Configuration Without the GUI
-""""""""""""""""""""""""""""""
-
-The following key/value pairs must be defined in your :doc:`pipeline configuration YAML </pipeline_config>` for C-PAC to run median angle correction:
-
-.. csv-table::
-    :header: "Key","Description","Potential Values"
-    :widths: 5,30,15
-    :file: _static/params/medianangle_config.csv
-
-The box below contains an example of what these parameters might look like when defined in the YAML::
-
-    runMedianAngleCorrection : [0]
-    targetAngleDeg : [90]
-
 Configuring Temporal Filtering Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

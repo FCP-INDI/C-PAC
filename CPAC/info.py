@@ -9,9 +9,9 @@ This script was borrowed from and inspired by nipype's info.py file.
 # full release.  '.dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
-_version_minor = 7
-_version_micro = 1
-_version_extra = ''
+_version_minor = 8
+_version_micro = 0
+_version_extra = 'dev'
 
 
 def get_cpac_gitversion():
@@ -162,4 +162,5 @@ REQUIREMENTS        = [
     "traits==4.6.0",
     "PyBASC==0.4.5",
     "pathlib==1.0.1",
+    "voluptuous>=0.12.0",
 ]

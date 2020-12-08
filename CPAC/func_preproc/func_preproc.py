@@ -825,7 +825,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     preproc.connect(func_reorient, 'out_file', output_node, 'reorient')
 
     if config:
-        if int(config.maxCoresPerParticipant) > 1:
+        if int(config.pipeline_setup['system_config']['max_cores_per_participant']) > 1:
             chunk_imports = ['import nibabel as nb']
             chunk = pe.Node(Function(input_names=['func_file',
                                                   'n_cpus'],
@@ -834,7 +834,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                      imports=chunk_imports),
                             name='chunk')
 
-            chunk.inputs.n_cpus = int(config.maxCoresPerParticipant)
+            chunk.inputs.n_cpus = int(config.pipeline_setup['system_config']['max_cores_per_participant'])
             preproc.connect(func_reorient, 'out_file', chunk, 'func_file')
 
             split_imports = ['import os', 'import subprocess']
@@ -1003,7 +1003,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                         func_motion_correct_A, 'basefile')
 
         if config:
-            if int(config.maxCoresPerParticipant) > 1:
+            if int(config.pipeline_setup['system_config']['max_cores_per_participant']) > 1:
                 motion_concat = pe.Node(interface=afni_utils.TCat(),
                                         name='motion_concat')
                 motion_concat.inputs.outputtype = 'NIFTI_GZ'

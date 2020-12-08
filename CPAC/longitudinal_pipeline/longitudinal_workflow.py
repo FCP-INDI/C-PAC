@@ -102,7 +102,7 @@ def register_anat_longitudinal_template_to_standard(longitudinal_template_node, 
     strat_list = [strat_init_new]
 
     # only need to run once for each subject
-    already_skullstripped = c.already_skullstripped[0]
+    already_skullstripped = c.anatomical_preproc['brain_extraction']['already_skullstripped']
     if already_skullstripped == 2:
         already_skullstripped = 0
     elif already_skullstripped == 3:
@@ -559,7 +559,7 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
 
     """
     try:
-        encrypt_data = bool(config.s3Encryption[0])
+        encrypt_data = bool(config.pipeline_setup['Amazon-AWS']['s3_encryption'])
     except:
         encrypt_data = False
 
@@ -568,21 +568,21 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
     try:
         # Get path to creds file
         creds_path = ''
-        if config.awsOutputBucketCredentials:
-            creds_path = str(config.awsOutputBucketCredentials)
+        if config.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']:
+            creds_path = str(config.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials'])
             creds_path = os.path.abspath(creds_path)
 
-        if config.outputDirectory.lower().startswith('s3://'):
+        if config.pipeline_setup['output_directory']['path'].lower().startswith('s3://'):
             # Test for s3 write access
             s3_write_access = \
                 aws_utils.test_bucket_access(creds_path,
-                                             config.outputDirectory)
+                                             config.pipeline_setup['output_directory']['path'])
 
             if not s3_write_access:
                 raise Exception('Not able to write to bucket!')
 
     except Exception as e:
-        if config.outputDirectory.lower().startswith('s3://'):
+        if config.pipeline_setup['output_directory']['path'].lower().startswith('s3://'):
             err_msg = 'There was an error processing credentials or ' \
                       'accessing the S3 bucket. Check and try again.\n' \
                       'Error: %s' % e
@@ -600,11 +600,11 @@ def create_datasink(datasink_name, config, subject_id, session_id='', strat_name
             name='sinker_{}'.format(datasink_name)
         )
 
-    ds.inputs.base_directory = config.outputDirectory
+    ds.inputs.base_directory = config.pipeline_setup['output_directory']['path']
     ds.inputs.creds_path = creds_path
     ds.inputs.encrypt_bucket_keys = encrypt_data
     ds.inputs.container = os.path.join(
-        'pipeline_%s_%s' % (config.pipelineName, strat_name),
+        'pipeline_%s_%s' % (config.pipeline_setup['pipeline_name'], strat_name),
         subject_id, session_id
     )
     return ds
@@ -687,14 +687,14 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     """
 
     workflow = pe.Workflow(name="anat_longitudinal_template_" + str(subject_id))
-    workflow.base_dir = config.workingDirectory
+    workflow.base_dir = config.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+        'crashdump_dir': os.path.abspath(config.pipeline_setup['crash_directory']['path'])
     }
 
     # For each participant we have a list of dict (each dict is a session)
-    already_skullstripped = config.already_skullstripped[0]
+    already_skullstripped = config.anatomical_preproc['brain_extraction']['already_skullstripped']
     if already_skullstripped == 2:
         already_skullstripped = 0
     elif already_skullstripped == 3:
@@ -769,7 +769,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     file_path=getattr(config, key),
                     img_type=key_type,
                     creds_path=input_creds_path, 
-                    dl_dir=config.workingDirectory
+                    dl_dir=config.pipeline_setup['working_directory']['path']
                 )
                 
                 setattr(config, key, node)
@@ -784,7 +784,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             subject = subject_id,
             anat = session['anat'],
             creds_path = input_creds_path,
-            dl_dir = config.workingDirectory,
+            dl_dir = config.pipeline_setup['working_directory']['path'],
             img_type = 'anat'
         )
 
@@ -806,7 +806,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 subject = subject_id,
                 anat = session['brain_mask'],
                 creds_path = input_creds_path,
-                dl_dir = config.workingDirectory,
+                dl_dir = config.pipeline_setup['working_directory']['path'],
                 img_type = 'anat'
             )
 
@@ -845,7 +845,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         else:
             # TODO add other SS methods 
-            if "AFNI" in config.skullstrip_option:
+            if "3dSkullStrip" in config.anatomical_preproc['brain_extraction']['extraction']['using']:
                 skullstrip_method = 'afni'
                 preproc_wf_name = 'anat_preproc_afni_%s' % node_suffix
 
@@ -855,33 +855,34 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     wf_name=preproc_wf_name)
 
                 anat_preproc.inputs.AFNI_options.set(
-                    shrink_factor=config.skullstrip_shrink_factor,
-                    var_shrink_fac=config.skullstrip_var_shrink_fac,
-                    shrink_fac_bot_lim=config.skullstrip_shrink_factor_bot_lim,
-                    avoid_vent=config.skullstrip_avoid_vent,
-                    niter=config.skullstrip_n_iterations,
-                    pushout=config.skullstrip_pushout,
-                    touchup=config.skullstrip_touchup,
-                    fill_hole=config.skullstrip_fill_hole,
-                    avoid_eyes=config.skullstrip_avoid_eyes,
-                    use_edge=config.skullstrip_use_edge,
-                    exp_frac=config.skullstrip_exp_frac,
-                    smooth_final=config.skullstrip_smooth_final,
-                    push_to_edge=config.skullstrip_push_to_edge,
-                    use_skull=config.skullstrip_use_skull,
-                    perc_int=config.skullstrip_perc_int,
-                    max_inter_iter=config.skullstrip_max_inter_iter,
-                    blur_fwhm=config.skullstrip_blur_fwhm,
-                    fac=config.skullstrip_fac,
-                    monkey=config.skullstrip_monkey,
-                    mask_vol=config.skullstrip_mask_vol
+                    mask_vol=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['mask_vol'],
+                    shrink_factor=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['shrink_factor'],
+                    var_shrink_fac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['var_shrink_fac'],
+                    shrink_fac_bot_lim=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['shrink_factor_bot_lim'],
+                    avoid_vent=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['avoid_vent'],
+                    niter=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['n_iterations'],
+                    pushout=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['pushout'],
+                    touchup=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['touchup'],
+                    fill_hole=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['fill_hole'],
+                    NN_smooth=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['NN_smooth'],
+                    smooth_final=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['smooth_final'],
+                    avoid_eyes=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['avoid_eyes'],
+                    use_edge=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['use_edge'],
+                    exp_frac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['exp_frac'],
+                    push_to_edge=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['push_to_edge'],
+                    use_skull=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['use_skull'],
+                    perc_int=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['perc_int'],
+                    max_inter_iter=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['max_inter_iter'],
+                    fac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['fac'],
+                    blur_fwhm=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['blur_fwhm'],
+                    monkey=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['monkey'],
                 )
 
                 new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
                     strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
                 strat_list.append(new_strat)
 
-            if "BET" in config.skullstrip_option:
+            if "BET" in config.anatomical_preproc['brain_extraction']['extraction']['using']:
                 skullstrip_method = 'fsl'
                 preproc_wf_name = 'anat_preproc_fsl_%s' % node_suffix
 
@@ -891,32 +892,34 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     wf_name=preproc_wf_name)
 
                 anat_preproc.inputs.BET_options.set(
-                    frac=config.bet_frac,
-                    mask_boolean=config.bet_mask_boolean,
-                    mesh_boolean=config.bet_mesh_boolean,
-                    outline=config.bet_outline,
-                    padding=config.bet_padding,
-                    radius=config.bet_radius,
-                    reduce_bias=config.bet_reduce_bias,
-                    remove_eyes=config.bet_remove_eyes,
-                    robust=config.bet_robust,
-                    skull=config.bet_skull,
-                    surfaces=config.bet_surfaces,
-                    threshold=config.bet_threshold,
-                    vertical_gradient=config.bet_vertical_gradient,
+                    frac=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['frac'],
+                    mask_boolean=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['mask_boolean'],
+                    mesh_boolean=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['mesh_boolean'],
+                    outline=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['outline'],
+                    padding=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['padding'],
+                    radius=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['radius'],
+                    reduce_bias=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['reduce_bias'],
+                    remove_eyes=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['remove_eyes'],
+                    robust=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['robust'],
+                    skull=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['skull'],
+                    surfaces=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['surfaces'],
+                    threshold=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['threshold'],
+                    vertical_gradient=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['vertical_gradient'],
                 )
 
                 new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
                     strat, anat_preproc, skullstrip_method + "_skullstrip", strat_nodes_list_list, workflow)
                 strat_list.append(new_strat)
 
-            if not any(o in config.skullstrip_option for o in
-                       ["AFNI", "BET"]):
+            if not any(o in config.anatomical_preproc['brain_extraction']['extraction']['using'] for o in
+                       ["3dSkullStrip", "BET"]):
                 err = '\n\n[!] C-PAC says: Your skull-stripping ' \
                       'method options setting does not include either' \
-                      ' \'AFNI\' or \'BET\'.\n\n Options you ' \
-                      'provided:\nskullstrip_option: {0}\n\n'.format(
-                        str(config.skullstrip_option))
+                      ' \'3dSkullStrip\' or \'BET\'.\n\n Options you ' \
+                      'provided:\nbrain_extraction: \n' \
+                      'extraction: \n' \
+                      'using:[{0}]\n\n'.format(
+                        str(config.anatomical_preproc['brain_extraction']['extraction']['using']))
                 raise Exception(err)
 
     # Here we have all the anat_preproc set up for every session of the subject
@@ -1246,17 +1249,17 @@ def func_preproc_longitudinal_wf(subject_id, sub_list, config):
     """
 
     datasink = pe.Node(nio.DataSink(), name='sinker')
-    datasink.inputs.base_directory = config.workingDirectory
+    datasink.inputs.base_directory = config.pipeline_setup['working_directory']['path']
 
     session_id_list = []
     ses_list_strat_list = {}
 
     workflow_name = 'func_preproc_longitudinal_' + str(subject_id) 
     workflow = pe.Workflow(name=workflow_name)
-    workflow.base_dir = config.workingDirectory
+    workflow.base_dir = config.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+        'crashdump_dir': os.path.abspath(config.pipeline_setup['crash_directory']['path'])
     }
 
     for sub_dict in sub_list:
@@ -1597,10 +1600,10 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
 
     workflow_name = 'func_longitudinal_template_' + str(subject_id) 
     workflow = pe.Workflow(name=workflow_name)
-    workflow.base_dir = config.workingDirectory
+    workflow.base_dir = config.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(config.crashLogDirectory)
+        'crashdump_dir': os.path.abspath(config.pipeline_setup['crash_directory']['path'])
     }
 
     # strat_nodes_list = strat_list['func_default']
@@ -1638,7 +1641,7 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
                                                as_module=True),
                                         name='merge_func_preproc')
                                         
-    merge_func_preproc_node.inputs.working_directory = config.workingDirectory
+    merge_func_preproc_node.inputs.working_directory = config.pipeline_setup['working_directory']['path']
 
     template_node = subject_specific_template(
         workflow_name='subject_specific_func_template_' + subject_id

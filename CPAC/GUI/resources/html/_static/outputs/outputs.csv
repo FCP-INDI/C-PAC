@@ -17,7 +17,6 @@ preprocessed
 
 Nuisance Corrections
 motion_correct, The motion-corrected functional data.
-functional_median_angle_corrected, Functional data with the median angle correction applied.
 functional_nuisance_residuals, A file containing the residuals from nuisance regression.
 
 Temporal Filtering

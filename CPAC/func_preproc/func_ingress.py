@@ -38,7 +38,7 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
         func_wf.inputs.inputnode.set(
             subject=subject_id,
             creds_path=input_creds_path,
-            dl_dir=c.workingDirectory
+            dl_dir=c.pipeline_setup['working_directory']['path']
         )
         func_wf.get_node('inputnode').iterables = \
             ("scan", list(func_paths_dict.keys()))
@@ -61,7 +61,7 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                 gather_fmap.inputs.inputnode.set(
                     subject=subject_id,
                     creds_path=input_creds_path,
-                    dl_dir=c.workingDirectory
+                    dl_dir=c.pipeline_setup['working_directory']['path']
                 )
                 gather_fmap.inputs.inputnode.scan = key
                 strat.update_resource_pool({
