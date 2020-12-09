@@ -100,9 +100,9 @@ schema = Schema({
             Required('registration'): {
                 Required('using'): [In({'ANTS', 'FSL'})],
                 'ANTs': {
-                    'EPI_registration': Any(
-                        None, 'None', dict, [dict]
-                    ),
+                    'EPI_registration': Maybe(Any(
+                        'None', dict, [dict]
+                    )),
                     'interpolation': In({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'
                     }),
@@ -221,7 +221,7 @@ schema = Schema({
                 Required('using'): [In({'T1_template', 'EPI_template'})]
             },
             'output_resolution': {
-                'func_derivative_outputs': All(str, Match(r'^[0-9]+mm$')),
+                'func_derivative_outputs': All(str, Match(r'^(x*[0-9](\.[0-9]+)*mm)*$')),
             }
         }
     },
@@ -236,7 +236,7 @@ schema = Schema({
         },
         Required('2-nuisance_regression'): {
             Required('run'): [bool],
-            'Regressors': [{
+            'Regressors': Maybe([{
                 'Motion': {
                     'include_delayed': bool,
                     'include_squared': bool,
@@ -261,9 +261,9 @@ schema = Schema({
                     'bottom_frequency': float,
                     'top_frequency': float
                 }  # how to check if [0] is > than [1]?
-            }],
-            'lateral_ventricles_mask': str,
-            Required('bandpass_filtering_order'): In({'After', 'Before'})
+            }]),
+            'lateral_ventricles_mask': Maybe(str),
+            'bandpass_filtering_order': Maybe(In({'After', 'Before'}))
         },
     },
     Required('amplitude_low_frequency_fluctuation'): {
@@ -289,7 +289,7 @@ schema = Schema({
     # 'numRemoveSubsequentFrames': int,
     'timeseries_extraction': {
         Required('run'): bool,
-        Required('tse_roi_paths'): Any(None, {
+        Required('tse_roi_paths'): Maybe({
             str: In({', '.join([
                 option for option in options
             ]) for options in list(chain.from_iterable([list(
@@ -298,12 +298,12 @@ schema = Schema({
             ) for number_of in range(1, 6)]))}),
         }),
         'realignment': In({'ROI_to_func', 'func_to_ROI'}),
-        'roi_tse_outputs': Any(None, [In({None, 'csv', 'numpy'})]),
+        'roi_tse_outputs': Maybe([In({None, 'csv', 'numpy'})]),
     },
 
     Required('seed_based_correlation_analysis'): {
         Required('run'): bool,
-        'sca_roi_paths': Any(None, {
+        'sca_roi_paths': Maybe({
             str: In({', '.join([
                 option for option in options
             ]) for options in list(chain.from_iterable([list(
