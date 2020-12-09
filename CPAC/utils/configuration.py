@@ -16,6 +16,15 @@ with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
 class Configuration(object):
     """Class to set dictionary keys as map attributes.
 
+    If the given dictionary includes the key `FROM`, that key's value
+    will form the base of the Configuration object with the values in
+    the given dictionary overriding matching keys in the base at any
+    depth. If no `FROM` key is included, the base Configuration is
+    the default Configuration.
+
+    `FROM` accepts either the name of a preconfigured pipleine or a
+    path to a YAML file.
+
     Given a Configuration `c`, and a list or tuple of an attribute name
     and nested keys `keys = ['attribute', 'key0', 'key1']` or
     `keys = ('attribute', 'key0', 'key1')`, the value 'value' nested in
