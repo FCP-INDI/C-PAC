@@ -1,4 +1,5 @@
 import os
+import collections.abc
 import fnmatch
 import gzip
 import numbers
@@ -1399,3 +1400,50 @@ def concat_list(in_list1=None, in_list2=None):
     out_list = in_list1 + in_list2
     
     return out_list
+
+
+def update_nested_dict(d_base, d_update):
+    """Update dictionary of varying depth.
+
+    Parameters
+    ----------
+    d_base: dict
+        original dictionary
+
+    d_update: dict
+        dictionary with updates
+
+    Returns
+    -------
+    d_base: dict
+        original dictionary with updates
+
+    Examples
+    --------
+    >>> d_base = {'pipeline_name': 'cpac-default-pipeline',
+    ...     'output_directory': {'path': '/output',
+    ...     'write_func_outputs': False,
+    ...     'write_debugging_outputs': False,
+    ...     'output_tree': 'default',
+    ...     'generate_quality_control_images': True},
+    ...     'working_directory': {'path': '/tmp', 'remove_working_dir': True},
+    ...     'log_directory': {'run_logging': True, 'path': '/logs'},
+    ...     'system_config': {'maximum_memory_per_participant': 1,
+    ...     'max_cores_per_participant': 1,
+    ...     'num_ants_threads': 4,
+    ...     'num_participants_at_once': 1},
+    ...     'Amazon-AWS': {'aws_output_bucket_credentials': None,
+    ...                    's3_encryption': False},
+    ...     'pipeline_IMPORT': 'None'}
+    >>> d_update = {'pipeline_name': 'cpac_fmriprep-options',
+    ...     'system_config': {'num_ants_threads': 1},
+    ...     'Amazon-AWS': {'s3_encryption': True}}
+    >>> update_nested_dict(d_base, d_update)
+    {'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {'path': '/output', 'write_func_outputs': False, 'write_debugging_outputs': False, 'output_tree': 'default', 'generate_quality_control_images': True}, 'working_directory': {'path': '/tmp', 'remove_working_dir': True}, 'log_directory': {'run_logging': True, 'path': '/logs'}, 'system_config': {'maximum_memory_per_participant': 1, 'max_cores_per_participant': 1, 'num_ants_threads': 1, 'num_participants_at_once': 1}, 'Amazon-AWS': {'aws_output_bucket_credentials': None, 's3_encryption': True}, 'pipeline_IMPORT': 'None'}
+    """  # noqa
+    for k, v in d_update.items():
+        if isinstance(v, collections.abc.Mapping):
+            d_base[k] = update_nested_dict(d_base.get(k, {}), v)
+        else:
+            d_base[k] = v
+    return d_base
