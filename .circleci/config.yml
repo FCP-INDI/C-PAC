@@ -66,11 +66,15 @@ commands:
       - run:
           name: "Starting local registry"
           command: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - install-singularity-requirements
-      - run: 
-          name: "Cloning Singularity 2.5.2"
-          command: git clone -b 2.5.2 https://github.com/sylabs/singularity
-      - set-up-singularity
+      - when:
+          condition:
+            equal: [ "", "<< parameters.variant >>" ]
+          steps:
+            - install-singularity-requirements
+            - run: 
+                name: "Cloning Singularity 2.5.2"
+                command: git clone -b 2.5.2 https://github.com/sylabs/singularity
+            - set-up-singularity
       - run:
           name: "Building Singularity image from Docker image"
           command: |
