@@ -755,33 +755,9 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             ("other", ["voxel_mirrored_homotopic_connectivity", "symmetric_registration", "FNIRT_pipelines", "config_file"]),
         ]
 
-        def get_nested_attr(c, template_key):
-            attr = getattr(c, template_key[0])
-            keys = template_key[1:]
-            def _get_nested(attr, keys):
-                if len(keys) > 1:
-                    return(_get_nested(attr[keys[0]], keys[1:]))
-                elif len(keys):
-                    return(attr[keys[0]])
-                else:
-                    return(attr)
-            return(_get_nested(attr, keys))
-
-        def set_nested_attr(c, template_key, value):
-            attr = getattr(c, template_key[0])
-            keys = template_key[1:]
-            def _set_nested(attr, keys):
-                if len(keys) > 1:
-                    return(_set_nested(attr[keys[0]], keys[1:]))
-                elif len(keys):
-                    attr[keys[0]]=value
-                else:
-                    return(attr)
-            return(_set_nested(attr, keys))
-
         for key_type, key in template_keys:
             
-            attr = get_nested_attr(config, key)
+            attr = config.get_nested(config, key)
 
             if isinstance(attr, str) or attr == None:
                 
@@ -791,7 +767,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     input_creds_path, config.pipeline_setup['working_directory']['path'], map_node=False
                 )
 
-                set_nested_attr(config, key, node)
+                config.set_nested(config, key, node)
 
         
         strat = Strategy()

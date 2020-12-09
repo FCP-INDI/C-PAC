@@ -695,33 +695,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("other", ["voxel_mirrored_homotopic_connectivity", "symmetric_registration", "FNIRT_pipelines", "config_file"]),
     ]
 
-    def get_nested_attr(c, template_key):
-        attr = getattr(c, template_key[0])
-        keys = template_key[1:]
-        def _get_nested(attr, keys):
-            if len(keys) > 1:
-                return(_get_nested(attr[keys[0]], keys[1:]))
-            elif len(keys):
-                return(attr[keys[0]])
-            else:
-                return(attr)
-        return(_get_nested(attr, keys))
-
-    def set_nested_attr(c, template_key, value):
-        attr = getattr(c, template_key[0])
-        keys = template_key[1:]
-        def _set_nested(attr, keys):
-            if len(keys) > 1:
-                return(_set_nested(attr[keys[0]], keys[1:]))
-            elif len(keys):
-                attr[keys[0]]=value
-            else:
-                return(attr)
-        return(_set_nested(attr, keys))
-
     for key_type, key in template_keys:
-        
-        attr = get_nested_attr(c, key)
+
+        attr = c.get_nested(c, key)
 
         if isinstance(attr, str) or attr == None:
             
@@ -731,7 +707,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=False
             )
 
-            set_nested_attr(c, key, node)
+            c.set_nested(c, key, node)
 
     template_keys_in_list = [
         ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "ANTs_Prior_Based", "template_brain_list"]),
@@ -742,11 +718,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         node = create_check_for_s3_node(
             key[-1],
-            get_nested_attr(c, key), key_type,
+            c.get_nested(c, key), key_type,
             input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=True
         )
 
-        set_nested_attr(c, key, node)
+        c.set_nested(c, key, node)
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
