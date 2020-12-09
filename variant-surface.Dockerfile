@@ -3,6 +3,7 @@ MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 # install FreeSurfer
 # set shell to BASH
+RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH"
 SHELL ["/bin/bash", "-c"]
