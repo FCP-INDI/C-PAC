@@ -119,7 +119,7 @@ schema = Schema({
         Required('segmentation_workflow'): {
             '1-segmentation': {
                 'ANTs_Prior_Based': {
-                    Required('run'): [bool],
+                    Required('run'): Maybe([bool]),
                 },
                 'Template_Based': {
                     'template_for_segmentation': [

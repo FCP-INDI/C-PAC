@@ -8,6 +8,7 @@ import threading
 import numpy as np
 
 from inspect import currentframe, getframeinfo , stack
+from optparse import OptionError
 
 
 def get_flag(in_flag):
@@ -1239,10 +1240,10 @@ def load_preconfig(pipeline_label):
                      in avail_configs if 'pipeline_config' in x]
 
     if pipeline_label not in avail_configs:
-        raise Exception("The pre-configured pipeline name '{0}' you provided "
-                        "is not one of the available pipelines.\n\nAvailable "
-                        "pipelines:\n{1}\n".format(pipeline_label,
-                                                   str(avail_configs)))
+        raise OptionError(
+            "The pre-configured pipeline name '{0}' you provided is not one "
+            "of the available pipelines.\n\nAvailable pipelines:\n"
+            "{1}\n".format(pipeline_label, str(avail_configs)), pipeline_label)
 
     pipeline_file = \
         p.resource_filename(

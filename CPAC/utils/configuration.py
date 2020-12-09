@@ -1,7 +1,16 @@
 import os
 import warnings
+import yaml
+from itertools import repeat
 
-from CPAC.pipeline.schema import schema
+DEFAULT_PIPELINE_FILE = '/cpac_resources/default_pipeline'
+if not os.path.exists(DEFAULT_PIPELINE_FILE):
+    DEFAULT_PIPELINE_FILE = os.path.abspath(os.path.join(
+        __file__,
+        *repeat(os.path.pardir, 3),
+        'dev/docker_data/default_pipeline.yml'))
+with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
+    default_config = yaml.safe_load(dp_fp)
 
 
 class Configuration(object):
@@ -20,8 +29,38 @@ class Configuration(object):
     c['attribute']['key0']['key1']
     c['attribute', 'key0', 'key1']
     c[keys]
+
+    Examples
+    --------
+    >>> c = Configuration({})
+    >>> c['pipeline_setup', 'pipeline_name']
+    'cpac-default-pipeline'
+    >>> c = Configuration({'pipeline_setup': {
+    ...     'pipeline_name': 'example_pipeline'}})
+    >>> c['pipeline_setup', 'pipeline_name']
+    'example_pipeline'
+    >>> c['pipeline_setup', 'pipeline_name'] = 'new_pipeline2'
+    >>> c['pipeline_setup', 'pipeline_name']
+    'new_pipeline2'
     """
     def __init__(self, config_map):
+        from CPAC.pipeline.schema import schema
+        from CPAC.utils.utils import load_preconfig, update_nested_dict
+        from optparse import OptionError
+
+        base_config = config_map.get('FROM', 'default_pipeline')
+        # base on default pipeline if FROM not specified or specified 'default'
+        if base_config in ['default', 'default_pipeline']:
+            config_map = update_nested_dict(default_config, config_map)
+        # base on another config (specified with 'FROM' key)
+        else:
+            try:
+                base_config = load_preconfig(base_config)
+            except OptionError:
+                base_config = base_config
+            with open(base_config, 'r') as fp:
+                from_config = yaml.safe_load(fp)
+            config_map = update_nested_dict(from_config, config_map)
         config_map = schema(self.nonestr_to_None(config_map))
         for key in config_map:
             # set FSLDIR to the environment $FSLDIR if the user sets it to
