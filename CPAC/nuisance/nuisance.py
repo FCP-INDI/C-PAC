@@ -2,43 +2,30 @@ import re
 import os
 import numpy as np
 import nibabel as nb
-
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.ants as ants
-import nipype.interfaces.c3 as c3
+import CPAC
+
+from nipype.interfaces import fsl
+from nipype.interfaces import ants
+from nipype.interfaces import c3
 from nipype.interfaces import afni
 from nipype.interfaces.afni import utils as afni_utils
-
-import CPAC
-import CPAC.utils as utils
+from scipy.fftpack import fft, ifft
+from CPAC import utils
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
-
 from CPAC.nuisance.utils import (
     find_offending_time_points,
     generate_summarize_tissue_mask,
-    temporal_variance_mask,
-    calc_compcor_components
-)
-
+    temporal_variance_mask)
 from CPAC.nuisance.utils.compcor import (
     calc_compcor_components,
     cosine_filter,
     TR_string_to_float)
-
-
 from CPAC.utils.datasource import check_for_s3
-
-from scipy.fftpack import fft, ifft
-
 from .bandpass import bandpass_voxels
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.ants as ants
 
 
 def gather_nuisance(functional_file_path,
@@ -587,8 +574,8 @@ def create_regressor_workflow(nuisance_selectors,
     High Level Workflow Graph:
 
     .. exec::
-        from CPAC.nuisance import create_nuisance_regression_workflow
-        wf = create_nuisance_regression_workflow({
+        from CPAC.nuisance import create_regressor_workflow
+        wf = create_regressor_workflow({
             'PolyOrt': {'degree': 2},
             'tCompCor': {'summary': {'method': 'PC', 'components': 5}, 'threshold': '1.5SD', 'by_slice': True},
             'aCompCor': {'summary': {'method': 'PC', 'components': 5}, 'tissues': ['WhiteMatter', 'CerebrospinalFluid'], 'extraction_resolution': 2},
@@ -605,12 +592,12 @@ def create_regressor_workflow(nuisance_selectors,
             dotfilename='./images/generated/nuisance.dot'
         )
 
-    .. image:: ../images/generated/nuisance.png
+    .. image:: ../../images/generated/nuisance.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/generated/nuisance_detailed.png
+    .. image:: ../../images/generated/nuisance_detailed.png
        :width: 1000
 
     """
@@ -1212,10 +1199,10 @@ def create_regressor_workflow(nuisance_selectors,
 
                         nuisance_wf.connect(
                             union_masks_paths, 'out_file',
-                            mean_node, 'mask'
+                            mean_node, 'mask_file'
                         )
 
-                        summary_method_input = (mean_node, 'stats')
+                        summary_method_input = (mean_node, 'out_file')
 
                     if 'PC' in summary_method:
 

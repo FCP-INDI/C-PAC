@@ -10,8 +10,8 @@ This script was borrowed from and inspired by nipype's info.py file.
 # version
 _version_major = 1
 _version_minor = 7
-_version_micro = 1
-_version_extra = ''
+_version_micro = 3
+_version_extra = 'dev'
 
 
 def get_cpac_gitversion():
@@ -146,7 +146,7 @@ REQUIREMENTS        = [
     "networkx==2.4",
     "nibabel==2.3.3",
     "nilearn==0.4.1",
-    "nipype==1.1.2",
+    "nipype==1.5.1",
     "nose==1.3.7",
     "numpy==1.16.4",
     "pandas==0.23.4",

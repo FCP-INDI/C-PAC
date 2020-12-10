@@ -63,14 +63,22 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     4. Calculate MDMR statistics for the voxel
     5. Determine significance of MDMR statistics with permutation tests
     
+    .. exec::
+        from CPAC.cwas import create_cwas
+        wf = create_cwas()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/create_cwas.dot'
+        )
+
     Workflow Graph:
     
-    .. image:: ../images/cwas.dot.png
+    .. image:: ../../images/generated/cwas.png
         :width: 500
         
     Detailed Workflow Graph:
     
-    .. image:: ../images/cwas_detailed.dot.png
+    .. image:: ../../images/generated/cwas_detailed.png
         :width: 500
     
     References
