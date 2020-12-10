@@ -400,13 +400,14 @@ def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask, temp
     return multiatlas_Intensity, multiatlas_Labels
 
 
-def pick_tissue_from_labels_file(multiatlas_Labels, csf_label, 
-                                left_gm_label, left_wm_label,
-                                right_gm_label, right_wm_label):
+def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24, 
+                                left_gm_label=3, left_wm_label=2,
+                                right_gm_label=42, right_wm_label=41,
+                                include_ventricles=False):
 
 
     """
-    pick tissue mask from multiatlas labels file
+    Pick tissue mask from multiatlas labels file
     based off of FreeSurferColorLUT https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
     or user provided label value
 
@@ -430,6 +431,9 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label,
     right_wm_label: integer 
         label value corresponding to Right White Matter in multiatlas file
 
+    include_ventricles: boolean
+        whether include labels of ventricles in CSF or not
+
     Returns
     -------
 
@@ -451,31 +455,25 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label,
     # based off of FreeSurferColorLUT or user provided label values
     # hard-coded csf/gm/wm label values are based off of FreeSurferColorLUT
 
+    # FreeSurfer Ventricle Labels:
+    # Left-Lateral-Ventricle 4, 3rd-Ventricle 14, 4th-Ventricle 15, Right-Lateral-Ventricle 43
+
     csf = data.copy()
-    if csf_label == None:
-        csf[csf != 24] = 0
-        csf[csf == 24] = 1
+    if include_ventricles:
+        csf[np.logical_and(np.logical_and(np.logical_and(np.logical_and(csf != csf_label, csf != 4), csf != 14), csf != 15), csf != 43)] = 0
+        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] = 1
     else:
         csf[csf != csf_label] = 0
         csf[csf == csf_label] = 1
 
     gm = data.copy()
-    if left_gm_label == None and right_gm_label == None:
-        gm[np.logical_and(gm != 42, gm != 3)] = 0 
-        gm[np.logical_or(gm == 42, gm == 3)] = 1
-    else:
-        gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0 
-        gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
+    gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0 
+    gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
 
     wm = data.copy()
-    if left_wm_label == None and right_wm_label == None:
-        wm[np.logical_and(wm != 41, wm != 2)] = 0
-        wm[np.logical_or(wm == 41, wm == 2)] = 1
-    else:
-        wm[np.logical_and(wm != right_wm_label, wm != left_wm_label)] = 0
-        wm[np.logical_or(wm == right_wm_label, wm == left_wm_label)] = 1
+    wm[np.logical_and(wm != right_wm_label, wm != left_wm_label)] = 0
+    wm[np.logical_or(wm == right_wm_label, wm == left_wm_label)] = 1
 
-    
     save_img_csf = nb.Nifti1Image(csf, header=img.get_header(), affine=img.get_affine())
     save_img_gm = nb.Nifti1Image(gm, header=img.get_header(), affine=img.get_affine())
     save_img_wm = nb.Nifti1Image(wm, header=img.get_header(), affine=img.get_affine())

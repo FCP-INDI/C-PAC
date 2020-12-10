@@ -571,31 +571,34 @@ class DataSink(IOBase):
                                 pass
                             else:
                                 raise (inst)
-                    # If src == dst, it's already home
-                    if (not os.path.exists(dst)) or (
-                        os.stat(src) != os.stat(dst)
-                    ):
-                        # If src is a file, copy it to dst
-                        if os.path.isfile(src):
-                            iflogger.debug(f'copyfile: {src} {dst}')
-                            copyfile(
-                                src,
-                                dst,
-                                copy=True,
-                                hashmethod='content',
-                                use_hardlink=use_hardlink)
-                        # If src is a directory, copy
-                        # entire contents to dst dir
-                        elif os.path.isdir(src):
-                            if (
-                                os.path.exists(dst) and
-                                self.inputs.remove_dest_dir
-                            ):
-                                iflogger.debug('removing: %s', dst)
-                                shutil.rmtree(dst)
-                            iflogger.debug('copydir: %s %s', src, dst)
-                            copytree(src, dst)
-                            out_files.append(dst)
+                    try:
+                        # If src == dst, it's already home
+                        if (not os.path.exists(dst)) or (
+                            os.stat(src) != os.stat(dst)
+                        ):
+                            # If src is a file, copy it to dst
+                            if os.path.isfile(src):
+                                iflogger.debug(f'copyfile: {src} {dst}')
+                                copyfile(
+                                    src,
+                                    dst,
+                                    copy=True,
+                                    hashmethod='content',
+                                    use_hardlink=use_hardlink)
+                            # If src is a directory, copy
+                            # entire contents to dst dir
+                            elif os.path.isdir(src):
+                                if (
+                                    os.path.exists(dst) and
+                                    self.inputs.remove_dest_dir
+                                ):
+                                    iflogger.debug('removing: %s', dst)
+                                    shutil.rmtree(dst)
+                                iflogger.debug('copydir: %s %s', src, dst)
+                                copytree(src, dst)
+                                out_files.append(dst)
+                    except SameFileError:
+                        iflogger.debug(f'copyfile (same file): {src} {dst}')
 
         # Return outputs dictionary
         outputs['out_file'] = out_files

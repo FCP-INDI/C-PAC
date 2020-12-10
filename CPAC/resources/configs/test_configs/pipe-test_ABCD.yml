@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.7.3.dev
+# Version 1.7.1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -36,7 +36,7 @@ maximumMemoryPerParticipant :  8
 
 
 # The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid) to allocate per participant. Setting this above 1 will parallelize each participant's workflow where possible. If you wish to dedicate multiple cores to ANTS-based anatomical registration (below), this value must be equal or higher than the amount of cores provided to ANTS. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of participants set to run in parallel (the 'Number ofParticipants to Run Simultaneously' setting).
-maxCoresPerParticipant :  3
+maxCoresPerParticipant :  1
 
 
 # The number of participant workflows to run at the same time. The maximum number of cores your run can possibly employ will be this setting multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
@@ -44,7 +44,7 @@ numParticipantsAtOnce :  1
 
 
 # The number of cores to allocate to ANTS-based anatomical registration per participant. Multiple cores can greatly speed up this preprocessing step. This number cannot be greater than the number of cores per participant.
-num_ants_threads :  4
+num_ants_threads :  1
 
 
 # The number of cores to allocate to FreeSurfer recon-all per participant. This number cannot be greater than the number of cores per participant.
@@ -119,19 +119,19 @@ runAnatomical: [1]
 
 
 # Non-local means filtering via ANTs DenoiseImage
-non_local_means_filtering: False
+non_local_means_filtering: True
 
 
 # N4 bias field correction via ANTs
-n4_bias_field_correction: False
+n4_bias_field_correction: True
 
 
 # ACPC Alignment
-acpc_align: False
+acpc_align: True
 
 
 # Run DenoiseImage and N4BiasFieldCorrection before or after ACPC
-acpc_run_preprocessing: after
+acpc_run_preprocessing: before
 
 
 # ACPC size of brain in z-dimension in mm. 
@@ -140,7 +140,7 @@ acpc_brainsize: 150
 
 
 # ACPC aligned template
-acpc_template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+acpc_template_skull: /ABCD_pipeline_template/MNI152_T1_1mm.nii.gz
 acpc_template_brain: None
 
 
@@ -149,9 +149,9 @@ acpc_template_brain: None
 already_skullstripped :  [0]
 
 
-# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer-ABCD (recon-all + ABCD anat mask generation), UNet for monkey data to perform skull-stripping.
-# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer-ABCD', 'unet'] 
-skullstrip_option :  ['AFNI']
+# Choice of using AFNI (3dSkullStrip), FSL (BET), niworkflows-ants, FreeSurfer (recon-all) or UNet for monkey data to perform skull-stripping.
+# Options: ['AFNI', 'FSL', 'niworkflows-ants', 'FreeSurfer-ABCD', 'unet']
+skullstrip_option :  ['FreeSurfer-ABCD']
 
 
 # UNet model
@@ -162,7 +162,7 @@ unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 # For skullstrip option 'niworkflows-ants' only.
 # It is not necessary to change this path unless you intend to use a non-standard template.
 
-# niworkflows-ants brain extraction template
+# niworkflows-ants Brain extraction template
 niworkflows_ants_template_path : /ants_template/oasis/T_template0.nii.gz
 
 # niworkflows-ants probability mask
@@ -354,12 +354,12 @@ longitudinal_template_convergence_threshold : -1
 
 # The resolution to which anatomical images should be transformed during registration.
 # This is the resolution at which processed anatomical files will be output.
-resolution_for_anat :  2mm
+resolution_for_anat :  1mm
 
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_only_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_brain_only_for_anat :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
 
 # Template to be used during registration.
@@ -369,15 +369,15 @@ template_skull_for_anat :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resoluti
 
 # Template to be used during registration.
 # It is not necessary to change this path unless you intend to use a non-standard template.
-template_brain_mask_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+template_brain_mask_for_anat: /ABCD_pipeline_template/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
 
 # Template to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-template_skull_for_anat_2mm :  /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm.nii.gz
+template_skull_for_anat_2mm :  /ABCD_pipeline_template/MNI152_T1_2mm.nii.gz
 
 
 # Reference mask for FNIRT to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-ref_mask_2mm :  /usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+ref_mask_2mm :  /ABCD_pipeline_template/MNI152_T1_2mm_brain_mask_dil.nii.gz
 
 
 # Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.
@@ -387,7 +387,7 @@ regOption :  ['ANTS']
 # ANTs parameters, if select ANTs as regOption
 ANTs_para_T1_registration:
 
-   - verbose : 1 
+   - verbose : 1
 
    - float : 0
 
@@ -396,11 +396,11 @@ ANTs_para_T1_registration:
    - dimensionality: 3
 
    - initial-moving-transform :
-      initializationFeature: 0
+      initializationFeature: 1 #changed
 
    - masks:
-      fixed_image_mask : False 
-      moving_image_mask : False 
+      fixed_image_mask : True  #changed
+      moving_image_mask : True  #changed
 
    - transforms:
       - Rigid:
@@ -413,11 +413,11 @@ ANTs_para_T1_registration:
             samplingPercentage : 0.25
           convergence:
             iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
+            convergenceThreshold : 1e-6 #changed
             convergenceWindowSize : 10
           smoothing-sigmas : 3.0x2.0x1.0x0.0
           shrink-factors : 8x4x2x1
-          use-histogram-matching : True
+          use-histogram-matching : False #changed
 
       - Affine:
           gradientStep : 0.1
@@ -429,11 +429,11 @@ ANTs_para_T1_registration:
             samplingPercentage : 0.25
           convergence:
             iteration : 1000x500x250x100
-            convergenceThreshold : 1e-08
+            convergenceThreshold : 1e-6 #changed
             convergenceWindowSize : 10
           smoothing-sigmas : 3.0x2.0x1.0x0.0
           shrink-factors : 8x4x2x1
-          use-histogram-matching : True
+          use-histogram-matching : False #changed
 
       - SyN:
           gradientStep : 0.1
@@ -444,15 +444,16 @@ ANTs_para_T1_registration:
             metricWeight: 1
             radius : 4
           convergence:
-            iteration : 100x100x70x20
-            convergenceThreshold : 1e-09
-            convergenceWindowSize : 15
+            iteration : 100x70x50x20 #changed
+            convergenceThreshold : 1e-6
+            convergenceWindowSize : 10 #changed
           smoothing-sigmas : 3.0x2.0x1.0x0.0
-          shrink-factors : 6x4x2x1
-          use-histogram-matching : True
+          shrink-factors : 8x4x2x1 #changed
+          use-histogram-matching : False #changed
           winsorize-image-intensities :
-            lowerQuantile : 0.01
-            upperQuantile : 0.99
+            lowerQuantile : 0.005 #changed
+            upperQuantile : 0.995 #changed
+
 
 
 # Please specify ANTs parameters,if run Functional to EPI Template Registration
@@ -486,10 +487,10 @@ regWithSkull :  [1]
 runSegmentationPreprocessing :  [1]
 
 
-# segmentation method options: ['FSL', 'ANTs-Prior-Based', 'Template-Based']
+# segmentation method options: ['FSL', 'FreeSurfer', 'ANTs-Prior-Based', 'Template-Based']
 # FSL uses FAST; FreeSurfer runs recon-all to generate segmentations;
 # ANTs Prior-based Segmentation workflow uses antsJointLabelFusion and has shown optimal results for non-human primate data;
-segmentation_method: ['FSL']
+segmentation_method: ['FreeSurfer']
 
 
 # The atlas image assumed to be used in ANTs Prior-based Segmentation.
@@ -672,6 +673,10 @@ gm_mask_erosion_mm: 30
 gm_erosion_mm: 0
 
 
+# Reconstruct surface via FreeSurfer
+surface_reconstruction: True
+
+
 # Run functional preproceessing
 runFunctional: [1]
 
@@ -689,7 +694,7 @@ runMotionStatisticsFirst : [0]
 
 
 # Choose motion correction method. Options: AFNI 3dvolreg, FSL mcflirt
-motion_correction : ['3dvolreg']
+motion_correction : ['mcflirt']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume
@@ -820,6 +825,10 @@ functional_registration:
       #   run: [On, Off] - this will run both and fork the pipeline
       run: [On]
 
+      # this is a fork point
+      #   using: ['FSL', 'FreeSurfer']
+      using: ['FreeSurfer']
+
       # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
       # It is not necessary to change this path unless you intend to use non-standard MNI registration.
       bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
@@ -837,7 +846,7 @@ boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 # Interpolation method for writing out transformed anatomical images.
 # ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-anatRegANTSinterpolation: LanczosWindowedSinc
+anatRegANTSinterpolation: Linear #changed
 
 
 # Interpolation method for writing out transformed anatomical images.
@@ -849,7 +858,7 @@ anatRegFSLinterpolation: sinc
 # Interpolation method for writing out transformed functional images.
 # ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-funcRegANTSinterpolation: LanczosWindowedSinc
+funcRegANTSinterpolation: Linear #changed
 
 
 # Interpolation method for writing out transformed functional images.
@@ -862,6 +871,11 @@ funcRegFSLinterpolation: sinc
 # Options: ['Mean Functional', 'Selected Functional Volume']
 func_reg_input :  ['Mean Functional']
 
+
+# Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)
+n4_correct_mean_EPI : False
+
+
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0
 
@@ -870,11 +884,11 @@ func_reg_input_volume :  0
 n4_correct_func_reg_input : False
 
 
-# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET), FSL_AFNI (BET+3dAutoMask), Anatomical_Refined, or Anatomical_Based method 
-# 'Anatomical_Refined' : refine functional mask by registering anatomical mask to functional space. 
-# 'Anatomical_Based' : simply transforms the anatomical brain to the functional space to get BOLD mask. 
-# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based'] 
-functionalMasking : ['AFNI'] 
+# Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET),  FSL_AFNI (BET+3dAutoMask), or refine functional mask by registering anatomical mask to functional space.
+# 'Anatomical_Refined' : refine functional mask by registering anatomical mask to functional space.
+# 'Anatomical_Based' : simply transforms the anatomical brain to the functional space to get BOLD mask.
+# Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
+functionalMasking :  ['Anatomical_Based']
 
 
 # Options to be used for FSL skull-stripping of functional masking.
@@ -944,11 +958,11 @@ runRegisterFuncToTemplate :  ['T1_template']
 
 
 # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into. Note that selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution. For most cases, 3 mm or 4 mm resolutions are suggested.
-resolution_for_func_preproc :  3mm
+resolution_for_func_preproc :  2mm
 
 
 # The resolution (in mm) to which the registered derivative outputs are written into.
-resolution_for_func_derivative :  3mm
+resolution_for_func_derivative :  2mm
 
 
 # A standard template for resampling if using float resolution
@@ -956,15 +970,17 @@ template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+# changed
+template_brain_only_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+template_skull_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 
 # Standard FSL Anatomical Brain Mask Image
-template_brain_mask_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain_mask.nii.gz
+# changed
+template_brain_mask_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}_brain_mask.nii.gz
 
 
 # EPI template
@@ -985,7 +1001,7 @@ aroma_denoise_type :  nonaggr
 
 
 # Run Nuisance Signal Regression
-runNuisance :  [1]
+runNuisance :  [0]
 
 
 # Standard Lateral Ventricles Binary Mask
@@ -999,56 +1015,6 @@ Regressors :
      include_delayed: true
      include_squared: true
      include_delayed_squared: true
-
-   aCompCor:
-     summary:
-       method: DetrendPC
-       components: 5
-     tissues:
-       - WhiteMatter
-       - CerebrospinalFluid
-     extraction_resolution: 2
-
-   CerebrospinalFluid:
-     summary: Mean
-     extraction_resolution: 2
-     erode_mask: true
-
-   GlobalSignal:
-     summary: Mean
-
-   PolyOrt:
-    degree: 2
-
-   Bandpass:
-     bottom_frequency: 0.01
-     top_frequency: 0.1
-
- - Motion:
-     include_delayed: true
-     include_squared: true
-     include_delayed_squared: true
-
-   aCompCor:
-     summary:
-       method: DetrendPC
-       components: 5
-     tissues:
-       - WhiteMatter
-       - CerebrospinalFluid
-     extraction_resolution: 2
-
-   CerebrospinalFluid:
-     summary: Mean
-     extraction_resolution: 2
-     erode_mask: true
-
-   PolyOrt:
-    degree: 2
-
-   Bandpass:
-     bottom_frequency: 0.01
-     top_frequency: 0.1
 
 
 # Whether to run frequency filtering before or after nuisance regression.
@@ -1065,7 +1031,7 @@ targetAngleDeg : [90]
 
 
 # Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.
-runROITimeseries :  [1]
+runROITimeseries :  [0]
 
 
 # Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
@@ -1118,7 +1084,7 @@ roiTSOutputs :  [True, True]
 
 # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
 # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-runSCA :  [1]
+runSCA :  [0]
 
 
 # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
@@ -1140,7 +1106,7 @@ mrsNorm :  True
 
 
 # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-runVMHC :  [1]
+runVMHC :  [0]
 
 
 # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
@@ -1176,7 +1142,7 @@ configFileTwomm :  $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
 
 
 # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-runALFF :  [1]
+runALFF :  [0]
 
 
 # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
@@ -1188,7 +1154,7 @@ lowPassFreqALFF : [0.1]
 
 
 # Calculate Regional Homogeneity (ReHo) for all voxels.
-runReHo :  [1]
+runReHo :  [0]
 
 
 # Number of neighboring voxels used when calculating ReHo
@@ -1260,7 +1226,7 @@ memoryAllocatedForDegreeCentrality :  1.0
 # On - Run smoothing and output only the smoothed outputs.
 # On/Off - Run smoothing and output both the smoothed and non-smoothed outputs.
 # Off - Don't run smoothing.
-run_smoothing :  [1]
+run_smoothing :  [0]
 
 
 # Tool to use for smoothing.
@@ -1283,7 +1249,7 @@ smoothing_order :  ['Before']
 # On - Run z-scoring and output only the z-scored outputs.
 # On/Off - Run z-scoring and output both the z-scored and raw score versions of the outputs.
 # Off - Don't run z-scoring.
-runZScoring :  [1]
+runZScoring :  [0]
 
 
 # PyPEER integration
