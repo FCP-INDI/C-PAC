@@ -645,7 +645,7 @@ boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 # Interpolation method for writing out transformed anatomical images.
 # ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-anatRegANTSinterpolation: LanczosWindowedSinc
+anatRegANTSinterpolation: Linear
 
 
 # Interpolation method for writing out transformed anatomical images.
@@ -657,7 +657,7 @@ anatRegFSLinterpolation: sinc
 # Interpolation method for writing out transformed functional images.
 # ANTS registration tools only.
 # Possible values: Linear, BSpline, LanczosWindowedSinc
-funcRegANTSinterpolation: LanczosWindowedSinc
+funcRegANTSinterpolation: Linear
 
 
 # Interpolation method for writing out transformed functional images.
@@ -671,7 +671,7 @@ funcRegFSLinterpolation: sinc
 func_reg_input :  ['Mean Functional']
 
 
-n4_correct_mean_EPI : true
+n4_correct_mean_EPI : False
 
 # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 func_reg_input_volume :  0

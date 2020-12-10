@@ -1225,8 +1225,20 @@ def check_config_resources(c):
     else:
         num_ants_cores = 1
 
+    # Now check OMP
+    if c.num_omp_threads is None:
+        num_omp_cores = 1
+    elif c.num_omp_threads > c.maxCoresPerParticipant:
+        err_msg = 'Number of threads for OMP: %d is greater than the ' \
+                    'number of threads per subject: %d. Change this and ' \
+                    'try again.' % (c.num_omp_threads,
+                                    c.maxCoresPerParticipant)
+        raise Exception(err_msg)
+    else:
+        num_omp_cores = c.num_omp_threads
+
     # Return memory and cores
-    return sub_mem_gb, num_cores_per_sub, num_ants_cores
+    return sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
 
 
 def load_preconfig(pipeline_label):
