@@ -217,6 +217,22 @@ RUN mkdir -p /ndmg_atlases/label && \
 COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
+# install FreeSurfer
+# set shell to BASH
+RUN mkdir -p /usr/lib/freesurfer
+ENV FREESURFER_HOME="/usr/lib/freesurfer" \
+    PATH="/usr/lib/freesurfer/bin:$PATH"
+SHELL ["/bin/bash", "-c"]
+RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
+    | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \
+    source $FREESURFER_HOME/SetUpFreeSurfer.sh
+RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
+# restore shell to default (sh)
+SHELL ["/bin/sh", "-c"]
+COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
+
+COPY dev/docker_data /code/docker_data
+RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run-with-freesurfer.sh
 
 COPY . /code
 RUN pip install -e /code
@@ -224,7 +240,7 @@ RUN pip install -e /code
 COPY dev/docker_data /code/docker_data
 RUN mv /code/docker_data/* /code && rm -Rf /code/docker_data && chmod +x /code/run.py
 
-ENTRYPOINT ["/code/run.py"]
+ENTRYPOINT ["/code/run-with-freesurfer.sh"]
 
 # Link libraries for Singularity images
 RUN ldconfig
