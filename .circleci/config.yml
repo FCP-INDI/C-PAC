@@ -56,13 +56,6 @@ commands:
             fi
             echo "export DOCKER_TARBALL=${DOCKER_TARBALL}" >> $BASH_ENV
             echo "export VARIANT=${VARIANT}" >> $BASH_ENV
-      - when:
-          condition:
-            equal: [ "", "<< parameters.variant >>" ]
-          steps:
-              - run:
-                  name: "Logging into GitHub Container Registry"
-                  command: echo "${GITHUB_REGISTRY_TOKEN}" | docker login https://docker.pkg.github.com -u ${GITHUB_REGISTRY_NAME} --password-stdin
       - run:
           name: "Building Docker image"
           command: |
