@@ -6,8 +6,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
-    ANTSPATH="/usr/lib/ants/bin" \
-    PATH="/usr/lib/ants/bin:$PATH"
+    ANTSPATH="/usr/lib/ants" \
+    PATH="/usr/lib/ants:$PATH"
 
 RUN apt-get update -qq \
     && apt-get install -y -q --no-install-recommends \
