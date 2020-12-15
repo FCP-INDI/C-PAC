@@ -1,7 +1,7 @@
 import re
 import yaml
 from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
-from CPAC.utils.utils import update_nested_dict
+from CPAC.utils.utils import dct_diff
 
 
 def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
@@ -20,12 +20,10 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
     Examples
     --------
-    >>> import json, yaml
-    >>> from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
-    >>> json.dumps(yaml.safe_load(
-    ...     create_yaml_from_template({})), sort_keys=True
-    ... ) == json.dumps(yaml.safe_load(
-    ...     open(DEFAULT_PIPELINE_FILE, 'r')), sort_keys=True)
+    >>> import yaml
+    >>> from CPAC.utils.configuration import Configuration
+    >>> Configuration(yaml.safe_load(create_yaml_from_template({}))).dict(
+    ...    ) == Configuration({}).dict()
     True
     """
     def _count_indent(line):
@@ -47,6 +45,37 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         2
         '''
         return (len(line) - len(line.lstrip())) // 2
+
+    def _create_import_dict(diff):
+        '''Method to return a dict of only changes given a nested dict
+        of (dict1_value, dict2_value) tuples
+
+        Parameters
+        ----------
+        diff: dict
+            output of `dct_diff`
+
+        Returns
+        -------
+        dict
+            dict of only changed values
+
+        Examples
+        --------
+        >>> _create_import_dict({'anatomical_preproc': {'brain_extraction': {'extraction': {'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
+        {'anatomical_preproc': {'brain_extraction': {'extraction': {'using': ['niworkflows-ants']}}}}
+        '''
+        if isinstance(diff, tuple) and len(diff) == 2:
+            return diff[1]
+        if isinstance(diff, dict):
+            i = {}
+            for k in diff:
+                try:
+                    i[k] = _create_import_dict(diff[k])
+                except KeyError:
+                    continue
+            return {k: i[k] for k in i if i[k]}
+        return diff
 
     def _format_key(key, level):
         '''Helper method to format YAML keys
@@ -114,7 +143,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         ''
         '''
         if len(keys) == 1:
-            value = d.get(keys[0])
+            value = d[keys[0]]
             if value is None:
                 return ''
             if isinstance(value, bool):
@@ -139,7 +168,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
     d_default = yaml.safe_load(open(template, 'r'))
 
     # update values
-    d = update_nested_dict(d_default, d)
+    d = _create_import_dict(dct_diff(d_default, d))
 
     # generate YAML from template with updated values
     with open(template, 'r') as f:
@@ -187,20 +216,24 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                         elif line_level < level:
                             nest = nest[:line_level] + [key]
 
-                        # get updated value for key
-                        value = _lookup_value(d, nest)
+                        # only include updated values
+                        try:
+                            # get updated value for key
+                            value = _lookup_value(d, nest)
 
-                        # prepend comment from template
-                        if len(comment.strip()):
-                            output += comment
+                            # prepend comment from template
+                            if len(comment.strip()):
+                                output += comment
 
-                        # write YAML
-                        output += _format_key(key, line_level)
-                        if isinstance(value, list):
-                            output += '\n' + _format_list_items(
-                                value, line_level)
-                        elif not isinstance(value, dict):
-                            output += str(value)
+                            # write YAML
+                            output += _format_key(key, line_level)
+                            if isinstance(value, list):
+                                output += '\n' + _format_list_items(
+                                    value, line_level)
+                            elif not isinstance(value, dict):
+                                output += str(value)
+                        except KeyError:
+                            continue
 
                         # reset variables for loop
                         comment = '\n'
