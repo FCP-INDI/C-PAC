@@ -234,3 +234,49 @@ class Configuration(object):
                 f'`{str(key)}`',
                 'was given.'
             ]))
+
+
+def dct_diff(dct1, dct2):
+    '''Function to compare 2 nested dicts, dropping values unspecified
+    in the second. Adapted from https://github.com/sgiavasis/CPAC_regtest_pack/blob/9056ef63cbe693f436c4ea8a5fee669f8d2e35f7/cpac_pipe_diff.py#L31-L78
+
+    Parameters
+    ----------
+    dct1: dict
+
+    dct2: dict
+
+    Returns
+    -------
+    diff: set
+        a tuple of values from dct1, dct2 for each differing key
+
+    Example
+    -------
+    >>> def read_yaml_file(yaml_file):
+    ...     return yaml.safe_load(open(yaml_file, 'r'))
+    >>> pipeline = read_yaml_file('/code/dev/docker_data/default_pipeline.yml')
+    >>> dct_diff(pipeline, pipeline)
+    {}
+    >>> pipeline2 = read_yaml_file('/code/CPAC/resources/configs/'
+    ...     'pipeline_config_fmriprep-options.yml')
+    >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
+    ('cpac-default-pipeline', 'cpac_fmriprep-options')
+    '''  # noqa
+    diff = {}
+    for key in dct1:
+        if isinstance(dct1[key], dict):
+            diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
+        else:
+            dct1_val = dct1.get(key)
+            dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
+
+            # skip unspecified values
+            if dct2_val is None:
+                continue
+
+            if dct1_val != dct2_val:
+                diff[key] = (dct1_val, dct2_val)
+
+    # only return non-empty diffs
+    return {k: diff[k] for k in diff if diff[k]}
