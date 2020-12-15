@@ -76,13 +76,11 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
 
     Example
     -------
-    >>> import get_zscore as z
-    >>> wf = z.get_zscore()
+    >>> wf = get_zscore('example_input')
     >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
     >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
-    >>> wf.run()
-
-    """
+    >>> wf.run()  # doctest: +SKIP
+    """  # noqa
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
