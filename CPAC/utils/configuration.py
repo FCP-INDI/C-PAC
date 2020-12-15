@@ -56,7 +56,7 @@ class Configuration(object):
         from CPAC.pipeline.schema import schema
         from CPAC.utils.utils import load_preconfig, update_nested_dict
         from optparse import OptionError
-        
+
         if config_map is None:
             config_map = {}
 
@@ -70,10 +70,14 @@ class Configuration(object):
                 base_config = load_preconfig(base_config)
             except OptionError:
                 base_config = base_config
-            with open(base_config, 'r') as fp:
-                from_config = yaml.safe_load(fp)
+            from_config = yaml.safe_load(open(base_config, 'r'))
             config_map = update_nested_dict(from_config, config_map)
         config_map = schema(self.nonestr_to_None(config_map))
+
+        # remove 'FROM' before setting attributes now that it's imported
+        if 'FROM' in config_map:
+            del config_map['FROM']
+
         for key in config_map:
             # set FSLDIR to the environment $FSLDIR if the user sets it to
             # 'FSLDIR' in the pipeline config file

@@ -1,7 +1,9 @@
+import os
 import re
 import yaml
-from CPAC.utils.configuration import DEFAULT_PIPELINE_FILE
-from CPAC.utils.utils import dct_diff
+from optparse import OptionError
+from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
+from CPAC.utils.utils import dct_diff, load_preconfig
 
 
 def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
@@ -64,7 +66,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         --------
         >>> _create_import_dict({'anatomical_preproc': {'brain_extraction': {'extraction': {'using': (['3dSkullStrip'], ['niworkflows-ants'])}}}})
         {'anatomical_preproc': {'brain_extraction': {'extraction': {'using': ['niworkflows-ants']}}}}
-        '''
+        '''  # noqa
         if isinstance(diff, tuple) and len(diff) == 2:
             return diff[1]
         if isinstance(diff, dict):
@@ -163,9 +165,25 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
     list_item = False
     list_level = 0
     line_level = 0
+    template_name = template
+    try:
+        template = load_preconfig(template)
+    except OptionError:
+        if 'default' in template.lower():
+            template = DEFAULT_PIPELINE_FILE
+        assert os.path.exists(template) or os.path.islink(template), \
+            f'{template_name} is not a defined preconfig or a valid path.'
+    template_included = False
 
     # load default values
-    d_default = yaml.safe_load(open(template, 'r'))
+    d_default = Configuration(yaml.safe_load(open(template, 'r'))).dict()
+
+    if (
+        template == DEFAULT_PIPELINE_FILE or
+        not dct_diff(
+            yaml.safe_load(open(DEFAULT_PIPELINE_FILE, 'r')), d_default)
+    ):
+        template_name = 'default'
 
     # update values
     d = _create_import_dict(dct_diff(d_default, d))
@@ -198,11 +216,22 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                     list_level = line_level - 1
 
                 else:
-
                     # extract dict key
                     key_group = re.match(
                         r'^\s*([a-z0-9A-Z_/][\sa-z0-9A-Z_/\.-]+)\s*:', line)
                     if key_group:
+                        if not template_included:
+                            # prepend comment from template
+                            if len(comment.strip()):
+                                comment = re.sub(
+                                    r'(?<=# based on )(.* pipeline)',
+                                    f'{template_name} pipeline',
+                                    comment
+                                )
+                                output += comment
+                                output += f'\nFROM: {template_name}\n'
+                                comment = ''
+                            template_included = True
                         key = key_group.group(1).strip()
 
                         # calculate key depth
@@ -216,7 +245,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                         elif line_level < level:
                             nest = nest[:line_level] + [key]
 
-                        # only include updated values
+                        # only include updated and new values
                         try:
                             # get updated value for key
                             value = _lookup_value(d, nest)
@@ -233,10 +262,19 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                             elif not isinstance(value, dict):
                                 output += str(value)
                         except KeyError:
-                            continue
+                            # clear comment for excluded key
+                            comment = '\n'
 
                         # reset variables for loop
                         comment = '\n'
                         level = line_level
+            else:
+                comment += '\n'
+
+    # update to include new values
+    new_keys = _create_import_dict(dct_diff(yaml.safe_load(output), d))
+    if new_keys:
+        output += '\n'
+        output += yaml.dump(new_keys).strip()
 
     return output.lstrip('\n')

@@ -1438,11 +1438,17 @@ def dct_diff(dct1, dct2):
             dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
 
             # skip unspecified values
-            if dct2_val is None:
+            if dct2_val in [None, 'None']:
                 continue
 
             if dct1_val != dct2_val:
                 diff[key] = (dct1_val, dct2_val)
+
+    # add any new keys
+    if isinstance(dct2, dict):
+        for key in dct2:
+            if key not in dct1:
+                diff[key] = dct2[key]
 
     # only return non-empty diffs
     return {k: diff[k] for k in diff if diff[k]}
@@ -1487,6 +1493,8 @@ def update_nested_dict(d_base, d_update):
     >>> update_nested_dict(d_base, d_update)
     {'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {'path': '/output', 'write_func_outputs': False, 'write_debugging_outputs': False, 'output_tree': 'default', 'generate_quality_control_images': True}, 'working_directory': {'path': '/tmp', 'remove_working_dir': True}, 'log_directory': {'run_logging': True, 'path': '/logs'}, 'system_config': {'maximum_memory_per_participant': 1, 'max_cores_per_participant': 1, 'num_ants_threads': 1, 'num_participants_at_once': 1}, 'Amazon-AWS': {'aws_output_bucket_credentials': None, 's3_encryption': True}, 'pipeline_IMPORT': 'None'}
     """  # noqa
+    if d_base is None:
+        d_base = {}
     for k, v in d_update.items():
         if isinstance(v, collections.abc.Mapping):
             d_base[k] = update_nested_dict(d_base.get(k, {}), v)
