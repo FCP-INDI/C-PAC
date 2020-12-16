@@ -6,10 +6,15 @@ import numbers
 import pickle
 import threading
 import numpy as np
+import yaml
 
-from inspect import currentframe, getframeinfo , stack
+from inspect import currentframe, getframeinfo, stack
+from itertools import repeat
 from optparse import OptionError
 
+NESTED_CONFIG_MAPPING = yaml.safe_load(open(
+    os.path.abspath(os.path.join(__file__, *repeat(os.path.pardir, 2),
+        'resources/configs/1.7-1.8-nesting-mappings.yml')), 'r'))
 
 def get_flag(in_flag):
     return in_flag
@@ -1452,6 +1457,106 @@ def dct_diff(dct1, dct2):
 
     # only return non-empty diffs
     return {k: diff[k] for k in diff if diff[k]}
+
+
+def lookup_nested_value(d, keys):
+    '''Helper method to look up nested values
+
+    Paramters
+    ---------
+    d: dict
+    keys: list or tuple
+
+    Returns
+    -------
+    yaml: str or dict
+
+    Examples
+    --------
+    >>> lookup_nested_value({'nested': {'True': True}}, ['nested', 'True'])
+    'On'
+    >>> lookup_nested_value({'nested': {'None': None}}, ['nested', 'None'])
+    ''
+    '''
+    if len(keys) == 1:
+        value = d[keys[0]]
+        if value is None:
+            return ''
+        if isinstance(value, bool):
+            if value == False:  # noqa E712
+                return 'Off'
+            return 'On'
+        return d.get(keys[0])
+    else:
+        return lookup_nested_value(d.get(keys[0], {}), keys[1:])
+
+
+def set_nested_value(d, keys, value):
+    '''Helper method to look up nested values
+
+    Paramters
+    ---------
+    d: dict
+    keys: list or tuple
+    value: any
+
+    Returns
+    -------
+    dict
+        updated
+
+    Examples
+    --------
+    >>> set_nested_value({}, ['nested', 'keys'], 'value')
+    {'nested': {'keys': 'value'}}
+    '''
+    if not isinstance(d, dict):
+        raise TypeError(f'Expected dict, got {type(d).__name__}: {str(d)}')
+    if not isinstance(keys, list):
+        raise TypeError(f'Expected list, got {type(keys).__name}: {str(keys)}')
+    if len(keys) == 1:
+        d.update({keys[0]: value})
+        return d
+    if not len(keys):
+        return d
+    return update_nested_dict(d, {
+        keys[0]: set_nested_value(d.get(keys[0], {}), keys[1:], value)
+    })
+
+
+def update_config_dict(old_dict):
+    '''Function to convert an old config dict to a new config dict
+
+    Parameters
+    ----------
+    old_dict: dict
+
+    Returns
+    -------
+    new_dict: dict
+        1.8 nested config dictionary
+
+    old_dict: dict
+        remaining undefined mappings
+
+    combined_dict: dict
+        1.8 nested config dictionary plus remaining undefined mappings
+
+    Examples
+    --------
+    >>> a, b, c = update_config_dict({'pipelineName': 'example-pipeline', '2': None})
+    >>> a
+    {'pipeline_setup': {'pipeline_name': 'example-pipeline'}}
+    >>> b
+    {'2': None}
+    >>> c
+    {'pipeline_setup': {'pipeline_name': 'example-pipeline'}, '2': None}
+    '''
+    new_dict = {}
+    for key in old_dict.copy():
+        if key in NESTED_CONFIG_MAPPING:
+            new_dict = set_nested_value(new_dict, NESTED_CONFIG_MAPPING[key], old_dict.pop(key))
+    return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
 
 
 def update_nested_dict(d_base, d_update):

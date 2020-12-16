@@ -54,7 +54,8 @@ class Configuration(object):
     """
     def __init__(self, config_map):
         from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import load_preconfig, update_nested_dict
+        from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
+            set_nested_value, update_nested_dict
         from optparse import OptionError
 
         if config_map is None:

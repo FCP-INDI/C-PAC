@@ -3,7 +3,7 @@ import re
 import yaml
 from optparse import OptionError
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
-from CPAC.utils.utils import dct_diff, load_preconfig
+from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value
 
 
 def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
@@ -125,37 +125,6 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
             f'{indent}{li}' for li in yaml.dump(l).split('\n')
         ]).rstrip()
 
-    def _lookup_value(d, keys):
-        '''Helper method to look up nested values
-
-        Paramters
-        ---------
-        d: dict
-        keys: list or tuple
-
-        Returns
-        -------
-        yaml: str or dict
-
-        Examples
-        --------
-        >>> _lookup_value({'nested': {'True': True}}, ['nested', 'True'])
-        'On'
-        >>> _lookup_value({'nested': {'None': None}}, ['nested', 'None'])
-        ''
-        '''
-        if len(keys) == 1:
-            value = d[keys[0]]
-            if value is None:
-                return ''
-            if isinstance(value, bool):
-                if value == False:  # noqa E712
-                    return 'Off'
-                return 'On'
-            return d.get(keys[0])
-        else:
-            return _lookup_value(d.get(keys[0], {}), keys[1:])
-
     # set starting values
     output = ''
     comment = ''
@@ -248,7 +217,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                         # only include updated and new values
                         try:
                             # get updated value for key
-                            value = _lookup_value(d, nest)
+                            value = lookup_nested_value(d, nest)
 
                             # prepend comment from template
                             if len(comment.strip()):
