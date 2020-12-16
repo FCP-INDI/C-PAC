@@ -341,6 +341,7 @@ def blip_distcor_wf(wf_name='blip_distcor'):
     undistort_func_mean = pe.Node(interface=ants.ApplyTransforms(),
                                   name='undistort_func_mean', mem_gb=.1)
 
+    undistort_func_mean.inputs.num_threads = c.maxCoresPerParticipant
     undistort_func_mean.inputs.out_postfix = '_antswarp'
     undistort_func_mean.interface.num_threads = 1
     undistort_func_mean.inputs.interpolation = "LanczosWindowedSinc"

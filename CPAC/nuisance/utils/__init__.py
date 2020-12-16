@@ -432,8 +432,13 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                                     name='{0}_inverse_transform_flags'.format(ventricles_key))
                     nuisance_wf.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
-                    lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
-                    lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
+                    lat_ven_mni_to_anat = pe.Node(
+                        interface=ants.ApplyTransforms(),
+                        name='{}_ants'.format(ventricles_key))
+                    lat_ven_mni_to_anat.inputs.num_threads = \
+                        config.maxCoresPerParticipant
+                    lat_ven_mni_to_anat.inputs.interpolation = \
+                        'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
                     nuisance_wf.connect(inverse_transform_flags, 'inverse_transform_flags', lat_ven_mni_to_anat, 'invert_transform_flags')

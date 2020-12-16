@@ -617,7 +617,9 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
 
 
         # apply transform to func 
-        func_in_epi = pe.Node(interface=ants.ApplyTransforms(), name='func_in_epi_ants')
+        func_in_epi = pe.Node(
+            interface=ants.ApplyTransforms(), name='func_in_epi_ants')
+        func_in_epi.inputs.num_threads = config.maxCoresPerParticipant
         func_in_epi.inputs.dimension = 3
         func_in_epi.inputs.input_image_type = 3
         register_func_to_epi.connect(inputspec, 'func_4d', func_in_epi, 'input_image')

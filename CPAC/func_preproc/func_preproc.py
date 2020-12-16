@@ -63,6 +63,8 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
         # 2.1.1 N4BiasFieldCorrection single volume of raw_func 
         func_single_volume_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_single_volume_n4_corrected')
+        func_single_volume_n4_corrected.inputs.num_threads = \
+            config.maxCoresPerParticipant
         func_single_volume_n4_corrected.inputs.args = '-r True'
 
         wf.connect(func_single_volume, 'out_file', 
@@ -1433,6 +1435,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
             get_func_volume_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                             name='get_func_volume_n4_corrected')
+            get_func_volume_n4_corrected.inputs.num_threads = \
+                config.maxCoresPerParticipant
             get_func_volume_n4_corrected.inputs.args = '-r True'
             
             preproc.connect(get_func_volume, 'out_file', 
@@ -1448,6 +1452,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
         func_mean_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_mean_n4_corrected')
+        func_mean_n4_corrected.inputs.num_threads = \
+            config.maxCoresPerParticipant
         func_mean_n4_corrected.inputs.args = '-r True'
         
         preproc.connect(func_mean, 'out_file', 

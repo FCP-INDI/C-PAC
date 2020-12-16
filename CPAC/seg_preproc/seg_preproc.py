@@ -604,8 +604,11 @@ def process_segment_map(wf_name,
 
         # mni to t1
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
-                                        name='{0}_prior_mni_to_t1'.format(wf_name))
+                                        name='{0}_prior_mni_to_t1'.format(
+                                            wf_name))
 
+        tissueprior_mni_to_t1.inputs.num_threads = \
+            config.maxCoresPerParticipant
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
         preproc.connect(inverse_transform_flags, 'inverse_transform_flags', tissueprior_mni_to_t1, 'invert_transform_flags')
@@ -962,6 +965,8 @@ def tissue_mask_template_to_t1(wf_name,
         tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
                                         name='{0}_mni_to_t1'.format(wf_name))
 
+        tissueprior_mni_to_t1.inputs.num_threads = \
+            config.maxCoresPerParticipant
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
         preproc.connect(inverse_transform_flags, 'inverse_transform_flags', tissueprior_mni_to_t1, 'invert_transform_flags')

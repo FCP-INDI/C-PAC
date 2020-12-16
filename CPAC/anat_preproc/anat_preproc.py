@@ -388,10 +388,13 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
     elif method == 'niworkflows-ants': 
         # Skull-stripping using niworkflows-ants  
-        anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=config.niworkflows_ants_template_path,
-                                                        tpl_mask_path=config.niworkflows_ants_mask_path,
-                                                        tpl_regmask_path=config.niworkflows_ants_regmask_path,
-                                                        name='anat_skullstrip_ants')
+        anat_skullstrip_ants = init_brain_extraction_wf(
+            tpl_target_path=config.niworkflows_ants_template_path,
+            tpl_mask_path=config.niworkflows_ants_mask_path,
+            tpl_regmask_path=config.niworkflows_ants_regmask_path,
+            omp_nthreads=config.maxCoresPerParticipant,
+            mem_gb=config.maximumMemoryPerParticipant,
+            name='anat_skullstrip_ants')
 
         preproc.connect(inputnode, 'anat_data',
                         anat_skullstrip_ants, 'inputnode.in_files')
@@ -600,6 +603,9 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
         # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
         ants_template_head_to_template = pe.Node(interface=ants.Registration(), name='template_head_to_template')
+        ants_template_head_to_template.inputs.num_threads = \
+            config.maxCoresPerParticipant
+        ants_template_head_to_template.inputs.float = True
         ants_template_head_to_template.inputs.metric = ['CC']
         ants_template_head_to_template.inputs.metric_weight = [1,5]
         ants_template_head_to_template.inputs.transforms = ['SyN']
@@ -613,6 +619,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         preproc.connect(inputnode, 'template_skull_for_anat', ants_template_head_to_template, 'moving_image')
         # antsApplyTransforms -d 3 -i templateMask.nii.gz -t atl2T1rotWarp.nii.gz atl2T1rotAffine.txt -r brain_rot2atl.nii.gz -o brain_rot2atl_mask.nii.gz
         template_head_transform_to_template = pe.Node(interface=ants.ApplyTransforms(), name='template_head_transform_to_template')
+        template_head_transform_to_template.inputs.num_threads = \
+            config.maxCoresPerParticipant
         template_head_transform_to_template.inputs.dimension = 3
         preproc.connect(template_brain_mask, 'out_file', template_head_transform_to_template, 'input_image')
         preproc.connect(native_brain_to_template_brain, 'out_file', template_head_transform_to_template, 'reference_image')
@@ -1019,11 +1027,13 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     if config.non_local_means_filtering and config.n4_bias_field_correction and config.acpc_run_preprocessing=='before':
         denoise_before_acpc = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise_before_acpc')
         # align ABCD pipeline
+        denoise_before_acpc.inputs.num_threads = config.maxCoresPerParticipant
         denoise_before_acpc.inputs.dimension = 3
         denoise_before_acpc.inputs.noise_model = 'Rician'
         preproc.connect(anat_reorient, 'out_file', denoise_before_acpc, 'input_image')
 
         n4_before_acpc = pe.Node(interface = ants.N4BiasFieldCorrection(), name='anat_n4_before_acpc')
+        n4_before_acpc.inputs.num_threads = config.maxCoresPerParticipant
         n4_before_acpc.inputs.dimension = 3
         preproc.connect(denoise_before_acpc, 'output_image', n4_before_acpc, 'input_image')
     
@@ -1054,21 +1064,22 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     if config.acpc_run_preprocessing=='after':
 
-        if config.non_local_means_filtering and config.n4_bias_field_correction:
+        if config.n4_bias_field_correction:
+            n4 = pe.Node(
+                interface = ants.N4BiasFieldCorrection(
+                    dimension=3, shrink_factor=2, copy_header=True),
+                name='anat_n4')
+            n4.inputs.num_threads = config.maxCoresPerParticipant
+
+        if config.non_local_means_filtering:
             denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
+            denoise.inputs.num_threads = config.maxCoresPerParticipant
             preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
 
-            n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
-                name='anat_n4')
-            preproc.connect(denoise, 'output_image', n4, 'input_image')
+            if config.n4_bias_field_correction:
+                preproc.connect(denoise, 'output_image', n4, 'input_image')
 
-        elif config.non_local_means_filtering and not config.n4_bias_field_correction:
-            denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
-            preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
-
-        elif not config.non_local_means_filtering and config.n4_bias_field_correction:
-            n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
-                name='anat_n4')
+        elif config.n4_bias_field_correction:
             preproc.connect(anat_leaf, 'anat_data', n4, 'input_image')
 
     anat_leaf2 = pe.Node(util.IdentityInterface(fields=['anat_data']),
