@@ -63,8 +63,6 @@ def anat_refined_mask(init_bold_mask = True, wf_name='init_bold_mask'):
         # 2.1.1 N4BiasFieldCorrection single volume of raw_func 
         func_single_volume_n4_corrected = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, copy_header=True, bspline_fitting_distance=200), shrink_factor=2, 
                                         name='func_single_volume_n4_corrected')
-        func_single_volume_n4_corrected.inputs.num_threads = \
-            config.maxCoresPerParticipant
         func_single_volume_n4_corrected.inputs.args = '-r True'
 
         wf.connect(func_single_volume, 'out_file', 

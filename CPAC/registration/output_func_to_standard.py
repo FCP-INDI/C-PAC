@@ -601,8 +601,7 @@ def ants_apply_warps_func_mni(
                     output_name, inverse_string, registration_template,
                     num_strat),
                 mem_gb=1.5)
-        write_composite_xfm.inputs.num_threads = \
-            config.maxCoresPerParticipant
+        write_composite_xfm.inputs.num_threads = num_ants_cores
         write_composite_xfm.inputs.print_out_composite_warp_file = True
         write_composite_xfm.inputs.output_image = "func_to_standard_xfm.nii.gz"
 

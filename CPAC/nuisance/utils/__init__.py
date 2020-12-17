@@ -435,8 +435,6 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     lat_ven_mni_to_anat = pe.Node(
                         interface=ants.ApplyTransforms(),
                         name='{}_ants'.format(ventricles_key))
-                    lat_ven_mni_to_anat.inputs.num_threads = \
-                        config.maxCoresPerParticipant
                     lat_ven_mni_to_anat.inputs.interpolation = \
                         'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
