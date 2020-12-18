@@ -1,9 +1,11 @@
 import os
 import re
 import yaml
+from datetime import datetime
 from optparse import OptionError
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
-from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value
+from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
+    update_config_dict
 
 
 def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
@@ -120,8 +122,15 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         >>> _format_list_items([1, 2, {'nested': [3, {'deep': [4]}]}], 1)
         '    - 1\n    - 2\n    - nested:\n      - 3\n      - deep:\n        - 4'
         '''  # noqa
+        # keep short, simple lists in square brackets
+        if all([any([isinstance(item, item_type) for item_type in {
+            str, bool, int, float
+        }]) for item in l]):
+            if len(str(l)) < 50:
+                return str(l).replace("'", '').replace('"', '')
+        # list long or complex lists on lines with indented '-' lead-ins
         indent = " " * (2 * line_level + 2)
-        return '\n'.join([
+        return '\n' + '\n'.join([
             f'{indent}{li}' for li in yaml.dump(l).split('\n')
         ]).rstrip()
 
@@ -218,15 +227,29 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                         try:
                             # get updated value for key
                             value = lookup_nested_value(d, nest)
-
+                            orig_value = lookup_nested_value(d_default, nest)
+                            # Use 'On' and 'Off' for bools
+                            if (isinstance(orig_value, bool) or (
+                                isinstance(orig_value, str) and
+                                orig_value in {'On', 'Off'}
+                            ) or (isinstance(orig_value, list) and all([(
+                                isinstance(orig_item, bool) or (
+                                    isinstance(orig_item, str) and
+                                    orig_item in {'On', 'Off'}
+                                )
+                            ) for orig_item in orig_value])
+                            )):
+                                value = yaml_bool(value)
                             # prepend comment from template
                             if len(comment.strip()):
                                 output += comment
+                            else:
+                                output += '\n'
 
                             # write YAML
                             output += _format_key(key, line_level)
                             if isinstance(value, list):
-                                output += '\n' + _format_list_items(
+                                output += _format_list_items(
                                     value, line_level)
                             elif not isinstance(value, dict):
                                 output += str(value)
@@ -237,7 +260,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                         # reset variables for loop
                         comment = '\n'
                         level = line_level
-            else:
+            elif len(comment) > 1 and comment[-2] != '\n':
                 comment += '\n'
 
     # update to include new values
@@ -247,3 +270,69 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         output += yaml.dump(new_keys).strip()
 
     return output.lstrip('\n')
+
+
+def yaml_bool(value):
+    '''Helper function to give On/Off value to bools
+
+    Parameters
+    ----------
+    value: any
+
+    Returns
+    -------
+    value: any
+
+    Examples
+    --------
+    >>> yaml_bool(True)
+    'On'
+    >>> yaml_bool([False, 'On', True])
+    ['Off', 'On', 'On']
+    '''
+    yaml_lookup = {
+        True: 'On', 'True': 'On', 1: 'On',
+        False: 'Off', 'False': 'Off', 0: 'Off',
+        None: None, 'None': None}
+    if (
+        isinstance(value, bool) or isinstance(value, str) or
+        isinstance(value, int) or value is None
+    ) and value in yaml_lookup:
+        return yaml_lookup[value]
+    elif isinstance(value, list):
+        return [yaml_bool(item) for item in value]
+    return value
+
+
+def upgrade_pipeline_to_1_8(path, include_unmapped=False):
+    '''Function to upgrade a C-PAC 1.7 pipeline config to C-PAC 1.8
+
+    Parameters
+    ----------
+    path: str
+
+    include_unmapped: bool
+        include keys from original file that aren't mapped in 1.8 syntax
+
+    Returns
+    -------
+    None
+
+    Outputs
+    -------
+    {path}.{now}.bak
+        original file
+
+    path
+        upgraded file
+    '''
+    # back up original config
+    now = datetime.isoformat(datetime.now()).replace(':', '_')
+    backup = f'{path}.{now}.bak'
+    print(f'Backing up {path} to {backup} and upgrading to C-PAC 1.8')
+    original = open(path, 'r').read()
+    open(backup, 'w').write(original)
+    # upgrade and overwrite
+    if len(original.strip()):
+        open(path, 'w').write(create_yaml_from_template(update_config_dict(
+            yaml.safe_load(original))[2 if include_unmapped else 0]))

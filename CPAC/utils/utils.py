@@ -16,6 +16,7 @@ NESTED_CONFIG_MAPPING = yaml.safe_load(open(
     os.path.abspath(os.path.join(__file__, *repeat(os.path.pardir, 2),
         'resources/configs/1.7-1.8-nesting-mappings.yml')), 'r'))
 
+
 def get_flag(in_flag):
     return in_flag
 
@@ -1437,6 +1438,8 @@ def dct_diff(dct1, dct2):
     diff = {}
     for key in dct1:
         if isinstance(dct1[key], dict):
+            if not isinstance(dct2, dict):
+                raise Exception(dct2)
             diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
         else:
             dct1_val = dct1.get(key)
@@ -1551,11 +1554,12 @@ def update_config_dict(old_dict):
     {'2': None}
     >>> c
     {'pipeline_setup': {'pipeline_name': 'example-pipeline'}, '2': None}
-    '''
+    ''' # noqa
     new_dict = {}
     for key in old_dict.copy():
         if key in NESTED_CONFIG_MAPPING:
-            new_dict = set_nested_value(new_dict, NESTED_CONFIG_MAPPING[key], old_dict.pop(key))
+            new_dict = set_nested_value(
+                new_dict, NESTED_CONFIG_MAPPING[key], old_dict.pop(key))
     return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
 
 
