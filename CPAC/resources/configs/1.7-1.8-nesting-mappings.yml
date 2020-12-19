@@ -1,3 +1,27 @@
+runOnGrid:
+   - pipeline_setup
+   - system_config
+   - on_grid
+   - run
+FSLDIR:
+   - FSLDIR
+resourceManager:
+   - pipeline_setup
+   - system_config
+   - on_grid
+   - resource_manager
+parallelEnvironment:
+   - pipeline_setup
+   - system_config
+   - on_grid
+   - SGE
+   - parallel_environment
+queue:
+   - pipeline_setup
+   - system_config
+   - on_grid
+   - SGE
+   - queue
 maximumMemoryPerParticipant:
    - pipeline_setup
    - system_config
@@ -20,6 +44,10 @@ pipelineName:
 workingDirectory:
    - pipeline_setup
    - working_directory
+   - path
+crashLogDirectory:
+   - pipeline_setup
+   - crash_log_directory
    - path
 outputDirectory:
    - pipeline_setup
@@ -1057,3 +1085,6 @@ peer_scrub_thresh:
    - PyPEER
    - minimal_nuisance_correction
    - scrub_thresh
+anatomical_preproc:
+   - anatomical_preproc
+   - run

@@ -34,6 +34,11 @@ pipeline_setup:
 
     path: /tmp
 
+  crash_log_directory: 
+
+    # Directory where CPAC should write crash logs.
+    path: /tmp
+
   Amazon-AWS: 
 
     # Enable server-side 256-AES encryption on data to the S3 bucket

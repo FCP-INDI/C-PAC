@@ -30,6 +30,11 @@ pipeline_setup:
 
     path: /tmp
 
+  crash_log_directory: 
+
+    # Directory where CPAC should write crash logs.
+    path: /tmp
+
   system_config: 
 
     # The maximum amount of memory each participant's workflow can allocate.
@@ -55,6 +60,10 @@ pipeline_setup:
 
     # Enable server-side 256-AES encryption on data to the S3 bucket
     s3_encryption: [Off]
+
+# Full path to the FSL version to be used by CPAC.
+# If you have specified an FSL path in your .bashrc file, this path will be set automatically.
+FSLDIR: FSLDIR
 
 # PREPROCESSING
 # -------------

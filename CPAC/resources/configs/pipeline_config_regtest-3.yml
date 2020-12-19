@@ -30,7 +30,22 @@ pipeline_setup:
 
     path: /output
 
+  crash_log_directory: 
+
+    # Directory where CPAC should write crash logs.
+    path: /output
+
   system_config: 
+
+    # Select Off if you intend to run CPAC on a single machine.
+    # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
+    on_grid: 
+
+      SGE: 
+
+        # SGE Parallel Environment to use when running CPAC.
+        # Only applies when you are running on a grid or compute cluster using SGE.
+        parallel_environment: cpac
 
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.

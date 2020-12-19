@@ -263,11 +263,12 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
             elif len(comment) > 1 and comment[-2] != '\n':
                 comment += '\n'
 
-    # update to include new values
-    new_keys = _create_import_dict(dct_diff(yaml.safe_load(output), d))
-    if new_keys:
-        output += '\n'
-        output += yaml.dump(new_keys).strip()
+    # TODO: figure out what to do with keys not in template
+    # # update to include new values
+    # new_keys = _create_import_dict(dct_diff(yaml.safe_load(output), d))
+    # if new_keys:
+    #     output += '\n'
+    #     output += yaml.dump(new_keys).strip()
 
     return output.lstrip('\n')
 
@@ -333,6 +334,7 @@ def upgrade_pipeline_to_1_8(path, include_unmapped=False):
     original = open(path, 'r').read()
     open(backup, 'w').write(original)
     # upgrade and overwrite
-    if len(original.strip()):
+    orig_dict = yaml.safe_load(original)
+    if 'pipelineName' in orig_dict and len(original.strip()):
         open(path, 'w').write(create_yaml_from_template(update_config_dict(
-            yaml.safe_load(original))[2 if include_unmapped else 0]))
+            orig_dict)[2 if include_unmapped else 0]))
