@@ -31,10 +31,10 @@ def load_config_yml(config_file, individual=False):
         raise Exception(err)
 
     if individual:
-        config.logDirectory = os.path.abspath(config.logDirectory)
-        config.workingDirectory = os.path.abspath(config.workingDirectory)
-        config.outputDirectory = os.path.abspath(config.outputDirectory)
-        config.crashLogDirectory = os.path.abspath(config.crashLogDirectory)
+        config.pipeline_setup['log_directory']['path'] = os.path.abspath(config.pipeline_setup['log_directory']['path'])
+        config.pipeline_setup['working_directory']['path'] = os.path.abspath(config.pipeline_setup['working_directory']['path'])
+        config.pipeline_setup['output_directory']['path'] = os.path.abspath(config.pipeline_setup['output_directory']['path'])
+        config.pipeline_setup['crash_log_directory']['path'] = os.path.abspath(config.pipeline_setup['crash_log_directory']['path'])
 
     return config
 
@@ -1514,8 +1514,8 @@ def run_basc(pipeline_config):
 
     output_dir = os.path.abspath(pipeconfig_dct["output_dir"])
     working_dir = os.path.abspath(pipeconfig_dct['work_dir'])
-    if pipeconfig_dct['awsOutputBucketCredentials']:
-        creds_path = os.path.abspath(pipeconfig_dct['awsOutputBucketCredentials'])
+    if pipeconfig_dct['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials']:
+        creds_path = os.path.abspath(pipeconfig_dct['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials'])
 
     func_template = pipeconfig_dct["template_brain_only_for_func"]
     if '$FSLDIR' in func_template:
