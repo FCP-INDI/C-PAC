@@ -164,14 +164,14 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                 as_module=True
             ), name=workflow_name)
         
-        if "Selected Functional Volume" in c.func_reg_input:
+        if "Selected Functional Volume" in c.functional_registration['1-coregistration']['func_input_prep']['input']:
             get_func_volume = pe.Node(interface=afni.Calc(),
                                       name='get_func_volume_{0}'.format(
                                           num_strat))
 
             get_func_volume.inputs.set(
                 expr='a',
-                single_idx=c.func_reg_input_volume,
+                single_idx=c.functional_registration['1-coregistration']['func_input_prep']['Selected Functional Volume']['func_reg_input_volume'],
                 outputtype='NIFTI_GZ'
             )
             workflow.connect(func_wf, 'outputspec.rest',
@@ -189,8 +189,8 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
 
         # connect in constants
         scan_params.inputs.set(
-            pipeconfig_start_indx=c.startIdx,
-            pipeconfig_stop_indx=c.stopIdx
+            pipeconfig_start_indx=c.functional_preproc['truncation']['start_tr'],
+            pipeconfig_stop_indx=c.functional_preproc['truncation']['stop_tr']
         )
 
         strat.update_resource_pool({
@@ -205,7 +205,7 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
 
         strat.set_leaf_properties(func_wf, 'outputspec.rest')
 
-        if "Selected Functional Volume" in c.func_reg_input:
+        if "Selected Functional Volume" in c.functional_registration['1-coregistration']['func_input_prep']['input']:
             strat.update_resource_pool({
                 'selected_func_volume': (get_func_volume, 'out_file')
             })

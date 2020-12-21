@@ -241,7 +241,7 @@ schema = Schema({
             },
         },
     },
-    Required('functional_preproc'): {
+    'functional_preproc': {
         Required('run'): bool,
         Required('distortion_correction'): {
             Required('run'): [bool],
@@ -280,7 +280,7 @@ schema = Schema({
             },
         },
     },
-    Required('functional_registration'): {
+    'functional_registration': {
         Required('1-coregistration'): {
             Required('run'): [bool],
             'func_input_prep': {

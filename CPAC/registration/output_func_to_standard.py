@@ -729,7 +729,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'nn'
         else:
-            interp = pipeline_config_obj.funcRegFSLinterpolation
+            interp = pipeline_config_obj.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['interpolation']
 
         func_ts = True if input_image_type == 'func_4d' else False
 
@@ -737,12 +737,14 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 ref_key, num_strat, strat, interp, distcor=distcor,
                 map_node=map_node, func_ts=func_ts, num_cpus=num_cpus)
 
-    elif 'ANTS' in pipeline_config_obj.regOption:
+    elif 'ANTS' in pipeline_config_obj.anatomical_preproc[
+            'registration_workflow'
+        ]['registration']['using']:
 
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'NearestNeighbor'
         else:
-            interp = pipeline_config_obj.funcRegANTSinterpolation
+            interp = pipeline_config_obj.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation']
 
         image_type = 3 if input_image_type == 'func_4d' else 0
 
