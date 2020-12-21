@@ -1,7 +1,9 @@
+import re
 import os
 import warnings
 import yaml
 from itertools import repeat
+from warnings import warn
 
 DEFAULT_PIPELINE_FILE = '/cpac_resources/default_pipeline'
 if not os.path.exists(DEFAULT_PIPELINE_FILE):
@@ -52,10 +54,9 @@ class Configuration(object):
     >>> c['pipeline_setup', 'pipeline_name']
     'new_pipeline2'
     """
-    def __init__(self, config_map):
+    def __init__(self, config_map=None):
         from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
-            set_nested_value, update_nested_dict
+        from CPAC.utils.utils import load_preconfig, update_nested_dict
         from optparse import OptionError
 
         if config_map is None:
@@ -162,40 +163,33 @@ class Configuration(object):
         ]
         return attributes
 
+    def sub_pattern(self, pattern, orig_key):
+        return orig_key.replace(pattern, self[pattern[2:-1].split('.')])
+
+    def check_pattern(self, orig_key, tags=[]):
+        if isinstance(orig_key, dict):
+            return {k: self.check_pattern(orig_key[k], tags) for k in orig_key}
+        if isinstance(orig_key, list):
+            return [self.check_pattern(item) for item in orig_key]
+        if not isinstance(orig_key, str):
+            return orig_key
+        template_pattern = r'\${.*}'
+        r = re.finditer(template_pattern, orig_key)
+        for i in r:
+            pattern = i.group(0)
+            if (
+                isinstance(pattern, str) and len(pattern) and
+                pattern not in tags
+            ):
+                try:
+                    orig_key = self.sub_pattern(pattern, orig_key)
+                except AttributeError as ae:
+                    warn(str(ae), category=SyntaxWarning)
+        return orig_key
+
     # method to find any pattern ($) in the configuration
     # and update the attributes with its pattern value
     def update_attr(self):
-        from string import Template
-
-        # TODO remove function from here
-        def check_pattern(orig_key, tags=None):
-            temp = Template(orig_key)
-            if type(temp.template) is str:
-                patterns = temp.pattern.findall(temp.template)
-                pattern_map = {}
-                keep_tags_map = {}
-                for pattern in patterns:
-                    for val in [_f for _f in pattern if _f]:
-                        if val:
-                            if not pattern_map.get(val):
-                                if tags is not None and val not in tags:
-                                    keep_tags_map[val] = '${' + val + '}'
-                                    continue
-                                if getattr(self, val):
-                                    pattern_map[val] = getattr(self, val)
-                                else:
-                                    raise ValueError(
-                                        f"No value found for attribute %s. "
-                                        "Please check the configuration "
-                                        "file" % val)
-                if pattern_map:
-                    pattern_map.update(keep_tags_map)
-                    return check_pattern(
-                        Template(orig_key).substitute(pattern_map), tags=tags)
-                else:
-                    return orig_key
-            else:
-                return orig_key
 
         def check_path(key):
             if type(key) is str and '/' in key:
@@ -219,21 +213,15 @@ class Configuration(object):
         for attr_key, attr_value in attributes:
 
             if attr_key in template_list:
-                new_key = check_pattern(attr_value, 'FSLDIR')
+                new_key = self.check_pattern(attr_value, 'FSLDIR')
             else:
-                new_key = check_pattern(attr_value)
+                new_key = self.check_pattern(attr_value)
             setattr(self, attr_key, new_key)
 
     __update_attr = update_attr
 
     def update(self, key, val):
         setattr(self, key, val)
-
-    def __copy__(self):
-        newone = type(self)({})
-        newone.__dict__.update(self.__dict__)
-        newone.__update_attr()
-        return newone
 
     def get_nested(self, d, keys):
         if isinstance(keys, str):
