@@ -1594,13 +1594,12 @@ def update_nested_dict(d_base, d_update):
     ...     'num_ants_threads': 4,
     ...     'num_participants_at_once': 1},
     ...     'Amazon-AWS': {'aws_output_bucket_credentials': None,
-    ...                    's3_encryption': False},
-    ...     'pipeline_IMPORT': 'None'}
+    ...                    's3_encryption': False}}
     >>> d_update = {'pipeline_name': 'cpac_fmriprep-options',
     ...     'system_config': {'num_ants_threads': 1},
     ...     'Amazon-AWS': {'s3_encryption': True}}
     >>> update_nested_dict(d_base, d_update)
-    {'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {'path': '/output', 'write_func_outputs': False, 'write_debugging_outputs': False, 'output_tree': 'default', 'generate_quality_control_images': True}, 'working_directory': {'path': '/tmp', 'remove_working_dir': True}, 'log_directory': {'run_logging': True, 'path': '/logs'}, 'system_config': {'maximum_memory_per_participant': 1, 'max_cores_per_participant': 1, 'num_ants_threads': 1, 'num_participants_at_once': 1}, 'Amazon-AWS': {'aws_output_bucket_credentials': None, 's3_encryption': True}, 'pipeline_IMPORT': 'None'}
+    {'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {'path': '/output', 'write_func_outputs': False, 'write_debugging_outputs': False, 'output_tree': 'default', 'generate_quality_control_images': True}, 'working_directory': {'path': '/tmp', 'remove_working_dir': True}, 'log_directory': {'run_logging': True, 'path': '/logs'}, 'system_config': {'maximum_memory_per_participant': 1, 'max_cores_per_participant': 1, 'num_ants_threads': 1, 'num_participants_at_once': 1}, 'Amazon-AWS': {'aws_output_bucket_credentials': None, 's3_encryption': True}}
     """  # noqa
     if d_base is None:
         d_base = {}

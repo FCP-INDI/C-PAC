@@ -74,7 +74,6 @@ schema = Schema({
             'aws_output_bucket_credentials': Any(None, str),
             's3_encryption': bool,
         },
-        'pipeline_IMPORT': Maybe(str),
     },
     'FSLDIR': Maybe(str),
     'anatomical_preproc': {
