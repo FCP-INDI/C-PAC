@@ -1,6 +1,5 @@
 from itertools import chain, permutations
-from voluptuous import Schema, Required, All, Any, Length, Range, Match, In, \
-                       ALLOW_EXTRA
+from voluptuous import Schema, Required, All, Any, Length, Range, Match, In
 from voluptuous.validators import Maybe
 
 valid_options = {
@@ -57,7 +56,7 @@ schema = Schema({
             Required('path'): str,
         },
         Required('system_config'): {
-            'on_grid':{
+            'on_grid': {
                 Required('run'): bool,
                 'resource_manager': Any(None, str),
                 'SGE': {
@@ -70,7 +69,7 @@ schema = Schema({
             'num_ants_threads': int,
             'num_participants_at_once': int
         },
-        'Amazon-AWS':{
+        'Amazon-AWS': {
             'aws_output_bucket_credentials': Any(None, str),
             's3_encryption': bool,
         },
@@ -86,15 +85,16 @@ schema = Schema({
             'template_skull': str,
             'template_brain': Any(None, str),
         },
-        Required('brain_extraction'):{
+        Required('brain_extraction'): {
             'already_skullstripped': bool,
             'extraction': {
-                Required('using'): [In({'3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants'})],
+                Required('using'): [In({
+                    '3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants'})],
                 'AFNI-3dSkullStrip': {
                     'mask_vol': bool,
                     'shrink_factor': Any(float, int),
                     'var_shrink_fac': bool,
-                    'shrink_factor_bot_lim':Any(float, int),
+                    'shrink_factor_bot_lim': Any(float, int),
                     'avoid_vent': bool,
                     'n_iterations': int,
                     'pushout': bool,
@@ -240,16 +240,63 @@ schema = Schema({
             },
         },
     },
+    'longitudinal_template_generation': {
+        'run': bool,
+        'average_method': In({'median', 'mean', 'std'}),
+        'dof': In({12, 9, 7, 6}),
+        'interp': In({'trilinear', 'nearestneighbour', 'sinc', 'spline'}),
+        'cost': In({
+            'corratio', 'mutualinfo', 'normmi', 'normcorr', 'leastsq',
+            'labeldiff', 'bbr'}),
+        'thread_pool': int,
+        'convergence_threshold': Any(int, float),
+    },
     'functional_preproc': {
         Required('run'): bool,
+        'truncation': {
+            'start_tr': int,
+            'stop_tr': Maybe(Any(int, 'End'))
+        },
+        'scaling': {
+            'run': bool,
+            'scaling_factor': Any(int, float)
+        },
+        'despiking': {
+            'run': [bool]
+        },
+        'slice_timing_correction': {
+            'run': [bool]
+        },
+        'motion_estimates_and_correction': {
+            'calculate_motion_first': [bool],
+            'motion_correction': {
+                'using': [In({'3dvolreg', 'mcflirt'})],
+                'AFNI-3dvolreg': {
+                    'functional_volreg_twopass': bool,
+                },
+                'motion_correction_reference': [In({
+                    'mean', 'median', 'selected volume'})],
+                'motion_correction_reference_volume': int,
+            },
+            'motion_estimate_filter': {
+                'run': [bool],
+                'filter_type': In({'notch', 'lowpass'}),
+                'filter_order': int,
+                'breathing_rate_min': Maybe(Any(float, int)),
+                'breathing_rate_max': Maybe(Any(float, int)),
+                'center_frequency': Maybe(Any(float, int)),
+                'filter_bandwidth': Maybe(Any(float, int)),
+                'lowpass_cutoff': Maybe(Any(float, int)),
+            },
+        },
         Required('distortion_correction'): {
             Required('run'): [bool],
-        },
-        'using': [In(['PhaseDiff', 'Blip'])],
-        'PhaseDiff': {
-            'fmap_skullstrip_option': [In(['BET', 'AFNI'])],
-            'fmap_skullstrip_frac': float,
-            'fmap_distcorr_threshold': float,
+            'using': [In(['PhaseDiff', 'Blip'])],
+            'PhaseDiff': {
+                'fmap_skullstrip_option': In(['BET', 'AFNI']),
+                'fmap_skullstrip_frac': float,
+                'fmap_skullstrip_threshold': float,
+            },
         },
         'func_masking': {
             'using': [In(['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined'])],
@@ -273,7 +320,7 @@ schema = Schema({
                     'functional_mean_boolean': bool,
                     **{k: False for k in mutex['FSL-BET']['mutex']}
                 }])
-            ),  
+            ),
             'Anatomical_Refined': {
                 'anatomical_mask_dilation': bool,
             },
@@ -300,7 +347,7 @@ schema = Schema({
         },
         Required('2-func_registration_to_template'): {
             Required('run'): bool,
-            Required('output_resolution'):{
+            Required('output_resolution'): {
                 'func_preproc_outputs': All(str, Match(r'^[0-9]+mm$')),
                 'func_derivative_outputs': All(str, Match(r'^[0-9]+mm$')),
                 'template_for_resample': str,
@@ -312,18 +359,16 @@ schema = Schema({
                     'template_skull': str,
                 },
                 'EPI_template': {
-                    'template_epi': str, 
+                    'template_epi': str,
                 },
             },
             Required('ANTs_pipelines'): {
-                'interpolation': In({'Linear', 'BSpline', 'LanczosWindowedSinc'})
+                'interpolation': In({
+                    'Linear', 'BSpline', 'LanczosWindowedSinc'})
             },
             Required('FNIRT_pipelines'): {
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'identity_matrix': str
-            },
-            'output_resolution': {
-                'func_derivative_outputs': All(str, Match(r'^[0-9]+mm$')),
             }
         },
     },
@@ -361,7 +406,8 @@ schema = Schema({
                 }  # how to check if [0] is > than [1]?
             }]),
             'lateral_ventricles_mask': Maybe(str),
-            Required('bandpass_filtering_order'): Maybe(In({'After', 'Before'}))
+            Required('bandpass_filtering_order'): Maybe(
+                In({'After', 'Before'}))
         },
     },
     'amplitude_low_frequency_fluctuation': {
@@ -371,10 +417,32 @@ schema = Schema({
     },
     'voxel_mirrored_homotopic_connectivity': {
         Required('run'): bool,
+        'symmetric_registration': {
+            'template_symmetric_brain_only': str,
+            'template_symmetric_brain_for_resample': str,
+            'template_symmetric_skull': str,
+            'template_symmetric_skull_for_resample': str,
+            'dilated_symmetric_brain_mask': str,
+            'dilated_symmetric_brain_mask_for_resample': str,
+            'FNIRT_pipelines': {
+                'config_file': str
+            },
+        },
     },
     'regional_homogeneity': {
         'run': bool,
         'cluster_size': In({7, 19, 27}),
+    },
+    'post_processing': {
+        'spatial_smoothing': {
+            'run': bool,
+            'smoothing_method': In({'FSL', 'AFNI'}),
+            'fwhm': [int],
+            'smoothing_order': In({'Before', 'After'})
+        },
+        'z-scoring': {
+            'run': bool
+        },
     },
     'timeseries_extraction': {
         Required('run'): bool,
@@ -435,5 +503,14 @@ schema = Schema({
     },
     'PyPEER': {
         Required('run'): [bool],
+        'eye_scan_names': [str],
+        'data_scan_names': [str],
+        'eye_mask_path': str,
+        'stimulus_path': Maybe(str),
+        'minimal_nuisance_correction': {
+            'peer_gsr': bool,
+            'peer_scrub': bool,
+            'scrub_thresh': float,
+        },
     },
-}, extra=ALLOW_EXTRA)
+})
