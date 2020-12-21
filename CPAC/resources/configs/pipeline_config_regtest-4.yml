@@ -124,9 +124,6 @@ anatomical_preproc:
 
   segmentation_workflow: 
 
-    # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
-    run: [On]
-
     1-segmentation: 
 
       Template_Based: 
@@ -144,6 +141,14 @@ anatomical_preproc:
 
   registration_workflow: 
 
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    template_brain_only_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    template_skull_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+
     # Register skull-on anatomical image to a template.
     reg_with_skull: [Off]
 
@@ -153,6 +158,12 @@ anatomical_preproc:
       # this is a fork point
       #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
       using: [ANTS, FSL]
+
+      FSL-FNIRT: 
+
+        # Configuration file to be used by FSL to set FNIRT parameters.
+        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
 functional_preproc: 
 
@@ -175,6 +186,8 @@ functional_preproc:
   motion_estimates_and_correction: 
 
     # calculate motion statistics BEFORE slice-timing correction
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
     calculate_motion_first: [On]
 
   distortion_correction: 
@@ -182,7 +195,7 @@ functional_preproc:
     # option parameters
     PhaseDiff: 
 
-      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
+      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
       fmap_skullstrip_option: [BET]
 
       # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
@@ -290,6 +303,17 @@ functional_registration:
       #   coregistered to anatomical/T1 space
       using: [EPI_template, Off]
 
+      # option parameters
+      T1_template: 
+
+        # Standard Skull Stripped Template. Used as a reference image for functional registration.
+        # This can be different than the template used as the reference/fixed for T1-to-template registration.
+        template_brain: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+
+        # Standard Anatomical Brain Image with Skull.
+        # This can be different than the template used as the reference/fixed for T1-to-template registration.
+        template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
 # OUTPUTS AND DERIVATIVES
 # -----------------------
 post_processing: 
@@ -354,6 +378,20 @@ voxel_mirrored_homotopic_connectivity:
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
   run: [On]
 
+  symmetric_registration: 
+
+    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
+    template_symmetric_brain_only: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+
+    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
+    template_symmetric_skull: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
+
+    # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+    # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
+    dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+
 network_centrality: 
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
@@ -407,3 +445,10 @@ network_centrality:
     # Sparsity value for Sparsity Threshold
     # Pearson's r value for Correlation Threshold
     correlation_threshold: 0.001
+
+# PACKAGE INTEGRATIONS
+# --------------------
+PyPEER: 
+
+  # Template-space eye mask
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz

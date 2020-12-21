@@ -74,11 +74,6 @@ pipeline_setup:
     #   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
     maximum_memory_per_participant: 9
 
-    # The number of cores to allocate to ANTS-based anatomical registration per participant.
-    # - Multiple cores can greatly speed up this preprocessing step.
-    # - This number cannot be greater than the number of cores per participant.
-    num_ants_threads: 1
-
     # The number of participant workflows to run at the same time.
     # - The maximum number of cores your run can possibly employ will be this setting
     #   multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
@@ -141,6 +136,8 @@ anatomical_preproc:
   segmentation_workflow: 
 
     # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
     1-segmentation: 
@@ -221,11 +218,6 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [On]
 
-  motion_estimates_and_correction: 
-
-    # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: [Off]
-
   distortion_correction: 
 
     # using: ['PhaseDiff', 'Blip']
@@ -239,7 +231,7 @@ functional_preproc:
     # option parameters
     PhaseDiff: 
 
-      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
+      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
       fmap_skullstrip_option: [BET]
 
       # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
@@ -484,3 +476,10 @@ network_centrality:
     # Sparsity value for Sparsity Threshold
     # Pearson's r value for Correlation Threshold
     correlation_threshold: 0.001
+
+# PACKAGE INTEGRATIONS
+# --------------------
+PyPEER: 
+
+  # Template-space eye mask
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz

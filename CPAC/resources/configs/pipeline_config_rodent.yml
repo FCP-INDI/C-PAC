@@ -56,6 +56,11 @@ pipeline_setup:
     #   Simultaneously' setting).
     max_cores_per_participant: 4
 
+    # The number of cores to allocate to ANTS-based anatomical registration per participant.
+    # - Multiple cores can greatly speed up this preprocessing step.
+    # - This number cannot be greater than the number of cores per participant.
+    num_ants_threads: 4
+
   Amazon-AWS: 
 
     # Enable server-side 256-AES encryption on data to the S3 bucket
@@ -96,6 +101,8 @@ anatomical_preproc:
   segmentation_workflow: 
 
     # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
     1-segmentation: 
@@ -230,6 +237,12 @@ anatomical_preproc:
                 totalFieldVarianceInVoxelSpace: 1
                 updateFieldVarianceInVoxelSpace: 5
 
+      FSL-FNIRT: 
+
+        # Configuration file to be used by FSL to set FNIRT parameters.
+        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+
 functional_preproc: 
 
   run: [On]
@@ -240,11 +253,6 @@ functional_preproc:
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
-
-  motion_estimates_and_correction: 
-
-    # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: [Off]
 
   distortion_correction: 
 
@@ -259,7 +267,7 @@ functional_preproc:
     # option parameters
     PhaseDiff: 
 
-      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
+      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
       fmap_skullstrip_option: [BET]
 
       # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
@@ -275,8 +283,8 @@ functional_preproc:
     FSL-BET: 
 
       # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off.
-      # Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-      # It must be 'on' if select 'bold_bet_reduce_bias','bold_bet_robust','bold_bet_padding','bold_bet_remove_eyes',or 'bold_bet_surfaces' on
+      # Mutually exclusive with functional, reduce_bias, robust, padding, remove_eyes, surfaces
+      # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: On
 
 nuisance_corrections: 
@@ -499,3 +507,10 @@ network_centrality:
     # options:
     #   'Significance threshold', 'Correlation threshold'
     correlation_threshold_option: [Correlation threshold]
+
+# PACKAGE INTEGRATIONS
+# --------------------
+PyPEER: 
+
+  # Template-space eye mask
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz

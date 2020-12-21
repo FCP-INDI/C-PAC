@@ -349,8 +349,10 @@ schema = Schema({
         Required('2-func_registration_to_template'): {
             Required('run'): bool,
             Required('output_resolution'): {
-                'func_preproc_outputs': All(str, Match(r'^[0-9]+mm$')),
-                'func_derivative_outputs': All(str, Match(r'^[0-9]+mm$')),
+                'func_preproc_outputs': All(str, Match(
+                    r'^(x*[0-9](\.[0-9]+)*mm)*$')),
+                'func_derivative_outputs': All(str, Match(
+                    r'^(x*[0-9](\.[0-9]+)*mm)*$')),
                 'template_for_resample': str,
             },
             Required('target_template'): {
@@ -387,10 +389,26 @@ schema = Schema({
                     'include_delayed_squared': bool
                 },
                 'aCompCor': {
+                    'degree': int,
+                    'erode_mask_mm': bool,
                     'summary': {
                         'method': str,
-                        'components': int
+                        'components': int,
+                        'filter': str,
                     },
+                    'threshold': str,
+                    'tissues': [str],
+                    'extraction_resolution': int
+                },
+                'tCompCor': {
+                    'degree': int,
+                    'erode_mask_mm': bool,
+                    'summary': {
+                        'method': str,
+                        'components': int,
+                        'filter': str,
+                    },
+                    'threshold': str,
                     'tissues': [str],
                     'extraction_resolution': int
                 },
@@ -401,6 +419,11 @@ schema = Schema({
                 },
                 'GlobalSignal': {'summary': str},
                 'PolyOrt': {'degree': int},
+                'WhiteMatter': {
+                    'erode_mask': bool,
+                    'extraction_resolution': Any(int, float, str),
+                    'summary': str
+                },
                 'Bandpass': {
                     'bottom_frequency': float,
                     'top_frequency': float
