@@ -35,6 +35,7 @@ mutex = {  # mutually exclusive booleans
 }
 
 schema = Schema({
+    'FROM': Maybe(str),
     'pipeline_setup': {
         Required('pipeline_name'): All(str, Length(min=1)),
         Required('output_directory'): {
