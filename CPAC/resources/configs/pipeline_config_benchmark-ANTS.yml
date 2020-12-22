@@ -306,9 +306,6 @@ timeseries_extraction:
   #           check your data if you see issues
   realignment: [ROI_to_func]
 
-  # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array, indicated here as ['csv', 'numpy'] for both.
-  roi_tse_outputs: [True, True]
-
 seed_based_correlation_analysis: 
 
   # SCA - Seed-Based Correlation Analysis

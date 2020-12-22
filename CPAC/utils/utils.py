@@ -1772,7 +1772,17 @@ def update_pipeline_values(d):
     distcor_key = ['functional_preproc', 'distortion_correction', 'using']
     if lookup_nested_value(d, distcor_key):
         d = remove_None(d, distcor_key)
-    # return d
+
+    tse_key = ['timeseries_extraction', 'roi_tse_outputs']
+    tse = lookup_nested_value(d, tse_key)
+    if isinstance(tse, list) and isinstance(tse[0], bool):
+        new_tse = []
+        if tse[0]:
+            new_tse.append('csv')
+        if tse[1]:
+            new_tse.append('numpy')
+        d = set_nested_value(d, tse_key, new_tse)
+
     return update_values_from_list(d)
 
 
