@@ -5,7 +5,7 @@ from datetime import datetime
 from optparse import OptionError
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
-    update_config_dict
+    update_config_dict, update_pipeline_values
 
 
 def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
@@ -164,7 +164,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         template_name = 'default'
 
     # update values
-    d = _create_import_dict(dct_diff(d_default, d))
+    d = update_pipeline_values(_create_import_dict(dct_diff(d_default, d)))
 
     # generate YAML from template with updated values
     with open(template, 'r') as f:
@@ -240,19 +240,23 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
                             ) for orig_item in orig_value])
                             )):
                                 value = yaml_bool(value)
-                            # prepend comment from template
-                            if len(comment.strip()):
-                                output += comment
-                            else:
-                                output += '\n'
+                            if value:
+                                # prepend comment from template
+                                if len(comment.strip()):
+                                    output += comment
+                                else:
+                                    output += '\n'
 
-                            # write YAML
-                            output += _format_key(key, line_level)
-                            if isinstance(value, list):
-                                output += _format_list_items(
-                                    value, line_level)
-                            elif not isinstance(value, dict):
-                                output += str(value)
+                                # write YAML
+                                output += _format_key(key, line_level)
+                                if isinstance(value, list):
+                                    output += _format_list_items(
+                                        value, line_level)
+                                elif not isinstance(value, dict):
+                                    output += str(value)
+                            else:
+                                # clear comment for unchanged key
+                                comment = '\n'
                         except KeyError:
                             # clear comment for excluded key
                             comment = '\n'
@@ -293,11 +297,10 @@ def yaml_bool(value):
     '''
     yaml_lookup = {
         True: 'On', 'True': 'On', 1: 'On',
-        False: 'Off', 'False': 'Off', 0: 'Off',
-        None: None, 'None': None}
+        False: 'Off', 'False': 'Off', 0: 'Off'}
     if (
         isinstance(value, bool) or isinstance(value, str) or
-        isinstance(value, int) or value is None
+        isinstance(value, int)
     ) and value in yaml_lookup:
         return yaml_lookup[value]
     elif isinstance(value, list):
@@ -336,5 +339,6 @@ def upgrade_pipeline_to_1_8(path, include_unmapped=False):
     # upgrade and overwrite
     orig_dict = yaml.safe_load(original)
     if 'pipelineName' in orig_dict and len(original.strip()):
-        open(path, 'w').write(create_yaml_from_template(update_config_dict(
-            orig_dict)[2 if include_unmapped else 0]))
+        open(path, 'w').write(create_yaml_from_template(
+            update_pipeline_values(update_config_dict(
+                orig_dict)[2 if include_unmapped else 0])))

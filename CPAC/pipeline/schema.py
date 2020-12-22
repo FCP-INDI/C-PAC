@@ -1,5 +1,5 @@
 from itertools import chain, permutations
-from voluptuous import Schema, Required, All, Any, Length, Range, Match, In
+from voluptuous import All, Any, In, Length, Match, Range, Schema
 from voluptuous.validators import Maybe
 
 valid_options = {
@@ -33,36 +33,37 @@ mutex = {  # mutually exclusive booleans
         }
     }
 }
+resolution_regex = r'^(x*[0-9](\.[0-9]+)*mm)*$'
 
 schema = Schema({
     'FROM': Maybe(str),
     'pipeline_setup': {
-        Required('pipeline_name'): All(str, Length(min=1)),
-        Required('output_directory'): {
-            Required('path'): str,
+        'pipeline_name': All(str, Length(min=1)),
+        'output_directory': {
+            'path': str,
             'write_func_outputs': bool,
             'write_debugging_outputs': bool,
             'output_tree': str,
             'generate_quality_control_images': bool,
         },
-        Required('working_directory'): {
-            Required('path'): str,
+        'working_directory': {
+            'path': str,
             'remove_working_dir': bool,
         },
-        Required('log_directory'): {
+        'log_directory': {
             'run_logging': bool,
-            Required('path'): str,
+            'path': str,
         },
-        Required('crash_log_directory'): {
-            Required('path'): str,
+        'crash_log_directory': {
+            'path': str,
         },
-        Required('system_config'): {
+        'system_config': {
             'on_grid': {
-                Required('run'): bool,
-                'resource_manager': Any(None, str),
+                'run': bool,
+                'resource_manager': Maybe(str),
                 'SGE': {
-                    'parallel_environment': Any(None, str),
-                    'queue': Any(None, str),
+                    'parallel_environment': Maybe(str),
+                    'queue': Maybe(str),
                 },
             },
             'maximum_memory_per_participant': Any(float, int),
@@ -71,26 +72,28 @@ schema = Schema({
             'num_participants_at_once': int
         },
         'Amazon-AWS': {
-            'aws_output_bucket_credentials': Any(None, str),
+            'aws_output_bucket_credentials': Maybe(str),
             's3_encryption': bool,
         },
     },
     'FSLDIR': Maybe(str),
     'anatomical_preproc': {
-        Required('run'): bool,
-        Required('non_local_means_filtering'): bool,
-        Required('n4_bias_field_correction'): bool,
-        Required('acpc_alignment'): {
+        'run': bool,
+        'non_local_means_filtering': bool,
+        'n4_bias_field_correction': bool,
+        'acpc_alignment': {
             'run': bool,
             'brain_size': int,
             'template_skull': str,
-            'template_brain': Any(None, str),
+            'template_brain': Maybe(str),
         },
-        Required('brain_extraction'): {
+        'brain_extraction': {
             'already_skullstripped': bool,
             'extraction': {
-                Required('using'): [In({
-                    '3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants'})],
+                'using': [In({
+                    '3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants',
+                    'FreeSurfer-ABCD'
+                })],
                 'AFNI-3dSkullStrip': {
                     'mask_vol': bool,
                     'shrink_factor': Any(float, int),
@@ -145,14 +148,14 @@ schema = Schema({
             },
             'reg_with_skull': bool,
         },
-        Required('segmentation_workflow'): {
+        'segmentation_workflow': {
             'run': [bool],
             '1-segmentation': {
                 'using': [
                     In({'FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'})
                 ],
                 'ANTs_Prior_Based': {
-                    Required('run'): Maybe([bool]),
+                    'run': Maybe([bool]),
                     'template_brain_list': [str],
                     'template_segmentation_list': [str],
                     'CSF_label': int,
@@ -162,10 +165,9 @@ schema = Schema({
                     'right_WM_label': int,
                 },
                 'Template_Based': {
-                    Required('run'): [bool],
-                    'template_for_segmentation': [
-                        In(valid_options['segmentation']['template'])
-                    ],
+                    'run': [bool],
+                    'template_for_segmentation': [In(
+                        valid_options['segmentation']['template'])],
                     'WHITE': str,
                     'GRAY': str,
                     'CSF': str,
@@ -184,9 +186,9 @@ schema = Schema({
                 'WM_threshold_value': float,
                 'GM_threshold_value': float
             },
-            Required('4-erosion'): {
-                Required('erode_anatomical_brain_mask'): {
-                    Required('run'): bool,
+            '4-erosion': {
+                'erode_anatomical_brain_mask': {
+                    'run': bool,
                     'brain_mask_erosion_prop': Any(float, int),
                     'brain_mask_erosion_mm': Any(float, int),
                     'brain_erosion_mm': Any(float, int)
@@ -211,13 +213,13 @@ schema = Schema({
                 }
             }
         },
-        Required('registration_workflow'): {
-            Required('resolution_for_anat'): All(str, Match(r'^[0-9]+mm$')),
+        'registration_workflow': {
+            'resolution_for_anat': All(str, Match(resolution_regex)),
             'template_brain_only_for_anat': str,
             'template_skull_for_anat': str,
             'reg_with_skull': bool,
-            Required('registration'): {
-                Required('using'): [In({'ANTS', 'FSL'})],
+            'registration': {
+                'using': [In({'ANTS', 'FSL'})],
                 'ANTs': {
                     'use_lesion_mask': bool,
                     'T1_registration': Maybe(Any(
@@ -253,7 +255,7 @@ schema = Schema({
         'convergence_threshold': Any(int, float),
     },
     'functional_preproc': {
-        Required('run'): bool,
+        'run': bool,
         'truncation': {
             'start_tr': int,
             'stop_tr': Maybe(Any(int, 'End'))
@@ -290,8 +292,8 @@ schema = Schema({
                 'lowpass_cutoff': Maybe(Any(float, int)),
             },
         },
-        Required('distortion_correction'): {
-            Required('run'): [bool],
+        'distortion_correction': {
+            'run': [bool],
             'using': [In(['PhaseDiff', 'Blip'])],
             'PhaseDiff': {
                 'fmap_skullstrip_option': In(['BET', 'AFNI']),
@@ -328,10 +330,10 @@ schema = Schema({
         },
     },
     'functional_registration': {
-        Required('1-coregistration'): {
-            Required('run'): [bool],
+        '1-coregistration': {
+            'run': [bool],
             'func_input_prep': {
-                Required('input'): [In({
+                'input': [In({
                     'Mean Functional', 'Selected Functional Volume'
                 })],
                 'Mean Functional': {
@@ -342,21 +344,19 @@ schema = Schema({
                 },
             },
             'boundary_based_registration': {
-                Required('run'): [bool],
+                'run': [bool],
                 'bbr_schedule': str
             }
         },
-        Required('2-func_registration_to_template'): {
-            Required('run'): bool,
-            Required('output_resolution'): {
-                'func_preproc_outputs': All(str, Match(
-                    r'^(x*[0-9](\.[0-9]+)*mm)*$')),
-                'func_derivative_outputs': All(str, Match(
-                    r'^(x*[0-9](\.[0-9]+)*mm)*$')),
+        '2-func_registration_to_template': {
+            'run': bool,
+            'output_resolution': {
+                'func_preproc_outputs': All(str, Match(resolution_regex)),
+                'func_derivative_outputs': All(str, Match(resolution_regex)),
                 'template_for_resample': str,
             },
-            Required('target_template'): {
-                Required('using'): [In({'T1_template', 'EPI_template'})],
+            'target_template': {
+                'using': [In({'T1_template', 'EPI_template'})],
                 'T1_template': {
                     'template_brain': str,
                     'template_skull': str,
@@ -365,23 +365,23 @@ schema = Schema({
                     'template_epi': str,
                 },
             },
-            Required('ANTs_pipelines'): {
+            'ANTs_pipelines': {
                 'interpolation': In({
                     'Linear', 'BSpline', 'LanczosWindowedSinc'})
             },
-            Required('FNIRT_pipelines'): {
+            'FNIRT_pipelines': {
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'identity_matrix': str
             }
         },
     },
     'nuisance_corrections': {
-        Required('1-ICA-AROMA'): {
-            Required('run'): [bool],
+        '1-ICA-AROMA': {
+            'run': [bool],
             'denoising_type': In({'aggr', 'nonaggr'}),
         },
-        Required('2-nuisance_regression'): {
-            Required('run'): [bool],
+        '2-nuisance_regression': {
+            'run': [bool],
             'Regressors': Maybe([{
                 'Motion': {
                     'include_delayed': bool,
@@ -430,17 +430,17 @@ schema = Schema({
                 }  # how to check if [0] is > than [1]?
             }]),
             'lateral_ventricles_mask': Maybe(str),
-            Required('bandpass_filtering_order'): Maybe(
+            'bandpass_filtering_order': Maybe(
                 In({'After', 'Before'}))
         },
     },
     'amplitude_low_frequency_fluctuation': {
-        Required('run'): bool,
+        'run': bool,
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
     'voxel_mirrored_homotopic_connectivity': {
-        Required('run'): bool,
+        'run': bool,
         'symmetric_registration': {
             'template_symmetric_brain_only': str,
             'template_symmetric_brain_for_resample': str,
@@ -469,8 +469,8 @@ schema = Schema({
         },
     },
     'timeseries_extraction': {
-        Required('run'): bool,
-        Required('tse_roi_paths'): Maybe({
+        'run': bool,
+        'tse_roi_paths': Maybe({
             str: In({', '.join([
                 option for option in options
             ]) for options in list(chain.from_iterable([list(
@@ -483,7 +483,7 @@ schema = Schema({
     },
 
     'seed_based_correlation_analysis': {
-        Required('run'): bool,
+        'run': bool,
         'sca_roi_paths': Maybe({
             str: In({', '.join([
                 option for option in options
@@ -494,7 +494,7 @@ schema = Schema({
         'norm_timeseries_for_DR': bool,
     },
     'network_centrality': {
-        Required('run'): [bool],
+        'run': [bool],
         'memory_allocation': Any(float, int),
         'template_specification_file': str,
         'degree_centrality': {
@@ -526,7 +526,7 @@ schema = Schema({
         },
     },
     'PyPEER': {
-        Required('run'): [bool],
+        'run': [bool],
         'eye_scan_names': [str],
         'data_scan_names': [str],
         'eye_mask_path': str,

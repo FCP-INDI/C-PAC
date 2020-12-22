@@ -11,6 +11,7 @@ import yaml
 from inspect import currentframe, getframeinfo, stack
 from itertools import repeat
 from optparse import OptionError
+from voluptuous.error import Invalid
 
 NESTED_CONFIG_MAPPING = yaml.safe_load(open(
     os.path.abspath(os.path.join(__file__, *repeat(os.path.pardir, 2),
@@ -1207,7 +1208,7 @@ def check_config_resources(c):
         else:
             num_cores_per_sub = c.pipeline_setup['system_config']['max_cores_per_participant']
     else:
-        num_cores_per_sub = num_cores / c.pipeline_setup['system_config']['num_participants_at_once'] 
+        num_cores_per_sub = num_cores / c.pipeline_setup['system_config']['num_participants_at_once']
 
     # Now check ANTS
     if 'ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using']:
@@ -1240,7 +1241,7 @@ def load_preconfig(pipeline_label):
                 "configs")
         )
     avail_configs = os.listdir(avail_configs)
-    avail_configs = [x.split('_')[2].replace('.yml', '') for x \
+    avail_configs = [x.split('_')[2].replace('.yml', '') for x
                      in avail_configs if 'pipeline_config' in x]
 
     if pipeline_label not in avail_configs:
@@ -1265,9 +1266,6 @@ def load_preconfig(pipeline_label):
 
 
 def ordereddict_to_dict(value):
-
-    import yamlordereddictloader
-
     '''
     this function convert ordereddict into regular dict
     '''
@@ -1306,8 +1304,8 @@ def repickle(directory):
                         )
                     except Exception as e:
                         print(
-                            f"Could not convert Python 2 pickle {p} because {e}"
-                            "\n"
+                            f"Could not convert Python 2 pickle {p} "
+                            f"because {e}\n"
                         )
                 else:
                     print(f"Pickle {fn} is a Python 3 pickle.")
@@ -1324,8 +1322,8 @@ def repickle(directory):
                         )
                     except Exception as e:
                         print(
-                            f"Could not convert Python 2 pickle {p} because {e}"
-                            "\n"
+                            f"Could not convert Python 2 pickle {p} "
+                            f"because {e}\n"
                         )
                 else:
                     print(f"Pickle {fn} is a Python 3 pickle.")
@@ -1352,7 +1350,7 @@ def _pickle2(p, z=False):
     if z:
         with gzip.open(p, 'rb') as fp:
             try:
-                f = pickle.load(fp)
+                pickle.load(fp)
             except UnicodeDecodeError:
                 return(True)
             except Exception as e:
@@ -1363,7 +1361,7 @@ def _pickle2(p, z=False):
     else:
         with open(p, 'rb') as fp:
             try:
-                f = pickle.load(fp)
+                pickle.load(fp)
             except UnicodeDecodeError:
                 return(True)
             except Exception as e:
@@ -1390,20 +1388,20 @@ def concat_list(in_list1=None, in_list2=None):
         a list of file paths
     """
 
-    if in_list1 != None:
+    if in_list1 is not None:
         if not isinstance(in_list1, list):
             in_list1 = [in_list1]
     else:
         in_list1 = []
-    
-    if in_list2 != None:
+
+    if in_list2 is not None:
         if not isinstance(in_list2, list):
             in_list2 = [in_list2]
     else:
         in_list2 = []
-    
+
     out_list = in_list1 + in_list2
-    
+
     return out_list
 
 
@@ -1462,6 +1460,36 @@ def dct_diff(dct1, dct2):
     return {k: diff[k] for k in diff if diff[k]}
 
 
+def list_item_replace(l, old, new):
+    '''Function to replace an item in a list
+
+    Parameters
+    ----------
+    l: list
+
+    old: any
+        item to replace
+
+    new: any
+        new item
+
+    Returns
+    -------
+    l: list
+        updated
+
+    Examples
+    --------
+    >>> list_item_replace(['AFNI', 'FSL'], 'AFNI', '3dSkullStrip')
+    ['3dSkullStrip', 'FSL']
+    >>> list_item_replace(['AFNI', 'FSL'], 'FSL', 'BET')
+    ['AFNI', 'BET']
+    '''
+    if isinstance(l, list) and old in l:
+        l[l.index(old)] = new
+    return l
+
+
 def lookup_nested_value(d, keys):
     '''Helper method to look up nested values
 
@@ -1481,17 +1509,46 @@ def lookup_nested_value(d, keys):
     >>> lookup_nested_value({'nested': {'None': None}}, ['nested', 'None'])
     ''
     '''
+    if not isinstance(d, dict):
+        return d
     if len(keys) == 1:
-        value = d[keys[0]]
+        value = d.get(keys[0])
         if value is None:
             return ''
         if isinstance(value, bool):
             if value == False:  # noqa E712
                 return 'Off'
             return 'On'
-        return d.get(keys[0])
+        return value
     else:
         return lookup_nested_value(d.get(keys[0], {}), keys[1:])
+
+
+def remove_None(d, k):
+    '''Function to remove "None" and None from a list at a given nested key.
+
+    Parameters
+    ----------
+    d: dict
+
+    k: list
+
+    Returns
+    -------
+    d: dict
+       updated
+
+    Examples
+    --------
+    >>> remove_None({'a': {'b': [1, None, 2, "None", 3]}}, ['a', 'b'])
+    {'a': {'b': [1, 2, 3]}}
+    '''
+    value = lookup_nested_value(d, k)
+    if value == '' or value is None:
+        value = []
+    if isinstance(value, list):
+        [value.remove(n) for n in {'None', None} if n in value]
+    return set_nested_value(d, k, value)
 
 
 def set_nested_value(d, keys, value):
@@ -1609,3 +1666,172 @@ def update_nested_dict(d_base, d_update):
         else:
             d_base[k] = v
     return d_base
+
+
+def update_pipeline_values(d):
+    '''Function to update pipeline config values that changed from
+    C-PAC 1.7 to 1.8.
+
+    Parameters
+    ----------
+    d: dict
+
+    Returns
+    -------
+    d: dict
+       updated
+
+    Examples
+    --------
+    >>> update_pipeline_values({'anatomical_preproc': {'segmentation_workflow': {'3-custom_thresholding': {'run': ['FSL-FAST Thresholding', 'Customized Thresholding']}}}})
+    {'anatomical_preproc': {'segmentation_workflow': {'3-custom_thresholding': {'run': True}, '1-segmentation': {'using': ['FSL-FAST']}}}}
+    >>> update_pipeline_values({'anatomical_preproc': {'segmentation_workflow': {'1-segmentation': {'using': ['Template_Based']}, '3-custom_thresholding': {'run': ['FSL-FAST Thresholding', 'Customized Thresholding']}}}})
+    {'anatomical_preproc': {'segmentation_workflow': {'1-segmentation': {'using': ['Template_Based', 'FSL-FAST']}, '3-custom_thresholding': {'run': True}}}}
+    '''  # noqa
+    resolution_replacements = [
+        (r'${resolution_for_anat}',
+         r'${anatomical_preproc.registration_workflow.resolution_for_anat}'),
+        (r'${resolution_for_func_preproc}',
+         r'${functional_registration.2-func_registration_to_template.'
+         'output_resolution.func_preproc_outputs}')
+    ]
+    for keylist in [
+        ['anatomical_preproc', 'registration_workflow',
+         'template_brain_only_for_anat'],
+        ['anatomical_preproc', 'registration_workflow',
+         'template_skull_for_anat'],
+        ['anatomical_preproc', 'registration_workflow', 'registration',
+         'FSL-FNIRT', 'ref_mask'],
+        ['functional_registration', '2-func_registration_to_template',
+         'target_template', 'T1_template', 'template_brain'],
+        ['functional_registration', '2-func_registration_to_template',
+         'target_template', 'T1_template', 'template_skull'],
+        ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
+         'template_symmetric_brain_only'],
+        ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
+         'template_symmetric_skull'],
+        ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
+         'dilated_symmetric_brain_mask'],
+        ['PyPEER', 'eye_mask_path']
+    ]:
+        value = lookup_nested_value(d, keylist)
+        if isinstance(value, str):
+            for replacement in resolution_replacements:
+                value = value.replace(*replacement)
+            if value:
+                set_nested_value(d, keylist, value)
+
+    bet = lookup_nested_value(d, [
+        'anatomical_preproc', 'brain_extraction', 'extraction', 'using'])
+    if bet:
+        for replacement in [
+            ('AFNI', '3dSkullStrip'), ('FSL', 'BET'), ('unet', 'UNet')
+        ]:
+            bet = list_item_replace(bet, *replacement)
+        d = set_nested_value(
+            d,
+            ['anatomical_preproc', 'brain_extraction', 'extraction', 'using'], bet)
+
+    seg_use_threshold = lookup_nested_value(d, [
+        'anatomical_preproc', 'segmentation_workflow',
+        '3-custom_thresholding', 'run'])
+    if seg_use_threshold:
+        if 'FSL-FAST Thresholding' in seg_use_threshold:
+            if 'using' in d['anatomical_preproc']['segmentation_workflow'].get(
+                '1-segmentation', {}
+            ):
+                d['anatomical_preproc']['segmentation_workflow'][
+                    '1-segmentation']['using'].append('FSL-FAST')
+            else:
+                set_nested_value(d, [
+                    'anatomical_preproc', 'segmentation_workflow',
+                    '1-segmentation', 'using'], ['FSL-FAST'])
+            seg_use_threshold.remove('FSL-FAST Thresholding')
+        if 'Customized Thresholding' in seg_use_threshold:
+            set_nested_value(d, [
+                'anatomical_preproc', 'segmentation_workflow',
+                '3-custom_thresholding', 'run'], [True])
+        else:
+            set_nested_value(d, [
+                'anatomical_preproc', 'segmentation_workflow',
+                '3-custom_thresholding', 'run'], False)
+
+    seg_template_key = [
+        'anatomical_preproc', 'segmentation_workflow', '1-segmentation',
+        'Template_Based', 'template_for_segmentation']
+    seg_template = lookup_nested_value(d, seg_template_key)
+
+    if seg_template:
+        for replacement in [
+            ('EPI_template', 'EPI template'), ('T1_template', 'T1 template')
+        ]:
+            seg_template = list_item_replace(seg_template, *replacement)
+        d = set_nested_value(d, seg_template_key, seg_template)
+        d = remove_None(d, seg_template_key)
+
+    distcor_key = ['functional_preproc', 'distortion_correction', 'using']
+    if lookup_nested_value(d, distcor_key):
+        d = remove_None(d, distcor_key)
+    # return d
+    return update_values_from_list(d)
+
+
+def update_values_from_list(d):
+    '''Function to convert 1-length lists of an expected type to
+    single items of that type, or to convert singletons of an expected
+    list of a type into lists thereof.
+
+    Parameters
+    ----------
+    d: dict
+
+    Returns
+    -------
+    d: dict
+       updated
+
+    Examples
+    --------
+    >>> update_values_from_list({'pipeline_setup': {'pipeline_name': ['one_string']}})
+    {'pipeline_setup': {'pipeline_name': 'one_string'}}
+    >>> update_values_from_list({'regional_homogeneity': {'run': [False]}})
+    {'regional_homogeneity': {'run': False}}
+    '''  # noqa
+    from CPAC.pipeline.schema import schema
+
+    try:
+        schema(d)
+    except Invalid as e:
+        observed = lookup_nested_value(d, e.path)
+        if observed is None:
+            return observed
+        if observed == 'None':
+            return update_values_from_list(set_nested_value(d, e.path, None))
+        if 'expected' in e.msg:
+            expected = e.msg.split('expected')[-1].strip()
+            if (isinstance(observed, list) and len(observed) == 1):
+                # drop index
+                e_path = e.path[:-1] if e.path[-1] == 0 else e.path
+                if isinstance(observed[0], eval(expected)):
+                    return update_values_from_list(
+                        set_nested_value(d, e_path, observed[0]))
+                elif expected == 'bool':
+                    if isinstance(observed[0], int):
+                        return update_values_from_list(
+                            set_nested_value(d, e_path, [bool(observed[0])]))
+                    elif isinstance(observed[0], str):
+                        if observed[0] == 'On' or observed[0] == 'True':
+                            return update_values_from_list(
+                                set_nested_value(d, e_path, [True]))
+                        if observed[0] == 'Off' or observed[0] == 'False':
+                            return update_values_from_list(
+                                set_nested_value(d, e_path, [False]))
+            elif expected == 'a list':
+                return update_values_from_list(set_nested_value(d, e.path, [observed]))
+        elif (isinstance(observed, list) and len(observed) == 1):
+            return update_values_from_list(
+                set_nested_value(d, e.path, observed[0]))
+        else:
+            pass
+            # raise e
+    return d

@@ -23,15 +23,6 @@ pipeline_setup:
     # - If running outside a container, this should be a full path to a directory.
     path: ./cpac_runs/default/output
 
-    # Include extra versions and intermediate steps of functional preprocessing in the output directory.
-    write_func_outputs: [Off]
-
-    # Include extra outputs in the output directory that may be of interest when more information is needed.
-    write_debugging_outputs: [Off]
-
-    # Generate quality control pages containing preprocessing and derivative outputs.
-    generate_quality_control_images: [On]
-
   working_directory: 
 
     # Directory where C-PAC should store temporary and intermediate files.
@@ -82,7 +73,7 @@ pipeline_setup:
   Amazon-AWS: 
 
     # Enable server-side 256-AES encryption on data to the S3 bucket
-    s3_encryption: [On]
+    s3_encryption: On
 
 # Full path to the FSL version to be used by CPAC.
 # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
@@ -120,7 +111,7 @@ anatomical_preproc:
 
       # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
       # this is a fork option
-      using: [unet]
+      using: [UNet]
 
       # option parameters
       AFNI-3dSkullStrip: 
@@ -166,18 +157,10 @@ anatomical_preproc:
           - s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
           - s3://fcp-indi/resources/cpac/resources/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
 
-      Template_Based: 
-
-        # These masks should be in the same space of your registration template, e.g. if
-        # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
-        #
-        # Options: ['EPI Template', 'T1 Template']
-        template_for_segmentation: [None]
-
     3-custom_thresholding: 
 
       # Use threshold to further refine the resulting segmentation tissue masks.
-      run: [Customized Thresholding]
+      run: Off
 
   registration_workflow: 
 
@@ -219,14 +202,6 @@ functional_preproc:
     run: [On]
 
   distortion_correction: 
-
-    # using: ['PhaseDiff', 'Blip']
-    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
-    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
-    #   NOTE:
-    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
-    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
-    using: [None]
 
     # option parameters
     PhaseDiff: 
@@ -367,7 +342,7 @@ timeseries_extraction:
   #           check your data if you see issues
   realignment: [ROI_to_func]
 
-  # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
+  # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array, indicated here as ['csv', 'numpy'] for both.
   roi_tse_outputs: [True, True]
 
 seed_based_correlation_analysis: 
@@ -482,4 +457,4 @@ network_centrality:
 PyPEER: 
 
   # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${functional_registration.2-func_registration_to_template.output_resolution.func_preproc_outputs}_eye_mask.nii.gz

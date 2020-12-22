@@ -17,18 +17,9 @@ pipeline_setup:
 
   output_directory: 
 
-    # Include extra versions and intermediate steps of functional preprocessing in the output directory.
-    write_func_outputs: [Off]
-
-    # Include extra outputs in the output directory that may be of interest when more information is needed.
-    write_debugging_outputs: [Off]
-
     # Output directory format and structure.
     # Options: default, ndmg
     output_tree: ndmg
-
-    # Generate quality control pages containing preprocessing and derivative outputs.
-    generate_quality_control_images: [On]
 
   log_directory: 
 
@@ -46,57 +37,20 @@ pipeline_setup:
     # - This number cannot be greater than the number of cores per participant.
     num_ants_threads: 4
 
-  Amazon-AWS: 
-
-    # Enable server-side 256-AES encryption on data to the S3 bucket
-    s3_encryption: [Off]
-
 # PREPROCESSING
 # -------------
 
 anatomical_preproc: 
 
-  brain_extraction: 
-
-    # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
-    # Set this to True if your input images are already skull-stripped.
-    already_skullstripped: [Off]
-
-    extraction: 
-
-      # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
-      # this is a fork option
-      using: [AFNI]
-
-  segmentation_workflow: 
-
-    1-segmentation: 
-
-      Template_Based: 
-
-        # These masks should be in the same space of your registration template, e.g. if
-        # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
-        #
-        # Options: ['EPI Template', 'T1 Template']
-        template_for_segmentation: [None]
-
-    3-custom_thresholding: 
-
-      # Use threshold to further refine the resulting segmentation tissue masks.
-      run: [FSL-FAST Thresholding]
-
   registration_workflow: 
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    template_brain_only_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    template_brain_only_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    template_skull_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
-
-    # Register skull-on anatomical image to a template.
-    reg_with_skull: [On]
+    template_skull_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}.nii.gz
 
     registration: 
 
@@ -105,42 +59,27 @@ anatomical_preproc:
       #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
       using: [FSL]
 
-      # option parameters
-      ANTs: 
-
-        # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
-        # ANTS registration only.
-        use_lesion_mask: [Off]
-
       FSL-FNIRT: 
 
         # Configuration file to be used by FSL to set FNIRT parameters.
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain_mask_dil.nii.gz
 
 functional_preproc: 
 
-  run: [On]
+  run: On
 
   distortion_correction: 
-
-    # using: ['PhaseDiff', 'Blip']
-    #   PhaseDiff - Perform field map correction using a single phase difference image, a subtraction of the two phase images from each echo. Default scanner for this method is SIEMENS.
-    #   Blip - Uses AFNI 3dQWarp to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
-    #   NOTE:
-    #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
-    #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
-    using: [None]
 
     # option parameters
     PhaseDiff: 
 
       # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
-      fmap_skullstrip_option: [BET]
+      fmap_skullstrip_option: BET
 
       # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
       # The default value is 0.5.
-      fmap_skullstrip_frac: [0.5]
+      fmap_skullstrip_frac: 0.5
 
 nuisance_corrections: 
 
@@ -177,7 +116,7 @@ nuisance_corrections:
 
     # Whether to run frequency filtering before or after nuisance regression.
     # Options: 'After' or 'Before'
-    bandpass_filtering_order: [After]
+    bandpass_filtering_order: After
 
 functional_registration: 
 
@@ -207,11 +146,11 @@ functional_registration:
 
         # Standard Skull Stripped Template. Used as a reference image for functional registration.
         # This can be different than the template used as the reference/fixed for T1-to-template registration.
-        template_brain: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+        template_brain: /usr/share/fsl/5.0/data/standard/MNI152_T1_${functional_registration.2-func_registration_to_template.output_resolution.func_preproc_outputs}_brain.nii.gz
 
         # Standard Anatomical Brain Image with Skull.
         # This can be different than the template used as the reference/fixed for T1-to-template registration.
-        template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+        template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_${functional_registration.2-func_registration_to_template.output_resolution.func_preproc_outputs}.nii.gz
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------
@@ -220,25 +159,25 @@ post_processing:
   spatial_smoothing: 
 
     # Smooth the derivative outputs.
-    run: [On]
+    run: On
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
-    smoothing_method: [FSL]
+    smoothing_method: FSL
 
     # Choose whether to smooth outputs before or after z-scoring.
     # options: 'Before' or 'After'
-    smoothing_order: [Before]
+    smoothing_order: Before
 
   z-scoring: 
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: [On]
+    run: On
 
 timeseries_extraction: 
 
-  run: [On]
+  run: On
 
   # Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
   # 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
@@ -247,9 +186,9 @@ timeseries_extraction:
   #     NOTE: in rare cases, realigning the ROI to the functional space may
   #           result in small misalignments for very small ROIs - please double
   #           check your data if you see issues
-  realignment: [ROI_to_func]
+  realignment: ROI_to_func
 
-  # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
+  # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array, indicated here as ['csv', 'numpy'] for both.
   roi_tse_outputs: [True, True]
 
 seed_based_correlation_analysis: 
@@ -281,15 +220,15 @@ voxel_mirrored_homotopic_connectivity:
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    template_symmetric_brain_only: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+    template_symmetric_brain_only: $FSLDIR/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain_symmetric.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    template_symmetric_skull: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
+    template_symmetric_skull: $FSLDIR/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_symmetric.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+    dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
 
 network_centrality: 
 
@@ -342,4 +281,4 @@ network_centrality:
 PyPEER: 
 
   # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${functional_registration.2-func_registration_to_template.output_resolution.func_preproc_outputs}_eye_mask.nii.gz

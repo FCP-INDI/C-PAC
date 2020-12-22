@@ -23,15 +23,6 @@ pipeline_setup:
     # - If running outside a container, this should be a full path to a directory.
     path: /outputs/output
 
-    # Include extra versions and intermediate steps of functional preprocessing in the output directory.
-    write_func_outputs: Off
-
-    # Include extra outputs in the output directory that may be of interest when more information is needed.
-    write_debugging_outputs: Off
-
-    # Generate quality control pages containing preprocessing and derivative outputs.
-    generate_quality_control_images: On
-
   working_directory: 
 
     # Directory where C-PAC should store temporary and intermediate files.
@@ -93,10 +84,6 @@ anatomical_preproc:
 
   brain_extraction: 
 
-    # Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC.
-    # Set this to True if your input images are already skull-stripped.
-    already_skullstripped: Off
-
     extraction: 
 
       # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants']
@@ -104,21 +91,6 @@ anatomical_preproc:
       using: [niworkflows-ants]
 
   segmentation_workflow: 
-
-    1-segmentation: 
-
-      Template_Based: 
-
-        # These masks should be in the same space of your registration template, e.g. if
-        # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
-        #
-        # Options: ['EPI Template', 'T1 Template']
-        template_for_segmentation: []
-
-    3-custom_thresholding: 
-
-      # Use threshold to further refine the resulting segmentation tissue masks.
-      run: On
 
     4-erosion: 
 
@@ -151,17 +123,10 @@ anatomical_preproc:
     # It is not necessary to change this path unless you intend to use a non-standard template.
     template_skull_for_anat: /code/CPAC/resources/templates/mni_icbm152_t1_tal_nlin_asym_09c.nii
 
-    # Register skull-on anatomical image to a template.
-    reg_with_skull: Off
-
     registration: 
 
       # option parameters
       ANTs: 
-
-        # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
-        # ANTS registration only.
-        use_lesion_mask: Off
 
         # ANTs parameters for T1-template-based registration
         T1_registration: 
@@ -223,7 +188,7 @@ anatomical_preproc:
 
         # Configuration file to be used by FSL to set FNIRT parameters.
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-        ref_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+        ref_mask: $FSLDIR/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain_mask_dil.nii.gz
 
 functional_preproc: 
 
@@ -404,47 +369,47 @@ timeseries_extraction:
   #           check your data if you see issues
   realignment: ROI_to_func
 
-  # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.
-  roi_tse_outputs: ['csv', 'numpy']
+  # By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array, indicated here as ['csv', 'numpy'] for both.
+  roi_tse_outputs: [True, True]
 
 seed_based_correlation_analysis: 
 
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: Off
+  run: [Off]
 
 amplitude_low_frequency_fluctuation: 
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: Off
+  run: [Off]
 
 regional_homogeneity: 
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: Off
+  run: [Off]
 
 voxel_mirrored_homotopic_connectivity: 
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: Off
+  run: [Off]
 
   symmetric_registration: 
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    template_symmetric_brain_only: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+    template_symmetric_brain_only: $FSLDIR/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain_symmetric.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    template_symmetric_skull: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
+    template_symmetric_skull: $FSLDIR/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_symmetric.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+    dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
 
 network_centrality: 
 
@@ -466,12 +431,12 @@ network_centrality:
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: ['Binarized', 'Weighted']
+    weight_options: [True, True]
 
     # Select the type of threshold used when creating the degree centrality adjacency matrix.
     # options:
     #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: Sparsity threshold
+    correlation_threshold_option: [Sparsity threshold]
 
   eigenvector_centrality: 
 
@@ -479,12 +444,12 @@ network_centrality:
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: ['Binarized', 'Weighted']
+    weight_options: [True, True]
 
     # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
     # options:
     #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: Sparsity threshold
+    correlation_threshold_option: [Sparsity threshold]
 
   local_functional_connectivity_density: 
 
@@ -492,12 +457,12 @@ network_centrality:
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: ['Binarized', 'Weighted']
+    weight_options: [True, True]
 
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:
     #   'Significance threshold', 'Correlation threshold'
-    correlation_threshold_option: Significance threshold
+    correlation_threshold_option: [Significance threshold]
 
     # Based on the Threshold Type selected above, enter a Threshold Value.
     # P-value for Significance Threshold
@@ -510,4 +475,4 @@ network_centrality:
 PyPEER: 
 
   # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${functional_registration.2-func_registration_to_template.output_resolution.func_preproc_outputs}_eye_mask.nii.gz
