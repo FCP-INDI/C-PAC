@@ -1763,7 +1763,7 @@ def update_pipeline_values(d):
 
     if seg_template:
         for replacement in [
-            ('EPI_template', 'EPI template'), ('T1_template', 'T1 template')
+            ('EPI_template', 'EPI Template'), ('T1_template', 'T1 Template')
         ]:
             seg_template = list_item_replace(seg_template, *replacement)
         d = set_nested_value(d, seg_template_key, seg_template)
@@ -1839,8 +1839,11 @@ def update_values_from_list(d):
             elif expected == 'a list':
                 return update_values_from_list(set_nested_value(d, e.path, [observed]))
         elif (isinstance(observed, list) and len(observed) == 1):
-            return update_values_from_list(
-                set_nested_value(d, e.path, observed[0]))
+            try:
+                return update_values_from_list(
+                    set_nested_value(d, e.path, observed[0]))
+            except TypeError:
+                raise e
         else:
             pass
             # raise e
