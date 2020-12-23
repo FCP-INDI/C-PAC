@@ -301,15 +301,12 @@ def yaml_bool(value):
     return value
 
 
-def upgrade_pipeline_to_1_8(path, include_unmapped=False):
+def upgrade_pipeline_to_1_8(path):
     '''Function to upgrade a C-PAC 1.7 pipeline config to C-PAC 1.8
 
     Parameters
     ----------
     path: str
-
-    include_unmapped: bool
-        include keys from original file that aren't mapped in 1.8 syntax
 
     Returns
     -------
@@ -332,7 +329,9 @@ def upgrade_pipeline_to_1_8(path, include_unmapped=False):
     # upgrade and overwrite
     orig_dict = yaml.safe_load(original)
     if 'pipelineName' in orig_dict and len(original.strip()):
-        middle_dict = update_config_dict(orig_dict)[
-            2 if include_unmapped else 0]
+        middle_dict, leftovers_dict, complete_dict = update_config_dict(
+            orig_dict)
         new_dict = update_pipeline_values(middle_dict)
         open(path, 'w').write(create_yaml_from_template(new_dict))
+        if leftovers_dict:
+            open(f'{path}.rem', 'w').write(yaml.dump(leftovers_dict))
