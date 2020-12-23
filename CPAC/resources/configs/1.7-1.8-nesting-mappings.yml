@@ -89,6 +89,9 @@ removeWorkingDir:
    - pipeline_setup
    - working_directory
    - remove_working_dir
+runAnatomical:
+   - anatomical_preproc
+   - run
 non_local_means_filtering:
    - anatomical_preproc
    - non_local_means_filtering
