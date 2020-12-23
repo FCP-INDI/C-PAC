@@ -383,6 +383,15 @@ schema = Schema({
         '2-nuisance_regression': {
             'run': [bool],
             'Regressors': Maybe([{
+                'Censor': {
+                    'method': str,
+                    'thresholds': [{
+                        'type': str,
+                        'value': float,
+                    }],
+                    'number_of_previous_trs_to_censor': Maybe(int),
+                    'number_of_subsequent_trs_to_censor': Maybe(int),
+                },
                 'Motion': {
                     'include_delayed': bool,
                     'include_squared': bool,
@@ -413,7 +422,9 @@ schema = Schema({
                     'extraction_resolution': int
                 },
                 'CerebrospinalFluid': {
-                    'summary': str,
+                    'summary': Any(
+                        str, {'components': int, 'method': str}
+                    ),
                     'extraction_resolution': int,
                     'erode_mask': bool
                 },
@@ -422,7 +433,9 @@ schema = Schema({
                 'WhiteMatter': {
                     'erode_mask': bool,
                     'extraction_resolution': Any(int, float, str),
-                    'summary': str
+                    'summary': Any(
+                        str, {'components': int, 'method': str}
+                    ),
                 },
                 'Bandpass': {
                     'bottom_frequency': float,
@@ -459,13 +472,13 @@ schema = Schema({
     },
     'post_processing': {
         'spatial_smoothing': {
-            'run': bool,
+            'run': Any(bool, [bool]),
             'smoothing_method': In({'FSL', 'AFNI'}),
             'fwhm': [int],
             'smoothing_order': In({'Before', 'After'})
         },
         'z-scoring': {
-            'run': bool
+            'run': Any(bool, [bool]),
         },
     },
     'timeseries_extraction': {
@@ -498,26 +511,26 @@ schema = Schema({
         'memory_allocation': Any(float, int),
         'template_specification_file': str,
         'degree_centrality': {
-            'weight_options': [Maybe(In(
+            'weight_options': [In(
                 valid_options['centrality']['weight_options']
-            ))],
+            )],
             'correlation_threshold_option': In(
                 valid_options['centrality']['threshold_options']),
             'correlation_threshold': Range(min=-1, max=1)
         },
         'eigenvector_centrality': {
-            'weight_options': [Maybe(In(
+            'weight_options': [In(
                 valid_options['centrality']['weight_options']
-            ))],
+            )],
             'correlation_threshold_option': In(
                 valid_options['centrality']['threshold_options']
             ),
             'correlation_threshold': Range(min=-1, max=1)
         },
         'local_functional_connectivity_density': {
-            'weight_options': [Maybe(In(
+            'weight_options': [In(
                 valid_options['centrality']['weight_options']
-            ))],
+            )],
             'correlation_threshold_option': In([
                 o for o in valid_options['centrality']['threshold_options'] if
                 o != 'Sparsity threshold'

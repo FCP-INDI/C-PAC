@@ -1505,7 +1505,7 @@ def lookup_nested_value(d, keys):
     Examples
     --------
     >>> lookup_nested_value({'nested': {'True': True}}, ['nested', 'True'])
-    'On'
+    True
     >>> lookup_nested_value({'nested': {'None': None}}, ['nested', 'None'])
     ''
     '''
@@ -1515,13 +1515,53 @@ def lookup_nested_value(d, keys):
         value = d.get(keys[0])
         if value is None:
             return ''
-        if isinstance(value, bool):
-            if value == False:  # noqa E712
-                return 'Off'
-            return 'On'
         return value
     else:
         return lookup_nested_value(d.get(keys[0], {}), keys[1:])
+
+
+def _remove_somethings(value, things_to_remove):
+    '''Helper function to remove instances of any in a given set of
+    values from a list.
+
+    Parameters
+    ----------
+    value: list
+
+    things_to_remove: set
+
+    Returns
+    -------
+    list
+    '''
+    if isinstance(value, list):
+        for thing in things_to_remove:
+            while thing in value:
+                value.remove(thing)
+    return value
+
+
+def remove_False(d, k):
+    '''Function to remove "Off" and False from a list at a given nested key.
+
+    Parameters
+    ----------
+    d: dict
+
+    k: list
+
+    Returns
+    -------
+    d: dict
+       updated
+
+    Examples
+    --------
+    >>> remove_False({'a': {'b': [1, False, 2, "Off", 3]}}, ['a', 'b'])
+    {'a': {'b': [1, 2, 3]}}
+    '''
+    value = _remove_somethings(lookup_nested_value(d, k), {False, 'Off'})
+    return set_nested_value(d, k, value)
 
 
 def remove_None(d, k):
@@ -1543,11 +1583,7 @@ def remove_None(d, k):
     >>> remove_None({'a': {'b': [1, None, 2, "None", 3]}}, ['a', 'b'])
     {'a': {'b': [1, 2, 3]}}
     '''
-    value = lookup_nested_value(d, k)
-    if value == '' or value is None:
-        value = []
-    if isinstance(value, list):
-        [value.remove(n) for n in {'None', None} if n in value]
+    value = _remove_somethings(lookup_nested_value(d, k), {None, 'None'})
     return set_nested_value(d, k, value)
 
 
@@ -1668,13 +1704,13 @@ def update_nested_dict(d_base, d_update):
     return d_base
 
 
-def update_pipeline_values(d):
+def update_pipeline_values(d_old):
     '''Function to update pipeline config values that changed from
     C-PAC 1.7 to 1.8.
 
     Parameters
     ----------
-    d: dict
+    d_old: dict
 
     Returns
     -------
@@ -1688,6 +1724,10 @@ def update_pipeline_values(d):
     >>> update_pipeline_values({'anatomical_preproc': {'segmentation_workflow': {'1-segmentation': {'using': ['Template_Based']}, '3-custom_thresholding': {'run': ['FSL-FAST Thresholding', 'Customized Thresholding']}}}})
     {'anatomical_preproc': {'segmentation_workflow': {'1-segmentation': {'using': ['Template_Based', 'FSL-FAST']}, '3-custom_thresholding': {'run': True}}}}
     '''  # noqa
+    from CPAC.pipeline.schema import valid_options
+
+    d = d_old.copy()
+
     resolution_replacements = [
         (r'${resolution_for_anat}',
          r'${anatomical_preproc.registration_workflow.resolution_for_anat}'),
@@ -1730,12 +1770,13 @@ def update_pipeline_values(d):
             bet = list_item_replace(bet, *replacement)
         d = set_nested_value(
             d,
-            ['anatomical_preproc', 'brain_extraction', 'extraction', 'using'], bet)
+            ['anatomical_preproc', 'brain_extraction', 'extraction', 'using'],
+            bet)
 
     seg_use_threshold = lookup_nested_value(d, [
         'anatomical_preproc', 'segmentation_workflow',
         '3-custom_thresholding', 'run'])
-    if seg_use_threshold:
+    if seg_use_threshold and isinstance(seg_use_threshold, list):
         if 'FSL-FAST Thresholding' in seg_use_threshold:
             if 'using' in d['anatomical_preproc']['segmentation_workflow'].get(
                 '1-segmentation', {}
@@ -1756,6 +1797,19 @@ def update_pipeline_values(d):
                 'anatomical_preproc', 'segmentation_workflow',
                 '3-custom_thresholding', 'run'], False)
 
+    for centr in ['degree_centrality', 'eigenvector_centrality',
+                  'local_functional_connectivity_density']:
+        centr_keys = ['network_centrality', centr, 'weight_options']
+        centr_value = lookup_nested_value(d, centr_keys)
+        if any([isinstance(v, bool) for v in centr_value]):
+            for i in range(2):
+                if centr_value[i] is True:
+                    centr_value[i] = valid_options['centrality'][
+                        'weight_options'][i]
+            while False in centr_value:
+                centr_value.remove(False)
+            set_nested_value(d, centr_keys, centr_value)
+
     seg_template_key = [
         'anatomical_preproc', 'segmentation_workflow', '1-segmentation',
         'Template_Based', 'template_for_segmentation']
@@ -1763,11 +1817,27 @@ def update_pipeline_values(d):
 
     if seg_template:
         for replacement in [
-            ('EPI_template', 'EPI Template'), ('T1_template', 'T1 Template')
+            ('EPI_template', valid_options['segmentation']['template'][0]),
+            ('T1_template', valid_options['segmentation']['template'][1])
         ]:
             seg_template = list_item_replace(seg_template, *replacement)
+        while 'Off' in seg_template:
+            seg_template.remove('Off')
+        while False in seg_template:
+            seg_template.remove(False)
         d = set_nested_value(d, seg_template_key, seg_template)
         d = remove_None(d, seg_template_key)
+
+    func_reg_template_key = [
+        'functional_registration', '2-func_registration_to_template',
+        'target_template', 'using']
+    func_reg_template = lookup_nested_value(d, func_reg_template_key)
+
+    if func_reg_template:
+        while 'Off' in func_reg_template:
+            func_reg_template.remove('Off')
+        while False in func_reg_template:
+            func_reg_template.remove(False)
 
     distcor_key = ['functional_preproc', 'distortion_correction', 'using']
     if lookup_nested_value(d, distcor_key):
@@ -1786,14 +1856,18 @@ def update_pipeline_values(d):
     return update_values_from_list(d)
 
 
-def update_values_from_list(d):
+def update_values_from_list(d_old, last_exception=None):
     '''Function to convert 1-length lists of an expected type to
     single items of that type, or to convert singletons of an expected
-    list of a type into lists thereof.
+    list of a type into lists thereof. Also handles some type
+    conversions against the schema.
 
     Parameters
     ----------
-    d: dict
+    d_old: dict
+
+    last_exception: Exception or None
+        if the same exception recurs, raise it.
 
     Returns
     -------
@@ -1809,42 +1883,71 @@ def update_values_from_list(d):
     '''  # noqa
     from CPAC.pipeline.schema import schema
 
+    d = d_old.copy()
+
     try:
         schema(d)
     except Invalid as e:
+        if (
+            last_exception and last_exception.path == e.path and
+            last_exception.msg == e.msg
+        ):
+            raise e
         observed = lookup_nested_value(d, e.path)
-        if observed is None:
-            return observed
         if observed == 'None':
-            return update_values_from_list(set_nested_value(d, e.path, None))
-        if 'expected' in e.msg:
-            expected = e.msg.split('expected')[-1].strip()
-            if (isinstance(observed, list) and len(observed) == 1):
-                # drop index
-                e_path = e.path[:-1] if e.path[-1] == 0 else e.path
-                if isinstance(observed[0], eval(expected)):
-                    return update_values_from_list(
-                        set_nested_value(d, e_path, observed[0]))
-                elif expected == 'bool':
-                    if isinstance(observed[0], int):
-                        return update_values_from_list(
-                            set_nested_value(d, e_path, [bool(observed[0])]))
-                    elif isinstance(observed[0], str):
-                        if observed[0] == 'On' or observed[0] == 'True':
-                            return update_values_from_list(
-                                set_nested_value(d, e_path, [True]))
-                        if observed[0] == 'Off' or observed[0] == 'False':
-                            return update_values_from_list(
-                                set_nested_value(d, e_path, [False]))
-            elif expected == 'a list':
-                return update_values_from_list(set_nested_value(d, e.path, [observed]))
-        elif (isinstance(observed, list) and len(observed) == 1):
+            return update_values_from_list(
+                set_nested_value(d, e.path, None), e)
+
+        expected = e.msg.split('expected')[-1].strip(
+        ) if 'expected' in e.msg else 'unknown'
+
+        if (
+            expected != 'bool' and isinstance(observed, list) and
+            len(observed) == 1
+        ):
             try:
                 return update_values_from_list(
-                    set_nested_value(d, e.path, observed[0]))
+                    set_nested_value(d, e.path, observed[0]), e)
             except TypeError:
                 raise e
+
+        if expected == 'bool':
+            if isinstance(observed, int):
+                return update_values_from_list(
+                    set_nested_value(d, e.path, bool(observed)), e)
+            elif isinstance(observed, list):
+                if len(observed) == 0:
+                    return update_values_from_list(set_nested_value(
+                        d, e.path, False), e)
+                else:
+                    # maintain a list if list expected
+                    list_expected = (e.path[-1] == 0)
+                    e_path = e.path[:-1] if list_expected else e.path
+                    if len(observed) == 1:
+                        if isinstance(observed[0], int):
+                            value = bool(observed[0])
+                        elif observed[0] in {'On', 'True'}:
+                            value = True
+                        elif observed[0] in {'Off', 'False'}:
+                            value = False
+                        return update_values_from_list(set_nested_value(
+                            d, e_path, [value] if list_expected else value), e)
+                    else:
+                        return update_values_from_list(set_nested_value(
+                            d, e_path, [bool(value) for value in observed]), e)
+            elif observed in {'On', 'True'}:
+                return update_values_from_list(
+                    set_nested_value(d, e.path, True), e)
+            elif observed in {'Off', 'False'}:
+                return update_values_from_list(
+                    set_nested_value(d, e.path, False), e)
+            else:
+                return update_values_from_list(
+                    set_nested_value(d, e_path, observed[0]), e)
+
+        elif expected == 'a list':
+            return update_values_from_list(
+                set_nested_value(d, e.path, [observed]), e)
         else:
-            pass
-            # raise e
+            raise e
     return d

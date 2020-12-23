@@ -322,7 +322,7 @@ post_processing:
   spatial_smoothing: 
 
     # Smooth the derivative outputs.
-    run: On
+    run: [On]
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
@@ -334,14 +334,10 @@ post_processing:
     #   i.e. multiple kernels - fwhm: [4,6,8]
     fwhm: [6]
 
-    # Choose whether to smooth outputs before or after z-scoring.
-    # options: 'Before' or 'After'
-    smoothing_order: Before
-
   z-scoring: 
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: Off
+    run: [Off]
 
 voxel_mirrored_homotopic_connectivity: 
 
@@ -374,45 +370,6 @@ network_centrality:
   # this is a fork point
   #   run: [On, Off] - this will run both and fork the pipeline
   run: [Off]
-
-  degree_centrality: 
-
-    # Enable/Disable degree centrality by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [True, True]
-
-    # Select the type of threshold used when creating the degree centrality adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: [Sparsity threshold]
-
-  eigenvector_centrality: 
-
-    # Enable/Disable eigenvector centrality by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [False, True]
-
-    # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: [Sparsity threshold]
-
-  local_functional_connectivity_density: 
-
-    # Enable/Disable lFCD by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [True, True]
-
-    # Select the type of threshold used when creating the lFCD adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Correlation threshold'
-    correlation_threshold_option: [Correlation threshold]
 
 # PACKAGE INTEGRATIONS
 # --------------------

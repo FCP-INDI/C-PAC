@@ -192,8 +192,6 @@ anatomical_preproc:
 
 functional_preproc: 
 
-  run: On
-
   motion_estimates_and_correction: 
 
     # calculate motion statistics BEFORE slice-timing correction
@@ -206,18 +204,6 @@ functional_preproc:
       # using: ['3dvolreg', 'mcflirt']
       # this is a fork point
       using: [mcflirt]
-
-  distortion_correction: 
-
-    # option parameters
-    PhaseDiff: 
-
-      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
-      fmap_skullstrip_option: BET
-
-      # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
-      # The default value is 0.5.
-      fmap_skullstrip_frac: 0.5
 
   func_masking: 
 
@@ -278,10 +264,6 @@ nuisance_corrections:
             method: PC
           threshold: 5PCT
 
-    # Whether to run frequency filtering before or after nuisance regression.
-    # Options: 'After' or 'Before'
-    bandpass_filtering_order: After
-
 functional_registration: 
 
   1-coregistration: 
@@ -340,59 +322,14 @@ post_processing:
   spatial_smoothing: 
 
     # Smooth the derivative outputs.
-    run: Off
-
-    # Tool to use for smoothing.
-    # 'FSL' for FSL MultiImageMaths for FWHM provided
-    # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
-    smoothing_method: FSL
-
-    # Choose whether to smooth outputs before or after z-scoring.
-    # options: 'Before' or 'After'
-    smoothing_order: Before
+    run: [Off]
 
   z-scoring: 
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: Off
-
-timeseries_extraction: 
-
-  run: Off
-
-  # Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
-  # 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
-  # 'func_to_ROI' will realign the functional time series to the atlas/ROI space
-  #
-  #     NOTE: in rare cases, realigning the ROI to the functional space may
-  #           result in small misalignments for very small ROIs - please double
-  #           check your data if you see issues
-  realignment: ROI_to_func
-
-seed_based_correlation_analysis: 
-
-  # SCA - Seed-Based Correlation Analysis
-  # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
-  # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: Off
-
-amplitude_low_frequency_fluctuation: 
-
-  # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: Off
-
-regional_homogeneity: 
-
-  # ReHo
-  # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: Off
+    run: [Off]
 
 voxel_mirrored_homotopic_connectivity: 
-
-  # VMHC
-  # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: Off
 
   symmetric_registration: 
 
@@ -422,44 +359,20 @@ network_centrality:
   # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
   template_specification_file: s3://fcp-indi/resources/cpac/resources/mask-thr50-3mm.nii.gz
 
-  degree_centrality: 
-
-    # Enable/Disable degree centrality by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [True, True]
-
-    # Select the type of threshold used when creating the degree centrality adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: [Sparsity threshold]
-
   eigenvector_centrality: 
 
     # Enable/Disable eigenvector centrality by selecting the connectivity weights
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
     #   weight_options: []
-    weight_options: [True, True]
-
-    # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: [Sparsity threshold]
+    weight_options: [Binarized, Weighted]
 
   local_functional_connectivity_density: 
-
-    # Enable/Disable lFCD by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [True, True]
 
     # Select the type of threshold used when creating the lFCD adjacency matrix.
     # options:
     #   'Significance threshold', 'Correlation threshold'
-    correlation_threshold_option: [Significance threshold]
+    correlation_threshold_option: Significance threshold
 
     # Based on the Threshold Type selected above, enter a Threshold Value.
     # P-value for Significance Threshold

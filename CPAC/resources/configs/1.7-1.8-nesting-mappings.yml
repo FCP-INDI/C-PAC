@@ -110,7 +110,7 @@ acpc_template_skull:
 acpc_template_brain:
    - anatomical_preproc
    - acpc_alignment
-   - acpc_template_brain
+   - template_brain
 already_skullstripped:
    - anatomical_preproc
    - brain_extraction

@@ -65,22 +65,6 @@ anatomical_preproc:
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
         ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${anatomical_preproc.registration_workflow.resolution_for_anat}_brain_mask_dil.nii.gz
 
-functional_preproc: 
-
-  run: On
-
-  distortion_correction: 
-
-    # option parameters
-    PhaseDiff: 
-
-      # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
-      fmap_skullstrip_option: BET
-
-      # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
-      # The default value is 0.5.
-      fmap_skullstrip_frac: 0.5
-
 nuisance_corrections: 
 
   1-ICA-AROMA: 
@@ -113,10 +97,6 @@ nuisance_corrections:
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
-
-    # Whether to run frequency filtering before or after nuisance regression.
-    # Options: 'After' or 'Before'
-    bandpass_filtering_order: After
 
 functional_registration: 
 
@@ -159,59 +139,22 @@ post_processing:
   spatial_smoothing: 
 
     # Smooth the derivative outputs.
-    run: On
-
-    # Tool to use for smoothing.
-    # 'FSL' for FSL MultiImageMaths for FWHM provided
-    # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
-    smoothing_method: FSL
-
-    # Choose whether to smooth outputs before or after z-scoring.
-    # options: 'Before' or 'After'
-    smoothing_order: Before
+    run: [On]
 
   z-scoring: 
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: On
+    run: [On]
 
 timeseries_extraction: 
 
-  run: On
-
-  # Functional time-series and ROI realignment method: ['ROI_to_func'] or ['func_to_ROI']
-  # 'ROI_to_func' will realign the atlas/ROI to functional space (fast)
-  # 'func_to_ROI' will realign the functional time series to the atlas/ROI space
-  #
-  #     NOTE: in rare cases, realigning the ROI to the functional space may
-  #           result in small misalignments for very small ROIs - please double
-  #           check your data if you see issues
-  realignment: ROI_to_func
-
-seed_based_correlation_analysis: 
-
-  # SCA - Seed-Based Correlation Analysis
-  # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
-  # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: Off
-
-amplitude_low_frequency_fluctuation: 
-
-  # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: Off
-
-regional_homogeneity: 
-
-  # ReHo
-  # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: Off
+  # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
+  # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
+  # available analyses:
+  #   /path/to/atlas.nii.gz: Avg, Voxel, SpatialReg, PearsonCorr, PartialCorr
+  tse_roi_paths: 
 
 voxel_mirrored_homotopic_connectivity: 
-
-  # VMHC
-  # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: Off
 
   symmetric_registration: 
 
@@ -233,45 +176,6 @@ network_centrality:
   # this is a fork point
   #   run: [On, Off] - this will run both and fork the pipeline
   run: [Off]
-
-  degree_centrality: 
-
-    # Enable/Disable degree centrality by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [True, True]
-
-    # Select the type of threshold used when creating the degree centrality adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: [Sparsity threshold]
-
-  eigenvector_centrality: 
-
-    # Enable/Disable eigenvector centrality by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [False, True]
-
-    # Select the type of threshold used when creating the eigenvector centrality adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Sparsity threshold', 'Correlation threshold'
-    correlation_threshold_option: [Sparsity threshold]
-
-  local_functional_connectivity_density: 
-
-    # Enable/Disable lFCD by selecting the connectivity weights
-    #   weight_options: ['Binarized', 'Weighted']
-    # disable this type of centrality with:
-    #   weight_options: []
-    weight_options: [True, True]
-
-    # Select the type of threshold used when creating the lFCD adjacency matrix.
-    # options:
-    #   'Significance threshold', 'Correlation threshold'
-    correlation_threshold_option: [Correlation threshold]
 
 # PACKAGE INTEGRATIONS
 # --------------------
