@@ -32,4 +32,7 @@ def crc(str):
     return crc
 
 def encode(string):
-    return base64.urlsafe_b64encode(bytes(crc(string))).strip('=')
+    scrc = str(crc(string))
+    bcrc = scrc.encode('ascii')
+    base64crc = base64.urlsafe_b64encode(bcrc).strip(b'=')
+    return base64crc.decode()

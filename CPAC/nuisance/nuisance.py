@@ -1480,9 +1480,9 @@ def create_nuisance_regression_workflow(nuisance_selectors,
                         nuisance_regression, 'mask')
 
     if nuisance_selectors.get('Custom'):
-        if nuisance_selectors['Custom'].get('file'):
-            if nuisance_selectors['Custom']['file'].endswith('.nii') or \
-                    nuisance_selectors['Custom']['file'].endswith('.nii.gz'):
+        if nuisance_selectors['Custom'][0].get('file'):
+            if nuisance_selectors['Custom'][0]['file'].endswith('.nii') or \
+                    nuisance_selectors['Custom'][0]['file'].endswith('.nii.gz'):
                 nuisance_wf.connect(inputspec, 'regressor_file',
                                     nuisance_regression, 'dsort')
             else:
