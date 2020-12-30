@@ -1560,9 +1560,10 @@ def filtering_bold_and_regressors(nuisance_selectors,
         bandpass_filter = pe.Node(interface=afni.Bandpass(),
                                     name='bandpass_filter')
 
-        bandpass_filter.inputs.lowpass = bandpass_selector.get('bottom_frequency')
-        bandpass_filter.inputs.highpass = bandpass_selector.get('top_frequency')
-        
+        bandpass_filter.inputs.lowpass = bandpass_selector.get('top_frequency')
+        bandpass_filter.inputs.highpass = bandpass_selector.get('bottom_frequency')
+        bandpass_filter.inputs.outputtype = 'NIFTI_GZ'
+
         filtering_wf.connect(inputspec, 'functional_file_path',
                             bandpass_filter, 'in_file')
 
