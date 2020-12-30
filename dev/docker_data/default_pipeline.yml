@@ -1023,6 +1023,7 @@ Regressors :
    Bandpass:
      bottom_frequency: 0.01
      top_frequency: 0.1
+     method: default
 
  - Motion:
      include_delayed: true
@@ -1049,6 +1050,7 @@ Regressors :
    Bandpass:
      bottom_frequency: 0.01
      top_frequency: 0.1
+     method: default
 
 
 # Whether to run frequency filtering before or after nuisance regression.
