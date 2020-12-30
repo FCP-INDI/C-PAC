@@ -2376,7 +2376,23 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     )
 
                     if 'Bandpass' in regressors_selector:
-                        if 'Before' in c.filtering_order:
+                        
+                        bandpass_selector = regressors_selector.get('Bandpass')
+                        if bandpass_selector.get('method'):
+                            bandpass_method = bandpass_selector.get('method')
+                        else:
+                            bandpass_method = 'default'
+
+                        if not bandpass_method in ['default', '3dBandpass']:
+                            err = "\n\n[!] C-PAC says: You must choose 'default' or '3dBandpass' as filtering method, " \
+                                    "but you provided:\n{0}\n\n".format(bandpass_method)
+                            raise Exception(err)
+                        elif 'Before' in c.filtering_order and bandpass_method == '3dBandpass':
+                            err = "\n\n[!] C-PAC says: You chose to run filtering before nuisance regression and '3dBandpass' as filtering method." \
+                                    " '3dBandpass' can't filter regressors so please change filtering method to 'default'.\n\n"
+                            raise Exception(err)
+                        
+                        if 'Before' in c.filtering_order and bandpass_method == 'default':
                             nuisance_regression_after_workflow = create_nuisance_regression_workflow(
                                 regressors_selector,
                                 name='nuisance_regression_after-filt_{0}_'

@@ -1508,7 +1508,8 @@ def filtering_bold_and_regressors(nuisance_selectors,
 
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'functional_file_path',
-        'regressors_file_path'
+        'regressors_file_path',
+        'brainmask_file_path'
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
@@ -1518,33 +1519,58 @@ def filtering_bold_and_regressors(nuisance_selectors,
     filtering_wf = pe.Workflow(name=name)
     bandpass_selector = nuisance_selectors.get('Bandpass')
 
-    frequency_filter = pe.Node(
-                Function(input_names=['realigned_file',
-                                      'regressor_file',
-                                      'bandpass_freqs',
-                                      'sample_period'],
-                         output_names=['bandpassed_file',
-                                       'regressor_file'],
-                         function=bandpass_voxels,
-                         as_module=True),
-                name='frequency_filter'
-            )
+    if bandpass_selector.get('method'):
+        bandpass_method = bandpass_selector.get('method')
+    else:
+        bandpass_method = 'default'
 
-    frequency_filter.inputs.bandpass_freqs = [
-                bandpass_selector.get('bottom_frequency'),
-                bandpass_selector.get('top_frequency')
-            ]
+    if bandpass_method == 'default':
 
-    filtering_wf.connect(inputspec, 'functional_file_path',
-                         frequency_filter, 'realigned_file')
+        frequency_filter = pe.Node(
+                    Function(input_names=['realigned_file',
+                                        'regressor_file',
+                                        'bandpass_freqs',
+                                        'sample_period'],
+                            output_names=['bandpassed_file',
+                                        'regressor_file'],
+                            function=bandpass_voxels,
+                            as_module=True),
+                    name='frequency_filter'
+                )
 
-    filtering_wf.connect(inputspec, 'regressors_file_path',
-                         frequency_filter, 'regressor_file')
+        frequency_filter.inputs.bandpass_freqs = [
+                    bandpass_selector.get('bottom_frequency'),
+                    bandpass_selector.get('top_frequency')
+                ]
 
-    filtering_wf.connect(frequency_filter, 'bandpassed_file',
-                         outputspec, 'residual_file_path')
+        filtering_wf.connect(inputspec, 'functional_file_path',
+                            frequency_filter, 'realigned_file')
 
-    filtering_wf.connect(frequency_filter, 'regressor_file',
-                         outputspec, 'residual_regressor')
+        filtering_wf.connect(inputspec, 'regressors_file_path',
+                            frequency_filter, 'regressor_file')
+
+        filtering_wf.connect(frequency_filter, 'bandpassed_file',
+                            outputspec, 'residual_file_path')
+
+        filtering_wf.connect(frequency_filter, 'regressor_file',
+                            outputspec, 'residual_regressor')
+
+    elif bandpass_method == '3dBandpass':
+        
+        bandpass_filter = pe.Node(interface=afni.Bandpass(),
+                                    name='bandpass_filter')
+
+        bandpass_filter.inputs.lowpass = bandpass_selector.get('bottom_frequency')
+        bandpass_filter.inputs.highpass = bandpass_selector.get('top_frequency')
+        
+        filtering_wf.connect(inputspec, 'functional_file_path',
+                            bandpass_filter, 'in_file')
+
+        # TODO check what brainmask Marco uses?
+        # filtering_wf.connect(inputspec, 'brainmask_file_path',
+        #                     bandpass_filter, 'mask')
+
+        filtering_wf.connect(bandpass_filter, 'out_file',
+                            outputspec, 'residual_file_path')
 
     return filtering_wf
