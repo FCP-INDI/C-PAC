@@ -1567,9 +1567,8 @@ def filtering_bold_and_regressors(nuisance_selectors,
         filtering_wf.connect(inputspec, 'functional_file_path',
                             bandpass_filter, 'in_file')
 
-        # TODO check what brainmask Marco uses?
-        # filtering_wf.connect(inputspec, 'brainmask_file_path',
-        #                     bandpass_filter, 'mask')
+        filtering_wf.connect(inputspec, 'brainmask_file_path',
+                            bandpass_filter, 'mask')
 
         filtering_wf.connect(bandpass_filter, 'out_file',
                             outputspec, 'residual_file_path')

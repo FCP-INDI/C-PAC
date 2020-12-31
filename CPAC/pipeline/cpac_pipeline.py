@@ -2469,6 +2469,19 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             new_strat.append_name(nuisance_regression_after_workflow.name)
 
                         elif 'After' in c.filtering_order:
+
+                            if bandpass_method == '3dBandpass':
+                                
+                                # Marco uses template brain mask but C-PAC filters in native space
+                                # node, out_file = strat['template_brain_mask_for_func_preproc']
+                                node, out_file = new_strat['functional_brain_mask']
+
+                                workflow.connect(
+                                    node, out_file,
+                                    filtering,
+                                    'inputspec.brainmask_file_path'
+                                )
+
                             workflow.connect(
                                 nuisance_regression_before_workflow,
                                 'outputspec.residual_file_path',
