@@ -50,7 +50,7 @@ def acpc_alignment(skullstrip_tool='afni', config=None, acpc_target='whole-head'
 
     robust_fov = pe.Node(interface=fsl_utils.RobustFOV(),
                             name='anat_acpc_1_robustfov')
-    robust_fov.inputs.brainsize = config.acpc_brainsize
+    robust_fov.inputs.brainsize = config.anatomical_preproc['acpc_alignment']['brain_size']
     robust_fov.inputs.out_transform = 'fov_xfm.mat'
 
     # align head-to-head to get acpc.mat (for human)
@@ -167,10 +167,11 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                                             'pushout',
                                             'touchup',
                                             'fill_hole',
+                                            'NN_smooth',
+                                            'smooth_final',
                                             'avoid_eyes',
                                             'use_edge',
                                             'exp_frac',
-                                            'smooth_final',
                                             'push_to_edge',
                                             'use_skull',
                                             'perc_int',
@@ -191,10 +192,11 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                                                                 'pushout',
                                                                 'touchup',
                                                                 'fill_hole',
+                                                                'NN_smooth',
+                                                                'smooth_final',
                                                                 'avoid_eyes',
                                                                 'use_edge',
                                                                 'exp_frac',
-                                                                'smooth_final',
                                                                 'push_to_edge',
                                                                 'use_skull',
                                                                 'perc_int',
@@ -207,26 +209,27 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                                     name='anat_skullstrip_args')
         
         inputnode_afni.inputs.set(
-                mask_vol=config.skullstrip_mask_vol,
-                shrink_factor=config.skullstrip_shrink_factor,
-                var_shrink_fac=config.skullstrip_var_shrink_fac,
-                shrink_fac_bot_lim=config.skullstrip_shrink_factor_bot_lim,
-                avoid_vent=config.skullstrip_avoid_vent,
-                niter=config.skullstrip_n_iterations,
-                pushout=config.skullstrip_pushout,
-                touchup=config.skullstrip_touchup,
-                fill_hole=config.skullstrip_fill_hole,
-                avoid_eyes=config.skullstrip_avoid_eyes,
-                use_edge=config.skullstrip_use_edge,
-                exp_frac=config.skullstrip_exp_frac,
-                smooth_final=config.skullstrip_smooth_final,
-                push_to_edge=config.skullstrip_push_to_edge,
-                use_skull=config.skullstrip_use_skull,
-                perc_int=config.skullstrip_perc_int,
-                max_inter_iter=config.skullstrip_max_inter_iter,
-                blur_fwhm=config.skullstrip_blur_fwhm,
-                fac=config.skullstrip_fac,
-                monkey=config.skullstrip_monkey,
+                mask_vol=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['mask_vol'],
+                shrink_factor=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['shrink_factor'],
+                var_shrink_fac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['var_shrink_fac'],
+                shrink_fac_bot_lim=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['shrink_factor_bot_lim'],
+                avoid_vent=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['avoid_vent'],
+                niter=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['n_iterations'],
+                pushout=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['pushout'],
+                touchup=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['touchup'],
+                fill_hole=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['fill_hole'],
+                NN_smooth=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['NN_smooth'],
+                smooth_final=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['smooth_final'],
+                avoid_eyes=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['avoid_eyes'],
+                use_edge=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['use_edge'],
+                exp_frac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['exp_frac'],
+                push_to_edge=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['push_to_edge'],
+                use_skull=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['use_skull'],
+                perc_int=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['perc_int'],
+                max_inter_iter=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['max_inter_iter'],
+                fac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['fac'],
+                blur_fwhm=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['blur_fwhm'],
+                monkey=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['monkey'],
             )
 
         preproc.connect([
@@ -243,6 +246,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                 ('avoid_eyes', 'avoid_eyes'),
                 ('use_edge', 'use_edge'),
                 ('exp_frac', 'exp_frac'),
+                ('NN_smooth', 'NN_smooth'),
                 ('smooth_final', 'smooth_final'),
                 ('push_to_edge', 'push_to_edge'),
                 ('use_skull', 'use_skull'),
@@ -317,19 +321,19 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
         
         inputnode_bet.inputs.set(
-                frac=config.bet_frac,
-                mask_boolean=config.bet_mask_boolean,
-                mesh_boolean=config.bet_mesh_boolean,
-                outline=config.bet_outline,
-                padding=config.bet_padding,
-                radius=config.bet_radius,
-                reduce_bias=config.bet_reduce_bias,
-                remove_eyes=config.bet_remove_eyes,
-                robust=config.bet_robust,
-                skull=config.bet_skull,
-                surfaces=config.bet_surfaces,
-                threshold=config.bet_threshold,
-                vertical_gradient=config.bet_vertical_gradient,
+                frac=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['frac'],
+                mask_boolean=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['mask_boolean'],
+                mesh_boolean=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['mesh_boolean'],
+                outline=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['outline'],
+                padding=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['padding'],
+                radius=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['radius'],
+                reduce_bias=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['reduce_bias'],
+                remove_eyes=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['remove_eyes'],
+                robust=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['robust'],
+                skull=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['skull'],
+                surfaces=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['surfaces'],
+                threshold=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['threshold'],
+                vertical_gradient=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['vertical_gradient'],
             )
 
         preproc.connect(inputnode, 'anat_data',
@@ -377,9 +381,9 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
     elif method == 'niworkflows-ants': 
         # Skull-stripping using niworkflows-ants  
-        anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=config.niworkflows_ants_template_path,
-                                                        tpl_mask_path=config.niworkflows_ants_mask_path,
-                                                        tpl_regmask_path=config.niworkflows_ants_regmask_path,
+        anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=config.anatomical_preproc['brain_extraction']['extraction']['niworkflows-ants']['template_path'],
+                                                        tpl_mask_path=config.anatomical_preproc['brain_extraction']['extraction']['niworkflows-ants']['mask_path'],
+                                                        tpl_regmask_path=config.anatomical_preproc['brain_extraction']['extraction']['niworkflows-ants']['regmask_path'],
                                                         name='anat_skullstrip_ants')
 
         preproc.connect(inputnode, 'anat_data',
@@ -437,7 +441,7 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         rescale_dim: 256
         """
         # TODO: add options to pipeline_config
-        unet_check_for_s3 = create_check_for_s3_node('unet', config.unet_model)
+        unet_check_for_s3 = create_check_for_s3_node('unet', config.anatomical_preproc['brain_extraction']['extraction']['UNet']['unet_model'])
         unet_mask = pe.Node(util.Function(input_names=['model_path', 'cimg_in'], 
                                             output_names=['out_path'],
                                             function=predict_volumes),                        
@@ -643,11 +647,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     anat_leaf = pe.Node(util.IdentityInterface(fields=['anat_data']),
                         name='anat_leaf')
 
-    if not config.acpc_align:
+    if not config.anatomical_preproc['acpc_alignment']['run']:
         preproc.connect(anat_reorient, 'out_file', anat_leaf, 'anat_data')
 
     # ACPC alignment     
-    if config.acpc_align:
+    if config.anatomical_preproc['acpc_alignment']['run']:
         acpc_align = acpc_alignment(skullstrip_tool=method, config=config, acpc_target=acpc_target, wf_name='acpc_align')
 
         preproc.connect(anat_reorient, 'out_file', acpc_align, 'inputspec.anat_leaf')
@@ -660,10 +664,10 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(inputnode, 'template_skull_for_anat', acpc_align, 'inputspec.template_skull_for_anat')
     # Disable non_local_means_filtering and n4_bias_field_correction when run niworkflows-ants
     if method == 'niworkflows-ants':
-        config.non_local_means_filtering = False
-        config.n4_bias_field_correction = False
+        config.anatomical_preproc['non_local_means_filtering'] = False
+        config.anatomical_preproc['n4_bias_field_correction'] = False
         
-    if config.non_local_means_filtering and config.n4_bias_field_correction:
+    if config.anatomical_preproc['non_local_means_filtering'] and config.anatomical_preproc['n4_bias_field_correction']:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
         preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
 
@@ -671,11 +675,11 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             name='anat_n4')
         preproc.connect(denoise, 'output_image', n4, 'input_image')
 
-    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
+    elif config.anatomical_preproc['non_local_means_filtering'] and not config.anatomical_preproc['n4_bias_field_correction']:
         denoise = pe.Node(interface = ants.DenoiseImage(), name = 'anat_denoise')
         preproc.connect(anat_leaf, 'anat_data', denoise, 'input_image')
 
-    elif not config.non_local_means_filtering and config.n4_bias_field_correction:
+    elif not config.anatomical_preproc['non_local_means_filtering'] and config.anatomical_preproc['n4_bias_field_correction']:
         n4 = pe.Node(interface = ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True),
             name='anat_n4')
         preproc.connect(anat_leaf, 'anat_data', n4, 'input_image')
@@ -683,9 +687,9 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
     anat_leaf2 = pe.Node(util.IdentityInterface(fields=['anat_data']),
                          name='anat_leaf2')
     
-    if config.n4_bias_field_correction:
+    if config.anatomical_preproc['n4_bias_field_correction']:
         preproc.connect(n4, 'output_image', anat_leaf2, 'anat_data')
-    elif config.non_local_means_filtering and not config.n4_bias_field_correction:
+    elif config.anatomical_preproc['non_local_means_filtering'] and not config.anatomical_preproc['n4_bias_field_correction']:
         preproc.connect(denoise, 'output_image', anat_leaf2, 'anat_data')
     else:
         preproc.connect(anat_leaf, 'anat_data', anat_leaf2, 'anat_data')
@@ -724,7 +728,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
         preproc.connect(inputnode, 'template_skull_for_anat', 
                         anat_skullstrip, 'inputspec.template_skull_for_anat')
             
-        if method == 'mask' and config.acpc_align:
+        if method == 'mask' and config.anatomical_preproc['acpc_alignment']['run']:
             preproc.connect(acpc_align, 'outputspec.acpc_brain_mask', 
                             anat_skullstrip, 'inputspec.brain_mask') 
         else:             

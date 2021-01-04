@@ -12,7 +12,7 @@ def prep_cwas_workflow(c, subject_infos):
     print('Subjects', s_ids)
 
     wf = pe.Workflow(name='cwas_workflow')
-    wf.base_dir = c.workingDirectory
+    wf.base_dir = c.pipeline_setup['working_directory']['path']
 
     from CPAC.cwas import create_cwas
     import numpy as np
