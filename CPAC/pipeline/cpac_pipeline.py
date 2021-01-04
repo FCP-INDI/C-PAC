@@ -635,40 +635,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     elif already_skullstripped == 3:
         already_skullstripped = 1
 
-    # Not neccessary, schema validator will check it. 
-    '''
-    if 'ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using']:
-
-        # if someone doesn't have anatomical Registration ANTs interpolation in their pipe config,
-        # it will default to LanczosWindowedSinc
-        if not hasattr(c, 'anatRegANTSinterpolation'):
-            setattr(c, 'anatRegANTSinterpolation', 'LanczosWindowedSinc')
-
-        if c.anatomical_preproc['registration_workflow']['registration']['ANTs']['interpolation'] not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
-            raise Exception(err_msg)
-
-        # # if someone doesn't have functional Registration ANTs interpolation in their pipe config,
-        # # it will default to LanczosWindowedSinc
-        if not hasattr(c, 'funcRegANTSinterpolation'):
-               setattr(c, 'funcRegANTSinterpolation', 'LanczosWindowedSinc')
-
-        if c.funcRegANTSinterpolation not in ['Linear', 'BSpline', 'LanczosWindowedSinc']:
-            err_msg = 'The selected ANTS interpolation method may be in the list of values: "Linear", "BSpline", "LanczosWindowedSinc"'
-            raise Exception(err_msg)
-
-    if 'FSL' in c.anatomical_preproc['registration_workflow']['registration']['using']:
-
-        # if someone doesn't have anatomical Registration FSL interpolation in their pipe config,
-        # it will default to sinc
-        if not hasattr(c, 'anatRegFSLinterpolation'):
-            setattr(c, 'anatRegFSLinterpolation', 'sinc')
-
-        if c.anatRegFSLinterpolation not in ["trilinear", "sinc", "spline"]:
-            err_msg = 'The selected FSL interpolation method may be in the list of values: "trilinear", "sinc", "spline"'
-            raise Exception(err_msg)
-    '''
-
     # Workflow setup
     workflow_name = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=workflow_name)
@@ -754,8 +720,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         return(_set_nested(attr, keys))
 
     for key_type, key in template_keys:
-        
-        attr = get_nested_attr(c, key)
+
+        attr = c.get_nested(c, key)
 
         if isinstance(attr, str) or attr == None:
             
@@ -764,8 +730,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 attr, key_type,
                 input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=False
             )
-
-            set_nested_attr(c, key, node)
+            c.set_nested(c, key, node)
 
     template_keys_in_list = [
         ("anat", ["anatomical_preproc", "segmentation_workflow", "1-segmentation", "ANTs_Prior_Based", "template_brain_list"]),
@@ -776,11 +741,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         node = create_check_for_s3_node(
             key[-1],
-            get_nested_attr(c, key), key_type,
+            c.get_nested(c, key), key_type,
             input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=True
         )
 
-        set_nested_attr(c, key, node)
+        c.set_nested(c, key, node)
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
@@ -832,22 +797,22 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 })
 
     templates_for_resampling = [
-        (c.resolution_for_anat, c.template_brain_only_for_anat, 'template_brain_for_anat', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.template_skull_for_anat, 'template_skull_for_anat', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.template_symmetric_brain_only, 'template_symmetric_brain', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.template_symmetric_skull, 'template_symmetric_skull', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.dilated_symmetric_brain_mask, 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
-        (c.resolution_for_anat, c.ref_mask, 'template_ref_mask', 'resolution_for_anat'),
-        (c.resolution_for_func_preproc, c.template_brain_only_for_func, 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
-        (c.resolution_for_func_derivative, c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
-        (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
-        (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
+        (c.anatomical_preproc['registration_workflow']['resolution_for_anat'], c.anatomical_preproc['registration_workflow']['template_brain_only_for_anat'], 'template_brain_for_anat', 'resolution_for_anat'),
+        (c.anatomical_preproc['registration_workflow']['resolution_for_anat'], c.anatomical_preproc['registration_workflow']['template_skull_for_anat'], 'template_skull_for_anat', 'resolution_for_anat'),
+        (c.anatomical_preproc['registration_workflow']['resolution_for_anat'], c.voxel_mirrored_homotopic_connectivity['symmetric_registration']['template_symmetric_brain_only'], 'template_symmetric_brain', 'resolution_for_anat'),
+        (c.anatomical_preproc['registration_workflow']['resolution_for_anat'], c.voxel_mirrored_homotopic_connectivity['symmetric_registration']['template_symmetric_skull'], 'template_symmetric_skull', 'resolution_for_anat'),
+        (c.anatomical_preproc['registration_workflow']['resolution_for_anat'], c.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask'], 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
+        (c.anatomical_preproc['registration_workflow']['resolution_for_anat'], c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['ref_mask'], 'template_ref_mask', 'resolution_for_anat'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['T1_template']['template_brain'], 'template_brain_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['T1_template']['template_skull'], 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['EPI_template']['template_epi'], 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['EPI_template']['template_epi'], 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['T1_template']['template_brain'], 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
+        (c.functional_registration['2-func_registration_to_template']['output_resolution']['func_derivative_outputs'], c.functional_registration['2-func_registration_to_template']['target_template']['T1_template']['template_skull'], 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
 
     if True in c.PyPEER['run']:
-        templates_for_resampling.append((c.resolution_for_func_preproc, c.PyPEER['eye_mask_path'], 'template_eye_mask', 'resolution_for_func_preproc'))
+        templates_for_resampling.append((c.functional_registration['2-func_registration_to_template']['output_resolution']['func_preproc_outputs'], c.PyPEER['eye_mask_path'], 'template_eye_mask', 'resolution_for_func_preproc'))
         Outputs.any.append("template_eye_mask")
 
     # update resampled template to resource pool
@@ -1151,8 +1116,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         new_strat_list = []
 
+        # this is just a shorter variable for a config variable that is
+        # called multiple times
+        regOption = c.anatomical_preproc[
+            'registration_workflow'
+        ]['registration']['using']
+
         # either run FSL anatomical-to-MNI registration, or...
-        if 'FSL' in c.regOption:
+        if 'FSL' in regOption:
             for num_strat, strat in enumerate(strat_list):
 
                 # this is to prevent the user from running FNIRT if they are
@@ -1175,7 +1146,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 )
 
                 # Input registration parameters
-                flirt_reg_anat_mni.inputs.inputspec.interp = c.anatRegFSLinterpolation
+                flirt_reg_anat_mni.inputs.inputspec.interp = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['interpolation']
 
                 node, out_file = strat['anatomical_brain']
                 workflow.connect(node, out_file,
@@ -1186,7 +1157,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(node, out_file,
                     flirt_reg_anat_mni, 'inputspec.reference_brain')
 
-                if 'ANTS' in c.regOption:
+                if 'ANTS' in regOption:
                     strat = strat.fork()
                     new_strat_list.append(strat)
 
@@ -1210,7 +1181,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         except AttributeError:
             fsl_linear_reg_only = [0]
 
-        if 'FSL' in c.regOption and 0 in fsl_linear_reg_only:
+        if 'FSL' in regOption and 0 in fsl_linear_reg_only:
 
             for num_strat, strat in enumerate(strat_list):
 
@@ -1247,7 +1218,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     # assign the FSL FNIRT config file specified in pipeline
                     # config.yml
-                    fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
+                    fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['fnirt_config']
 
                     if 1 in fsl_linear_reg_only:
                         strat = strat.fork()
@@ -1269,14 +1240,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         for num_strat, strat in enumerate(strat_list):
 
             # or run ANTS anatomical-to-MNI registration instead
-            if 'ANTS' in c.regOption and \
+            if 'ANTS' in regOption and \
                     strat.get('registration_method') != 'FSL':
 
                 ants_reg_anat_mni = \
                     create_wf_calculate_ants_warp(
                         f'anat_mni_ants_register_{num_strat}',
                         num_threads=num_ants_cores,
-                        reg_ants_skull = c.regWithSkull
+                        reg_ants_skull = c.anatomical_preproc['registration_workflow']['reg_with_skull']
                     )
 
                 # calculating the transform with the skullstripped is
@@ -1285,7 +1256,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # registration with skull is preferred
 
                 # TODO ASH assess with schema validator
-                if 1 in c.regWithSkull:
+                if c.anatomical_preproc['registration_workflow']['reg_with_skull']:
 
                     if already_skullstripped == 1:
                         err_msg = '\n\n[!] CPAC says: You selected ' \
@@ -1300,16 +1271,16 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         raise Exception
 
                 # Input ANTs registration parameters
-                if c.ANTs_para_T1_registration is None:
+                if c.anatomical_preproc['registration_workflow']['registration']['ANTs']['T1_registration'] is None:
                     err_msg = '\n\n[!] C-PAC says: \n'\
                         'You have selected \'regOption: [ANTS]\' as your anatomical registration method. \n'\
                                 'However, ANTs parameters specified: {0}, is not supported. ' \
-                                'Please specify ANTs parameters properly and try again'.format(str(c.ANTs_para_T1_registration))
+                                'Please specify ANTs parameters properly and try again'.format(str(c.anatomical_preproc['registration_workflow']['registration']['ANTs']['T1_registration']))
                     raise Exception(err_msg)
                 else:
-                    ants_reg_anat_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
+                    ants_reg_anat_mni.inputs.inputspec.ants_para = c.anatomical_preproc['registration_workflow']['registration']['ANTs']['T1_registration']
 
-                ants_reg_anat_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
+                ants_reg_anat_mni.inputs.inputspec.interp = c.anatomical_preproc['registration_workflow']['registration']['ANTs']['interpolation']
 
                 # get the skull-stripped anatomical from resource pool
                 node, out_file = strat['anatomical_brain']
@@ -1396,11 +1367,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         new_strat_list = []
 
-        if 1 in c.runVMHC and 1 in getattr(c, 'runFunctional', [1]):
+        if c.voxel_mirrored_homotopic_connectivity['run'] and c.functional_preproc['run']:
 
             for num_strat, strat in enumerate(strat_list):
 
-                if 'FSL' in c.regOption and \
+                if 'FSL' in regOption and \
                     strat.get('registration_method') != 'ANTS':
 
                     # this is to prevent the user from running FNIRT if they are
@@ -1425,7 +1396,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
 
                     # Input registration parameters
-                    flirt_reg_anat_symm_mni.inputs.inputspec.interp = c.anatRegFSLinterpolation
+                    flirt_reg_anat_symm_mni.inputs.inputspec.interp = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['interpolation']
 
                     node, out_file = strat['anatomical_brain']
                     workflow.connect(node, out_file,
@@ -1437,7 +1408,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                         flirt_reg_anat_symm_mni, 'inputspec.reference_brain')
 
-                    # if 'ANTS' in c.regOption:
+                    # if 'ANTS' in regOption:
                     #    strat = strat.fork()
                     #    new_strat_list.append(strat)
 
@@ -1463,7 +1434,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             except AttributeError:
                 fsl_linear_reg_only = [0]
 
-            if 'FSL' in c.regOption and 0 in fsl_linear_reg_only:
+            if 'FSL' in regOption and 0 in fsl_linear_reg_only:
 
                 for num_strat, strat in enumerate(strat_list):
 
@@ -1519,25 +1490,25 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             for num_strat, strat in enumerate(strat_list):
 
                 # or run ANTS anatomical-to-MNI registration instead
-                if 'ANTS' in c.regOption and \
+                if 'ANTS' in regOption and \
                     strat.get('registration_method') != 'FSL':
 
                     ants_reg_anat_symm_mni = \
                         create_wf_calculate_ants_warp(
                             'anat_symmetric_mni_ants_register_%d' % num_strat,
                             num_threads=num_ants_cores,
-                            reg_ants_skull = c.regWithSkull
+                            reg_ants_skull = c.anatomical_preproc['registration_workflow']['reg_with_skull']
                         )
 
                     # Input registration parameters
-                    ants_reg_anat_symm_mni.inputs.inputspec.ants_para = c.ANTs_para_T1_registration
-                    ants_reg_anat_symm_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
+                    ants_reg_anat_symm_mni.inputs.inputspec.ants_para = c.anatomical_preproc['registration_workflow']['registration']['ANTs']['T1_registration']
+                    ants_reg_anat_symm_mni.inputs.inputspec.interp = c.anatomical_preproc['registration_workflow']['registration']['ANTs']['interpolation']
 
                     # calculating the transform with the skullstripped is
                     # reported to be better, but it requires very high
                     # quality skullstripping. If skullstripping is imprecise
                     # registration with skull is preferred
-                    if 1 in c.regWithSkull:
+                    if c.anatomical_preproc['registration_workflow']['reg_with_skull']:
 
                         if already_skullstripped == 1:
                             err_msg = '\n\n[!] CPAC says: You selected ' \
@@ -1654,8 +1625,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             workflow, strat_list, c)
 
     # Functional / BOLD time
-    if ('func' in sub_dict or 'rest' in sub_dict) and \
-            1 in getattr(c, 'runFunctional', [1]):
+    if ('func' in sub_dict or 'rest' in sub_dict) and c.functional_preproc['run']:
         #  pipeline needs to have explicit [0] to disable functional workflow
 
         # Functional Ingress Workflow
@@ -1894,11 +1864,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         new_strat_list = []
 
-        # this is just a shorter variable for a config variable that is
-        # called multiple times
-        regOption = c.anatomical_preproc[
-            'registration_workflow'
-        ]['registration']['using']
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -2713,7 +2678,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_spatial_map_to_native_space.inputs.set(
                         interp='nearestneighbour',
                         apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
+                        in_matrix_file=c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
                     )
 
                     spatial_map_dataflow = create_spatial_map_dataflow(
@@ -2775,7 +2740,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_spatial_map_to_native_space_for_dr.inputs.set(
                         interp='nearestneighbour',
                         apply_xfm=True,
-                        in_matrix_file=c.identityMatrix
+                        in_matrix_file=c.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
                     )
 
                     spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
@@ -2858,7 +2823,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_functional_roi.inputs.realignment = c.timeseries_extraction['realignment']
                     resample_functional_roi.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                    ]['FNIRT_pipelines']['identityMatrix']
+                    ]['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow = create_roi_mask_dataflow(
                         ts_analysis_dict["Avg"],
@@ -2934,7 +2899,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_functional_roi_for_sca.inputs.realignment = c.timeseries_extraction['realignment']
                     resample_functional_roi_for_sca.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                    ]['FNIRT_pipelines']['identityMatrix']
+                    ]['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow_for_sca = create_roi_mask_dataflow(
                         sca_analysis_dict["Avg"],
@@ -2987,7 +2952,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     resample_functional_roi_for_multreg.inputs.realignment = c.timeseries_extraction['realignment']
                     resample_functional_roi_for_multreg.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                    ]['FNIRT_pipelines']['identityMatrix']
+                    ]['FNIRT_pipelines']['identity_matrix']
 
                     roi_dataflow_for_multreg = create_roi_mask_dataflow(
                         sca_analysis_dict["MultReg"],
@@ -3087,7 +3052,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 resample_functional_to_mask.inputs.realignment = c.timeseries_extraction['realignment']
                 resample_functional_to_mask.inputs.identity_matrix = c.functional_registration[
                         '2-func_registration_to_template'
-                ]['FNIRT_pipelines']['identityMatrix']
+                ]['FNIRT_pipelines']['identity_matrix']
 
                 mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"],
                                                         'mask_dataflow_%d' % num_strat)
@@ -3219,7 +3184,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         # Section: Network centrality
 
         # TODO ASH handle as boolean on schema validator / normalizer
-        if 1 in c.runNetworkCentrality:
+        if True in c.network_centrality['run']:
 
             # TODO ASH move to schema validator
             # validate the mask file path

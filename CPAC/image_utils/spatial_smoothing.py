@@ -67,11 +67,11 @@ def spatial_smooth(workflow, func_key, mask_key, output_name, strat,
                    num_strat, pipeline_config_object,
                    input_image_type='func_derivative'):
 
-    method = pipeline_config_object.smoothing_method[0]
+    method = pipeline_config_object.post_processing['spatial_smoothing']['smoothing_method']
     inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input_{0}_{1}'.format(output_name,
                                                               num_strat))
-    inputnode_fwhm.iterables = ("fwhm", pipeline_config_object.fwhm)
+    inputnode_fwhm.iterables = ("fwhm", pipeline_config_object.post_processing['spatial_smoothing']['fwhm'])
 
     image_types = ['func_derivative', 'func_derivative_multi', 'func_4d',
                    'func_mask']

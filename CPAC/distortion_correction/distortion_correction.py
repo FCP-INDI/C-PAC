@@ -377,28 +377,28 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
     new_strat_list = []
 
     # Distortion Correction - Field Map Phase-difference
-    if "PhaseDiff" in c.distortion_correction and diff:
+    if "PhaseDiff" in c.functional_preproc['distortion_correction']['using'] and diff:
         for num_strat, strat in enumerate(strat_list):
             if unique_id is None:
                     workflow_name=f'diff_distcor_{num_strat}'
             else:
                 workflow_name=f'diff_distcor_{unique_id}_{num_strat}'
             
-            if 'BET' in c.fmap_distcorr_skullstrip:
+            if 'BET' in c.functional_preproc['distortion_correction']['PhaseDiff']['fmap_skullstrip_option']:
                 epi_distcorr = create_EPI_DistCorr(
                     use_BET=True,
                     wf_name=workflow_name
                 )
-                epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
+                epi_distcorr.inputs.bet_frac_input.bet_frac = c.functional_preproc['distortion_correction']['PhaseDiff']['fmap_skullstrip_frac']
                 epi_distcorr.get_node('bet_frac_input').iterables = \
-                    ('bet_frac', c.fmap_distcorr_frac)
+                    ('bet_frac', c.functional_preproc['distortion_correction']['PhaseDiff']['fmap_skullstrip_frac'])
             else:
                 epi_distcorr = create_EPI_DistCorr(
                     use_BET=False,
                     wf_name=workflow_name
                 )
                 epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
-                    c.fmap_distcorr_threshold
+                    c.functional_preproc['distortion_correction']['PhaseDiff']['fmap_skullstrip_threshold']
 
             node, out_file = strat['anatomical_skull_leaf']
             workflow.connect(node, out_file, epi_distcorr,
@@ -425,7 +425,7 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
                              'dwell_asym_ratio_input.dwell_asym_ratio')
 
             # TODO ASH review forking
-            if "None" in c.distortion_correction:
+            if False in c.functional_preproc['distortion_correction']['run']:
                 strat = strat.fork()
                 new_strat_list.append(strat)
 
@@ -440,7 +440,7 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
     strat_list += new_strat_list
 
     # Distortion Correction - "Blip-Up / Blip-Down"
-    if "Blip" in c.distortion_correction and blip:
+    if "Blip" in c.functional_preproc['distortion_correction']['using'] and blip:
         for num_strat, strat in enumerate(strat_list):
             match_epi_imports = ['import json']
             match_epi_fmaps_node = \
@@ -498,7 +498,7 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
             workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
                              blip_correct, 'inputspec.same_pe_epi')
 
-        if "None" in c.distortion_correction:
+        if False in c.functional_preproc['distortion_correction']['run']:
             strat = strat.fork()
             new_strat_list.append(strat)
 

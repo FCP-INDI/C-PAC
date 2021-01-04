@@ -261,7 +261,6 @@ schema = Schema({
             },
         },
     },
-
     'nuisance_corrections': {
         Required('1-ICA-AROMA'): {
             Required('run'): [bool],
@@ -304,7 +303,6 @@ schema = Schema({
         'highpass_cutoff': [float],
         'lowpass_cutoff': [float],
     },
-
     'voxel_mirrored_homotopic_connectivity': {
         Required('run'): bool,
     },

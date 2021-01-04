@@ -999,7 +999,6 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
     new_strat_list = []
 
     diff_complete = False
-
     if True in c.functional_registration['1-coregistration']['run']:
 
         for num_strat, strat in enumerate(strat_list):

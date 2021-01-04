@@ -350,7 +350,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         '''
 
         # BEGIN LONGITUDINAL TEMPLATE PIPELINE
-        if hasattr(c, 'run_longitudinal') and ('anat' in c.run_longitudinal or 'func' in c.run_longitudinal):
+        if hasattr(c, 'longitudinal_template_generation') and c.longitudinal_template_generation['run']:
             subject_id_dict = {}
             for sub in sublist:
                 if sub['subject_id'] in subject_id_dict:
@@ -364,16 +364,10 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             for subject_id, sub_list in subject_id_dict.items():
                 if len(sub_list) > 1:
                     valid_longitudinal_data = True
-                    if 'func' in c.run_longitudinal:
-                        raise Exception("\n\n[!] Error: Functional longitudinal pipeline is still in development and will be available in next release. Please only run anatomical longitudinal pipeline for now.\n\n")
-                    if 'anat' in c.run_longitudinal:
-                        strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
+                    strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
                 elif len(sub_list) == 1:
                     warnings.warn("\n\nThere is only one anatomical session for sub-%s. Longitudinal preprocessing will be skipped for this subject.\n\n" % subject_id)
-                # TODO
-                # if 'func' in c.run_longitudinal:
-                #     strat_list = func_preproc_longitudinal_wf(subject_id, sub_list, c)
-                #     func_longitudinal_template_wf(subject_id, strat_list, c)
+                # TODO functional longitudinal pipeline
 
             if valid_longitudinal_data:
                 rsc_file_list = []

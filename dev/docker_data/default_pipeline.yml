@@ -105,7 +105,7 @@ pipeline_setup:
     # The number of cores to allocate to ANTS-based anatomical registration per participant.
     # - Multiple cores can greatly speed up this preprocessing step.
     # - This number cannot be greater than the number of cores per participant.
-    num_ants_threads: 4
+    num_ants_threads: 1
 
     # The number of participant workflows to run at the same time.
     # - The maximum number of cores your run can possibly employ will be this setting
@@ -355,7 +355,7 @@ anatomical_preproc:
       Template_Based:
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
-        run: [On]
+        run: [Off]
 
         # These masks should be in the same space of your registration template, e.g. if
         # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
@@ -672,7 +672,9 @@ functional_preproc:
   motion_estimates_and_correction:
 
     # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: False
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    calculate_motion_first: [Off]
 
     motion_correction:
 
@@ -698,7 +700,9 @@ functional_preproc:
       # Adapted from DCAN Labs filter.
       #     https://www.ohsu.edu/school-of-medicine/developmental-cognition-and-neuroimaging-lab
       #     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
-      run: False
+      # this is a fork point
+      #   run: [On, Off] - this will run both and fork the pipeline
+      run: [Off]
 
       # options: "notch", "lowpass"
       filter_type: "notch"
