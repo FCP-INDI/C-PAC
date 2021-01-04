@@ -33,6 +33,7 @@ schema = Schema({
     'resolution_for_anat': All(str, Match(r'^[0-9]+mm$')),
     'template_brain_only_for_anat': str,
     'template_skull_for_anat': str,
+    'template_brain_mask_for_anat': str,
     'template_symmetric_brain_only': str,
     'template_symmetric_skull': str,
     'dilated_symmetric_brain_mask': str,
