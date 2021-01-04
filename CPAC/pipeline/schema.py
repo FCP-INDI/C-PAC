@@ -20,123 +20,121 @@ valid_options = {
 schema = Schema({
     'pipeline_setup': {
         Required('pipeline_name'): All(str, Length(min=1)),
+        Required('output_directory'): {
+            Required('path'): str,
+            'write_func_outputs': bool,
+            'write_debugging_outputs': bool,
+            'output_tree': str,
+            'generate_quality_control_images': bool,
+        },
         Required('working_directory'): {
             Required('path'): str,
+            'remove_working_dir': bool,
         },
-        # Required('crash_log_directory'): str,
         Required('log_directory'): {
+            'run_logging': bool,
             Required('path'): str,
         },
-        Required('output_directory'): {
+        Required('crash_log_directory'): {
             Required('path'): str,
         },
         Required('system_config'): {
+            'on_grid':{
+                Required('run'): bool,
+                'resource_manager': Any(None, str),
+                'SGE': {
+                    'parallel_environment': Any(None, str),
+                    'queue': Any(None, str),
+                },
+            },
             'maximum_memory_per_participant': Any(float, int),
             'max_cores_per_participant': int,
             'num_ants_threads': int,
             'num_participants_at_once': int
         },
+        'Amazon-AWS':{
+            'aws_output_bucket_credentials': Any(None, str),
+            's3_encryption': bool,
+        },
+        'pipeline_IMPORT': Any(None, str),
     },
-    #
-    # 'FSLDIR': str,
-    # 'runOnGrid': bool,
-    # 'resourceManager': str,
-    # 'parallelEnvironment': str,
-    # 'queue': str,
-    #
-    # 'awsOutputBucketCredentials': str,
-    # 's3Encryption': bool,  # check/normalize
-    #
-    # 'maximumMemoryPerParticipant': float,
-    # 'maxCoresPerParticipant': All(int, Range(min=1)),
-    # 'numParticipantsAtOnce': All(int, Range(min=1)),
-    # 'num_ants_threads': All(int, Range(min=1)),
-    #
-    # 'write_func_outputs': bool,
-    # 'write_debugging_outputs': bool,  # check/normalize
-    # 'generateQualityControlImages': bool, # check/normalize
-    # 'removeWorkingDir': bool,
-    # 'run_logging': bool,
-    # 'reGenerateOutputs': bool, # check/normalize
-    # 'runSymbolicLinks': bool, # check/normalize
-    #
-    # 'resolution_for_anat': All(str, Match(r'^[0-9]+mm$')),
-    # 'template_brain_only_for_anat': str,
-    # 'template_skull_for_anat': str,
-    # 'template_symmetric_brain_only': str,
-    # 'template_symmetric_skull': str,
-    # 'dilated_symmetric_brain_mask': str,
-    #
-    # 'already_skullstripped': bool,
-    # 'skullstrip_option': In(['AFNI', 'BET']),
-    # 'skullstrip_shrink_factor': float,
-    # 'skullstrip_var_shrink_fac': bool,
-    # 'skullstrip_shrink_factor_bot_lim':float,
-    # 'skullstrip_avoid_vent': bool,
-    # 'skullstrip_n_iterations': int,
-    # 'skullstrip_pushout': bool,
-    # 'skullstrip_touchup': bool,
-    # 'skullstrip_fill_hole': int,
-    # 'skullstrip_NN_smooth': int,
-    # 'skullstrip_smooth_final': int,
-    # 'skullstrip_avoid_eyes': bool,
-    # 'skullstrip_use_edge': bool,
-    # 'skullstrip_exp_frac': float,
-    # 'skullstrip_push_to_edge': bool,  # check/normalize
-    # 'skullstrip_use_skull': bool,  # check/normalize
-    # 'skullstrip_perc_int': int,
-    # 'skullstrip_max_inter_iter': int,
-    # 'skullstrip_fac': int,
-    # 'skullstrip_blur_fwhm': int,
-    # 'bet_frac': float,
-    # 'bet_mask_boolean': bool,  # check/normalize
-    # 'bet_mesh_boolean': bool,  # check/normalize
-    # 'bet_outline': bool,  # check/normalize
-    # 'bet_padding': bool,  # check/normalize
-    # 'bet_radius': int,
-    # 'bet_reduce_bias': bool,  # check/normalize
-    # 'bet_remove_eyes': bool,  # check/normalize
-    # 'bet_robust': bool,  # check/normalize
-    # 'bet_skull': bool,  # check/normalize
-    # 'bet_surfaces': bool,  # check/normalize
-    # 'bet_threshold': bool,  # check/normalize
-    # 'bet_vertical_gradient': float,
+    'FSLDIR': Any(None, str),
+
     'anatomical_preproc': {
-        Required('registration_workflow'): {
-            Required('registration'): {
-                Required('using'): [In({'ANTS', 'FSL'})],
-                'ANTs': {
-                    'EPI_registration': Any(
-                        None, 'None', dict, [dict]
-                    ),
-                    'interpolation': In({
-                        'Linear', 'BSpline', 'LanczosWindowedSinc'
-                    }),
-                    'use_lesion_mask': bool
+        Required('run'): bool,
+        Required('non_local_means_filtering'): bool,
+        Required('n4_bias_field_correction'): bool,
+        Required('acpc_alignment'): {
+            'run': bool,
+            'brain_size': int,
+            'template_skull': str,
+            'template_brain': Any(None, str),
+        },
+        Required('brain_extraction'):{
+            'already_skullstripped': bool,
+            'extraction': {
+                Required('using'): [In({'3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants'})],
+                'AFNI-3dSkullStrip': {
+                    'mask_vol': bool,
+                    'shrink_factor': Any(float, int),
+                    'var_shrink_fac': bool,
+                    'shrink_factor_bot_lim':Any(float, int),
+                    'avoid_vent': bool,
+                    'n_iterations': int,
+                    'pushout': bool,
+                    'touchup': bool,
+                    'fill_hole': int,
+                    'NN_smooth': int,
+                    'smooth_final': int,
+                    'avoid_eyes': bool,
+                    'use_edge': bool,
+                    'exp_frac': Any(float, int),
+                    'push_to_edge': bool,
+                    'use_skull': bool,
+                    'perc_int': Any(float, int),
+                    'max_inter_iter': int,
+                    'fac': Any(float, int),
+                    'blur_fwhm': Any(float, int),
+                    'monkey': bool,
                 },
-                'FSL-FNIRT': {
-                    'interpolation': In({
-                        'trilinear', 'sinc', 'spline'
-                    }),
+                'FSL-BET': {
+                    'frac': Any(float, int),
+                    'mask_boolean': bool,
+                    'mesh_boolean': bool,
+                    'outline': bool,
+                    'padding': bool,
+                    'radius': int,
+                    'reduce_bias': bool,
+                    'remove_eyes': bool,
+                    'robust': bool,
+                    'skull': bool,
+                    'surfaces': bool,
+                    'threshold': bool,
+                    'vertical_gradient': Range(min=-1, max=1)
+                },
+                'UNet': {
+                    'unet_model': str,
+                },
+                'niworkflows-ants': {
+                    'template_path': str,
+                    'mask_path': str,
+                    'regmask_path': str,
                 },
             },
-            'reg_with_skull': bool,
         },
         Required('segmentation_workflow'): {
-            Required('run'): [bool],
+            'run': bool,
             '1-segmentation': {
-                'using': [
-                    In({'FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'})
-                ],
+                'using': [In({'FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'})],
                 'ANTs_Prior_Based': {
                     Required('run'): [bool],
-                    Required('template_brain_list'): [str],
-                    Required('template_segmentation_list'): [str],
-                    Required('CSF_label'): int,
-                    Required('left_GM_label'): int,
-                    Required('right_GM_label'): int,
-                    Required('left_WM_label'): int,
-                    Required('right_WM_label'): int,
+                    'template_brain_list': list,
+                    'template_segmentation_list': list,
+                    'CSF_label': int,
+                    'left_GM_label': int,
+                    'right_GM_label': int,
+                    'left_WM_label': int,
+                    'right_WM_label': int,
                 },
                 'Template_Based': {
                     Required('run'): [bool],
@@ -187,44 +185,50 @@ schema = Schema({
                     'gm_erosion_mm': Any(float, int),
                 }
             }
-        }
-    },
-    #
-    # 'fnirtConfig': str,
-    # 'ref_mask': str,
-    # 'regWithSkull': [bool], # check/normalize
-    #
-    # 'slice_timing_correction': [bool], # check/normalize
-    # 'TR': Any(None, float),
-    # 'slice_timing_pattern': Any(str, int), # check for nifti header option
-    # 'startIdx': All(int, Range(min=0)),
-    # 'stopIdx': Any(None, All(int, Range(min=1))),
-    #
-    # 'runEPI_DistCorr': [bool], # check/normalize
-    # 'fmap_distcorr_skullstrip': [In(['BET', 'AFNI'])],
-    # 'fmap_distcorr_frac': float, # check if it needs to be a list
-    # 'fmap_distcorr_threshold': float,
-    # 'fmap_distcorr_deltaTE': float, # check if it needs to be a list
-    # 'fmap_distcorr_dwell_time': float, # check if it needs to be a list
-    # 'fmap_distcorr_dwell_asym_ratio': float, # check if it needs to be a list
-    # 'fmap_distcorr_pedir': In(["x", "y", "z", "-x", "-y", "-z"]),
-    #
-    # 'runBBReg': [bool], # check/normalize
-    # 'boundaryBasedRegistrationSchedule': str,
-    #
-    # 'func_reg_input': In(['Mean Functional', 'Selected Functional Volume']),
-    # 'func_reg_input_volume': All(int, Range(min=0)),
-    # 'functionalMasking': [In(['3dAutoMask', 'BET'])],
-    #
-    # 'runRegisterFuncToMNI': [bool], # check/normalize
-    # 'resolution_for_func_preproc': All(str, Match(r'^[0-9]+mm$')),
+        },
+        Required('registration_workflow'): {
+            Required('resolution_for_anat'): All(str, Match(r'^[0-9]+mm$')),
+            'template_brain_only_for_anat': str,
+            'template_skull_for_anat': str,
+            'reg_with_skull': bool,
+            Required('registration'): {
+                Required('using'): [In({'ANTS', 'FSL'})],
+                'ANTs': {
+                    'use_lesion_mask': bool,
+                    'T1_registration': Any(
+                        None, 'None', dict, [dict]
+                    ),
+                    'EPI_registration': Any(
+                        None, 'None', dict, [dict]
+                    ),
+                    'interpolation': In({
+                        'Linear', 'BSpline', 'LanczosWindowedSinc'
+                    }),
+                },
+                'FSL-FNIRT': {
+                    'fsl_linear_reg_only': list,
+                    'fnirt_config': str,
+                    'ref_mask': str,
+                    'interpolation': In({
+                        'trilinear', 'sinc', 'spline'
+                    }),
+                },
+            },
+        },
+    },   
     'functional_registration': {
         Required('1-coregistration'): {
             Required('run'): [bool],
             'func_input_prep': {
                 Required('input'): [In({
                     'Mean Functional', 'Selected Functional Volume'
-                })]
+                })],
+                'Mean Functional': {
+                    'n4_correct_func': bool
+                },
+                'Selected Functional Volume': {
+                    'func_reg_input_volume': int
+                },
             },
             'boundary_based_registration': {
                 Required('run'): [bool],
@@ -232,18 +236,31 @@ schema = Schema({
             }
         },
         Required('2-func_registration_to_template'): {
-            Required('target_template'): {
-                Required('using'): [In({'T1_template', 'EPI_template'})]
-            },
-            'output_resolution': {
+            Required('run'): bool,
+            Required('output_resolution'):{
+                'func_preproc_outputs': All(str, Match(r'^[0-9]+mm$')),
                 'func_derivative_outputs': All(str, Match(r'^[0-9]+mm$')),
-            }
-        }
+                'template_for_resample': str,
+            },
+            Required('target_template'): {
+                Required('using'): [In({'T1_template', 'EPI_template'})],
+                'T1_template': {
+                    'template_brain': str,
+                    'template_skull': str,
+                },
+                'EPI_template': {
+                    'template_epi': str, 
+                },
+            },
+            Required('ANTs_pipelines'): {
+                'interpolation': In({'Linear', 'BSpline', 'LanczosWindowedSinc'})
+            },
+            Required('FNIRT_pipelines'): {
+                'interpolation': In({'trilinear', 'sinc', 'spline'}),
+                'identity_matrix': str
+            },
+        },
     },
-    # 'template_brain_only_for_func': str,
-    # 'template_skull_for_func': str,
-    # 'identityMatrix': str,
-    # 'configFileTwomm': str,
     'nuisance_corrections': {
         Required('1-ICA-AROMA'): {
             Required('run'): [bool],
@@ -289,19 +306,11 @@ schema = Schema({
     'voxel_mirrored_homotopic_connectivity': {
         Required('run'): bool,
     },
+
     'regional_homogeneity': {
-        Required('run'): bool,
-        'clusterSize': In({7, 19, 27}),
+        'run': bool,
+        'cluster_size': In({7, 19, 27}),
     },
-    #
-    # 'nComponents': int, # check if list
-    # 'runFristonModel': [bool], # check/normalize
-    # 'runMotionSpike': [Any(None, In(['despiking', 'scrubbing']))], # check/normalize, check None
-    #
-    # 'fdCalc': In(['power', 'jenkinson']), # check if it needs to be a list
-    # 'spikeThreshold': float, # check if it needs to be a list
-    # 'numRemovePrecedingFrames': int,
-    # 'numRemoveSubsequentFrames': int,
     'timeseries_extraction': {
         Required('run'): bool,
         Required('tse_roi_paths'): Any(None, {
@@ -325,57 +334,8 @@ schema = Schema({
                 permutations({'Avg', 'DualReg', 'MultReg'}, number_of)
             ) for number_of in range(1, 4)]))})
         }),
+        'norm_timeseries_for_DR': bool,
     },
-    # 'sca_roi_paths': Any(None, {
-    #     str: [In(['average', 'dual_regression', 'multiple_regression'])],
-    #     # normalize before running thrugh schema
-    # }),
-    # 'mrsNorm': bool,
-    #
-    #
-    # 'run_smoothing': [bool], # check/normalize
-    # 'fwhm': float,
-    # 'smoothing_order': In(['after', 'before']),
-    #
-    # 'runZScoring': [bool], # check/normalize
-    #
-    # 'run_fsl_feat': bool, # check/normalize
-    # 'numGPAModelsAtOnce': int,
-    # 'modelConfigs': [str],
-    #
-    # 'run_basc': bool,
-    # 'basc_resolution': All(str, Match(r'^[0-9]+mm$')),
-    # 'basc_proc': int,
-    # 'basc_memory': float,
-    # 'basc_roi_mask_file': str,
-    # 'basc_cross_cluster_mask_file': str,
-    # 'basc_similarity_metric_list': [In(['correlation', 'euclidean', 'cityblock', 'cosine'])],
-    # 'basc_timeseries_bootstrap_list': int,
-    # 'basc_dataset_bootstrap_list': int,
-    # 'basc_n_clusters_list': int,
-    # 'basc_affinity_thresh': float,
-    # 'basc_output_sizes': int,
-    # 'basc_cross_cluster': bool,
-    # 'basc_blocklength_list': int,
-    # 'basc_group_dim_reduce': bool,
-    # 'basc_inclusion': str,
-    # 'basc_pipeline': str,
-    # 'basc_scan_inclusion': str,
-    #
-    # 'runMDMR': bool,
-    # 'mdmr_inclusion': str,
-    # 'mdmr_roi_file': str,
-    # 'mdmr_regressor_file': str,
-    # 'mdmr_regressor_participant_column': str,
-    # 'mdmr_regressor_columns': str,
-    # 'mdmr_permutations': int,
-    # 'mdmr_parallel_nodes': int,
-    #
-    # 'runISC': bool,
-    # 'runISFC': bool,
-    # 'isc_voxelwise': bool,
-    # 'isc_roiwise': bool,
-    # 'isc_permutations': int,
     'network_centrality': {
         Required('run'): [bool],
         'memory_allocation': Any(float, int),

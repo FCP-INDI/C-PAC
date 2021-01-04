@@ -695,6 +695,30 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("other", ["voxel_mirrored_homotopic_connectivity", "symmetric_registration", "FNIRT_pipelines", "config_file"]),
     ]
 
+    def get_nested_attr(c, template_key):
+        attr = getattr(c, template_key[0])
+        keys = template_key[1:]
+        def _get_nested(attr, keys):
+            if len(keys) > 1:
+                return(_get_nested(attr[keys[0]], keys[1:]))
+            elif len(keys):
+                return(attr[keys[0]])
+            else:
+                return(attr)
+        return(_get_nested(attr, keys))
+
+    def set_nested_attr(c, template_key, value):
+        attr = getattr(c, template_key[0])
+        keys = template_key[1:]
+        def _set_nested(attr, keys):
+            if len(keys) > 1:
+                return(_set_nested(attr[keys[0]], keys[1:]))
+            elif len(keys):
+                attr[keys[0]]=value
+            else:
+                return(attr)
+        return(_set_nested(attr, keys))
+
     for key_type, key in template_keys:
 
         attr = c.get_nested(c, key)
@@ -706,7 +730,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 attr, key_type,
                 input_creds_path, c.pipeline_setup['working_directory']['path'], map_node=False
             )
-
             c.set_nested(c, key, node)
 
     template_keys_in_list = [
