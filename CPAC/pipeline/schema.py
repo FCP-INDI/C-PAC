@@ -3,12 +3,18 @@ from voluptuous import Schema, Required, All, Any, Length, Range, Match, In, \
                        ALLOW_EXTRA
 from voluptuous.validators import Maybe
 
-centrality_options = {
-    'method_options': ['degree_centrality', 'eigenvector_centrality',
-                       'local_functional_connectivity_density'],
-    'threshold_options': ['Significance threshold', 'Sparsity threshold',
-                          'Correlation threshold'],
-    'weight_options': ['Binarized', 'Weighted']
+valid_options = {
+    'centrality': {
+       'method_options': ['degree_centrality', 'eigenvector_centrality',
+                          'local_functional_connectivity_density'],
+       'threshold_options': ['Significance threshold', 'Sparsity threshold',
+                             'Correlation threshold'],
+       'weight_options': ['Binarized', 'Weighted']
+    },
+    'segmentation': {
+        'using': ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'],
+        'template': ['EPI Template', 'T1 Template']
+    }
 }
 
 schema = Schema({
@@ -131,13 +137,14 @@ schema = Schema({
                     'right_WM_label': int,
                 },
                 'Template_Based': {
+                    Required('run'): [bool],
                     'template_for_segmentation': [
-                        In({'EPI Template', 'T1 Template'})
+                        In(valid_options['segmentation']['template'])
                     ],
+                    'WHITE': str,
+                    'GRAY': str,
+                    'CSF': str,
                 },
-                'WHITE': str,
-                'GRAY': str,
-                'CSF': str,
             },
             '2-use_priors': {
                 'run': bool,
@@ -208,8 +215,7 @@ schema = Schema({
                 },
             },
         },
-    },
-    
+    },   
     'functional_registration': {
         Required('1-coregistration'): {
             Required('run'): [bool],
@@ -307,7 +313,6 @@ schema = Schema({
         'run': bool,
         'cluster_size': In({7, 19, 27}),
     },
-
     'timeseries_extraction': {
         Required('run'): bool,
         Required('tse_roi_paths'): Any(None, {
@@ -333,34 +338,33 @@ schema = Schema({
         }),
         'norm_timeseries_for_DR': bool,
     },
-
     'network_centrality': {
         Required('run'): [bool],
         'memory_allocation': Any(float, int),
         'template_specification_file': str,
         'degree_centrality': {
             'weight_options': [Maybe(In(
-                centrality_options['weight_options']
+                valid_options['centrality']['weight_options']
             ))],
             'correlation_threshold_option': In(
-                centrality_options['threshold_options']),
+                valid_options['centrality']['threshold_options']),
             'correlation_threshold': Range(min=-1, max=1)
         },
         'eigenvector_centrality': {
             'weight_options': [Maybe(In(
-                centrality_options['weight_options']
+                valid_options['centrality']['weight_options']
             ))],
             'correlation_threshold_option': In(
-                centrality_options['threshold_options']
+                valid_options['centrality']['threshold_options']
             ),
             'correlation_threshold': Range(min=-1, max=1)
         },
         'local_functional_connectivity_density': {
             'weight_options': [Maybe(In(
-                centrality_options['weight_options']
+                valid_options['centrality']['weight_options']
             ))],
             'correlation_threshold_option': In([
-                o for o in centrality_options['threshold_options'] if
+                o for o in valid_options['centrality']['threshold_options'] if
                 o != 'Sparsity threshold'
             ]),
             'correlation_threshold': Range(min=-1, max=1)
