@@ -63,8 +63,6 @@ def run_cpac_on_cluster(config_file, subject_list_file,
     import getpass
     import re
     from time import strftime
-
-    from CPAC.utils import Configuration
     from indi_schedulers import cluster_templates
 
     # Load in pipeline config

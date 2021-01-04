@@ -3,12 +3,18 @@ from voluptuous import Schema, Required, All, Any, Length, Range, Match, In, \
                        ALLOW_EXTRA
 from voluptuous.validators import Maybe
 
-centrality_options = {
-    'method_options': ['degree_centrality', 'eigenvector_centrality',
-                       'local_functional_connectivity_density'],
-    'threshold_options': ['Significance threshold', 'Sparsity threshold',
-                          'Correlation threshold'],
-    'weight_options': ['Binarized', 'Weighted']
+valid_options = {
+    'centrality': {
+       'method_options': ['degree_centrality', 'eigenvector_centrality',
+                          'local_functional_connectivity_density'],
+       'threshold_options': ['Significance threshold', 'Sparsity threshold',
+                             'Correlation threshold'],
+       'weight_options': ['Binarized', 'Weighted']
+    },
+    'segmentation': {
+        'using': ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'],
+        'template': ['EPI Template', 'T1 Template']
+    }
 }
 
 schema = Schema({
@@ -31,21 +37,21 @@ schema = Schema({
             'num_participants_at_once': int
         },
     },
-    # 
+    #
     # 'FSLDIR': str,
     # 'runOnGrid': bool,
     # 'resourceManager': str,
     # 'parallelEnvironment': str,
     # 'queue': str,
-    # 
+    #
     # 'awsOutputBucketCredentials': str,
     # 's3Encryption': bool,  # check/normalize
-    # 
+    #
     # 'maximumMemoryPerParticipant': float,
     # 'maxCoresPerParticipant': All(int, Range(min=1)),
     # 'numParticipantsAtOnce': All(int, Range(min=1)),
     # 'num_ants_threads': All(int, Range(min=1)),
-    # 
+    #
     # 'write_func_outputs': bool,
     # 'write_debugging_outputs': bool,  # check/normalize
     # 'generateQualityControlImages': bool, # check/normalize
@@ -53,14 +59,14 @@ schema = Schema({
     # 'run_logging': bool,
     # 'reGenerateOutputs': bool, # check/normalize
     # 'runSymbolicLinks': bool, # check/normalize
-    # 
+    #
     # 'resolution_for_anat': All(str, Match(r'^[0-9]+mm$')),
     # 'template_brain_only_for_anat': str,
     # 'template_skull_for_anat': str,
     # 'template_symmetric_brain_only': str,
     # 'template_symmetric_skull': str,
     # 'dilated_symmetric_brain_mask': str,
-    # 
+    #
     # 'already_skullstripped': bool,
     # 'skullstrip_option': In(['AFNI', 'BET']),
     # 'skullstrip_shrink_factor': float,
@@ -117,18 +123,30 @@ schema = Schema({
             'reg_with_skull': bool,
         },
         Required('segmentation_workflow'): {
+            Required('run'): [bool],
             '1-segmentation': {
+                'using': [
+                    In({'FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'})
+                ],
                 'ANTs_Prior_Based': {
                     Required('run'): [bool],
+                    Required('template_brain_list'): [str],
+                    Required('template_segmentation_list'): [str],
+                    Required('CSF_label'): int,
+                    Required('left_GM_label'): int,
+                    Required('right_GM_label'): int,
+                    Required('left_WM_label'): int,
+                    Required('right_WM_label'): int,
                 },
                 'Template_Based': {
+                    Required('run'): [bool],
                     'template_for_segmentation': [
-                        In({'EPI Template', 'T1 Template'})
+                        In(valid_options['segmentation']['template'])
                     ],
+                    'WHITE': str,
+                    'GRAY': str,
+                    'CSF': str,
                 },
-                'WHITE': str,
-                'GRAY': str,
-                'CSF': str,
             },
             '2-use_priors': {
                 'run': bool,
@@ -171,20 +189,17 @@ schema = Schema({
             }
         }
     },
-    # 
+    #
     # 'fnirtConfig': str,
     # 'ref_mask': str,
     # 'regWithSkull': [bool], # check/normalize
-    # 
-    # 'runSegmentationPreprocessing': [bool], # check/normalize
-    # 'priors_path': str,
-    # 
+    #
     # 'slice_timing_correction': [bool], # check/normalize
     # 'TR': Any(None, float),
     # 'slice_timing_pattern': Any(str, int), # check for nifti header option
     # 'startIdx': All(int, Range(min=0)),
     # 'stopIdx': Any(None, All(int, Range(min=1))),
-    # 
+    #
     # 'runEPI_DistCorr': [bool], # check/normalize
     # 'fmap_distcorr_skullstrip': [In(['BET', 'AFNI'])],
     # 'fmap_distcorr_frac': float, # check if it needs to be a list
@@ -193,14 +208,14 @@ schema = Schema({
     # 'fmap_distcorr_dwell_time': float, # check if it needs to be a list
     # 'fmap_distcorr_dwell_asym_ratio': float, # check if it needs to be a list
     # 'fmap_distcorr_pedir': In(["x", "y", "z", "-x", "-y", "-z"]),
-    # 
+    #
     # 'runBBReg': [bool], # check/normalize
     # 'boundaryBasedRegistrationSchedule': str,
-    # 
+    #
     # 'func_reg_input': In(['Mean Functional', 'Selected Functional Volume']),
     # 'func_reg_input_volume': All(int, Range(min=0)),
     # 'functionalMasking': [In(['3dAutoMask', 'BET'])],
-    # 
+    #
     # 'runRegisterFuncToMNI': [bool], # check/normalize
     # 'resolution_for_func_preproc': All(str, Match(r'^[0-9]+mm$')),
     Required('functional_registration'): {
@@ -278,11 +293,11 @@ schema = Schema({
         Required('run'): bool,
         'clusterSize': In({7, 19, 27}),
     },
-    # 
+    #
     # 'nComponents': int, # check if list
     # 'runFristonModel': [bool], # check/normalize
     # 'runMotionSpike': [Any(None, In(['despiking', 'scrubbing']))], # check/normalize, check None
-    # 
+    #
     # 'fdCalc': In(['power', 'jenkinson']), # check if it needs to be a list
     # 'spikeThreshold': float, # check if it needs to be a list
     # 'numRemovePrecedingFrames': int,
@@ -316,18 +331,18 @@ schema = Schema({
     #     # normalize before running thrugh schema
     # }),
     # 'mrsNorm': bool,
-    # 
-    # 
+    #
+    #
     # 'run_smoothing': [bool], # check/normalize
     # 'fwhm': float,
     # 'smoothing_order': In(['after', 'before']),
-    # 
+    #
     # 'runZScoring': [bool], # check/normalize
-    # 
+    #
     # 'run_fsl_feat': bool, # check/normalize
     # 'numGPAModelsAtOnce': int,
     # 'modelConfigs': [str],
-    # 
+    #
     # 'run_basc': bool,
     # 'basc_resolution': All(str, Match(r'^[0-9]+mm$')),
     # 'basc_proc': int,
@@ -346,7 +361,7 @@ schema = Schema({
     # 'basc_inclusion': str,
     # 'basc_pipeline': str,
     # 'basc_scan_inclusion': str,
-    # 
+    #
     # 'runMDMR': bool,
     # 'mdmr_inclusion': str,
     # 'mdmr_roi_file': str,
@@ -355,7 +370,7 @@ schema = Schema({
     # 'mdmr_regressor_columns': str,
     # 'mdmr_permutations': int,
     # 'mdmr_parallel_nodes': int,
-    # 
+    #
     # 'runISC': bool,
     # 'runISFC': bool,
     # 'isc_voxelwise': bool,
@@ -367,27 +382,27 @@ schema = Schema({
         'template_specification_file': str,
         'degree_centrality': {
             'weight_options': [Maybe(In(
-                centrality_options['weight_options']
+                valid_options['centrality']['weight_options']
             ))],
             'correlation_threshold_option': In(
-                centrality_options['threshold_options']),
+                valid_options['centrality']['threshold_options']),
             'correlation_threshold': Range(min=-1, max=1)
         },
         'eigenvector_centrality': {
             'weight_options': [Maybe(In(
-                centrality_options['weight_options']
+                valid_options['centrality']['weight_options']
             ))],
             'correlation_threshold_option': In(
-                centrality_options['threshold_options']
+                valid_options['centrality']['threshold_options']
             ),
             'correlation_threshold': Range(min=-1, max=1)
         },
         'local_functional_connectivity_density': {
             'weight_options': [Maybe(In(
-                centrality_options['weight_options']
+                valid_options['centrality']['weight_options']
             ))],
             'correlation_threshold_option': In([
-                o for o in centrality_options['threshold_options'] if
+                o for o in valid_options['centrality']['threshold_options'] if
                 o != 'Sparsity threshold'
             ]),
             'correlation_threshold': Range(min=-1, max=1)
