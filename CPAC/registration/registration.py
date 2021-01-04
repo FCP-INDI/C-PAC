@@ -552,6 +552,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
                                                        'func_3d',
                                                        'func_3d_mask',
                                                        'epi',
+                                                       'epi_mask',
                                                        'interp',
                                                        'ants_para']),
                         name='inputspec')
@@ -582,6 +583,8 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
                 ('epi', 'inputspec.reference_brain'),
                 ('func_3d', 'inputspec.moving_skull'),
                 ('epi', 'inputspec.reference_skull'),
+                ('epi_mask', 'inputspec.reference_mask'),
+                ('func_3d_mask', 'inputspec.moving_mask'),
                 ('interp', 'inputspec.interp'),
                 ('ants_para', 'inputspec.ants_para')
             ]),
@@ -1229,6 +1232,9 @@ def connect_func_to_template_reg(workflow, strat_list, c):
 
                 node, out_file = strat['template_epi']
                 workflow.connect(node, out_file, func_to_epi, 'inputspec.epi')
+
+                node, out_file = strat['template_epi_mask']
+                workflow.connect(node, out_file, func_to_epi, 'inputspec.epi_mask')
 
                 node, out_file = strat['functional_brain_mask']
                 workflow.connect(node, out_file, func_to_epi, 'inputspec.func_3d_mask')

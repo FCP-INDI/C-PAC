@@ -819,7 +819,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_brain_mask_for_func, 'template_brain_mask_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
+        (c.resolution_for_func_preproc, c.template_epi_mask, 'template_epi_mask', 'resolution_for_func_preproc'),  
         (c.resolution_for_func_derivative, c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
+        (c.resolution_for_func_derivative, c.template_epi_mask, 'template_epi_mask', 'resolution_for_func_derivative'),  
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
@@ -1398,7 +1400,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     ants_reg_anat_mni, 'inputspec.reference_mask'
                     )
 
-                # pass the reference mask file
+                # pass the moving mask file
                 node, out_file = strat['anatomical_brain_mask']
                 workflow.connect(
                     node, out_file,
