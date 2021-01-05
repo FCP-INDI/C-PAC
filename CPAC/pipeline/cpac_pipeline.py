@@ -2484,6 +2484,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                     'inputspec.brainmask_file_path'
                                 )
 
+                                node, node_out = strat['tr']
+
+                                workflow.connect(
+                                    node, node_out,
+                                    filtering,
+                                    'inputspec.tr'
+                                )
+
                             workflow.connect(
                                 nuisance_regression_before_workflow,
                                 'outputspec.residual_file_path',

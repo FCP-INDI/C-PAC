@@ -1509,7 +1509,8 @@ def filtering_bold_and_regressors(nuisance_selectors,
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'functional_file_path',
         'regressors_file_path',
-        'brainmask_file_path'
+        'brainmask_file_path',
+        'tr'
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
@@ -1563,6 +1564,9 @@ def filtering_bold_and_regressors(nuisance_selectors,
         bandpass_filter.inputs.lowpass = bandpass_selector.get('top_frequency')
         bandpass_filter.inputs.highpass = bandpass_selector.get('bottom_frequency')
         bandpass_filter.inputs.outputtype = 'NIFTI_GZ'
+
+        filtering_wf.connect(inputspec, 'tr',
+                            bandpass_filter, 'tr')
 
         filtering_wf.connect(inputspec, 'functional_file_path',
                             bandpass_filter, 'in_file')
