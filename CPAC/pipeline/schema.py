@@ -16,6 +16,24 @@ valid_options = {
         'template': ['EPI Template', 'T1 Template']
     }
 }
+mutex = {  # mutually exclusive booleans
+    'FSL-BET': {
+        # exactly zero or one of each of the following can be True for FSL-BET
+        'mutex': ['reduce_bias', 'robust', 'padding', 'remove_eyes',
+                  'surfaces'],
+        # the remaining keys: validators for FSL-BET
+        'rem': {
+            'frac': float,
+            'mesh_boolean': bool,
+            'outline': bool,
+            'radius': int,
+            'skull': bool,
+            'threshold': bool,
+            'vertical_gradient': Range(min=-1, max=1, min_included=False,
+                                       max_included=False),
+        }
+    }
+}
 
 schema = Schema({
     'pipeline_setup': {
@@ -58,6 +76,18 @@ schema = Schema({
         },
         'pipeline_IMPORT': Any(None, str),
     },
+    Required('anatomical_preproc'): {
+        Required('registration_workflow'): {
+            Required('registration'): {
+                Required('using'): [In({'ANTS', 'FSL'})],
+                'ANTs': {
+                    'EPI_registration': Any(
+                        None, 'None', dict, [dict]
+                    ),
+                    'interpolation': In({
+                        'Linear', 'BSpline', 'LanczosWindowedSinc'
+                    }),
+                    'use_lesion_mask': bool
     'FSLDIR': Any(None, str),
 
     'anatomical_preproc': {
@@ -185,6 +215,48 @@ schema = Schema({
                     'gm_erosion_mm': Any(float, int),
                 }
             }
+        }
+    },
+    Required('functional_preproc'): {
+        Required('run'): bool,
+        Required('distortion_correction'): {
+            Required('run'): [bool],
+        },
+        'using': [In(['PhaseDiff', 'Blip'])],
+        'PhaseDiff': {
+            'fmap_skullstrip_option': [In(['BET', 'AFNI'])],
+            'fmap_skullstrip_frac': float,
+            'fmap_distcorr_threshold': float,
+        },
+        'func_masking': {
+            'using': [In(['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined'])],
+            # handle validating mutually-exclusive booleans for FSL-BET
+            # functional_mean_boolean must be True if one of the mutually-
+            # exclusive options are
+            # see mutex definition for more definition
+            'FSL-BET': Any(*(
+                # exactly one mutually exclusive option on
+                [{k: d[k] for d in r for k in d} for r in [[
+                    {
+                        **mutex['FSL-BET']['rem'],
+                        'functional_mean_boolean': True,
+                        k1: True,
+                        k2: False
+                    } for k2 in mutex['FSL-BET']['mutex'] if k2 != k1
+                ] for k1 in mutex['FSL-BET']['mutex']]] +
+                # no mutually-exclusive options on
+                [{
+                    **mutex['FSL-BET']['rem'],
+                    'functional_mean_boolean': bool,
+                    **{k: False for k in mutex['FSL-BET']['mutex']}
+                }])
+            ),  
+            'Anatomical_Refined': {
+                'anatomical_mask_dilation': bool,
+            },
+        },          
+    },
+    Required('functional_registration'): {
         },
         Required('registration_workflow'): {
             Required('resolution_for_anat'): All(str, Match(r'^[0-9]+mm$')),
