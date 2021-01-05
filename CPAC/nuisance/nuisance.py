@@ -1565,7 +1565,15 @@ def filtering_bold_and_regressors(nuisance_selectors,
         bandpass_filter.inputs.highpass = bandpass_selector.get('bottom_frequency')
         bandpass_filter.inputs.outputtype = 'NIFTI_GZ'
 
+        tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
+                                                     output_names=['tr_float'],
+                                                     function=TR_string_to_float),
+                                        name='tr_string2float'.format)
+
         filtering_wf.connect(inputspec, 'tr',
+                            tr_string2float_node, 'tr')
+
+        filtering_wf.connect(tr_string2float_node, 'tr_float',
                             bandpass_filter, 'tr')
 
         filtering_wf.connect(inputspec, 'functional_file_path',
