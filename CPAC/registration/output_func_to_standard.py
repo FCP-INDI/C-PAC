@@ -720,7 +720,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
     distcor = True if 'epi_distcorr' in nodes or \
             'blip_correct' in nodes else False
 
-    num_cpus = pipeline_config_obj.maxCoresPerParticipant
+    num_cpus = pipeline_config_obj.pipeline_setup['system_config']['max_cores_per_participant']
 
     if 'anat_mni_fnirt_register' in nodes or \
         'anat_mni_flirt_register' in nodes or \
@@ -729,7 +729,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'nn'
         else:
-            interp = pipeline_config_obj.funcRegFSLinterpolation
+            interp = pipeline_config_obj.functional_registration['2-func_registration_to_template']['FNIRT_pipelines']['interpolation']
 
         func_ts = True if input_image_type == 'func_4d' else False
 
@@ -737,12 +737,14 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 ref_key, num_strat, strat, interp, distcor=distcor,
                 map_node=map_node, func_ts=func_ts, num_cpus=num_cpus)
 
-    elif 'ANTS' in pipeline_config_obj.regOption:
+    elif 'ANTS' in pipeline_config_obj.anatomical_preproc[
+            'registration_workflow'
+        ]['registration']['using']:
 
         if input_image_type == 'map' or 'mask' in input_image_type:
             interp = 'NearestNeighbor'
         else:
-            interp = pipeline_config_obj.funcRegANTSinterpolation
+            interp = pipeline_config_obj.functional_registration['2-func_registration_to_template']['ANTs_pipelines']['interpolation']
 
         image_type = 3 if input_image_type == 'func_4d' else 0
 
@@ -750,7 +752,7 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 num_strat, strat, interpolation_method=interp,
                 distcor=distcor, map_node=map_node, inverse=inverse,
                 symmetry=symmetry, input_image_type=image_type,
-                num_ants_cores=pipeline_config_obj.num_ants_threads, 
+                num_ants_cores=pipeline_config_obj.pipeline_setup['system_config']['num_ants_threads'], 
                 registration_template=registration_template, 
                 func_type=func_type)
 

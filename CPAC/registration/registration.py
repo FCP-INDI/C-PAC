@@ -999,7 +999,6 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
     new_strat_list = []
 
     diff_complete = False
-
     if True in c.functional_registration['1-coregistration']['run']:
 
         for num_strat, strat in enumerate(strat_list):
@@ -1163,8 +1162,9 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
                                  'inputspec.linear_reg_matrix')
 
                 if (
-                    'T1 Template' in template_based_segmentation or
-                    'EPI Template' in template_based_segmentation or
+                    True in c.anatomical_preproc[
+                        'segmentation_workflow'
+                    ]['1-segmentation']['Template_Based']['run'] or
                     True in c.anatomical_preproc[
                         'segmentation_workflow'
                     ]['1-segmentation']['ANTs_Prior_Based']['run']

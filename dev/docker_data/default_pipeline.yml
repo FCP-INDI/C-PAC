@@ -49,6 +49,7 @@ pipeline_setup:
     # This saves disk space, but any additional preprocessing or analysis will have to be completely re-run.
     remove_working_dir: True
 
+
   log_directory:
 
     # Whether to write log details of the pipeline run to the logging files.
@@ -56,7 +57,31 @@ pipeline_setup:
 
     path: /logs
 
+  crash_log_directory:
+
+    # Directory where CPAC should write crash logs.
+    path: /crash
+
   system_config:
+
+    # Select Off if you intend to run CPAC on a single machine.
+    # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
+    on_grid:  
+
+      run: Off
+
+      # Sun Grid Engine (SGE), Portable Batch System (PBS), or Simple Linux Utility for Resource Management (SLURM).
+      # Only applies if you are running on a grid or compute cluster.
+      resource_manager: SGE
+        
+      SGE:
+        # SGE Parallel Environment to use when running CPAC.
+        # Only applies when you are running on a grid or compute cluster using SGE.
+        parallel_environment:  mpi_smp
+
+        # SGE Queue to use when running CPAC.
+        # Only applies when you are running on a grid or compute cluster using SGE.
+        queue:  all.q
 
     # The maximum amount of memory each participant's workflow can allocate.
     # Use this to place an upper bound of memory usage.
@@ -80,7 +105,7 @@ pipeline_setup:
     # The number of cores to allocate to ANTS-based anatomical registration per participant.
     # - Multiple cores can greatly speed up this preprocessing step.
     # - This number cannot be greater than the number of cores per participant.
-    num_ants_threads: 4
+    num_ants_threads: 1
 
     # The number of participant workflows to run at the same time.
     # - The maximum number of cores your run can possibly employ will be this setting
@@ -98,10 +123,17 @@ pipeline_setup:
   pipeline_IMPORT: None
 
 
+# Full path to the FSL version to be used by CPAC.
+# If you have specified an FSL path in your .bashrc file, this path will be set automatically.
+FSLDIR :  /usr/share/fsl/5.0
+
+
 # PREPROCESSING
 # -------------
 
 anatomical_preproc:
+
+  run: On
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering: False
@@ -262,7 +294,9 @@ anatomical_preproc:
   segmentation_workflow:
 
     # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
-    run: On
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    run: [On]
 
     1-segmentation:
 
@@ -319,6 +353,9 @@ anatomical_preproc:
         right_WM_label : 41
 
       Template_Based:
+        # this is a fork point
+        #   run: [On, Off] - this will run both and fork the pipeline
+        run: [Off]
 
         # These masks should be in the same space of your registration template, e.g. if
         # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
@@ -635,7 +672,9 @@ functional_preproc:
   motion_estimates_and_correction:
 
     # calculate motion statistics BEFORE slice-timing correction
-    calculate_motion_first: False
+    # this is a fork point
+    #   run: [On, Off] - this will run both and fork the pipeline
+    calculate_motion_first: [Off]
 
     motion_correction:
 
@@ -661,7 +700,9 @@ functional_preproc:
       # Adapted from DCAN Labs filter.
       #     https://www.ohsu.edu/school-of-medicine/developmental-cognition-and-neuroimaging-lab
       #     https://www.biorxiv.org/content/10.1101/337360v1.full.pdf
-      run: False
+      # this is a fork point
+      #   run: [On, Off] - this will run both and fork the pipeline
+      run: [Off]
 
       # options: "notch", "lowpass"
       filter_type: "notch"

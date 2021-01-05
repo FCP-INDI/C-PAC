@@ -366,6 +366,8 @@ elif args.analysis_level in ["test_config", "participant"]:
         c.update(overrides)
 
     if args.anat_only:
+        # TODO
+        # c.update({'functional_preproc': 'run': Off})?
         c.update({"runFunctional": [0]})
 
     # get the aws_input_credentials, if any are specified
@@ -373,55 +375,55 @@ elif args.analysis_level in ["test_config", "participant"]:
         c['awsCredentialsFile'] = resolve_aws_credential(args.aws_input_creds)
 
     if args.aws_output_creds:
-        c['awsOutputBucketCredentials'] = resolve_aws_credential(
+        c['pipeline_setup']['Amazon-AWS']['aws_output_bucket_credentials'] = resolve_aws_credential(
             args.aws_output_creds
         )
 
-    c['outputDirectory'] = os.path.join(args.output_dir, "output")
+    c['pipeline_setup']['output_directory']['path'] = os.path.join(args.output_dir, "output")
 
     if "s3://" not in args.output_dir.lower():
-        c['crashLogDirectory'] = os.path.join(args.output_dir, "crash")
-        c['logDirectory'] = os.path.join(args.output_dir, "log")
+        c['pipeline_setup']['crash_log_directory']['path'] = os.path.join(args.output_dir, "crash")
+        c['pipeline_setup']['log_directory']['path'] = os.path.join(args.output_dir, "log")
     else:
-        c['crashLogDirectory'] = os.path.join(DEFAULT_TMP_DIR, "crash")
-        c['logDirectory'] = os.path.join(DEFAULT_TMP_DIR, "log")
+        c['pipeline_setup']['crash_log_directory']['path'] = os.path.join(DEFAULT_TMP_DIR, "crash")
+        c['pipeline_setup']['log_directory']['path'] = os.path.join(DEFAULT_TMP_DIR, "log")
 
     if args.mem_gb:
-        c['maximumMemoryPerParticipant'] = float(args.mem_gb)
+        c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = float(args.mem_gb)
     elif args.mem_mb:
-        c['maximumMemoryPerParticipant'] = float(args.mem_mb) / 1024.0
+        c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = float(args.mem_mb) / 1024.0
     else:
-        c['maximumMemoryPerParticipant'] = 6.0
+        c['pipeline_setup']['system_config']['maximum_memory_per_participant'] = 6.0
 
     # Preference: n_cpus if given, override if present, else from config if
     # present, else n_cpus=3
     if args.n_cpus == 0:
-        c['maxCoresPerParticipant'] = int(c.get('maxCoresPerParticipant', 3))
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] = int(c['pipeline_setup']['system_config'].get('max_cores_per_participant', 3))
         args.n_cpus = 3
     else:
-        c['maxCoresPerParticipant'] = args.n_cpus
-    c['numParticipantsAtOnce'] = int(c.get('numParticipantsAtOnce', 1))
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] = args.n_cpus
+    c['pipeline_setup']['system_config']['num_participants_at_once'] = int(c['pipeline_setup']['system_config'].get('num_participants_at_once', 1))
     # Reduce cores per participant if cores times particiapants is more than
     # available CPUS. n_cpus is a hard upper limit.
-    if (c['maxCoresPerParticipant'] * c['numParticipantsAtOnce']) > int(
+    if (c['pipeline_setup']['system_config']['max_cores_per_participant']  * c['pipeline_setup']['system_config']['num_participants_at_once']) > int(
         args.n_cpus
     ):
-        c['maxCoresPerParticipant'] = int(
+        c['pipeline_setup']['system_config']['max_cores_per_participant']  = int(
             args.n_cpus
-        ) // c['numParticipantsAtOnce']
-    c['num_ants_threads'] = min(
-        c['maxCoresPerParticipant'], int(c['num_ants_threads'])
+        ) // c['pipeline_setup']['system_config']['num_participants_at_once']
+    c['pipeline_setup']['system_config']['num_ants_threads'] = min(
+        c['pipeline_setup']['system_config']['max_cores_per_participant'] , int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
 
     c['disable_log'] = args.disable_file_logging
 
     if args.save_working_dir is not False:
-        c['removeWorkingDir'] = False
+        c['pipeline_setup']['working_directory']['remove_working_dir'] = False
         if args.save_working_dir is not None:
-            c['workingDirectory'] = \
+            c['pipeline_setup']['working_directory']['path'] = \
                 os.path.abspath(args.save_working_dir)
         elif "s3://" not in args.output_dir.lower():
-            c['workingDirectory'] = \
+            c['pipeline_setup']['working_directory']['path'] = \
                 os.path.join(args.output_dir, "working")
         else:
             print('Cannot write working directory to S3 bucket.'
@@ -438,19 +440,19 @@ elif args.analysis_level in ["test_config", "participant"]:
         print("#### Running C-PAC")
 
     print("Number of participants to run in parallel: {0}"
-          .format(c['numParticipantsAtOnce']))
+          .format(c['pipeline_setup']['system_config']['num_participants_at_once']))
 
     if not args.data_config_file:
         print("Input directory: {0}".format(args.bids_dir))
 
-    print("Output directory: {0}".format(c['outputDirectory']))
-    print("Working directory: {0}".format(c['workingDirectory']))
-    print("Crash directory: {0}".format(c['crashLogDirectory']))
-    print("Log directory: {0}".format(c['logDirectory']))
-    print("Remove working directory: {0}".format(c['removeWorkingDir']))
-    print("Available memory: {0} (GB)".format(c['maximumMemoryPerParticipant']))
-    print("Available threads: {0}".format(c['maxCoresPerParticipant']))
-    print("Number of threads for ANTs: {0}".format(c['num_ants_threads']))
+    print("Output directory: {0}".format(c['pipeline_setup']['output_directory']['path']))
+    print("Working directory: {0}".format(c['pipeline_setup']['working_directory']['path']))
+    print("Crash directory: {0}".format(c['pipeline_setup']['crash_log_directory']['path']))
+    print("Log directory: {0}".format(c['pipeline_setup']['log_directory']['path']))
+    print("Remove working directory: {0}".format(c['pipeline_setup']['working_directory']['remove_working_dir']))
+    print("Available memory: {0} (GB)".format(c['pipeline_setup']['system_config']['maximum_memory_per_participant']))
+    print("Available threads: {0}".format(c['pipeline_setup']['system_config']['max_cores_per_participant']))
+    print("Number of threads for ANTs: {0}".format(c['pipeline_setup']['system_config']['num_ants_threads']))
 
     # create a timestamp for writing config files
     st = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%SZ')
@@ -585,15 +587,15 @@ elif args.analysis_level in ["test_config", "participant"]:
         if args.monitoring:
             try:
                 monitoring = monitor_server(
-                    c['pipelineName'],
-                    c['logDirectory']
+                    c['pipeline_setup']['pipeline_name'],
+                    c['pipeline_setup']['log_directory']['path']
                 )
             except:
                 pass
 
         plugin_args = {
-            'n_procs': int(c['maxCoresPerParticipant']),
-            'memory_gb': int(c['maximumMemoryPerParticipant']),
+            'n_procs': int(c['pipeline_setup']['system_config']['max_cores_per_participant']),
+            'memory_gb': int(c['pipeline_setup']['system_config']['maximum_memory_per_participant']),
         }
 
         print ("Starting participant level processing")

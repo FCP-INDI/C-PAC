@@ -190,7 +190,7 @@ def qa_montages(workflow, c, strat, num_strat,
 
         montage = create_montage('montage_%s_%d' % (measure, num_strat),
                                  'cyan_to_yellow', measure)
-        # montage.inputs.inputspec.underlay = c.template_brain_only_for_func
+        
         node, out_file_template = strat['template_brain_for_func_derivative']
         workflow.connect(node, out_file_template, 
                         montage, 'inputspec.underlay')

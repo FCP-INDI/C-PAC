@@ -1,8 +1,6 @@
 import os
 import warnings
 
-from CPAC.pipeline.schema import schema
-
 
 class Configuration(object):
     """Class to set dictionary keys as map attributes.
@@ -22,6 +20,8 @@ class Configuration(object):
     c[keys]
     """
     def __init__(self, config_map):
+        from CPAC.pipeline.schema import schema
+        
         config_map = schema(self.nonestr_to_None(config_map))
         for key in config_map:
             # set FSLDIR to the environment $FSLDIR if the user sets it to
