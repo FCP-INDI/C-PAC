@@ -399,13 +399,12 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
+            plugin_args['status_callback'] = log_nodes_cb
             if nipype.__version__ not in ('1.5.1'):
                 err_msg = "This version of Nipype may not be compatible with " \
                             "CPAC v%s, please install Nipype version 1.5.1\n" \
                             % (CPAC.__version__)
                 logger.error(err_msg)
-            else:
-                plugin_args['status_callback'] = log_nodes_cb
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
