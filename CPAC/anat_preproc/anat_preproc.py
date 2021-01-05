@@ -1295,8 +1295,6 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             reconall = pe.Node(interface=freesurfer.ReconAll(),
                 name='anat_freesurfer')
 
-            # TODO split recon-all -all into 4 steps as ABCD does
-            # ABCD performs autorecon1 without brain extraction
             num_strat = len(config.skullstrip_option)-1 # the number of strategy that FreeSurfer will be
 
             freesurfer_subject_dir = os.path.join(sub_dir, f'anat_preproc_freesurfer_abcd_{num_strat}', 'anat_freesurfer')
@@ -1313,37 +1311,15 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             reconall.inputs.subjects_dir = freesurfer_subject_dir
             reconall.inputs.openmp = config.num_omp_threads
 
-            # preproc.connect(anat_leaf2, 'anat_data',
-            #                 reconall, 'T1_files')
-
             preproc.connect(normalize_head, 'out_file',
                             reconall, 'T1_files')
 
             preproc.connect(reconall, 'subjects_dir',
                             outputnode, 'freesurfer_subject_dir')
             
-            '''
-            ### ABCD Harmonization - FreeSurfer brain mask refinement ###
-            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L169-L172
-
-            # mri_convert "$T1wImageBrainFile"_1mm.nii.gz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz --conform
-            t1_brain_to_mgz = pe.Node(util.Function(input_names=['in_file'],
-                                                    output_names=['out_file'],
-                                                    function=mri_convert),
-                                        name='t1_brain_to_mgz')
-
-            preproc.connect(applywarp_brain_to_head_1mm, 'out_file',
-                            t1_brain_to_mgz, 'in_file')
-
-            # mri_em_register -mask "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz "$SubjectDIR"/"$SubjectID"/mri/nu.mgz $FREESURFER_HOME/average/RB_all_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta
-            # TODO write a function node
-
-            # preproc.connect(t1_brain_to_mgz, 'out_file',
-            #                 mri_em_register, 'brain_mask')
-
-            # mri_watershed -T1 -brain_atlas $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta "$SubjectDIR"/"$SubjectID"/mri/T1.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz 
-            '''
-
+            # TODO split recon-all -all into 4 steps as ABCD does
+            # ABCD performs autorecon1 without brain extraction
+            
         anat_skullstrip = skullstrip_anatomical(method=method, config=config,
                                                 wf_name="{0}_skullstrip".format(wf_name))
 
@@ -1385,3 +1361,49 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     return preproc
 
+
+def abcd_reconall(T1wImageFile, T1wImageBrainFile, SubjectID, SubjectDIR, openmp):
+
+    import os
+
+    ### ABCD harmonization - recon-all ###
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh
+    
+    # recon-all -i "$T1wImageFile"_1mm.nii.gz -subjid $SubjectID -sd $TempSubjectDIR -motioncor -talairach -nuintensitycor -normalization ${seed_cmd_appendix}
+    cmd = 'recon-all -i %s -subjid %s -sd %s -motioncor -talairach -nuintensitycor -normalization' % (T1wImageFile, SubjectID, SubjectDIR)
+    os.system(cmd)
+
+    # Generate brain mask
+    # mri_convert "$T1wImageBrainFile"_1mm.nii.gz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz --conform
+    brainmask_path = os.path.join(SubjectDIR, SubjectID, 'mri/brainmask.mgz')
+    cmd = 'mri_convert %s %s --conform' % (T1wImageBrainFile, brainmask_path)
+    os.system(cmd)
+
+    # mri_em_register -mask "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz "$SubjectDIR"/"$SubjectID"/mri/nu.mgz $FREESURFER_HOME/average/RB_all_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta
+    nu_path = os.path.join(SubjectDIR, SubjectID, 'mri/nu.mgz')
+    talairach_with_skull_path = os.path.join(SubjectDIR, SubjectID, 'mri/transforms/talairach_with_skull.lta')
+    gca_path = '$FREESURFER_HOME/average/RB_all_2008-03-26.gca'
+    cmd = 'mri_em_register -mask %s %s %s %s' % (brainmask_path, nu_path, gca_path, talairach_with_skull_path)
+    os.system(cmd)
+
+    # mri_watershed -T1 -brain_atlas $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta "$SubjectDIR"/"$SubjectID"/mri/T1.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz 
+    T1_path = os.path.join(SubjectDIR, SubjectID, 'mri/T1.mgz')
+    brainmask_auto_path = os.path.join(SubjectDIR, SubjectID, 'mri/brainmask.auto.mgz')
+    cmd = 'mri_watershed -T1 -brain_atlas %s %s %s %s' % (gca_path, talairach_with_skull_path, T1_path, brainmask_auto_path)
+    os.system(cmd)
+
+    # cp "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz 
+    cmd = 'cp %s %s' % (brainmask_auto_path, brainmask_path)
+    os.system(cmd)
+
+    # recon-all -subjid $SubjectID -sd $SubjectDIR -autorecon2 -nosmooth2 -noinflate2 -nocurvstats -nosegstats -openmp ${num_cores} ${seed_cmd_appendix}
+    cmd = 'recon-all -subjid %s -sd %s -autorecon2 -nosmooth2 -noinflate2 -nocurvstats -nosegstats -openmp %s' % (SubjectID, SubjectDIR, openmp)
+    os.system(cmd)
+
+    # recon-all -subjid $SubjectID -sd $SubjectDIR -smooth2 -inflate2 -curvstats -sphere -surfreg -jacobian_white -avgcurv -cortparc -openmp ${num_cores} ${seed_cmd_appendix}
+    cmd = 'recon-all -subjid %s -sd %s -smooth2 -inflate2 -curvstats -sphere -surfreg -jacobian_white -avgcurv -cortparc -openmp %s' % (SubjectID, SubjectDIR, openmp)
+    os.system(cmd)
+
+    # recon-all -subjid $SubjectID -sd $SubjectDIR -surfvolume -parcstats -cortparc2 -parcstats2 -cortparc3 -parcstats3 -cortribbon -segstats -aparc2aseg -wmparc -balabels -label-exvivo-ec -openmp ${num_cores} ${seed_cmd_appendix}
+    cmd = 'recon-all -subjid %s -sd %s -surfvolume -parcstats -cortparc2 -parcstats2 -cortparc3 -parcstats3 -cortribbon -segstats -aparc2aseg -wmparc -balabels -label-exvivo-ec -openmp %s' % (SubjectID, SubjectDIR, openmp)
+    os.system(cmd)
