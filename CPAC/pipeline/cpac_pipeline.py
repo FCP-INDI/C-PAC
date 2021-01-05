@@ -2484,7 +2484,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                     'inputspec.brainmask_file_path'
                                 )
 
-                                node, node_out = strat['tr']
+                                node, node_out = new_strat['tr']
 
                                 workflow.connect(
                                     node, node_out,
