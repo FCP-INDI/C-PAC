@@ -1568,7 +1568,7 @@ def filtering_bold_and_regressors(nuisance_selectors,
         tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
                                                      output_names=['tr_float'],
                                                      function=TR_string_to_float),
-                                        name='tr_string2float'.format)
+                                        name='tr_string2float')
 
         filtering_wf.connect(inputspec, 'tr',
                             tr_string2float_node, 'tr')
