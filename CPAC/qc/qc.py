@@ -263,7 +263,8 @@ def create_qc_snr(wf_name='qc_snr'):
 
 
     std_dev_anat = pe.Node(fsl.ApplyWarp(interp='trilinear'), 
-                           name='std_dev_anat')
+                           name='std_dev_anat',
+                           mem_gb=1.0)
     wf.connect(input_node, 'functional_to_anat_linear_xfm', std_dev_anat, 'premat')
     wf.connect(std_dev, 'out_file', std_dev_anat, 'in_file')
     wf.connect(input_node, 'anatomical_brain', std_dev_anat, 'ref_file')
