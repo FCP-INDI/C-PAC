@@ -335,8 +335,11 @@ def init_brain_extraction_wf(tpl_target_path,
             mem_gb=mem_gb,
             in_segmentation_model=atropos_model,
         )
-        sel_wm = pe.Node(niu.Select(index=atropos_model[-1] - 1), name='sel_wm',
-                         run_without_submitting=True)
+        sel_wm = pe.Node(
+            niu.Select(index=atropos_model[-1] - 1),
+            name='sel_wm',
+            mem_gb=2.0,
+            run_without_submitting=True)
 
         wf.disconnect([
             (get_brainmask, apply_mask, [('output_image', 'mask_file')]),
