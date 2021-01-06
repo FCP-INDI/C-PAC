@@ -1195,7 +1195,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         mean_node = pe.Node(
                             afni.ROIStats(quiet=False, args='-1Dformat'),
-                            name='{}_mean'.format(regressor_type)
+                            name='{}_mean'.format(regressor_type),
+                            mem_gb=1.5
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
