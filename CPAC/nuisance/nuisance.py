@@ -1123,11 +1123,13 @@ def create_regressor_workflow(nuisance_selectors,
                             summary_filter_input[0], summary_filter_input[1],
                             cosfilter_node, 'input_image_path'
                         )
-                        tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
-                                                                     output_names=[
-                                                                         'tr_float'],
-                                                                     function=TR_string_to_float),
-                                                       name='{}_tr_string2float'.format(regressor_type))
+                        tr_string2float_node = pe.Node(
+                            util.Function(
+                                input_names=['tr'],
+                                output_names=['tr_float'],
+                                function=TR_string_to_float),
+                            name='{}_tr_string2float'.format(regressor_type),
+                            mem_gb=0.3)
 
                         nuisance_wf.connect(
                             inputspec, 'tr',
