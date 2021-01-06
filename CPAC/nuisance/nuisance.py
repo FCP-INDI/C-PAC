@@ -946,7 +946,8 @@ def create_regressor_workflow(nuisance_selectors,
                     anat_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(anatomical_at_resolution_key)
+                             .format(anatomical_at_resolution_key),
+                        mem_gb=2.5
                     )
                     anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
 
@@ -968,7 +969,8 @@ def create_regressor_workflow(nuisance_selectors,
                     func_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(functional_at_resolution_key)
+                             .format(functional_at_resolution_key),
+                        mem_gb=2.5
                     )
                     func_resample.inputs.apply_xfm = True
 
