@@ -202,7 +202,8 @@ def init_brain_extraction_wf(tpl_target_path,
         out_spacing=(4, 4, 4), apply_smoothing=True), name='res_target')
 
     lap_tmpl = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
-                       name='lap_tmpl')
+                       name='lap_tmpl',
+                       mem_gb=0.5)
     lap_tmpl.inputs.op1 = tpl_target_path
     lap_target = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
                          name='lap_target')
@@ -302,7 +303,8 @@ def init_brain_extraction_wf(tpl_target_path,
 
     if use_laplacian:
         lap_tmpl = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
-                           name='lap_tmpl')
+                           name='lap_tmpl',
+                           mem_gb=0.5)
         lap_tmpl.inputs.op1 = tpl_target_path
         lap_target = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
                              name='lap_target')
@@ -435,7 +437,8 @@ def init_atropos_wf(name='atropos_wf',
 
     # massage outputs
     pad_segm = pe.Node(ImageMath(operation='PadImage', op2='%d' % padding),
-                       name='02_pad_segm')
+                       name='02_pad_segm',
+                       mem_gb=0.3)
     pad_mask = pe.Node(ImageMath(operation='PadImage', op2='%d' % padding),
                        name='03_pad_mask')
 
@@ -509,7 +512,8 @@ def init_atropos_wf(name='atropos_wf',
     depad_mask = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
                          name='23_depad_mask')
     depad_segm = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
-                         name='24_depad_segm')
+                         name='24_depad_segm',
+                         mem_gb=0.3)
     depad_gm = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
                        name='25_depad_gm')
     depad_wm = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
