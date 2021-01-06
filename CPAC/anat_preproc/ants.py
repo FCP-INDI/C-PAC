@@ -195,7 +195,8 @@ def init_brain_extraction_wf(tpl_target_path,
         n_procs=omp_nthreads, name='inu_n4', iterfield=['input_image'])
 
     res_tmpl = pe.Node(ResampleImageBySpacing(
-        out_spacing=(4, 4, 4), apply_smoothing=True), name='res_tmpl')
+        out_spacing=(4, 4, 4), apply_smoothing=True
+    ), name='res_tmpl', mem_gb=0.5)
     res_tmpl.inputs.input_image = tpl_target_path
     res_target = pe.Node(ResampleImageBySpacing(
         out_spacing=(4, 4, 4), apply_smoothing=True), name='res_target')
