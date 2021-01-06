@@ -195,7 +195,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                  output_names=['out_file'],
                                  function=calculate_DVARS,
                                  as_module=True),
-                        name='cal_DVARS')
+                        name='cal_DVARS',
+                        mem_gb=1.0)
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'rest')
