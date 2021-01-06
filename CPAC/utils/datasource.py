@@ -183,7 +183,8 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                                    output_names=['file_path'],
                                                    function=get_rest,
                                                    as_module=True),
-                                 name='select_scan_params')
+                                 name='select_scan_params',
+                                 mem_gb=0.25)
     select_scan_params.inputs.rest_dict = rest_dict
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')
@@ -266,7 +267,8 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                                    output_names=['file_path'],
                                                    function=get_rest,
                                                    as_module=True),
-                                 name='select_scan_params')
+                                 name='select_scan_params',
+                                 mem_gb=0.25)
     select_scan_params.inputs.rest_dict = fmap_dct
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')
