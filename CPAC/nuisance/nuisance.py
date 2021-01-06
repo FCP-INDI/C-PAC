@@ -1227,7 +1227,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         standardized_node = pe.Node(
                             afni.Calc(expr='a/b', outputtype='NIFTI'),
-                            name='{}_standardized'.format(regressor_type)
+                            name='{}_standardized'.format(regressor_type),
+                            mem_gb=1.5
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
