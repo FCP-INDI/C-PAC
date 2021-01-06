@@ -923,8 +923,10 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'transform_matrices',
                                                          'center_of_mass',
                                                          'motion_filter_info',
-                                                         'motion_filter_plot']),
-                          name='outputspec')
+                                                         'motion_filter_plot'
+                                                         ]),
+                          name='outputspec',
+                          mem_gb=0.8)
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
                              name='func_deoblique')
