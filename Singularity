@@ -3,6 +3,6 @@ From: fcpindi/c-pac
 IncludeCmd: yes
 
 %environment
-FREESURFER_HOME=
+FREESURFER_HOME=/usr/lib/freesurfer
 
 %post

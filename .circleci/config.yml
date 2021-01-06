@@ -180,33 +180,12 @@ jobs:
             - cpac-docker-image.tar.gz
             - cpac-singularity-image.simg
             - project
-  build-surface:
-    machine:
-      image: ubuntu-2004:202010-01
-    steps:
-      - attach_workspace:
-          # Must be absolute path or relative path from working_directory
-          at: /home/circleci/
-      - check-for-built-images
-      - run:
-          name: "Loading original Docker image"
-          command: docker load < cpac-docker-image.tar.gz
-      - set-python-version
-      - build-images:
-          variant: surface
-      - store_artifacts:
-          path: cpac-docker-image-surface.tar.gz
-      - store_artifacts:
-          path: cpac-singularity-image-surface.simg
 
 workflows:
   version: 2
   build-and-test:
     jobs:
       - build
-      - build-surface:
-          requires:
-            - build
       - pytest-docker:
           requires:
             - build
