@@ -1214,7 +1214,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         std_node = pe.Node(
                             afni.TStat(args='-nzstdev', outputtype='NIFTI'),
-                            name='{}_std'.format(regressor_type)
+                            name='{}_std'.format(regressor_type),
+                            mem_gb=1.5
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
