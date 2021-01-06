@@ -459,7 +459,8 @@ def init_atropos_wf(name='atropos_wf',
     # ImageMath ${DIMENSION} ${EXTRACTION_TMP} FillHoles ${EXTRACTION_GM} 2
     # MultiplyImages ${DIMENSION} ${EXTRACTION_GM} ${EXTRACTION_TMP} ${EXTRACTION_GM}
     fill_gm = pe.Node(ImageMath(operation='FillHoles', op2='2'),
-                      name='07_fill_gm')
+                      name='07_fill_gm',
+                      mem_gb=2.0)
     mult_gm = pe.Node(MultiplyImages(
         dimension=3, output_product_image='08_mult_gm.nii.gz'), name='08_mult_gm')
 
@@ -499,7 +500,8 @@ def init_atropos_wf(name='atropos_wf',
     md_7 = pe.Node(ImageMath(operation='MD', op2='4'), name='18_md_7')
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} FillHoles ${EXTRACTION_MASK} 2
     fill_7 = pe.Node(ImageMath(operation='FillHoles', op2='2'),
-                     name='19_fill_7')
+                     name='19_fill_7',
+                     mem_gb=2.0)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} addtozero ${EXTRACTION_MASK} \
     # ${EXTRACTION_MASK_PRIOR_WARPED}
     add_7_2 = pe.Node(ImageMath(operation='addtozero'), name='20_add_7_2')
