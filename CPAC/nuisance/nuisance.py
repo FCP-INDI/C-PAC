@@ -1240,7 +1240,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         pc_node = pe.Node(
                             PC(args='-vmean -nscale', pcs=regressor_selector['summary']['components'], outputtype='NIFTI_GZ'),
-                            name='{}_pc'.format(regressor_type)
+                            name='{}_pc'.format(regressor_type),
+                            mem_gb=1.5
                         )
 
                         nuisance_wf.connect(
