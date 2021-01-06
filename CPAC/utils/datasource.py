@@ -139,7 +139,8 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                            output_names=[],
                                            function=check_func_scan,
                                            as_module=True),
-                         name='check_func_scan')
+                         name='check_func_scan',
+                         mem_gb=0.25)
 
     check_scan.inputs.func_scan_dct = rest_dict
     wf.connect(inputnode, 'scan', check_scan, 'scan')
