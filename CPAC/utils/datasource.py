@@ -167,7 +167,8 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                               output_names=['local_path'],
                                               function=check_for_s3,
                                               as_module=True),
-                            name='check_for_s3')
+                            name='check_for_s3',
+                            mem_gb=0.3)
 
     wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -252,7 +253,8 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                               output_names=['local_path'],
                                               function=check_for_s3,
                                               as_module=True),
-                            name='check_for_s3')
+                            name='check_for_s3',
+                            mem_gb=0.3)
 
     wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -385,7 +387,8 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
                                                      function=check_for_s3,
                                                      as_module=True),
                                                      iterfield=['file_path'],
-                                   name='check_for_s3_%s' % name)
+                                   name='check_for_s3_%s' % name,
+                                   mem_gb=0.3)
     else: 
         check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                                'creds_path',
@@ -394,7 +397,8 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
                                                   output_names=['local_path'],
                                                   function=check_for_s3,
                                                   as_module=True),
-                                name='check_for_s3_%s' % name)
+                                name='check_for_s3_%s' % name,
+                                mem_gb=0.3)
 
     check_s3_node.inputs.set(
         file_path=file_path,
@@ -614,7 +618,8 @@ def create_anat_datasource(wf_name='anat_datasource'):
                                               output_names=['local_path'],
                                               function=check_for_s3,
                                               as_module=True),
-                            name='check_for_s3')
+                            name='check_for_s3',
+                            mem_gb=0.3)
 
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -699,7 +704,8 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
                                               output_names=['local_path'],
                                               function=check_for_s3,
                                               as_module=True),
-                            name='check_for_s3')
+                            name='check_for_s3',
+                            mem_gb=0.3)
 
     wf.connect(inputnode, 'mask_file', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -773,7 +779,8 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
                                               output_names=['local_path'],
                                               function=check_for_s3,
                                               as_module=True),
-                            name='check_for_s3')
+                            name='check_for_s3',
+                            mem_gb=0.3)
 
     wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
