@@ -2385,13 +2385,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         else:
                             bandpass_method = 'default'
 
-                        if not bandpass_method in ['default', '3dBandpass']:
-                            err = "\n\n[!] C-PAC says: You must choose 'default' or '3dBandpass' as filtering method, " \
+                        if not bandpass_method in ['default', 'AFNI']:
+                            err = "\n\n[!] C-PAC says: You must choose 'default' or 'AFNI' as filtering method, " \
                                     "but you provided:\n{0}\n\n".format(bandpass_method)
                             raise Exception(err)
-                        elif 'Before' in c.filtering_order and bandpass_method == '3dBandpass':
-                            err = "\n\n[!] C-PAC says: You chose to run filtering before nuisance regression and '3dBandpass' as filtering method." \
-                                    " '3dBandpass' can't filter regressors so please change filtering method to 'default'.\n\n"
+                        elif 'Before' in c.filtering_order and bandpass_method == 'AFNI':
+                            err = "\n\n[!] C-PAC says: You chose to run filtering before nuisance regression and 'AFNI' as filtering method." \
+                                    " 'AFNI' can't filter regressors so please change filtering method to 'default'.\n\n"
                             raise Exception(err)
                         
                         if 'Before' in c.filtering_order and bandpass_method == 'default':
@@ -2472,7 +2472,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                         elif 'After' in c.filtering_order:
 
-                            if bandpass_method == '3dBandpass':
+                            if bandpass_method == 'AFNI':
                                 
                                 # Marco uses template brain mask but C-PAC filters in native space
                                 # node, out_file = strat['template_brain_mask_for_func_preproc']

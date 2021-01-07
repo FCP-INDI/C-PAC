@@ -25,7 +25,7 @@ from CPAC.nuisance.utils.compcor import (
     cosine_filter,
     TR_string_to_float)
 from CPAC.utils.datasource import check_for_s3
-from .bandpass import bandpass_voxels
+from .bandpass import (bandpass_voxels, afni_1dBandpass)
 
 
 def gather_nuisance(functional_file_path,
@@ -1556,14 +1556,14 @@ def filtering_bold_and_regressors(nuisance_selectors,
         filtering_wf.connect(frequency_filter, 'regressor_file',
                             outputspec, 'residual_regressor')
 
-    elif bandpass_method == '3dBandpass':
+    elif bandpass_method == 'AFNI':
         
-        bandpass_filter = pe.Node(interface=afni.Bandpass(),
-                                    name='bandpass_filter')
+        bandpass_ts = pe.Node(interface=afni.Bandpass(),
+                                    name='bandpass_ts')
 
-        bandpass_filter.inputs.lowpass = bandpass_selector.get('top_frequency')
-        bandpass_filter.inputs.highpass = bandpass_selector.get('bottom_frequency')
-        bandpass_filter.inputs.outputtype = 'NIFTI_GZ'
+        bandpass_ts.inputs.highpass = bandpass_selector.get('bottom_frequency')
+        bandpass_ts.inputs.lowpass = bandpass_selector.get('top_frequency')
+        bandpass_ts.inputs.outputtype = 'NIFTI_GZ'
 
         tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
                                                      output_names=['tr_float'],
@@ -1574,15 +1574,35 @@ def filtering_bold_and_regressors(nuisance_selectors,
                             tr_string2float_node, 'tr')
 
         filtering_wf.connect(tr_string2float_node, 'tr_float',
-                            bandpass_filter, 'tr')
+                            bandpass_ts, 'tr')
 
         filtering_wf.connect(inputspec, 'functional_file_path',
-                            bandpass_filter, 'in_file')
+                            bandpass_ts, 'in_file')
 
         filtering_wf.connect(inputspec, 'brainmask_file_path',
-                            bandpass_filter, 'mask')
+                            bandpass_ts, 'mask')
 
-        filtering_wf.connect(bandpass_filter, 'out_file',
+        filtering_wf.connect(bandpass_ts, 'out_file',
                             outputspec, 'residual_file_path')
+
+        bandpass_regressor = pe.Node(Function(input_names=['in_file',
+                                                           'highpass',
+                                                           'lowpass',
+                                                           'tr'],
+                                              output_names=['out_file'],
+                                              function=afni_1dBandpass),
+                                     name='bandpass_regressor')
+        
+        bandpass_regressor.inputs.highpass = bandpass_selector.get('bottom_frequency')
+        bandpass_regressor.inputs.lowpass = bandpass_selector.get('top_frequency')
+
+        filtering_wf.connect(inputspec, 'regressors_file_path',
+                            bandpass_regressor, 'in_file')
+        
+        filtering_wf.connect(tr_string2float_node, 'tr_float',
+                            bandpass_regressor, 'tr')
+
+        filtering_wf.connect(bandpass_regressor, 'out_file',
+                            outputspec, 'residual_regressor')
 
     return filtering_wf

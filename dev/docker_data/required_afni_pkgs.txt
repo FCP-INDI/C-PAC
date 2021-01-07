@@ -1,4 +1,5 @@
 linux_openmp_64/3dAutomask
+linux_openmp_64/1dBandpass
 linux_openmp_64/3dBandpass
 linux_openmp_64/3dBlurToFWHM
 linux_openmp_64/3dBrickStat
