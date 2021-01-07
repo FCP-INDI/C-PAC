@@ -957,7 +957,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
-                            name='chunk')
+                            name='chunk',
+                            mem_gb=0.5)
 
             chunk.inputs.n_cpus = int(config.maxCoresPerParticipant)
             preproc.connect(func_reorient, 'out_file', chunk, 'func_file')
