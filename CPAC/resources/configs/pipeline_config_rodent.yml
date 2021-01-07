@@ -803,6 +803,7 @@ Regressors:
 - Bandpass:
     bottom_frequency: 0.01
     top_frequency: 0.1
+    method: AFNI
   CerebrospinalFluid:
       erode_mask: false
       summary: Mean

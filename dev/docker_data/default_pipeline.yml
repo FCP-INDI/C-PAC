@@ -971,6 +971,10 @@ template_brain_mask_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${res
 template_epi :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
 
+# EPI template mask. TODO: Ask for mask, it is a fake mask now. 
+template_epi_mask :  s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
+
+
 # Matrix containing all 1's. Used as an identity matrix during registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
 identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
@@ -1023,6 +1027,7 @@ Regressors :
    Bandpass:
      bottom_frequency: 0.01
      top_frequency: 0.1
+     method: default
 
  - Motion:
      include_delayed: true
@@ -1049,6 +1054,7 @@ Regressors :
    Bandpass:
      bottom_frequency: 0.01
      top_frequency: 0.1
+     method: default
 
 
 # Whether to run frequency filtering before or after nuisance regression.

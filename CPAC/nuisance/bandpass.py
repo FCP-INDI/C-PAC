@@ -133,4 +133,35 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs,
                         delimiter='\t')
 
     return bandpassed_file, regressor_bandpassed_file
+
+
+def afni_1dBandpass(in_file, highpass, lowpass, tr=1):
+
+    '''
+    Perform AFNI 1dBandpass
+
+    Parameters
+    ----------
+    in_file : string
+        Path of an input 1D file
+    highpass : float
+        LowCutoff/HighPass
+    lowpass : float
+        HighCutoff/LowPass
     
+    Returns
+    -------
+    out_file : string
+        Path of an output 1D file
+    '''
+
+    import os
+    
+    basename = os.path.basename(in_file)
+    filename, file_extension = os.path.splitext(basename)
+    out_file = os.path.join(os.getcwd(), filename + '_bp' + file_extension)
+
+    cmd = '1dBandpass -dt %f %f %f %s > %s' % (tr, highpass, lowpass, in_file, out_file)
+    os.system(cmd)
+
+    return out_file

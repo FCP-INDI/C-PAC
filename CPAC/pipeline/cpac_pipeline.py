@@ -819,7 +819,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         (c.resolution_for_func_preproc, c.template_skull_for_func, 'template_skull_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_brain_mask_for_func, 'template_brain_mask_for_func_preproc', 'resolution_for_func_preproc'),
         (c.resolution_for_func_preproc, c.template_epi, 'template_epi', 'resolution_for_func_preproc'),  # no difference of skull and only brain
+        (c.resolution_for_func_preproc, c.template_epi_mask, 'template_epi_mask', 'resolution_for_func_preproc'),  
         (c.resolution_for_func_derivative, c.template_epi, 'template_epi_derivative', 'resolution_for_func_derivative'),  # no difference of skull and only brain
+        (c.resolution_for_func_derivative, c.template_epi_mask, 'template_epi_mask_derivative', 'resolution_for_func_derivative'),  
         (c.resolution_for_func_derivative, c.template_brain_only_for_func, 'template_brain_for_func_derivative', 'resolution_for_func_preproc'),
         (c.resolution_for_func_derivative, c.template_skull_for_func, 'template_skull_for_func_derivative', 'resolution_for_func_preproc'),
     ]
@@ -1398,7 +1400,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     ants_reg_anat_mni, 'inputspec.reference_mask'
                     )
 
-                # pass the reference mask file
+                # pass the moving mask file
                 node, out_file = strat['anatomical_brain_mask']
                 workflow.connect(
                     node, out_file,
@@ -2376,11 +2378,41 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     )
 
                     if 'Bandpass' in regressors_selector:
+                        
+                        bandpass_selector = regressors_selector.get('Bandpass')
+                        if bandpass_selector.get('method'):
+                            bandpass_method = bandpass_selector.get('method')
+                        else:
+                            bandpass_method = 'default'
+
+                        if not bandpass_method in ['default', 'AFNI']:
+                            err = "\n\n[!] C-PAC says: You must choose 'default' or 'AFNI' as filtering method, " \
+                                    "but you provided:\n{0}\n\n".format(bandpass_method)
+                            raise Exception(err)
+                        
                         if 'Before' in c.filtering_order:
                             nuisance_regression_after_workflow = create_nuisance_regression_workflow(
                                 regressors_selector,
                                 name='nuisance_regression_after-filt_{0}_'
                                      '{1}'.format(regressors_selector_i, num_strat))
+                            
+                            if bandpass_method == 'AFNI':
+
+                                node, out_file = new_strat['functional_brain_mask']
+
+                                workflow.connect(
+                                    node, out_file,
+                                    filtering,
+                                    'inputspec.functional_brain_mask_file_path'
+                                )
+
+                                node, node_out = new_strat['tr']
+
+                                workflow.connect(
+                                    node, node_out,
+                                    filtering,
+                                    'inputspec.tr'
+                                )
 
                             workflow.connect(
                                 filtering,
@@ -2453,6 +2485,25 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             new_strat.append_name(nuisance_regression_after_workflow.name)
 
                         elif 'After' in c.filtering_order:
+
+                            if bandpass_method == 'AFNI':
+
+                                node, out_file = new_strat['functional_brain_mask']
+
+                                workflow.connect(
+                                    node, out_file,
+                                    filtering,
+                                    'inputspec.functional_brain_mask_file_path'
+                                )
+
+                                node, node_out = new_strat['tr']
+
+                                workflow.connect(
+                                    node, node_out,
+                                    filtering,
+                                    'inputspec.tr'
+                                )
+
                             workflow.connect(
                                 nuisance_regression_before_workflow,
                                 'outputspec.residual_file_path',
