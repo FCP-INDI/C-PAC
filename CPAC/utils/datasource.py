@@ -200,7 +200,8 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                                output_names=['local_path'],
                                                function=check_for_s3,
                                                as_module=True),
-                             name='s3_scan_params')
+                             name='s3_scan_params',
+                             mem_gb=0.5)
 
     wf.connect(select_scan_params, 'file_path', s3_scan_params, 'file_path')
     wf.connect(inputnode, 'creds_path', s3_scan_params, 'creds_path')
@@ -286,7 +287,8 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                                output_names=['local_path'],
                                                function=check_for_s3,
                                                as_module=True),
-                             name='s3_scan_params')
+                             name='s3_scan_params',
+                             mem_gb=0.5)
 
     wf.connect(select_scan_params, 'file_path', s3_scan_params, 'file_path')
     wf.connect(inputnode, 'creds_path', s3_scan_params, 'creds_path')
