@@ -833,7 +833,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                               output_names=['resampled_template'],
                                               function=resolve_resolution,
                                               as_module=True),
-                                        name='resampled_' + template_name)
+                                        name='resampled_' + template_name,
+                                        mem_gb=0.5)
 
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
