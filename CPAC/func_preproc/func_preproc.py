@@ -930,14 +930,16 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                           mem_gb=0.8)
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                             name='func_deoblique')
+                             name='func_deoblique',
+                             mem_gb=2.0)
     func_deoblique.inputs.deoblique = True
 
     preproc.connect(input_node, 'func',
                     func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name='func_reorient')
+                            name='func_reorient',
+                            mem_gb=2.0)
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -966,7 +968,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                      output_names=['split_funcs'],
                                      function=split_ts_chunks,
                                      imports=split_imports),
-                            name='split')
+                            name='split',
+                            mem_gb=2.0)
 
             preproc.connect(func_reorient, 'out_file', split, 'func_file')
             preproc.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -1047,7 +1050,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     # Calculate motion correction reference
     if motion_correct_ref == 'mean': 
         func_get_mean_RPI = pe.Node(interface=afni_utils.TStat(),
-                                    name='func_get_mean_RPI')
+                                    name='func_get_mean_RPI',
+                                    mem_gb=2.0)
 
         func_get_mean_RPI.inputs.options = '-mean'
         func_get_mean_RPI.inputs.outputtype = 'NIFTI_GZ'
