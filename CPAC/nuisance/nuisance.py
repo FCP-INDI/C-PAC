@@ -1509,7 +1509,7 @@ def filtering_bold_and_regressors(nuisance_selectors,
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'functional_file_path',
         'regressors_file_path',
-        'brainmask_file_path',
+        'functional_brain_mask_file_path',
         'tr'
     ]), name='inputspec')
 
@@ -1557,7 +1557,7 @@ def filtering_bold_and_regressors(nuisance_selectors,
                             outputspec, 'residual_regressor')
 
     elif bandpass_method == 'AFNI':
-        
+
         bandpass_ts = pe.Node(interface=afni.Bandpass(),
                                     name='bandpass_ts')
 
@@ -1579,7 +1579,7 @@ def filtering_bold_and_regressors(nuisance_selectors,
         filtering_wf.connect(inputspec, 'functional_file_path',
                             bandpass_ts, 'in_file')
 
-        filtering_wf.connect(inputspec, 'brainmask_file_path',
+        filtering_wf.connect(inputspec, 'functional_brain_mask_file_path',
                             bandpass_ts, 'mask')
 
         filtering_wf.connect(bandpass_ts, 'out_file',
@@ -1592,13 +1592,13 @@ def filtering_bold_and_regressors(nuisance_selectors,
                                               output_names=['out_file'],
                                               function=afni_1dBandpass),
                                      name='bandpass_regressor')
-        
+
         bandpass_regressor.inputs.highpass = bandpass_selector.get('bottom_frequency')
         bandpass_regressor.inputs.lowpass = bandpass_selector.get('top_frequency')
 
         filtering_wf.connect(inputspec, 'regressors_file_path',
                             bandpass_regressor, 'in_file')
-        
+
         filtering_wf.connect(tr_string2float_node, 'tr_float',
                             bandpass_regressor, 'tr')
 

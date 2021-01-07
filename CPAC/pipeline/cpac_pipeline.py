@@ -2389,16 +2389,30 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                             err = "\n\n[!] C-PAC says: You must choose 'default' or 'AFNI' as filtering method, " \
                                     "but you provided:\n{0}\n\n".format(bandpass_method)
                             raise Exception(err)
-                        elif 'Before' in c.filtering_order and bandpass_method == 'AFNI':
-                            err = "\n\n[!] C-PAC says: You chose to run filtering before nuisance regression and 'AFNI' as filtering method." \
-                                    " 'AFNI' can't filter regressors so please change filtering method to 'default'.\n\n"
-                            raise Exception(err)
                         
-                        if 'Before' in c.filtering_order and bandpass_method == 'default':
+                        if 'Before' in c.filtering_order:
                             nuisance_regression_after_workflow = create_nuisance_regression_workflow(
                                 regressors_selector,
                                 name='nuisance_regression_after-filt_{0}_'
                                      '{1}'.format(regressors_selector_i, num_strat))
+                            
+                            if bandpass_method == 'AFNI':
+
+                                node, out_file = new_strat['functional_brain_mask']
+
+                                workflow.connect(
+                                    node, out_file,
+                                    filtering,
+                                    'inputspec.functional_brain_mask_file_path'
+                                )
+
+                                node, node_out = new_strat['tr']
+
+                                workflow.connect(
+                                    node, node_out,
+                                    filtering,
+                                    'inputspec.tr'
+                                )
 
                             workflow.connect(
                                 filtering,
@@ -2473,15 +2487,13 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         elif 'After' in c.filtering_order:
 
                             if bandpass_method == 'AFNI':
-                                
-                                # Marco uses template brain mask but C-PAC filters in native space
-                                # node, out_file = strat['template_brain_mask_for_func_preproc']
+
                                 node, out_file = new_strat['functional_brain_mask']
 
                                 workflow.connect(
                                     node, out_file,
                                     filtering,
-                                    'inputspec.brainmask_file_path'
+                                    'inputspec.functional_brain_mask_file_path'
                                 )
 
                                 node, node_out = new_strat['tr']
