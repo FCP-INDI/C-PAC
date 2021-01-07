@@ -1180,48 +1180,48 @@ def check_config_resources(c):
     num_cores = cpu_count()
 
     # Check for pipeline memory for subject
-    if c.maximumMemoryPerParticipant is None:
+    if c.pipeline_setup['system_config']['maximum_memory_per_participant'] is None:
         # Get system memory and numSubsAtOnce
         sys_mem_gb = sys_virt_mem.total / (1024.0 ** 3)
-        sub_mem_gb = sys_mem_gb / c.numParticipantsAtOnce
+        sub_mem_gb = sys_mem_gb / c.pipeline_setup['system_config']['num_participants_at_once']
     else:
-        sub_mem_gb = c.maximumMemoryPerParticipant
+        sub_mem_gb = c.pipeline_setup['system_config']['maximum_memory_per_participant']
 
     # If centrality is enabled, check to mem_sub >= mem_centrality
-    if c.runNetworkCentrality[0]:
-        if sub_mem_gb < c.memoryAllocatedForDegreeCentrality:
+    if c.network_centrality['run'][0]:
+        if sub_mem_gb < c.network_centrality['memory_allocation']:
             err_msg = 'Memory allocated for subject: %d needs to be greater ' \
                       'than the memory allocated for centrality: %d. Fix ' \
-                      'and try again.' % (c.maximumMemoryPerParticipant,
-                                          c.memoryAllocatedForDegreeCentrality)
+                      'and try again.' % (c.pipeline_setup['system_config']['maximum_memory_per_participant'],
+                                          c.network_centrality['memory_allocation'])
             raise Exception(err_msg)
 
     # Check for pipeline threads
     # Check if user specified cores
-    if c.maxCoresPerParticipant:
-        total_user_cores = c.numParticipantsAtOnce * c.maxCoresPerParticipant
+    if c.pipeline_setup['system_config']['max_cores_per_participant']:
+        total_user_cores = c.pipeline_setup['system_config']['num_participants_at_once'] * c.pipeline_setup['system_config']['max_cores_per_participant']
         if total_user_cores > num_cores:
             err_msg = 'Config file specifies more subjects running in ' \
                       'parallel than number of threads available. Change ' \
                       'this and try again'
             raise Exception(err_msg)
         else:
-            num_cores_per_sub = c.maxCoresPerParticipant
+            num_cores_per_sub = c.pipeline_setup['system_config']['max_cores_per_participant']
     else:
-        num_cores_per_sub = num_cores / c.numParticipantsAtOnce
+        num_cores_per_sub = num_cores / c.pipeline_setup['system_config']['num_participants_at_once'] 
 
     # Now check ANTS
-    if 'ANTS' in c.regOption:
-        if c.num_ants_threads is None:
+    if 'ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using']:
+        if c.pipeline_setup['system_config']['num_ants_threads'] is None:
             num_ants_cores = num_cores_per_sub
-        elif c.num_ants_threads > c.maxCoresPerParticipant:
+        elif c.pipeline_setup['system_config']['num_ants_threads'] > c.pipeline_setup['system_config']['max_cores_per_participant']:
             err_msg = 'Number of threads for ANTS: %d is greater than the ' \
                       'number of threads per subject: %d. Change this and ' \
-                      'try again.' % (c.num_ants_threads,
-                                      c.maxCoresPerParticipant)
+                      'try again.' % (c.pipeline_setup['system_config']['num_ants_threads'],
+                                      c.pipeline_setup['system_config']['max_cores_per_participant'])
             raise Exception(err_msg)
         else:
-            num_ants_cores = c.num_ants_threads
+            num_ants_cores = c.pipeline_setup['system_config']['num_ants_threads']
     else:
         num_ants_cores = 1
 

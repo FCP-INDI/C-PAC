@@ -63,8 +63,6 @@ def run_cpac_on_cluster(config_file, subject_list_file,
     import getpass
     import re
     from time import strftime
-
-    from CPAC.utils import Configuration
     from indi_schedulers import cluster_templates
 
     # Load in pipeline config
@@ -83,7 +81,7 @@ def run_cpac_on_cluster(config_file, subject_list_file,
 
     # Init variables
     timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
-    job_scheduler = pipeline_config.resourceManager.lower()
+    job_scheduler = pipeline_config.pipeline_setup['system_config']['on_grid']['resource_manager'].lower()
 
     # For SLURM time limit constraints only, hh:mm:ss
     hrs_limit = 8 * len(sublist)
@@ -101,23 +99,23 @@ def run_cpac_on_cluster(config_file, subject_list_file,
                       'plugin=\'MultiProc\', plugin_args=%(plugin_args)s)"'
 
     # Init plugin arguments
-    plugin_args = {'n_procs': pipeline_config.maxCoresPerParticipant,
-                   'memory_gb': pipeline_config.maximumMemoryPerParticipant}
+    plugin_args = {'n_procs': pipeline_config.pipeline_setup['system_config']['max_cores_per_participant'],
+                   'memory_gb': pipeline_config.pipeline_setup['system_config']['maximum_memory_per_participant']}
 
     # Set up run command dictionary
     run_cmd_dict = {'config_file' : config_file,
                     'subject_list_file' : subject_list_file,
-                    'pipeline_name' : pipeline_config.pipelineName,
+                    'pipeline_name' : pipeline_config.pipeline_setup['pipeline_name'],
                     'plugin_args' : plugin_args}
 
     # Set up config dictionary
     config_dict = {'timestamp' : timestamp,
                    'shell' : shell,
-                   'job_name' : 'CPAC_' + pipeline_config.pipelineName,
+                   'job_name' : 'CPAC_' + pipeline_config.pipeline_setup['pipeline_name'],
                    'num_tasks' : num_subs,
-                   'queue' : pipeline_config.queue,
-                   'par_env' : pipeline_config.parallelEnvironment,
-                   'cores_per_task' : pipeline_config.maxCoresPerParticipant,
+                   'queue' : pipeline_config.pipeline_setup['system_config']['on_grid']['SGE']['queue'],
+                   'par_env' : pipeline_config.pipeline_setup['system_config']['on_grid']['SGE']['parallel_environment'],
+                   'cores_per_task' : pipeline_config.pipeline_setup['system_config']['max_cores_per_participant'],
                    'user' : user_account,
                    'work_dir' : cluster_files_dir,
                    'time_limit' : time_limit}
@@ -240,32 +238,31 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             "\n\n".format(config_file, e)
         )
 
-    c.logDirectory = os.path.abspath(c.logDirectory)
-    c.workingDirectory = os.path.abspath(c.workingDirectory)
-    if 's3://' not in c.outputDirectory:
-        c.outputDirectory = os.path.abspath(c.outputDirectory)
-    c.crashLogDirectory = os.path.abspath(c.crashLogDirectory)
-
+    c.pipeline_setup['log_directory']['path'] = os.path.abspath(c.pipeline_setup['log_directory']['path'])
+    c.pipeline_setup['working_directory']['path'] = os.path.abspath(c.pipeline_setup['working_directory']['path'])
+    if 's3://' not in c.pipeline_setup['output_directory']['path']:
+        c.pipeline_setup['output_directory']['path'] = os.path.abspath(c.pipeline_setup['output_directory']['path'])
+    c.pipeline_setup['crash_log_directory']['path'] = os.path.abspath(c.pipeline_setup['crash_log_directory']['path'])
     if debug:
-        c.write_debugging_outputs = "[1]"
+        c.pipeline_setup['output_directory']['path']['write_debugging_outputs'] = "[1]"
 
     if num_subs_at_once:
         if not str(num_subs_at_once).isdigit():
             raise Exception('[!] Value entered for --num_cores not a digit.')
-        c.numParticipantsAtOnce = int(num_subs_at_once)
+        c.pipeline_setup['system_config']['num_participants_at_once'] = int(num_subs_at_once)
 
     # Do some validation
-    if not c.workingDirectory:
+    if not c.pipeline_setup['working_directory']['path']:
         raise Exception('Working directory not specified')
 
-    if len(c.workingDirectory) > 70:
+    if len(c.pipeline_setup['working_directory']['path']) > 70:
         warnings.warn("We recommend that the working directory full path "
                       "should have less then 70 characters. "
                       "Long paths might not work in your operational system.")
-        warnings.warn("Current working directory: %s" % c.workingDirectory)
+        warnings.warn("Current working directory: %s" % c.pipeline_setup['working_directory']['path'])
 
     # Get the pipeline name
-    p_name = p_name or c.pipelineName
+    p_name = p_name or c.pipeline_setup['pipeline_name']
 
     # Load in subject list
     try:
@@ -316,15 +313,15 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             print("Usage tracking failed for this run.")
 
     # If we're running on cluster, execute job scheduler
-    if c.runOnGrid:
+    if c.pipeline_setup['system_config']['on_grid']['run']:
 
         # Create cluster log dir
-        cluster_files_dir = os.path.join(c.logDirectory, 'cluster_files')
+        cluster_files_dir = os.path.join(c.pipeline_setup['log_directory']['path'], 'cluster_files')
         if not os.path.exists(cluster_files_dir):
             os.makedirs(cluster_files_dir)
 
         # Check if its a condor job, and run that
-        if 'condor' in c.resourceManager.lower():
+        if 'condor' in c.pipeline_setup['system_config']['on_grid']['resource_manager'].lower():
             run_condor_jobs(c, config_file, subject_list_file, p_name)
         # All other schedulers are supported
         else:
@@ -333,27 +330,27 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     # Run on one computer
     else:
         # Create working dir
-        if not os.path.exists(c.workingDirectory):
+        if not os.path.exists(c.pipeline_setup['working_directory']['path']):
             try:
-                os.makedirs(c.workingDirectory)
+                os.makedirs(c.pipeline_setup['working_directory']['path'])
             except:
                 err = "\n\n[!] CPAC says: Could not create the working " \
                       "directory: %s\n\nMake sure you have permissions " \
-                      "to write to this directory.\n\n" % c.workingDirectory
+                      "to write to this directory.\n\n" % c.pipeline_setup['working_directory']['path']
                 raise Exception(err)
         '''
-        if not os.path.exists(c.logDirectory):
+        if not os.path.exists(c.pipeline_setup['log_directory']['path']):
             try:
-                os.makedirs(c.logDirectory)
+                os.makedirs(c.pipeline_setup['log_directory']['path'])
             except:
                 err = "\n\n[!] CPAC says: Could not create the log " \
                       "directory: %s\n\nMake sure you have permissions " \
-                      "to write to this directory.\n\n" % c.logDirectory
+                      "to write to this directory.\n\n" % c.pipeline_setup['log_directory']['path']
                 raise Exception(err)
         '''
 
         # BEGIN LONGITUDINAL TEMPLATE PIPELINE
-        if hasattr(c, 'run_longitudinal') and ('anat' in c.run_longitudinal or 'func' in c.run_longitudinal):
+        if hasattr(c, 'longitudinal_template_generation') and c.longitudinal_template_generation['run']:
             subject_id_dict = {}
             for sub in sublist:
                 if sub['subject_id'] in subject_id_dict:
@@ -367,20 +364,14 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             for subject_id, sub_list in subject_id_dict.items():
                 if len(sub_list) > 1:
                     valid_longitudinal_data = True
-                    if 'func' in c.run_longitudinal:
-                        raise Exception("\n\n[!] Error: Functional longitudinal pipeline is still in development and will be available in next release. Please only run anatomical longitudinal pipeline for now.\n\n")
-                    if 'anat' in c.run_longitudinal:
-                        strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
+                    strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
                 elif len(sub_list) == 1:
                     warnings.warn("\n\nThere is only one anatomical session for sub-%s. Longitudinal preprocessing will be skipped for this subject.\n\n" % subject_id)
-                # TODO
-                # if 'func' in c.run_longitudinal:
-                #     strat_list = func_preproc_longitudinal_wf(subject_id, sub_list, c)
-                #     func_longitudinal_template_wf(subject_id, strat_list, c)
+                # TODO functional longitudinal pipeline
 
             if valid_longitudinal_data:
                 rsc_file_list = []
-                for dirpath, dirnames, filenames in os.walk(c.outputDirectory):
+                for dirpath, dirnames, filenames in os.walk(c.pipeline_setup['output_directory']['path']):
                     for f in filenames:
                         # TODO is there a better way to check output folder name?
                         if f != '.DS_Store' and 'pipeline_analysis_longitudinal' in dirpath:
@@ -408,19 +399,19 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                         if len(ses_list) == 1:
                             ses = ses_list[0]
                             subj_id = ses['subject_id']
-                            tmp = f.split(c.outputDirectory)[-1]
+                            tmp = f.split(c.pipeline_setup['output_directory']['path'])[-1]
                             keys = tmp.split(os.sep)
                             if keys[0] == '':
                                 keys = keys[1:]
                             if len(keys) > 1:
                                 if ses.get('resource_pool') is None:
                                     ses['resource_pool'] = {
-                                        keys[0].split(c.pipelineName + '_')[-1]: {
+                                        keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]: {
                                             keys[-2]: f
                                         }
                                     }
                                 else:
-                                    strat_key = keys[0].split(c.pipelineName + '_')[-1]
+                                    strat_key = keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]
                                     if ses['resource_pool'].get(strat_key) is None:
                                         ses['resource_pool'].update({
                                             strat_key: {
@@ -436,19 +427,19 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     for f in subject_specific_dict[key]:
                         ses_list = [subj for subj in sublist if key in subj['anat']]
                         for ses in ses_list:
-                            tmp = f.split(c.outputDirectory)[-1]
+                            tmp = f.split(c.pipeline_setup['output_directory']['path'])[-1]
                             keys = tmp.split(os.sep)
                             if keys[0] == '':
                                 keys = keys[1:]
                             if len(keys) > 1:
                                 if ses.get('resource_pool') is None:
                                     ses['resource_pool'] = {
-                                        keys[0].split(c.pipelineName + '_')[-1]: {
+                                        keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]: {
                                             keys[-2]: f
                                         }
                                     }
                                 else:
-                                    strat_key = keys[0].split(c.pipelineName + '_')[-1]
+                                    strat_key = keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]
                                     if ses['resource_pool'].get(strat_key) is None:
                                         ses['resource_pool'].update({
                                             strat_key: {
@@ -513,25 +504,25 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                             except KeyError:
                                 pass
 
-                yaml.dump(sublist, open(os.path.join(c.workingDirectory,'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
+                yaml.dump(sublist, open(os.path.join(c.pipeline_setup['working_directory']['path'],'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
             
                 print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
                 
                 # skip main preprocessing
-                if 1 not in c.runAnatomical and 1 not in c.runFunctional:
+                if not c.anatomical_preproc['run'] and not c.functional_preproc['run']:
                     import sys
                     sys.exit()
 
         # END LONGITUDINAL TEMPLATE PIPELINE
 
         # If it only allows one, run it linearly
-        if c.numParticipantsAtOnce == 1:
+        if c.pipeline_setup['system_config']['num_participants_at_once'] == 1:
             for sub in sublist:
                 run_workflow(sub, c, True, pipeline_timing_info,
                               p_name, plugin, plugin_args, test_config)
             return
 
-        pid = open(os.path.join(c.workingDirectory, 'pid.txt'), 'w')
+        pid = open(os.path.join(c.pipeline_setup['working_directory']['path'], 'pid.txt'), 'w')
 
         # Init job queue
         job_queue = []
@@ -545,7 +536,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         ]
 
         # If we're allocating more processes than are subjects, run them all
-        if len(sublist) <= c.numParticipantsAtOnce:
+        if len(sublist) <= c.pipeline_setup['system_config']['num_participants_at_once']:
             for p in processes:
                 p.start()
                 print(p.pid, file=pid)
@@ -559,7 +550,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in processes[idc: idc+c.numParticipantsAtOnce]:
+                    for p in processes[idc: idc+c.pipeline_setup['system_config']['num_participants_at_once']]:
                         p.start()
                         print(p.pid, file=pid)
                         job_queue.append(p)

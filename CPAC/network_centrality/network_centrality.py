@@ -1,8 +1,15 @@
 from nipype.interfaces.afni.preprocess import DegreeCentrality, ECM, LFCD
+from CPAC.pipeline.schema import valid_options
+from CPAC.utils.docs import docstring_parameter
 
 
-def create_centrality_wf(wf_name, method_option, threshold_option,
-                         threshold, num_threads=1, memory_gb=1.0):
+@docstring_parameter(m_options=valid_options['centrality']['method_options'],
+                     t_options=valid_options['centrality'][
+                        'threshold_options'],
+                     w_options=valid_options['centrality']['weight_options'])
+def create_centrality_wf(wf_name, method_option, weight_options,
+                         threshold_option, threshold, num_threads=1,
+                         memory_gb=1.0):
     """
     Function to create the afni-based centrality workflow
 
@@ -11,9 +18,11 @@ def create_centrality_wf(wf_name, method_option, threshold_option,
     wf_name : string
         the name of the workflow
     method_option : string
-        'degree', 'eigenvector', or 'lfcd'
+        one of {m_options}
+    weight_options : list
+        one or more of {w_options}
     threshold_option : string
-        'significance', 'sparsity', or 'correlation'
+        one of {t_options}
     threshold : float
         the threshold value for thresholding the similarity matrix
     num_threads : integer (optional); default=1
@@ -37,7 +46,8 @@ def create_centrality_wf(wf_name, method_option, threshold_option,
         test_thresh = threshold / 100.0
 
     method_option, threshold_option = \
-        utils.check_centrality_params(method_option, threshold_option, test_thresh)
+        utils.check_centrality_params(method_option, threshold_option,
+                                      test_thresh)
 
     centrality_wf = pe.Workflow(name=wf_name)
 
@@ -49,28 +59,31 @@ def create_centrality_wf(wf_name, method_option, threshold_option,
     input_node.inputs.threshold = threshold
 
     # Degree centrality
-    if method_option == 'degree':
-        afni_centrality_node = \
-            pe.Node(DegreeCentrality(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                    name='afni_centrality', mem_gb=memory_gb)
-        afni_centrality_node.inputs.out_file = 'degree_centrality_merged.nii.gz'
-        out_names = ('degree_centrality_binarize', 'degree_centrality_weighted')
+    if method_option == 'degree_centrality':
+        afni_centrality_node = pe.Node(DegreeCentrality(environ={
+                'OMP_NUM_THREADS': str(num_threads)
+            }), name='afni_centrality', mem_gb=memory_gb)
+        afni_centrality_node.inputs.out_file = \
+            'degree_centrality_merged.nii.gz'
+        out_names = ('degree_centrality_binarize',
+                     'degree_centrality_weighted')
 
     # Eigenvector centrality
-    elif method_option == 'eigenvector':
-        afni_centrality_node = \
-        pe.Node(ECM(environ={'OMP_NUM_THREADS': str(num_threads)}),
-                name='afni_centrality', mem_gb=memory_gb)
-        afni_centrality_node.inputs.out_file = 'eigenvector_centrality_merged.nii.gz'
-        afni_centrality_node.inputs.memory = memory_gb # 3dECM input only
+    elif method_option == 'eigenvector_centrality':
+        afni_centrality_node = pe.Node(ECM(environ={
+            'OMP_NUM_THREADS': str(num_threads)
+        }), name='afni_centrality', mem_gb=memory_gb)
+        afni_centrality_node.inputs.out_file = \
+            'eigenvector_centrality_merged.nii.gz'
+        afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
         out_names = ('eigenvector_centrality_binarize',
                      'eigenvector_centrality_weighted')
 
     # lFCD
-    elif method_option == 'lfcd':
-        afni_centrality_node = \
-            pe.Node(LFCD(environ={'OMP_NUM_THREADS': str(num_threads)}),
-                    name='afni_centrality', mem_gb=memory_gb)
+    elif method_option == 'local_functional_connectivity_density':
+        afni_centrality_node = pe.Node(LFCD(environ={
+                'OMP_NUM_THREADS': str(num_threads)
+            }), name='afni_centrality', mem_gb=memory_gb)
         afni_centrality_node.inputs.out_file = 'lfcd_merged.nii.gz'
         out_names = ('lfcd_binarize', 'lfcd_weighted')
 
@@ -83,14 +96,15 @@ def create_centrality_wf(wf_name, method_option, threshold_option,
                           afni_centrality_node, 'mask')
 
     # If we're doing significan thresholding, convert to correlation
-    if threshold_option == 'significance':
+    if threshold_option == 'Significance threshold':
         # Check and (possibly) conver threshold
-        convert_thr_node = pe.Node(util.Function(input_names=['datafile',
-                                                              'p_value',
-                                                              'two_tailed'],
-                                                 output_names=['rvalue_threshold'],
-                                                 function=utils.convert_pvalue_to_r),
-                                   name='convert_threshold')
+        convert_thr_node = pe.Node(
+            util.Function(input_names=['datafile',
+                                       'p_value',
+                                       'two_tailed'],
+                          output_names=['rvalue_threshold'],
+                          function=utils.convert_pvalue_to_r),
+            name='convert_threshold')
         # Wire workflow to connect in conversion node
         centrality_wf.connect(input_node, 'in_file',
                               convert_thr_node, 'datafile')
@@ -100,9 +114,9 @@ def create_centrality_wf(wf_name, method_option, threshold_option,
                               afni_centrality_node, 'thresh')
 
     # Sparsity thresholding
-    elif threshold_option == 'sparsity':
+    elif threshold_option == 'Sparsity threshold':
         # Check to make sure it's not lFCD
-        if method_option == 'lfcd':
+        if method_option == 'local_functional_connectivity_density':
             raise Exception('Sparsity thresholding is not supported for lFCD')
 
         # Otherwise, connect threshold to sparsity input
@@ -110,7 +124,7 @@ def create_centrality_wf(wf_name, method_option, threshold_option,
                               afni_centrality_node, 'sparsity')
 
     # Correlation thresholding
-    elif threshold_option == 'correlation':
+    elif threshold_option == 'Correlation threshold':
         centrality_wf.connect(input_node, 'threshold',
                               afni_centrality_node, 'thresh')
 

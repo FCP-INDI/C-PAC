@@ -1,0 +1,80 @@
+# C-PAC System Configuration YAML file
+# Version 1.8.0.dev
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+
+# Select False if you intend to run CPAC on a single machine.
+# If set to True, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
+run_on_grid :  False
+
+
+# Full path to the FSL version to be used by CPAC.
+# If you have specified an FSL path in your .bashrc file, this path will be set automatically.
+FSLDIR :  /usr/share/fsl/5.0
+
+
+# Sun Grid Engine (SGE), Portable Batch System (PBS), or Simple Linux Utility for Resource Management (SLURM).
+# Only applies if you are running on a grid or compute cluster.
+resource_manager :  SGE
+
+
+# SGE Parallel Environment to use when running CPAC.
+# Only applies when you are running on a grid or compute cluster using SGE.
+parallel_environment :  mpi_smp
+
+
+# SGE Queue to use when running CPAC.
+# Only applies when you are running on a grid or compute cluster using SGE.
+queue :  all.q
+
+
+# The maximum amount of memory each participant's workflow can allocate.
+# Use this to place an upper bound of memory usage.
+# - Warning: 'Memory Per Participant' multiplied by 'Number of Participants to Run Simultaneously'
+#   must not be more than the total amount of RAM.
+# - Conversely, using too little RAM can impede the speed of a pipeline run.
+# - It is recommended that you set this to a value that when multiplied by
+#   'Number of Participants to Run Simultaneously' is as much RAM you can safely allocate.
+#
+# NOTE: This overrides the same setting in any pipeline configuration YAMLs.
+#       Can be used to set bounds/user quotas on distributed systems.
+#       Set as 'None' if you do not want to set a global maximum limit.
+maximum_memory_per_participant:  None
+
+
+# The maximum amount of cores (on a single machine) or slots on a node (on a cluster/grid)
+# to allocate per participant.
+# - Setting this above 1 will parallelize each participant's workflow where possible.
+#   If you wish to dedicate multiple cores to ANTS-based anatomical registration (below),
+#   this value must be equal or higher than the amount of cores provided to ANTS.
+# - The maximum number of cores your run can possibly employ will be this setting multiplied
+#   by the number of participants set to run in parallel (the 'Number of Participants to Run
+#   Simultaneously' setting).
+#
+# NOTE: This overrides the same setting in any pipeline configuration YAMLs.
+#       Can be used to set bounds/user quotas on distributed systems.
+#       Set as 'None' if you do not want to set a global maximum limit.
+max_cores_per_participant:  None
+
+
+# The number of cores to allocate to ANTS-based anatomical registration per participant.
+# - Multiple cores can greatly speed up this preprocessing step.
+# - This number cannot be greater than the number of cores per participant.
+#
+# NOTE: This overrides the same setting in any pipeline configuration YAMLs.
+#       Can be used to set bounds/user quotas on distributed systems.
+#       Set as 'None' if you do not want to set a global maximum limit.
+num_ants_threads:  None
+
+
+# The number of participant workflows to run at the same time.
+# - The maximum number of cores your run can possibly employ will be this setting
+#   multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
+#
+# NOTE: This overrides the same setting in any pipeline configuration YAMLs.
+#       Can be used to set bounds/user quotas on distributed systems.
+#       Set as 'None' if you do not want to set a global maximum limit.
+num_participants_at_once:  None

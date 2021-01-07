@@ -58,7 +58,6 @@ functional_brain_mask,functional,binary,,,,,,,,,,,,
 functional_brain_mask_to_standard,template,binary,,,,,,,,,,,,
 functional_freq_filtered,functional,raw,,,,,,,,yes,,yes,,yes
 functional_freq_filtered_smooth,functional,raw,,yes,,,,,yes,yes,,,,yes
-functional_median_angle_corrected,functional,raw,,yes,,,,,yes,,,,,
 functional_nuisance_regressors,,,,,,,,,,,,,,
 functional_nuisance_residuals,functional,,,,,,,,,yes,,yes,yes,yes
 functional_nuisance_residuals_smooth,functional,,,,,,,,yes,yes,,,yes,yes

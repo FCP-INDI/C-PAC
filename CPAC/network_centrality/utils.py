@@ -1,5 +1,7 @@
+from CPAC.pipeline.schema import valid_options
+from CPAC.utils.docs import docstring_parameter
 
-# Convert probability threshold value to correlation threshold
+
 def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     '''
     Method to calculate correlation threshold from p_value
@@ -17,7 +19,7 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     Returns
     -------
     r_value : float
-        correlation threshold value 
+        correlation threshold value
     '''
 
     import nibabel as nb
@@ -87,91 +89,157 @@ def sep_nifti_subbriks(nifti_file, out_names):
     return output_niftis
 
 
-# Check centrality parameters
+@docstring_parameter(m_options=valid_options['centrality']['method_options'],
+                     t_options=valid_options['centrality'][
+                         'threshold_options'])
 def check_centrality_params(method_option, threshold_option, threshold):
     '''
-    Function to check the centrality parameters
+    Function to check the centrality parameters.
+
+    Parameters
+    ----------
+    method_option: str or int
+        one of {m_options} or index of option
+
+    threshold_option: str
+        one of {t_options} or index of option
+
+    threshold: float
+
+    Returns
+    -------
+    method_option: str
+        one of {m_options}
+
+    threshold_option: str
+        one of {t_options}
     '''
 
     # Check method option
-    if type(method_option) is int:
-        if method_option == 0:
-            method_option = 'degree'
-        elif method_option == 1:
-            method_option = 'eigenvector'
-        elif method_option == 2:
-            method_option = 'lfcd'
+    if isinstance(method_option, int):
+        if method_option < len(valid_options['centrality']['method_options']):
+            method_option = valid_options[
+                'centrality']['method_options'][method_option]
         else:
-            err_msg = 'Method option: %d not supported' % method_option
-            raise Exception(err_msg)
-    elif type(method_option) is not str:
-        err_msg = 'Method option must be a string, but type: %s provided' \
-                  % str(type(method_option))
+            raise MethodOptionError(method_option)
+    elif not isinstance(method_option, str):
+        raise TypeError('Method option must be a string, but type \'%s\' '
+                        'provided' % type(method_option).__name__)
 
     # Check threshold option
     if type(threshold_option) is list:
         threshold_option = threshold_option[0]
     if type(threshold_option) is int:
-        if threshold_option == 0:
-            threshold_option = 'significance'
-        elif threshold_option == 1:
-            threshold_option = 'sparsity'
-        elif threshold_option == 2:
-            threshold_option = 'correlation'
+        if threshold_option < len(
+            valid_options['centrality']['threshold_options']
+        ):
+            threshold_option = valid_options[
+                'centrality']['threshold_options'][threshold_option]
         else:
-            err_msg = 'Threshold option: %s not supported for network centrality '\
-                      'measure: %s; fix this in the pipeline config'\
-                      % (str(threshold_option), str(method_option))
-            raise Exception(err_msg)
+            raise ThresholdOptionError(threshold_option, method_option)
     elif type(threshold_option) is not str:
-        err_msg = 'Threshold option must be a string, but type: %s provided' \
-                  % str(type(threshold_option))
-
-    # Init lists of acceptable strings
-    acceptable_methods = ['degree', 'eigenvector', 'lfcd']
-    acceptable_thresholds = ['significance', 'sparsity', 'correlation']
+        raise TypeError('Threshold option must be a string, but type \'%s\' '
+                        'provided' % type(threshold_option).__name__)
 
     # Format input strings
-    method_option = method_option.lower().replace('centrality', '').rstrip(' ')
-    threshold_option = threshold_option.lower().replace('threshold', '').rstrip(' ')
+    method_option = method_option.lower().rstrip(' ')
+    method_options_v1 = ['degree', 'eigenvector', 'lfcd']
+    if method_option in method_options_v1:
+        method_option = valid_options['centrality']['method_options'][
+            method_options_v1.index(method_option)
+        ]
+    if ' ' not in threshold_option:
+        threshold_option = ' '.join([threshold_option, 'threshold'])
+    threshold_option = threshold_option.capitalize().rstrip(' ')
 
     # Check for strings properly formatted
-    if method_option not in acceptable_methods:
-        err_msg = 'Method option: %s not supported' % method_option
-        raise Exception(err_msg)
+    if method_option not in valid_options['centrality']['method_options']:
+        raise MethodOptionError(method_option)
 
     # Check for strings properly formatted
-    if threshold_option not in acceptable_thresholds:
-        err_msg = 'Threshold option: %s not supported for network centrality '\
-                  'measure: %s; fix this in the pipeline config'\
-                  % (str(threshold_option), str(method_option))
-        raise Exception(err_msg)
+    if threshold_option not in valid_options['centrality'][
+        'threshold_options'
+    ]:
+        raise ThresholdOptionError(threshold_option, method_option)
+
+    # Check for invalid combinations of method_option + threshold_option
+    if (
+        method_option == 'local_functional_connectivity_density' and
+        threshold_option == 'Sparsity threshold'
+    ):
+        raise ThresholdOptionError(threshold_option, method_option)
 
     # If it's significance/sparsity thresholding, check for (0,1]
-    if threshold_option == 'significance' or threshold_option == 'sparsity':
+    if (
+        threshold_option == 'Significance threshold' or
+        threshold_option == 'Sparsity threshold'
+    ):
         if threshold <= 0 or threshold > 1:
-            err_msg = 'Threshold value must be a positive number greater than '\
-                      '0 and less than or equal to 1.\nCurrently it is set '\
-                      'at %f' % threshold
-            raise Exception(err_msg)
+            raise ThresholdError(threshold_option, threshold)
+
     # If it's correlation, check for [-1,1]
-    elif threshold_option == 'correlation':
+    elif threshold_option == 'Correlation threshold':
         if threshold < -1 or threshold > 1:
-            err_msg = 'Threshold value must be greater than or equal to -1 and '\
-                      'less than or equal to 1.\n Current it is set at %f'\
-                      % threshold
-            raise Exception(err_msg)
+            raise ThresholdError(threshold_option, threshold)
     else:
-        err_msg = 'Threshold option: %s not supported for network centrality '\
-                  'measure: %s; fix this in the pipeline config'\
-                  % (str(threshold_option), str(method_option))
-        raise Exception(err_msg)
-    # 
-    if method_option == 'lfcd' and threshold_option == 'sparsity':
-        err_msg = 'lFCD must use significance or correlation-type '\
-                  'thresholding. Check the pipline configuration has '\
-                  'this setting'
-        raise Exception(err_msg)
+        raise ThresholdOptionError(threshold_option, method_option)
 
     # Return valid method and threshold options
     return method_option, threshold_option
+
+
+class MethodOptionError(ValueError):
+    """Raised when a selected centrality method option is not supported.
+    """
+    def __init__(self, method_option):
+        self.method_option = method_option
+        self.message = 'Method option \'%s\' not supported' % method_option
+        super().__init__(self.message)
+
+
+class ThresholdError(ValueError):
+    """Raised when a selected threshold value is not supported for a
+    selected threshold option.
+    """
+    def __init__(self, threshold_option, threshold):
+        self.threshold_option = threshold_option
+        self.threshold = threshold
+        print(type(threshold))
+        self.message = f'For \'{threshold_option}\', threshold value must be '
+        if (
+            threshold_option == 'Significance threshold' or
+            threshold_option == 'Sparsity threshold'
+        ):
+            self.message += 'a positive number greater than 0 '
+        elif threshold_option == 'Correlation threshold':
+            self.message += 'greater than or equal to -1 '
+        else:
+            raise ThresholdOptionError(threshold_option)
+        self.message += 'and less than or equal to 1.\n Currently it is set ' \
+                        f'at {threshold}'
+        super().__init__(self.message)
+
+
+class ThresholdOptionError(ValueError):
+    """Raised when a selected threshold option is not supported for a
+    selected centrality measure.
+    """
+    def __init__(self, threshold_option, method_option=None):
+        self.method_option = method_option
+        self.threshold_option = threshold_option
+        self.message = f'Threshold option \'{threshold_option}\' not supported'
+        if self.method_option:
+            self.message += ' for network centrality measure ' \
+                            f'\'{method_option}\''
+        self.message += '; fix this in the pipeline config'
+        if (
+            method_option == 'local_functional_connectivity_density' and
+            threshold_option == 'Sparsity threshold'
+        ):
+            valid_options = ' or '.join([
+                f"'{t}'" for t in valid_options[
+                    'centrality'
+                ]['threshold_options'] if t != threshold_option
+            ])
+            self.message += f'. \'{method_option}\' must use {valid_options}.'
+        super().__init__(self.message)
