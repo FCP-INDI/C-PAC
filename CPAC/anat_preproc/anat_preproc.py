@@ -215,7 +215,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                                                                 'monkey'],
                                                 output_names=['expr'],
                                                 function=create_3dskullstrip_arg_string),
-                                    name='anat_skullstrip_args')
+                                    name='anat_skullstrip_args',
+                                    mem_gb=0.5)
         
         inputnode_afni.inputs.set(
                 mask_vol=config.skullstrip_mask_vol,
