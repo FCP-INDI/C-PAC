@@ -78,6 +78,7 @@ class Configuration(object):
         
         template_list = ['template_brain_only_for_anat',
                         'template_skull_for_anat',
+                        'template_brain_mask_for_anat',
                         'ref_mask',
                         'template_brain_only_for_func',
                         'template_skull_for_func',
