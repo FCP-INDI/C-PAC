@@ -3479,8 +3479,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             if ndmg_out:
                 ds = pe.Node(DataSink(),
-                                name='sinker_{}_{}'.format(num_strat,
-                                                           resource_i))
+                             name='sinker_{}_{}'.format(num_strat,
+                                                        resource_i),
+                             mem_gb=0.5)
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -3625,7 +3626,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # regular datasink
                 ds = pe.Node(
                     DataSink(),
-                    name='sinker_{}_{}'.format(num_strat, resource)
+                    name='sinker_{}_{}'.format(num_strat, resource),
+                    mem_gb=0.5
                 )
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
