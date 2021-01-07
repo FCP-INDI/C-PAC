@@ -1533,7 +1533,8 @@ def slice_timing_wf(name='slice_timing'):
 
     # create TShift AFNI node
     func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
-                                           name='slice_timing')
+                                           name='slice_timing',
+                                           mem_gb=2.0)
     func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
 
 
