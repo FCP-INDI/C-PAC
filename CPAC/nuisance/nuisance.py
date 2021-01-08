@@ -1039,7 +1039,8 @@ def create_regressor_workflow(nuisance_selectors,
                 # Merge mask paths to extract voxel timeseries
                 merge_masks_paths = pe.Node(
                     util.Merge(len(regressor_mask_file_resource_keys)),
-                    name='{}_merge_masks'.format(regressor_type)
+                    name='{}_merge_masks'.format(regressor_type),
+                    mem_gb=0.5
                 )
                 for i, regressor_mask_file_resource_key in \
                         enumerate(regressor_mask_file_resource_keys):
@@ -1054,7 +1055,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                 union_masks_paths = pe.Node(
                     MaskTool(outputtype='NIFTI_GZ'),
-                    name='{}_union_masks'.format(regressor_type)
+                    name='{}_union_masks'.format(regressor_type),
+                    mem_gb=1.0
                 )
 
                 nuisance_wf.connect(
@@ -1151,7 +1153,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         detrend_node = pe.Node(
                             afni.Detrend(args='-polort 1', outputtype='NIFTI'),
-                            name='{}_detrend'.format(regressor_type)
+                            name='{}_detrend'.format(regressor_type),
+                            mem_gb=2.0
                         )
 
                         nuisance_wf.connect(
@@ -1196,7 +1199,7 @@ def create_regressor_workflow(nuisance_selectors,
                         mean_node = pe.Node(
                             afni.ROIStats(quiet=False, args='-1Dformat'),
                             name='{}_mean'.format(regressor_type),
-                            mem_gb=1.5
+                            mem_gb=2.0
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],

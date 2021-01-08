@@ -834,7 +834,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                               function=resolve_resolution,
                                               as_module=True),
                                         name='resampled_' + template_name,
-                                        mem_gb=0.5)
+                                        mem_gb=1.0)
 
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
@@ -1754,7 +1754,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     function=resolve_resolution,
                     as_module=True
                 ),
-                name='functional_brain_mask_derivative_%d' % (num_strat)
+                name='functional_brain_mask_derivative_%d' % (num_strat),
+                mem_gb=0.5
             )
 
             resampled_template.inputs.resolution = c.resolution_for_func_derivative

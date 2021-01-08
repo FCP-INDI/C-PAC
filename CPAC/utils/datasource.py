@@ -140,7 +140,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                            function=check_func_scan,
                                            as_module=True),
                          name='check_func_scan',
-                         mem_gb=0.25)
+                         mem_gb=0.5)
 
     check_scan.inputs.func_scan_dct = rest_dict
     wf.connect(inputnode, 'scan', check_scan, 'scan')
@@ -153,7 +153,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                            function=get_rest,
                                            as_module=True),
                          name='selectrest',
-                         mem_gb=0.25)
+                         mem_gb=0.5)
     selectrest.inputs.rest_dict = rest_dict
     selectrest.inputs.resource = "scan"
     wf.connect(inputnode, 'scan', selectrest, 'scan')
@@ -168,7 +168,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                               function=check_for_s3,
                                               as_module=True),
                             name='check_for_s3',
-                            mem_gb=0.3)
+                            mem_gb=0.5)
 
     wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -187,7 +187,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                                    function=get_rest,
                                                    as_module=True),
                                  name='select_scan_params',
-                                 mem_gb=0.25)
+                                 mem_gb=0.5)
     select_scan_params.inputs.rest_dict = rest_dict
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')
@@ -240,7 +240,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                            function=get_rest,
                                            as_module=True),
                          name='selectrest',
-                         mem_gb=0.25)
+                         mem_gb=0.5)
     selectrest.inputs.rest_dict = fmap_dct
     selectrest.inputs.resource = "scan"
     wf.connect(inputnode, 'scan', selectrest, 'scan')
@@ -255,7 +255,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                               function=check_for_s3,
                                               as_module=True),
                             name='check_for_s3',
-                            mem_gb=0.3)
+                            mem_gb=0.5)
 
     wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -274,7 +274,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                                    function=get_rest,
                                                    as_module=True),
                                  name='select_scan_params',
-                                 mem_gb=0.25)
+                                 mem_gb=0.5)
     select_scan_params.inputs.rest_dict = fmap_dct
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')
@@ -390,7 +390,7 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
                                                      as_module=True),
                                                      iterfield=['file_path'],
                                    name='check_for_s3_%s' % name,
-                                   mem_gb=0.3)
+                                   mem_gb=0.5)
     else: 
         check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                                'creds_path',
@@ -400,7 +400,7 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
                                                   function=check_for_s3,
                                                   as_module=True),
                                 name='check_for_s3_%s' % name,
-                                mem_gb=0.3)
+                                mem_gb=0.5)
 
     check_s3_node.inputs.set(
         file_path=file_path,
@@ -621,7 +621,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
                                               function=check_for_s3,
                                               as_module=True),
                             name='check_for_s3',
-                            mem_gb=0.3)
+                            mem_gb=0.5)
 
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -707,7 +707,7 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
                                               function=check_for_s3,
                                               as_module=True),
                             name='check_for_s3',
-                            mem_gb=0.3)
+                            mem_gb=0.5)
 
     wf.connect(inputnode, 'mask_file', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
@@ -782,7 +782,7 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
                                               function=check_for_s3,
                                               as_module=True),
                             name='check_for_s3',
-                            mem_gb=0.3)
+                            mem_gb=0.5)
 
     wf.connect(inputnode, 'spatial_map_file', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')

@@ -975,7 +975,8 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                                               output_names=['resampled_template'],
                                               function=resolve_resolution,
                                               as_module=True),
-                                     name='resampled_' + template_name)
+                                     name='resampled_' + template_name,
+                                     mem_gb=1.0)
 
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
@@ -1671,7 +1672,8 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
                                               output_names=['resampled_template'],
                                               function=resolve_resolution,
                                               as_module=True),
-                                        name='resampled_' + template_name)
+                                        name='resampled_' + template_name,
+                                        mem_gb=1.0)
 
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template

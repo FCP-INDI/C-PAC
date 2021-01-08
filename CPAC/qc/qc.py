@@ -345,7 +345,8 @@ def create_qc_motion(wf_name='qc_motion'):
                                               'rotation_plot'],
                                 function=gen_motion_plt,
                                 as_module=True),
-                       name='motion_plot')
+                       name='motion_plot',
+                       mem_gb=0.5)
 
     wf.connect(input_node, 'motion_parameters', mov_plot, 'motion_parameters')
     wf.connect(mov_plot, 'translation_plot', output_node, 'motion_translation_plot')

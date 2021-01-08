@@ -196,7 +196,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                  function=calculate_DVARS,
                                  as_module=True),
                         name='cal_DVARS',
-                        mem_gb=1.0)
+                        mem_gb=3.5)
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'rest')
@@ -210,7 +210,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                      output_names=['out_file'],
                                      function=calculate_FD_P,
                                      as_module=True),
-                            name='calculate_FD')
+                            name='calculate_FD',
+                            mem_gb=0.5)
 
     wf.connect(input_node, 'movement_parameters',
                calculate_FDP, 'in_file')
@@ -223,7 +224,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                     output_names=['out_file'],
                                     function=calculate_FD_J,
                                     as_module=True),
-                            name='calculate_FDJ')
+                            name='calculate_FDJ',
+                            mem_gb=0.5)
     
     calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
     if motion_correct_tool == '3dvolreg':
@@ -244,7 +246,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                               output_names=['out_file'],
                                               function=gen_motion_parameters,
                                               as_module=True),
-                                     name='calc_motion_parameters')
+                                     name='calc_motion_parameters',
+                                     mem_gb=0.5)
 
     calc_motion_parameters.inputs.motion_correct_tool = motion_correct_tool
     wf.connect(input_node, 'subject_id',
@@ -268,7 +271,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                              output_names=['out_file'],
                                              function=gen_power_parameters,
                                              as_module=True),
-                                    name='calc_power_parameters')
+                                    name='calc_power_parameters',
+                                    mem_gb=0.5)
 
     calc_power_parameters.inputs.motion_correct_tool = motion_correct_tool
     wf.connect(input_node, 'subject_id',
