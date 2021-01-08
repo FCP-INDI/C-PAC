@@ -854,7 +854,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                                                       'warped_image'],
                                         function=hardcoded_reg,
                                         imports=reg_imports),
-                name='calc_ants_warp')
+                name='calc_ants_warp',
+                mem_gb=6.0)
 
     calculate_ants_warp.interface.num_threads = num_threads
 

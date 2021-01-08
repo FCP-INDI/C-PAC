@@ -5,6 +5,7 @@ import logging
 import datetime
 import threading
 import socketserver
+import math
 
 import networkx as nx
 import nipype.pipeline.engine as pe
@@ -59,13 +60,16 @@ def log_nodes_cb(node, status):
         return
 
     runtime = node.result.runtime
+    runtime_threads = getattr(runtime, 'cpu_percent', 'N/A')
+    if runtime_threads != 'N/A':
+        runtime_threads = math.ceil(runtime_threads/100)
 
     status_dict = {
         'id': str(node),
         'hash': node.inputs.get_hashval()[1],
         'start': getattr(runtime, 'startTime'),
         'finish': getattr(runtime, 'endTime'),
-        'runtime_threads': getattr(runtime, 'cpu_percent', 'N/A'),
+        'runtime_threads': runtime_threads,
         'runtime_memory_gb': getattr(runtime, 'mem_peak_gb', 'N/A'),
         'estimated_memory_gb': node.mem_gb,
         'num_threads': node.n_procs,

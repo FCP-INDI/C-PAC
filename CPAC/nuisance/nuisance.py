@@ -946,7 +946,8 @@ def create_regressor_workflow(nuisance_selectors,
                     anat_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(anatomical_at_resolution_key)
+                             .format(anatomical_at_resolution_key),
+                        mem_gb=2.5
                     )
                     anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
 
@@ -968,7 +969,8 @@ def create_regressor_workflow(nuisance_selectors,
                     func_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(functional_at_resolution_key)
+                             .format(functional_at_resolution_key),
+                        mem_gb=2.5
                     )
                     func_resample.inputs.apply_xfm = True
 
@@ -1037,7 +1039,8 @@ def create_regressor_workflow(nuisance_selectors,
                 # Merge mask paths to extract voxel timeseries
                 merge_masks_paths = pe.Node(
                     util.Merge(len(regressor_mask_file_resource_keys)),
-                    name='{}_merge_masks'.format(regressor_type)
+                    name='{}_merge_masks'.format(regressor_type),
+                    mem_gb=0.5
                 )
                 for i, regressor_mask_file_resource_key in \
                         enumerate(regressor_mask_file_resource_keys):
@@ -1052,7 +1055,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                 union_masks_paths = pe.Node(
                     MaskTool(outputtype='NIFTI_GZ'),
-                    name='{}_union_masks'.format(regressor_type)
+                    name='{}_union_masks'.format(regressor_type),
+                    mem_gb=1.0
                 )
 
                 nuisance_wf.connect(
@@ -1112,22 +1116,25 @@ def create_regressor_workflow(nuisance_selectors,
                                              'import nibabel as nb',
                                              'from nipype import logging']
 
-                        cosfilter_node = pe.Node(util.Function(input_names=['input_image_path',
-                                                                            'timestep'],
-                                                               output_names=[
-                                                                   'cosfiltered_img'],
-                                                               function=cosine_filter,
-                                                               imports=cosfilter_imports),
-                                                 name='{}_cosine_filter'.format(regressor_type))
+                        cosfilter_node = pe.Node(
+                            util.Function(input_names=['input_image_path',
+                                                       'timestep'],
+                                          output_names=['cosfiltered_img'],
+                                          function=cosine_filter,
+                                          imports=cosfilter_imports),
+                            name='{}_cosine_filter'.format(regressor_type),
+                            mem_gb=8.0)
                         nuisance_wf.connect(
                             summary_filter_input[0], summary_filter_input[1],
                             cosfilter_node, 'input_image_path'
                         )
-                        tr_string2float_node = pe.Node(util.Function(input_names=['tr'],
-                                                                     output_names=[
-                                                                         'tr_float'],
-                                                                     function=TR_string_to_float),
-                                                       name='{}_tr_string2float'.format(regressor_type))
+                        tr_string2float_node = pe.Node(
+                            util.Function(
+                                input_names=['tr'],
+                                output_names=['tr_float'],
+                                function=TR_string_to_float),
+                            name='{}_tr_string2float'.format(regressor_type),
+                            mem_gb=0.3)
 
                         nuisance_wf.connect(
                             inputspec, 'tr',
@@ -1146,7 +1153,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         detrend_node = pe.Node(
                             afni.Detrend(args='-polort 1', outputtype='NIFTI'),
-                            name='{}_detrend'.format(regressor_type)
+                            name='{}_detrend'.format(regressor_type),
+                            mem_gb=2.0
                         )
 
                         nuisance_wf.connect(
@@ -1190,7 +1198,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         mean_node = pe.Node(
                             afni.ROIStats(quiet=False, args='-1Dformat'),
-                            name='{}_mean'.format(regressor_type)
+                            name='{}_mean'.format(regressor_type),
+                            mem_gb=2.0
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
@@ -1208,7 +1217,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         std_node = pe.Node(
                             afni.TStat(args='-nzstdev', outputtype='NIFTI'),
-                            name='{}_std'.format(regressor_type)
+                            name='{}_std'.format(regressor_type),
+                            mem_gb=1.5
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
@@ -1221,7 +1231,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         standardized_node = pe.Node(
                             afni.Calc(expr='a/b', outputtype='NIFTI'),
-                            name='{}_standardized'.format(regressor_type)
+                            name='{}_standardized'.format(regressor_type),
+                            mem_gb=1.5
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
@@ -1234,7 +1245,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         pc_node = pe.Node(
                             PC(args='-vmean -nscale', pcs=regressor_selector['summary']['components'], outputtype='NIFTI_GZ'),
-                            name='{}_pc'.format(regressor_type)
+                            name='{}_pc'.format(regressor_type),
+                            mem_gb=1.5
                         )
 
                         nuisance_wf.connect(

@@ -399,13 +399,12 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
+            plugin_args['status_callback'] = log_nodes_cb
             if nipype.__version__ not in ('1.5.1'):
                 err_msg = "This version of Nipype may not be compatible with " \
                             "CPAC v%s, please install Nipype version 1.5.1\n" \
                             % (CPAC.__version__)
                 logger.error(err_msg)
-            else:
-                plugin_args['status_callback'] = log_nodes_cb
 
             if plugin_args['n_procs'] == 1:
                 plugin = 'Linear'
@@ -836,7 +835,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                               output_names=['resampled_template'],
                                               function=resolve_resolution,
                                               as_module=True),
-                                        name='resampled_' + template_name)
+                                        name='resampled_' + template_name,
+                                        mem_gb=1.0)
 
         resampled_template.inputs.resolution = resolution
         resampled_template.inputs.template = template
@@ -1756,7 +1756,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     function=resolve_resolution,
                     as_module=True
                 ),
-                name='functional_brain_mask_derivative_%d' % (num_strat)
+                name='functional_brain_mask_derivative_%d' % (num_strat),
+                mem_gb=0.5
             )
 
             resampled_template.inputs.resolution = c.resolution_for_func_derivative
@@ -3531,8 +3532,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             if ndmg_out:
                 ds = pe.Node(DataSink(),
-                                name='sinker_{}_{}'.format(num_strat,
-                                                           resource_i))
+                             name='sinker_{}_{}'.format(num_strat,
+                                                        resource_i),
+                             mem_gb=0.5)
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -3677,7 +3679,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 # regular datasink
                 ds = pe.Node(
                     DataSink(),
-                    name='sinker_{}_{}'.format(num_strat, resource)
+                    name='sinker_{}_{}'.format(num_strat, resource),
+                    mem_gb=0.5
                 )
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path

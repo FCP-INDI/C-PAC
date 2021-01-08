@@ -346,7 +346,8 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
 
         if config.bold_bet_functional_mean_boolean : 
             func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                                        name='func_mean_skull_{0}'.format(wf_name))
+                                      name='func_mean_skull_{0}'.format(wf_name),
+                                      mem_gb=1.0)
             func_skull_mean.inputs.options = '-mean'
             func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
             
@@ -375,16 +376,40 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
 
     elif skullstrip_tool == 'fsl_afni':
         func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                                    name='func_mean_skull')
+                                  name='func_mean_skull',
+                                  mem_gb=1.0)
         func_skull_mean.inputs.options = '-mean'
         func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
 
-        skullstrip_first_pass = pe.Node(fsl.BET(frac=0.2, mask=True, functional=False), name='skullstrip_first_pass')
-        bet_dilate = pe.Node(fsl.DilateImage(operation='max', kernel_shape='sphere', kernel_size=6.0, internal_datatype='char'), name='skullstrip_first_dilate')                                                  
-        bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
-        unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ', args='-clfrac 0.2 -rbt 18.3 65.0 90.0', out_file="uni.nii.gz"), name='unifize')
-        skullstrip_second_pass = pe.Node(preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'), name='skullstrip_second_pass')
-        combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'), name='combine_masks')
+        skullstrip_first_pass = pe.Node(fsl.BET(
+            frac=0.2, mask=True, functional=False),
+                                        name='skullstrip_first_pass',
+                                        mem_gb=1.0)
+        bet_dilate = pe.Node(fsl.DilateImage(operation='max',
+                                             kernel_shape='sphere',
+                                             kernel_size=6.0,
+                                             internal_datatype='char'),
+                             name='skullstrip_first_dilate',
+                             mem_gb=1.0)
+                               
+        bet_mask = pe.Node(fsl.ApplyMask(),
+                           name='skullstrip_first_mask',
+                           mem_gb=1.0)
+        unifize = pe.Node(afni_utils.Unifize(t2=True,
+                                             outputtype='NIFTI_GZ',
+                                             args='-clfrac 0.2 '
+                                                  '-rbt 18.3 65.0 90.0',
+                                             out_file="uni.nii.gz"),
+                          name='unifize',
+                          mem_gb=1.0)
+        skullstrip_second_pass = pe.Node(preprocess.Automask(dilate=1,
+                                                             outputtype='NIFTI'
+                                                                        '_GZ'),
+                                         name='skullstrip_second_pass',
+                                         mem_gb=1.0)
+        combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
+                                name='combine_masks',
+                                mem_gb=1.0)
 
         wf.connect([(input_node, func_skull_mean, [('func', 'in_file')]),
                         (func_skull_mean, skullstrip_first_pass, [('out_file', 'in_file')]),
@@ -513,7 +538,8 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
                     output_node, 'func_brain_mask')
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
-                               name='func_extract_brain')
+                               name='func_extract_brain',
+                               mem_gb=2.0)
 
     func_edge_detect.inputs.expr = 'a*b'
     func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
@@ -645,7 +671,8 @@ def create_wf_edit_func(wf_name="edit_func"):
                                          output_names=['stopidx',
                                                        'startidx'],
                                          function=get_idx),
-                           name='func_get_idx')
+                           name='func_get_idx',
+                           mem_gb=0.5)
 
     # wire in the func_get_idx node
     preproc.connect(inputNode, 'func',
@@ -657,7 +684,8 @@ def create_wf_edit_func(wf_name="edit_func"):
 
     # allocate a node to edit the functional file
     func_drop_trs = pe.Node(interface=afni_utils.Calc(),
-                            name='func_drop_trs')
+                            name='func_drop_trs',
+                            mem_gb=2.0)
 
     func_drop_trs.inputs.expr = 'a'
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
@@ -922,18 +950,22 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                          'transform_matrices',
                                                          'center_of_mass',
                                                          'motion_filter_info',
-                                                         'motion_filter_plot']),
-                          name='outputspec')
+                                                         'motion_filter_plot'
+                                                         ]),
+                          name='outputspec',
+                          mem_gb=0.8)
 
     func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                             name='func_deoblique')
+                             name='func_deoblique',
+                             mem_gb=2.0)
     func_deoblique.inputs.deoblique = True
 
     preproc.connect(input_node, 'func',
                     func_deoblique, 'in_file')
 
     func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name='func_reorient')
+                            name='func_reorient',
+                            mem_gb=2.0)
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -951,7 +983,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
-                            name='chunk')
+                            name='chunk',
+                            mem_gb=0.5)
 
             chunk.inputs.n_cpus = int(config.maxCoresPerParticipant)
             preproc.connect(func_reorient, 'out_file', chunk, 'func_file')
@@ -962,7 +995,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                      output_names=['split_funcs'],
                                      function=split_ts_chunks,
                                      imports=split_imports),
-                            name='split')
+                            name='split',
+                            mem_gb=2.0)
 
             preproc.connect(func_reorient, 'out_file', split, 'func_file')
             preproc.connect(chunk, 'TR_ranges', split, 'tr_ranges')
@@ -975,6 +1009,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
             func_motion_correct = pe.MapNode(interface=preprocess.Volreg(),
                                              name='func_generate_ref',
+                                             mem_gb=1.0,
                                              iterfield=['in_file'])
 
             preproc.connect(out_split_func, 'out_file',
@@ -1000,7 +1035,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
             preproc.connect(func_reorient, 'out_file', out_split_func, 'out_file')
 
             func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                          name='func_generate_ref')
+                                          name='func_generate_ref',
+                                          mem_gb=1.0)
 
             preproc.connect(out_split_func, 'out_file',
                             func_motion_correct, 'in_file')
@@ -1019,7 +1055,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         preproc.connect(func_reorient, 'out_file', out_split_func, 'out_file')
 
         func_motion_correct = pe.Node(interface=preprocess.Volreg(),
-                                      name='func_generate_ref')
+                                      name='func_generate_ref',
+                                      mem_gb=1.0)
 
         preproc.connect(out_split_func, 'out_file',
                         func_motion_correct, 'in_file')
@@ -1043,7 +1080,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
     # Calculate motion correction reference
     if motion_correct_ref == 'mean': 
         func_get_mean_RPI = pe.Node(interface=afni_utils.TStat(),
-                                    name='func_get_mean_RPI')
+                                    name='func_get_mean_RPI',
+                                    mem_gb=2.0)
 
         func_get_mean_RPI.inputs.options = '-mean'
         func_get_mean_RPI.inputs.outputtype = 'NIFTI_GZ'
@@ -1306,7 +1344,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
     elif motion_correct_tool == 'mcflirt':
         func_motion_correct_A = pe.Node(interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
-                                    name='func_motion_correct_mcflirt')
+                                    name='func_motion_correct_mcflirt',
+                                    mem_gb=2.5)
         
         func_motion_correct_A.inputs.save_mats = True
         func_motion_correct_A.inputs.save_plots = True
@@ -1330,7 +1369,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         normalize_motion_params = pe.Node(Function(input_names=['in_file'],
                                      output_names=['out_file'],
                                      function=normalize_motion_parameters),
-                            name='norm_motion_params')
+                            name='norm_motion_params',
+                            mem_gb=0.5)
 
         preproc.connect(func_motion_correct_A, 'par_file',
                         normalize_motion_params, 'in_file')
@@ -1409,7 +1449,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                     output_node, 'mask')
 
     func_mean = pe.Node(interface=afni_utils.TStat(),
-                        name='func_mean')
+                        name='func_mean',
+                        mem_gb=1.0)
 
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
@@ -1460,7 +1501,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                         output_node, 'func_mean')
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
-                             name='func_normalize')
+                             name='func_normalize',
+                             mem_gb=3.0)
     func_normalize.inputs.op_string = '-ing 10000'
     func_normalize.inputs.out_data_type = 'float'
 
@@ -1499,7 +1541,8 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                     output_node, 'motion_correct_median')
 
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
-                                  name='func_mask_normalize')
+                                  name='func_mask_normalize',
+                                  mem_gb=3.0)
     func_mask_normalize.inputs.op_string = '-Tmin -bin'
     func_mask_normalize.inputs.out_data_type = 'char'
 
@@ -1529,7 +1572,8 @@ def slice_timing_wf(name='slice_timing'):
 
     # create TShift AFNI node
     func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
-                                           name='slice_timing')
+                                           name='slice_timing',
+                                           mem_gb=2.0)
     func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
 
 

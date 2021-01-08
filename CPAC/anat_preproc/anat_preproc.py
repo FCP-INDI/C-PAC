@@ -215,7 +215,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
                                                                 'monkey'],
                                                 output_names=['expr'],
                                                 function=create_3dskullstrip_arg_string),
-                                    name='anat_skullstrip_args')
+                                    name='anat_skullstrip_args',
+                                    mem_gb=0.5)
         
         inputnode_afni.inputs.set(
                 mask_vol=config.skullstrip_mask_vol,
@@ -266,7 +267,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
         ])
 
         anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
-                                    name='anat_skullstrip')
+                                  name='anat_skullstrip',
+                                  mem_gb=1.0)
 
         anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
@@ -278,7 +280,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
         # Generate anatomical brain mask
         anat_brain_mask = pe.Node(interface=afni.Calc(),
-                                        name='anat_brain_mask')
+                                  name='anat_brain_mask',
+                                  mem_gb=1.0)
 
         anat_brain_mask.inputs.expr = 'step(a)'
         anat_brain_mask.inputs.outputtype = 'NIFTI_GZ'
@@ -288,7 +291,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
         # Apply skull-stripping step mask to original volume
         anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
-                                        name='anat_skullstrip_orig_vol')
+                                           name='anat_skullstrip_orig_vol',
+                                           mem_gb=1.0)
 
         anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
         anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
@@ -369,7 +373,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
         # Apply skull-stripping step mask to original volume
         anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
-                                        name='anat_skullstrip_orig_vol')
+                                           name='anat_skullstrip_orig_vol',
+                                           mem_gb=1.0)
 
         anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
         anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
@@ -533,7 +538,8 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
 
         anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
-                                        name='anat_skullstrip_orig_vol')
+                                           name='anat_skullstrip_orig_vol',
+                                           mem_gb=1.0)
         anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
         anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
 
@@ -998,7 +1004,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                         name='outputspec')
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
-                             name='anat_deoblique')
+                             name='anat_deoblique',
+                             mem_gb=1.0)
     anat_deoblique.inputs.deoblique = True
 
     preproc.connect(inputnode, 'anat', anat_deoblique, 'in_file')
@@ -1006,7 +1013,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
 
     # Anatomical reorientation
     anat_reorient = pe.Node(interface=afni.Resample(),
-                            name='anat_reorient')
+                            name='anat_reorient',
+                            mem_gb=1.0)
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
 
