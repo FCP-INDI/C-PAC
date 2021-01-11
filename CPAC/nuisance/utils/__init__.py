@@ -322,7 +322,9 @@ def generate_summarize_tissue_mask(nuisance_wf,
         elif step == 'resolution':
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
                                   name='{}_flirt'
-                                       .format(node_mask_key))
+                                       .format(node_mask_key),
+                                  mem_gb=0.5,
+                                  n_procs=3)
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -371,8 +373,13 @@ def generate_summarize_tissue_mask(nuisance_wf,
         elif step == 'erosion':
 
             erode_mask_node = pe.Node(
-                afni.Calc(args='-b a+i -c a-i -d a+j -e a-j -f a+k -g a-k', expr='a*(1-amongst(0,b,c,d,e,f,g))', outputtype='NIFTI_GZ'),
-                name='{}'.format(node_mask_key)
+                afni.Calc(
+                    args='-b a+i -c a-i -d a+j -e a-j -f a+k -g a-k',
+                    expr='a*(1-amongst(0,b,c,d,e,f,g))',
+                    outputtype='NIFTI_GZ'),
+                name='{}'.format(node_mask_key),
+                mem_gb=0.5,
+                n_procs=2
             )
 
             nuisance_wf.connect(*(
@@ -399,7 +406,11 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
 
         # reduce CSF mask to the lateral ventricles
-        mask_csf_with_lat_ven = pe.Node(interface=afni.Calc(outputtype='NIFTI_GZ'), name='{}_Ventricles'.format(mask_key))
+        mask_csf_with_lat_ven = pe.Node(
+            interface=afni.Calc(outputtype='NIFTI_GZ'),
+            name='{}_Ventricles'.format(mask_key),
+            mem_gb=0.5,
+            n_procs=2)
         mask_csf_with_lat_ven.inputs.expr = 'a*b'
         mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
@@ -415,27 +426,46 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                 if use_ants is True:
 
                     # perform the transform using ANTS
-                    collect_linear_transforms = pe.Node(util.Merge(3), name='{}_ants_transforms'.format(ventricles_key))
+                    collect_linear_transforms = pe.Node(
+                        util.Merge(3),
+                        name='{}_ants_transforms'.format(ventricles_key),
+                        mem_gb=0.5,
+                        n_procs=2)
 
                     nuisance_wf.connect(*(transforms['anat_to_mni_initial_xfm'] + (collect_linear_transforms, 'in1')))
                     nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
                     nuisance_wf.connect(*(transforms['anat_to_mni_affine_xfm'] + (collect_linear_transforms, 'in3')))
 
                     # check transform list to exclude Nonetype (missing) init/rig/affine
-                    check_transform = pe.Node(util.Function(input_names=['transform_list'],
-                                                            output_names=['checked_transform_list', 'list_length'],
-                                                            function=check_transforms), name='{0}_check_transforms'.format(ventricles_key))
+                    check_transform = pe.Node(
+                        util.Function(input_names=['transform_list'],
+                                      output_names=['checked_transform_list',
+                                                    'list_length'],
+                                      function=check_transforms),
+                        name='{0}_check_transforms'.format(ventricles_key),
+                        mem_gb=0.5,
+                        n_procs=3)
 
                     nuisance_wf.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
                     # generate inverse transform flags, which depends on the number of transforms
-                    inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'],
-                                                                    output_names=['inverse_transform_flags'],
-                                                                    function=generate_inverse_transform_flags),
-                                                                    name='{0}_inverse_transform_flags'.format(ventricles_key))
+                    inverse_transform_flags = pe.Node(
+                        util.Function(input_names=['transform_list'],
+                                      output_names=['inverse_transform_flags'],
+                                      function=generate_inverse_transform_flags
+                        ),
+                        name='{0}_inverse_transform_flags'.format(
+                            ventricles_key
+                        ),
+                        mem_gb=0.5,
+                        n_procs=2)
                     nuisance_wf.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
-                    lat_ven_mni_to_anat = pe.Node(interface=ants.ApplyTransforms(), name='{}_ants'.format(ventricles_key))
+                    lat_ven_mni_to_anat = pe.Node(
+                        interface=ants.ApplyTransforms(),
+                        name='{}_ants'.format(ventricles_key),
+                        mem_gb=0.5,
+                        n_procs=3)
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
@@ -449,7 +479,11 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                 else:
                     # perform the transform using FLIRT
-                    lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='{}_flirt'.format(ventricles_key))
+                    lat_ven_mni_to_anat = pe.Node(
+                        interface=fsl.FLIRT(),
+                        name='{}_flirt'.format(ventricles_key),
+                        mem_gb=0.5,
+                        n_procs=3)
                     lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
 
                     nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))

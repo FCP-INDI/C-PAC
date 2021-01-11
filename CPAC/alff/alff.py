@@ -181,7 +181,9 @@ def create_alff(wf_name='alff_workflow'):
     get_option_string = pe.Node(util.Function(input_names=['mask'],
                                               output_names=['option_string'],
                                               function=get_opt_string),
-                                name='get_option_string')
+                                name='get_option_string',
+                                mem_gb=0.5,
+                                n_procs=2)
 
     wf.connect(input_node, 'rest_mask', get_option_string, 'mask')
 

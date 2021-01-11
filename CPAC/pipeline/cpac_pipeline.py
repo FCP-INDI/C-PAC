@@ -1757,7 +1757,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     as_module=True
                 ),
                 name='functional_brain_mask_derivative_%d' % (num_strat),
-                mem_gb=0.5
+                mem_gb=0.5,
+                n_procs=2
             )
 
             resampled_template.inputs.resolution = c.resolution_for_func_derivative
@@ -2183,7 +2184,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 )
 
                 # invert func2anat matrix to get anat2func_linear_xfm
-                anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm_{0}_{1}'.format(regressors_selector_i, num_strat))
+                anat2func_linear_xfm = pe.Node(
+                    interface=fsl.ConvertXFM(),
+                    name='anat_to_func_linear_xfm_{0}_{1}'.format(
+                        regressors_selector_i, num_strat),
+                    mem_gb=0.5,
+                    n_procs=2)
                 anat2func_linear_xfm.inputs.invert_xfm = True
                 workflow.connect(
                     node, out_file,

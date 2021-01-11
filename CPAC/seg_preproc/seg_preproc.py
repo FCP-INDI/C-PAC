@@ -316,7 +316,7 @@ def create_seg_preproc(use_ants,
                                                         'partial_volume_files']),
                         name='outputspec')
 
-    segment = pe.Node(interface=fsl.FAST(), name='segment', mem_gb=1.5)
+    segment = pe.Node(interface=fsl.FAST(), name='segment', mem_gb=2.0)
     segment.inputs.img_type = 1
     segment.inputs.segments = True
     segment.inputs.probability_maps = True
@@ -581,30 +581,44 @@ def process_segment_map(wf_name,
         return erosion_prop**3
 
     if use_ants:
-        collect_linear_transforms = pe.Node(util.Merge(3),
-                                            name='{0}_collect_linear_transforms'.format(wf_name))
+        collect_linear_transforms = pe.Node(
+            util.Merge(3),
+            name='{0}_collect_linear_transforms'.format(wf_name),
+            mem_gb=0.5,
+            n_procs=2)
         preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
         preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
         preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
 
         # check transform list to exclude Nonetype (missing) init/rig/affine
-        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
-                                                output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms), name='{0}_check_transforms'.format(wf_name))
+        check_transform = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['checked_transform_list',
+                                        'list_length'],
+                          function=check_transforms),
+            name='{0}_check_transforms'.format(wf_name),
+            mem_gb=0.5,
+            n_procs=3)
         
         preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
         # generate inverse transform flags, which depends on the number of transforms
-        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
-                                                        output_names=['inverse_transform_flags'],
-                                                        function=generate_inverse_transform_flags), 
-                                                        name='{0}_inverse_transform_flags'.format(wf_name))
+        inverse_transform_flags = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['inverse_transform_flags'],
+                          function=generate_inverse_transform_flags),
+            name='{0}_inverse_transform_flags'.format(wf_name),
+            mem_gb=0.5,
+            n_procs=2)
 
         preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
         # mni to t1
-        tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(),
-                                        name='{0}_prior_mni_to_t1'.format(wf_name))
+        tissueprior_mni_to_t1 = pe.Node(
+            interface=ants.ApplyTransforms(),
+            name='{0}_prior_mni_to_t1'.format(wf_name),
+            mem_gb=1.0,
+            n_procs=2)
 
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
@@ -619,8 +633,11 @@ def process_segment_map(wf_name,
             input_1, value_1 = (inputNode, 'probability_tissue_map')
 
         if use_priors:
-            overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(),
-                                                    name='overlap_%s_map_with_prior' % (wf_name))
+            overlap_segmentmap_with_prior = pe.Node(
+                interface=fsl.MultiImageMaths(),
+                name='overlap_%s_map_with_prior' % (wf_name),
+                mem_gb=0.5,
+                n_procs=2)
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
             preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
@@ -641,7 +658,9 @@ def process_segment_map(wf_name,
 
 
         binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
-                                                name='binarize_%s' % (wf_name))
+                                                name='binarize_%s' % (wf_name),
+                                                mem_gb=0.5,
+                                                n_procs=2)
         binarize_threshold_segmentmap.inputs.op_string = '-bin '
 
         preproc.connect(input_1, value_1, binarize_threshold_segmentmap, 'in_file')
@@ -681,8 +700,11 @@ def process_segment_map(wf_name,
 
 
     else:
-        tissueprior_mni_to_t1 = pe.Node(interface=fsl.FLIRT(),
-                                        name='{0}_prior_mni_to_t1'.format(wf_name))
+        tissueprior_mni_to_t1 = pe.Node(
+            interface=fsl.FLIRT(),
+            name='{0}_prior_mni_to_t1'.format(wf_name),
+            mem_gb=1.0,
+            n_procs=2)
         tissueprior_mni_to_t1.inputs.apply_xfm = True
         tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
 
@@ -698,8 +720,11 @@ def process_segment_map(wf_name,
             input_1, value_1 = (inputNode, 'probability_tissue_map')
 
         if use_priors:
-            overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(),
-                                                    name='overlap_%s_map_with_prior' % (wf_name))
+            overlap_segmentmap_with_prior = pe.Node(
+                interface=fsl.MultiImageMaths(),
+                name='overlap_%s_map_with_prior' % (wf_name),
+                mem_gb=0.5,
+                n_procs=2)
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
             preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
@@ -720,7 +745,9 @@ def process_segment_map(wf_name,
 
 
         binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
-                                                name='binarize_%s' % (wf_name))
+                                                name='binarize_%s' % (wf_name),
+                                                mem_gb=0.5,
+                                                n_procs=2)
         binarize_threshold_segmentmap.inputs.op_string = '-bin '
 
         preproc.connect(input_1, value_1, binarize_threshold_segmentmap, 'in_file')
@@ -936,25 +963,36 @@ def tissue_mask_template_to_t1(wf_name,
                         name='outputspec')
 
     if use_ants:
-        collect_linear_transforms = pe.Node(util.Merge(3),
-                                            name='{0}_collect_linear_transforms'.format(wf_name))
+        collect_linear_transforms = pe.Node(
+            util.Merge(3),
+            name='{0}_collect_linear_transforms'.format(wf_name),
+            mem_gb=0.5,
+            n_procs=2)
 
         preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
         preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
         preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
 
         # check transform list to exclude Nonetype (missing) init/rig/affine
-        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
-                                                output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms), name='{0}_check_transforms'.format(wf_name))
+        check_transform = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['checked_transform_list',
+                                        'list_length'],
+                          function=check_transforms),
+            name='{0}_check_transforms'.format(wf_name),
+            mem_gb=0.5,
+            n_procs=3)
         
         preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
         # generate inverse transform flags, which depends on the number of transforms
-        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
-                                                        output_names=['inverse_transform_flags'],
-                                                        function=generate_inverse_transform_flags), 
-                                                        name='{0}_inverse_transform_flags'.format(wf_name))
+        inverse_transform_flags = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['inverse_transform_flags'],
+                          function=generate_inverse_transform_flags),
+            name='{0}_inverse_transform_flags'.format(wf_name),
+            mem_gb=0.5,
+            n_procs=2)
 
         preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 

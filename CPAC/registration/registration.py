@@ -254,7 +254,9 @@ def create_register_func_to_mni(name='register_func_to_mni'):
                          name='outputspec')
     
     linear_reg = pe.Node(interface=fsl.FLIRT(),
-                         name='linear_func_to_anat')
+                         name='linear_func_to_anat',
+                         mem_gb=0.5,
+                         n_procs=2)
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
     
@@ -365,7 +367,9 @@ def create_register_func_to_anat(phase_diff_distcor=False,
                          name='outputspec')
     
     linear_reg = pe.Node(interface=fsl.FLIRT(),
-                         name='linear_func_to_anat')
+                         name='linear_func_to_anat',
+                         mem_gb=0.5,
+                         n_procs=2)
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
     
@@ -480,7 +484,9 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
                          name='outputspec')
 
     wm_bb_mask = pe.Node(interface=fsl.ImageMaths(),
-                         name='wm_bb_mask')
+                         name='wm_bb_mask',
+                         mem_gb=0.5,
+                         n_procs=2)
     wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
 
     register_bbregister_func_to_anat.connect(inputspec, 'anat_wm_segmentation',
@@ -490,7 +496,9 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
         return '-cost bbr -wmseg ' + bbreg_target
 
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
-                                 name='bbreg_func_to_anat')
+                                 name='bbreg_func_to_anat',
+                                 mem_gb=1.0,
+                                 n_procs=2)
     bbreg_func_to_anat.inputs.dof = 6    
  
     register_bbregister_func_to_anat.connect(inputspec, 'bbr_schedule',
@@ -601,7 +609,11 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
         ])
 
         # combine transforms
-        collect_transforms = pe.Node(util.Merge(4), name='collect_transforms_ants')
+        collect_transforms = pe.Node(
+            util.Merge(4),
+            name='collect_transforms_ants',
+            mem_gb=0.5,
+            n_procs=3)
         register_func_to_epi.connect([
             (func_to_epi_ants, collect_transforms, [
                 ('outputspec.ants_initial_xfm', 'in1'),
@@ -612,9 +624,14 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
         ])
 
         # check transform list to exclude Nonetype (missing) init/rig/affine
-        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
-                                                output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms), name='{0}_check_transforms'.format(name))
+        check_transform = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['checked_transform_list',
+                                        'list_length'],
+                          function=check_transforms),
+            name='{0}_check_transforms'.format(name),
+            mem_gb=0.5,
+            n_procs=3)
         
         register_func_to_epi.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -855,37 +872,63 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                                         function=hardcoded_reg,
                                         imports=reg_imports),
                 name='calc_ants_warp',
-                mem_gb=6.0)
+                mem_gb=6.0,
+                n_procs=2)
 
     calculate_ants_warp.interface.num_threads = num_threads
 
-    select_forward_initial = pe.Node(util.Function(input_names=['warp_list',
-            'selection'], output_names=['selected_warp'],
-            function=seperate_warps_list), name='select_forward_initial')
+    select_forward_initial = pe.Node(
+        util.Function(input_names=['warp_list',
+                                   'selection'],
+                      output_names=['selected_warp'],
+                      function=seperate_warps_list),
+        name='select_forward_initial',
+        mem_gb=0.5,
+        n_procs=3)
 
     select_forward_initial.inputs.selection = "Initial"
 
-    select_forward_rigid = pe.Node(util.Function(input_names=['warp_list',
-            'selection'], output_names=['selected_warp'],
-            function=seperate_warps_list), name='select_forward_rigid')
+    select_forward_rigid = pe.Node(
+        util.Function(input_names=['warp_list',
+                                   'selection'],
+                      output_names=['selected_warp'],
+                      function=seperate_warps_list),
+        name='select_forward_rigid',
+        mem_gb=0.5,
+        n_procs=2)
 
     select_forward_rigid.inputs.selection = "Rigid"
 
-    select_forward_affine = pe.Node(util.Function(input_names=['warp_list',
-            'selection'], output_names=['selected_warp'],
-            function=seperate_warps_list), name='select_forward_affine')
+    select_forward_affine = pe.Node(
+        util.Function(input_names=['warp_list',
+                                   'selection'],
+                      output_names=['selected_warp'],
+                      function=seperate_warps_list),
+        name='select_forward_affine',
+        mem_gb=0.5,
+        n_procs=3)
 
     select_forward_affine.inputs.selection = "Affine"
 
-    select_forward_warp = pe.Node(util.Function(input_names=['warp_list',
-            'selection'], output_names=['selected_warp'],
-            function=seperate_warps_list), name='select_forward_warp')
+    select_forward_warp = pe.Node(
+        util.Function(input_names=['warp_list',
+                                   'selection'],
+                      output_names=['selected_warp'],
+                      function=seperate_warps_list),
+        name='select_forward_warp',
+        mem_gb=0.5,
+        n_procs=3)
 
     select_forward_warp.inputs.selection = "Warp"
 
-    select_inverse_warp = pe.Node(util.Function(input_names=['warp_list',
-            'selection'], output_names=['selected_warp'],
-            function=seperate_warps_list), name='select_inverse_warp')
+    select_inverse_warp = pe.Node(
+        util.Function(input_names=['warp_list',
+                                   'selection'],
+                      output_names=['selected_warp'],
+                      function=seperate_warps_list),
+        name='select_inverse_warp',
+        mem_gb=0.5,
+        n_procs=2)
 
     select_inverse_warp.inputs.selection = "Inverse"
 

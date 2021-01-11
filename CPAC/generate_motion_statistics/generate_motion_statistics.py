@@ -196,7 +196,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                  function=calculate_DVARS,
                                  as_module=True),
                         name='cal_DVARS',
-                        mem_gb=3.5)
+                        mem_gb=3.5,
+                        n_procs=5)
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'rest')
@@ -211,7 +212,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                      function=calculate_FD_P,
                                      as_module=True),
                             name='calculate_FD',
-                            mem_gb=0.5)
+                            mem_gb=0.5,
+                            n_procs=2)
 
     wf.connect(input_node, 'movement_parameters',
                calculate_FDP, 'in_file')
@@ -225,7 +227,8 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                     function=calculate_FD_J,
                                     as_module=True),
                             name='calculate_FDJ',
-                            mem_gb=0.5)
+                            mem_gb=0.5,
+                            n_procs=2)
     
     calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
     if motion_correct_tool == '3dvolreg':

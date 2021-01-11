@@ -633,7 +633,9 @@ def create_regressor_workflow(nuisance_selectors,
                          name='outputspec')
 
     functional_mean = pe.Node(interface=afni_utils.TStat(),
-                        name='functional_mean')
+                        name='functional_mean',
+                        mem_gb=2.0,
+                        n_procs=2)
 
     functional_mean.inputs.options = '-mean'
     functional_mean.inputs.outputtype = 'NIFTI_GZ'
@@ -870,7 +872,11 @@ def create_regressor_workflow(nuisance_selectors,
                 if erosion_mm: # TODO: in func/anat space
                     # transform eroded anat brain mask to functional space
                     # convert_xfm
-                    anat_to_func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm')
+                    anat_to_func_linear_xfm = pe.Node(
+                        interface=fsl.ConvertXFM(),
+                        name='anat_to_func_linear_xfm',
+                        mem_gb=0.5,
+                        n_procs=2)
                     anat_to_func_linear_xfm.inputs.invert_xfm = True
                     nuisance_wf.connect(*(pipeline_resource_pool['Transformations']['func_to_anat_linear_xfm'] + (anat_to_func_linear_xfm, 'in_file')))
 
@@ -1040,7 +1046,8 @@ def create_regressor_workflow(nuisance_selectors,
                 merge_masks_paths = pe.Node(
                     util.Merge(len(regressor_mask_file_resource_keys)),
                     name='{}_merge_masks'.format(regressor_type),
-                    mem_gb=0.5
+                    mem_gb=0.5,
+                    n_procs=2
                 )
                 for i, regressor_mask_file_resource_key in \
                         enumerate(regressor_mask_file_resource_keys):
@@ -1056,7 +1063,8 @@ def create_regressor_workflow(nuisance_selectors,
                 union_masks_paths = pe.Node(
                     MaskTool(outputtype='NIFTI_GZ'),
                     name='{}_union_masks'.format(regressor_type),
-                    mem_gb=1.0
+                    mem_gb=1.0,
+                    n_procs=2
                 )
 
                 nuisance_wf.connect(

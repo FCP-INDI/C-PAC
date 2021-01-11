@@ -274,7 +274,8 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                                    function=get_rest,
                                                    as_module=True),
                                  name='select_scan_params',
-                                 mem_gb=0.5)
+                                 mem_gb=0.5,
+                                 n_procs=2)
     select_scan_params.inputs.rest_dict = fmap_dct
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')

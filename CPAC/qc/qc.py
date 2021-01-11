@@ -63,7 +63,8 @@ def create_montage(wf_name, cbar_name, png_name):
                                     as_module=True),
                            name='montage_a',
                            mem_gb=1.0,
-                           iterfield=['overlay'])
+                           iterfield=['overlay'],
+                           n_procs=8)
     montage_a.inputs.cbar_name = cbar_name
     montage_a.inputs.png_name = png_name + '_a.png'
 
@@ -81,7 +82,8 @@ def create_montage(wf_name, cbar_name, png_name):
                                     as_module=True),
                            name='montage_s',
                            mem_gb=1.0,
-                           iterfield=['overlay'])
+                           iterfield=['overlay'],
+                           n_procs=8)
     montage_s.inputs.cbar_name = cbar_name
     montage_s.inputs.png_name = png_name + '_s.png'
 
@@ -137,7 +139,8 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                  function=montage_gm_wm_csf_axial,
                                  as_module=True),
                         name='montage_a',
-                        mem_gb=1.0)
+                        mem_gb=1.0,
+                        n_procs=8)
 
 
     wf.connect(resample_u, 'new_fname', montage_a, 'underlay')
@@ -155,7 +158,8 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                  function=montage_gm_wm_csf_sagittal,
                                  as_module=True),
                         name='montage_s',
-                        mem_gb=1.0)
+                        mem_gb=1.0,
+                        n_procs=8)
     montage_s.inputs.png_name = png_name + '_s.png'
 
     wf.connect(resample_u, 'new_fname', montage_s, 'underlay')
@@ -263,7 +267,8 @@ def create_qc_snr(wf_name='qc_snr'):
 
     std_dev = pe.Node(afni.TStat(args='-stdev'),
                       name='std_dev',
-                      mem_gb=1.0)
+                      mem_gb=2.0,
+                      n_procs=3)
 
     std_dev.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(input_node, 'functional_preprocessed', std_dev, 'in_file')
@@ -272,12 +277,13 @@ def create_qc_snr(wf_name='qc_snr'):
 
     std_dev_anat = pe.Node(fsl.ApplyWarp(interp='trilinear'), 
                            name='std_dev_anat',
-                           mem_gb=1.0)
+                           mem_gb=2.0,
+                           n_procs=3)
     wf.connect(input_node, 'functional_to_anat_linear_xfm', std_dev_anat, 'premat')
     wf.connect(std_dev, 'out_file', std_dev_anat, 'in_file')
     wf.connect(input_node, 'anatomical_brain', std_dev_anat, 'ref_file')
 
-    snr = pe.Node(afni.Calc(expr='b/a'), name='snr', mem_gb=1.0)
+    snr = pe.Node(afni.Calc(expr='b/a'), name='snr', mem_gb=1.0, n_procs=2)
     snr.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(input_node, 'mean_functional_in_anat', snr, 'in_file_b')
     wf.connect(std_dev_anat, 'out_file', snr, 'in_file_a')
@@ -287,7 +293,8 @@ def create_qc_snr(wf_name='qc_snr'):
                                 function=cal_snr_val,
                                 as_module=True),
                         name='snr_val',
-                        mem_gb=1.0)
+                        mem_gb=1.0,
+                        n_procs=2)
 
     wf.connect(snr, 'out_file', snr_val, 'measure_file')
 
@@ -295,7 +302,9 @@ def create_qc_snr(wf_name='qc_snr'):
                                 output_names=['hist_path'],
                                 function=gen_histogram,
                                 as_module=True),
-                        name='hist_snr')
+                        name='hist_snr',
+                        mem_gb=0.5,
+                        n_procs=6)
 
     hist_snr.inputs.measure = 'snr'
 
@@ -307,7 +316,9 @@ def create_qc_snr(wf_name='qc_snr'):
                  output_names=['modified_measure_file'],
                  function=drop_percent,
                  as_module=True),
-        name='dp_snr'
+        name='dp_snr',
+        mem_gb=0.5,
+        n_procs=5
     )
 
     snr_drop_percent.inputs.percent = 99
@@ -346,7 +357,8 @@ def create_qc_motion(wf_name='qc_motion'):
                                 function=gen_motion_plt,
                                 as_module=True),
                        name='motion_plot',
-                       mem_gb=0.5)
+                       mem_gb=0.5,
+                       n_procs=2)
 
     wf.connect(input_node, 'motion_parameters', mov_plot, 'motion_parameters')
     wf.connect(mov_plot, 'translation_plot', output_node, 'motion_translation_plot')
@@ -401,7 +413,7 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
     wf.connect(input_node, 'anatomical_gm_mask', gm_resample, 'in_file')
     wf.connect(input_node, 'mean_functional_to_standard', gm_resample, 'master')
 
-    gm_mask = pe.Node(afni.Calc(), name="gm_mask", mem_gb=1.0)
+    gm_mask = pe.Node(afni.Calc(), name='gm_mask', mem_gb=1.0, n_procs=3)
     gm_mask.inputs.expr = 'astep(a, 0.5)'
     gm_mask.inputs.outputtype = 'NIFTI'
     wf.connect(gm_resample, 'out_file', gm_mask, 'in_file_a')
@@ -413,7 +425,7 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
     wf.connect(input_node, 'anatomical_wm_mask', wm_resample, 'in_file')
     wf.connect(input_node, 'mean_functional_to_standard', wm_resample, 'master')
 
-    wm_mask = pe.Node(afni.Calc(), name="wm_mask", mem_gb=1.0)
+    wm_mask = pe.Node(afni.Calc(), name='wm_mask', mem_gb=1.0, n_procs=3)
     wm_mask.inputs.expr = 'astep(a, 0.5)'
     wm_mask.inputs.outputtype = 'NIFTI'
     wf.connect(wm_resample, 'out_file', wm_mask, 'in_file_a')
@@ -425,7 +437,7 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
     wf.connect(input_node, 'anatomical_csf_mask', csf_resample, 'in_file')
     wf.connect(input_node, 'mean_functional_to_standard', csf_resample, 'master')
 
-    csf_mask = pe.Node(afni.Calc(), name="csf_mask", mem_gb=1.0)
+    csf_mask = pe.Node(afni.Calc(), name='csf_mask', mem_gb=1.0, n_procs=3)
     csf_mask.inputs.expr = 'astep(a, 0.5)'
     csf_mask.inputs.outputtype = 'NIFTI'
     wf.connect(csf_resample, 'out_file', csf_mask, 'in_file_a')

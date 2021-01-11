@@ -148,11 +148,14 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                              montage_mni_anat, 'inputspec.underlay')
 
             template_brain_for_anat, out_file = strat['template_brain_for_anat']
-            anat_template_edge = pe.Node(Function(input_names=['in_file'],
-                                         output_names=['out_file'],
-                                         function=afni_Edge3,
-                                         as_module=True),
-                                name='anat_template_edge_{0}'.format(num_strat))
+            anat_template_edge = pe.Node(
+                Function(input_names=['in_file'],
+                         output_names=['out_file'],
+                         function=afni_Edge3,
+                         as_module=True),
+                name='anat_template_edge_{0}'.format(num_strat),
+                mem_gb=0.5,
+                n_procs=3)
 
             workflow.connect(template_brain_for_anat, out_file, anat_template_edge, 'in_file')
             workflow.connect(anat_template_edge, 'out_file',
@@ -248,7 +251,9 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                                          output_names=['out_file'],
                                          function=afni_Edge3,
                                          as_module=True),
-                                name='anat_edge_%d' % num_strat)
+                                name='anat_edge_%d' % num_strat,
+                                mem_gb=0.5,
+                                n_procs=2)
 
             montage_anat = create_montage(
                 'montage_anat_%d' % num_strat, 'red',
@@ -281,11 +286,14 @@ def create_qc_workflow(workflow, c, strategies, qc_outputs):
                              'inputspec.underlay')
 
             template_brain_for_func, out_file = strat['template_brain_for_func_preproc']
-            func_template_edge = pe.Node(Function(input_names=['in_file'],
-                                         output_names=['out_file'],
-                                         function=afni_Edge3,
-                                         as_module=True),
-                                name='func_template_edge_{0}'.format(num_strat))
+            func_template_edge = pe.Node(
+                Function(input_names=['in_file'],
+                         output_names=['out_file'],
+                         function=afni_Edge3,
+                         as_module=True),
+                name='func_template_edge_{0}'.format(num_strat),
+                mem_gb=0.5,
+                n_procs=3)
 
             workflow.connect(template_brain_for_func, out_file, func_template_edge, 'in_file')
             workflow.connect(func_template_edge, 'out_file',

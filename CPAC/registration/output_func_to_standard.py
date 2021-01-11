@@ -136,7 +136,9 @@ def fsl_apply_transform_func_to_mni(
         workflow.connect(split, 'split_funcs', func_mni_warp, 'in_file')
 
         func_concat = pe.Node(interface=afni_utils.TCat(),
-                              name=f'func_concat{node_id}')
+                              name=f'func_concat{node_id}',
+                              mem_gb=1.0,
+                              n_procs=2)
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
         workflow.connect(func_mni_warp, 'out_file',
@@ -356,8 +358,11 @@ def ants_apply_warps_func_mni(
     # make sure that resource pool has some required resources before proceeding
     if 'fsl_mat_as_itk' not in strat and registration_template == 't1':
 
-        fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(),
-                name='fsl_reg_2_itk_{0}'.format(num_strat))
+        fsl_reg_2_itk = pe.Node(
+            c3.C3dAffineTool(),
+            name='fsl_reg_2_itk_{0}'.format(num_strat),
+            mem_gb=0.5,
+            n_procs=2)
         fsl_reg_2_itk.inputs.itk_transform = True
         fsl_reg_2_itk.inputs.fsl2ras = True
 
@@ -378,7 +383,9 @@ def ants_apply_warps_func_mni(
                 output_names=['updated_affine_file'],
                 function=change_itk_transform_type,
                 imports=itk_imports),
-                name='change_transform_type_{0}'.format(num_strat))
+                name='change_transform_type_{0}'.format(num_strat),
+                mem_gb=0.5,
+                n_procs=2)
 
         workflow.connect(fsl_reg_2_itk, 'itk_transform',
                 change_transform, 'input_affine_file')
@@ -508,11 +515,15 @@ def ants_apply_warps_func_mni(
                         ('func_to_epi_ants_initial_xfm', 'in4')]
 
         # define the node
-        collect_transforms = pe.Node(util.Merge(num_transforms),
-                name='collect_transforms_{0}_{1}_{2}_{3}'.format(output_name,
-                                                                 inverse_string,
-                                                                 registration_template,
-                                                                 num_strat))
+        collect_transforms = pe.Node(
+            util.Merge(num_transforms),
+            name='collect_transforms_{0}_{1}_{2}_{3}'.format(
+                output_name,
+                inverse_string,
+                registration_template,
+                num_strat),
+            mem_gb=0.5,
+            n_procs=2)
 
         # wire in the various transformations
         for transform_key, input_port in transforms_to_combine:
@@ -523,24 +534,33 @@ def ants_apply_warps_func_mni(
              workflow.connect(node, out_file, collect_transforms, input_port)
 
         # check transform list (if missing any init/rig/affine) and exclude Nonetype
-        check_transform = pe.Node(util.Function(input_names=['transform_list'], 
-                                                output_names=['checked_transform_list', 'list_length'],
-                                                function=check_transforms),
-                                  name='check_transforms{0}_{1}_{2}_{3}'.format(output_name,
-                                                                                inverse_string,
-                                                                                registration_template,
-                                                                                num_strat))
+        check_transform = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['checked_transform_list',
+                                        'list_length'],
+                          function=check_transforms),
+            name='check_transforms{0}_{1}_{2}_{3}'.format(
+                output_name,
+                inverse_string,
+                registration_template,
+                num_strat),
+            mem_gb=0.5,
+            n_procs=3)
         
         workflow.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
         # generate inverse transform flags, which depends on the number of transforms
-        inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'], 
-                                                        output_names=['inverse_transform_flags'],
-                                                        function=generate_inverse_transform_flags), 
-                                          name='inverse_transform_flags_{0}_{1}_{2}_{3}'.format(output_name,
-                                                                                                inverse_string,
-                                                                                                registration_template,
-                                                                                                num_strat))
+        inverse_transform_flags = pe.Node(
+            util.Function(input_names=['transform_list'],
+                          output_names=['inverse_transform_flags'],
+                          function=generate_inverse_transform_flags),
+            name='inverse_transform_flags_{0}_{1}_{2}_{3}'.format(
+                output_name,
+                inverse_string,
+                registration_template,
+                num_strat),
+            mem_gb=0.5,
+            n_procs=2)
 
         workflow.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
@@ -563,12 +583,16 @@ def ants_apply_warps_func_mni(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat),
-                iterfield=['input_image'], mem_gb=2.5)
+                iterfield=['input_image'],
+                mem_gb=2.5,
+                n_procs=3)
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat), mem_gb=2.5)
+                    inverse_string, registration_template, num_strat),
+                mem_gb=2.5,
+                n_procs=3)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
@@ -678,7 +702,9 @@ def ants_apply_warps_func_mni(
         workflow.connect(split, 'split_funcs', apply_ants_warp, 'input_image')
 
         func_concat = pe.Node(interface=afni_utils.TCat(),
-                              name=f'func_concat_{node_id}')
+                              name=f'func_concat_{node_id}',
+                              mem_gb=1.0,
+                              n_procs=2)
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
         workflow.connect(apply_ants_warp, 'output_image',
