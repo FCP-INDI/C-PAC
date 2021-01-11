@@ -685,7 +685,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     workflow.base_dir = config.pipeline_setup['working_directory']['path']
     workflow.config['execution'] = {
         'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(config.pipeline_setup['crash_log_directory']['path'])
+        'crashdump_dir': os.path.abspath(config.pipeline_setup['log_directory']['path'])
     }
 
     # For each participant we have a list of dict (each dict is a session)

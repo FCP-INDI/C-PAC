@@ -372,7 +372,7 @@ schema = Schema({
             'FNIRT_pipelines': {
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'identity_matrix': str
-            }
+            },
         },
     },
     'nuisance_corrections': {

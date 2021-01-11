@@ -548,19 +548,20 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
             workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
                              blip_correct, 'inputspec.same_pe_epi')
 
-        if False in c.functional_preproc['distortion_correction']['run']:
-            strat = strat.fork()
-            new_strat_list.append(strat)
+            if False in c.functional_preproc['distortion_correction']['run']:
+                strat = strat.fork()
+                new_strat_list.append(strat)
 
-        strat.append_name(blip_correct.name)
+            strat.append_name(blip_correct.name)
 
-        strat.update_resource_pool({
-            'blip_warp': (blip_correct, 'outputspec.blip_warp'),
-            'blip_warp_inverse': (blip_correct,
-                                  'outputspec.blip_warp_inverse'),
-            'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
-            'functional_brain_mask': (blip_correct, 'outputspec.new_func_mask')
-        }, override=True)
+            strat.update_resource_pool({
+                'blip_warp': (blip_correct, 'outputspec.blip_warp'),
+                'blip_warp_inverse': (blip_correct,
+                                      'outputspec.blip_warp_inverse'),
+                'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
+                'functional_brain_mask': (blip_correct,
+                                          'outputspec.new_func_mask')
+            }, override=True)
 
     strat_list += new_strat_list
 
