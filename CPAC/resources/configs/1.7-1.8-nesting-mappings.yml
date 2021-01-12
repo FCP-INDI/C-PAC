@@ -1088,6 +1088,27 @@ peer_scrub_thresh:
    - PyPEER
    - minimal_nuisance_correction
    - scrub_thresh
+n4_correct_mean_EPI:
+   - functional_registration
+   - 1-coregistration
+   - func_input_prep
+   - Mean Functional
+   - n4_correct_func
 anatomical_preproc:
    - anatomical_preproc
    - run
+runRegisterFuncToEPI:
+   - functional_registration
+   - 2-func_registration_to_template
+   - target_template
+   - using
+ANTs_prior_based_segmentation:
+   - anatomical_preproc
+   - segmentation_workflow
+   - 1-segmentation
+   - using
+bold_bet_mask_boolean:
+   - functional_preproc
+   - func_masking
+   - FSL-BET
+   - functional_mean_boolean

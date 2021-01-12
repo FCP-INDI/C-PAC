@@ -439,7 +439,8 @@ schema = Schema({
                 },
                 'Bandpass': {
                     'bottom_frequency': float,
-                    'top_frequency': float
+                    'top_frequency': float,
+                    'method': str,
                 }  # how to check if [0] is > than [1]?
             }]),
             'lateral_ventricles_mask': Maybe(str),

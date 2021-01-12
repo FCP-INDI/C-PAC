@@ -268,6 +268,14 @@ functional_registration:
 
   1-coregistration: 
 
+    func_input_prep: 
+
+      Mean Functional: 
+
+        # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
+        # this can increase tissue contrast which may improve registration quality in some data
+        n4_correct_func: On
+
     boundary_based_registration: 
 
       # Standard FSL 5.0 Scheduler used for Boundary Based Registration.

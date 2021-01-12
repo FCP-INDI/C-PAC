@@ -131,8 +131,17 @@ anatomical_preproc:
 
     1-segmentation: 
 
+      # using: ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based']
+      # this is a fork point
+      using: [ANTs_Prior_Based]
+
       # option parameters
       ANTs_Prior_Based: 
+
+        # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
+        # this is a fork point
+        #   run: [On, Off] - this will run both and fork the pipeline
+        run: [On]
 
         # Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
 
@@ -223,6 +232,14 @@ nuisance_corrections:
 functional_registration: 
 
   1-coregistration: 
+
+    func_input_prep: 
+
+      Mean Functional: 
+
+        # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
+        # this can increase tissue contrast which may improve registration quality in some data
+        n4_correct_func: On
 
     boundary_based_registration: 
 

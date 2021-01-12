@@ -199,6 +199,10 @@ anatomical_preproc:
                 totalFieldVarianceInVoxelSpace: 1
                 updateFieldVarianceInVoxelSpace: 5
 
+        # Interpolation method for writing out transformed anatomical images.
+        # Possible values: Linear, BSpline, LanczosWindowedSinc
+        interpolation: Linear
+
       FSL-FNIRT: 
 
         # Configuration file to be used by FSL to set FNIRT parameters.
@@ -241,6 +245,7 @@ nuisance_corrections:
     Regressors: 
       - Bandpass:
           bottom_frequency: 0.01
+          method: AFNI
           top_frequency: 0.1
         CerebrospinalFluid:
           erode_mask: false
@@ -290,14 +295,6 @@ functional_registration:
 
     target_template: 
 
-      # using: ['T1_template', 'EPI_template']
-      # this is a fork point
-      # NOTE:
-      #   'EPI_template' registers the mean-functional directly to the template (chosen below under EPI_template)
-      #   instead of applying the anatomical T1-to-template transform to the functional data that has been
-      #   coregistered to anatomical/T1 space
-      using: [EPI_template]
-
       # option parameters
       T1_template: 
 
@@ -314,6 +311,12 @@ functional_registration:
         # EPI template for direct functional-to-template registration
         # (bypassing coregistration and the anatomical-to-template transforms)
         template_epi: /template/study_based_functional_template_sk.nii.gz
+
+    ANTs_pipelines: 
+
+      # Interpolation method for writing out transformed functional images.
+      # Possible values: Linear, BSpline, LanczosWindowedSinc
+      interpolation: Linear
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------

@@ -188,14 +188,6 @@ functional_registration:
 
     target_template: 
 
-      # using: ['T1_template', 'EPI_template']
-      # this is a fork point
-      # NOTE:
-      #   'EPI_template' registers the mean-functional directly to the template (chosen below under EPI_template)
-      #   instead of applying the anatomical T1-to-template transform to the functional data that has been
-      #   coregistered to anatomical/T1 space
-      using: [T1_template, EPI_template]
-
       # option parameters
       T1_template: 
 

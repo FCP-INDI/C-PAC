@@ -1648,11 +1648,131 @@ def update_config_dict(old_dict):
     >>> c
     {'pipeline_setup': {'pipeline_name': 'example-pipeline'}, '2': None}
     ''' # noqa
+    def _append_to_list(current_value, new_value):
+        '''Helper function to add new_value to the current_value list
+        or create a list if one does not exist. Skips falsy elements
+        in new_value
+
+        Parameters
+        ----------
+        current_value: list
+
+        new_value: list, bool, None, or str
+
+        Returns
+        -------
+        list
+
+        Examples
+        --------
+        >>> _append_to_list([1], [2])
+        [1, 2]
+        >>> _append_to_list([1, 2], [2])
+        [1, 2]
+        >>> _append_to_list(None, [2])
+        [2]
+        >>> _append_to_list([1], [1, 2])
+        [1, 2]
+        >>> _append_to_list([1], [None, 2])
+        [1, 2]
+        '''
+        if not isinstance(current_value, list):
+            if current_value:
+                current_value = [current_value]
+            else:
+                current_value = []
+        if isinstance(new_value, list):
+            for i in new_value:
+                if i and i not in current_value and i != 'Off':
+                    current_value.append(i)
+        elif (new_value and new_value not in current_value and
+            new_value != 'Off'
+        ):
+            current_value.append(new_value)
+        return current_value
+    
+    def _bool_to_str(old_value, value_if_true):
+        '''Helper function to convert a True or a list containing a
+        True to a given string
+
+        Parameters
+        ----------
+        old_value: list, bool, None, or str
+
+        value_if_true: str
+
+        Returns
+        -------
+        str or None
+
+        Examples
+        --------
+        >>> _bool_to_str([0], 'test_str')
+        >>> _bool_to_str([1], 'test_str')
+        'test_str'
+        >>> _bool_to_str(0, 'test_str')
+        >>> _bool_to_str(1, 'test_str')
+        'test_str'
+        >>> _bool_to_str([True, False], 'test_str')
+        'test_str'
+        >>> _bool_to_str(None, 'test_str')
+        >>> _bool_to_str([0, None, False], 'test_str')
+        >>> _bool_to_str([0, None, False, 1], 'test_str')
+        'test_str'
+        '''
+        if isinstance(old_value, list):
+            if any([bool(i) for i in old_value]):
+                return value_if_true
+        elif bool(old_value):
+            return value_if_true
+        return None
+
     new_dict = {}
     for key in old_dict.copy():
         if key in NESTED_CONFIG_MAPPING:
-            new_dict = set_nested_value(
-                new_dict, NESTED_CONFIG_MAPPING[key], old_dict.pop(key))
+            # handle special cases
+            # anatomical_preproc.segmentation_workflow.1-segmentation.using
+            if key == 'ANTs_prior_based_segmentation':
+                old_value = old_dict.pop(key)
+                try:
+                    current_value = lookup_nested_value(
+                        new_dict, NESTED_CONFIG_MAPPING[key]
+                    )
+                except KeyError:
+                    current_value = []
+                new_value = _bool_to_str(old_value, 'ANTs_Prior_Based')
+                if new_value == 'ANTs_Prior_Based':
+                    new_dict = set_nested_value(
+                        new_dict,
+                        NESTED_CONFIG_MAPPING[key][:-1] + [new_value, 'run'],
+                        old_value
+                    )
+                current_value = _append_to_list(current_value, new_value)
+                new_dict = set_nested_value(
+                    new_dict, NESTED_CONFIG_MAPPING[key], current_value
+                )
+
+            # functional_registration.2-func_registration_to_template.target_template.using
+            elif key in {'runRegisterFuncToTemplate', 'runRegisterFuncToEPI'}:
+                old_value = old_dict.pop(key)
+                try:
+                    current_value = lookup_nested_value(
+                        new_dict, NESTED_CONFIG_MAPPING[key]
+                    )
+                except KeyError:
+                    current_value = []
+                new_value = None
+                if key == 'runRegisterFuncToEPI':
+                    new_value = _bool_to_str(old_value, 'EPI_template')
+                current_value = _append_to_list(current_value, new_value)
+                new_dict = set_nested_value(
+                    new_dict, NESTED_CONFIG_MAPPING[key], current_value
+                )
+
+            # update remaining keys
+            else:
+                new_dict = set_nested_value(
+                    new_dict, NESTED_CONFIG_MAPPING[key], old_dict.pop(key))
     return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
 
 
@@ -1827,17 +1947,6 @@ def update_pipeline_values(d_old):
             seg_template.remove(False)
         d = set_nested_value(d, seg_template_key, seg_template)
         d = remove_None(d, seg_template_key)
-
-    func_reg_template_key = [
-        'functional_registration', '2-func_registration_to_template',
-        'target_template', 'using']
-    func_reg_template = lookup_nested_value(d, func_reg_template_key)
-
-    if func_reg_template:
-        while 'Off' in func_reg_template:
-            func_reg_template.remove('Off')
-        while False in func_reg_template:
-            func_reg_template.remove(False)
 
     distcor_key = ['functional_preproc', 'distortion_correction', 'using']
     if lookup_nested_value(d, distcor_key):
