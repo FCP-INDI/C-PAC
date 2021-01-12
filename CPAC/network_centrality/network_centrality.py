@@ -2,7 +2,7 @@ from nipype.interfaces.afni.preprocess import DegreeCentrality, ECM, LFCD
 
 
 def create_centrality_wf(wf_name, method_option, threshold_option,
-                         threshold, num_threads=1, memory_gb=1.0):
+                         threshold, num_threads=3, memory_gb=2.5):
     """
     Function to create the afni-based centrality workflow
 

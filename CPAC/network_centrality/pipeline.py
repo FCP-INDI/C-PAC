@@ -25,7 +25,8 @@ def create_network_centrality_workflow(workflow, c, strategies):
         # Resample the functional mni to the centrality mask resolution
         resample_functional_to_template = pe.Node(
             interface=fsl.FLIRT(),
-            name='resample_functional_to_template_%d' % num_strat
+            name='resample_functional_to_template_%d' % num_strat,
+            mem_gb=4.0
 
         )
         resample_functional_to_template.inputs.set(
@@ -125,7 +126,7 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
     afni_centrality_wf = \
         create_centrality_wf(wf_name, method_option,
                              threshold_option,
-                             threshold, num_threads, memory)
+                             threshold, num_threads=3, memory_gb=2.5)
 
     workflow.connect(resample_functional_to_template, 'out_file',
                      afni_centrality_wf, 'inputspec.in_file')

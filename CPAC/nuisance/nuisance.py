@@ -1101,7 +1101,7 @@ def create_regressor_workflow(nuisance_selectors,
                                                         'compcor_file'],
                                                     function=calc_compcor_components,
                                                     imports=compcor_imports),
-                                           name='{}_DetrendPC'.format(regressor_type), mem_gb=2.0)
+                                           name='{}_DetrendPC'.format(regressor_type), mem_gb=12.5)
 
                     compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
@@ -1207,7 +1207,7 @@ def create_regressor_workflow(nuisance_selectors,
                         mean_node = pe.Node(
                             afni.ROIStats(quiet=False, args='-1Dformat'),
                             name='{}_mean'.format(regressor_type),
-                            mem_gb=2.0
+                            mem_gb=5.0
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
@@ -1556,7 +1556,8 @@ def filtering_bold_and_regressors(nuisance_selectors,
                                         'regressor_file'],
                             function=bandpass_voxels,
                             as_module=True),
-                    name='frequency_filter'
+                    name='frequency_filter',
+                    mem_gb=6.0
                 )
 
         frequency_filter.inputs.bandpass_freqs = [

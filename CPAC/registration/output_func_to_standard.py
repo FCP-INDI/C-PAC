@@ -584,14 +584,14 @@ def ants_apply_warps_func_mni(
                 name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat),
                 iterfield=['input_image'],
-                mem_gb=2.5,
+                mem_gb=10,
                 n_procs=3)
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat),
-                mem_gb=2.5,
+                mem_gb=10,
                 n_procs=3)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
@@ -620,8 +620,10 @@ def ants_apply_warps_func_mni(
         # write out the composite functional to standard transforms
         write_composite_xfm = pe.Node(
                 interface=ants.ApplyTransforms(),
-                name='write_composite_xfm_{0}_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat), mem_gb=1.5)
+                name='write_composite_xfm_{0}_{1}_{2}_{3}'.format(
+                    output_name, inverse_string, registration_template,
+                    num_strat),
+                mem_gb=8)
         write_composite_xfm.inputs.print_out_composite_warp_file = True
         write_composite_xfm.inputs.output_image = "func_to_standard_xfm.nii.gz"
 

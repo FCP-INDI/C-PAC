@@ -453,7 +453,7 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
                                    function=gen_carpet_plt,
                                    as_module=True),
                           name='carpet_plot',
-                          mem_gb=1.0)
+                          mem_gb=4.0)
 
     carpet_plot.inputs.output = output_image
     wf.connect(gm_mask, 'out_file', carpet_plot, 'gm_mask')

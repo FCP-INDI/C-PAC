@@ -99,7 +99,8 @@ def create_sca(name_sca='sca'):
 
     # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
-                      name='3dTCorr1D')
+                   name='3dTCorr1D',
+                   mem_gb=3.0)
     corr.inputs.pearson = True
     corr.inputs.outputtype = 'NIFTI_GZ'
 
@@ -285,7 +286,10 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(inputNode, 'subject_timeseries',
                   check_timeseries, 'in_file')
 
-    temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression')
+    temporalReg = pe.Node(
+        interface=fsl.GLM(),
+        name='temporal_regression',
+        mem_gb=4.0)
     temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 

@@ -255,7 +255,7 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     
     linear_reg = pe.Node(interface=fsl.FLIRT(),
                          name='linear_func_to_anat',
-                         mem_gb=0.5,
+                         mem_gb=1.0,
                          n_procs=2)
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6

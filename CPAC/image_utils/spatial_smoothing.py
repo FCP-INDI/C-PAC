@@ -87,7 +87,8 @@ def spatial_smooth(workflow, func_key, mask_key, output_name, strat,
                                        iterfield=['in_file'])
         else:
             output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                    name='{0}_{1}'.format(output_name,num_strat))
+                                    name='{0}_{1}'.format(output_name,num_strat),
+                                    mem_gb=4.0)
 
     elif method == 'AFNI':
         if input_image_type == 'func_derivative_multi':
