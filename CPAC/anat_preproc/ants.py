@@ -183,7 +183,7 @@ def init_brain_extraction_wf(tpl_target_path,
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_file', 'out_mask', 'bias_corrected', 'bias_image']),
-        name='copy_xform', run_without_submitting=True, mem_gb=2.0)
+        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
 
     trunc = pe.MapNode(ImageMath(operation='TruncateImageIntensity', op2='0.01 0.999 256'),
                        name='truncate_images', iterfield=['op1'])
@@ -196,20 +196,23 @@ def init_brain_extraction_wf(tpl_target_path,
 
     res_tmpl = pe.Node(ResampleImageBySpacing(
         out_spacing=(4, 4, 4), apply_smoothing=True
-    ), name='res_tmpl', mem_gb=0.5)
+    ), name='res_tmpl', mem_gb=0.5, n_procs=6)
     res_tmpl.inputs.input_image = tpl_target_path
     res_target = pe.Node(ResampleImageBySpacing(
-        out_spacing=(4, 4, 4), apply_smoothing=True), name='res_target')
+        out_spacing=(4, 4, 4), apply_smoothing=True),
+                         name='res_target',
+                         mem_gb=0.5)
 
     lap_tmpl = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
                        name='lap_tmpl',
                        mem_gb=0.5)
     lap_tmpl.inputs.op1 = tpl_target_path
     lap_target = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
-                         name='lap_target')
+                         name='lap_target',
+                         mem_gb=0.5)
     mrg_tmpl = pe.Node(niu.Merge(2), name='mrg_tmpl')
     mrg_tmpl.inputs.in1 = tpl_target_path
-    mrg_target = pe.Node(niu.Merge(2), name='mrg_target')
+    mrg_target = pe.Node(niu.Merge(2), name='mrg_target', mem_gb=0.5)
 
     # Initialize transforms with antsAI
     init_aff = pe.Node(AI(
@@ -220,6 +223,7 @@ def init_brain_extraction_wf(tpl_target_path,
         convergence=(10, 1e-6, 10),
         verbose=True),
         name='init_aff',
+        mem_gb=0.5,
         n_procs=omp_nthreads)
 
     # Tolerate missing ANTs at construction time
@@ -253,10 +257,12 @@ def init_brain_extraction_wf(tpl_target_path,
 
     # Morphological dilation, radius=2
     dil_brainmask = pe.Node(ImageMath(operation='MD', op2='2'),
-                            name='dil_brainmask')
+                            name='dil_brainmask',
+                            mem_gb=0.5)
     # Get largest connected component
     get_brainmask = pe.Node(ImageMath(operation='GetLargestComponent'),
-                            name='get_brainmask')
+                            name='get_brainmask',
+                            mem_gb=1.0)
 
     # Refine INU correction
     inu_n4_final = pe.MapNode(
@@ -307,10 +313,11 @@ def init_brain_extraction_wf(tpl_target_path,
                            mem_gb=0.5)
         lap_tmpl.inputs.op1 = tpl_target_path
         lap_target = pe.Node(ImageMath(operation='Laplacian', op2='1.5 1'),
-                             name='lap_target')
+                             name='lap_target',
+                             mem_gb=0.5)
         mrg_tmpl = pe.Node(niu.Merge(2), name='mrg_tmpl')
         mrg_tmpl.inputs.in1 = tpl_target_path
-        mrg_target = pe.Node(niu.Merge(2), name='mrg_target')
+        mrg_target = pe.Node(niu.Merge(2), name='mrg_target', mem_gb=0.5)
         wf.connect([
             (inu_n4, lap_target, [
                 (('output_image', _pop), 'op1')]),
@@ -423,7 +430,7 @@ def init_atropos_wf(name='atropos_wf',
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_mask', 'out_segm', 'out_tpms']),
-        name='copy_xform', run_without_submitting=True, mem_gb=2.0)
+        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
 
     # Run atropos (core node)
     atropos = pe.Node(Atropos(
@@ -448,15 +455,17 @@ def init_atropos_wf(name='atropos_wf',
     # Split segmentation in binary masks
     sel_labels = pe.Node(niu.Function(
         function=_select_labels, output_names=['out_wm', 'out_gm', 'out_csf']),
-        name='04_sel_labels')
+        name='04_sel_labels', mem_gb=0.5)
     sel_labels.inputs.labels = list(reversed(in_segmentation_model[1:]))
 
     # Select largest components (GM, WM)
     # ImageMath ${DIMENSION} ${EXTRACTION_WM} GetLargestComponent ${EXTRACTION_WM}
     get_wm = pe.Node(ImageMath(operation='GetLargestComponent'),
-                     name='05_get_wm')
+                     name='05_get_wm',
+                     mem_gb=1.0)
     get_gm = pe.Node(ImageMath(operation='GetLargestComponent'),
-                     name='06_get_gm')
+                     name='06_get_gm',
+                     mem_gb=1.0)
 
     # Fill holes and calculate intersection
     # ImageMath ${DIMENSION} ${EXTRACTION_TMP} FillHoles ${EXTRACTION_GM} 2
@@ -465,68 +474,81 @@ def init_atropos_wf(name='atropos_wf',
                       name='07_fill_gm',
                       mem_gb=2.0)
     mult_gm = pe.Node(MultiplyImages(
-        dimension=3, output_product_image='08_mult_gm.nii.gz'), name='08_mult_gm')
+        dimension=3, output_product_image='08_mult_gm.nii.gz'),
+                      name='08_mult_gm',
+                      mem_gb=1.0)
 
     # MultiplyImages ${DIMENSION} ${EXTRACTION_WM} ${ATROPOS_WM_CLASS_LABEL} ${EXTRACTION_WM}
     # ImageMath ${DIMENSION} ${EXTRACTION_TMP} ME ${EXTRACTION_CSF} 10
     relabel_wm = pe.Node(MultiplyImages(
         dimension=3, second_input=in_segmentation_model[-1],
-        output_product_image='09_relabel_wm.nii.gz'), name='09_relabel_wm')
-    me_csf = pe.Node(ImageMath(operation='ME', op2='10'), name='10_me_csf')
+        output_product_image='09_relabel_wm.nii.gz'), name='09_relabel_wm',
+        mem_gb=0.5)
+    me_csf = pe.Node(ImageMath(operation='ME', op2='10'),
+                     name='10_me_csf', mem_gb=0.5)
 
     # ImageMath ${DIMENSION} ${EXTRACTION_GM} addtozero ${EXTRACTION_GM} ${EXTRACTION_TMP}
     # MultiplyImages ${DIMENSION} ${EXTRACTION_GM} ${ATROPOS_GM_CLASS_LABEL} ${EXTRACTION_GM}
     # ImageMath ${DIMENSION} ${EXTRACTION_SEGMENTATION} addtozero ${EXTRACTION_WM} ${EXTRACTION_GM}
     add_gm = pe.Node(ImageMath(operation='addtozero'),
-                     name='11_add_gm')
+                     name='11_add_gm', mem_gb=0.5)
     relabel_gm = pe.Node(MultiplyImages(
         dimension=3, second_input=in_segmentation_model[-2],
         output_product_image='12_relabel_gm.nii.gz'), name='12_relabel_gm')
     add_gm_wm = pe.Node(ImageMath(operation='addtozero'),
-                        name='13_add_gm_wm')
+                        name='13_add_gm_wm', mem_gb=0.5)
 
     # Superstep 7
     # Split segmentation in binary masks
     sel_labels2 = pe.Node(niu.Function(
         function=_select_labels, output_names=['out_gm', 'out_wm']),
-        name='14_sel_labels2')
+        name='14_sel_labels2', mem_gb=0.5)
     sel_labels2.inputs.labels = in_segmentation_model[2:]
 
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} addtozero ${EXTRACTION_MASK} ${EXTRACTION_TMP}
-    add_7 = pe.Node(ImageMath(operation='addtozero'), name='15_add_7')
+    add_7 = pe.Node(ImageMath(operation='addtozero'), name='15_add_7',
+                    mem_gb=0.5)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} ME ${EXTRACTION_MASK} 2
-    me_7 = pe.Node(ImageMath(operation='ME', op2='2'), name='16_me_7')
+    me_7 = pe.Node(ImageMath(operation='ME', op2='2'), name='16_me_7',
+                   mem_gb=0.5)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} GetLargestComponent ${EXTRACTION_MASK}
     comp_7 = pe.Node(ImageMath(operation='GetLargestComponent'),
-                     name='17_comp_7')
+                     name='17_comp_7',
+                     mem_gb=1.0)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} MD ${EXTRACTION_MASK} 4
-    md_7 = pe.Node(ImageMath(operation='MD', op2='4'), name='18_md_7')
+    md_7 = pe.Node(ImageMath(operation='MD', op2='4'), name='18_md_7',
+                     mem_gb=0.5)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} FillHoles ${EXTRACTION_MASK} 2
     fill_7 = pe.Node(ImageMath(operation='FillHoles', op2='2'),
                      name='19_fill_7',
                      mem_gb=2.0)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} addtozero ${EXTRACTION_MASK} \
     # ${EXTRACTION_MASK_PRIOR_WARPED}
-    add_7_2 = pe.Node(ImageMath(operation='addtozero'), name='20_add_7_2')
+    add_7_2 = pe.Node(ImageMath(operation='addtozero'), name='20_add_7_2',
+                     mem_gb=0.5)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} MD ${EXTRACTION_MASK} 5
-    md_7_2 = pe.Node(ImageMath(operation='MD', op2='5'), name='21_md_7_2')
+    md_7_2 = pe.Node(ImageMath(operation='MD', op2='5'), name='21_md_7_2',
+                     mem_gb=0.5)
     # ImageMath ${DIMENSION} ${EXTRACTION_MASK} ME ${EXTRACTION_MASK} 5
-    me_7_2 = pe.Node(ImageMath(operation='ME', op2='5'), name='22_me_7_2')
+    me_7_2 = pe.Node(ImageMath(operation='ME', op2='5'), name='22_me_7_2',
+                     mem_gb=0.5)
 
     # De-pad
     depad_mask = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
-                         name='23_depad_mask')
+                         name='23_depad_mask',
+                         mem_gb=0.5)
     depad_segm = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
                          name='24_depad_segm',
-                         mem_gb=0.3)
+                         mem_gb=0.5)
     depad_gm = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
-                       name='25_depad_gm')
+                       name='25_depad_gm',
+                       mem_gb=0.5)
     depad_wm = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
-                       name='26_depad_wm')
+                       name='26_depad_wm', mem_gb=0.5)
     depad_csf = pe.Node(ImageMath(operation='PadImage', op2='-%d' % padding),
                         name='27_depad_csf')
 
-    msk_conform = pe.Node(niu.Function(function=_conform_mask), name='msk_conform')
+    msk_conform = pe.Node(niu.Function(function=_conform_mask), name='msk_conform', mem_gb=0.5)
     merge_tpms = pe.Node(niu.Merge(in_segmentation_model[0]), name='merge_tpms')
     wf.connect([
         (inputnode, copy_xform, [(('in_files', _pop), 'hdr_file')]),
