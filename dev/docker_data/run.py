@@ -367,7 +367,7 @@ elif args.analysis_level in ["test_config", "participant"]:
     if 'pipeline_setup' not in c:
         url_version = f'v{__version__}'
         _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
-            'user/1.7-1.8-nesting-mappings')
+            'user/pipelines/1.7-1.8-nesting-mappings')
         try:
             request.urlopen(_url)
 
@@ -376,6 +376,9 @@ elif args.analysis_level in ["test_config", "participant"]:
                 url_version = 'nightly'
             else:
                 url_version = 'latest'
+
+        _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
+            'user/pipelines/1.7-1.8-nesting-mappings')
 
         warn('\nC-PAC changed its pipeline configuration format in v1.8.0.\n'
              f'See {_url} for details.\n',
