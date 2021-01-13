@@ -847,150 +847,13 @@ def fast_bias_field_correction(wf_name='fast_bias_field_correction', config=None
     return preproc
 
 
-def abcd_freesurfer_hires_white(T1wImage, SubjectDIR, SubjectID):
-
-    ### ABCD harmonization - recon-all ###
-    # Ref: https://github.com/Washington-University/HCPpipelines/blob/master/FreeSurfer/scripts/FreeSurferHiresWhite.sh
-
-    import os
-    import subprocess
-
-    mridir=os.path.join(SubjectDIR, SubjectID, 'mri')
-    surfdir=os.path.join(SubjectDIR, SubjectID, 'surf')
-    labeldir=os.path.join(SubjectDIR, SubjectID, 'label')
-
-    reg=os.path.join(mridir, 'transforms', 'hires21mm.dat')
-    regII=os.path.join(mridir, 'transforms', '1mm2hires.dat')
-    hires=os.path.join(mridir, 'T1w_hires.nii.gz')
-    cmd = 'fslmaths %s -abs -add 1 %s' % (T1wImage, hires)
-    os.system(cmd)
-
-    # save copies of the "prehires" versions
-    # change cp argument --preserve=timestamps to -p as --preserve=timestamps doesn't work on MacOS
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.white'), os.path.join(surfdir,'lh.white.prehires'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.curv'), os.path.join(surfdir,'lh.curv.prehires'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.area'), os.path.join(surfdir,'lh.area.prehires'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(labeldir,'lh.cortex.label'), os.path.join(labeldir,'lh.cortex.prehires.label'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.white'), os.path.join(surfdir,'rh.white.prehires'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.curv'), os.path.join(surfdir,'rh.curv.prehires'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.area'), os.path.join(surfdir,'rh.area.prehires'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(labeldir,'rh.cortex.label'), os.path.join(labeldir,'rh.cortex.prehires.label'))
-    os.system(cmd)
-
-    # generate registration between conformed and hires based on headers
-    # Note that the convention of tkregister2 is that the resulting $reg is the registration
-    # matrix that maps from the "--targ" space into the "--mov" space.  So, while $reg is named
-    # "hires21mm.dat", the matrix actually maps from the 1 mm (FS conformed) space into the hires space).
-    cmd = 'tkregister2 --mov %s --targ %s --noedit --regheader --reg %s' % (hires, os.path.join(mridir,'orig.mgz'), reg)
-    os.system(cmd)
-
-    # map white to hires coords
-    # [Note that Xh.sphere.reg doesn't exist yet, which is the default surface registration
-    # assumed by mri_surf2surf, so use "--surfreg white"].
-    cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz --tval white.hires --surfreg white --hemi lh' % (SubjectID, reg, hires)
-    os.system(cmd)
-
-    cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz --tval white.hires --surfreg white --hemi rh' % (SubjectID, reg, hires)
-    os.system(cmd)
-
-    # make sure to create the file control.hires.dat in the scripts dir with at least a few points
-    # in the wm for the mri_normalize call that comes next
-
-    # map the various lowres volumes that mris_make_surfaces needs into the hires coords
-    for v in ['wm.mgz', 'filled.mgz', 'brain.mgz', 'aseg.mgz']:
-        basename = os.path.splitext(v)[0]
-        cmd = 'mri_convert -rl %s -rt nearest %s %s' % (hires, os.path.join(mridir, v), os.path.join(mridir, basename+'.hires.mgz'))
-        os.system(cmd)
-
-    # remove nonbrain tissue
-    cmd = 'mri_mask %s %s %s' % (hires, os.path.join(mridir, 'brain.hires.mgz'), os.path.join(mridir, 'T1w_hires.masked.mgz'))
-    os.system(cmd)
-
-    cmd = 'mri_convert %s %s' % (os.path.join(mridir, 'aseg.hires.mgz'), os.path.join(mridir, 'aseg.hires.nii.gz'))
-    os.system(cmd)
-
-    cmd = ['fslstats', os.path.join(mridir, 'aseg.hires.nii.gz'), '-l', '1', '-u', '3', '-c']
-    leftcoords = subprocess.check_output(cmd)
-
-    cmd = ['fslstats', os.path.join(mridir, 'aseg.hires.nii.gz'), '-l', '40', '-u', '42', '-c']
-    rightcoords = subprocess.check_output(cmd)
-
-    # do intensity normalization on the hires volume using the white surface
-    control_hires_dat = os.path.join(SubjectDIR,SubjectID,'scripts/control.hires.dat')
-    f = open(control_hires_dat, "w")
-    f.write(leftcoords)
-    f.write(rightcoords)
-    f.write("info\n")
-    f.write("numpoints 2\n")
-    f.write("useRealRAS 1\n")
-    f.close()
-    
-    lh_white_hires = os.path.join(surfdir, 'lh.white.hires')
-    rh_white_hires = os.path.join(surfdir, 'rh.white.hires')
-    cmd = 'mri_normalize -erode 1 -f %s -min_dist 1 -surface %s identity.nofile -surface %s identity.nofile %s %s' % (control_hires_dat, lh_white_hires, rh_white_hires, os.path.join(mridir,'T1w_hires.masked.mgz'), os.path.join(mridir,'T1w_hires.masked.norm.mgz'))
-    os.system(cmd)
-
-    #deform the white surfaces (i.e., tweak white surfaces using hires inputs)
-    #Note that the ".deformed" suffix that is appended through use of -output flag is hard-coded into FreeSurferHiresPial.sh as well.
-    cmd = 'mris_make_surfaces -first_wm_peak -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s lh' % (SubjectDIR, SubjectID)
-    os.system(cmd)
-
-    cmd = 'mris_make_surfaces -first_wm_peak -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s rh' % (SubjectDIR, SubjectID)
-    os.system(cmd)
-
-    ###Fine Tune T2w to T1w Registration
-
-    # create version of white surfaces back in the 1mm (FS conformed) space
-    cmd = 'tkregister2 --mov %s --targ %s --noedit --regheader --reg %s' % (os.path.join(mridir,'orig.mgz'), hires, regII)
-    os.system(cmd)
-
-    cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi lh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
-    os.system(cmd)
-
-    cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi rh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
-    os.system(cmd)
-
-    # copy the ".deformed" outputs of previous mris_make_surfaces to their default FS file names
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'lh.curv.deformed'), os.path.join(surfdir, 'lh.curv'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'lh.area.deformed'), os.path.join(surfdir, 'lh.area'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(labeldir,'lh.cortex.deformed.label'), os.path.join(labeldir,'lh.cortex.label'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'rh.curv.deformed'), os.path.join(surfdir, 'rh.curv'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'rh.area.deformed'), os.path.join(surfdir, 'rh.area'))
-    os.system(cmd)
-
-    cmd = 'cp -p %s %s' % (os.path.join(labeldir,'rh.cortex.deformed.label'), os.path.join(labeldir,'rh.cortex.label'))
-    os.system(cmd)
-
-
 def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectDIR, openmp):
 
     ### ABCD harmonization - recon-all ###
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh
     
     import os
-    import abcd_freesurfer_hires_white
+    import subprocess
 
     # recon-all -i "$T1wImageFile"_1mm.nii.gz -subjid $SubjectID -sd $TempSubjectDIR -motioncor -talairach -nuintensitycor -normalization ${seed_cmd_appendix}
     cmd = 'recon-all -i %s -subjid %s -sd %s -motioncor -talairach -nuintensitycor -normalization' % (T1wImageFile, SubjectID, SubjectDIR)
@@ -1022,6 +885,139 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
     # recon-all -subjid $SubjectID -sd $SubjectDIR -autorecon2 -nosmooth2 -noinflate2 -nocurvstats -nosegstats -openmp ${num_cores} ${seed_cmd_appendix}
     cmd = 'recon-all -subjid %s -sd %s -autorecon2 -nosmooth2 -noinflate2 -nocurvstats -nosegstats -openmp %s' % (SubjectID, SubjectDIR, openmp)
     os.system(cmd)
+
+    def abcd_freesurfer_hires_white(T1wImage, SubjectDIR, SubjectID):
+
+        ### ABCD harmonization - recon-all ###
+        # Ref: https://github.com/Washington-University/HCPpipelines/blob/master/FreeSurfer/scripts/FreeSurferHiresWhite.sh
+
+        mridir=os.path.join(SubjectDIR, SubjectID, 'mri')
+        surfdir=os.path.join(SubjectDIR, SubjectID, 'surf')
+        labeldir=os.path.join(SubjectDIR, SubjectID, 'label')
+
+        reg=os.path.join(mridir, 'transforms', 'hires21mm.dat')
+        regII=os.path.join(mridir, 'transforms', '1mm2hires.dat')
+        hires=os.path.join(mridir, 'T1w_hires.nii.gz')
+        cmd = 'fslmaths %s -abs -add 1 %s' % (T1wImage, hires)
+        os.system(cmd)
+
+        # save copies of the "prehires" versions
+        # change cp argument --preserve=timestamps to -p as --preserve=timestamps doesn't work on MacOS
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.white'), os.path.join(surfdir,'lh.white.prehires'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.curv'), os.path.join(surfdir,'lh.curv.prehires'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.area'), os.path.join(surfdir,'lh.area.prehires'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(labeldir,'lh.cortex.label'), os.path.join(labeldir,'lh.cortex.prehires.label'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.white'), os.path.join(surfdir,'rh.white.prehires'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.curv'), os.path.join(surfdir,'rh.curv.prehires'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.area'), os.path.join(surfdir,'rh.area.prehires'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(labeldir,'rh.cortex.label'), os.path.join(labeldir,'rh.cortex.prehires.label'))
+        os.system(cmd)
+
+        # generate registration between conformed and hires based on headers
+        # Note that the convention of tkregister2 is that the resulting $reg is the registration
+        # matrix that maps from the "--targ" space into the "--mov" space.  So, while $reg is named
+        # "hires21mm.dat", the matrix actually maps from the 1 mm (FS conformed) space into the hires space).
+        cmd = 'tkregister2 --mov %s --targ %s --noedit --regheader --reg %s' % (hires, os.path.join(mridir,'orig.mgz'), reg)
+        os.system(cmd)
+
+        # map white to hires coords
+        # [Note that Xh.sphere.reg doesn't exist yet, which is the default surface registration
+        # assumed by mri_surf2surf, so use "--surfreg white"].
+        cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz --tval white.hires --surfreg white --hemi lh' % (SubjectID, reg, hires)
+        os.system(cmd)
+
+        cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz --tval white.hires --surfreg white --hemi rh' % (SubjectID, reg, hires)
+        os.system(cmd)
+
+        # make sure to create the file control.hires.dat in the scripts dir with at least a few points
+        # in the wm for the mri_normalize call that comes next
+
+        # map the various lowres volumes that mris_make_surfaces needs into the hires coords
+        for v in ['wm.mgz', 'filled.mgz', 'brain.mgz', 'aseg.mgz']:
+            basename = os.path.splitext(v)[0]
+            cmd = 'mri_convert -rl %s -rt nearest %s %s' % (hires, os.path.join(mridir, v), os.path.join(mridir, basename+'.hires.mgz'))
+            os.system(cmd)
+
+        # remove nonbrain tissue
+        cmd = 'mri_mask %s %s %s' % (hires, os.path.join(mridir, 'brain.hires.mgz'), os.path.join(mridir, 'T1w_hires.masked.mgz'))
+        os.system(cmd)
+
+        cmd = 'mri_convert %s %s' % (os.path.join(mridir, 'aseg.hires.mgz'), os.path.join(mridir, 'aseg.hires.nii.gz'))
+        os.system(cmd)
+
+        cmd = ['fslstats', os.path.join(mridir, 'aseg.hires.nii.gz'), '-l', '1', '-u', '3', '-c']
+        leftcoords = subprocess.check_output(cmd)
+
+        cmd = ['fslstats', os.path.join(mridir, 'aseg.hires.nii.gz'), '-l', '40', '-u', '42', '-c']
+        rightcoords = subprocess.check_output(cmd)
+
+        # do intensity normalization on the hires volume using the white surface
+        control_hires_dat = os.path.join(SubjectDIR,SubjectID,'scripts/control.hires.dat')
+        f = open(control_hires_dat, "w")
+        f.write(leftcoords)
+        f.write(rightcoords)
+        f.write("info\n")
+        f.write("numpoints 2\n")
+        f.write("useRealRAS 1\n")
+        f.close()
+        
+        lh_white_hires = os.path.join(surfdir, 'lh.white.hires')
+        rh_white_hires = os.path.join(surfdir, 'rh.white.hires')
+        cmd = 'mri_normalize -erode 1 -f %s -min_dist 1 -surface %s identity.nofile -surface %s identity.nofile %s %s' % (control_hires_dat, lh_white_hires, rh_white_hires, os.path.join(mridir,'T1w_hires.masked.mgz'), os.path.join(mridir,'T1w_hires.masked.norm.mgz'))
+        os.system(cmd)
+
+        #deform the white surfaces (i.e., tweak white surfaces using hires inputs)
+        #Note that the ".deformed" suffix that is appended through use of -output flag is hard-coded into FreeSurferHiresPial.sh as well.
+        cmd = 'mris_make_surfaces -first_wm_peak -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s lh' % (SubjectDIR, SubjectID)
+        os.system(cmd)
+
+        cmd = 'mris_make_surfaces -first_wm_peak -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s rh' % (SubjectDIR, SubjectID)
+        os.system(cmd)
+
+        ###Fine Tune T2w to T1w Registration
+
+        # create version of white surfaces back in the 1mm (FS conformed) space
+        cmd = 'tkregister2 --mov %s --targ %s --noedit --regheader --reg %s' % (os.path.join(mridir,'orig.mgz'), hires, regII)
+        os.system(cmd)
+
+        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi lh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
+        os.system(cmd)
+
+        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi rh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
+        os.system(cmd)
+
+        # copy the ".deformed" outputs of previous mris_make_surfaces to their default FS file names
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'lh.curv.deformed'), os.path.join(surfdir, 'lh.curv'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'lh.area.deformed'), os.path.join(surfdir, 'lh.area'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(labeldir,'lh.cortex.deformed.label'), os.path.join(labeldir,'lh.cortex.label'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'rh.curv.deformed'), os.path.join(surfdir, 'rh.curv'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir, 'rh.area.deformed'), os.path.join(surfdir, 'rh.area'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(labeldir,'rh.cortex.deformed.label'), os.path.join(labeldir,'rh.cortex.label'))
+        os.system(cmd)
 
     abcd_freesurfer_hires_white(T1wImage, SubjectDIR, SubjectID)
 
