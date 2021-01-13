@@ -11,6 +11,7 @@ import yaml
 from base64 import b64decode
 
 from CPAC import __version__
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.yaml_template import create_yaml_from_template
 from CPAC.utils.utils import load_preconfig
 
@@ -358,7 +359,8 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     # otherwise, if we are running group, participant, or dry run we
     # begin by conforming the configuration
-    c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+    c = Configuration(
+        load_yaml_config(args.pipeline_file, args.aws_input_creds)).dict()
 
     overrides = {}
     if args.pipeline_override:
