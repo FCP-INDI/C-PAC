@@ -80,14 +80,15 @@ class Configuration(object):
         if 'FROM' in config_map:
             del config_map['FROM']
 
+        # set FSLDIR to the environment $FSLDIR if the user sets it to
+        # 'FSLDIR' in the pipeline config file
+        _FSLDIR = config_map.get('FSLDIR')
+        if _FSLDIR and bool(re.match(r'^[\$\{]{0,2}?FSLDIR[\}]?$', _FSLDIR)):
+            config_map['FSLDIR'] = os.environ['FSLDIR']
+
         for key in config_map:
-            # set FSLDIR to the environment $FSLDIR if the user sets it to
-            # 'FSLDIR' in the pipeline config file
-            if key == 'FSLDIR':
-                if config_map[key] == 'FSLDIR':
-                    if os.environ.get('FSLDIR'):
-                        config_map[key] = os.environ['FSLDIR']
-            setattr(self, key, config_map[key])
+            # set attribute
+            setattr(self, key, set_from_ENV(config_map[key]))
         self.__update_attr()
 
     def __str__(self):
@@ -249,3 +250,46 @@ class Configuration(object):
                 f'`{str(key)}`',
                 'was given.'
             ]))
+
+
+def set_from_ENV(conf):
+        '''Function to replace strings like $VAR and ${VAR} with
+        environment variable values
+
+        Parameters
+        ----------
+        conf: any
+
+        Returns
+        -------
+        conf: any
+
+        Examples
+        --------
+        >>> import os
+        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
+        >>> set_from_ENV({'key': {'nested_list': [1, '1', '$SAMPLE_VALUE_SFE/extended']}})
+        {'key': {'nested_list': [1, '1', '/example/path/extended']}}
+        >>> set_from_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
+        ['/example/path', 'SAMPLE_VALUE_SFE']
+        >>> del os.environ['SAMPLE_VALUE_SFE']
+        '''
+        if isinstance(conf, list):
+            return [set_from_ENV(item) for item in conf]
+        if isinstance(conf, dict):
+            return {key: set_from_ENV(conf[key]) for key in conf}
+        if isinstance(conf, str):
+            # set any specified environment variables
+            # (only matching all-caps plus `-` and `_`)
+            # like `${VAR}`
+            _pattern1 = r'\${[A-Z\-_]*}'
+            # like `$VAR`
+            _pattern2 = r'\$[A-Z\-_]*(?=/|$)'
+            # replace with environment variables if they exist
+            for _pattern in [_pattern1, _pattern2]:
+                _match = re.search(_pattern, conf)
+                if _match:
+                    _match = _match.group().lstrip('${').rstrip('}')
+                    conf = re.sub(
+                        _pattern, os.environ.get(_match, f'${_match}'), conf)
+        return conf
