@@ -255,15 +255,15 @@ class Configuration(object):
 def set_from_ENV(conf):
         '''Function to replace strings like $VAR and ${VAR} with
         environment variable values
-
+        
         Parameters
         ----------
         conf: any
-
+        
         Returns
         -------
         conf: any
-
+        
         Examples
         --------
         >>> import os

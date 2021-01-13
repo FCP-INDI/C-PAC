@@ -403,7 +403,7 @@ schema = Schema({
                     'summary': {
                         'method': str,
                         'components': int,
-                        'filter': Maybe(str),
+                        'filter': str,
                     },
                     'threshold': str,
                     'tissues': [str],
@@ -415,7 +415,7 @@ schema = Schema({
                     'summary': {
                         'method': str,
                         'components': int,
-                        'filter': Maybe(str),
+                        'filter': str,
                     },
                     'threshold': str,
                     'tissues': [str],

@@ -1956,9 +1956,9 @@ def update_pipeline_values(d_old):
     tse = lookup_nested_value(d, tse_key)
     if isinstance(tse, list) and isinstance(tse[0], bool):
         new_tse = []
-        if tse[0]:
+        if len(tse) and tse[0]:
             new_tse.append('csv')
-        if tse[1]:
+        if len(tse) > 1 and tse[1]:
             new_tse.append('numpy')
         d = set_nested_value(d, tse_key, new_tse)
 
