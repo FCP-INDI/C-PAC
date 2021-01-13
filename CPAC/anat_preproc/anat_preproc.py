@@ -990,6 +990,7 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
     # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh
     
     import os
+    import abcd_freesurfer_hires_white
 
     # recon-all -i "$T1wImageFile"_1mm.nii.gz -subjid $SubjectID -sd $TempSubjectDIR -motioncor -talairach -nuintensitycor -normalization ${seed_cmd_appendix}
     cmd = 'recon-all -i %s -subjid %s -sd %s -motioncor -talairach -nuintensitycor -normalization' % (T1wImageFile, SubjectID, SubjectDIR)
