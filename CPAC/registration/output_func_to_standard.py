@@ -759,3 +759,70 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
                 'is desired, check your pipeline.')
 
     return workflow
+
+
+def func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=None, override=False):
+    # adopted from DCAN lab 
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132
+    
+    """
+    Get functional brain mask in standard space by resampling anatomical brain mask in standard space to functional resolution.
+
+    Parameters
+    ----------    
+    workflow: Nipype workflow object
+        the workflow containing the resources involved
+
+    config : configuration
+        Pipeline configuration object
+    
+    num_strat: int
+        the number of strategy objects
+
+    strat: C-PAC Strategy object
+        a strategy with one or more resource pools
+
+    Returns
+    -------
+    workflow : nipype.pipeline.engine.Workflow
+
+    """
+    
+    # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
+    anat_brain_mni_to_func_res = pe.Node(interface=fsl.ApplyWarp(), 
+                                            name='resample_anatomical_brain_in_standard_{0}'.format(num_strat))
+    
+    anat_brain_mni_to_func_res.inputs.interp = 'spline'
+    anat_brain_mni_to_func_res.inputs.premat = config.identityMatrix
+
+    node, out_file = strat['anatomical_to_standard']
+    workflow.connect(node, out_file,
+                    anat_brain_mni_to_func_res, 'in_file')
+
+    node, out_file = strat['template_brain_for_func_preproc']
+    workflow.connect(node, out_file,
+                    anat_brain_mni_to_func_res, 'ref_file')
+
+
+    # Create brain masks in this space from the FreeSurfer output (changing resolution)
+    # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
+    applywarp_brain_mask_to_func_res = pe.Node(interface=fsl.ApplyWarp(),
+                                                name='resample_anatomical_brain_mask_in_standard_{0}'.format(num_strat))
+    applywarp_brain_mask_to_func_res.inputs.interp = 'nn'
+    applywarp_brain_mask_to_func_res.inputs.premat = config.identityMatrix
+
+    node, out_file = strat['anatomical_brain_mask_to_standard']
+    workflow.connect(node, out_file,
+                    applywarp_brain_mask_to_func_res, 'in_file')
+
+    workflow.connect(anat_brain_mni_to_func_res, 'out_file',
+                    applywarp_brain_mask_to_func_res, 'ref_file')
+    
+    strat.update_resource_pool({
+        'functional_brain_mask_to_standard_abcd': (applywarp_brain_mask_to_func_res, 'out_file')
+    }, override=override)
+
+    strat.append_name(anat_brain_mni_to_func_res.name)
+    strat.append_name(applywarp_brain_mask_to_func_res.name)
+
+    return workflow

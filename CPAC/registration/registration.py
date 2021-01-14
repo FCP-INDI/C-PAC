@@ -1,6 +1,8 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
+from nipype.interfaces import afni
+from nipype.interfaces.afni import utils as afni_utils
 import nipype.interfaces.c3 as c3
 import nipype.interfaces.ants as ants
 
@@ -21,6 +23,7 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
                         name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
+                                                        'output_brain_mask',
                                                         'linear_xfm',
                                                         'invlinear_xfm']),
                          name='outputspec')
@@ -53,6 +56,29 @@ def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
     linear_register.connect(linear_reg, 'out_matrix_file',
                                outputspec, 'linear_xfm')
 
+    # generate brain mask in standard
+    # binarize the brain mask                
+    binarize_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                    name='binarize_brainmask')
+
+    binarize_brain_mask.inputs.args = '-bin'
+
+    linear_register.connect(linear_reg, 'out_file',
+                               binarize_brain_mask, 'in_file')
+
+    # fill holes
+    fill_brain_mask = pe.Node(interface=afni.MaskTool(),
+                        name='fill_fs_brainmask')
+
+    fill_brain_mask.inputs.fill_holes = True
+    fill_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+    linear_register.connect(binarize_brain_mask, 'out_file',
+                               fill_brain_mask, 'in_file')
+
+    linear_register.connect(fill_brain_mask, 'out_file',
+                               outputspec, 'output_brain_mask')
+                            
     return linear_register
 
 
@@ -127,6 +153,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
                         name='inputspec')
     
     outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
+                                                        'output_brain_mask',
                                                         'nonlinear_xfm']),
                          name='outputspec')
 
@@ -174,6 +201,29 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
     nonlinear_register.connect(brain_warp, 'out_file',
                                outputspec, 'output_brain')
     
+    # generate brain mask in standard
+    # binarize the brain mask                
+    binarize_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                    name='binarize_brainmask')
+
+    binarize_brain_mask.inputs.args = '-bin'
+
+    nonlinear_register.connect(brain_warp, 'out_file',
+                               binarize_brain_mask, 'in_file')
+
+    # fill holes
+    fill_brain_mask = pe.Node(interface=afni.MaskTool(),
+                        name='fill_fs_brainmask')
+
+    fill_brain_mask.inputs.fill_holes = True
+    fill_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+    nonlinear_register.connect(binarize_brain_mask, 'out_file',
+                               fill_brain_mask, 'in_file')
+
+    nonlinear_register.connect(fill_brain_mask, 'out_file',
+                               outputspec, 'output_brain_mask')
+
     return nonlinear_register
 
 
@@ -826,7 +876,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                 'inverse_warp_field',
                 'composite_transform',
                 'wait',
-                'normalized_output_brain']), name='outputspec')
+                'normalized_output_brain',
+                'output_brain_mask']), name='outputspec')
 
     # use ANTS to warp the masked anatomical image to a template image
     '''
@@ -957,15 +1008,38 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
     calc_ants_warp_wf.connect(calculate_ants_warp, 'warped_image',
             outputspec, 'normalized_output_brain')
 
+    # generate brain mask in standard
+    # binarize the brain mask                
+    binarize_brain_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                    name='binarize_brainmask')
+
+    binarize_brain_mask.inputs.args = '-bin'
+
+    calc_ants_warp_wf.connect(calculate_ants_warp, 'warped_image',
+            binarize_brain_mask, 'in_file')
+
+    # fill holes
+    fill_brain_mask = pe.Node(interface=afni.MaskTool(),
+                        name='fill_fs_brainmask')
+
+    fill_brain_mask.inputs.fill_holes = True
+    fill_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+    calc_ants_warp_wf.connect(binarize_brain_mask, 'out_file',
+            fill_brain_mask, 'in_file')
+
+    calc_ants_warp_wf.connect(fill_brain_mask, 'out_file',
+            outputspec, 'output_brain_mask')
+
     return calc_ants_warp_wf
 
 
-def connect_func_to_anat_init_reg(workflow, strat_list, c):
+def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False, override=True):
 
     new_strat_list = []
 
     diff_complete = False
-    
+
     if 1 in c.runRegisterFuncToAnat:
 
         for num_strat, strat in enumerate(strat_list):
@@ -1004,15 +1078,43 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
 
             if 'Mean Functional' in c.func_reg_input:
                 # Input functional image (mean functional)
-                node, out_file = strat['mean_functional']
-                workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.func')
+                if func_reg_skull: 
+                    # func_reg_skull is only used for anatomical_based bold mask generation
+                    func_mean = pe.Node(interface=afni_utils.TStat(),name='func_to_anat_func_mean_skull')
+                    func_mean.inputs.options = '-mean'
+                    func_mean.inputs.outputtype = 'NIFTI_GZ'
+
+                    node, out_file = strat['functional_skull_leaf']
+                    workflow.connect(node, out_file,
+                                        func_mean, 'in_file')
+                    workflow.connect(func_mean, 'out_file',
+                                        func_to_anat, 'inputspec.func')
+                else: 
+                    node, out_file = strat['mean_functional']
+                    workflow.connect(node, out_file,
+                                        func_to_anat, 'inputspec.func')
 
             elif 'Selected Functional Volume' in c.func_reg_input:
                 # Input functional image (specific volume)
-                node, out_file = strat['selected_func_volume']
-                workflow.connect(node, out_file,
-                                    func_to_anat, 'inputspec.func')
+                if func_reg_skull: 
+                    # func_reg_skull is only used for anatomical_based bold mask generation
+                    get_func_volume = pe.Node(interface=afni.Calc(),
+                                                name='get_func_volume')
+
+                    get_func_volume.inputs.set(
+                        expr='a',
+                        single_idx=config.func_reg_input_volume,
+                        outputtype='NIFTI_GZ'
+                    )
+                    node, out_file = strat['functional_skull_leaf']
+                    workflow.connect(node, out_file,
+                                    get_func_volume, 'in_file_a')
+                    workflow.connect(get_func_volume, 'out_file', 
+                                        func_to_anat, 'inputspec.func')
+                else: 
+                    node, out_file = strat['selected_func_volume']
+                    workflow.connect(node, out_file,
+                                        func_to_anat, 'inputspec.func')
 
             # Input skull-stripped anatomical
             node, out_file = strat['anatomical_brain']
@@ -1048,14 +1150,14 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c):
             strat.update_resource_pool({
                 'mean_functional_in_anat': (func_to_anat, 'outputspec.anat_func_nobbreg'),
                 'functional_to_anat_linear_xfm': (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
-            })
+            }, override=override)
 
     strat_list += new_strat_list
 
     return workflow, strat_list, diff_complete
 
 
-def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
+def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete, func_reg_skull=False):
 
     from CPAC.utils.utils import pick_wm
 
@@ -1082,15 +1184,43 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
 
                 if 'Mean Functional' in c.func_reg_input:
                     # Input functional image (mean functional)
-                    node, out_file = strat['mean_functional']
-                    workflow.connect(node, out_file,
-                                        func_to_anat_bbreg, 'inputspec.func')
+                    if func_reg_skull: 
+                        # func_reg_skull is only used for anatomical_based bold mask generation
+                        func_mean = pe.Node(interface=afni_utils.TStat(),name='func_mean')
+                        func_mean.inputs.options = '-mean'
+                        func_mean.inputs.outputtype = 'NIFTI_GZ'
+
+                        node, out_file = strat['functional_skull_leaf']
+                        workflow.connect(node, out_file,
+                                            func_mean, 'in_file')
+                        workflow.connect(func_mean, 'out_file',
+                                            func_to_anat_bbreg, 'inputspec.func')
+                    else: 
+                        node, out_file = strat['mean_functional']
+                        workflow.connect(node, out_file,
+                                            func_to_anat_bbreg, 'inputspec.func')
 
                 elif 'Selected Functional Volume' in c.func_reg_input:
                     # Input functional image (specific volume)
-                    node, out_file = strat['selected_func_volume']
-                    workflow.connect(node, out_file,
-                                        func_to_anat_bbreg, 'inputspec.func')
+                    if func_reg_skull: 
+                        # func_reg_skull is only used for anatomical_based bold mask generation
+                        get_func_volume = pe.Node(interface=afni.Calc(),
+                                                    name='get_func_volume')
+
+                        get_func_volume.inputs.set(
+                            expr='a',
+                            single_idx=config.func_reg_input_volume,
+                            outputtype='NIFTI_GZ'
+                        )
+                        node, out_file = strat['functional_skull_leaf']
+                        workflow.connect(node, out_file,
+                                        get_func_volume, 'in_file_a')
+                        workflow.connect(get_func_volume, 'out_file', 
+                                            func_to_anat_bbreg, 'inputspec.func')
+                    else: 
+                        node, out_file = strat['selected_func_volume']
+                        workflow.connect(node, out_file,
+                                            func_to_anat_bbreg, 'inputspec.func')
 
                 # Input anatomical whole-head image (reoriented)
                 node, out_file = strat['anatomical_skull_leaf']

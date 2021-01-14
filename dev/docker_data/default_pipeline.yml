@@ -872,7 +872,7 @@ n4_correct_func_reg_input : False
 
 # Choose which tool to be used in functional masking - AFNI (3dAutoMask), FSL (BET), FSL_AFNI (BET+3dAutoMask), Anatomical_Refined, or Anatomical_Based method 
 # 'Anatomical_Refined' : refine functional mask by registering anatomical mask to functional space. 
-# 'Anatomical_Based' : simply transforms the anatomical brain to the functional space to get BOLD mask. 
+# 'Anatomical_Based' : transforms the anatomical brain in standard space to the functional space to get BOLD mask. 
 # Options: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based'] 
 functionalMasking : ['AFNI'] 
 

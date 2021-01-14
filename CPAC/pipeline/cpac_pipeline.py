@@ -73,7 +73,8 @@ from CPAC.registration import (
     connect_func_to_anat_init_reg,
     connect_func_to_anat_bbreg,
     connect_func_to_template_reg,
-    output_func_to_standard
+    output_func_to_standard,
+    func_brain_mask_to_standard_abcd
 )
 
 from CPAC.nuisance import create_regressor_workflow, \
@@ -1250,8 +1251,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'registration_method': 'FSL',
                     'anatomical_to_mni_linear_xfm': (flirt_reg_anat_mni, 'outputspec.linear_xfm'),
                     'mni_to_anatomical_linear_xfm': (flirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
-                    'anatomical_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain')
+                    'anatomical_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain'),
+                    'anatomical_brain_mask_to_standard': (flirt_reg_anat_mni, 'outputspec.output_brain_mask')
                 })
+
+                # generate ABCD style functional brain mask in standard: resample anatomical brain mask in standard to functinal resolution
+                func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=c)
 
         strat_list += new_strat_list
 
@@ -1283,11 +1288,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     node, out_file = strat['anatomical_skull_leaf']
                     workflow.connect(node, out_file,
-                                    fnirt_reg_anat_mni, 'inputspec.input_skull')
+                        fnirt_reg_anat_mni, 'inputspec.input_skull')
 
                     node, out_file = strat['anatomical_to_mni_linear_xfm']
                     workflow.connect(node, out_file,
-                                    fnirt_reg_anat_mni, 'inputspec.linear_aff')
+                        fnirt_reg_anat_mni, 'inputspec.linear_aff')
 
                     node, out_file = strat['template_skull_for_anat']
                     workflow.connect(node, out_file,
@@ -1311,8 +1316,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     strat.update_resource_pool({
                         'anatomical_to_mni_nonlinear_xfm': (fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
-                        'anatomical_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain')
+                        'anatomical_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain'),
+                        'anatomical_brain_mask_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain_mask'),
                     }, override=True)
+                    
+                    # generate ABCD style functional brain mask in standard: resample anatomical brain mask in standard to functinal resolution
+                    func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=c, override=True)
 
         strat_list += new_strat_list
 
@@ -1368,21 +1377,25 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
-                                    ants_reg_anat_mni,
-                                    'inputspec.moving_brain')
+                    ants_reg_anat_mni,
+                    'inputspec.moving_brain'
+                    )
 
                 # pass the reference file
                 node, out_file = strat['template_brain_for_anat']
                 workflow.connect(node, out_file,
-                    ants_reg_anat_mni, 'inputspec.reference_brain')
+                    ants_reg_anat_mni, 
+                    'inputspec.reference_brain'
+                    )
 
                 # get the reorient skull-on anatomical from resource pool
                 node, out_file = strat['anatomical_skull_leaf']
 
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
-                                    ants_reg_anat_mni,
-                                    'inputspec.moving_skull')
+                    ants_reg_anat_mni,
+                    'inputspec.moving_skull'
+                    )
 
                 # pass the reference file
                 node, out_file = strat['template_skull_for_anat']
@@ -1453,8 +1466,12 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'anatomical_to_mni_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.warp_field'),
                     'mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.inverse_warp_field'),
                     'anat_to_mni_ants_composite_xfm': (ants_reg_anat_mni, 'outputspec.composite_transform'),
-                    'anatomical_to_standard': (ants_reg_anat_mni, 'outputspec.normalized_output_brain')
+                    'anatomical_to_standard': (ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
+                    'anatomical_brain_mask_to_standard': (ants_reg_anat_mni, 'outputspec.output_brain_mask')
                 })
+
+                # generate ABCD style functional brain mask in standard: resample anatomical brain mask in standard to functinal resolution
+                func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=c)
 
         strat_list += new_strat_list
 

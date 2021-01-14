@@ -14,6 +14,10 @@ from CPAC.func_preproc.utils import add_afni_prefix, nullify, chunk_ts, \
 from CPAC.utils.interfaces.function import Function
 from CPAC.generate_motion_statistics import motion_power_statistics
 
+from CPAC.registration import (
+    connect_func_to_anat_init_reg,
+    connect_func_to_anat_bbreg
+)
 
 def collect_arguments(*args):
     command_args = []
@@ -259,7 +263,7 @@ def normalize_motion_parameters(in_file):
     return out_file
 
 
-def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstrip_functional'):
+def skullstrip_functional(skullstrip_tool='afni', config=None, strat=None, wf_name='skullstrip_functional'):
 
     skullstrip_tool = skullstrip_tool.lower()
     if skullstrip_tool != 'afni' and skullstrip_tool != 'fsl' and skullstrip_tool != 'fsl_afni' and skullstrip_tool != 'anatomical_refined' and skullstrip_tool != 'anatomical_based':
@@ -273,6 +277,7 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
     input_node = pe.Node(util.IdentityInterface(fields=['raw_func',
                                                         'func',
                                                         'anatomical_brain_mask',
+                                                        'anatomical_brain_mask_to_standard',
                                                         'anat_brain',
                                                         'anat_head']),
                          name='inputspec')
@@ -496,20 +501,80 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
     
     # simply transforms the anatomical brain mask to the functional BOLD data.
     elif skullstrip_tool == 'anatomical_based':
+        # adopted from DCAN lab
+        # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L138-L144
+        
+        '''
+        Here, we use functional-skull to get functional_to_anat_linear_xfm, the matrix will be overwritted later. 
+        '''
+        # Func -> T1 Registration (Initial Linear reg)
+        strat_list = [strat] # we need strat_list here, so convert the strat to list
+        func_to_anat_init_reg, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow=wf, strat_list=strat_list, c=config, func_reg_skull=True)
 
-        # refined_bold_mask : input motion corrected func 
-        bold_mask = anat_based_mask(wf_name='bold_mask')
+        # Func -> T1 Registration (BBREG)
+        # Outputs 'functional_to_anat_linear_xfm', a matrix file of the
+        # functional-to-anatomical registration warp 
+        func_to_anat_bbreg, strat_list = connect_func_to_anat_bbreg(workflow=wf, strat_list=strat_list, c=config, diff_complete=diff_complete, func_reg_skull=True)
+
+        # Here, strat_list contains only one strat.
+        strat = strat_list[0]
+
+        # composite func-to-anat and anat-to-mni transforms 
+        composite_xfm = pe.Node(interface=fsl.ConvertWarp(), name='combine_warps_func_to_standard')
+
+        node, out_file = strat['template_skull_for_func_preproc']
+        wf.connect(node, out_file,
+                    composite_xfm, 'reference')
+
+        node, out_file = strat['functional_to_anat_linear_xfm']
+        wf.connect(node, out_file,
+                    composite_xfm, 'premat')
+
+        node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+        wf.connect(node, out_file,
+                    composite_xfm, 'warp1')
+
+        # # Invert warp
+        # invwarp -w ${OutputTransform} -o ${OutputInvTransform} -r ${ScoutInputgdc}
+        inverse_warp = pe.Node(interface=fsl.InvWarp(), name='inverse_warp')
+        inverse_warp.inputs.output_type = 'NIFTI_GZ'
 
         wf.connect(input_node, 'func',
-                    bold_mask, 'inputspec.func')
+                    inverse_warp, 'reference')
 
-        wf.connect(input_node, 'anat_brain', 
-                    bold_mask, 'inputspec.anat_brain')
+        wf.connect(composite_xfm, 'out_file',
+                    inverse_warp, 'warp')
 
-        wf.connect(input_node, 'anat_head', 
-                    bold_mask, 'inputspec.anat_head')
+        # applying inverse warp
+        # Apply composite functional to standard transforms to transfer anatomical brain mask in standard to functional space 
+        # applywarp --rel --interp=nn --in="$ReferenceMask" --ref="$Input" -w "$WD"/standard2str.nii.gz -o "$OutputBrainMask"
+        # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${ScoutInputgdc} -w ${OutputInvTransform} -o ${ScoutInputgdc}_mask.nii.gz
 
-        wf.connect(bold_mask, 'outputspec.func_brain_mask', 
+        apply_inv_warp = pe.Node(interface=fsl.ApplyWarp(),
+                            name='apply_inv_warp')
+        apply_inv_warp.inputs.interp = 'nn'
+        apply_inv_warp.inputs.relwarp = True
+
+        wf.connect(input_node, 'anatomical_brain_mask_to_standard',
+                    apply_inv_warp, 'in_file')
+
+        wf.connect(input_node, 'func',
+                    apply_inv_warp, 'ref_file')
+
+        wf.connect(inverse_warp, 'inverse_warp',
+                    apply_inv_warp, 'field_file')    
+
+        # fill holes to get BOLD mask
+
+        func_mask_fill_holes = pe.Node(interface=afni.MaskTool(),
+                                    name='func_mask_fill_holes')
+        func_mask_fill_holes.inputs.fill_holes = True
+        func_mask_fill_holes.inputs.outputtype = 'NIFTI_GZ'
+
+        wf.connect(apply_inv_warp, 'out_file',
+                    func_mask_fill_holes, 'in_file')
+
+        wf.connect(func_mask_fill_holes, 'out_file', 
                     output_node, 'func_brain_mask')
 
     func_edge_detect = pe.Node(interface=afni_utils.Calc(),
@@ -533,7 +598,7 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, wf_name='skullstr
         wf.connect(func_mask_final, 'out_file',
                     func_edge_detect, 'in_file_b')
     elif skullstrip_tool == 'anatomical_based':
-        wf.connect(bold_mask, 'outputspec.func_brain_mask', 
+        wf.connect(func_mask_fill_holes, 'out_file',
                     func_edge_detect, 'in_file_b')
 
     wf.connect(func_edge_detect, 'out_file',  output_node, 'func_brain')
@@ -682,7 +747,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 # functional preprocessing
 def create_func_preproc(skullstrip_tool, motion_correct_tool,
                         motion_correct_ref, motion_estimate_filter_option=False,
-                        config=None, wf_name='func_preproc'):
+                        config=None, strat=None, wf_name='func_preproc'):
     """
 
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented
@@ -899,6 +964,7 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                                                         'func',
                                                         'twopass',
                                                         'anatomical_brain_mask',
+                                                        'anatomical_brain_mask_to_standard',
                                                         'anat_brain',
                                                         'anat_head',
                                                         'TR']),
@@ -1297,8 +1363,12 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
                         output_node, 'movement_parameters')
         preproc.connect(out_oned_matrix, 'out_file',
                         output_node, 'transform_matrices')
+        
+        strat.update_resource_pool({
+            'functional_skull_leaf': (out_motion_A, 'out_file'),
+        })
 
-        skullstrip_func = skullstrip_functional(skullstrip_tool=skullstrip_tool, config=config, 
+        skullstrip_func = skullstrip_functional(skullstrip_tool=skullstrip_tool, config=config, strat=strat,
                                                 wf_name="{0}_skullstrip".format(wf_name))
         
         preproc.connect(out_motion_A, 'out_file',
@@ -1321,12 +1391,16 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
         preproc.connect(func_motion_correct_A, 'out_file',
                         output_node, 'motion_correct')
 
-        skullstrip_func = skullstrip_functional(skullstrip_tool=skullstrip_tool, config=config,
+        strat.update_resource_pool({
+            'functional_skull_leaf': (func_motion_correct_A, 'out_file'),
+        })
+        
+        skullstrip_func = skullstrip_functional(skullstrip_tool=skullstrip_tool, config=config, strat=strat,
                                                  wf_name="{0}_skullstrip".format(wf_name))
 
         preproc.connect(func_motion_correct_A, 'out_file',
                         skullstrip_func, 'inputspec.func')
-        
+
         normalize_motion_params = pe.Node(Function(input_names=['in_file'],
                                      output_names=['out_file'],
                                      function=normalize_motion_parameters),
@@ -1395,6 +1469,9 @@ def create_func_preproc(skullstrip_tool, motion_correct_tool,
 
     preproc.connect(input_node, 'anatomical_brain_mask',
                     skullstrip_func, 'inputspec.anatomical_brain_mask')
+
+    preproc.connect(input_node, 'anatomical_brain_mask_to_standard',
+                    skullstrip_func, 'inputspec.anatomical_brain_mask_to_standard')
 
     preproc.connect(input_node, 'anat_brain',
                     skullstrip_func, 'inputspec.anat_brain')                
@@ -1714,6 +1791,7 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
                                 motion_correct_ref=motion_correct_ref,
                                 motion_estimate_filter_option=motion_estimate_filter_option,
                                 config=c,
+                                strat=new_strat, 
                                 wf_name=func_preproc_workflow_name
                             )
 
@@ -1732,6 +1810,10 @@ def connect_func_init(workflow, strat_list, c, unique_id=None):
                             node, out_file = new_strat['anatomical_brain_mask']
                             workflow.connect(node, out_file, func_preproc,
                                             'inputspec.anatomical_brain_mask')
+
+                            node, out_file = new_strat['anatomical_brain_mask_to_standard']
+                            workflow.connect(node, out_file, func_preproc,
+                                            'inputspec.anatomical_brain_mask_to_standard')
 
                             node, out_file = new_strat['anatomical_skull_leaf']
                             workflow.connect(node, out_file, func_preproc,
@@ -1942,6 +2024,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                 motion_correct_ref=motion_correct_ref,
                 motion_estimate_filter_option=motion_estimate_filter_option,
                 config=c,
+                strat=strat, 
                 wf_name=workflow_name
             )
 
@@ -1960,6 +2043,10 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
             node, out_file = strat['anatomical_brain_mask']
             workflow.connect(node, out_file, func_preproc,
                             'inputspec.anatomical_brain_mask')
+            
+            node, out_file = strat['anatomical_brain_mask_to_standard']
+            workflow.connect(node, out_file, func_preproc,
+                            'inputspec.anatomical_brain_mask_to_standard')
 
             node, out_file = strat['anatomical_skull_leaf']
             workflow.connect(node, out_file, func_preproc,
@@ -2032,6 +2119,7 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                                 motion_correct_ref=motion_correct_ref,
                                 motion_estimate_filter_option=motion_estimate_filter_option,
                                 config=c,
+                                strat=new_strat,  
                                 wf_name=workflow_name
                             )
 
@@ -2056,6 +2144,10 @@ def connect_func_preproc(workflow, strat_list, c, unique_id=None):
                                 node, out_file = new_strat['anatomical_brain_mask']
                                 workflow.connect(node, out_file, func_preproc,
                                                 'inputspec.anatomical_brain_mask')
+
+                                node, out_file = new_strat['anatomical_brain_mask_to_standard']
+                                workflow.connect(node, out_file, func_preproc,
+                                                'inputspec.anatomical_brain_mask_to_standard')
 
                             node, out_file = strat['tr']
                             workflow.connect(node, out_file, func_preproc,

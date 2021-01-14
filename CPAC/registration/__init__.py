@@ -9,7 +9,8 @@ from .registration import create_fsl_flirt_linear_reg, \
                          connect_func_to_anat_bbreg, \
                          connect_func_to_template_reg
 
-from .output_func_to_standard import output_func_to_standard
+from .output_func_to_standard import output_func_to_standard, \
+                                    func_brain_mask_to_standard_abcd
 
 __all__ = ['create_fsl_flirt_linear_reg', \
            'create_fsl_fnirt_nonlinear_reg', \
@@ -21,4 +22,5 @@ __all__ = ['create_fsl_flirt_linear_reg', \
            'connect_func_to_anat_init_reg', \
            'connect_func_to_anat_bbreg', \
            'connect_func_to_template_reg', \
-           'output_func_to_standard']
+           'output_func_to_standard', \
+            'func_brain_mask_to_standard_abcd']
