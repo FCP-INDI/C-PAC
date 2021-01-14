@@ -1237,6 +1237,9 @@ def check_config_resources(c):
     else:
         num_omp_cores = c.num_omp_threads
 
+    # Give a little wiggle room to the memory cap
+    sub_mem_gb = sub_mem_gb * 0.8
+
     # Return memory and cores
     return sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
 
