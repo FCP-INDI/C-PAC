@@ -4,6 +4,8 @@ runOnGrid:
    - on_grid
    - run
 FSLDIR:
+   - pipeline_setup
+   - system_config
    - FSLDIR
 resourceManager:
    - pipeline_setup
@@ -109,11 +111,11 @@ acpc_brainsize:
 acpc_template_skull:
    - anatomical_preproc
    - acpc_alignment
-   - template_skull
+   - T1w_ACPC_template
 acpc_template_brain:
    - anatomical_preproc
    - acpc_alignment
-   - template_brain
+   - T1w_brain_ACPC_template
 already_skullstripped:
    - anatomical_preproc
    - brain_extraction
@@ -121,234 +123,195 @@ already_skullstripped:
 skullstrip_option:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - using
 unet_model:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - UNet
    - unet_model
 niworkflows_ants_template_path:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - niworkflows-ants
    - template_path
 niworkflows_ants_mask_path:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - niworkflows-ants
    - mask_path
 niworkflows_ants_regmask_path:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - niworkflows-ants
    - regmask_path
 skullstrip_mask_vol:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - mask_vol
 skullstrip_shrink_factor:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - shrink_factor
 skullstrip_var_shrink_fac:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - var_shrink_fac
 skullstrip_shrink_factor_bot_lim:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - shrink_factor_bot_lim
 skullstrip_avoid_vent:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - avoid_vent
 skullstrip_n_iterations:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - n_iterations
 skullstrip_pushout:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - pushout
 skullstrip_touchup:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - touchup
 skullstrip_fill_hole:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - fill_hole
 skullstrip_NN_smooth:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - NN_smooth
 skullstrip_smooth_final:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - smooth_final
 skullstrip_avoid_eyes:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - avoid_eyes
 skullstrip_use_edge:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - use_edge
 skullstrip_exp_frac:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - exp_frac
 skullstrip_push_to_edge:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - push_to_edge
 skullstrip_use_skull:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - use_skull
 skullstrip_perc_int:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - perc_int
 skullstrip_max_inter_iter:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - max_inter_iter
 skullstrip_fac:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - fac
 skullstrip_blur_fwhm:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - blur_fwhm
 skullstrip_monkey:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - AFNI-3dSkullStrip
    - monkey
 bet_frac:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - frac
 bet_mask_boolean:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - mask_boolean
 bet_mesh_boolean:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - mesh_boolean
 bet_outline:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - outline
 bet_padding:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - padding
 bet_radius:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - radius
 bet_reduce_bias:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - reduce_bias
 bet_remove_eyes:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - remove_eyes
 bet_robust:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - robust
 bet_skull:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - skull
 bet_surfaces:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - surfaces
 bet_threshold:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - threshold
 bet_vertical_gradient:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - vertical_gradient
 run_longitudinal:
@@ -373,276 +336,274 @@ longitudinal_template_convergence_threshold:
    - longitudinal_template_generation
    - convergence_threshold
 resolution_for_anat:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - resolution_for_anat
 template_brain_only_for_anat:
-   - anatomical_preproc
-   - registration_workflow
-   - template_brain_only_for_anat
+   - registration_workflows
+   - anatomical_registration
+   - T1w_brain_template
 template_skull_for_anat:
-   - anatomical_preproc
-   - registration_workflow
-   - template_skull_for_anat
+   - registration_workflows
+   - anatomical_registration
+   - T1w_template
 regOption:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
    - using
 ANTs_para_T1_registration:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
    - ANTs
    - T1_registration
 ANTs_para_EPI_registration:
-   - anatomical_preproc
-   - registration_workflow
-   - registration
-   - ANTs
+   - registration_workflows
+   - functional_registration
+   - func_registration_to_template
+   - ANTs_pipelines
    - EPI_registration
 use_lesion_mask:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
    - ANTs
    - use_lesion_mask
 fsl_linear_reg_only:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
-   - FSL-FNIRT
-   - fsl_linear_reg_only
+   - using
 fnirtConfig:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
    - FSL-FNIRT
    - fnirt_config
 ref_mask:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
    - FSL-FNIRT
    - ref_mask
 regWithSkull:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - reg_with_skull
 runSegmentationPreprocessing:
-   - anatomical_preproc
-   - segmentation_workflow
+   - segmentation
    - run
 segmentation_method:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - using
 ANTs_prior_seg_template_brain_list:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - ANTs_Prior_Based
    - template_brain_list
 ANTs_prior_seg_template_segmentation_list:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - ANTs_Prior_Based
    - template_segmentation_list
 ANTs_prior_seg_CSF_label:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - ANTs_Prior_Based
    - CSF_label
 ANTs_prior_seg_left_GM_label:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - ANTs_Prior_Based
    - left_GM_label
 ANTs_prior_seg_right_GM_label:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - ANTs_Prior_Based
    - right_GM_label
 ANTs_prior_seg_left_WM_label:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - ANTs_Prior_Based
    - left_WM_label
 ANTs_prior_seg_right_WM_label:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - ANTs_Prior_Based
    - right_WM_label
 template_based_segmentation:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - Template_Based
    - template_for_segmentation
 template_based_segmentation_WHITE:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - Template_Based
    - WHITE
 template_based_segmentation_GRAY:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - Template_Based
    - GRAY
 template_based_segmentation_CSF:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - Template_Based
    - CSF
 seg_use_priors:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 2-use_priors
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - use_priors
    - run
 priors_path:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 2-use_priors
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - use_priors
    - priors_path
 PRIORS_WHITE:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 2-use_priors
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - use_priors
    - WM_path
 PRIORS_GRAY:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 2-use_priors
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - use_priors
    - GM_path
 PRIORS_CSF:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 2-use_priors
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - use_priors
    - CSF_path
 seg_use_threshold:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 3-custom_thresholding
-   - run
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - thresholding
+   - use
 seg_CSF_threshold_value:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 3-custom_thresholding
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - thresholding
+   - Custom
    - CSF_threshold_value
 seg_WM_threshold_value:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 3-custom_thresholding
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - thresholding
+   - Custom
    - WM_threshold_value
 seg_GM_threshold_value:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 3-custom_thresholding
+   - segmentation
+   - tissue_segmentation
+   - FSL-FAST
+   - thresholding
+   - Custom
    - GM_threshold_value
 seg_csf_use_erosion:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_csf
    - run
 brain_use_erosion:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_anatomical_brain_mask
    - run
 brain_mask_erosion_prop:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_anatomical_brain_mask
    - brain_mask_erosion_prop
 brain_mask_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_anatomical_brain_mask
    - brain_mask_erosion_mm
 brain_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_anatomical_brain_mask
    - brain_erosion_mm
 csf_erosion_prop:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_csf
    - csf_erosion_prop
 csf_mask_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_csf
    - csf_mask_erosion_mm
 csf_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_csf
    - csf_erosion_mm
 seg_wm_use_erosion:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_wm
    - run
 wm_erosion_prop:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_wm
    - wm_erosion_prop
 wm_mask_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_wm
    - wm_mask_erosion_mm
 wm_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_wm
    - wm_erosion_mm
 seg_gm_use_erosion:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_gm
    - run
 gm_erosion_prop:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_gm
    - gm_erosion_prop
 gm_mask_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_gm
    - gm_mask_erosion_mm
 gm_erosion_mm:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 4-erosion
+   - nuisance_corrections
+   - 2-nuisance_regression
+   - regressor_masks
    - erode_gm
    - gm_erosion_mm
 runFunctional:
@@ -721,57 +682,66 @@ fmap_distcorr_threshold:
    - PhaseDiff
    - fmap_skullstrip_threshold
 runRegisterFuncToAnat:
+   - registration_workflows
    - functional_registration
-   - 1-coregistration
+   - coregistration
    - run
 functional_registration:
+   - registration_workflows
    - functional_registration
 runBBReg:
+   - registration_workflows
    - functional_registration
-   - 1-coregistration
+   - coregistration
    - boundary_based_registration
    - run
 boundaryBasedRegistrationSchedule:
+   - registration_workflows
    - functional_registration
-   - 1-coregistration
+   - coregistration
    - boundary_based_registration
    - bbr_schedule
 anatRegANTSinterpolation:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
    - ANTs
    - interpolation
 anatRegFSLinterpolation:
-   - anatomical_preproc
-   - registration_workflow
+   - registration_workflows
+   - anatomical_registration
    - registration
    - FSL-FNIRT
    - interpolation
 funcRegANTSinterpolation:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - ANTs_pipelines
    - interpolation
 funcRegFSLinterpolation:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - FNIRT_pipelines
    - interpolation
 func_reg_input:
+   - registration_workflows
    - functional_registration
-   - 1-coregistration
+   - coregistration
    - func_input_prep
    - input
 func_reg_input_volume:
+   - registration_workflows
    - functional_registration
-   - 1-coregistration
+   - coregistration
    - func_input_prep
    - Selected Functional Volume
    - func_reg_input_volume
 n4_correct_func_reg_input:
+   - registration_workflows
    - functional_registration
-   - 1-coregistration
+   - coregistration
    - func_input_prep
    - Mean Functional
    - n4_correct_func
@@ -787,73 +757,61 @@ bold_bet_functional_mean_boolean:
 bold_bet_frac:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - frac
 bold_bet_mesh_boolean:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - mesh_boolean
 bold_bet_outline:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - outline
 bold_bet_padding:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - padding
 bold_bet_radius:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - radius
 bold_bet_reduce_bias:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - reduce_bias
 bold_bet_remove_eyes:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - remove_eyes
 bold_bet_robust:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - robust
 bold_bet_skull:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - skull
 bold_bet_surfaces:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - surfaces
 bold_bet_threshold:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - threshold
 bold_bet_vertical_gradient:
    - anatomical_preproc
    - brain_extraction
-   - extraction
    - FSL-BET
    - vertical_gradient
 anatomical_mask_dilation:
@@ -862,46 +820,54 @@ anatomical_mask_dilation:
    - Anatomical_Refined
    - anatomical_mask_dilation
 runRegisterFuncToTemplate:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - target_template
    - using
 resolution_for_func_preproc:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - output_resolution
    - func_preproc_outputs
 resolution_for_func_derivative:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - output_resolution
    - func_derivative_outputs
 template_for_resample:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - output_resolution
    - template_for_resample
 template_brain_only_for_func:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - target_template
    - T1_template
-   - template_brain
+   - T1w_brain_template
 template_skull_for_func:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - target_template
    - T1_template
-   - template_skull
+   - T1w_template
 template_epi:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - target_template
    - EPI_template
    - template_epi
 identityMatrix:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - FNIRT_pipelines
    - identity_matrix
 runICA:
@@ -955,19 +921,19 @@ runVMHC:
 template_symmetric_brain_only:
    - voxel_mirrored_homotopic_connectivity
    - symmetric_registration
-   - template_symmetric_brain_only
+   - T1w_brain_template_symmetric
 template_symmetric_brain_for_resample:
    - voxel_mirrored_homotopic_connectivity
    - symmetric_registration
-   - template_symmetric_brain_for_resample
+   - T1w_brain_template_symmetric_for_resample
 template_symmetric_skull:
    - voxel_mirrored_homotopic_connectivity
    - symmetric_registration
-   - template_symmetric_skull
+   - T1w_template_symmetric
 template_symmetric_skull_for_resample:
    - voxel_mirrored_homotopic_connectivity
    - symmetric_registration
-   - template_symmetric_skull_for_resample
+   - T1w_template_symmetric_for_resample
 dilated_symmetric_brain_mask:
    - voxel_mirrored_homotopic_connectivity
    - symmetric_registration
@@ -1089,8 +1055,9 @@ peer_scrub_thresh:
    - minimal_nuisance_correction
    - scrub_thresh
 n4_correct_mean_EPI:
+   - registration_workflows
    - functional_registration
-   - 1-coregistration
+   - coregistration
    - func_input_prep
    - Mean Functional
    - n4_correct_func
@@ -1098,14 +1065,14 @@ anatomical_preproc:
    - anatomical_preproc
    - run
 runRegisterFuncToEPI:
+   - registration_workflows
    - functional_registration
-   - 2-func_registration_to_template
+   - func_registration_to_template
    - target_template
    - using
 ANTs_prior_based_segmentation:
-   - anatomical_preproc
-   - segmentation_workflow
-   - 1-segmentation
+   - segmentation
+   - tissue_segmentation
    - using
 bold_bet_mask_boolean:
    - functional_preproc

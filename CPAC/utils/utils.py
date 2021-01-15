@@ -9,13 +9,13 @@ import numpy as np
 import json
 import yaml
 
-from inspect import currentframe, getframeinfo, stack
 from itertools import repeat
 from optparse import OptionError
 from voluptuous.error import Invalid
 
 NESTED_CONFIG_MAPPING = yaml.safe_load(open(
-    os.path.abspath(os.path.join(__file__, *repeat(os.path.pardir, 2),
+    os.path.abspath(os.path.join(
+        __file__, *repeat(os.path.pardir, 2),
         'resources/configs/1.7-1.8-nesting-mappings.yml')), 'r'))
 
 
@@ -1557,12 +1557,12 @@ def dct_diff(dct1, dct2):
     return {k: diff[k] for k in diff if diff[k]}
 
 
-def list_item_replace(l, old, new):
+def list_item_replace(l, old, new):  # noqa E741
     '''Function to replace an item in a list
 
     Parameters
     ----------
-    l: list
+    l: list or string
 
     old: any
         item to replace
@@ -1572,7 +1572,7 @@ def list_item_replace(l, old, new):
 
     Returns
     -------
-    l: list
+    l: list or string
         updated
 
     Examples
@@ -1584,6 +1584,8 @@ def list_item_replace(l, old, new):
     '''
     if isinstance(l, list) and old in l:
         l[l.index(old)] = new
+    elif isinstance(l, str):
+        l = l.replace(old, new)  # noqa E741
     return l
 
 
@@ -1782,7 +1784,8 @@ def update_config_dict(old_dict):
             for i in new_value:
                 if i and i not in current_value and i != 'Off':
                     current_value.append(i)
-        elif (new_value and new_value not in current_value and
+        elif (
+            new_value and new_value not in current_value and
             new_value != 'Off'
         ):
             current_value.append(new_value)
@@ -1824,44 +1827,91 @@ def update_config_dict(old_dict):
             return value_if_true
         return None
 
+    def _get_old_values(old_dict, new_dict, key):
+        '''Helper function to get old and current values of a special key
+        being updated.
+
+        Parameters
+        ----------
+        old_dict: dict
+
+        new_dict: dict
+
+        key: str
+
+        Returns
+        -------
+        old_dict: dict
+
+        new_dict: dict
+
+        old_value: any
+
+        current_value: any
+        '''
+        old_value = old_dict.pop(key)
+        try:
+            current_value = lookup_nested_value(
+                new_dict, NESTED_CONFIG_MAPPING[key]
+            )
+        except KeyError:
+            current_value = []
+        return old_dict, new_dict, old_value, current_value
+
     new_dict = {}
     for key in old_dict.copy():
         if key in NESTED_CONFIG_MAPPING:
             # handle special cases
-            # anatomical_preproc.segmentation_workflow.1-segmentation.using
-            if key == 'ANTs_prior_based_segmentation':
-                old_value = old_dict.pop(key)
-                try:
-                    current_value = lookup_nested_value(
-                        new_dict, NESTED_CONFIG_MAPPING[key]
-                    )
-                except KeyError:
-                    current_value = []
-                new_value = _bool_to_str(old_value, 'ANTs_Prior_Based')
-                if new_value == 'ANTs_Prior_Based':
-                    new_dict = set_nested_value(
-                        new_dict,
-                        NESTED_CONFIG_MAPPING[key][:-1] + [new_value, 'run'],
-                        old_value
-                    )
-                current_value = _append_to_list(current_value, new_value)
-                new_dict = set_nested_value(
-                    new_dict, NESTED_CONFIG_MAPPING[key], current_value
+            special_cases = {
+                'ANTs_prior_based_segmentation',
+                'func_reg_input',
+                'runRegisterFuncToTemplate',
+                'runRegisterFuncToEPI',
+                'fsl_linear_reg_only',
+                'functional_registration',
+            }
+            if key in special_cases:
+                old_dict, new_dict, old_value, current_value = _get_old_values(
+                    old_dict, new_dict, key
                 )
 
-            # functional_registration.2-func_registration_to_template.target_template.using
-            elif key in {'runRegisterFuncToTemplate', 'runRegisterFuncToEPI'}:
-                old_value = old_dict.pop(key)
-                try:
-                    current_value = lookup_nested_value(
-                        new_dict, NESTED_CONFIG_MAPPING[key]
-                    )
-                except KeyError:
-                    current_value = []
-                new_value = None
-                if key == 'runRegisterFuncToEPI':
-                    new_value = _bool_to_str(old_value, 'EPI_template')
-                current_value = _append_to_list(current_value, new_value)
+                # segmentation.tissue_segmentation.using
+                if key == 'ANTs_prior_based_segmentation':
+                    new_value = _bool_to_str(old_value, 'ANTs_Prior_Based')
+                    if new_value == 'ANTs_Prior_Based':
+                        new_dict = set_nested_value(
+                            new_dict,
+                            NESTED_CONFIG_MAPPING[key][:-1] +
+                            [new_value, 'run'],
+                            old_value
+                        )
+
+                #
+                elif key == 'func_reg_input':
+                    new_value = _replace_in_value_list(old_value, (' ', '_'))
+                    current_value = _replace_in_value_list(
+                        current_value, (' ', '_'))
+
+                # registration_workflows.functional_registration.
+                # func_registration_to_template.target_template.using
+                elif key in {
+                    'runRegisterFuncToTemplate', 'runRegisterFuncToEPI'
+                }:
+                    current_value = _replace_in_value_list(
+                        current_value, (' ', '_'))
+                    if key == 'runRegisterFuncToTemplate':
+                        new_value = None
+                    if key == 'runRegisterFuncToEPI':
+                        new_value = _bool_to_str(old_value, 'EPI_template')
+
+                # registration_workflows.anatomical_registration.registration.
+                # using
+                elif key == 'fsl_linear_reg_only':
+                    new_value = _bool_to_str(old_value, 'FSL-linear')
+
+                # set updated value
+                if key != 'functional_registration':
+                    current_value = _append_to_list(current_value, new_value)
                 new_dict = set_nested_value(
                     new_dict, NESTED_CONFIG_MAPPING[key], current_value
                 )
@@ -1921,7 +1971,7 @@ def update_nested_dict(d_base, d_update):
     return d_base
 
 
-def update_pipeline_values(d_old):
+def update_pipeline_values_1_8(d_old):
     '''Function to update pipeline config values that changed from
     C-PAC 1.7 to 1.8.
 
@@ -1936,10 +1986,12 @@ def update_pipeline_values(d_old):
 
     Examples
     --------
-    >>> update_pipeline_values({'anatomical_preproc': {'segmentation_workflow': {'3-custom_thresholding': {'run': ['FSL-FAST Thresholding', 'Customized Thresholding']}}}})
-    {'anatomical_preproc': {'segmentation_workflow': {'3-custom_thresholding': {'run': True}, '1-segmentation': {'using': ['FSL-FAST']}}}}
-    >>> update_pipeline_values({'anatomical_preproc': {'segmentation_workflow': {'1-segmentation': {'using': ['Template_Based']}, '3-custom_thresholding': {'run': ['FSL-FAST Thresholding', 'Customized Thresholding']}}}})
-    {'anatomical_preproc': {'segmentation_workflow': {'1-segmentation': {'using': ['Template_Based', 'FSL-FAST']}, '3-custom_thresholding': {'run': True}}}}
+    >>> update_pipeline_values_1_8({'segmentation': {'tissue_segmentation': {
+    ...     'using': ['FSL-FAST Thresholding', 'Customized Thresholding']}}})
+    {'segmentation': {'tissue_segmentation': {'using': ['FSL-FAST'], 'FSL-FAST': {'thresholding': {'use': 'Custom'}}}}}
+    >>> update_pipeline_values_1_8({'segmentation': {'tissue_segmentation': {
+    ...     'using': ['FSL-FAST Thresholding']}}})
+    {'segmentation': {'tissue_segmentation': {'using': ['FSL-FAST'], 'FSL-FAST': {'thresholding': {'use': 'Auto'}}}}}
     '''  # noqa
     from CPAC.pipeline.schema import valid_options
 
@@ -1947,22 +1999,26 @@ def update_pipeline_values(d_old):
 
     resolution_replacements = [
         (r'${resolution_for_anat}',
-         r'${anatomical_preproc.registration_workflow.resolution_for_anat}'),
+         r'${registration_workflows.anatomical_registration.'
+         r'resolution_for_anat}'),
         (r'${resolution_for_func_preproc}',
-         r'${functional_registration.2-func_registration_to_template.'
-         'output_resolution.func_preproc_outputs}')
+         r'${registration_workflows.functional_registration.'
+         r'func_registration_to_template.output_resolution.'
+         r'func_preproc_outputs}')
     ]
     for keylist in [
         ['anatomical_preproc', 'registration_workflow',
-         'template_brain_only_for_anat'],
+         'T1w_brain_template'],
         ['anatomical_preproc', 'registration_workflow',
-         'template_skull_for_anat'],
-        ['anatomical_preproc', 'registration_workflow', 'registration',
+         'T1w_template'],
+        ['registration_workflows', 'anatomical_registration', 'registration',
          'FSL-FNIRT', 'ref_mask'],
-        ['functional_registration', '2-func_registration_to_template',
-         'target_template', 'T1_template', 'template_brain'],
-        ['functional_registration', '2-func_registration_to_template',
-         'target_template', 'T1_template', 'template_skull'],
+        ['registration_workflows', 'functional_workflows',
+         'func_registration_to_template', 'target_template', 'T1_template',
+         'T1w_brain_template'],
+        ['registration_workflows', 'functional_workflows',
+         'func_registration_to_template', 'target_template', 'T1_template',
+         'T1w_template'],
         ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
          'template_symmetric_brain_only'],
         ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
@@ -1972,47 +2028,50 @@ def update_pipeline_values(d_old):
         ['PyPEER', 'eye_mask_path']
     ]:
         value = lookup_nested_value(d, keylist)
+        value = value if bool(value) else None
         if isinstance(value, str):
             for replacement in resolution_replacements:
                 value = value.replace(*replacement)
             if value:
                 set_nested_value(d, keylist, value)
 
-    bet = lookup_nested_value(d, [
-        'anatomical_preproc', 'brain_extraction', 'extraction', 'using'])
-    if bet:
-        for replacement in [
-            ('AFNI', '3dSkullStrip'), ('FSL', 'BET'), ('unet', 'UNet')
-        ]:
-            bet = list_item_replace(bet, *replacement)
-        d = set_nested_value(
-            d,
-            ['anatomical_preproc', 'brain_extraction', 'extraction', 'using'],
-            bet)
+    d = _replace_changed_values(
+        d,
+        ['anatomical_preproc', 'brain_extraction', 'using'],
+        [('AFNI', '3dSkullStrip'), ('FSL', 'BET'), ('unet', 'UNet')]
+    )
+
+    d = _replace_changed_values(
+        d,
+        ['functional_preproc', 'func_masking', 'using'],
+        [('3dAutoMask', 'AFNI'), ('BET', 'FSL')]
+    )
 
     seg_use_threshold = lookup_nested_value(d, [
-        'anatomical_preproc', 'segmentation_workflow',
-        '3-custom_thresholding', 'run'])
-    if seg_use_threshold and isinstance(seg_use_threshold, list):
-        if 'FSL-FAST Thresholding' in seg_use_threshold:
-            if 'using' in d['anatomical_preproc']['segmentation_workflow'].get(
-                '1-segmentation', {}
-            ):
-                d['anatomical_preproc']['segmentation_workflow'][
-                    '1-segmentation']['using'].append('FSL-FAST')
-            else:
-                set_nested_value(d, [
-                    'anatomical_preproc', 'segmentation_workflow',
-                    '1-segmentation', 'using'], ['FSL-FAST'])
-            seg_use_threshold.remove('FSL-FAST Thresholding')
-        if 'Customized Thresholding' in seg_use_threshold:
-            set_nested_value(d, [
-                'anatomical_preproc', 'segmentation_workflow',
-                '3-custom_thresholding', 'run'], [True])
+        'segmentation', 'tissue_segmentation', 'using'])
+    if not (seg_use_threshold and isinstance(seg_use_threshold, list)):
+        seg_use_threshold = [seg_use_threshold]
+    if 'FSL-FAST Thresholding' in seg_use_threshold:
+        if 'using' in d['segmentation'].get(
+            'tissue_segmentation', {}
+        ):
+            d['segmentation'][
+                'tissue_segmentation'
+            ]['using'].append('FSL-FAST')
         else:
             set_nested_value(d, [
-                'anatomical_preproc', 'segmentation_workflow',
-                '3-custom_thresholding', 'run'], False)
+                'segmentation', 'tissue_segmentation',
+                'using'], ['FSL-FAST'])
+        seg_use_threshold.remove('FSL-FAST Thresholding')
+    if 'Customized Thresholding' in seg_use_threshold:
+        set_nested_value(d, [
+            'segmentation', 'tissue_segmentation',
+            'FSL-FAST', 'thresholding', 'use'], 'Custom')
+        seg_use_threshold.remove('Customized Thresholding')
+    else:
+        set_nested_value(d, [
+            'segmentation', 'tissue_segmentation',
+            'FSL-FAST', 'thresholding', 'use'], 'Auto')
 
     for centr in ['degree_centrality', 'eigenvector_centrality',
                   'local_functional_connectivity_density']:
@@ -2028,7 +2087,7 @@ def update_pipeline_values(d_old):
             set_nested_value(d, centr_keys, centr_value)
 
     seg_template_key = [
-        'anatomical_preproc', 'segmentation_workflow', '1-segmentation',
+        'segmentation', 'tissue_segmentation',
         'Template_Based', 'template_for_segmentation']
     seg_template = lookup_nested_value(d, seg_template_key)
 
@@ -2059,6 +2118,19 @@ def update_pipeline_values(d_old):
             new_tse.append('numpy')
         d = set_nested_value(d, tse_key, new_tse)
 
+    if 'functional_registration' in d and isinstance(
+        d['functional_registration'], dict
+    ):
+        if '1-coregistration' in d['functional_registration']:
+            coreg = d['functional_registration'].pop('1-coregistration')
+            set_nested_value(
+                d, ['registration_workflows', 'functional_registration',
+                    'coregistration'],
+                coreg
+            )
+        if not(bool(d['functional_registration'])):
+            d.pop('functional_registration')
+
     return update_values_from_list(d)
 
 
@@ -2082,10 +2154,11 @@ def update_values_from_list(d_old, last_exception=None):
 
     Examples
     --------
-    >>> update_values_from_list({'pipeline_setup': {'pipeline_name': ['one_string']}})
+    >>> update_values_from_list({'pipeline_setup': {
+    ...     'pipeline_name': ['one_string']}})
     {'pipeline_setup': {'pipeline_name': 'one_string'}}
     >>> update_values_from_list({'regional_homogeneity': {'run': [False]}})
-    {'regional_homogeneity': {'run': False}}
+    {'regional_homogeneity': {'run': [False]}}
     '''  # noqa
     from CPAC.pipeline.schema import schema
 
@@ -2157,3 +2230,80 @@ def update_values_from_list(d_old, last_exception=None):
         else:
             raise e
     return d
+
+
+def _replace_changed_values(d, nested_key, replacement_list):
+    '''Helper function to replace values changed from C-PAC 1.7 to C-PAC 1.8.
+
+    Parameters
+    ----------
+    d: dict
+
+    nested_key: list of strings
+
+    replacement_list: list of tuples
+        0: any
+            value to replace
+        1: any
+            replacement value
+
+    Returns
+    -------
+    d: dict
+
+    Examples
+    --------
+    >>> d = {'test': {'this': ['function']}}
+    >>> _replace_changed_values(d, ['test', 'this'], [('function', 'success')])
+    {'test': {'this': ['success']}}
+    '''
+    current_value = lookup_nested_value(d, nested_key)
+    if bool(current_value):
+        if isinstance(current_value, list):
+            current_value = _replace_in_value_list(
+                current_value, replacement_list)
+        else:
+            for replacement in replacement_list:
+                current_value = list_item_replace(current_value, *replacement)
+        return set_nested_value(d, nested_key, current_value)
+    return d
+
+
+def _replace_in_value_list(current_value, replacement_tuple):
+    '''Helper function to make character replacements in
+    `current_value` and drop falsy values.
+
+    Parameters
+    ----------
+    current_value: list
+
+    replacement_tuple: tuple or list of tuples
+        0: str
+            character value to replace
+        1: str
+            replacement character value
+
+    Returns
+    -------
+    current_value: list
+
+    Examples
+    --------
+    >>> current_value = ['EPI Template', 'T1_Template', 'None']
+    >>> _replace_in_value_list(current_value, (' ', '_'))
+    ['EPI_Template', 'T1_Template']
+    >>> current_value = ['AFNI', 'FSL', 'None', None, False]
+    >>> _replace_in_value_list(current_value, [
+    ...     ('AFNI', '3dSkullStrip'), ('FSL', 'BET')])
+    ['3dSkullStrip', 'BET']
+    '''
+    if isinstance(replacement_tuple, list):
+        for rt in replacement_tuple:
+            current_value = _replace_in_value_list(current_value, rt)
+        return current_value
+    if not isinstance(current_value, list):
+        current_value = [current_value]
+    return [
+        v.replace(*replacement_tuple) for v in current_value
+        if bool(v) and v not in {'None', 'Off', ''}
+    ]

@@ -5,7 +5,7 @@ from datetime import datetime
 from optparse import OptionError
 from CPAC.utils.configuration import Configuration, DEFAULT_PIPELINE_FILE
 from CPAC.utils.utils import dct_diff, load_preconfig, lookup_nested_value, \
-    update_config_dict, update_pipeline_values
+    update_config_dict, update_pipeline_values_1_8
 
 
 def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
@@ -102,7 +102,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         '''
         return f'\n{" " * level * 2}{key}: '
 
-    def _format_list_items(l, line_level):
+    def _format_list_items(l, line_level):  # noqa E741
         '''Helper method to handle lists in the YAML
 
         Parameters
@@ -164,7 +164,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
         template_name = 'default'
 
     # update values
-    d = update_pipeline_values(_create_import_dict(dct_diff(d_default, d)))
+    d = _create_import_dict(dct_diff(d_default, d))
 
     # generate YAML from template with updated values
     with open(template, 'r') as f:
@@ -331,7 +331,8 @@ def upgrade_pipeline_to_1_8(path):
     if 'pipelineName' in orig_dict and len(original.strip()):
         middle_dict, leftovers_dict, complete_dict = update_config_dict(
             orig_dict)
-        new_dict = update_pipeline_values(middle_dict)
-        open(path, 'w').write(create_yaml_from_template(new_dict))
+        open(path, 'w').write(create_yaml_from_template(
+            update_pipeline_values_1_8(middle_dict))
+        )
         if leftovers_dict:
             open(f'{path}.rem', 'w').write(yaml.dump(leftovers_dict))
