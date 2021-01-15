@@ -445,7 +445,7 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
     csf = data.copy()
     if include_ventricles:
         csf[np.logical_and(np.logical_and(np.logical_and(np.logical_and(csf != csf_label, csf != 4), csf != 14), csf != 15), csf != 43)] = 0
-        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] =
+        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] = 1
     else:
         csf[csf != csf_label] = 0
         csf[csf == csf_label] = 1
