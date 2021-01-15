@@ -197,7 +197,7 @@ def create_alff(wf_name='alff_workflow'):
     stddev_filtered.inputs.outputtype = 'NIFTI_GZ'
     stddev_filtered.inputs.out_file = os.path.join(os.path.curdir,
                                                    'alff.nii.gz')
-                                                
+
     wf.connect(bandpass, 'out_file', stddev_filtered, 'in_file')
     wf.connect(get_option_string, 'option_string', stddev_filtered, 'options')
 
@@ -239,46 +239,38 @@ def create_alff(wf_name='alff_workflow'):
     return wf
 
 
-def run_alff(input_fmri, func_brain_mask, hp=0.01, lp=0.1, out_dir=None,
-             run=True):
-    """Runner function for the create_alff workflow builder."""
+def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "alff_falff",
+     "config": ["amplitude_low_frequency_fluctuation"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-cleaned_bold", "desc-brain_bold", "desc-preproc_bold",
+                 "bold"],
+                "space-bold_desc-brain_mask"],
+     "outputs": ["alff",
+                 "falff"]}
+    '''
 
-    import os
-    import glob
+    alff = create_alff(f'alff_falff_{pipe_num}')
 
-    import nipype.interfaces.io as nio
-    import nipype.pipeline.engine as pe
+    alff.inputs.hp_input.hp = \
+        cfg.amplitude_low_frequency_fluctuation['highpass_cutoff']
+    alff.inputs.lp_input.lp = \
+        cfg.amplitude_low_frequency_fluctuation['lowpass_cutoff']
+    alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
+    alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
 
-    output = 'alff'
+    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-brain_bold",
+                                     "desc-preproc_bold", "bold"])
+    wf.connect(node, out, alff, 'inputspec.rest_res')
+    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out, alff, 'inputspec.rest_mask')
 
-    workflow = pe.Workflow(name='{0}_workflow'.format(output))
+    outputs = {
+        'alff': (alff, 'outputspec.alff_img'),
+        'falff': (alff, 'outputspec.falff_img')
+    }
 
-    if not out_dir:
-        out_dir = os.getcwd()
-
-    workflow_dir = os.path.join(out_dir, "workflow_output", output)
-    workflow.base_dir = workflow_dir
-
-    num_cores_per_subject = 1
-
-    alff = create_alff('alff_falff')
-
-    alff.inputs.inputspec.rest_res = os.path.abspath(input_fmri)
-    alff.inputs.inputspec.rest_mask = os.path.abspath(func_brain_mask)
-    alff.inputs.hp_input.hp = float(hp)
-    alff.inputs.lp_input.lp = float(lp)
-
-    ds = pe.Node(nio.DataSink(), name='datasink_{0}'.format(output))
-    ds.inputs.base_directory = workflow_dir
-
-    workflow.connect(alff, 'outputspec.alff_img', ds, 'alff')
-    workflow.connect(alff, 'outputspec.falff_img', ds, 'falff')
-
-    if run:
-        workflow.run(
-            plugin='MultiProc', plugin_args={'n_procs': num_cores_per_subject})
-        outpath = glob.glob(os.path.join(workflow_dir, output, '*'))
-        return outpath
-
-    else:
-        return workflow, workflow.base_dir
+    return (wf, outputs)
