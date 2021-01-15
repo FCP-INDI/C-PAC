@@ -5,8 +5,37 @@ import numbers
 import pickle
 import threading
 import numpy as np
+import json
 
-from inspect import currentframe, getframeinfo , stack
+from inspect import currentframe, getframeinfo, stack
+
+
+def get_last_prov_entry(prov):
+    while not isinstance(prov[-1], str):
+        prov = prov[-1]
+    return prov[-1]
+
+
+def check_prov_for_regtool(prov):
+    last_entry = get_last_prov_entry(prov)
+    last_node = last_entry.split(':')[1]
+    if 'ants' in last_node.lower():
+        return 'ants'
+    elif 'fsl' in last_node.lower():
+        return 'fsl'
+    else:
+        return None
+
+
+def check_prov_for_motion_tool(prov):
+    last_entry = get_last_prov_entry(prov)
+    last_node = last_entry.split(':')[1]
+    if '3dvolreg' in last_node.lower():
+        return '3dvolreg'
+    elif 'mcflirt' in last_node.lower():
+        return 'mcflirt'
+    else:
+        return None
 
 
 def get_flag(in_flag):
@@ -14,7 +43,6 @@ def get_flag(in_flag):
 
 
 def get_flag_wf(wf_name='get_flag'):
-
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
@@ -29,6 +57,36 @@ def get_flag_wf(wf_name='get_flag'):
 
     wf.connect(input_node, 'in_flag', get_flag, 'in_flag')
 
+
+def read_json(json_file):
+    try:
+        with open(json_file, 'r') as f:
+            json_dct = json.load(f)
+    except json.decoder.JSONDecodeError as err:
+        raise Exception(f'\n\n{err}\n\nJSON file: {json_file}\n')
+    return json_dct
+
+
+def create_id_string(unique_id, resource, scan_id=None):
+    """Create the unique key-value identifier string for BIDS-Derivatives
+    compliant file names.
+
+    This is used in the file renaming performed during the Datasink
+    connections.
+    """
+    if scan_id:
+        out_filename = f'{unique_id}_task-{scan_id}_{resource}'
+    else:
+        out_filename = f'{unique_id}_{resource}'
+    return out_filename
+
+
+def write_output_json(json_data, filename, indent=3):
+    json_file = os.path.join(os.getcwd(), f'{filename}.json')
+    json_data = json.dumps(json_data, indent=indent, sort_keys=True)
+    with open(json_file, 'wt') as f:
+        f.write(json_data)
+    return json_file
 
 
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
@@ -148,7 +206,7 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
     wflow.connect(mean, 'out_stat', op_string, 'mean')
     wflow.connect(standard_deviation, 'out_stat', op_string, 'std_dev')
 
-    #z_score.inputs.out_file = input_name + '_zstd.nii.gz'
+    # z_score.inputs.out_file = input_name + '_zstd.nii.gz'
 
     wflow.connect(op_string, 'op_string', z_score, 'op_string')
     wflow.connect(inputNode, 'input_file', z_score, 'in_file')
@@ -308,8 +366,9 @@ def get_roi_num_list(timeseries_file, prefix=None):
                 # clear out any blank strings/non ROI labels in the list
                 roi_list = [x for x in roi_list if "Mean" in x]
                 # rename labels
-                roi_list = [x.replace("Mean", "ROI").replace(" ", "").replace("#", "") \
-                            for x in roi_list]
+                roi_list = [
+                    x.replace("Mean", "ROI").replace(" ", "").replace("#", "") \
+                    for x in roi_list]
             except:
                 raise Exception(roi_err)
             break
@@ -384,6 +443,7 @@ def extract_txt(list_timeseries):
 
     return out_file
 
+
 def zscore(data, axis):
     data = data.copy()
     data -= data.mean(axis=axis, keepdims=True)
@@ -426,7 +486,6 @@ def correlation(matrix1, matrix2,
 
 
 def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
-
     if val_to_check not in params_dct:
         if throw_exception:
             raise Exception("Missing Value for {0} for participant "
@@ -476,7 +535,6 @@ def check_random_state(seed):
 
 
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
-
     scan_parameters = dict(
         (k.lower(), v)
         for k, v in scan_parameters.items()
@@ -629,7 +687,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                                  'PhaseEncodingDirection', False)
 
         else:
-            err = "\n\n[!] Could not read the format of the scan parameters "\
+            err = "\n\n[!] Could not read the format of the scan parameters " \
                   "information included in the data configuration file for " \
                   "the participant {0}.\n\n".format(subject_id)
             raise Exception(err)
@@ -680,8 +738,8 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                     for time in slice_timings:
                         f.write("{0}\n".format(time).replace(" ", ""))
             except:
-                err = "\n[!] Could not write the slice timing file meant as "\
-                      "an input for AFNI 3dTshift (slice timing correction):"\
+                err = "\n[!] Could not write the slice timing file meant as " \
+                      "an input for AFNI 3dTshift (slice timing correction):" \
                       "\n{0}\n\n".format(tpattern_file)
                 raise Exception(err)
 
@@ -998,7 +1056,7 @@ def extract_output_mean(in_file, output_name):
         split_fullpath = in_file.split("/")
 
         if "_mask_" in in_file and \
-           ("sca_roi" in in_file or "sca_tempreg" in in_file):
+                ("sca_roi" in in_file or "sca_tempreg" in in_file):
 
             for dirname in split_fullpath:
                 if "_mask_" in dirname:
@@ -1180,62 +1238,81 @@ def check_config_resources(c):
     num_cores = cpu_count()
 
     # Check for pipeline memory for subject
-    if c.pipeline_setup['system_config']['maximum_memory_per_participant'] is None:
+    if c.pipeline_setup['system_config'][
+        'maximum_memory_per_participant'] is None:
         # Get system memory and numSubsAtOnce
         sys_mem_gb = sys_virt_mem.total / (1024.0 ** 3)
-        sub_mem_gb = sys_mem_gb / c.pipeline_setup['system_config']['num_participants_at_once']
+        sub_mem_gb = sys_mem_gb / c.pipeline_setup['system_config'][
+            'num_participants_at_once']
     else:
-        sub_mem_gb = c.pipeline_setup['system_config']['maximum_memory_per_participant']
+        sub_mem_gb = c.pipeline_setup['system_config'][
+            'maximum_memory_per_participant']
 
     # If centrality is enabled, check to mem_sub >= mem_centrality
     if c.network_centrality['run'][0]:
         if sub_mem_gb < c.network_centrality['memory_allocation']:
             err_msg = 'Memory allocated for subject: %d needs to be greater ' \
                       'than the memory allocated for centrality: %d. Fix ' \
-                      'and try again.' % (c.pipeline_setup['system_config']['maximum_memory_per_participant'],
-                                          c.network_centrality['memory_allocation'])
+                      'and try again.' % (c.pipeline_setup['system_config'][
+                                              'maximum_memory_per_participant'],
+                                          c.network_centrality[
+                                              'memory_allocation'])
             raise Exception(err_msg)
 
     # Check for pipeline threads
     # Check if user specified cores
     if c.pipeline_setup['system_config']['max_cores_per_participant']:
-        total_user_cores = c.pipeline_setup['system_config']['num_participants_at_once'] * c.pipeline_setup['system_config']['max_cores_per_participant']
+        total_user_cores = c.pipeline_setup['system_config'][
+                               'num_participants_at_once'] * \
+                           c.pipeline_setup['system_config'][
+                               'max_cores_per_participant']
         if total_user_cores > num_cores:
             err_msg = 'Config file specifies more subjects running in ' \
                       'parallel than number of threads available. Change ' \
                       'this and try again'
             raise Exception(err_msg)
         else:
-            num_cores_per_sub = c.pipeline_setup['system_config']['max_cores_per_participant']
+            num_cores_per_sub = c.pipeline_setup['system_config'][
+                'max_cores_per_participant']
     else:
-        num_cores_per_sub = num_cores / c.pipeline_setup['system_config']['num_participants_at_once'] 
+        num_cores_per_sub = num_cores / c.pipeline_setup['system_config'][
+            'num_participants_at_once']
 
-    # Now check ANTS
-    if 'ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using']:
+        # Now check ANTS
+    if 'ANTS' in c.registration_workflows['anatomical_registration'][
+        'registration']['using']:
         if c.pipeline_setup['system_config']['num_ants_threads'] is None:
             num_ants_cores = num_cores_per_sub
-        elif c.pipeline_setup['system_config']['num_ants_threads'] > c.pipeline_setup['system_config']['max_cores_per_participant']:
+        elif c.pipeline_setup['system_config']['num_ants_threads'] > \
+                c.pipeline_setup['system_config'][
+                    'max_cores_per_participant']:
             err_msg = 'Number of threads for ANTS: %d is greater than the ' \
                       'number of threads per subject: %d. Change this and ' \
-                      'try again.' % (c.pipeline_setup['system_config']['num_ants_threads'],
-                                      c.pipeline_setup['system_config']['max_cores_per_participant'])
+                      'try again.' % (
+                      c.pipeline_setup['system_config']['num_ants_threads'],
+                      c.pipeline_setup['system_config'][
+                          'max_cores_per_participant'])
             raise Exception(err_msg)
         else:
-            num_ants_cores = c.pipeline_setup['system_config']['num_ants_threads']
+            num_ants_cores = c.pipeline_setup['system_config'][
+                'num_ants_threads']
     else:
         num_ants_cores = 1
 
     # Now check OMP
-    if c.num_omp_threads is None:
+    if c.pipeline_setup['system_config']['num_OMP_threads'] is None:
         num_omp_cores = 1
-    elif c.num_omp_threads > c.maxCoresPerParticipant:
+    elif c.pipeline_setup['system_config']['num_OMP_threads'] > \
+            c.pipeline_setup['system_config']['max_cores_per_participant']:
         err_msg = 'Number of threads for OMP: %d is greater than the ' \
-                    'number of threads per subject: %d. Change this and ' \
-                    'try again.' % (c.num_omp_threads,
-                                    c.maxCoresPerParticipant)
+                  'number of threads per subject: %d. Change this and ' \
+                  'try again.' % (c.pipeline_setup['system_config'][
+                                      'num_OMP_threads'],
+                                  c.pipeline_setup['system_config'][
+                                      'max_cores_per_participant'])
         raise Exception(err_msg)
     else:
-        num_omp_cores = c.num_omp_threads
+        num_omp_cores = c.pipeline_setup['system_config']['num_OMP_threads']
 
     # Return memory and cores
     return sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
@@ -1278,7 +1355,6 @@ def load_preconfig(pipeline_label):
 
 
 def ordereddict_to_dict(value):
-
     import yamlordereddictloader
 
     '''
@@ -1367,7 +1443,7 @@ def _pickle2(p, z=False):
             try:
                 f = pickle.load(fp)
             except UnicodeDecodeError:
-                return(True)
+                return (True)
             except Exception as e:
                 print(
                     f"Pickle {p} may be a Python 3 pickle, but raised "
@@ -1378,13 +1454,13 @@ def _pickle2(p, z=False):
             try:
                 f = pickle.load(fp)
             except UnicodeDecodeError:
-                return(True)
+                return (True)
             except Exception as e:
                 print(
                     f"Pickle {p} may be a Python 3 pickle, but raised "
                     f"exception {e}"
                 )
-    return(False)
+    return (False)
 
 
 def concat_list(in_list1=None, in_list2=None):
@@ -1408,13 +1484,13 @@ def concat_list(in_list1=None, in_list2=None):
             in_list1 = [in_list1]
     else:
         in_list1 = []
-    
+
     if in_list2 != None:
         if not isinstance(in_list2, list):
             in_list2 = [in_list2]
     else:
         in_list2 = []
-    
+
     out_list = in_list1 + in_list2
-    
+
     return out_list
