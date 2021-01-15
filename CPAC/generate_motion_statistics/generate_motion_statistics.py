@@ -6,8 +6,8 @@ import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 
 
-def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg'):
-
+def motion_power_statistics(name='motion_stats',
+                            motion_correct_tool='3dvolreg'):
     """
     The main purpose of this workflow is to get various statistical measures
      from the movement/motion parameters obtained in functional preprocessing.
@@ -31,9 +31,6 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
 
         inputspec.motion_correct : string (func/rest file or a list of func/rest nifti file)
             Path to motion corrected functional data
-
-        inputspec.mask : string (nifti file)
-            Path to field containing brain-only mask for the functional data
 
         inputspec.max_displacement : string (Mat file)
             maximum displacement (in mm) vector for brain voxels in each volume.
@@ -175,34 +172,29 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
 
     wf = pe.Workflow(name=name)
     input_node = pe.Node(util.IdentityInterface(fields=['subject_id',
-                                                       'scan_id',
-                                                       'movement_parameters',
-                                                       'max_displacement',
-                                                       'motion_correct',
-                                                       'mask',
-                                                       'transformations']),
-                        name='inputspec')
+                                                        'scan_id',
+                                                        'movement_parameters',
+                                                        'max_displacement',
+                                                        'motion_correct',
+                                                        'transformations']),
+                         name='inputspec')
 
     output_node = pe.Node(util.IdentityInterface(fields=['FDP_1D',
-                                                        'FDJ_1D',
-                                                        'DVARS_1D',
-                                                        'power_params',
-                                                        'motion_params']),
-                         name='outputspec')
+                                                         'FDJ_1D',
+                                                         'DVARS_1D',
+                                                         'power_params',
+                                                         'motion_params']),
+                          name='outputspec')
 
-    cal_DVARS = pe.Node(Function(input_names=['rest',
-                                              'mask'],
+    cal_DVARS = pe.Node(Function(input_names=['func_brain'],
                                  output_names=['out_file'],
                                  function=calculate_DVARS,
                                  as_module=True),
                         name='cal_DVARS')
 
     # calculate mean DVARS
-    wf.connect(input_node, 'motion_correct', cal_DVARS, 'rest')
-    wf.connect(input_node, 'mask', cal_DVARS, 'mask')
-
-    wf.connect(cal_DVARS, 'out_file',
-               output_node, 'DVARS_1D')
+    wf.connect(input_node, 'motion_correct', cal_DVARS, 'func_brain')
+    wf.connect(cal_DVARS, 'out_file', output_node, 'DVARS_1D')
 
     # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(Function(input_names=['in_file'],
@@ -211,29 +203,24 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                      as_module=True),
                             name='calculate_FD')
 
-    wf.connect(input_node, 'movement_parameters',
-               calculate_FDP, 'in_file')
-    wf.connect(calculate_FDP, 'out_file',
-               output_node, 'FDP_1D')
+    wf.connect(input_node, 'movement_parameters', calculate_FDP, 'in_file')
+    wf.connect(calculate_FDP, 'out_file', output_node, 'FDP_1D')
 
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     calculate_FDJ = pe.Node(Function(input_names=['in_file',
                                                   'motion_correct_tool'],
-                                    output_names=['out_file'],
-                                    function=calculate_FD_J,
-                                    as_module=True),
+                                     output_names=['out_file'],
+                                     function=calculate_FD_J,
+                                     as_module=True),
                             name='calculate_FDJ')
-    
+
     calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
     if motion_correct_tool == '3dvolreg':
-        wf.connect(input_node, 'transformations',
-                calculate_FDJ, 'in_file')
+        wf.connect(input_node, 'transformations', calculate_FDJ, 'in_file')
     elif motion_correct_tool == 'mcflirt':
-        wf.connect(input_node, 'max_displacement',
-                calculate_FDJ, 'in_file')
+        wf.connect(input_node, 'max_displacement', calculate_FDJ, 'in_file')
 
-    wf.connect(calculate_FDJ, 'out_file',
-            output_node, 'FDJ_1D')
+    wf.connect(calculate_FDJ, 'out_file', output_node, 'FDJ_1D')
 
     calc_motion_parameters = pe.Node(Function(input_names=['subject_id',
                                                            'scan_id',
@@ -280,8 +267,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                calc_power_parameters, 'fdp')
 
     if motion_correct_tool == '3dvolreg':
-        wf.connect(calculate_FDJ, 'out_file',
-                calc_power_parameters, 'fdj')
+        wf.connect(calculate_FDJ, 'out_file', calc_power_parameters, 'fdj')
 
     wf.connect(calc_power_parameters, 'out_file',
                output_node, 'power_params')
@@ -312,7 +298,7 @@ def calculate_FD_P(in_file):
     translations = np.transpose(np.abs(np.diff(motion_params[3:6, :])))
 
     fd = np.sum(translations, axis=1) + \
-        (50 * np.pi / 180) * np.sum(rotations, axis=1)
+         (50 * np.pi / 180) * np.sum(rotations, axis=1)
 
     fd = np.insert(fd, 0, 0)
 
@@ -406,12 +392,13 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
 
     # remove any other information other than matrix from
     # max displacement file. AFNI adds information to the file
-    if motion_correct_tool=='3dvolreg':
+    if motion_correct_tool == '3dvolreg':
         maxdisp = np.loadtxt(max_displacement)
 
-    elif motion_correct_tool=='mcflirt':
-        maxdisp = np.loadtxt(max_displacement[0]) # TODO: mcflirt outputs absdisp, instead of maxdisp
-        reldisp = np.loadtxt(max_displacement[1]) 
+    elif motion_correct_tool == 'mcflirt':
+        maxdisp = np.loadtxt(max_displacement[
+                                 0])  # TODO: mcflirt outputs absdisp, instead of maxdisp
+        reldisp = np.loadtxt(max_displacement[1])
 
     abs_relative = lambda v: np.abs(np.diff(v))
     max_relative = lambda v: np.max(abs_relative(v))
@@ -425,10 +412,11 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
         ('Mean_Relative_RMS_Displacement', avg_relative(rms)),
         ('Max_Relative_RMS_Displacement', max_relative(rms)),
         ('Movements_gt_threshold', np.sum(abs_relative(rms) > 0.1)),
-        ('Mean_Relative_Mean_Rotation', avg_relative(np.abs(mot[0:3]).mean(axis=0))),
-        ('Mean_Relative_Maxdisp', avg_relative(maxdisp)), # to be updated 
-        ('Max_Relative_Maxdisp', max_relative(maxdisp)), # to be updated 
-        ('Max_Abs_Maxdisp', max_abs(maxdisp)), # to be updated 
+        ('Mean_Relative_Mean_Rotation',
+         avg_relative(np.abs(mot[0:3]).mean(axis=0))),
+        ('Mean_Relative_Maxdisp', avg_relative(maxdisp)),  # to be updated
+        ('Max_Relative_Maxdisp', max_relative(maxdisp)),  # to be updated
+        ('Max_Abs_Maxdisp', max_abs(maxdisp)),  # to be updated
         ('Max Relative_Roll', max_relative(mot[0])),
         ('Max_Relative_Pitch', max_relative(mot[1])),
         ('Max_Relative_Yaw', max_relative(mot[2])),
@@ -459,14 +447,15 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     with open(out_file, 'w') as f:
         f.write(','.join(t for t, v in info))
         f.write('\n')
-        f.write(','.join(v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
+        f.write(','.join(
+            v if type(v) == str else '{0:.6f}'.format(v) for t, v in info))
         f.write('\n')
 
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, motion_correct_tool='3dvolreg'):
-
+def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
+                         motion_correct_tool='3dvolreg'):
     """
     Method to generate Power parameters for scrubbing
 
@@ -497,7 +486,7 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, mo
 
     # Mean (across time/frames) of the absolute values
     # for Framewise Displacement (FD)
-    meanFD_Power  = np.mean(fdp_data)
+    meanFD_Power = np.mean(fdp_data)
 
     # Mean DVARS
     meanDVARS = np.mean(dvars_data)
@@ -505,7 +494,7 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, mo
     if motion_correct_tool == '3dvolreg':
 
         fdj_data = np.loadtxt(fdj)
-        
+
         # Mean FD Jenkinson
         meanFD_Jenkinson = np.mean(fdj_data)
 
@@ -539,22 +528,21 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, mo
     with open(out_file, 'w') as f:
         f.write(','.join(t for t, v in info))
         f.write('\n')
-        f.write(','.join(v if type(v) == str else '{0:.4f}'.format(v) for t, v in info))
+        f.write(','.join(
+            v if type(v) == str else '{0:.4f}'.format(v) for t, v in info))
         f.write('\n')
 
     return out_file
 
 
-def calculate_DVARS(rest, mask):
+def calculate_DVARS(func_brain):
     """
     Method to calculate DVARS as per power's method
 
     Parameters
     ----------
-    rest : string (nifti file)
+    func_brain : string (nifti file)
         path to motion correct functional data
-    mask : string (nifti file)
-        path to brain only mask for functional data
 
     Returns
     -------
@@ -562,14 +550,10 @@ def calculate_DVARS(rest, mask):
         path to file containing array of DVARS calculation for each voxel
     """
 
-    rest_data = nb.load(rest).get_data().astype(np.float32)
-    mask_data = nb.load(mask).get_data().astype('bool')
+    rest_data = nb.load(func_brain).get_data().astype(np.float32)
 
     # square of relative intensity value for each voxel across every timepoint
     data = np.square(np.diff(rest_data, axis=3))
-
-    # applying mask, getting the data in the brain only
-    data = data[mask_data]
 
     # square root and mean across all timepoints inside mask
     dvars = np.sqrt(np.mean(data, axis=0))
