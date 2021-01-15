@@ -106,6 +106,9 @@ pipeline_setup:
     # - This number cannot be greater than the number of cores per participant.
     num_ants_threads: 1
 
+    # The number of cores to allocate to processes that use OpenMP.
+    num_OMP_threads: 1
+
     # The number of participant workflows to run at the same time.
     # - The maximum number of cores your run can possibly employ will be this setting
     #   multiplied by the number of cores dedicated to each participant (the 'Maximum Number of Cores Per Participant' setting).
@@ -113,7 +116,7 @@ pipeline_setup:
 
     # Full path to the FSL version to be used by CPAC.
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
-    FSLDIR :  /usr/share/fsl/5.0
+    FSLDIR:  /usr/share/fsl/5.0
 
   Amazon-AWS:
 
@@ -126,6 +129,8 @@ pipeline_setup:
   pipeline_IMPORT: None
 
 
+# PREPROCESSING
+# -------------
 surface_analysis:
 
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
@@ -134,8 +139,41 @@ surface_analysis:
   run_freesurfer: Off
 
 
-# PREPROCESSING
-# -------------
+longitudinal_template_generation:
+
+  # If you have multiple T1w's, you can generate your own run-specific custom
+  # T1w template to serve as an intermediate to the standard template for
+  # anatomical registration.
+
+  # This runs before the main pipeline as it requires multiple T1w sessions
+  # at once.
+  run: Off
+
+  # Freesurfer longitudinal template algorithm using FSL FLIRT
+  # Method to average the dataset at each iteration of the template creation
+  # Options: median, mean or std
+  average_method: median
+
+  # Degree of freedom for FLIRT in the template creation
+  # Options: 12 (affine), 9 (traditional), 7 (global rescale) or 6 (rigid body)
+  dof: 12
+
+  # Interpolation parameter for FLIRT in the template creation
+  # Options: trilinear, nearestneighbour, sinc or spline
+  interp: trilinear
+
+  # Cost function for FLIRT in the template creation
+  # Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
+  cost: corratio
+
+  # Number of threads used for one run of the template generation algorithm
+  thread_pool: 2
+
+  # Threshold of transformation distance to consider that the loop converged
+  # (-1 means numpy.finfo(np.float64).eps and is the default)
+  convergence_threshold: -1
+
+
 anatomical_preproc:
 
   run: On
@@ -152,344 +190,282 @@ anatomical_preproc:
 
     # Run ACPC alignment before non-local means filtering or N4 bias
     # correction
-    run_before_preproc: False
+    run_before_preproc: True
 
     # ACPC size of brain in z-dimension in mm.
     # Default: 150mm for human data.
     brain_size: 150
 
+    # ACPC Target
+    # options: 'brain' or 'whole-head'
+    #   note: 'brain' requires T1w_brain_ACPC_template below to be populated
+    acpc_target: 'whole-head'
+
     # ACPC aligned template
-    template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
-    template_brain: None
+    T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
+    T1w_brain_ACPC_template: None
 
   brain_extraction:
 
-    extraction:
+    # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer']
+    # this is a fork option
+    using: ['3dSkullStrip']
 
-      # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'Freesurfer-ABCD']
-      # this is a fork option
-      using: ['3dSkullStrip']
+    # option parameters
+    AFNI-3dSkullStrip:
 
-      # option parameters
-      AFNI-3dSkullStrip:
+      # Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
+      mask_vol: False
 
-        # Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
-        mask_vol: False
+      # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
+      shrink_factor: 0.6
 
-        # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
-        shrink_factor: 0.6
+      # Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
+      var_shrink_fac: True
 
-        # Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
-        var_shrink_fac: True
+      # The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, for when edge detection is used (which is On by default), otherwise the default value is 0.65.
+      shrink_factor_bot_lim: 0.4
 
-        # The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, for when edge detection is used (which is On by default), otherwise the default value is 0.65.
-        shrink_factor_bot_lim: 0.4
+      # Avoids ventricles while skullstripping.
+      avoid_vent: True
 
-        # Avoids ventricles while skullstripping.
-        avoid_vent: True
+      # Set the number of iterations. Default is 250.The number of iterations should depend upon the density of your mesh.
+      n_iterations: 250
 
-        # Set the number of iterations. Default is 250.The number of iterations should depend upon the density of your mesh.
-        n_iterations: 250
+      # While expanding, consider the voxels above and not only the voxels below
+      pushout: True
 
-        # While expanding, consider the voxels above and not only the voxels below
-        pushout: True
+      # Perform touchup operations at the end to include areas not covered by surface expansion.
+      touchup: True
 
-        # Perform touchup operations at the end to include areas not covered by surface expansion.
-        touchup: True
+      # Give the maximum number of pixels on either side of the hole that can be filled. The default is 10 only if 'Touchup' is On - otherwise, the default is 0.
+      fill_hole: 10
 
-        # Give the maximum number of pixels on either side of the hole that can be filled. The default is 10 only if 'Touchup' is On - otherwise, the default is 0.
-        fill_hole: 10
+      # Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
+      NN_smooth: 72
 
-        # Perform nearest neighbor coordinate interpolation every few iterations. Default is 72.
-        NN_smooth: 72
+      # Perform final surface smoothing after all iterations. Default is 20.
+      smooth_final: 20
 
-        # Perform final surface smoothing after all iterations. Default is 20.
-        smooth_final: 20
+      # Avoid eyes while skull stripping. Default is On.
+      avoid_eyes: True
 
-        # Avoid eyes while skull stripping. Default is On.
-        avoid_eyes: True
+      # Use edge detection to reduce leakage into meninges and eyes. Default is On.
+      use_edge: True
 
-        # Use edge detection to reduce leakage into meninges and eyes. Default is On.
-        use_edge: True
+      # Speed of expansion.
+      exp_frac: 0.1
 
-        # Speed of expansion.
-        exp_frac: 0.1
+      # Perform aggressive push to edge. This might cause leakage. Default is Off.
+      push_to_edge: False
 
-        # Perform aggressive push to edge. This might cause leakage. Default is Off.
-        push_to_edge: False
+      # Use outer skull to limit expansion of surface into the skull in case of very strong shading artifacts. Use this only if you have leakage into the skull.
+      use_skull: Off
 
-        # Use outer skull to limit expansion of surface into the skull in case of very strong shading artifacts. Use this only if you have leakage into the skull.
-        use_skull: Off
+      # Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection).
+      perc_int: 0
 
-        # Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection).
-        perc_int: 0
+      # Number of iterations to remove intersection problems. With each iteration, the program automatically increases the amount of smoothing to get rid of intersections. Default is 4.
+      max_inter_iter: 4
 
-        # Number of iterations to remove intersection problems. With each iteration, the program automatically increases the amount of smoothing to get rid of intersections. Default is 4.
-        max_inter_iter: 4
+      # Multiply input dataset by FAC if range of values is too small.
+      fac: 1
 
-        # Multiply input dataset by FAC if range of values is too small.
-        fac: 1
+      # Blur dataset after spatial normalization. Recommended when you have lots of CSF in brain and when you have protruding gyri (finger like). If so, recommended value range is 2-4. Otherwise, leave at 0.
+      blur_fwhm: 0
 
-        # Blur dataset after spatial normalization. Recommended when you have lots of CSF in brain and when you have protruding gyri (finger like). If so, recommended value range is 2-4. Otherwise, leave at 0.
-        blur_fwhm: 0
+      # Set it as True if processing monkey data with AFNI
+      monkey: False
 
-        # Set it as True if processing monkey data with AFNI
-        monkey: False
+    FSL-BET:
 
-      FSL-BET:
+      # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
+      frac: 0.5
 
-        # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
-        frac: 0.5
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      mask_boolean: On
 
-        # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-        mask_boolean: On
+      # Mesh created along with skull stripping
+      mesh_boolean: Off
 
-        # Mesh created along with skull stripping
-        mesh_boolean: Off
+      # Create a surface outline image
+      outline: Off
 
-        # Create a surface outline image
-        outline: Off
+      # Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      padding: Off
 
-        # Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-        padding: Off
+      # Integer value of head radius
+      radius: 0
 
-        # Integer value of head radius
-        radius: 0
+      # Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      reduce_bias: Off
 
-        # Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-        reduce_bias: Off
+      # Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      remove_eyes: Off
 
-        # Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-        remove_eyes: Off
+      # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
+      robust: Off
 
-        # Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces
-        robust: Off
+      # Create a skull image
+      skull: Off
 
-        # Create a skull image
-        skull: Off
+      # Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
+      surfaces: Off
 
-        # Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes
-        surfaces: Off
+      # Apply thresholding to segmented brain image and mask
+      threshold: Off
 
-        # Apply thresholding to segmented brain image and mask
-        threshold: Off
+      # Vertical gradient in fractional intensity threshold (-1,1)
+      vertical_gradient : 0.0
 
-        # Vertical gradient in fractional intensity threshold (-1,1)
-        vertical_gradient : 0.0
+    UNet:
 
-      UNet:
+      # UNet model
+      unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 
-        # UNet model
-        unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
+    niworkflows-ants:
 
-      niworkflows-ants:
+      # Template to be used during niworkflows-ants.
+      # It is not necessary to change this path unless you intend to use a non-standard template.
 
-        # Template to be used during niworkflows-ants.
-        # It is not necessary to change this path unless you intend to use a non-standard template.
+      # niworkflows-ants Brain extraction template
+      template_path : /ants_template/oasis/T_template0.nii.gz
 
-        # niworkflows-ants Brain extraction template
-        template_path : /ants_template/oasis/T_template0.nii.gz
+      # niworkflows-ants probability mask
+      mask_path : /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
 
-        # niworkflows-ants probability mask
-        mask_path : /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
+      # niworkflows-ants registration mask (can be optional)
+      regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
-        # niworkflows-ants registration mask (can be optional)
-        regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
-      Freesurfer-ABCD:
+segmentation:
 
-  segmentation_workflow:
+  # Automatically segment anatomical images into white matter, gray matter,
+  # and CSF based on prior probability maps.
+  run: On
 
-    # Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
+  tissue_segmentation:
+
+    # using: ['FSL-FAST', 'Template_Based', 'Freesurfer', 'ANTs_Prior_Based']
     # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On]
+    using: ['FSL-FAST']
 
-    1-segmentation:
+    # option parameters
+    FSL-FAST:
 
-      # using: ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based', 'Freesurfer']
-      # this is a fork point
-      using: ['FSL-FAST']
+      thresholding:
 
-      # option parameters
-      ANTs_Prior_Based:
+        # thresholding of the tissue segmentation probability maps
+        # options: 'Auto', 'Custom'
+        use: 'Auto'
 
-        # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
-        # this is a fork point
-        #   run: [On, Off] - this will run both and fork the pipeline
-        run: [Off]
-        
-        # Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
+        Custom:
+          # Set the threshold value for the segmentation probability masks (CSF, White Matter, and Gray Matter)
+          # The values remaining will become the binary tissue masks.
+          # A good starting point is 0.95.
 
-        # The atlas image assumed to be used in ANTs Prior-based Segmentation.
-        template_brain_list :
-          - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
-          - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
+          # CSF (cerebrospinal fluid) threshold.
+          CSF_threshold_value : 0.95
 
-        # The atlas segmentation images.
-        # For performing ANTs Prior-based segmentation method
-        # the number of specified segmentations should be identical to the number of atlas brain image sets.
-        # eg.
-        # ANTs_prior_seg_template_brain_list :
-        #   - atlas1.nii.gz
-        #   - atlas2.nii.gz
-        # ANTs_prior_seg_template_segmentation_list:
-        #   - segmentation1.nii.gz
-        #   - segmentation1.nii.gz
-        template_segmentation_list:
-          - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
-          - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
+          # White matter threshold.
+          WM_threshold_value : 0.95
 
-        # Label values corresponding to CSF/GM/WM in atlas file
-        # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
-        # https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
+          # Gray matter threshold.
+          GM_threshold_value : 0.95
 
-        # Label value corresponding to CSF in multiatlas file
-        CSF_label : 24
+      use_priors:
 
-        # Label value corresponding to Left Gray Matter in multiatlas file
-        left_GM_label : 3
+        # Use template-space tissue priors to refine the binary tissue masks generated by segmentation.
+        run: On
 
-        # Label value corresponding to Right Gray Matter in multiatlas file
-        right_GM_label : 42
+        # Full path to a directory containing binarized prior probability maps.
+        # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
+        # It is not necessary to change this path unless you intend to use non-standard priors.
+        priors_path: $FSLDIR/data/standard/tissuepriors/2mm
 
-        # Label value corresponding to Left White Matter in multiatlas file
-        left_WM_label : 2
+        # Full path to a binarized White Matter prior probability map.
+        # It is not necessary to change this path unless you intend to use non-standard priors.
+        WM_path: $priors_path/avg152T1_white_bin.nii.gz
 
-        # Label value corresponding to Right White Matter in multiatlas file
-        right_WM_label : 41
+        # Full path to a binarized Gray Matter prior probability map.
+        # It is not necessary to change this path unless you intend to use non-standard priors.
+        GM_path: $priors_path/avg152T1_gray_bin.nii.gz
 
-      Template_Based:
-        # this is a fork point
-        #   run: [On, Off] - this will run both and fork the pipeline
-        run: [Off]
+        # Full path to a binarized CSF prior probability map.
+        # It is not necessary to change this path unless you intend to use non-standard priors.
+        CSF_path: $priors_path/avg152T1_csf_bin.nii.gz
 
-        # These masks should be in the same space of your registration template, e.g. if
-        # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
-        #
-        # Options: ['EPI Template', 'T1 Template']
-        template_for_segmentation: ['EPI Template']
+    Template_Based:
 
-        # These masks are included as part of the 'Image Resource Files' package available
-        # on the Install page of the User Guide.
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['EPI Template', 'T1 Template']
+      template_for_segmentation: ['EPI Template']
 
-        # Full path to a binarized White Matter mask.
-        WHITE: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_white_bin.nii.gz
+      # These masks are included as part of the 'Image Resource Files' package available
+      # on the Install page of the User Guide.
 
-        # Full path to a binarized Gray Matter mask.
-        GRAY: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_gray_bin.nii.gz
+      # Full path to a binarized White Matter mask.
+      WHITE: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_white_bin.nii.gz
 
-        # Full path to a binarized CSF mask.
-        CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
+      # Full path to a binarized Gray Matter mask.
+      GRAY: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_gray_bin.nii.gz
 
-    2-use_priors:
+      # Full path to a binarized CSF mask.
+      CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
 
-      # Use template-space tissue priors to refine the binary tissue masks generated by segmentation.
-      run: On
+    Freesurfer:
 
-      # Full path to a directory containing binarized prior probability maps.
-      # These maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-      # It is not necessary to change this path unless you intend to use non-standard priors.
-      priors_path: $FSLDIR/data/standard/tissuepriors/2mm
+    ANTs_Prior_Based:
 
-      # Full path to a binarized White Matter prior probability map.
-      # It is not necessary to change this path unless you intend to use non-standard priors.
-      WM_path: $priors_path/avg152T1_white_bin.nii.gz
+      # Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
+      # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
 
-      # Full path to a binarized Gray Matter prior probability map.
-      # It is not necessary to change this path unless you intend to use non-standard priors.
-      GM_path: $priors_path/avg152T1_gray_bin.nii.gz
+      # The atlas image assumed to be used in ANTs Prior-based Segmentation.
+      template_brain_list :
+        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
+        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
 
-      # Full path to a binarized CSF prior probability map.
-      # It is not necessary to change this path unless you intend to use non-standard priors.
-      CSF_path: $priors_path/avg152T1_csf_bin.nii.gz
+      # The atlas segmentation images.
+      # For performing ANTs Prior-based segmentation method
+      # the number of specified segmentations should be identical to the number of atlas brain image sets.
+      # eg.
+      # ANTs_prior_seg_template_brain_list :
+      #   - atlas1.nii.gz
+      #   - atlas2.nii.gz
+      # ANTs_prior_seg_template_segmentation_list:
+      #   - segmentation1.nii.gz
+      #   - segmentation1.nii.gz
+      template_segmentation_list:
+        - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/Segmentation.nii.gz
+        - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/Segmentation.nii.gz
 
-    3-custom_thresholding:
+      # Label values corresponding to CSF/GM/WM in atlas file
+      # It is not necessary to change this values unless your CSF/GM/WM label values are different from Freesurfer Color Lookup Table.
+      # https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
 
-      # Use threshold to further refine the resulting segmentation tissue masks.
-      run: On
+      # Label value corresponding to CSF in multiatlas file
+      CSF_label : 24
 
-      # Set the threshold value for refining the resulting segmentation tissue masks (CSF, White Matter, and Gray Matter)
-      # The default value is 0.95.
+      # Label value corresponding to Left Gray Matter in multiatlas file
+      left_GM_label : 3
 
-      # CSF (cerebrospinal fluid) threshold.
-      CSF_threshold_value : 0.95
+      # Label value corresponding to Right Gray Matter in multiatlas file
+      right_GM_label : 42
 
-      # White matter threshold.
-      WM_threshold_value : 0.95
+      # Label value corresponding to Left White Matter in multiatlas file
+      left_WM_label : 2
 
-      # Gray matter threshold.
-      GM_threshold_value : 0.95
+      # Label value corresponding to Right White Matter in multiatlas file
+      right_WM_label : 41
 
-    4-erosion:
 
-      erode_anatomical_brain_mask:
+registration_workflows:
 
-        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
-        run: Off
+  anatomical_registration:
 
-        # Erosion proportion, if using erosion.
-        # Default proportion is 0 for anatomical brain mask.
-        # Recommend that do not use erosion in both proportion and millimeter method.
-        brain_mask_erosion_prop : 0
-
-        # Erode brain mask in millimeter, default of brain is 30 mm
-        # brain erosion default is using millimeter erosion method when use erosion for brain.
-        brain_mask_erosion_mm : 30
-
-        # Erode binarized brain mask in millimeter
-        brain_erosion_mm: 0
-
-      erode_csf:
-
-        # Erode binarized csf tissue mask.
-        run: Off
-
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        csf_erosion_prop : 0
-
-        # Erode brain mask in millimeter, default of csf is 30 mm
-        # CSF erosion default is using millimeter erosion method when use erosion for CSF.
-        csf_mask_erosion_mm: 30
-
-        # Erode binarized CSF (cerebrospinal fluid)  mask in millimeter
-        csf_erosion_mm: 0
-
-      erode_wm:
-
-        # Erode WM binarized tissue mask.
-        run: Off
-
-        # Erosion proportion, if use erosion.
-        # Default proportion is 0.6 for White Matter mask.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        # White Matter erosion default is using proportion erosion method when use erosion for White Matter.
-        wm_erosion_prop : 0.6
-
-        # Erode brain mask in millimeter, default of White Matter is 0 mm
-        wm_mask_erosion_mm: 0
-
-        # Erode binarized White Matter mask in millimeter
-        wm_erosion_mm: 0
-
-      erode_gm:
-
-        # Erode GM binarized tissue mask.
-        run: Off
-
-        # Erosion proportion, if use erosion.
-        # Recommend to do not use erosion in both proportion and millimeter method.
-        gm_erosion_prop : 0.6
-
-        # Erode brain mask in millimeter, default of csf is 30 mm
-        gm_mask_erosion_mm: 30
-
-        # Erode binarized White Matter mask in millimeter
-        gm_erosion_mm: 0
-
-  registration_workflow:
+    run: On
 
     # The resolution to which anatomical images should be transformed during registration.
     # This is the resolution at which processed anatomical files will be output.
@@ -497,18 +473,22 @@ anatomical_preproc:
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    template_brain_only_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
     # Template to be used during registration.
     # It is not necessary to change this path unless you intend to use a non-standard template.
-    template_skull_for_anat: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+    T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    T1w_brain_template_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
 
     # Register skull-on anatomical image to a template.
     reg_with_skull: True
 
     registration:
 
-      # using: ['ANTS', 'FSL']
+      # using: ['ANTS', 'FSL', 'FSL-linear']
       # this is a fork point
       #   selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
       using: ['ANTS']
@@ -580,19 +560,11 @@ anatomical_preproc:
                    lowerQuantile : 0.01
                    upperQuantile : 0.99
 
-        # See "Configuration Without the GUI" at
-        # https://fcp-indi.github.io/docs/latest/user/func for example
-        # EPI_registration configuration
-        EPI_registration: 
-
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: LanczosWindowedSinc
 
       FSL-FNIRT:
-
-        # Use only FLIRT, without FNIRT, for anatomical-to-template registration.
-        fsl_linear_reg_only :  [0]
 
         # Configuration file to be used by FSL to set FNIRT parameters.
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
@@ -606,34 +578,119 @@ anatomical_preproc:
         # Possible values: trilinear, sinc, spline
         interpolation: sinc
 
+        # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
+        # It is not necessary to change this path unless you intend to use a different template.
+        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
-longitudinal_template_generation:
+  functional_registration:
 
-  run: Off
+    coregistration:
+      # functional (BOLD/EPI) registration to anatomical (structural/T1)
 
-  # Freesurfer longitudinal template algorithm using FSL FLIRT
-  # Method to average the dataset at each iteration of the template creation
-  # Options: median, mean or std
-  average_method: median
+      run: On
 
-  # Degree of freedom for FLIRT in the template creation
-  # Options: 12 (affine), 9 (traditional), 7 (global rescale) or 6 (rigid body)
-  dof: 12
+      func_input_prep:
 
-  # Interpolation parameter for FLIRT in the template creation
-  # Options: trilinear, nearestneighbour, sinc or spline
-  interp: trilinear
+        # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+        # input: ['Mean Functional', 'Selected_Functional_Volume']
+        input: ['Mean_Functional']
 
-  # Cost function for FLIRT in the template creation
-  # Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
-  cost: corratio
+        Mean Functional:
 
-  # Number of threads used for one run of the template generation algorithm
-  thread_pool: 2
+          # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
+          # this can increase tissue contrast which may improve registration quality in some data
+          n4_correct_func: False
 
-  # Threshold of transformation distance to consider that the loop converged
-  # (-1 means numpy.finfo(np.float64).eps and is the default)
-  convergence_threshold: -1
+        Selected Functional Volume:
+
+          # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
+          #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
+          func_reg_input_volume: 0
+
+      boundary_based_registration:
+        # this is a fork point
+        #   run: [On, Off] - this will run both and fork the pipeline
+        run: [On]
+
+        # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
+        # It is not necessary to change this path unless you intend to use non-standard MNI registration.
+        bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+
+    func_registration_to_template:
+
+      # these options modify the application (to the functional data), not the calculation, of the
+      # T1-to-template transforms calculated earlier during anatomical registration
+      run: On
+
+      output_resolution:
+
+        # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
+        # NOTE:
+        #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
+        #   for most cases, 3 mm or 4 mm resolutions are suggested.
+        # NOTE:
+        #   this also includes the single-volume 3D preprocessed functional data,
+        #   such as the mean functional (mean EPI) in template space
+        func_preproc_outputs: 3mm
+
+        # The resolution (in mm) to which the registered derivative outputs are written into.
+        # NOTE:
+        #   this is for the single-volume functional-space outputs (i.e. derivatives)
+        #   thus, a higher resolution may not result in a large increase in RAM needs as above
+        func_derivative_outputs: 3mm
+
+        # a standard template for resampling if using float resolution
+        template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+
+      target_template:
+
+        # using: ['T1_template', 'EPI_template']
+        # this is a fork point
+        # NOTE:
+        #   'EPI_template' registers the mean-functional directly to the template (chosen below under EPI_template)
+        #   instead of applying the anatomical T1-to-template transform to the functional data that has been
+        #   coregistered to anatomical/T1 space
+        using: ['T1_template']
+
+        # option parameters
+        T1_template:
+
+          # Standard Skull Stripped Template. Used as a reference image for functional registration.
+          # This can be different than the template used as the reference/fixed for T1-to-template registration.
+          T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+
+          # Standard Anatomical Brain Image with Skull.
+          # This can be different than the template used as the reference/fixed for T1-to-template registration.
+          T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
+        EPI_template:
+
+          # EPI template for direct functional-to-template registration
+          # (bypassing coregistration and the anatomical-to-template transforms)
+          template_epi: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
+
+          # EPI template mask.
+          template_epi_mask: None
+
+      ANTs_pipelines:
+
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        EPI_registration:
+
+        # Interpolation method for writing out transformed functional images.
+        # Possible values: Linear, BSpline, LanczosWindowedSinc
+        interpolation: LanczosWindowedSinc
+
+      FNIRT_pipelines:
+
+        # Interpolation method for writing out transformed functional images.
+        # Possible values: trilinear, sinc, spline
+        interpolation: sinc
+
+        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
+        # It is not necessary to change this path unless you intend to use a different template.
+        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
 
 
 functional_preproc:
@@ -679,9 +736,7 @@ functional_preproc:
   motion_estimates_and_correction:
 
     # calculate motion statistics BEFORE slice-timing correction
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    calculate_motion_first: [Off]
+    calculate_motion_first: Off
 
     motion_correction:
 
@@ -755,7 +810,7 @@ functional_preproc:
     #   NOTE:
     #     this is NOT a fork point - instead, the technique used will depend on what type of distortion correction field data accompanies the dataset
     #     for example, phase-difference field maps will lead to phase-difference distortion correction, and phase-encoding direction field maps will lead to blip-up/blip-down
-    using: [PhaseDiff, Blip]
+    using: ['PhaseDiff', 'Blip']
 
     # option parameters
     PhaseDiff:
@@ -911,111 +966,75 @@ nuisance_corrections:
     # Options: 'After' or 'Before'
     bandpass_filtering_order: 'After'
 
+    # Process and refine masks used to produce regressors and time series for
+    # regression.
+    regressor_masks:
 
-functional_registration:
+      erode_anatomical_brain_mask:
 
-  1-coregistration:
-    # functional (BOLD/EPI) registration to anatomical (structural/T1)
-    
-    # this is a fork point
-    #   run: [On, Off] - this will run both and fork the pipeline
-    run: [On]
+        # Erode binarized anatomical brain mask. If choosing True, please also set seg_csf_use_erosion: True; regOption: niworkflows-ants.
+        run: Off
 
-    func_input_prep:
+        # Erosion proportion, if using erosion.
+        # Default proportion is 0 for anatomical brain mask.
+        # Recommend that do not use erosion in both proportion and millimeter method.
+        brain_mask_erosion_prop : 0
 
-      # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
-      # input: ['Mean Functional', 'Selected Functional Volume']
-      input: ['Mean Functional']
+        # Erode brain mask in millimeter, default of brain is 30 mm
+        # brain erosion default is using millimeter erosion method when use erosion for brain.
+        brain_mask_erosion_mm : 30
 
-      Mean Functional:
+        # Erode binarized brain mask in millimeter
+        brain_erosion_mm: 0
 
-        # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
-        # this can increase tissue contrast which may improve registration quality in some data
-        n4_correct_func: False
+      erode_csf:
 
-      Selected Functional Volume:
+        # Erode binarized csf tissue mask.
+        run: Off
 
-        # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
-        #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
-        func_reg_input_volume: 0
+        # Erosion proportion, if use erosion.
+        # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
+        # Recommend to do not use erosion in both proportion and millimeter method.
+        csf_erosion_prop : 0
 
-    boundary_based_registration:
-      # this is a fork point
-      #   run: [On, Off] - this will run both and fork the pipeline
-      run: [On]
+        # Erode brain mask in millimeter, default of csf is 30 mm
+        # CSF erosion default is using millimeter erosion method when use erosion for CSF.
+        csf_mask_erosion_mm: 30
 
-      # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
-      # It is not necessary to change this path unless you intend to use non-standard MNI registration.
-      bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+        # Erode binarized CSF (cerebrospinal fluid)  mask in millimeter
+        csf_erosion_mm: 0
 
-  2-func_registration_to_template:
+      erode_wm:
 
-    # these options modify the application (to the functional data), not the calculation, of the
-    # T1-to-template transforms calculated earlier during anatomical registration
-    run: On
+        # Erode WM binarized tissue mask.
+        run: Off
 
-    output_resolution:
+        # Erosion proportion, if use erosion.
+        # Default proportion is 0.6 for White Matter mask.
+        # Recommend to do not use erosion in both proportion and millimeter method.
+        # White Matter erosion default is using proportion erosion method when use erosion for White Matter.
+        wm_erosion_prop : 0.6
 
-      # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
-      # NOTE:
-      #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
-      #   for most cases, 3 mm or 4 mm resolutions are suggested.
-      # NOTE:
-      #   this also includes the single-volume 3D preprocessed functional data,
-      #   such as the mean functional (mean EPI) in template space
-      func_preproc_outputs: 3mm
+        # Erode brain mask in millimeter, default of White Matter is 0 mm
+        wm_mask_erosion_mm: 0
 
-      # The resolution (in mm) to which the registered derivative outputs are written into.
-      # NOTE:
-      #   this is for the single-volume functional-space outputs (i.e. derivatives)
-      #   thus, a higher resolution may not result in a large increase in RAM needs as above
-      func_derivative_outputs: 3mm
+        # Erode binarized White Matter mask in millimeter
+        wm_erosion_mm: 0
 
-      # a standard template for resampling if using float resolution
-      template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+      erode_gm:
 
-    target_template:
+        # Erode GM binarized tissue mask.
+        run: Off
 
-      # using: ['T1_template', 'EPI_template']
-      # this is a fork point
-      # NOTE:
-      #   'EPI_template' registers the mean-functional directly to the template (chosen below under EPI_template)
-      #   instead of applying the anatomical T1-to-template transform to the functional data that has been
-      #   coregistered to anatomical/T1 space
-      using: ['T1_template']
+        # Erosion proportion, if use erosion.
+        # Recommend to do not use erosion in both proportion and millimeter method.
+        gm_erosion_prop : 0.6
 
-      # option parameters
-      T1_template:
+        # Erode brain mask in millimeter, default of csf is 30 mm
+        gm_mask_erosion_mm: 30
 
-        # Standard Skull Stripped Template. Used as a reference image for functional registration.
-        # This can be different than the template used as the reference/fixed for T1-to-template registration.
-        template_brain: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
-
-        # Standard Anatomical Brain Image with Skull.
-        # This can be different than the template used as the reference/fixed for T1-to-template registration.
-        template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
-
-      EPI_template:
-
-        # EPI template for direct functional-to-template registration
-        # (bypassing coregistration and the anatomical-to-template transforms)
-        template_epi: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
-
-    ANTs_pipelines:
-
-      # Interpolation method for writing out transformed functional images.
-      # Possible values: Linear, BSpline, LanczosWindowedSinc
-      interpolation: LanczosWindowedSinc
-
-    FNIRT_pipelines:
-
-      # Interpolation method for writing out transformed functional images.
-      # Possible values: trilinear, sinc, spline
-      interpolation: sinc
-
-      # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-      # It is not necessary to change this path unless you intend to use a different template.
-      identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+        # Erode binarized White Matter mask in millimeter
+        gm_erosion_mm: 0
 
 
 # OUTPUTS AND DERIVATIVES
@@ -1159,17 +1178,17 @@ voxel_mirrored_homotopic_connectivity:
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    template_symmetric_brain_only: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
+    T1w_brain_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
 
     # A reference symmetric brain template for resampling
-    template_symmetric_brain_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_symmetric.nii.gz
+    T1w_brain_template_symmetric_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_symmetric.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-    template_symmetric_skull: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
+    T1w_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz
 
     # A reference symmetric skull template for resampling
-    template_symmetric_skull_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_symmetric.nii.gz
+    T1w_template_symmetric_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_symmetric.nii.gz
 
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
@@ -1262,7 +1281,7 @@ network_centrality:
 PyPEER:
 
   # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [Off]
+  run: Off
 
   # PEER scan names to use for training
   # Example: ['peer_run-1', 'peer_run-2']
