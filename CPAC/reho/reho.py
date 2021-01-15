@@ -5,7 +5,7 @@ import nipype.interfaces.utility as util
 from CPAC.reho.utils import *
 
 
-def create_reho():
+def create_reho(wf_name):
 
     """
     Regional Homogeneity(ReHo) approach to fMRI data analysis
@@ -84,7 +84,7 @@ def create_reho():
     >>> wf.run()
     """
 
-    reHo = pe.Workflow(name='reHo')
+    reHo = pe.Workflow(wf_name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['cluster_size',
                                                        'rest_res_filt',
                                                        'rest_mask']),
@@ -109,3 +109,46 @@ def create_reho():
     reHo.connect(raw_reho_map, 'out_file', outputNode, 'raw_reho_map')
 
     return reHo
+
+
+def reho(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "ReHo",
+     "config": ["regional_homogeneity"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-filtered_bold", "desc-cleaned_bold", "desc-brain_bold",
+                 "desc-preproc_bold", "bold"],
+                "space-bold_desc-brain_mask"],
+     "outputs": ["reho"]}
+    '''
+
+    cluster_size = cfg.regional_homogeneity['cluster_size']
+
+    # Check the cluster size is supported
+    if cluster_size not in [7, 19, 27]:
+        err_msg = 'Cluster size specified: %d, is not ' \
+                  'supported. Change to 7, 19, or 27 and try ' \
+                  'again' % cluster_size
+        raise Exception(err_msg)
+
+    reho = create_reho(f'reho_{pipe_num}')
+    reho.inputs.inputspec.cluster_size = cluster_size
+
+
+    node, out = strat_pool.get_data(["desc-filtered_bold",
+                                     "desc-cleaned_bold",
+                                     "desc-brain_bold",
+                                     "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, reho, 'inputspec.rest_res_filt')
+
+    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out_file, reho, 'inputspec.rest_mask')
+
+    outputs = {
+        'reho': (reho, 'outputspec.raw_reho_map')
+    }
+
+    return (wf, outputs)
