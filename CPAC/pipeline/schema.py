@@ -291,6 +291,7 @@ schema = Schema({
                     'T1_template': {
                         'T1w_brain_template': str,
                         'T1w_template': str,
+                        'T1w_brain_template_mask': Maybe(str),
                     },
                     'EPI_template': {
                         'template_epi': str,

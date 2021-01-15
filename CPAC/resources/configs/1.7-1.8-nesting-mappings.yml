@@ -40,6 +40,10 @@ num_ants_threads:
    - pipeline_setup
    - system_config
    - num_ants_threads
+num_omp_threads:
+   - pipeline_setup
+   - system_config
+   - num_OMP_threads
 pipelineName:
    - pipeline_setup
    - pipeline_name
@@ -116,6 +120,10 @@ acpc_template_brain:
    - anatomical_preproc
    - acpc_alignment
    - T1w_brain_ACPC_template
+acpc_run_preprocessing:
+   - anatomical_preproc
+   - acpc_alignment
+   - run_before_preproc
 already_skullstripped:
    - anatomical_preproc
    - brain_extraction
@@ -347,6 +355,10 @@ template_skull_for_anat:
    - registration_workflows
    - anatomical_registration
    - T1w_template
+template_brain_mask_for_anat:
+   - registration_workflows
+   - anatomical_registration
+   - T1w_brain_template_mask
 regOption:
    - registration_workflows
    - anatomical_registration
@@ -857,6 +869,13 @@ template_skull_for_func:
    - target_template
    - T1_template
    - T1w_template
+template_brain_mask_for_func:
+   - registration_workflows
+   - functional_registration
+   - func_registration_to_template
+   - target_template
+   - T1_template
+   - T1w_brain_template_mask
 template_epi:
    - registration_workflows
    - functional_registration
@@ -1027,6 +1046,9 @@ runZScoring:
    - post_processing
    - z-scoring
    - run
+run_freesurfer:
+   - surface_analysis
+   - run_freesurfer
 run_pypeer:
    - PyPEER
    - run

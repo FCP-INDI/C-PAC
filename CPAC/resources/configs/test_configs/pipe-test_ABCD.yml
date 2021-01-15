@@ -111,6 +111,10 @@ registration_workflows:
     # It is not necessary to change this path unless you intend to use a non-standard template.
     T1w_brain_template: /ABCD_pipeline_template/MNI152_T1_${resolution_for_anat}_brain.nii.gz
 
+    # Template to be used during registration.
+    # It is not necessary to change this path unless you intend to use a non-standard template.
+    T1w_brain_template_mask: /ABCD_pipeline_template/MNI152_T1_${resolution_for_anat}_brain_mask.nii.gz
+
     registration: 
 
       # option parameters

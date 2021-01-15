@@ -1863,6 +1863,8 @@ def update_config_dict(old_dict):
         if key in NESTED_CONFIG_MAPPING:
             # handle special cases
             special_cases = {
+                'acpc_run_preprocessing',
+                'acpc_template_brain',
                 'ANTs_prior_based_segmentation',
                 'func_reg_input',
                 'runRegisterFuncToTemplate',
@@ -1875,8 +1877,26 @@ def update_config_dict(old_dict):
                     old_dict, new_dict, key
                 )
 
+                # anatomical_preproc.acpc_alignment.run_before_preproc
+                if key == 'acpc_run_preprocessing':
+                    current_value = True if old_value.lower(
+                    ) == 'before' else False if old_value.lower(
+                    ) == 'after' else None
+                    print(old_value)
+                    print(current_value)
+
+                # anatomical_preproc.acpc_alignment.acpc_target
+                if key == 'acpc_template_brain':
+                    if current_value in {'None', None, ''}:
+                        new_dict = set_nested_value(
+                            new_dict,
+                            ['anatomical_preproc', 'acpc_alignment',
+                             'acpc_target'],
+                            'whole-head'
+                        )
+
                 # segmentation.tissue_segmentation.using
-                if key == 'ANTs_prior_based_segmentation':
+                elif key == 'ANTs_prior_based_segmentation':
                     new_value = _bool_to_str(old_value, 'ANTs_Prior_Based')
                     if new_value == 'ANTs_Prior_Based':
                         new_dict = set_nested_value(
@@ -1886,7 +1906,8 @@ def update_config_dict(old_dict):
                             old_value
                         )
 
-                #
+                # registration_workflows.functional_registration.
+                # coregistration.func_input_prep.input
                 elif key == 'func_reg_input':
                     new_value = _replace_in_value_list(old_value, (' ', '_'))
                     current_value = _replace_in_value_list(
@@ -1910,16 +1931,22 @@ def update_config_dict(old_dict):
                     new_value = _bool_to_str(old_value, 'FSL-linear')
 
                 # set updated value
-                if key != 'functional_registration':
+                if key not in {
+                    'acpc_run_preprocessing', 'acpc_template_brain',
+                    'functional_registration'
+                }:
                     current_value = _append_to_list(current_value, new_value)
-                new_dict = set_nested_value(
-                    new_dict, NESTED_CONFIG_MAPPING[key], current_value
-                )
 
             # update remaining keys
             else:
-                new_dict = set_nested_value(
-                    new_dict, NESTED_CONFIG_MAPPING[key], old_dict.pop(key))
+                current_value = old_dict.pop(key)
+
+            if current_value == 'None':
+                current_value = None
+
+            new_dict = set_nested_value(
+                new_dict, NESTED_CONFIG_MAPPING[key], current_value)
+
     return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
 
 
