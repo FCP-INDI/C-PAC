@@ -3,6 +3,7 @@ import base64
 POLYNOMIAL = 0x1021
 PRESET = 0xFFFF
 
+
 def _initial(c):
     crc = 0
     c = c << 8
@@ -16,6 +17,7 @@ def _initial(c):
 
 _tab = [_initial(i) for i in range(256)]
 
+
 def _update_crc(crc, c):
     cc = 0xff & c
 
@@ -25,11 +27,16 @@ def _update_crc(crc, c):
 
     return crc
 
+
 def crc(str):
     crc = PRESET
     for c in str:
         crc = _update_crc(crc, ord(c))
     return crc
 
+
 def encode(string):
-    return base64.urlsafe_b64encode(bytes(crc(string))).strip('=')
+    scrc = str(crc(string))
+    bcrc = scrc.encode('ascii')
+    base64crc = base64.urlsafe_b64encode(bcrc).strip(b'=')
+    return base64crc.decode()

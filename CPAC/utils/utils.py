@@ -6,6 +6,7 @@ import numbers
 import pickle
 import threading
 import numpy as np
+import json
 import yaml
 
 from inspect import currentframe, getframeinfo, stack
@@ -18,12 +19,39 @@ NESTED_CONFIG_MAPPING = yaml.safe_load(open(
         'resources/configs/1.7-1.8-nesting-mappings.yml')), 'r'))
 
 
+def get_last_prov_entry(prov):
+    while not isinstance(prov[-1], str):
+        prov = prov[-1]
+    return prov[-1]
+
+
+def check_prov_for_regtool(prov):
+    last_entry = get_last_prov_entry(prov)
+    last_node = last_entry.split(':')[1]
+    if 'ants' in last_node.lower():
+        return 'ants'
+    elif 'fsl' in last_node.lower():
+        return 'fsl'
+    else:
+        return None
+
+
+def check_prov_for_motion_tool(prov):
+    last_entry = get_last_prov_entry(prov)
+    last_node = last_entry.split(':')[1]
+    if '3dvolreg' in last_node.lower():
+        return '3dvolreg'
+    elif 'mcflirt' in last_node.lower():
+        return 'mcflirt'
+    else:
+        return None
+
+
 def get_flag(in_flag):
     return in_flag
 
 
 def get_flag_wf(wf_name='get_flag'):
-
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
@@ -38,6 +66,36 @@ def get_flag_wf(wf_name='get_flag'):
 
     wf.connect(input_node, 'in_flag', get_flag, 'in_flag')
 
+
+def read_json(json_file):
+    try:
+        with open(json_file, 'r') as f:
+            json_dct = json.load(f)
+    except json.decoder.JSONDecodeError as err:
+        raise Exception(f'\n\n{err}\n\nJSON file: {json_file}\n')
+    return json_dct
+
+
+def create_id_string(unique_id, resource, scan_id=None):
+    """Create the unique key-value identifier string for BIDS-Derivatives
+    compliant file names.
+
+    This is used in the file renaming performed during the Datasink
+    connections.
+    """
+    if scan_id:
+        out_filename = f'{unique_id}_task-{scan_id}_{resource}'
+    else:
+        out_filename = f'{unique_id}_{resource}'
+    return out_filename
+
+
+def write_output_json(json_data, filename, indent=3):
+    json_file = os.path.join(os.getcwd(), f'{filename}.json')
+    json_data = json.dumps(json_data, indent=indent, sort_keys=True)
+    with open(json_file, 'wt') as f:
+        f.write(json_data)
+    return json_file
 
 
 def get_zscore(input_name, map_node=False, wf_name='z_score'):
@@ -57,7 +115,6 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
     -----
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/network_centrality/z_score.py>`_
 
-
     Workflow Inputs::
 
         inputspec.input_file : string
@@ -70,15 +127,23 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
         outputspec.z_score_img : string
              path to image containing Normalized Input Image Z scores across full brain.
 
+    .. exec::
+        from CPAC.utils import get_zscore
+        wf = get_zscore('mean')
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/zscore.dot'
+        )
+
     High Level Workflow Graph:
 
-    .. image:: ../images/zscore.dot.png
+    .. image:: ../../images/generated/zscore.png
        :width: 500
 
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/zscore_detailed.dot.png
+    .. image:: ../../images/generated/zscore_detailed.png
        :width: 500
 
     Example
@@ -148,7 +213,7 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
     wflow.connect(mean, 'out_stat', op_string, 'mean')
     wflow.connect(standard_deviation, 'out_stat', op_string, 'std_dev')
 
-    #z_score.inputs.out_file = input_name + '_zstd.nii.gz'
+    # z_score.inputs.out_file = input_name + '_zstd.nii.gz'
 
     wflow.connect(op_string, 'op_string', z_score, 'op_string')
     wflow.connect(inputNode, 'input_file', z_score, 'in_file')
@@ -308,8 +373,9 @@ def get_roi_num_list(timeseries_file, prefix=None):
                 # clear out any blank strings/non ROI labels in the list
                 roi_list = [x for x in roi_list if "Mean" in x]
                 # rename labels
-                roi_list = [x.replace("Mean", "ROI").replace(" ", "").replace("#", "") \
-                            for x in roi_list]
+                roi_list = [
+                    x.replace("Mean", "ROI").replace(" ", "").replace("#", "")
+                    for x in roi_list]
             except:
                 raise Exception(roi_err)
             break
@@ -359,7 +425,7 @@ def extract_one_d(list_timeseries):
         if '.1D' in timeseries or '.csv' in timeseries:
             return timeseries
 
-    raise Exception("Unable to retrieve roi timeseries 1D or csv" \
+    raise Exception("Unable to retrieve roi timeseries 1D or csv"
                     " file. Files found:" + list_timeseries)
 
 
@@ -378,11 +444,12 @@ def extract_txt(list_timeseries):
             out_file = timeseries
 
     if not out_file:
-        raise Exception("Unable to retrieve roi timeseries txt" \
-                        " file required for dual regression." \
+        raise Exception("Unable to retrieve roi timeseries txt"
+                        " file required for dual regression."
                         " Existing files are:%s" % (list_timeseries))
 
     return out_file
+
 
 def zscore(data, axis):
     data = data.copy()
@@ -426,7 +493,6 @@ def correlation(matrix1, matrix2,
 
 
 def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
-
     if val_to_check not in params_dct:
         if throw_exception:
             raise Exception("Missing Value for {0} for participant "
@@ -476,7 +542,6 @@ def check_random_state(seed):
 
 
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
-
     scan_parameters = dict(
         (k.lower(), v)
         for k, v in scan_parameters.items()
@@ -629,7 +694,7 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                                  'PhaseEncodingDirection', False)
 
         else:
-            err = "\n\n[!] Could not read the format of the scan parameters "\
+            err = "\n\n[!] Could not read the format of the scan parameters " \
                   "information included in the data configuration file for " \
                   "the participant {0}.\n\n".format(subject_id)
             raise Exception(err)
@@ -680,8 +745,8 @@ def get_scan_params(subject_id, scan, pipeconfig_start_indx,
                     for time in slice_timings:
                         f.write("{0}\n".format(time).replace(" ", ""))
             except:
-                err = "\n[!] Could not write the slice timing file meant as "\
-                      "an input for AFNI 3dTshift (slice timing correction):"\
+                err = "\n[!] Could not write the slice timing file meant as " \
+                      "an input for AFNI 3dTshift (slice timing correction):" \
                       "\n{0}\n\n".format(tpattern_file)
                 raise Exception(err)
 
@@ -997,8 +1062,9 @@ def extract_output_mean(in_file, output_name):
 
         split_fullpath = in_file.split("/")
 
-        if "_mask_" in in_file and \
-           ("sca_roi" in in_file or "sca_tempreg" in in_file):
+        if "_mask_" in in_file and (
+           "sca_roi" in in_file or "sca_tempreg" in in_file
+        ):
 
             for dirname in split_fullpath:
                 if "_mask_" in dirname:
@@ -1085,13 +1151,13 @@ def create_output_mean_csv(subject_dir):
                         val = mean_file.readline()
                         val = val.strip('\n')
                     except:
-                        print('\n\n[!] CPAC says: Could not open the output ' \
+                        print('\n\n[!] CPAC says: Could not open the output '
                               'mean text file.\n')
                         print('Path: ', filepath, '\n\n')
                         raise Exception
 
                 else:
-                    print('\n\n[!] CPAC says: Could not find the output mean ' \
+                    print('\n\n[!] CPAC says: Could not find the output mean '
                           'text file.\n')
                     print('Path not found: ', filepath, '\n\n')
                     raise Exception
@@ -1180,53 +1246,84 @@ def check_config_resources(c):
     num_cores = cpu_count()
 
     # Check for pipeline memory for subject
-    if c.pipeline_setup['system_config']['maximum_memory_per_participant'] is None:
+    if c.pipeline_setup['system_config'][
+        'maximum_memory_per_participant'] is None:
         # Get system memory and numSubsAtOnce
         sys_mem_gb = sys_virt_mem.total / (1024.0 ** 3)
-        sub_mem_gb = sys_mem_gb / c.pipeline_setup['system_config']['num_participants_at_once']
+        sub_mem_gb = sys_mem_gb / c.pipeline_setup['system_config'][
+            'num_participants_at_once']
     else:
-        sub_mem_gb = c.pipeline_setup['system_config']['maximum_memory_per_participant']
+        sub_mem_gb = c.pipeline_setup['system_config'][
+            'maximum_memory_per_participant']
 
     # If centrality is enabled, check to mem_sub >= mem_centrality
     if c.network_centrality['run'][0]:
         if sub_mem_gb < c.network_centrality['memory_allocation']:
             err_msg = 'Memory allocated for subject: %d needs to be greater ' \
                       'than the memory allocated for centrality: %d. Fix ' \
-                      'and try again.' % (c.pipeline_setup['system_config']['maximum_memory_per_participant'],
-                                          c.network_centrality['memory_allocation'])
+                      'and try again.' % (c.pipeline_setup['system_config'][
+                                              'maximum_memory_per_participant'],
+                                          c.network_centrality[
+                                              'memory_allocation'])
             raise Exception(err_msg)
 
     # Check for pipeline threads
     # Check if user specified cores
     if c.pipeline_setup['system_config']['max_cores_per_participant']:
-        total_user_cores = c.pipeline_setup['system_config']['num_participants_at_once'] * c.pipeline_setup['system_config']['max_cores_per_participant']
+        total_user_cores = c.pipeline_setup['system_config'][
+                               'num_participants_at_once'] * \
+                           c.pipeline_setup['system_config'][
+                               'max_cores_per_participant']
         if total_user_cores > num_cores:
             err_msg = 'Config file specifies more subjects running in ' \
                       'parallel than number of threads available. Change ' \
                       'this and try again'
             raise Exception(err_msg)
         else:
-            num_cores_per_sub = c.pipeline_setup['system_config']['max_cores_per_participant']
+            num_cores_per_sub = c.pipeline_setup['system_config'][
+                'max_cores_per_participant']
     else:
-        num_cores_per_sub = num_cores / c.pipeline_setup['system_config']['num_participants_at_once']
+        num_cores_per_sub = num_cores / c.pipeline_setup['system_config'][
+            'num_participants_at_once']
 
     # Now check ANTS
-    if 'ANTS' in c.anatomical_preproc['registration_workflow']['registration']['using']:
+    if 'ANTS' in c.registration_workflows['anatomical_registration'][
+        'registration']['using']:
         if c.pipeline_setup['system_config']['num_ants_threads'] is None:
             num_ants_cores = num_cores_per_sub
-        elif c.pipeline_setup['system_config']['num_ants_threads'] > c.pipeline_setup['system_config']['max_cores_per_participant']:
+        elif c.pipeline_setup['system_config']['num_ants_threads'] > \
+                c.pipeline_setup['system_config'][
+                    'max_cores_per_participant']:
             err_msg = 'Number of threads for ANTS: %d is greater than the ' \
                       'number of threads per subject: %d. Change this and ' \
-                      'try again.' % (c.pipeline_setup['system_config']['num_ants_threads'],
-                                      c.pipeline_setup['system_config']['max_cores_per_participant'])
+                      'try again.' % (
+                      c.pipeline_setup['system_config']['num_ants_threads'],
+                      c.pipeline_setup['system_config'][
+                          'max_cores_per_participant'])
             raise Exception(err_msg)
         else:
-            num_ants_cores = c.pipeline_setup['system_config']['num_ants_threads']
+            num_ants_cores = c.pipeline_setup['system_config'][
+                'num_ants_threads']
     else:
         num_ants_cores = 1
 
+    # Now check OMP
+    if c.pipeline_setup['system_config']['num_OMP_threads'] is None:
+        num_omp_cores = 1
+    elif c.pipeline_setup['system_config']['num_OMP_threads'] > \
+            c.pipeline_setup['system_config']['max_cores_per_participant']:
+        err_msg = 'Number of threads for OMP: %d is greater than the ' \
+                  'number of threads per subject: %d. Change this and ' \
+                  'try again.' % (c.pipeline_setup['system_config'][
+                                      'num_OMP_threads'],
+                                  c.pipeline_setup['system_config'][
+                                      'max_cores_per_participant'])
+        raise Exception(err_msg)
+    else:
+        num_omp_cores = c.pipeline_setup['system_config']['num_OMP_threads']
+
     # Return memory and cores
-    return sub_mem_gb, num_cores_per_sub, num_ants_cores
+    return sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores
 
 
 def load_preconfig(pipeline_label):
@@ -1352,7 +1449,7 @@ def _pickle2(p, z=False):
             try:
                 pickle.load(fp)
             except UnicodeDecodeError:
-                return(True)
+                return True
             except Exception as e:
                 print(
                     f"Pickle {p} may be a Python 3 pickle, but raised "
@@ -1363,13 +1460,13 @@ def _pickle2(p, z=False):
             try:
                 pickle.load(fp)
             except UnicodeDecodeError:
-                return(True)
+                return True
             except Exception as e:
                 print(
                     f"Pickle {p} may be a Python 3 pickle, but raised "
                     f"exception {e}"
                 )
-    return(False)
+    return False
 
 
 def concat_list(in_list1=None, in_list2=None):
@@ -1690,7 +1787,7 @@ def update_config_dict(old_dict):
         ):
             current_value.append(new_value)
         return current_value
-    
+
     def _bool_to_str(old_value, value_if_true):
         '''Helper function to convert a True or a list containing a
         True to a given string

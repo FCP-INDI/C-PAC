@@ -105,10 +105,10 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
         :width: 500
 
     Detailed Workflow Graph:
-
     .. image:: ../images/nonlinear_register_detailed.dot.png
         :width: 500
     """
+
     nonlinear_register = pe.Workflow(name=name)
 
     inputspec = pe.Node(util.IdentityInterface(fields=['input_brain',
@@ -217,13 +217,20 @@ def create_register_func_to_mni(name='register_func_to_mni'):
         outputspec.mni_func : string (nifti file)
             Functional scan registered to MNI standard space
 
-    Workflow Graph:
+    .. exec::
+        from CPAC.registration import create_register_func_to_mni
+        wf = create_register_func_to_mni()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/register_func_to_mni.dot'
+        )
 
-    .. image:: ../images/register_func_to_mni.dot.png
+    Workflow Graph:
+    
+    .. image:: ../../images/generated/register_func_to_mni.png
         :width: 500
 
     Detailed Workflow Graph:
-
     .. image:: ../images/register_func_to_mni_detailed.dot.png
         :width: 500
     """
@@ -291,7 +298,6 @@ def create_register_func_to_mni(name='register_func_to_mni'):
 
 def create_register_func_to_anat(phase_diff_distcor=False,
                                  name='register_func_to_anat'):
-
     """
     Registers a functional scan in native space to anatomical space using a
     linear transform and does not include bbregister.
@@ -399,7 +405,6 @@ def create_register_func_to_anat(phase_diff_distcor=False,
 
 def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                    name='bbregister_func_to_anat'):
-
     """
     Registers a functional scan in native space to structural.  This is
     meant to be used after create_nonlinear_register() has been run and
@@ -818,8 +823,15 @@ def create_wf_calculate_ants_warp(
 
     1. Calculates a nonlinear anatomical-to-template registration.
 
-    Workflow Graph:
+    .. exec::
+        from CPAC.registration import create_wf_calculate_ants_warp
+        wf = create_wf_calculate_ants_warp()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/calculate_ants_warp.dot'
+        )
 
+    Workflow Graph:
     .. image::
         :width: 500
 
@@ -836,6 +848,8 @@ def create_wf_calculate_ants_warp(
                 'reference_brain',
                 'moving_skull',
                 'reference_skull',
+                'reference_mask',
+                'moving_mask',
                 'fixed_image_mask',
                 'ants_para',
                 'interp']),
@@ -865,6 +879,8 @@ def create_wf_calculate_ants_warp(
                                                      'reference_brain',
                                                      'moving_skull',
                                                      'reference_skull',
+                                                     'reference_mask',
+                                                     'moving_mask',
                                                      'ants_para',
                                                      'fixed_image_mask',
                                                      'interp'],
@@ -936,9 +952,14 @@ def create_wf_calculate_ants_warp(
         inputspec, 'fixed_image_mask',
         calculate_ants_warp, 'fixed_image_mask')
 
-    calc_ants_warp_wf.connect(
-        inputspec, 'ants_para',
-        calculate_ants_warp, 'ants_para')
+    calc_ants_warp_wf.connect(inputspec, 'reference_mask',
+            calculate_ants_warp, 'reference_mask')
+
+    calc_ants_warp_wf.connect(inputspec, 'moving_mask',
+            calculate_ants_warp, 'moving_mask')
+
+    calc_ants_warp_wf.connect(inputspec, 'ants_para',
+            calculate_ants_warp, 'ants_para')
 
     calc_ants_warp_wf.connect(
         inputspec, 'interp',
@@ -1111,6 +1132,7 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
             '1-coregistration'
         ]['boundary_based_registration']['run']
     ):
+
         template_based_segmentation = c.anatomical_preproc[
             'segmentation_workflow'
         ]['1-segmentation']['Template_Based']['template_for_segmentation']

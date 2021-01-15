@@ -9,7 +9,6 @@ from CPAC.sca.utils import *
 
 
 def create_sca(name_sca='sca'):
-
     """
     Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
@@ -54,14 +53,22 @@ def create_sca(name_sca='sca'):
        a single Z score file is returned, otherwise z-scores for all ROIs are returned as a list of
        nifti files
 
+    .. exec::
+        from CPAC.sca import create_sca
+        wf = create_sca()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/sca.dot'
+        )
+
     Workflow:
 
-    .. image:: ../images/sca_graph.dot.png
+    .. image:: ../../images/generated/sca.png
         :width: 500
 
     Detailed Workflow:
 
-    .. image:: ../images/sca_detailed_graph.dot.png
+    .. image:: ../../images/generated/sca_detailed.png
         :width: 500
 
     Examples
@@ -144,7 +151,6 @@ def create_sca(name_sca='sca'):
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
-
     """
     Temporal multiple regression workflow
     Provides a spatial map of parameter estimates corresponding to each
@@ -217,15 +223,22 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     timeseries to the subjects functional file to get spatial maps of voxels
     showing activation patterns related to those in the timeseries.
 
+    .. exec::
+        from CPAC.sca import create_temporal_reg
+        wf = create_temporal_reg()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/create_temporal_regression.dot'
+        )
 
     Workflow:
 
-    .. image:: ../images/create_temporal_regression.png
+    .. image:: ../../images/generated/create_temporal_regression.png
         :width: 500
 
     Detailed Workflow:
 
-    .. image:: ../images/detailed_graph_create_temporal_regression.png
+    .. image:: ../../images/generated/create_temporal_regression_detailed.png
         :width: 500
 
     References

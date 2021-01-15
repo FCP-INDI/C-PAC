@@ -19,6 +19,9 @@ from CPAC.seg_preproc.utils import (
 import nipype.pipeline.engine as pe
 import scipy.ndimage as nd
 import numpy as np
+from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+from nipype.interfaces import freesurfer
+from CPAC.anat_preproc.utils import mri_convert
 from CPAC.registration.utils import (
     check_transforms,
     generate_inverse_transform_flags)
@@ -231,16 +234,23 @@ def create_seg_preproc(use_ants,
     >>> seg.inputs.inputspec.brain = '/home/data/Projects/C-PAC/working_directory/s1001/anat_preproc/mprage_brain.nii.gz'
     >>> seg_preproc.run() # doctest: +SKIP
 
+    .. exec::
+        from CPAC.seg_preproc import create_seg_preproc
+        wf = create_seg_preproc(False, False, ['FSL-FAST Thresholding'])
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/seg_preproc.dot'
+        )
 
     High Level Graph:
 
-    .. image:: ../images/seg_preproc.dot.png
+    .. image:: ../../images/generated/seg_preproc.png
         :width: 1100
-        :height: 480
+        :height: 100
 
     Detailed Graph:
 
-    .. image:: ../images/seg_preproc_detailed.dot.png
+    .. image:: ../../images/generated/seg_preproc_detailed.png
         :width: 1100
         :height: 480
     """  # noqa
@@ -533,16 +543,27 @@ def process_segment_map(wf_name,
 
     - Generate segment mask, by applying tissue prior in t1 space to thresholded binarized segment probability map
 
+    .. exec::
+        from CPAC.seg_preproc import process_segment_map
+        wf = process_segment_map('segment_map_wf',
+                                False,
+                                False,
+                                ['FSL-FAST Thresholding'],
+                                False)
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/process_segment_map.dot'
+        )
 
     High Level Graph:
 
-    .. image:: ../images/process_segment_map.dot.png
+    .. image:: ../../images/generated/process_segment_map.png
         :width: 1100
         :height: 480
 
     Detailed Graph:
 
-    .. image:: ../images/process_segment_map_detailed.dot.png
+    .. image:: ../../images/generated/process_segment_map_detailed.png
         :width: 1100
         :height: 480
 
@@ -1053,10 +1074,9 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
     return preproc
 
 
-def create_seg_preproc_antsJointLabel_method(
-    wf_name='seg_preproc_templated_based'
-):
-    """Generate the subject's cerebral spinal fluids,
+def create_seg_preproc_antsJointLabel_method(wf_name='seg_preproc_templated_based'):
+    """
+    Generate the subject's cerebral spinal fluids,
     white matter and gray matter mask based on provided template, if selected to do so.
 
     Parameters
@@ -1093,8 +1113,10 @@ def create_seg_preproc_antsJointLabel_method(
 
         outputspec.wm_mask : string (nifti file)
             outputs White Matter mask
-    """  # noqa
-    preproc = pe.Workflow(name=wf_name)
+    """
+
+    preproc = pe.Workflow(name = wf_name)
+
     inputNode = pe.Node(util.IdentityInterface(fields=['anatomical_brain',
                                                        'anatomical_brain_mask',
                                                        'template_brain_list',
@@ -1561,7 +1583,6 @@ def connect_anat_segmentation(workflow, strat_list, c, strat_name=None):
         True in template_based_c['run'] and
         'T1 Template' in template_based_c['template_for_segmentation']
     ):
-
         for num_strat, strat in enumerate(strat_list):
 
             nodes = strat.get_nodes_names()

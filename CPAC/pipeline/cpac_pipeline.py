@@ -17,6 +17,7 @@ from time import strftime
 import nipype
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
+import nipype.interfaces.freesurfer as freesurfer
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
@@ -34,9 +35,7 @@ from CPAC.network_centrality.pipeline import (
     create_network_centrality_workflow
 )
 
-from CPAC.anat_preproc.anat_preproc import (
-    create_anat_preproc
-)
+from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 
@@ -125,7 +124,7 @@ from CPAC.utils.utils import (
     get_zscore,
     get_fisher_zscore,
     concat_list,
-    check_config_resources, 
+    check_config_resources,
     check_system_deps,
     ordereddict_to_dict
 )
@@ -134,6 +133,7 @@ from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
 
 logger = logging.getLogger('nipype.workflow')
 # config.enable_debug_mode()
+
 
 def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                  plugin='MultiProc', plugin_args=None, test_config=False):
@@ -195,7 +195,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     # number of subjects
 
     # Check pipeline config resources
-    sub_mem_gb, num_cores_per_sub, num_ants_cores = check_config_resources(c)
+    sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(c)
 
     if not plugin:
         plugin = 'MultiProc'
@@ -209,8 +209,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly
     # import mkl
-    numThreads = '1'
-    os.environ['OMP_NUM_THREADS'] = '1'  # str(num_cores_per_sub)
+    os.environ['OMP_NUM_THREADS'] = str(num_omp_cores)
     os.environ['MKL_NUM_THREADS'] = '1'  # str(num_cores_per_sub)
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
 
@@ -262,8 +261,8 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     Setting maximum number of cores per participant to {cores}
     Setting number of participants at once to {participants}
-    Setting OMP_NUM_THREADS to {threads}
-    Setting MKL_NUM_THREADS to {threads}
+    Setting OMP_NUM_THREADS to {omp_threads}
+    Setting MKL_NUM_THREADS to 1
     Setting ANTS/ITK thread usage to {ants_threads}
     Maximum potential number of cores that might be used during this run: {max_cores}
 
@@ -298,7 +297,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     subject_info['start_time'] = pipeline_start_time
 
     check_centrality_degree = True in c.network_centrality['run'] and \
-                              (len(c.network_centrality['degree_centrality']['weight_options']) != 0 or \
+                              (len(c.network_centrality['degree_centrality']['weight_options']) != 0 or
                                len(c.network_centrality['eigenvector_centrality']['weight_options']) != 0 )
 
     check_centrality_lfcd = True in c.network_centrality['run'] and \
@@ -400,9 +399,9 @@ Please, make yourself aware of how it works and its assumptions:
             log_nodes_initial(workflow)
 
             # Add status callback function that writes in callback log
-            if nipype.__version__ not in ('1.1.2'):
+            if nipype.__version__ not in ('1.5.1'):
                 err_msg = "This version of Nipype may not be compatible with " \
-                            "CPAC v%s, please install Nipype version 1.1.2\n" \
+                            "CPAC v%s, please install Nipype version 1.5.1\n" \
                             % (CPAC.__version__)
                 logger.error(err_msg)
             else:
@@ -679,7 +678,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         acpc_target = 'brain'
     else:
         acpc_target = None
-    
+
     # TODO ASH normalize file paths with schema validator
     template_keys = [
         ("anat", ["network_centrality", "template_specification_file"]),
@@ -695,9 +694,14 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         ("other", ["voxel_mirrored_homotopic_connectivity", "symmetric_registration", "FNIRT_pipelines", "config_file"]),
     ]
 
+    if 'FreeSurfer-ABCD' in c.anatomical_preproc['brain_extraction']['using']:
+        template_keys.append(("anat", "template_skull_for_anat_2mm"))
+        template_keys.append(("anat", "ref_mask_2mm"))
+
     def get_nested_attr(c, template_key):
         attr = getattr(c, template_key[0])
         keys = template_key[1:]
+
         def _get_nested(attr, keys):
             if len(keys) > 1:
                 return(_get_nested(attr[keys[0]], keys[1:]))
@@ -710,6 +714,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     def set_nested_attr(c, template_key, value):
         attr = getattr(c, template_key[0])
         keys = template_key[1:]
+
         def _set_nested(attr, keys):
             if len(keys) > 1:
                 return(_set_nested(attr[keys[0]], keys[1:]))
@@ -724,7 +729,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         attr = c.get_nested(c, key)
 
         if isinstance(attr, str) or attr == None:
-            
+
             node = create_check_for_s3_node(
                 key[-1],
                 attr, key_type,
@@ -765,7 +770,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         dl_dir = c.pipeline_setup['working_directory']['path'],
         img_type = 'anat'
     )
-    
+
     strat_initial.update_resource_pool({
         'anatomical': (anat_flow, 'outputspec.anat')
     })
@@ -835,11 +840,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     # update resource pool from data config
     # TODO fork resource pool
     if 'resource_pool' in sub_dict.keys():
-        
+
         resource_pool_list = sub_dict['resource_pool']
 
         for num_strat, strat in enumerate(resource_pool_list.keys()):
-            
+
             new_strat = strat_initial.fork()
             resource_pool_dict = sub_dict['resource_pool'][strat]
 
@@ -860,7 +865,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     new_strat.update_resource_pool({
                         key: (longitudinal_flow, 'outputspec.anat')
                     })
-                
+
                 elif ('anatomical' in key or 'seg' in key) and key not in strat:
 
                     if 'seg_probability_maps' in key or 'seg_partial_volume_files' in key:
@@ -880,7 +885,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                                                 output_names=['out_list'],
                                                                 function=concat_list),
                                                         name=f'concat_{key}_{num_key}_{num_strat}')
-                            
+
                             workflow.connect(longitudinal_flow, 'outputspec.anat',
                                 concat_seg_map, 'in_list1')
 
@@ -892,7 +897,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                 node, out_file = new_strat[f'temporary_{key}_list']
                                 workflow.connect(node, out_file,
                                             concat_seg_map, 'in_list2')
-                                
+
                                 new_strat.update_resource_pool({
                                     f'temporary_{key}_list':(concat_seg_map, 'out_list')
                                 }, override=True)
@@ -900,7 +905,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         new_strat.update_resource_pool({
                             key: (concat_seg_map, 'out_list')
                         })
-                    
+
                     else:
                         longitudinal_flow = create_anat_datasource(f'{key}_gather_{num_strat}')
                         longitudinal_flow.inputs.inputnode.set(
@@ -913,32 +918,31 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         new_strat.update_resource_pool({
                             key: (longitudinal_flow, 'outputspec.anat')
                         })
-                
+
                 elif 'functional' in key:
-                    # TODO 
+                    # TODO
                     pass
                 else:
                     new_strat.update_resource_pool({
                         key: resource_pool_dict[key]
                     })
-                
-            strat_list += [new_strat]
-        
-    else:
-        
-        strat_list += [strat_initial]
 
+            strat_list += [new_strat]
+
+    else:
+
+        strat_list += [strat_initial]
 
     new_strat_list = []
 
     if 'anatomical_to_standard' not in strat_list[0]:
-        
+
         for num_strat, strat in enumerate(strat_list):
 
             if 'anatomical_brain_mask' in strat:
 
                 anat_preproc = create_anat_preproc(method='mask',
-                                                config=c, 
+                                                config=c,
                                                 acpc_target=acpc_target,
                                                 wf_name='anat_preproc_mask_%d' % num_strat)
 
@@ -951,7 +955,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(node, out_file,
                                 anat_preproc, 'inputspec.brain_mask')
                 workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
-                                anat_preproc, 'inputspec.template_skull_for_acpc')                               
+                                anat_preproc, 'inputspec.template_skull_for_acpc')
                 workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                 anat_preproc, 'inputspec.template_brain_only_for_acpc')
 
@@ -983,7 +987,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(node, out_file,
                                  anat_preproc, 'inputspec.anat')
                 workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
-                                anat_preproc, 'inputspec.template_skull_for_acpc')                               
+                                anat_preproc, 'inputspec.template_skull_for_acpc')
                 workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                 anat_preproc, 'inputspec.template_brain_only_for_acpc')
 
@@ -997,6 +1001,43 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 new_strat_list += [new_strat]
 
+            elif c.run_freesurfer:
+
+                anat_preproc = create_anat_preproc(method='freesurfer',
+                                                config=c,
+                                                acpc_target=acpc_target,
+                                                wf_name='anat_preproc_freesurfer_%d' % num_strat,
+                                                sub_dir=os.path.join(c.workingDirectory, workflow_name))
+
+                new_strat = strat.fork()
+                node, out_file = new_strat['anatomical']
+                workflow.connect(node, out_file,
+                                anat_preproc, 'inputspec.anat')
+                workflow.connect(c.acpc_template_skull, 'local_path',
+                                anat_preproc, 'inputspec.template_skull_for_acpc')
+                workflow.connect(c.acpc_template_brain, 'local_path',
+                                anat_preproc, 'inputspec.template_brain_only_for_acpc')
+                new_strat.append_name(anat_preproc.name)
+                new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                new_strat.update_resource_pool({
+                    'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                    'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
+                    'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                    'anatomical_wm_mask': (anat_preproc, 'outputspec.wm_mask'),
+                    'anatomical_gm_mask': (anat_preproc, 'outputspec.gm_mask'),
+                    'anatomical_csf_mask': (anat_preproc, 'outputspec.csf_mask'),
+                    'surface_curvature': (anat_preproc, 'outputspec.curv'),
+                    'pial_surface_mesh': (anat_preproc, 'outputspec.pial'),
+                    'smoothed_surface_mesh': (anat_preproc, 'outputspec.smoothwm'),
+                    'spherical_surface_mesh': (anat_preproc, 'outputspec.sphere'),
+                    'sulcal_depth_surface_maps': (anat_preproc, 'outputspec.sulc'),
+                    'cortical_thickness_surface_maps': (anat_preproc, 'outputspec.thickness'),
+                    'cortical_volume_surface_maps': (anat_preproc, 'outputspec.volume'),
+                    'white_matter_surface_mesh': (anat_preproc, 'outputspec.white'),
+                })
+
+                new_strat_list += [new_strat]
+
             else:
                 if not any(o in c.anatomical_preproc['brain_extraction']['extraction']['using'] for o in ["3dSkullStrip", "BET", "UNet", "niworkflows-ants"]):
                     err = '\n\n[!] C-PAC says: Your skull-stripping method options ' \
@@ -1005,11 +1046,10 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'extraction: \n' \
                         'using:[{0}]\n\n'.format(
                         str(c.anatomical_preproc['brain_extraction']['extraction']['using']))
- 
+
                     raise Exception(err)
 
                 if "3dSkullStrip" in c.anatomical_preproc['brain_extraction']['extraction']['using']:
-
                     anat_preproc = create_anat_preproc(method='afni',
                                                     config=c,
                                                     acpc_target=acpc_target,
@@ -1020,7 +1060,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
-                                    anat_preproc, 'inputspec.template_skull_for_acpc')                               
+                                    anat_preproc, 'inputspec.template_skull_for_acpc')
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
@@ -1044,7 +1084,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
-                                    anat_preproc, 'inputspec.template_skull_for_acpc')                               
+                                    anat_preproc, 'inputspec.template_skull_for_acpc')
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
@@ -1068,7 +1108,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.anat')
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
-                                    anat_preproc, 'inputspec.template_skull_for_acpc')                               
+                                    anat_preproc, 'inputspec.template_skull_for_acpc')
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
@@ -1097,10 +1137,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     node, out_file = new_strat['template_skull_for_anat']
                     workflow.connect(node, out_file,
                                     anat_preproc, 'inputspec.template_skull_for_anat')
+
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_skull'], 'local_path',
-                                    anat_preproc, 'inputspec.template_skull_for_acpc')                               
+                                     anat_preproc, 'inputspec.template_skull_for_acpc')
                     workflow.connect(c.anatomical_preproc['acpc_alignment']['template_brain'], 'local_path',
-                                    anat_preproc, 'inputspec.template_brain_only_for_acpc')
+                                     anat_preproc, 'inputspec.template_brain_only_for_acpc')
                     new_strat.append_name(anat_preproc.name)
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
@@ -1111,6 +1152,45 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                     new_strat_list += [new_strat]
 
+                if "FreeSurfer-ABCD" in c.skullstrip_option:
+
+                    anat_preproc = create_anat_preproc(method='freesurfer-abcd',
+                                                    config=c,
+                                                    acpc_target=acpc_target,
+                                                    wf_name='anat_preproc_freesurfer_abcd_%d' % num_strat,
+                                                    sub_dir=os.path.join(c.workingDirectory, workflow_name))
+
+                    new_strat = strat.fork()
+                    node, out_file = new_strat['anatomical']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.anat')
+
+                    workflow.connect(c.acpc_template_skull, 'local_path',
+                                    anat_preproc, 'inputspec.template_skull_for_acpc')
+
+                    workflow.connect(c.acpc_template_brain, 'local_path',
+                                    anat_preproc, 'inputspec.template_brain_only_for_acpc')
+
+                    workflow.connect(c.template_skull_for_anat_2mm, 'local_path',
+                                    anat_preproc, 'inputspec.template_skull_for_anat_2mm')
+
+                    workflow.connect(c.ref_mask_2mm, 'local_path',
+                                    anat_preproc, 'inputspec.ref_mask_2mm')
+
+                    node, out_file = strat['template_brain_mask_for_anat']
+                    workflow.connect(node, out_file,
+                                    anat_preproc, 'inputspec.template_brain_mask_for_anat')
+
+                    new_strat.append_name(anat_preproc.name)
+                    new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+                    new_strat.update_resource_pool({
+                        'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                        'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
+                        'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
+                        'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
+                    })
+
+                    new_strat_list += [new_strat]
 
         strat_list = new_strat_list
 
@@ -1310,6 +1390,20 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     ants_reg_anat_mni, 'inputspec.reference_skull'
                     )
 
+                # pass the reference mask file
+                node, out_file = strat['template_brain_mask_for_anat']
+                workflow.connect(
+                    node, out_file,
+                    ants_reg_anat_mni, 'inputspec.reference_mask'
+                    )
+
+                # pass the reference mask file
+                node, out_file = strat['anatomical_brain_mask']
+                workflow.connect(
+                    node, out_file,
+                    ants_reg_anat_mni, 'inputspec.moving_mask'
+                    )
+
                 # Test if a lesion mask is found for the anatomical image
                 if 'lesion_mask' in sub_dict and c.use_lesion_mask:
                     # Create lesion preproc node to apply afni Refit and Resample
@@ -1393,7 +1487,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     flirt_reg_anat_symm_mni = create_fsl_flirt_linear_reg(
                         'anat_symmetric_mni_flirt_register_{0}'.format(num_strat)
                     )
-
 
                     # Input registration parameters
                     flirt_reg_anat_symm_mni.inputs.inputspec.interp = c.anatomical_preproc['registration_workflow']['registration']['FSL-FNIRT']['interpolation']
@@ -1484,7 +1577,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
             strat_list += new_strat_list
 
-            
             new_strat_list = []
 
             for num_strat, strat in enumerate(strat_list):
@@ -1550,6 +1642,20 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     workflow.connect(node, out_file,
                                      ants_reg_anat_symm_mni,
                                      'inputspec.reference_skull')
+
+                    # pass the reference mask file
+                    node, out_file = strat['template_brain_mask_for_anat']
+                    workflow.connect(
+                        node, out_file,
+                        ants_reg_anat_symm_mni, 'inputspec.reference_mask'
+                        )
+
+                    # pass the reference mask file
+                    node, out_file = strat['anatomical_brain_mask']
+                    workflow.connect(
+                        node, out_file,
+                        ants_reg_anat_symm_mni, 'inputspec.moving_mask'
+                        )
 
                     if 'lesion_mask' in sub_dict and c.anatomical_preproc[
                         'registration_workflow'
@@ -1621,8 +1727,8 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
             strat_list += new_strat_list
 
         # Inserting Segmentation Preprocessing Workflow
-        workflow, strat_list = connect_anat_segmentation(
-            workflow, strat_list, c)
+        if not c.run_freesurfer:
+            workflow, strat_list = connect_anat_segmentation(workflow, strat_list, c)
 
     # Functional / BOLD time
     if ('func' in sub_dict or 'rest' in sub_dict) and c.functional_preproc['run']:
@@ -1863,7 +1969,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 })
 
         new_strat_list = []
-
 
         for num_strat, strat in enumerate(strat_list):
 
@@ -2143,6 +2248,18 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 workflow.connect(
                     node, out_file, regressor_workflow,
                     'inputspec.func_to_anat_linear_xfm_file_path')
+
+                # invert func2anat matrix to get anat2func_linear_xfm
+                anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(), name='anat_to_func_linear_xfm_{0}_{1}'.format(regressors_selector_i, num_strat))
+                anat2func_linear_xfm.inputs.invert_xfm = True
+                workflow.connect(
+                    node, out_file,
+                    anat2func_linear_xfm, 'in_file')
+                workflow.connect(
+                    anat2func_linear_xfm, 'out_file',
+                    regressor_workflow,
+                    'inputspec.anat_to_func_linear_xfm_file_path'
+                )
 
                 node, out_file = new_strat.get_leaf_properties()
                 workflow.connect(
@@ -2996,7 +3113,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
         strat_list += new_strat_list
 
-
         # Connectome
         if "PearsonCorr" in ts_analysis_dict.keys() or "PartialCorr" in ts_analysis_dict.keys():
 
@@ -3343,7 +3459,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     if c.pipeline_setup['output_directory']['generate_quality_control_images']:
         create_qc_workflow(workflow, c, strat_list, Outputs.qc)
 
-
     ndmg_out = False
     try:
         if c.pipeline_setup['output_directory']['output_tree'] == "ndmg":
@@ -3351,13 +3466,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
     except:
         pass
 
-
     # TODO enforce value with schema validation
     try:
         encrypt_data = bool(c.pipeline_setup['Amazon-AWS']['s3_encryption'])
     except:
         encrypt_data = False
-
 
     # TODO enforce value with schema validation
     # Extract credentials path for output if it exists
@@ -3384,7 +3497,6 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                         'accessing the S3 bucket. Check and try again.\n' \
                         'Error: %s' % e
             raise Exception(err_msg)
-
 
     # this section creates names for the different branched strategies.
     # it identifies where the pipeline has forked and then appends the
@@ -3679,7 +3791,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                                         if trans_type == 'Affine' and resource == 'func_to_epi_ants_affine_xfm':
                                             workflow.connect(node, out_file, ds, resource)
 
-                if resource not in ['ants_initial_xfm', 'ants_rigid_xfm', 'ants_affine_xfm', 'func_to_epi_ants_initial_xfm', 'func_to_epi_ants_rigid_xfm', 'func_to_epi_ants_affine_xfm',\
+                if resource not in ['ants_initial_xfm', 'ants_rigid_xfm', 'ants_affine_xfm', 'func_to_epi_ants_initial_xfm', 'func_to_epi_ants_rigid_xfm', 'func_to_epi_ants_affine_xfm',
                     'ants_symmetric_initial_xfm','ants_symmetric_rigid_xfm','ants_symmetric_affine_xfm']:
                     workflow.connect(node, out_file, ds, resource)
 

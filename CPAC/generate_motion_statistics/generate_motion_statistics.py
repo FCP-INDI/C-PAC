@@ -7,7 +7,6 @@ from CPAC.utils.interfaces.function import Function
 
 
 def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg'):
-
     """
     The main purpose of this workflow is to get various statistical measures
      from the movement/motion parameters obtained in functional preprocessing.
@@ -135,12 +134,12 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
 
     High Level Workflow Graph:
 
-    .. image:: ../images/generated/motion_statistics.png
+    .. image:: ../../images/generated/motion_statistics.png
        :width: 1000
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/generated/motion_statistics_detailed.png
+    .. image:: ../../images/generated/motion_statistics_detailed.png
        :width: 1000
 
     Examples
@@ -223,7 +222,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                     function=calculate_FD_J,
                                     as_module=True),
                             name='calculate_FDJ')
-    
+
     calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
     if motion_correct_tool == '3dvolreg':
         wf.connect(input_node, 'transformations',
@@ -411,7 +410,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
 
     elif motion_correct_tool=='mcflirt':
         maxdisp = np.loadtxt(max_displacement[0]) # TODO: mcflirt outputs absdisp, instead of maxdisp
-        reldisp = np.loadtxt(max_displacement[1]) 
+        reldisp = np.loadtxt(max_displacement[1])
 
     abs_relative = lambda v: np.abs(np.diff(v))
     max_relative = lambda v: np.max(abs_relative(v))
@@ -426,9 +425,9 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
         ('Max_Relative_RMS_Displacement', max_relative(rms)),
         ('Movements_gt_threshold', np.sum(abs_relative(rms) > 0.1)),
         ('Mean_Relative_Mean_Rotation', avg_relative(np.abs(mot[0:3]).mean(axis=0))),
-        ('Mean_Relative_Maxdisp', avg_relative(maxdisp)), # to be updated 
-        ('Max_Relative_Maxdisp', max_relative(maxdisp)), # to be updated 
-        ('Max_Abs_Maxdisp', max_abs(maxdisp)), # to be updated 
+        ('Mean_Relative_Maxdisp', avg_relative(maxdisp)), # to be updated
+        ('Max_Relative_Maxdisp', max_relative(maxdisp)), # to be updated
+        ('Max_Abs_Maxdisp', max_abs(maxdisp)), # to be updated
         ('Max Relative_Roll', max_relative(mot[0])),
         ('Max_Relative_Pitch', max_relative(mot[1])),
         ('Max_Relative_Yaw', max_relative(mot[2])),
@@ -466,7 +465,6 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
 
 
 def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, motion_correct_tool='3dvolreg'):
-
     """
     Method to generate Power parameters for scrubbing
 
@@ -505,7 +503,7 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None, mo
     if motion_correct_tool == '3dvolreg':
 
         fdj_data = np.loadtxt(fdj)
-        
+
         # Mean FD Jenkinson
         meanFD_Jenkinson = np.mean(fdj_data)
 

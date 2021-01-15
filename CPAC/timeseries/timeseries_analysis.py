@@ -1,7 +1,8 @@
 import nipype.pipeline.engine as pe
-import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import nipype.interfaces.afni as afni
+
+from nipype.interfaces import fsl
+from nipype.interfaces import afni
 from nipype import logging
 
 
@@ -118,11 +119,6 @@ def clean_roi_csv(roi_csv):
     # flag whether to re-write
     modified = False
 
-    # uncomment the header if commented:
-    if csv_lines[1].lstrip()[0] == '#':
-        csv_lines[1] = csv_lines[1].lstrip()[1:].lstrip()
-        modified = True
-
     edited_lines = []
     for line in csv_lines:
         line = line.replace('\t\t\t', '')
@@ -172,7 +168,6 @@ def write_roi_npz(roi_csv, out_type=None):
 
 
 def get_roi_timeseries(wf_name='roi_timeseries'):
-
     """
     Workflow to extract timeseries for each node in the ROI mask.
     For each node, mean across all the timepoint is calculated and stored
@@ -248,7 +243,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                   timeseries_roi, 'in_file')
 
     wflow.connect(inputnode_roi, 'roi',
-                  timeseries_roi, 'mask')
+                  timeseries_roi, 'mask_file')
 
     clean_csv_imports = ['import os']
     clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
@@ -258,7 +253,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                                       imports=clean_csv_imports),
                         name='clean_roi_csv')
 
-    wflow.connect(timeseries_roi, 'stats', clean_csv, 'roi_csv')
+    wflow.connect(timeseries_roi, 'out_file', clean_csv, 'roi_csv')
 
     write_npz_imports = ['import os', 'import numpy as np',
                          'from numpy import genfromtxt']
@@ -355,7 +350,6 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
 
 
 def get_vertices_timeseries(wf_name='vertices_timeseries'):
-
     """
     Workflow to get vertices time series from a FreeSurfer surface file
 
@@ -423,7 +417,6 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
 
 def get_normalized_moments(wf_name='normalized_moments'):
-
     """
     Workflow to calculate the normalized moments for skewedness calculations
 
@@ -704,7 +697,6 @@ def gen_voxel_timeseries(data_file, template, output_type):
 
 def gen_vertices_timeseries(rh_surface_file,
                         lh_surface_file):
-
     """
     Method to extract timeseries from vertices
     of a freesurfer surface file

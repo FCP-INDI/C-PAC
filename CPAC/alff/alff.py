@@ -115,14 +115,22 @@ def create_alff(wf_name='alff_workflow'):
         -mas rest_mask.nii.gz
         fALFF_Z.nii.gz
 
+    .. exec::
+        from CPAC.alff import create_alff
+        wf = create_alff()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/alff.dot'
+        )
+
     High Level Workflow Graph:
 
-    .. image:: ../images/alff.dot.png
+    .. image:: ../../images/generated/alff.png
         :width: 500
 
     Detailed Workflow Graph:
 
-    .. image:: ../images/alff_detailed.dot.png
+    .. image:: ../../images/generated/alff_detailed.png
         :width: 500
 
 
@@ -189,7 +197,7 @@ def create_alff(wf_name='alff_workflow'):
     stddev_filtered.inputs.outputtype = 'NIFTI_GZ'
     stddev_filtered.inputs.out_file = os.path.join(os.path.curdir,
                                                    'alff.nii.gz')
-                                                
+
     wf.connect(bandpass, 'out_file', stddev_filtered, 'in_file')
     wf.connect(get_option_string, 'option_string', stddev_filtered, 'options')
 

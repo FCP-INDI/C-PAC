@@ -214,15 +214,23 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
       
       A seperate workflow called easythresh is called to run easythresh steps.
       
+    .. exec::
+        from CPAC.group_analysis import create_fsl_flame_wf
+        wf = create_fsl_flame_wf()
+        wf.write_graph(
+            graph2use='orig',
+            dotfilename='./images/generated/group_analysis.dot'
+        )
+
     High Level Workflow Graph:
     
-    .. image:: ../images/group_analysis.dot.png
+    .. image:: ../../images/generated/group_analysis.png
        :width: 800
     
     
     Detailed Workflow Graph:
     
-    .. image:: ../images/group_analysis_detailed.dot.png
+    .. image:: ../../images/generated/group_analysis_detailed.png
        :width: 800
 
     Examples
@@ -270,8 +278,6 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
                                                         'rendered_image_zf']),
                          name='outputspec')
 
-
-
     '''
     merge_to_4d = pe.Node(interface=fsl.Merge(),
                           name='merge_to_4d')
@@ -310,10 +316,10 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
     # fslmaths merged.nii.gz -abs -bin -Tmean -mul volume out.nii.gz
     # -Tmean: mean across time
     # create group_reg file
-    # this file can provide an idea of how well the subjects 
+    # this file can provide an idea of how well the subjects
     # in our analysis overlay with each other and the MNI brain.
     # e.g., maybe there is one subject with limited coverage.
-    # not attached to sink currently 
+    # not attached to sink currently
     merge_mean_mask = pe.Node(interface=fsl.ImageMaths(),
                               name='merge_mean_mask')
 
@@ -418,8 +424,8 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
     return grp_analysis
 
 
-def run_feat_pipeline(group_config, merge_file, merge_mask, f_test, 
-                      mat_file, con_file, grp_file, out_dir, work_dir, log_dir, 
+def run_feat_pipeline(group_config, merge_file, merge_mask, f_test,
+                      mat_file, con_file, grp_file, out_dir, work_dir, log_dir,
                       model_name, fts_file=None):
     '''
     needed:
@@ -483,18 +489,17 @@ def run_feat_pipeline(group_config, merge_file, merge_mask, f_test,
     wf.connect(gpa_wf, 'outputspec.fstats', ds, 'stats.unthreshold.@02')
     wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf', ds, 'stats.threshold')
     wf.connect(gpa_wf, 'outputspec.cluster_index_zf', ds, 'stats.clusterMap')
-    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf', 
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf',
                ds, 'stats.clusterMap.@01')
     wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf', ds, 'rendered')
     wf.connect(gpa_wf, 'outputspec.rendered_image_zf', ds, 'rendered.@01')
-    wf.connect(gpa_wf, 'outputspec.cluster_threshold', 
+    wf.connect(gpa_wf, 'outputspec.cluster_threshold',
                ds, 'stats.threshold.@01')
     wf.connect(gpa_wf, 'outputspec.cluster_index', ds, 'stats.clusterMap.@02')
-    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt', 
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
                ds, 'stats.clusterMap.@03')
     wf.connect(gpa_wf, 'outputspec.overlay_threshold', ds, 'rendered.@02')
     wf.connect(gpa_wf, 'outputspec.rendered_image', ds, 'rendered.@03')
 
     # Run the actual group analysis workflow
     wf.run()
-

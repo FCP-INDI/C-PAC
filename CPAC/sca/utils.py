@@ -4,7 +4,6 @@ import nipype.interfaces.utility as util
 
 
 def compute_fisher_z_score(correlation_file, timeseries_one_d):
-
     """
     Computes the fisher z transform of the input correlation map
     If the correlation map contains data for multiple ROIs then
@@ -72,20 +71,20 @@ def check_ts(in_file):
     import os
     import numpy as np
 
-    if '.txt' in in_file:
+    if in_file.endswith('.txt'):
         try:
             timepoints, rois = np.loadtxt(in_file).shape
         except ValueError:
             timepoints = np.loadtxt(in_file).shape[0]
             rois = 1
         out_file = in_file
-    elif '.csv' in in_file:
+    elif in_file.endswith('.csv') or in_file.endswith('.1D'):
         csv_array = np.genfromtxt(in_file, delimiter=',')
         if np.isnan(csv_array[0][0]):
             csv_array = csv_array[1:]
         timepoints, rois = csv_array.shape
         # multiple regression (fsl_glm) needs this format for -design input
-        out_file = os.path.join(os.getcwd(), 
+        out_file = os.path.join(os.getcwd(),
                                 os.path.basename(in_file).replace('.csv', '.txt'))
         np.savetxt(out_file, csv_array, delimiter='\t')
     if rois > timepoints:

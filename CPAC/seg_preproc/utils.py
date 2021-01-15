@@ -440,22 +440,18 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
     # hard-coded csf/gm/wm label values are based off of FreeSurferColorLUT
 
     # FreeSurfer Ventricle Labels:
-    #   Left-Lateral-Ventricle 4
-    #   3rd-Ventricle 14
-    #   4th-Ventricle 15
-    #   Right-Lateral-Ventricle 43
+    # Left-Lateral-Ventricle 4, 3rd-Ventricle 14, 4th-Ventricle 15, Right-Lateral-Ventricle 43
 
     csf = data.copy()
     if include_ventricles:
-        csf[np.logical_and.reduce((
-            csf != csf_label, csf != 4, csf != 14, csf != 15, csf != 43))] = 0
-        csf[np.logical_or.reduce((
-            csf == csf_label, csf == 4, csf == 14, csf == 15, csf == 43))] = 1
+        csf[np.logical_and(np.logical_and(np.logical_and(np.logical_and(csf != csf_label, csf != 4), csf != 14), csf != 15), csf != 43)] = 0
+        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] =
     else:
         csf[csf != csf_label] = 0
         csf[csf == csf_label] = 1
 
     gm = data.copy()
+
     gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0
     gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
 
@@ -463,12 +459,9 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
     wm[np.logical_and(wm != right_wm_label, wm != left_wm_label)] = 0
     wm[np.logical_or(wm == right_wm_label, wm == left_wm_label)] = 1
 
-    save_img_csf = nb.Nifti1Image(csf, header=img.get_header(),
-                                  affine=img.get_affine())
-    save_img_gm = nb.Nifti1Image(gm, header=img.get_header(),
-                                 affine=img.get_affine())
-    save_img_wm = nb.Nifti1Image(wm, header=img.get_header(),
-                                 affine=img.get_affine())
+    save_img_csf = nb.Nifti1Image(csf, header=img.get_header(), affine=img.get_affine())
+    save_img_gm = nb.Nifti1Image(gm, header=img.get_header(), affine=img.get_affine())
+    save_img_wm = nb.Nifti1Image(wm, header=img.get_header(), affine=img.get_affine())
 
     save_img_csf.to_filename('csf_mask.nii.gz')
     save_img_gm.to_filename('gm_mask.nii.gz')
