@@ -126,8 +126,6 @@ pipeline_setup:
     # Enable server-side 256-AES encryption on data to the S3 bucket
     s3_encryption: False
 
-  pipeline_IMPORT: None
-
 
 # PREPROCESSING
 # -------------
@@ -203,7 +201,7 @@ anatomical_preproc:
 
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
-    T1w_brain_ACPC_template: None
+    T1w_brain_ACPC_template: 
 
   brain_extraction:
 
@@ -592,7 +590,7 @@ registration_workflows:
       func_input_prep:
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
-        # input: ['Mean Functional', 'Selected_Functional_Volume']
+        # input: ['Mean_Functional', 'Selected_Functional_Volume']
         input: ['Mean_Functional']
 
         Mean Functional:
@@ -670,7 +668,7 @@ registration_workflows:
           template_epi: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
           # EPI template mask.
-          template_epi_mask: None
+          template_epi_mask: 
 
       ANTs_pipelines:
 
