@@ -391,3 +391,156 @@ class ResourcePool(object):
                 wf.connect(nii_name, 'out_file', ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file', ds, f'{out_dct["subdir"]}.@json')
 
+
+class NodeBlock(object):
+    def __init__(self, node_block_functions):
+
+        if not isinstance(node_block_functions, list):
+            node_block_functions = [node_block_functions]
+
+        self.node_blocks = {}
+
+        for node_block_function in node_block_functions:    # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
+            init_dct = self.grab_docstring_dct(node_block_function.__doc__)
+            name = init_dct['name']
+            self.name = name
+            self.node_blocks[name] = {}
+
+            for key, val in init_dct.items():
+                self.node_blocks[name][key] = val
+
+            self.node_blocks[name]['block_function'] = node_block_function
+
+            #TODO: fix/replace below
+            self.outputs = {}
+            for out in init_dct['outputs']:
+                self.outputs[out] = None
+
+            self.options = ['base']
+            if 'options' in init_dct:
+                self.options = init_dct['options']
+
+    def get_name(self):
+        return self.name
+
+    def grab_docstring_dct(self, fn_docstring):
+        import json
+        init_dct_schema = ['name', 'config', 'switch', 'option_key',
+                           'option_val', 'inputs', 'outputs']
+        try:
+            dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
+        except Exception as e:
+            raise Exception('\n\n[!] Node block docstring error.\n\n'
+                            f'Docstring:\n{fn_docstring}\n\n')
+        for key in init_dct_schema:
+            if key not in dct.keys():
+                raise Exception('\n[!] Developer info: At least one of the '
+                                'required docstring keys in your node block '
+                                'is missing.\n\nNode block docstring keys:\n'
+                                f'{init_dct_schema}\n\nYou provided:\n'
+                                f'{dct.keys()}\n\nDocstring:\n{fn_docstring}'
+                                '\n\n')
+        return dct
+
+    def check_null(self, val):
+        if isinstance(val, str):
+            val = None if val.lower() == 'none' else val
+        return val
+
+    def check_output(self, outputs, label, name):
+        if label not in outputs:
+            raise Exception('\n[!] Output name in the block function does '
+                            'not match the outputs list in Node Block '
+                            f'{name}\n')
+
+    def grab_tiered_dct(self, cfg, key_list):
+        cfg_dct = cfg
+        for key in key_list:
+            cfg_dct = cfg_dct.__getitem__(key)
+        return cfg_dct
+
+    def connect_block(self, wf, cfg, rpool):
+        for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+
+            switch = self.check_null(block_dct['switch'])
+            config = self.check_null(block_dct['config'])
+            option_key = self.check_null(block_dct['option_key'])
+            option_val = self.check_null(block_dct['option_val'])
+            inputs = self.check_null(block_dct['inputs'])
+            outputs = self.check_null(block_dct['outputs'])
+
+            block_function = block_dct['block_function']
+
+            # NOTE: this has been moved up to the node-block-pipeline level
+            #exists = [rpool.check_rpool(out) for out in outputs]
+            #if False not in exists:
+            #    print(f'{outputs} already exist, bypassing {name}')
+            #    return wf
+
+            opts = []
+            if option_key and option_val:
+                if not isinstance(option_key, list):
+                    option_key = [option_key]
+                if not isinstance(option_val, list):
+                    option_val = [option_val]
+                key_list = config + option_key
+                for option in option_val:
+                    if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                        opts.append(option)
+            else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+                opts = [None]                                               #         THIS ALSO MEANS the multiple option-val's in docstring node blocks can be entered once in the entire node-block sequence, not in a list of multiples
+            if not opts:
+                # for node blocks where the options are split into different
+                # block functions - opts will be empty for non-selected
+                # options, and would waste the get_strats effort below
+                continue
+
+            if not switch:
+                switch = [True]
+            else:
+                try:
+                    key_list = config + switch
+                except TypeError:
+                    raise Exception("\n\n[!] Developer info: Docstring error "
+                                    f"for {name}, make sure the 'config' or "
+                                    "'switch' fields are lists.\n\n")
+                switch = self.grab_tiered_dct(cfg, key_list)
+                if not isinstance(switch, list):
+                    switch = [switch]
+
+            print(f'switch and opts for {name}: {switch} --- {opts}')
+
+            if True in switch:
+                for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+                    fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
+                    for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
+                        # remember, you can get 'data' or 'json' from strat_pool with member functions
+                        # strat_pool has all of the JSON information of all the inputs!
+                        # so when we set_data below for the TOP-LEVEL MAIN RPOOL (not the strat_pool), we can generate new merged JSON information for each output.
+                        #    particularly, our custom 'CpacProvenance' field.
+
+                        pipe_x = rpool.get_pipe_number(pipe_idx)
+                        wf, outs = block_function(wf, cfg, strat_pool,
+                                                  pipe_x, opt)
+
+                        if opt and len(option_val) > 1:
+                            name = f'{name}_{opt}'
+
+                        for label, connection in outs.items():
+                            self.check_output(outputs, label, name)
+                            json_info = dict(strat_pool.get('json'))
+                            json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
+                            if strat_pool.check_rpool(label):
+                                # so we won't get extra forks if we are
+                                # merging strats (multiple inputs) plus the
+                                # output name is one of the input names
+                                old_pipe_prov = strat_pool.get_cpac_provenance(label)
+                                pipe_idx = strat_pool.generate_prov_string(old_pipe_prov)[1]
+
+                            rpool.set_data(label,
+                                           connection[0],
+                                           connection[1],
+                                           json_info,
+                                           pipe_idx, name, fork)
+
+        return wf
