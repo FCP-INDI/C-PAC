@@ -868,14 +868,15 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
     # mri_em_register -mask "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz "$SubjectDIR"/"$SubjectID"/mri/nu.mgz $FREESURFER_HOME/average/RB_all_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta
     nu_path = os.path.join(SubjectDIR, SubjectID, 'mri/nu.mgz')
     talairach_with_skull_path = os.path.join(SubjectDIR, SubjectID, 'mri/transforms/talairach_with_skull.lta')
-    gca_path = '$FREESURFER_HOME/average/RB_all_2008-03-26.gca'
+    gca_path = '$FREESURFER_HOME/average/RB_all_2020-01-02.gca'
     cmd = 'mri_em_register -mask %s %s %s %s' % (brainmask_path, nu_path, gca_path, talairach_with_skull_path)
     os.system(cmd)
 
     # mri_watershed -T1 -brain_atlas $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta "$SubjectDIR"/"$SubjectID"/mri/T1.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz 
+    gca_withskull_path = '$FREESURFER_HOME/average/RB_all_withskull_2020_01_02.gca'
     T1_path = os.path.join(SubjectDIR, SubjectID, 'mri/T1.mgz')
     brainmask_auto_path = os.path.join(SubjectDIR, SubjectID, 'mri/brainmask.auto.mgz')
-    cmd = 'mri_watershed -T1 -brain_atlas %s %s %s %s' % (gca_path, talairach_with_skull_path, T1_path, brainmask_auto_path)
+    cmd = 'mri_watershed -T1 -brain_atlas %s %s %s %s' % (gca_withskull_path, talairach_with_skull_path, T1_path, brainmask_auto_path)
     os.system(cmd)
 
     # cp "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz 
@@ -1498,7 +1499,7 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             if not os.path.exists(freesurfer_subject_dir):
                 os.mkdir(freesurfer_subject_dir)
 
-            reconall.inputs.SubjectID = 'recon_all'
+            reconall.inputs.SubjectID = 'recon-all'
             reconall.inputs.SubjectDIR = freesurfer_subject_dir
             reconall.inputs.openmp = config.num_omp_threads
 
