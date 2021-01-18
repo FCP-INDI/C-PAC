@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from nipype.interfaces import afni
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 

@@ -7,7 +7,7 @@ import subprocess
 
 import nibabel as nb
 
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 from nipype.interfaces import afni,fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants

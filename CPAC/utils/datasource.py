@@ -1,6 +1,5 @@
 import csv
 import json
-import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 from CPAC.utils import function
@@ -115,7 +114,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     Scan input (from inputnode) is an iterable.
     """
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
@@ -216,7 +215,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     described in the data configuration (sublist) YAML file.
     """
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
@@ -380,6 +379,8 @@ def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
 
 
 def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None, map_node=False):
+
+    import CPAC.pipeline.engine as pe
 
     if map_node:
         check_s3_node = pe.MapNode(function.Function(input_names=['file_path',
@@ -554,7 +555,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
 def resolve_resolution(resolution, template, template_name, tag = None):
 
     import nipype.interfaces.afni as afni
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     from CPAC.utils.datasource import check_for_s3
 
     tagname = None
@@ -603,7 +604,7 @@ def resolve_resolution(resolution, template, template_name, tag = None):
 
 def create_anat_datasource(wf_name='anat_datasource'):
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
@@ -643,6 +644,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
 def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 
     import os
+    import CPAC.pipeline.engine as pe
 
     mask_dict = {}
 
@@ -726,6 +728,7 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
 
     import os
+    import CPAC.pipeline.engine as pe
 
     wf = pe.Workflow(name=wf_name)
     
@@ -801,7 +804,7 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
 
 def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
     from CPAC.utils.datasource import select_model_files
 

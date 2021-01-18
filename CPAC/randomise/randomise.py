@@ -1,5 +1,5 @@
 
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 from CPAC.pipeline.cpac_group_runner import load_config_yml
 
 

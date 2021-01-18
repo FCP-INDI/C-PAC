@@ -2,7 +2,7 @@
 
 import glob
 from copy import deepcopy
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 from nipype.interfaces.utility import Function
 from nipype.pipeline.engine.utils import generate_expanded_graph
 import networkx as nx

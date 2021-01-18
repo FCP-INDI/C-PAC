@@ -3,7 +3,7 @@ from nipype.interfaces import ants
 
 logger = logging.getLogger('workflow')
 
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from nipype.interfaces import afni

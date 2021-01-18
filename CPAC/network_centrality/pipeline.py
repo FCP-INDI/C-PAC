@@ -1,6 +1,6 @@
 import os
 from nipype import logging
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 
 from CPAC.utils.interfaces.function import Function

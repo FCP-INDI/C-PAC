@@ -1,5 +1,5 @@
 # coding: utf-8
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from CPAC.reho.utils import *

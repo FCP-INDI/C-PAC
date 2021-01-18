@@ -1,6 +1,6 @@
 from CPAC.vmhc import create_vmhc
 from CPAC.utils.test_mocks import configuration_strategy_mock
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import os
 
 def test_vmhc_ants():

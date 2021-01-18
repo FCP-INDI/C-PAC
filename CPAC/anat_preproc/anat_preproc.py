@@ -5,7 +5,7 @@ from nipype.interfaces import ants
 from nipype.interfaces import fsl
 from nipype.interfaces.fsl import utils as fsl_utils
 from nipype.interfaces.fsl import preprocess as fsl_preproc
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from nipype.interfaces import freesurfer

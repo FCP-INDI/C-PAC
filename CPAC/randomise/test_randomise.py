@@ -1,7 +1,7 @@
 import os
 import glob
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 from nipype.interfaces.fsl import ImageStats
 
 

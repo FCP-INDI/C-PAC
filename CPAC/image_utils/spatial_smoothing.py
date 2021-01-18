@@ -1,6 +1,6 @@
 import nipype.interfaces.fsl as fsl
 from nipype.interfaces.afni import preprocess as afni
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils import Outputs
 

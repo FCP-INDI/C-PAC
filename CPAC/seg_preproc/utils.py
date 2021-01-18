@@ -1,6 +1,6 @@
 # Import packages
 import os
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import scipy.ndimage as nd
 import numpy as np

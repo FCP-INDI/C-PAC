@@ -21,7 +21,7 @@ from CPAC.seg_preproc.utils import (
     hardcoded_antsJointLabelFusion,
     pick_tissue_from_labels_file)
 
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import scipy.ndimage as nd
 import numpy as np
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags

@@ -6,7 +6,7 @@ import pickle
 import threading
 import numpy as np
 
-from inspect import currentframe, getframeinfo , stack
+from inspect import _empty, Parameter, signature
 
 
 def get_flag(in_flag):
@@ -15,7 +15,7 @@ def get_flag(in_flag):
 
 def get_flag_wf(wf_name='get_flag'):
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
@@ -89,7 +89,7 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
 
     """
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.fsl as fsl
 
@@ -164,7 +164,7 @@ def get_fisher_zscore(input_name, map_node=False, wf_name='fisher_z_score'):
     Runs the compute_fisher_z_score function as part of a one-node workflow.
     """
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.fsl as fsl
 
@@ -915,7 +915,7 @@ def create_log(wf_name="log", scan_id=None):
     Workflow to create log
     """
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
     import CPAC.utils.interfaces.function as function
 
@@ -1388,6 +1388,93 @@ def _pickle2(p, z=False):
                     f"exception {e}"
                 )
     return(False)
+
+
+def set_new_default_parameter(original_class, parameter, new_default):
+    '''Function to set a new default for a class initialization parameter
+
+    Parameters
+    ----------
+    original_class: class
+
+    parameter: str
+        parameter key
+
+    new_default: any
+        new default value for parameter
+
+    Returns
+    -------
+    updated_class: class
+
+    Examples
+    --------
+    >>> from nipype.pipeline.engine import Node
+    >>> from inspect import signature
+    >>> signature(Node)
+    <Signature (interface, name, iterables=None, itersource=None, synchronize=False, overwrite=None, needed_outputs=None, run_without_submitting=False, n_procs=None, mem_gb=0.2, **kwargs)>
+    >>> Node = set_new_default_parameter(Node, 'mem_gb', 21.1)
+    >>> signature(Node)
+    <Signature (interface, name, iterables=None, itersource=None, synchronize=False, overwrite=None, needed_outputs=None, run_without_submitting=False, n_procs=None, mem_gb=21.1, **kwargs)>
+    '''  # noqa
+    def _update_signature(new_method, original_method, parameter, new_default):
+        '''Helper function to update an updated method's signature
+
+        Parameters
+        ----------
+        new_method: method
+
+        original_method: method
+
+        parameter: str
+            updated parameter's key
+
+        new_default: any
+            updated default value
+
+        Returns
+        -------
+        new_method: method
+        '''
+        sig = signature(original_method)
+        parameters = sig.parameters
+        defaults = [k for k in parameters if parameters[k].default != _empty]
+        new_defaults = list(
+            original_method.__defaults__
+        ) if original_method.__defaults__ is not None else []
+        if parameter in defaults:
+            new_defaults[defaults.index(parameter)] = new_default
+            new_param = Parameter(
+                parameter,
+                Parameter.POSITIONAL_OR_KEYWORD,
+                default=new_default)
+        else:
+            new_param = Parameter(
+                parameter, Parameter.KEYWORD_ONLY, default=new_default)
+        new_parameters = dict(parameters)
+        new_parameters[parameter] = new_param
+        new_method.__signature__ = sig.replace(
+            parameters=[
+                new_parameters[k] for k in new_parameters if k != 'kwargs'
+            ] + [new_parameters['kwargs']])
+        return new_method
+
+    class updated_class(original_class):
+        def __init__(self, *args, parameter=new_default, **kwargs):
+            return original_class.__init__(
+                self, *args, parameter=parameter, **kwargs
+            )
+        # preserve original signature and docstring
+        __init__ = _update_signature(
+            __init__, original_class.__init__, parameter, new_default)
+        __init__.__doc__ = ''.join([
+            original_class.__init__.__qualname__,
+            str(signature(original_class.__init__)),
+            original_class.__init__.__doc__
+        ])
+
+    updated_class.__name__ = original_class.__name__
+    return updated_class
 
 
 def concat_list(in_list1=None, in_list2=None):

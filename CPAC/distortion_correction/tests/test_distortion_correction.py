@@ -5,7 +5,7 @@
 import os
 import glob
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 from nipype.interfaces.fsl import ImageStats
 
 from CPAC.utils.test_resources import setup_test_wf

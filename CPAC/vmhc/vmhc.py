@@ -1,5 +1,5 @@
 import os
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -180,7 +180,7 @@ def create_vmhc(workflow, num_strat, strat, pipeline_config_object,
         tmp_LRflipped.nii.gz
 
     .. exec::
-        import nipype.pipeline.engine as pe
+        import CPAC.pipeline.engine as pe
         from CPAC.utils.interfaces.function import Function
         from CPAC.utils.test_mocks import configuration_strategy_mock
         from CPAC.vmhc import create_vmhc

@@ -27,7 +27,7 @@ def create_centrality_wf(wf_name, method_option, threshold_option,
         the initialized nipype workflow for the afni centrality command
     """
 
-    import nipype.pipeline.engine as pe
+    import CPAC.pipeline.engine as pe
     import nipype.interfaces.utility as util
     import CPAC.network_centrality.utils as utils
 

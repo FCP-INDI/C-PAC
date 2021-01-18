@@ -8,7 +8,7 @@ import socketserver
 import math
 
 import networkx as nx
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 
 
 # Log initial information from all the nodes

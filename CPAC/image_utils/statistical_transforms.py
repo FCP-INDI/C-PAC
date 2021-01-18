@@ -1,6 +1,6 @@
 
 import nipype.interfaces.fsl as fsl
-import nipype.pipeline.engine as pe
+import CPAC.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
 from CPAC.registration import create_fsl_fnirt_nonlinear_reg, \
