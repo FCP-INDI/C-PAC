@@ -499,7 +499,7 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, strat=None, wf_na
         wf.connect(func_mask_final, 'out_file', 
                     output_node, 'func_brain_mask')
     
-    # simply transforms the anatomical brain mask to the functional BOLD data.
+    # transform the anatomical brain mask in standard to the functional space.
     elif skullstrip_tool == 'anatomical_based':
         # adopted from DCAN lab
         # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L138-L144
@@ -509,7 +509,7 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, strat=None, wf_na
         '''
         # Func -> T1 Registration (Initial Linear reg)
         strat_list = [strat] # we need strat_list here, so convert the strat to list
-        func_to_anat_init_reg, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow=wf, strat_list=strat_list, c=config, func_reg_skull=True)
+        func_to_anat_init_reg, strat_list, diff_complete = connect_func_to_anat_init_reg(workflow=wf, strat_list=strat_list, c=config, func_reg_skull=True, override=False)
 
         # Func -> T1 Registration (BBREG)
         # Outputs 'functional_to_anat_linear_xfm', a matrix file of the
