@@ -947,6 +947,11 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         # make sure to create the file control.hires.dat in the scripts dir with at least a few points
         # in the wm for the mri_normalize call that comes next
 
+        aseg_presurf_mgz = os.path.join(mridir, 'aseg.presurf.mgz')
+        aseg_mgz = os.path.join(mridir, 'aseg.mgz')
+        cmd = 'cp %s %s' % (aseg_presurf_mgz, aseg_mgz)
+        os.system(cmd)
+
         # map the various lowres volumes that mris_make_surfaces needs into the hires coords
         for v in ['wm.mgz', 'filled.mgz', 'brain.mgz', 'aseg.mgz']:
             basename = os.path.splitext(v)[0]
