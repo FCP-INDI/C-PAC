@@ -1,0 +1,52 @@
+TR: None
+basc_affinity_threshold:
+- 0.0
+basc_clusters: 10
+basc_cross_cluster_mask_file: None
+basc_cross_clustering: true
+basc_dataset_bootstraps: 100
+basc_inclusion: None
+basc_memory: 4
+basc_output_size: 800
+basc_pipeline: None
+basc_proc: 2
+basc_resolution: 4mm
+basc_roi_file: None
+basc_scan_inclusion: None
+basc_timeseries_bootstraps: 100
+fmap_distcorr_deltaTE:
+- 2.46
+fmap_distcorr_dwell_asym_ratio:
+- 0.93902439
+fmap_distcorr_dwell_time:
+- 0.0005
+fmap_distcorr_pedir: x
+mdmr_parallel_nodes: 1
+mdmr_permutations: 500
+mdmr_regressor_columns: age
+mdmr_regressor_file: /cpac_team/cpac/resources/ADHD200_participants_age-only.tsv
+mdmr_regressor_participant_column: participant_id
+mdmr_roi_file: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain_mask.nii.gz
+modelConfigs:
+- /cpac_team/cpac/v120/cpac_group_analysis/single_grp_age/gpa_fsl_config_single_grp_age.yml
+- /cpac_team/cpac/v120/cpac_group_analysis/unpaired_dx/gpa_fsl_config_unpaired_dx.yml
+numGPAModelsAtOnce: 50
+reGenerateOutputs: false
+runEPI_DistCorr:
+- 0
+runMDMR:
+- 1
+runMedianAngleCorrection:
+- 1
+runRegisterFuncToMNI:
+- 1
+- 0
+runSymbolicLinks:
+- 1
+run_basc:
+- 0
+run_fsl_feat:
+- 0
+slice_timing_pattern: Use NIFTI Header
+targetAngleDeg:
+- 90

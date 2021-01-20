@@ -1,0 +1,10 @@
+TR: None
+reGenerateOutputs: false
+ref_mask_2mm: /ABCD_pipeline_template/MNI152_T1_2mm_brain_mask_dil.nii.gz
+runMedianAngleCorrection:
+- 0
+slice_timing_pattern: Use NIFTI Header
+surface_reconstruction: true
+targetAngleDeg:
+- 90
+template_skull_for_anat_2mm: /ABCD_pipeline_template/MNI152_T1_2mm.nii.gz
