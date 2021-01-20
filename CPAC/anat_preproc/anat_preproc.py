@@ -974,13 +974,13 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         # do intensity normalization on the hires volume using the white surface
         control_hires_dat = os.path.join(SubjectDIR,SubjectID,'scripts/control.hires.dat')
         f = open(control_hires_dat, "w")
-        f.write(leftcoords)
-        f.write(rightcoords)
+        f.write(leftcoords.decode())
+        f.write(rightcoords.decode())
         f.write("info\n")
         f.write("numpoints 2\n")
         f.write("useRealRAS 1\n")
         f.close()
-        
+
         lh_white_hires = os.path.join(surfdir, 'lh.white.hires')
         rh_white_hires = os.path.join(surfdir, 'rh.white.hires')
         cmd = 'mri_normalize -erode 1 -f %s -min_dist 1 -surface %s identity.nofile -surface %s identity.nofile %s %s' % (control_hires_dat, lh_white_hires, rh_white_hires, os.path.join(mridir,'T1w_hires.masked.mgz'), os.path.join(mridir,'T1w_hires.masked.norm.mgz'))
@@ -1000,10 +1000,12 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         cmd = 'tkregister2 --mov %s --targ %s --noedit --regheader --reg %s' % (os.path.join(mridir,'orig.mgz'), hires, regII)
         os.system(cmd)
 
-        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi lh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
+        rawavg = os.path.join(mridir,'rawavg.mgz')
+        
+        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz %s --tval white --surfreg white --hemi lh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'), rawavg)
         os.system(cmd)
 
-        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi rh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
+        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz %s --tval white --surfreg white --hemi rh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'), rawavg)
         os.system(cmd)
 
         # copy the ".deformed" outputs of previous mris_make_surfaces to their default FS file names
