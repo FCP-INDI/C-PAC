@@ -231,6 +231,9 @@ def ants_apply_warps_func_mni(
         distcor=False,
         map_node=False,
         inverse=False,
+        override=False,
+        func_reg_skull=False,
+        config=None,
         symmetry='asymmetric',
         input_image_type=0,
         num_ants_cores=1,
@@ -368,8 +371,15 @@ def ants_apply_warps_func_mni(
 
         node, out_file = strat['anatomical_brain']
         workflow.connect(node, out_file, fsl_reg_2_itk, 'reference_file')
-
-        ref_node, ref_out = strat['mean_functional']
+        if func_reg_skull:
+            # func_reg_skull is only used for anatomical_based bold mask generatio
+            if 'Mean Functional' in config.func_reg_input:
+                ref_node, ref_out = strat['mean_functional_skull_leaf']             
+            elif 'Selected Functional Volume' in config.func_reg_input:
+                ref_node, ref_out = strat['selected_functional_skull_leaf']
+            
+        else:
+            ref_node, ref_out = strat['mean_functional']
         workflow.connect(ref_node, ref_out, fsl_reg_2_itk, 'source_file')
 
         itk_imports = ['import os']
@@ -385,7 +395,7 @@ def ants_apply_warps_func_mni(
 
         strat.update_resource_pool({
             'fsl_mat_as_itk': (change_transform, 'updated_affine_file')
-        })
+        }, override=override)
 
         strat.append_name(fsl_reg_2_itk.name)
 
@@ -548,7 +558,7 @@ def ants_apply_warps_func_mni(
         # set the output
         strat.update_resource_pool({
             collect_transforms_key: (check_transform, 'checked_transform_list')
-        })
+        }, override=override)
 
         strat.append_name(check_transform.name)
         strat.append_name(inverse_transform_flags.name)
@@ -592,7 +602,7 @@ def ants_apply_warps_func_mni(
     workflow.connect(collect_node, collect_out,
                      apply_ants_warp, 'transforms')
 
-    if output_name == "functional_to_standard":
+    if output_name == "functional_to_standard" or output_name == "functional_brain_mask_to_standard_pre":
         # write out the composite functional to standard transforms
         write_composite_xfm = pe.Node(
                 interface=ants.ApplyTransforms(),
@@ -644,7 +654,7 @@ def ants_apply_warps_func_mni(
 
         strat.update_resource_pool({
             "functional_to_standard_xfm": (write_composite_xfm, 'output_image')
-        })
+        }, override=override)
             #"functional_to_standard_inverse-xfm": (write_composite_inv_xfm, 'output_image')
         #})
 
@@ -746,9 +756,13 @@ def output_func_to_standard(workflow, func_key, ref_key, output_name,
 
         image_type = 3 if input_image_type == 'func_4d' else 0
 
+        if 'Anatomical_Based' in pipeline_config_obj.functionalMasking and output_name is not 'functional_brain_mask_to_standard_pre': 
+            override = True 
+        else:
+            override = False
         ants_apply_warps_func_mni(workflow, output_name, func_key, ref_key,
                 num_strat, strat, interpolation_method=interp,
-                distcor=distcor, map_node=map_node, inverse=inverse,
+                distcor=distcor, map_node=map_node, inverse=inverse, override=override, 
                 symmetry=symmetry, input_image_type=image_type,
                 num_ants_cores=pipeline_config_obj.num_ants_threads, 
                 registration_template=registration_template, 

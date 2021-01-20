@@ -1089,6 +1089,8 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
                                         func_mean, 'in_file')
                     workflow.connect(func_mean, 'out_file',
                                         func_to_anat, 'inputspec.func')
+                    strat.update_resource_pool({
+                        'mean_functional_skull_leaf': (func_mean, 'out_file')}, override=override)
                 else: 
                     node, out_file = strat['mean_functional']
                     workflow.connect(node, out_file,
@@ -1111,6 +1113,8 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
                                     get_func_volume, 'in_file_a')
                     workflow.connect(get_func_volume, 'out_file', 
                                         func_to_anat, 'inputspec.func')
+                    strat.update_resource_pool({
+                        'selected_functional_skull_leaf': (get_func_volume, 'out_file')}, override=override)
                 else: 
                     node, out_file = strat['selected_func_volume']
                     workflow.connect(node, out_file,
@@ -1185,15 +1189,8 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete, func_reg_
                 if 'Mean Functional' in c.func_reg_input:
                     # Input functional image (mean functional)
                     if func_reg_skull: 
-                        # func_reg_skull is only used for anatomical_based bold mask generation
-                        func_mean = pe.Node(interface=afni_utils.TStat(),name='func_mean')
-                        func_mean.inputs.options = '-mean'
-                        func_mean.inputs.outputtype = 'NIFTI_GZ'
-
-                        node, out_file = strat['functional_skull_leaf']
+                        node, out_file = strat['mean_functional_skull_leaf']
                         workflow.connect(node, out_file,
-                                            func_mean, 'in_file')
-                        workflow.connect(func_mean, 'out_file',
                                             func_to_anat_bbreg, 'inputspec.func')
                     else: 
                         node, out_file = strat['mean_functional']
@@ -1203,19 +1200,9 @@ def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete, func_reg_
                 elif 'Selected Functional Volume' in c.func_reg_input:
                     # Input functional image (specific volume)
                     if func_reg_skull: 
-                        # func_reg_skull is only used for anatomical_based bold mask generation
-                        get_func_volume = pe.Node(interface=afni.Calc(),
-                                                    name='get_func_volume')
-
-                        get_func_volume.inputs.set(
-                            expr='a',
-                            single_idx=config.func_reg_input_volume,
-                            outputtype='NIFTI_GZ'
-                        )
-                        node, out_file = strat['functional_skull_leaf']
+                        # func_reg_skull is only used for anatomical_based bold mask generatio
+                        node, out_file = strat['selected_functional_skull_leaf']
                         workflow.connect(node, out_file,
-                                        get_func_volume, 'in_file_a')
-                        workflow.connect(get_func_volume, 'out_file', 
                                             func_to_anat_bbreg, 'inputspec.func')
                     else: 
                         node, out_file = strat['selected_func_volume']

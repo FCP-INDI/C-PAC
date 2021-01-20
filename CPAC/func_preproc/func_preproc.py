@@ -19,6 +19,8 @@ from CPAC.registration import (
     connect_func_to_anat_bbreg
 )
 
+from CPAC.registration.output_func_to_standard import fsl_apply_transform_func_to_mni, ants_apply_warps_func_mni
+
 def collect_arguments(*args):
     command_args = []
     if args[0]:
@@ -518,7 +520,50 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, strat=None, wf_na
 
         # Here, strat_list contains only one strat.
         strat = strat_list[0]
+        num_strat = 0
 
+        nodes = strat.get_nodes_names()
+
+        map_node = False
+        distcor = True if 'epi_distcorr' in nodes or \
+                'blip_correct' in nodes else False
+
+        num_cpus = config.maxCoresPerParticipant
+        func_key = 'functional_skull_leaf'
+        ref_key = 'template_skull_for_func_preproc'
+        output_name = 'functional_brain_mask_to_standard_pre'
+        ##TODO: update fsl_apply_transform_func_to_mni. now it only works for ants. 
+        if 'anat_mni_fnirt_register' in nodes or \
+            'anat_mni_flirt_register' in nodes or \
+            'func_to_epi_fsl' in nodes:
+                
+            interp = 'nn'
+            func_ts = False
+            fsl_apply_transform_func_to_mni(workflow=wf, output_name=output_name, func_key=func_key,
+                    ref_key=ref_key, num_strat=num_strat, strat=strat, interp=interp, distcor=distcor,
+                    map_node=map_node, func_ts=func_ts, override=False, num_cpus=num_cpus)
+
+        elif 'ANTS' in config.regOption:
+
+            interp = 'NearestNeighbor'
+            image_type = 0
+            inverse = False
+            symmetry = 'asymmetric'
+            func_type = 'non-ica-aroma'
+            if 'functional_to_epi-standard' in strat:
+                registration_template = 'epi'
+            elif 'T1_template' in config.runRegisterFuncToTemplate:
+                registration_template = 't1'
+
+            ants_apply_warps_func_mni(workflow=wf, output_name=output_name, func_key=func_key, ref_key=ref_key,
+                    num_strat=num_strat, strat=strat, interpolation_method=interp,
+                    distcor=distcor, map_node=map_node, inverse=inverse, override=False,func_reg_skull=True, config=config,
+                    symmetry=symmetry, input_image_type=image_type,
+                    num_ants_cores=config.num_ants_threads, 
+                    registration_template=registration_template, 
+                    func_type=func_type)
+
+        '''
         # composite func-to-anat and anat-to-mni transforms 
         composite_xfm = pe.Node(interface=fsl.ConvertWarp(), name='combine_warps_func_to_standard')
 
@@ -533,6 +578,7 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, strat=None, wf_na
         node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
         wf.connect(node, out_file,
                     composite_xfm, 'warp1')
+        '''
 
         # # Invert warp
         # invwarp -w ${OutputTransform} -o ${OutputInvTransform} -r ${ScoutInputgdc}
@@ -541,8 +587,9 @@ def skullstrip_functional(skullstrip_tool='afni', config=None, strat=None, wf_na
 
         wf.connect(input_node, 'func',
                     inverse_warp, 'reference')
-
-        wf.connect(composite_xfm, 'out_file',
+        
+        node, out_file = strat['functional_to_standard_xfm']
+        wf.connect(node, out_file, # composite_xfm, 'out_file',
                     inverse_warp, 'warp')
 
         # applying inverse warp
