@@ -126,6 +126,11 @@ acpc_align: True
 acpc_brainsize: 70
 
 
+# Choose a tool to crop the FOV in ACPC alignment. 
+# Using FSL's robustfov or flirt command. Default: robustfov for human data, flirt for monkey data. 
+acpc_FOV_crop: flirt
+
+
 # ACPC aligned template
 acpc_template_skull: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm.nii.gz
 acpc_template_brain: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_0.5mm_brain.nii.gz

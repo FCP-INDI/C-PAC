@@ -139,6 +139,11 @@ acpc_run_preprocessing: after
 acpc_brainsize: 150
 
 
+# Choose a tool to crop the FOV in ACPC alignment. 
+# Using FSL's robustfov or flirt command. Default: robustfov for human data, flirt for monkey data. 
+acpc_FOV_crop: robustfov
+
+
 # ACPC aligned template
 acpc_template_skull: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
 acpc_template_brain: None
