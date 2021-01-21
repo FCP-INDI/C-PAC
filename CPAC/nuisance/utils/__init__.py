@@ -274,7 +274,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                    regressor_descriptor,
                                    regressor_selector,
                                    use_ants=True,
-                                   ventricle_mask_exist=True):
+                                   ventricle_mask_exist=True,
+                                   n_procs=1):
     """
     Add tissue mask generation into pipeline according to the selector.
 
@@ -324,7 +325,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                                   name='{}_flirt'
                                        .format(node_mask_key),
                                   mem_gb=0.5,
-                                  n_procs=3)
+                                  n_procs=n_procs)
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -379,7 +380,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     outputtype='NIFTI_GZ'),
                 name='{}'.format(node_mask_key),
                 mem_gb=0.5,
-                n_procs=2
+                n_procs=n_procs
             )
 
             nuisance_wf.connect(*(
@@ -400,7 +401,8 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                                       regressor_selector,
                                                       mask_key,
                                                       use_ants=True,
-                                                      ventricle_mask_exist=True):
+                                                      ventricle_mask_exist=True,
+                                                      n_procs=1):
 
     # Mask CSF with Ventricles
     if '{}_Unmasked'.format(mask_key) not in pipeline_resource_pool:
@@ -410,7 +412,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
             interface=afni.Calc(outputtype='NIFTI_GZ'),
             name='{}_Ventricles'.format(mask_key),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=n_procs)
         mask_csf_with_lat_ven.inputs.expr = 'a*b'
         mask_csf_with_lat_ven.inputs.out_file = 'csf_lat_ven_mask.nii.gz'
 
@@ -430,7 +432,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                         util.Merge(3),
                         name='{}_ants_transforms'.format(ventricles_key),
                         mem_gb=0.5,
-                        n_procs=2)
+                        n_procs=n_procs)
 
                     nuisance_wf.connect(*(transforms['anat_to_mni_initial_xfm'] + (collect_linear_transforms, 'in1')))
                     nuisance_wf.connect(*(transforms['anat_to_mni_rigid_xfm'] + (collect_linear_transforms, 'in2')))
@@ -444,7 +446,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                                       function=check_transforms),
                         name='{0}_check_transforms'.format(ventricles_key),
                         mem_gb=0.5,
-                        n_procs=3)
+                        n_procs=n_procs)
 
                     nuisance_wf.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
@@ -458,14 +460,14 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                             ventricles_key
                         ),
                         mem_gb=0.5,
-                        n_procs=2)
+                        n_procs=n_procs)
                     nuisance_wf.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
                     lat_ven_mni_to_anat = pe.Node(
                         interface=ants.ApplyTransforms(),
                         name='{}_ants'.format(ventricles_key),
                         mem_gb=0.5,
-                        n_procs=3)
+                        n_procs=n_procs)
                     lat_ven_mni_to_anat.inputs.interpolation = 'NearestNeighbor'
                     lat_ven_mni_to_anat.inputs.dimension = 3
 
@@ -483,7 +485,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                         interface=fsl.FLIRT(),
                         name='{}_flirt'.format(ventricles_key),
                         mem_gb=0.5,
-                        n_procs=3)
+                        n_procs=n_procs)
                     lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
 
                     nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))

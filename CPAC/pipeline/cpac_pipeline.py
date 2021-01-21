@@ -196,6 +196,7 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
 
     # Check pipeline config resources
     sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = check_config_resources(c)
+    c.n_procs = num_cores_per_sub
 
     if not plugin:
         plugin = 'MultiProc'
@@ -1758,7 +1759,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                 ),
                 name='functional_brain_mask_derivative_%d' % (num_strat),
                 mem_gb=0.5,
-                n_procs=2
+                n_procs=c.n_procs
             )
 
             resampled_template.inputs.resolution = c.resolution_for_func_derivative
@@ -2189,7 +2190,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     name='anat_to_func_linear_xfm_{0}_{1}'.format(
                         regressors_selector_i, num_strat),
                     mem_gb=0.5,
-                    n_procs=2)
+                    n_procs=c.n_procs)
                 anat2func_linear_xfm.inputs.invert_xfm = True
                 workflow.connect(
                     node, out_file,
@@ -2635,7 +2636,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
         if 1 in c.runALFF:
             for num_strat, strat in enumerate(strat_list):
 
-                alff = create_alff('alff_falff_{0}'.format(num_strat))
+                alff = create_alff('alff_falff_{0}'.format(num_strat), n_procs=c.n_procs)
 
                 alff.inputs.hp_input.hp = c.highPassFreqALFF
                 alff.inputs.lp_input.lp = c.lowPassFreqALFF

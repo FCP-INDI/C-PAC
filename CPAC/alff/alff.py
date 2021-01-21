@@ -7,7 +7,7 @@ import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string
 
 
-def create_alff(wf_name='alff_workflow'):
+def create_alff(wf_name='alff_workflow', n_procs=1):
     """
     Calculate Amplitude of low frequency oscillations (ALFF) and fractional ALFF maps
 
@@ -184,7 +184,7 @@ def create_alff(wf_name='alff_workflow'):
                                               function=get_opt_string),
                                 name='get_option_string',
                                 mem_gb=0.5,
-                                n_procs=2)
+                                n_procs=n_procs)
 
     wf.connect(input_node, 'rest_mask', get_option_string, 'mask')
 
@@ -243,7 +243,7 @@ def create_alff(wf_name='alff_workflow'):
 
 
 def run_alff(input_fmri, func_brain_mask, hp=0.01, lp=0.1, out_dir=None,
-             run=True):
+             run=True, n_procs=1):
     """Runner function for the create_alff workflow builder."""
 
     import os
@@ -264,7 +264,7 @@ def run_alff(input_fmri, func_brain_mask, hp=0.01, lp=0.1, out_dir=None,
 
     num_cores_per_subject = 1
 
-    alff = create_alff('alff_falff')
+    alff = create_alff('alff_falff', n_procs=n_procs)
 
     alff.inputs.inputspec.rest_res = os.path.abspath(input_fmri)
     alff.inputs.inputspec.rest_mask = os.path.abspath(func_brain_mask)

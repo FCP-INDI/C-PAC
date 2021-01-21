@@ -254,7 +254,7 @@ def convert_afni_to_ants(afni_warp):
     return ants_warp
 
 
-def blip_distcor_wf(wf_name='blip_distcor'):
+def blip_distcor_wf(wf_name='blip_distcor', n_procs=1):
     """Execute AFNI 3dQWarp to calculate the distortion "unwarp" for phase
     encoding direction EPI field map distortion correction.
 
@@ -486,7 +486,8 @@ def connect_distortion_correction(workflow, strat_list, c, diff, blip,
                 workflow_name=f'blip_correct_{unique_id}_{num_strat}'
             
             blip_correct = blip_distcor_wf(
-                wf_name=workflow_name)
+                wf_name=workflow_name,
+                n_procs=c.n_procs)
 
             node, out_file = strat["mean_functional"]
             workflow.connect(node, out_file,

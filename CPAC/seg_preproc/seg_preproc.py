@@ -443,7 +443,8 @@ def process_segment_map(wf_name,
                         use_ants,
                         use_priors,
                         use_threshold,
-                        use_erosion):
+                        use_erosion,
+                        n_procs=1):
     """This is a sub workflow used inside segmentation workflow to process
     probability maps obtained in segmentation. Steps include overlapping
     of the prior tissue with probability maps, thresholding and binarizing
@@ -585,7 +586,7 @@ def process_segment_map(wf_name,
             util.Merge(3),
             name='{0}_collect_linear_transforms'.format(wf_name),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=n_procs)
         preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
         preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
         preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
@@ -598,7 +599,7 @@ def process_segment_map(wf_name,
                           function=check_transforms),
             name='{0}_check_transforms'.format(wf_name),
             mem_gb=0.5,
-            n_procs=3)
+            n_procs=n_procs)
         
         preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
@@ -609,7 +610,7 @@ def process_segment_map(wf_name,
                           function=generate_inverse_transform_flags),
             name='{0}_inverse_transform_flags'.format(wf_name),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=n_procs)
 
         preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
@@ -618,7 +619,7 @@ def process_segment_map(wf_name,
             interface=ants.ApplyTransforms(),
             name='{0}_prior_mni_to_t1'.format(wf_name),
             mem_gb=1.0,
-            n_procs=2)
+            n_procs=n_procs)
 
         tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
@@ -637,7 +638,7 @@ def process_segment_map(wf_name,
                 interface=fsl.MultiImageMaths(),
                 name='overlap_%s_map_with_prior' % (wf_name),
                 mem_gb=0.5,
-                n_procs=2)
+                n_procs=n_procs)
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
             preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
@@ -660,7 +661,7 @@ def process_segment_map(wf_name,
         binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
                                                 name='binarize_%s' % (wf_name),
                                                 mem_gb=0.5,
-                                                n_procs=2)
+                                                n_procs=n_procs)
         binarize_threshold_segmentmap.inputs.op_string = '-bin '
 
         preproc.connect(input_1, value_1, binarize_threshold_segmentmap, 'in_file')
@@ -704,7 +705,7 @@ def process_segment_map(wf_name,
             interface=fsl.FLIRT(),
             name='{0}_prior_mni_to_t1'.format(wf_name),
             mem_gb=1.0,
-            n_procs=2)
+            n_procs=n_procs)
         tissueprior_mni_to_t1.inputs.apply_xfm = True
         tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
 
@@ -724,7 +725,7 @@ def process_segment_map(wf_name,
                 interface=fsl.MultiImageMaths(),
                 name='overlap_%s_map_with_prior' % (wf_name),
                 mem_gb=0.5,
-                n_procs=2)
+                n_procs=n_procs)
             overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
             preproc.connect(input_1, value_1, overlap_segmentmap_with_prior, 'in_file')
@@ -747,7 +748,7 @@ def process_segment_map(wf_name,
         binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
                                                 name='binarize_%s' % (wf_name),
                                                 mem_gb=0.5,
-                                                n_procs=2)
+                                                n_procs=n_procs)
         binarize_threshold_segmentmap.inputs.op_string = '-bin '
 
         preproc.connect(input_1, value_1, binarize_threshold_segmentmap, 'in_file')
@@ -946,7 +947,7 @@ def create_seg_preproc_template_based(use_ants,
 
 
 def tissue_mask_template_to_t1(wf_name,
-                                use_ants):
+                                use_ants, n_procs=1):
 
     import nipype.interfaces.utility as util
 
@@ -967,7 +968,7 @@ def tissue_mask_template_to_t1(wf_name,
             util.Merge(3),
             name='{0}_collect_linear_transforms'.format(wf_name),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=n_procs)
 
         preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
         preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
@@ -981,7 +982,7 @@ def tissue_mask_template_to_t1(wf_name,
                           function=check_transforms),
             name='{0}_check_transforms'.format(wf_name),
             mem_gb=0.5,
-            n_procs=3)
+            n_procs=n_procs)
         
         preproc.connect(collect_linear_transforms, 'out', check_transform, 'transform_list')
 
@@ -992,7 +993,7 @@ def tissue_mask_template_to_t1(wf_name,
                           function=generate_inverse_transform_flags),
             name='{0}_inverse_transform_flags'.format(wf_name),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=n_procs)
 
         preproc.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 

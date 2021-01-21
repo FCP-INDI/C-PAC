@@ -210,7 +210,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     return wf
 
 
-def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
+def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource', n_procs=1):
     """Return the field map files, from the dictionary of functional files
     described in the data configuration (sublist) YAML file.
     """
@@ -274,7 +274,7 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
                                                    as_module=True),
                                  name='select_scan_params',
                                  mem_gb=0.5,
-                                 n_procs=2)
+                                 n_procs=n_procs)
     select_scan_params.inputs.rest_dict = fmap_dct
     select_scan_params.inputs.resource = "scan_parameters"
     wf.connect(inputnode, 'scan', select_scan_params, 'scan')

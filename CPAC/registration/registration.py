@@ -177,7 +177,7 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
     return nonlinear_register
 
 
-def create_register_func_to_mni(name='register_func_to_mni'):
+def create_register_func_to_mni(name='register_func_to_mni', n_procs=1):
     """
     Registers a functional scan in native space to MNI standard space.  This is meant to be used 
     after create_nonlinear_register() has been run and relies on some of it's outputs.
@@ -256,7 +256,7 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     linear_reg = pe.Node(interface=fsl.FLIRT(),
                          name='linear_func_to_anat',
                          mem_gb=1.0,
-                         n_procs=2)
+                         n_procs=n_procs)
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
     
@@ -307,7 +307,8 @@ def create_register_func_to_mni(name='register_func_to_mni'):
 
 
 def create_register_func_to_anat(phase_diff_distcor=False,
-                                 name='register_func_to_anat'):
+                                 name='register_func_to_anat',
+                                 num_threads=1):
     
     """
     Registers a functional scan in native space to anatomical space using a
@@ -369,7 +370,7 @@ def create_register_func_to_anat(phase_diff_distcor=False,
     linear_reg = pe.Node(interface=fsl.FLIRT(),
                          name='linear_func_to_anat',
                          mem_gb=0.5,
-                         n_procs=2)
+                         n_procs=num_threads)
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
     
@@ -417,7 +418,8 @@ def create_register_func_to_anat(phase_diff_distcor=False,
 
 
 def create_bbregister_func_to_anat(phase_diff_distcor=False,
-                                   name='bbregister_func_to_anat'):
+                                   name='bbregister_func_to_anat',
+                                   num_threads=1):
   
     """
     Registers a functional scan in native space to structural.  This is meant to be used 
@@ -486,19 +488,19 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     wm_bb_mask = pe.Node(interface=fsl.ImageMaths(),
                          name='wm_bb_mask',
                          mem_gb=0.5,
-                         n_procs=2)
+                         n_procs=num_threads)
     wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
 
     register_bbregister_func_to_anat.connect(inputspec, 'anat_wm_segmentation',
                                              wm_bb_mask, 'in_file')
 
-    def bbreg_args(bbreg_target):
+    def bbreg_args(bbreg_target, num_threads=1):
         return '-cost bbr -wmseg ' + bbreg_target
 
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                                  name='bbreg_func_to_anat',
                                  mem_gb=1.0,
-                                 n_procs=2)
+                                 n_procs=num_threads)
     bbreg_func_to_anat.inputs.dof = 6    
  
     register_bbregister_func_to_anat.connect(inputspec, 'bbr_schedule',
@@ -552,7 +554,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     return register_bbregister_func_to_anat
     
 
-def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', reg_ants_skull=1):
+def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', reg_ants_skull=1, num_threads=1):
 
     register_func_to_epi = pe.Workflow(name=name)
     
@@ -613,7 +615,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
             util.Merge(4),
             name='collect_transforms_ants',
             mem_gb=0.5,
-            n_procs=3)
+            n_procs=num_threads)
         register_func_to_epi.connect([
             (func_to_epi_ants, collect_transforms, [
                 ('outputspec.ants_initial_xfm', 'in1'),
@@ -631,7 +633,7 @@ def create_register_func_to_epi(name='register_func_to_epi', reg_option='ANTS', 
                           function=check_transforms),
             name='{0}_check_transforms'.format(name),
             mem_gb=0.5,
-            n_procs=3)
+            n_procs=num_threads)
         
         register_func_to_epi.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -873,7 +875,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                                         imports=reg_imports),
                 name='calc_ants_warp',
                 mem_gb=6.0,
-                n_procs=2)
+                n_procs=num_threads)
 
     calculate_ants_warp.interface.num_threads = num_threads
 
@@ -884,7 +886,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                       function=seperate_warps_list),
         name='select_forward_initial',
         mem_gb=0.5,
-        n_procs=3)
+        n_procs=num_threads)
 
     select_forward_initial.inputs.selection = "Initial"
 
@@ -895,7 +897,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                       function=seperate_warps_list),
         name='select_forward_rigid',
         mem_gb=0.5,
-        n_procs=2)
+        n_procs=num_threads)
 
     select_forward_rigid.inputs.selection = "Rigid"
 
@@ -906,7 +908,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                       function=seperate_warps_list),
         name='select_forward_affine',
         mem_gb=0.5,
-        n_procs=3)
+        n_procs=num_threads)
 
     select_forward_affine.inputs.selection = "Affine"
 
@@ -917,7 +919,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                       function=seperate_warps_list),
         name='select_forward_warp',
         mem_gb=0.5,
-        n_procs=3)
+        n_procs=num_threads)
 
     select_forward_warp.inputs.selection = "Warp"
 
@@ -928,7 +930,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
                       function=seperate_warps_list),
         name='select_inverse_warp',
         mem_gb=0.5,
-        n_procs=2)
+        n_procs=num_threads)
 
     select_inverse_warp.inputs.selection = "Inverse"
 

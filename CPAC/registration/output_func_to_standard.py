@@ -138,7 +138,7 @@ def fsl_apply_transform_func_to_mni(
         func_concat = pe.Node(interface=afni_utils.TCat(),
                               name=f'func_concat{node_id}',
                               mem_gb=1.0,
-                              n_procs=2)
+                              n_procs=num_cpus)
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
         workflow.connect(func_mni_warp, 'out_file',
@@ -362,7 +362,7 @@ def ants_apply_warps_func_mni(
             c3.C3dAffineTool(),
             name='fsl_reg_2_itk_{0}'.format(num_strat),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=num_cpus)
         fsl_reg_2_itk.inputs.itk_transform = True
         fsl_reg_2_itk.inputs.fsl2ras = True
 
@@ -385,7 +385,7 @@ def ants_apply_warps_func_mni(
                 imports=itk_imports),
                 name='change_transform_type_{0}'.format(num_strat),
                 mem_gb=0.5,
-                n_procs=2)
+                n_procs=num_cpus)
 
         workflow.connect(fsl_reg_2_itk, 'itk_transform',
                 change_transform, 'input_affine_file')
@@ -523,7 +523,7 @@ def ants_apply_warps_func_mni(
                 registration_template,
                 num_strat),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=num_cpus)
 
         # wire in the various transformations
         for transform_key, input_port in transforms_to_combine:
@@ -545,7 +545,7 @@ def ants_apply_warps_func_mni(
                 registration_template,
                 num_strat),
             mem_gb=0.5,
-            n_procs=3)
+            n_procs=num_cpus)
         
         workflow.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -560,7 +560,7 @@ def ants_apply_warps_func_mni(
                 registration_template,
                 num_strat),
             mem_gb=0.5,
-            n_procs=2)
+            n_procs=num_cpus)
 
         workflow.connect(check_transform, 'checked_transform_list', inverse_transform_flags, 'transform_list')
 
@@ -585,14 +585,14 @@ def ants_apply_warps_func_mni(
                     inverse_string, registration_template, num_strat),
                 iterfield=['input_image'],
                 mem_gb=10,
-                n_procs=3)
+                n_procs=num_cpus)
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat),
                 mem_gb=10,
-                n_procs=3)
+                n_procs=num_cpus)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
@@ -706,7 +706,7 @@ def ants_apply_warps_func_mni(
         func_concat = pe.Node(interface=afni_utils.TCat(),
                               name=f'func_concat_{node_id}',
                               mem_gb=1.0,
-                              n_procs=2)
+                              n_procs=num_cpus)
         func_concat.inputs.outputtype = 'NIFTI_GZ'
 
         workflow.connect(apply_ants_warp, 'output_image',

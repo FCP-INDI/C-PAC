@@ -6,7 +6,7 @@ import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 
 
-def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg'):
+def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg', n_procs=1):
 
     """
     The main purpose of this workflow is to get various statistical measures
@@ -197,7 +197,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                  as_module=True),
                         name='cal_DVARS',
                         mem_gb=3.5,
-                        n_procs=8)
+                        n_procs=n_procs)
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'rest')
@@ -213,7 +213,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                      as_module=True),
                             name='calculate_FD',
                             mem_gb=0.5,
-                            n_procs=2)
+                            n_procs=n_procs)
 
     wf.connect(input_node, 'movement_parameters',
                calculate_FDP, 'in_file')
@@ -228,7 +228,7 @@ def motion_power_statistics(name='motion_stats', motion_correct_tool='3dvolreg')
                                     as_module=True),
                             name='calculate_FDJ',
                             mem_gb=0.5,
-                            n_procs=2)
+                            n_procs=n_procs)
     
     calculate_FDJ.inputs.motion_correct_tool = motion_correct_tool
     if motion_correct_tool == '3dvolreg':
