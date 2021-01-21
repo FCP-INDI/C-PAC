@@ -904,7 +904,7 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
 
         # save copies of the "prehires" versions
         # change cp argument --preserve=timestamps to -p as --preserve=timestamps doesn't work on MacOS
-        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.white'), os.path.join(surfdir,'lh.white.prehires'))
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.white.preaparc'), os.path.join(surfdir,'lh.white.prehires'))
         os.system(cmd)
 
         cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.curv'), os.path.join(surfdir,'lh.curv.prehires'))
@@ -916,7 +916,7 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         cmd = 'cp -p %s %s' % (os.path.join(labeldir,'lh.cortex.label'), os.path.join(labeldir,'lh.cortex.prehires.label'))
         os.system(cmd)
 
-        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.white'), os.path.join(surfdir,'rh.white.prehires'))
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.white.preaparc'), os.path.join(surfdir,'rh.white.prehires'))
         os.system(cmd)
 
         cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.curv'), os.path.join(surfdir,'rh.curv.prehires'))
@@ -938,10 +938,13 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         # map white to hires coords
         # [Note that Xh.sphere.reg doesn't exist yet, which is the default surface registration
         # assumed by mri_surf2surf, so use "--surfreg white"].
-        cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz --tval white.hires --surfreg white --hemi lh' % (SubjectID, reg, hires)
+
+        rawavg = os.path.join(os.path.join(mridir,'rawavg.mgz'))
+
+        cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz %s --tval white.hires --surfreg white --hemi lh' % (SubjectID, reg, hires, rawavg)
         os.system(cmd)
 
-        cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz --tval white.hires --surfreg white --hemi rh' % (SubjectID, reg, hires)
+        cmd = 'mri_surf2surf --s %s --sval-xyz white --reg %s %s --tval-xyz %s --tval white.hires --surfreg white --hemi rh' % (SubjectID, reg, hires, rawavg)
         os.system(cmd)
 
         # make sure to create the file control.hires.dat in the scripts dir with at least a few points
@@ -1000,10 +1003,12 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         cmd = 'tkregister2 --mov %s --targ %s --noedit --regheader --reg %s' % (os.path.join(mridir,'orig.mgz'), hires, regII)
         os.system(cmd)
 
-        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi lh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
+        rawavg = os.path.join(os.path.join(mridir,'rawavg.mgz'))
+
+        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz %s --tval white --surfreg white --hemi lh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'), rawavg)
         os.system(cmd)
 
-        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz --tval white --surfreg white --hemi rh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'))
+        cmd = 'mri_surf2surf --s %s --sval-xyz white.deformed --reg %s %s --tval-xyz %s --tval white --surfreg white --hemi rh' % (SubjectID, regII, os.path.join(mridir,'orig.mgz'), rawavg)
         os.system(cmd)
 
         # copy the ".deformed" outputs of previous mris_make_surfaces to their default FS file names
