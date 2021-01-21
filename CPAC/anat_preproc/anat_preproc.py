@@ -393,13 +393,10 @@ def skullstrip_anatomical(method='afni', config=None, wf_name='skullstrip_anatom
 
     elif method == 'niworkflows-ants': 
         # Skull-stripping using niworkflows-ants  
-        anat_skullstrip_ants = init_brain_extraction_wf(
-            tpl_target_path=config.niworkflows_ants_template_path,
-            tpl_mask_path=config.niworkflows_ants_mask_path,
-            tpl_regmask_path=config.niworkflows_ants_regmask_path,
-            name='anat_skullstrip_ants',
-            omp_nthreads=config.maxCoresPerParticipant
-        )
+        anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=config.niworkflows_ants_template_path,
+                                                        tpl_mask_path=config.niworkflows_ants_mask_path,
+                                                        tpl_regmask_path=config.niworkflows_ants_regmask_path,
+                                                        name='anat_skullstrip_ants')
 
         preproc.connect(inputnode, 'anat_data',
                         anat_skullstrip_ants, 'inputnode.in_files')
