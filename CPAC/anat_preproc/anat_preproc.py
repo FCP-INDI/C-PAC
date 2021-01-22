@@ -907,6 +907,9 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.white.preaparc'), os.path.join(surfdir,'lh.white.prehires'))
         os.system(cmd)
 
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.white.preaparc'), os.path.join(surfdir,'lh.white'))
+        os.system(cmd)
+
         cmd = 'cp -p %s %s' % (os.path.join(surfdir,'lh.curv'), os.path.join(surfdir,'lh.curv.prehires'))
         os.system(cmd)
 
@@ -917,6 +920,9 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         os.system(cmd)
 
         cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.white.preaparc'), os.path.join(surfdir,'rh.white.prehires'))
+        os.system(cmd)
+
+        cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.white.preaparc'), os.path.join(surfdir,'rh.white'))
         os.system(cmd)
 
         cmd = 'cp -p %s %s' % (os.path.join(surfdir,'rh.curv'), os.path.join(surfdir,'rh.curv.prehires'))
@@ -977,8 +983,8 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         # do intensity normalization on the hires volume using the white surface
         control_hires_dat = os.path.join(SubjectDIR,SubjectID,'scripts/control.hires.dat')
         f = open(control_hires_dat, "w")
-        f.write(leftcoords)
-        f.write(rightcoords)
+        f.write(leftcoords.decode())
+        f.write(rightcoords.decode())
         f.write("info\n")
         f.write("numpoints 2\n")
         f.write("useRealRAS 1\n")
