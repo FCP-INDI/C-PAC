@@ -84,7 +84,7 @@ def create_reho(wf_name):
     >>> wf.run()
     """
 
-    reHo = pe.Workflow(wf_name=wf_name)
+    reHo = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['cluster_size',
                                                        'rest_res_filt',
                                                        'rest_mask']),
