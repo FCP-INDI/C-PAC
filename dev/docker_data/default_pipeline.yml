@@ -998,7 +998,7 @@ nuisance_corrections:
     # Select which nuisance signal corrections to apply
     Regressors:
 
-      - Name: 'default'
+      -  Name: 'default'
 
          Motion:
            include_delayed: true
@@ -1029,7 +1029,7 @@ nuisance_corrections:
            bottom_frequency: 0.01
            top_frequency: 0.1
 
-       - Name: 'defaultNoGSR'
+      -  Name: 'defaultNoGSR'
 
          Motion:
            include_delayed: true
