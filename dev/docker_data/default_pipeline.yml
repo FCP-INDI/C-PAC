@@ -400,8 +400,8 @@ segmentation:
       # These masks should be in the same space of your registration template, e.g. if
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
-      # Options: ['EPI Template', 'T1 Template']
-      template_for_segmentation: ['EPI Template']
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: ['T1_Template']
 
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
@@ -568,11 +568,10 @@ registration_workflows:
 
         # Configuration file to be used by FSL to set FNIRT parameters.
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-        fnirt_config :  T1_2_MNI152_2mm
+        fnirt_config: T1_2_MNI152_2mm
 
-        # Configuration file to be used by FSL to set FNIRT parameters.
-        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
-        ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
+        # Reference mask for FSL registration.
+        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: trilinear, sinc, spline
@@ -616,10 +615,110 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
+    EPI_registration:
+
+      # directly register the mean functional to an EPI template
+      #   instead of applying the anatomical T1-to-template transform to the functional data that has been
+      #   coregistered to anatomical/T1 space
+      run: Off
+
+      # using: ['ANTS', 'FSL', 'FSL-linear']
+      # this is a fork point
+      # ex. selecting both ['ANTS', 'FSL'] will run both and fork the pipeline
+      using: ['ANTS']
+
+      # EPI template for direct functional-to-template registration
+      # (bypassing coregistration and the anatomical-to-template transforms)
+      EPI_template: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
+
+      # EPI template mask.
+      EPI_template_mask: None
+
+      ANTs:
+
+        # EPI registration configuration - synonymous with T1_registration
+        # parameters under anatomical registration above
+        parameters:
+
+          - collapse-output-transforms: 0
+          - dimensionality: 3
+          - initial-moving-transform :
+             initializationFeature: 0
+
+          - transforms:
+             - Rigid:
+                 gradientStep : 0.1
+                 metric :
+                   type : MI
+                   metricWeight: 1
+                   numberOfBins : 32
+                   samplingStrategy : Regular
+                   samplingPercentage : 0.25
+                 convergence:
+                   iteration : 1000x500x250x100
+                   convergenceThreshold : 1e-08
+                   convergenceWindowSize : 10
+                 smoothing-sigmas : 3.0x2.0x1.0x0.0
+                 shrink-factors : 8x4x2x1
+                 use-histogram-matching : True
+
+             - Affine:
+                 gradientStep : 0.1
+                 metric :
+                   type : MI
+                   metricWeight: 1
+                   numberOfBins : 32
+                   samplingStrategy : Regular
+                   samplingPercentage : 0.25
+                 convergence:
+                   iteration : 1000x500x250x100
+                   convergenceThreshold : 1e-08
+                   convergenceWindowSize : 10
+                 smoothing-sigmas : 3.0x2.0x1.0x0.0
+                 shrink-factors : 8x4x2x1
+                 use-histogram-matching : True
+
+             - SyN:
+                 gradientStep : 0.1
+                 updateFieldVarianceInVoxelSpace : 3.0
+                 totalFieldVarianceInVoxelSpace : 0.0
+                 metric:
+                   type : CC
+                   metricWeight: 1
+                   radius : 4
+                 convergence:
+                   iteration : 100x100x70x20
+                   convergenceThreshold : 1e-09
+                   convergenceWindowSize : 15
+                 smoothing-sigmas : 3.0x2.0x1.0x0.0
+                 shrink-factors : 6x4x2x1
+                 use-histogram-matching : True
+                 winsorize-image-intensities :
+                   lowerQuantile : 0.01
+                   upperQuantile : 0.99
+
+        # Interpolation method for writing out transformed EPI images.
+        # Possible values: Linear, BSpline, LanczosWindowedSinc
+        interpolation: LanczosWindowedSinc
+
+      FSL-FNIRT:
+
+        # Configuration file to be used by FSL to set FNIRT parameters.
+        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+        fnirt_config: T1_2_MNI152_2mm
+
+        # Interpolation method for writing out transformed EPI images.
+        # Possible values: trilinear, sinc, spline
+        interpolation: sinc
+
+        # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
+        # It is not necessary to change this path unless you intend to use a different template.
+        identity_matrix: /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+
     func_registration_to_template:
 
       # these options modify the application (to the functional data), not the calculation, of the
-      # T1-to-template transforms calculated earlier during anatomical registration
+      # T1-to-template and EPI-to-template transforms calculated earlier during registration
       run: On
 
       output_resolution:
@@ -639,17 +738,13 @@ registration_workflows:
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
         func_derivative_outputs: 3mm
 
-        # a standard template for resampling if using float resolution
-        template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
-
       target_template:
 
         # using: ['T1_template', 'EPI_template']
         # this is a fork point
         # NOTE:
-        #   'EPI_template' registers the mean-functional directly to the template (chosen below under EPI_template)
-        #   instead of applying the anatomical T1-to-template transform to the functional data that has been
-        #   coregistered to anatomical/T1 space
+        #   this will determine which registration transform to use to warp the functional
+        #   outputs and derivatives to template space
         using: ['T1_template']
 
         # option parameters
@@ -657,26 +752,25 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+          T1w_brain_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+          T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
+
+          # a standard template for resampling if using float resolution
+          T1w_template_for_resample:  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
         EPI_template:
 
           # EPI template for direct functional-to-template registration
           # (bypassing coregistration and the anatomical-to-template transforms)
-          template_epi: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
+          EPI_template_funcreg: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
 
-          # EPI template mask.
-          template_epi_mask: None
+          # a standard template for resampling if using float resolution
+          EPI_template_for_resample:  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
       ANTs_pipelines:
-
-        # EPI registration configuration - synonymous with T1_registration
-        # parameters under anatomical registration above
-        EPI_registration:
 
         # Interpolation method for writing out transformed functional images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
@@ -748,7 +842,7 @@ functional_preproc:
       AFNI-3dvolreg:
 
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
-        functional_volreg_twopass: On
+        functional_volreg_twopass: Off
 
       # Choose motion correction reference. Options: mean, median, selected volume
       motion_correction_reference: ['mean']
@@ -816,19 +910,20 @@ functional_preproc:
     PhaseDiff:
 
       # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
-      fmap_skullstrip_option: BET
+      # Options: 'BET' or 'AFNI'
+      fmap_skullstrip_option: 'BET'
 
       # Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
       # The default value is 0.5.
-      fmap_skullstrip_frac: 0.5
+      fmap_skullstrip_BET_frac: 0.5
 
       # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
       # The default value is 0.6.
-      fmap_skullstrip_threshold:  0.6
+      fmap_skullstrip_AFNI_threshold:  0.6
 
   func_masking:
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
     # this is a fork point
     using: ['AFNI']
 
@@ -903,60 +998,64 @@ nuisance_corrections:
     # Select which nuisance signal corrections to apply
     Regressors:
 
-     - Motion:
-         include_delayed: true
-         include_squared: true
-         include_delayed_squared: true
+      - Name: 'default'
 
-       aCompCor:
-         summary:
-           method: DetrendPC
-           components: 5
-         tissues:
-           - WhiteMatter
-           - CerebrospinalFluid
-         extraction_resolution: 2
+         Motion:
+           include_delayed: true
+           include_squared: true
+           include_delayed_squared: true
 
-       CerebrospinalFluid:
-         summary: Mean
-         extraction_resolution: 2
-         erode_mask: true
+         aCompCor:
+           summary:
+             method: DetrendPC
+             components: 5
+           tissues:
+             - WhiteMatter
+             - CerebrospinalFluid
+           extraction_resolution: 2
 
-       GlobalSignal:
-         summary: Mean
+         CerebrospinalFluid:
+           summary: Mean
+           extraction_resolution: 2
+           erode_mask: true
 
-       PolyOrt:
-        degree: 2
+         GlobalSignal:
+           summary: Mean
 
-       Bandpass:
-         bottom_frequency: 0.01
-         top_frequency: 0.1
+         PolyOrt:
+          degree: 2
 
-     - Motion:
-         include_delayed: true
-         include_squared: true
-         include_delayed_squared: true
+         Bandpass:
+           bottom_frequency: 0.01
+           top_frequency: 0.1
 
-       aCompCor:
-         summary:
-           method: DetrendPC
-           components: 5
-         tissues:
-           - WhiteMatter
-           - CerebrospinalFluid
-         extraction_resolution: 2
+       - Name: 'defaultNoGSR'
 
-       CerebrospinalFluid:
-         summary: Mean
-         extraction_resolution: 2
-         erode_mask: true
+         Motion:
+           include_delayed: true
+           include_squared: true
+           include_delayed_squared: true
 
-       PolyOrt:
-        degree: 2
+         aCompCor:
+           summary:
+             method: DetrendPC
+             components: 5
+           tissues:
+             - WhiteMatter
+             - CerebrospinalFluid
+           extraction_resolution: 2
 
-       Bandpass:
-         bottom_frequency: 0.01
-         top_frequency: 0.1
+         CerebrospinalFluid:
+           summary: Mean
+           extraction_resolution: 2
+           erode_mask: true
+
+         PolyOrt:
+          degree: 2
+
+         Bandpass:
+           bottom_frequency: 0.01
+           top_frequency: 0.1
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
@@ -1044,26 +1143,30 @@ post_processing:
   spatial_smoothing:
 
     # Smooth the derivative outputs.
-    run: On
+    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
+    #
+    # Options:
+    #     ['smoothed', 'nonsmoothed']
+    output: ['smoothed']
 
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
-    smoothing_method: 'FSL'
+    smoothing_method: ['FSL']
 
     # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
     # this is a fork point
     #   i.e. multiple kernels - fwhm: [4,6,8]
     fwhm: [4]
 
-    # Choose whether to smooth outputs before or after z-scoring.
-    # options: 'Before' or 'After'
-    smoothing_order: 'Before'
-
   z-scoring:
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: On
+    # Set as ['raw'] to disable z-scoring. Set as both to get both.
+    #
+    # Options:
+    #     ['z-scored', 'raw']
+    output: ['z-scored']
 
 
 timeseries_extraction:
@@ -1122,7 +1225,7 @@ seed_based_correlation_analysis:
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: True
+  run: On
 
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
@@ -1146,7 +1249,7 @@ amplitude_low_frequency_fluctuation:
 
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: True
+  run: On
 
   # Frequency cutoff (in Hz) for the high-pass filter used when calculating f/ALFF.
   highpass_cutoff: [0.01]
@@ -1159,7 +1262,7 @@ regional_homogeneity:
 
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: True
+  run: On
 
   # Number of neighboring voxels used when calculating ReHo
   # 7 (Faces)
@@ -1172,7 +1275,7 @@ voxel_mirrored_homotopic_connectivity:
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: True
+  run: On
 
   symmetric_registration:
 
@@ -1197,12 +1300,6 @@ voxel_mirrored_homotopic_connectivity:
     # A reference symmetric brain mask template for resampling
     dilated_symmetric_brain_mask_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_mask_symmetric_dil.nii.gz
 
-    FNIRT_pipelines:
-
-      # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-      # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-      config_file: $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
-
 
 network_centrality:
 
@@ -1216,7 +1313,7 @@ network_centrality:
   memory_allocation:  1.0
 
   # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
-  template_specification_file :  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
+  template_specification_file:  /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
 
   degree_centrality:
 
