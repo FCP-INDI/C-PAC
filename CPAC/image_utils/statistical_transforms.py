@@ -1,4 +1,3 @@
-
 import nipype.interfaces.fsl as fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
@@ -16,57 +15,61 @@ from CPAC.utils.utils import (
     get_fisher_zscore
 )
 
-# Apply  Z-scoring, Smoothing, Averages
-# use derivative
-def z_score_standardize(workflow, output_name, mask_name,
-                        strat, num_strat, map_node=False):
 
-    # call the z-scoring sub-workflow builder
-    z_score_std = get_zscore(output_name, map_node,
-                             'z_score_std_%s_%d' % (output_name, num_strat))
+def z_score_standardize(wf_name, input_image_type='func_derivative',
+                        opt=None):
 
-    node, out_file = strat[output_name]
-    workflow.connect(node, out_file,
-                     z_score_std, 'inputspec.input_file')
+    wf = pe.Workflow(name=wf_name)
 
-    # get the mask
-    if type(mask_name) == str:
-        node, out_file = strat[mask_name]
-        workflow.connect(node, out_file,
-                         z_score_std, 'inputspec.mask_file')
-    else:
-        # mask_name is a direct file path and not the name of a
-        # resource pool key
-        workflow.connect(mask_name, 'local_path',
-                         z_score_std, 'inputspec.mask_file')
+    map_node = False
+    if input_image_type == 'func_derivative_multi':
+        map_node = True
 
-    strat.append_name(z_score_std.name)
-    strat.update_resource_pool({'{0}_zstd'.format(output_name): (z_score_std, 'outputspec.z_score_img')})
+    inputnode = pe.Node(util.IdentityInterface(fields=['in_file',
+                                                       'mask']),
+                        name='inputspec')
 
-    return strat
+    z_score_std = get_zscore(map_node, 'z_score_std')
+
+    wf.connect(inputnode, 'in_file', z_score_std, 'inputspec.input_file')
+    wf.connect(inputnode, 'mask', z_score_std, 'inputspec.mask_file')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
+                         name='outputspec')
+
+    wf.connect(z_score_std, 'outputspec.z_score_img', outputnode, 'out_file')
+
+    return wf
 
 
-def fisher_z_score_standardize(workflow, output_name, timeseries_oned_file,
-                               strat, num_strat, map_node=False):
+def fisher_z_score_standardize(wf_name, label,
+                               input_image_type='func_derivative', opt=None):
 
-    # call the fisher r-to-z sub-workflow builder
-    fisher_z_score_std = get_fisher_zscore(output_name, map_node,
-                                            'fisher_z_score_std_%s_%d' \
-                                            % (output_name, num_strat))
+    wf = pe.Workflow(name=wf_name)
 
-    node, out_file = strat[output_name]
+    map_node = False
+    if input_image_type == 'func_derivative_multi':
+        map_node = True
 
-    workflow.connect(node, out_file, fisher_z_score_std,
-                        'inputspec.correlation_file')
+    inputnode = pe.Node(util.IdentityInterface(fields=['correlation_file',
+                                                       'timeseries_oned']),
+                        name='inputspec')
 
-    node, out_file = strat[timeseries_oned_file]
-    workflow.connect(node, out_file, fisher_z_score_std,
-                        'inputspec.timeseries_one_d')
+    fisher_z_score_std = get_fisher_zscore(label, map_node,
+                                           'fisher_z_score_std')
+    wf.connect(inputnode, 'correlation_file',
+               fisher_z_score_std, 'inputspec.correlation_file')
 
-    strat.append_name(fisher_z_score_std.name)
-    strat.update_resource_pool({'{0}_fisher_zstd'.format(output_name): (fisher_z_score_std, 'outputspec.fisher_z_score_img')})
+    wf.connect(inputnode, 'timeseries_oned',
+               fisher_z_score_std, 'inputspec.timeseries_one_d')
 
-    return strat
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
+                         name='outputspec')
+
+    wf.connect(fisher_z_score_std, 'outputspec.fisher_z_score_img',
+               outputnode, 'out_file')
+
+    return wf
 
 
 def calc_avg(workflow, output_name, strat, num_strat, map_node=False):
