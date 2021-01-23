@@ -1,4 +1,4 @@
-from .registration import apply_transform, \
+from .registration import create_fsl_flirt_linear_reg, \
                          create_fsl_fnirt_nonlinear_reg, \
                          create_register_func_to_anat, \
                          create_bbregister_func_to_anat, \
@@ -6,8 +6,7 @@ from .registration import apply_transform, \
 
 from .output_func_to_standard import output_func_to_standard
 
-__all__ = ['apply_transform', \
-           'create_fsl_flirt_linear_reg', \
+__all__ = ['create_fsl_flirt_linear_reg', \
            'create_fsl_fnirt_nonlinear_reg', \
            'create_register_func_to_anat', \
            'create_bbregister_func_to_anat', \
