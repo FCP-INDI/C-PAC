@@ -175,16 +175,16 @@ def pick_wm_class_2(tissue_class_files):
                 return filename
     return None
 
-# This functionality is adapted from poldracklab/niworkflows:
-# https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/utils.py
-# https://fmriprep.readthedocs.io/
-# https://poldracklab.stanford.edu/
-# We are temporarily maintaining our own copy for more granular control.
-
 
 def mask_erosion(roi_mask=None, skullstrip_mask=None, mask_erosion_mm=None,
                  mask_erosion_prop=None):
     """Returns eroded segment mask and skull-stripped brain mask
+
+    # This functionality is adapted from poldracklab/niworkflows:
+    #   https://github.com/poldracklab/niworkflows/blob/master/niworkflows/interfaces/utils.py
+    #   https://fmriprep.readthedocs.io/
+    #   https://poldracklab.stanford.edu/
+    # We are temporarily maintaining our own copy for more granular control.
 
     Parameters
     ----------
@@ -401,19 +401,19 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
 
     multiatlas_Labels : string (nifti file)
 
-    csf_label: integer 
+    csf_label: integer
         label value corresponding to CSF in multiatlas file
 
-    left_gm_label: integer 
+    left_gm_label: integer
         label value corresponding to Left Gray Matter in multiatlas file
 
-    left_wm_label: integer 
+    left_wm_label: integer
         label value corresponding to Left White Matter in multiatlas file
 
-    right_gm_label: integer 
+    right_gm_label: integer
         label value corresponding to Right Gray Matter in multiatlas file
 
-    right_wm_label: integer 
+    right_wm_label: integer
         label value corresponding to Right White Matter in multiatlas file
 
     include_ventricles: boolean
@@ -445,7 +445,7 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
     csf = data.copy()
     if include_ventricles:
         csf[np.logical_and(np.logical_and(np.logical_and(np.logical_and(csf != csf_label, csf != 4), csf != 14), csf != 15), csf != 43)] = 0
-        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] =
+        csf[np.logical_or(np.logical_or(np.logical_or(np.logical_or(csf == csf_label, csf == 4), csf == 14), csf == 15), csf == 43)] = 1
     else:
         csf[csf != csf_label] = 0
         csf[csf == csf_label] = 1
