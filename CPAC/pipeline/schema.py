@@ -68,17 +68,21 @@ schema = Schema({
             'maximum_memory_per_participant': Any(float, int),
             'max_cores_per_participant': int,
             'num_ants_threads': int,
-            'num_participants_at_once': int
+            'num_participants_at_once': int,
+            'FSLDIR': Any(None, str),
         },
         'Amazon-AWS':{
             'aws_output_bucket_credentials': Any(None, str),
             's3_encryption': bool,
         },
         'pipeline_IMPORT': Any(None, str),
-    },
-    Required('anatomical_preproc'): {
-        Required('registration_workflow'): {
-            Required('registration'): {
+    }
+}, extra=ALLOW_EXTRA)
+
+'''
+    #,
+    Required('registration_workflows'): {
+            Required('anatomical_registration'): {
                 Required('using'): [In({'ANTS', 'FSL'})],
                 'ANTs': {
                     'EPI_registration': Any(
@@ -88,9 +92,10 @@ schema = Schema({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'
                     }),
                     'use_lesion_mask': bool
-    'FSLDIR': Any(None, str),
-
-    'anatomical_preproc': {
+                }
+            }
+        },
+    Required('anatomical_preproc'): {
         Required('run'): bool,
         Required('non_local_means_filtering'): bool,
         Required('n4_bias_field_correction'): bool,
@@ -250,11 +255,11 @@ schema = Schema({
                     'functional_mean_boolean': bool,
                     **{k: False for k in mutex['FSL-BET']['mutex']}
                 }])
-            ),  
+            ),
             'Anatomical_Refined': {
                 'anatomical_mask_dilation': bool,
             },
-        },          
+        },
     },
     Required('functional_registration'): {
         },
@@ -287,7 +292,7 @@ schema = Schema({
                 },
             },
         },
-    },   
+    },
     'functional_registration': {
         Required('1-coregistration'): {
             Required('run'): [bool],
@@ -321,7 +326,7 @@ schema = Schema({
                     'template_skull': str,
                 },
                 'EPI_template': {
-                    'template_epi': str, 
+                    'template_epi': str,
                 },
             },
             Required('ANTs_pipelines'): {
@@ -444,3 +449,4 @@ schema = Schema({
         Required('run'): [bool],
     },
 }, extra=ALLOW_EXTRA)
+'''

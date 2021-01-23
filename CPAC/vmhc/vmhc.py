@@ -60,16 +60,16 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["desc-sm_bold",
-                "from-bold_to-template_mode-image_xfm",
-                "T1w_brain_template"],
-     "outputs": ["space-template_desc-cleaned_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
-                 "space-template_bold"]}
+                "from-bold_to-symtemplate_mode-image_xfm",
+                "T1w_brain_template_symmetric"],
+     "outputs": ["space-symtemplate_desc-cleaned_bold",
+                 "space-symtemplate_desc-preproc_bold",
+                 "space-symtemplate_desc-reorient_bold",
+                 "space-symtemplate_bold"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(
-        'from-bold_to-template_mode-image_xfm')
+        'from-bold_to-symtemplate_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     num_cpus = cfg.pipeline_setup['system_config'][

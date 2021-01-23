@@ -160,8 +160,6 @@ class ResourcePool(object):
             self.rpool[resource] = {}
         else:
             if not fork:     # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
-                print(f'old pipe idx: {pipe_idx}')
-                print(self.rpool[resource].keys())
                 if pipe_idx in self.rpool[resource].keys():  # <--- in case the resource name is now new, and not the original
                     del self.rpool[resource][pipe_idx]  # <--- remove old keys so we don't end up with a new strat for every new node unit (unless we fork)
 
@@ -219,9 +217,12 @@ class ResourcePool(object):
                 return val['data']
         if report_fetched:
             if pipe_idx:
-                return self.get(resource, pipe_idx=pipe_idx,
-                                report_fetched=report_fetched)
-            return self.get(resource, report_fetched=report_fetched)
+                connect, fetched = self.get(resource, pipe_idx=pipe_idx,
+                                            report_fetched=report_fetched)
+                return (connect['data'], fetched)
+            connect, fetched =self.get(resource,
+                                       report_fetched=report_fetched)
+            return (connect['data'], fetched)
         if pipe_idx:
             return self.get(resource, pipe_idx=pipe_idx)['data']
         return self.get(resource)['data']
@@ -545,6 +546,8 @@ class ResourcePool(object):
                         'EPI_template_funcreg', 'T1w_brain_template_deriv',
                         'T1w_template_deriv', 'T1w_brain_template_funcreg',
                         'T1w_template_funcreg',
+                        'T1w_template_symmetric_funcreg',
+                        'T1w_brain_template_symmetric_funcreg',
                         'T1w_brain_template_for_resample',
                         'T1w_template_for_resample']
         excl += config_paths
@@ -637,6 +640,10 @@ class ResourcePool(object):
                         break
                     else:
                         resource_idx = f'{out_dct["filename"]}{num_variant}'
+
+                print('id_string')
+                print(f'unique_id: {unique_id}')
+                print(f'resource idx: {resource_idx}')
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
@@ -1176,6 +1183,8 @@ def initiate_rpool(wf, cfg, data_paths):
         ('T1w_brain_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
         ('T1w_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
         ('T1w_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
+        ('T1w_brain_template_symmetric_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg']),
+        ('T1w_template_symmetric_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg']),
         ('EPI_template_funcreg', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg']),
         ('EPI_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg']),
         ('EPI_template', cfg.registration_workflows['functional_registration']['EPI_registration']['EPI_template']),

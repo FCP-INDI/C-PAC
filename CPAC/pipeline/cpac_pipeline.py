@@ -66,6 +66,7 @@ from CPAC.registration.registration import (
     coregistration,
     bbr_coregistration,
     create_func_to_T1template_xfm,
+    create_func_to_T1template_symmetric_xfm,
     warp_timeseries_to_T1template,
     warp_timeseries_to_EPItemplate,
     warp_bold_mask_to_T1template,
@@ -75,6 +76,7 @@ from CPAC.registration.registration import (
 from CPAC.seg_preproc.seg_preproc import (
     tissue_seg_fsl_fast,
     tissue_seg_T1_template_based,
+    tissue_seg_EPI_template_based,
     tissue_seg_ants_prior
 )
 
@@ -833,14 +835,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += anat_brain_blocks
 
     # Anatomical to T1 template registration
+    reg_blocks = []
     if not rpool.check_rpool('space-template_desc-brain_T1w'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template]
         ]
-        if cfg.voxel_mirrored_homotopic_connectivity['run']:
+    if cfg.voxel_mirrored_homotopic_connectivity['run']:
+        if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
             reg_blocks.append([register_symmetric_ANTs_anat_to_template,
                                register_symmetric_FSL_anat_to_template])
-        pipeline_blocks += reg_blocks
+    pipeline_blocks += reg_blocks
 
     # Anatomical tissue segmentation
     if not rpool.check_rpool('label-CSF_mask') or \
@@ -934,6 +938,10 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     if 'T1_template' in cfg.registration_workflows['functional_registration'][
         'func_registration_to_template']['target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
+
+        if cfg.voxel_mirrored_homotopic_connectivity['run']:
+            if rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
+                pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
     if not rpool.check_rpool('desc-cleaned_bold'):
