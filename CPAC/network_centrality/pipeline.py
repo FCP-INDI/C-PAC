@@ -13,7 +13,8 @@ logger = logging.getLogger('workflow')
 
 
 def connect_centrality_workflow(workflow, c, resample_functional_to_template,
-                                merge_node, method_option):
+                                template_node, template_out, merge_node,
+                                method_option):
     template = c.network_centrality['template_specification_file']
 
     # Set method_options variables
@@ -56,7 +57,7 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
     workflow.connect(resample_functional_to_template, 'out_file',
                      afni_centrality_wf, 'inputspec.in_file')
 
-    workflow.connect(template, 'local_path',
+    workflow.connect(template_node, template_out,
                      afni_centrality_wf, 'inputspec.template')
 
     workflow.connect(afni_centrality_wf, 'outputspec.outfile_list',
@@ -75,7 +76,8 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["space-template_desc-cleaned_bold",
                  "space-template_desc-preproc_bold",
                  "space-template_desc-reorient_bold",
-                 "space-template_bold"]],
+                 "space-template_bold"],
+                "template_specification_file"],
      "outputs": ["centrality"]}
     '''
 
@@ -98,9 +100,8 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_bold"])
     wf.connect(node, out, resample_functional_to_template, 'in_file')
 
-    wf.connect(cfg.network_centrality['template_specification_file'],
-               'local_path', resample_functional_to_template,
-               'reference')
+    node, out = strat_pool.get_data("template_specification_file")
+    wf.connect(node, out, resample_functional_to_template, 'reference')
 
     merge_node = pe.Node(Function(input_names=['deg_list',
                                                'eig_list',
@@ -111,7 +112,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                          name='merge_node')
 
     [connect_centrality_workflow(wf, cfg, resample_functional_to_template,
-                                 merge_node, option) for option in
+                                 node, out, merge_node, option) for option in
      valid_options['centrality']['method_options'] if
      cfg.network_centrality[option]['weight_options']]
 

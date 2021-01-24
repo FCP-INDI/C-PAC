@@ -626,6 +626,7 @@ class ResourcePool(object):
                     num_variant += 1
                 except TypeError:
                     pass
+
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
 
@@ -639,11 +640,7 @@ class ResourcePool(object):
                                                         f'{key}{num_variant}')
                         break
                     else:
-                        resource_idx = f'{out_dct["filename"]}{num_variant}'
-
-                print('id_string')
-                print(f'unique_id: {unique_id}')
-                print(f'resource idx: {resource_idx}')
+                        resource_idx = f'{resource}{num_variant}'
 
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
@@ -1108,16 +1105,25 @@ def initiate_rpool(wf, cfg, data_paths):
     all_output_dir = []
     if os.path.isdir(cpac_dir_anat):
         for filename in os.listdir(cpac_dir_anat):
-            if '.nii' in filename:
+            if '.nii' in filename or '.mat' in filename:
                 all_output_dir.append(os.path.join(cpac_dir_anat, filename))
     if os.path.isdir(cpac_dir_func):
         for filename in os.listdir(cpac_dir_func):
-            if '.nii' in filename:
+            if '.nii' in filename or '.mat' in filename:
                 all_output_dir.append(os.path.join(cpac_dir_func, filename))
 
     for filepath in all_output_dir:
         filename = filepath.split("/")[-1].replace('.nii', '').replace('.gz', '')
+        filename = filename.replace('.mat', '')
         data_label = filename.split(unique_id)[1].lstrip('_')
+        if 'task-' in data_label:
+            for tag in data_label.split('_'):
+                if 'task-' in tag:
+                    break
+            data_label = data_label.replace(f'{tag}_', '')
+
+        unique_data_label = str(data_label)
+
         if 'sub-' in data_label or 'ses-' in data_label:
             raise Exception('\n\n[!] Possibly wrong participant or '
                             'session in this directory?\n\nDirectory: '
@@ -1127,6 +1133,7 @@ def initiate_rpool(wf, cfg, data_paths):
             if 'desc-' in tag:
                 desc_val = tag
         jsonpath = filepath.replace('.gz', '').replace('.nii', '.json')
+        jsonpath = jsonpath.replace('.mat', '.json')
         if not os.path.exists(jsonpath):
             raise Exception('\n\n[!] No JSON found for file '
                             f'{filepath}.\n\n')
@@ -1135,10 +1142,15 @@ def initiate_rpool(wf, cfg, data_paths):
         if 'CpacProvenance' in json_info:
             # it's a C-PAC output, let's check for pipe_idx/strat integer
             # suffixes in the desc- entries.
+            only_desc = str(desc_val)
             for idx in range(0, 3):
                 # let's stop at 3, please don't run >999 strategies okay?
-                if desc_val[-1].isdigit():
-                    desc_val = desc_val[:-1]
+                if only_desc[-1].isdigit():
+                    only_desc = only_desc[:-1]
+
+            # remove the integer at the end of the desc-* variant, we will get
+            # the unique pipe_idx from the CpacProvenance below
+            data_label = data_label.replace(desc_val, only_desc)
 
             # preserve cpac provenance/pipe_idx
             pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
@@ -1149,7 +1161,7 @@ def initiate_rpool(wf, cfg, data_paths):
 
         resource = data_label
 
-        ingress = create_general_datasource(f'gather_{data_label}')
+        ingress = create_general_datasource(f'gather_{unique_data_label}')
         ingress.inputs.inputnode.set(
             unique_id=unique_id,
             data=filepath,
@@ -1164,6 +1176,9 @@ def initiate_rpool(wf, cfg, data_paths):
     # TODO: nah, even better: just loop through the config for .nii's
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
     config_resource_paths = [
+        ('CSF_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['CSF_path']),
+        ('WM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['WM_path']),
+        ('GM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['GM_path']),
         ('T1w_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_ACPC_template']),
         ('T1w_brain_ACPC_template', cfg.anatomical_preproc['acpc_alignment']['T1w_brain_ACPC_template']),
         ('unet_model', cfg.anatomical_preproc['brain_extraction']['UNet']['unet_model']),
@@ -1189,7 +1204,8 @@ def initiate_rpool(wf, cfg, data_paths):
         ('EPI_template_deriv', cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg']),
         ('EPI_template', cfg.registration_workflows['functional_registration']['EPI_registration']['EPI_template']),
         ('EPI_template_mask', cfg.registration_workflows['functional_registration']['EPI_registration']['EPI_template_mask']),
-        ('lateral_ventricles_mask', cfg.nuisance_corrections['2-nuisance_regression']['lateral_ventricles_mask'])
+        ('lateral_ventricles_mask', cfg.nuisance_corrections['2-nuisance_regression']['lateral_ventricles_mask']),
+        ('template_specification_file', cfg.network_centrality['template_specification_file'])
     ]
 
     if cfg.PyPEER['run']:
@@ -1204,6 +1220,11 @@ def initiate_rpool(wf, cfg, data_paths):
 
         if '$FSLDIR' in val:
             val = val.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
+        if '$priors_path' in val:
+            priors_path = cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['priors_path']
+            if '$FSLDIR' in priors_path:
+                priors_path = priors_path.replace('$FSLDIR', cfg.pipeline_setup['system_config']['FSLDIR'])
+            val = val.replace('$priors_path', priors_path)
         if '${resolution_for_anat}' in val:
             val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])
         if '${func_resolution}' in val:
@@ -1225,6 +1246,7 @@ def initiate_rpool(wf, cfg, data_paths):
                            f"{key}_config_ingress")
 
     # templates, resampling from config
+    '''
     template_keys = [
         ("anat", ["network_centrality", "template_specification_file"]),
         ("anat", ["nuisance_corrections", "2-nuisance_regression",
@@ -1305,6 +1327,7 @@ def initiate_rpool(wf, cfg, data_paths):
             map_node=True
         )
         cfg.set_nested(cfg, key, node)
+    '''
 
     templates_for_resampling = [
         (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_brain_template'], 'T1w_brain_template', 'resolution_for_anat'),

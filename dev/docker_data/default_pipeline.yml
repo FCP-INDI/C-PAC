@@ -65,14 +65,14 @@ pipeline_setup:
 
     # Select Off if you intend to run CPAC on a single machine.
     # If set to On, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.
-    on_grid:  
+    on_grid:
 
       run: Off
 
       # Sun Grid Engine (SGE), Portable Batch System (PBS), or Simple Linux Utility for Resource Management (SLURM).
       # Only applies if you are running on a grid or compute cluster.
       resource_manager: SGE
-        
+
       SGE:
         # SGE Parallel Environment to use when running CPAC.
         # Only applies when you are running on a grid or compute cluster using SGE.
