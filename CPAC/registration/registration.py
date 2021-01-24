@@ -3,10 +3,14 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
 
+from nipype.interfaces.afni import utils as afni_utils
+
 import nipype.interfaces.c3 as c3
 
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
+
+from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 
 from CPAC.registration.utils import seperate_warps_list, \
                                     check_transforms, \
@@ -83,8 +87,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         if int(num_cpus) > 1 and time_series:
 
             chunk_imports = ['import nibabel as nb']
-            chunk = pe.Node(Function(input_names=['func_file',
-                                                  'n_cpus'],
+            chunk = pe.Node(util.Function(input_names=['func_file',
+                                                       'n_cpus'],
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
@@ -94,8 +98,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             wf.connect(inputNode, 'input_image', chunk, 'func_file')
 
             split_imports = ['import os', 'import subprocess']
-            split = pe.Node(Function(input_names=['func_file',
-                                                  'tr_ranges'],
+            split = pe.Node(util.Function(input_names=['func_file',
+                                                       'tr_ranges'],
                                      output_names=['split_funcs'],
                                      function=split_ts_chunks,
                                      imports=split_imports),
@@ -148,8 +152,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         if int(num_cpus) > 1 and time_series:
 
             chunk_imports = ['import nibabel as nb']
-            chunk = pe.Node(Function(input_names=['func_file',
-                                                  'n_cpus'],
+            chunk = pe.Node(util.Function(input_names=['func_file',
+                                                       'n_cpus'],
                                      output_names=['TR_ranges'],
                                      function=chunk_ts,
                                      imports=chunk_imports),
@@ -160,8 +164,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
             wf.connect(inputNode, 'input_image', chunk, 'func_file')
 
             split_imports = ['import os', 'import subprocess']
-            split = pe.Node(Function(input_names=['func_file',
-                                                  'tr_ranges'],
+            split = pe.Node(util.Function(input_names=['func_file',
+                                                       'tr_ranges'],
                                      output_names=['split_funcs'],
                                      function=split_ts_chunks,
                                      imports=split_imports),

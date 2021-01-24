@@ -239,7 +239,6 @@ class ResourcePool(object):
         if strat:
             resource_strat_dct = self.rpool[resource][strat]
         else:
-            print(self.get_entire_rpool())
             # for strat_pools mainly, where there is no 'strat' key level
             resource_strat_dct = self.rpool[resource]
 
@@ -880,7 +879,7 @@ class NodeBlock(object):
                 if not isinstance(switch, list):
                     switch = [switch]
 
-            print(f'switch and opts for {name}: {switch} --- {opts}')
+            #print(f'switch and opts for {name}: {switch} --- {opts}')
 
             if True in switch:
                 for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
