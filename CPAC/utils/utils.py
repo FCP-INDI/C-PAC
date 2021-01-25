@@ -33,7 +33,29 @@ def check_prov_for_regtool(prov):
     elif 'fsl' in last_node.lower():
         return 'fsl'
     else:
-        return None
+        # go further back in case we're checking against a concatenated
+        # downstream xfm like bold-to-template (and prov is the provenance of
+        # that downstream xfm)
+        if 'from-T1w_to-template_mode-image_xfm:' in str(prov):
+            splitprov = str(prov).split(
+                'from-T1w_to-template_mode-image_xfm:')
+            node_name = splitprov[1].split("']")[0]
+            if 'ANTs' in node_name:
+                return 'ants'
+            elif 'FSL' in node_name:
+                return 'fsl'
+        elif 'from-bold_to-template_mode-image_xfm:' in str(prov):
+            splitprov = str(prov).split(
+                'from-bold_to-template_mode-image_xfm:')
+            node_name = splitprov[1].split("']")[0]
+            if 'ANTs' in node_name:
+                return 'ants'
+            elif 'FSL' in node_name:
+                return 'fsl'
+            else:
+                return None
+        else:
+            return None
 
 
 def check_prov_for_motion_tool(prov):
@@ -76,29 +98,36 @@ def read_json(json_file):
     return json_dct
 
 
-def create_id_string(unique_id, resource, scan_id=None):
+def create_id_string(unique_id, resource, scan_id=None, atlas_id=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
     This is used in the file renaming performed during the Datasink
     connections.
     """
+
+    if atlas_id:
+        resource = f'atlas-{atlas_id}_{resource}'
+
     if scan_id:
         out_filename = f'{unique_id}_task-{scan_id}_{resource}'
     else:
         out_filename = f'{unique_id}_{resource}'
+
     return out_filename
 
 
-def write_output_json(json_data, filename, indent=3):
-    json_file = os.path.join(os.getcwd(), f'{filename}.json')
+def write_output_json(json_data, filename, indent=3, basedir=None):
+    if not basedir:
+        basedir = os.getcwd()
+    json_file = os.path.join(basedir, f'{filename}.json')
     json_data = json.dumps(json_data, indent=indent, sort_keys=True)
     with open(json_file, 'wt') as f:
         f.write(json_data)
     return json_file
 
 
-def get_zscore(input_name, map_node=False, wf_name='z_score'):
+def get_zscore(map_node=False, wf_name='z_score'):
     """
     Workflow to calculate z-scores
 

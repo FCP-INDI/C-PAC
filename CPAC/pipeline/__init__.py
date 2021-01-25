@@ -1,3 +1,4 @@
+from . import engine
 from . import cpac_runner
 from . import cpac_group_runner
 from . import cpac_pipeline

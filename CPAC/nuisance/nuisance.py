@@ -16,6 +16,11 @@ from CPAC import utils
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
+
+from CPAC.registration.registration import warp_timeseries_to_T1template, \
+    warp_timeseries_to_EPItemplate, apply_transform
+from CPAC.aroma.aroma import create_aroma
+
 from CPAC.nuisance.utils import (
     find_offending_time_points,
     generate_summarize_tissue_mask,
@@ -24,8 +29,45 @@ from CPAC.nuisance.utils.compcor import (
     calc_compcor_components,
     cosine_filter,
     TR_string_to_float)
+
 from CPAC.utils.datasource import check_for_s3
 from .bandpass import bandpass_voxels
+
+from CPAC.utils.utils import check_prov_for_regtool
+
+
+def erode_mask(name):
+
+    wf = pe.Workflow(name=name)
+
+    inputspec = pe.Node(util.IdentityInterface(fields=['mask',
+                                                       'erode_mm',
+                                                       'erode_prop']),
+                        name='inputspec')
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['eroded_mask']),
+                         name='outputspec')
+
+    def form_mask_erosion_prop(erosion_prop):
+        return erosion_prop ** 3
+
+    ero_imports = ['import scipy.ndimage as nd', 'import numpy as np',
+                   'import nibabel as nb', 'import os']
+
+    erosion_segmentmap = pe.Node(util.Function(input_names=['roi_mask',
+                                                            'erosion_mm',
+                                                            'erosion_prop'],
+                                               output_names=[
+                                                   'eroded_roi_mask'],
+                                               function=erosion,
+                                               imports=ero_imports),
+                                 name='erode_mask')
+
+    wf.connect(inputspec, 'mask', erosion_segmentmap, 'roi_mask')
+    wf.connect(erosion_segmentmap, 'eroded_roi_mask',
+               outputspec, 'eroded_mask')
+
+    return wf
 
 
 def gather_nuisance(functional_file_path,
@@ -617,9 +659,7 @@ def create_regressor_workflow(nuisance_selectors,
         'func_to_anat_linear_xfm_file_path',
         'anat_to_func_linear_xfm_file_path',
         'mni_to_anat_linear_xfm_file_path',
-        'anat_to_mni_initial_xfm_file_path',
-        'anat_to_mni_rigid_xfm_file_path',
-        'anat_to_mni_affine_xfm_file_path',
+        'anat_to_mni_linear_xfm_file_path',
         'motion_parameters_file_path',
         'fd_j_file_path',
         'fd_p_file_path',
@@ -657,9 +697,7 @@ def create_regressor_workflow(nuisance_selectors,
             "func_to_anat_linear_xfm": (inputspec, "func_to_anat_linear_xfm_file_path"),
             "anat_to_func_linear_xfm": (inputspec, "anat_to_func_linear_xfm_file_path"),
             "mni_to_anat_linear_xfm": (inputspec, "mni_to_anat_linear_xfm_file_path"),
-            "anat_to_mni_initial_xfm": (inputspec, "anat_to_mni_initial_xfm_file_path"),
-            "anat_to_mni_rigid_xfm": (inputspec, "anat_to_mni_rigid_xfm_file_path"),
-            "anat_to_mni_affine_xfm": (inputspec, "anat_to_mni_affine_xfm_file_path"),
+            "anat_to_mni_linear_xfm": (inputspec, "anat_to_mni_linear_xfm_file_path")
         },
 
         "DVARS": (inputspec, 'dvars_file_path'),
@@ -1275,10 +1313,7 @@ def create_regressor_workflow(nuisance_selectors,
         build_nuisance_regressors, 'functional_file_path'
     )
 
-    nuisance_wf.connect(
-        inputspec, 'selector',
-        build_nuisance_regressors, 'selector'
-    )
+    build_nuisance_regressors.inputs.selector = nuisance_selectors
 
     # Check for any regressors to combine into files
     has_nuisance_regressors = any(
@@ -1349,6 +1384,7 @@ def create_nuisance_regression_workflow(nuisance_selectors,
                                         name='nuisance_regression'):
 
     inputspec = pe.Node(util.IdentityInterface(fields=[
+        'selector',
         'functional_file_path',
         'functional_brain_mask_file_path',
         'regressor_file',
@@ -1490,7 +1526,7 @@ def create_nuisance_regression_workflow(nuisance_selectors,
                                 nuisance_regression, 'ort')
     else:
         # there's no regressor file generated if only Bandpass in nuisance_selectors
-        if not ('Bandpass' in nuisance_selectors and len(nuisance_selectors.selector.keys()) == 1):
+        if not ('Bandpass' in nuisance_selectors and len(nuisance_selectors.keys()) == 1):
             nuisance_wf.connect(inputspec, 'regressor_file',
                                 nuisance_regression, 'ort')
 
@@ -1505,7 +1541,8 @@ def filtering_bold_and_regressors(nuisance_selectors,
 
     inputspec = pe.Node(util.IdentityInterface(fields=[
         'functional_file_path',
-        'regressors_file_path'
+        'regressors_file_path',
+        'nuisance_selectors',
     ]), name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(fields=['residual_file_path',
@@ -1545,3 +1582,464 @@ def filtering_bold_and_regressors(nuisance_selectors,
                          outputspec, 'residual_regressor')
 
     return filtering_wf
+
+
+def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "ICA_AROMA_FSLreg",
+     "config": ["nuisance_corrections", "1-ICA-AROMA"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "from-bold_to-template_mode-image_desc-linear_xfm",
+                "from-T1w_to-template_mode-image_xfm"],
+     "outputs": ["desc-cleaned_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance('from-T1w_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    if reg_tool != 'fsl':
+        return (wf, None)
+
+    aroma_preproc = create_aroma(tr=None, wf_name=f'create_aroma_{pipe_num}')
+
+    aroma_preproc.inputs.params.denoise_type = \
+        cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type']
+
+    node, out = strat_pool.get_data(["desc-brain_bold", "desc-motion_bold",
+                                     "desc-preproc_bold", "bold"])
+    wf.connect(node, out, aroma_preproc, 'inputspec.denoise_file')
+
+    node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
+    wf.connect(node, out, aroma_preproc, 'inputspec.mat_file')
+
+    node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
+    wf.connect(node, out, aroma_preproc, 'inputspec.fnirt_warp_file')
+
+    if cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type'] == 'nonaggr':
+        node, out = (aroma_preproc, 'outputspec.nonaggr_denoised_file')
+    elif cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type'] == 'aggr':
+        node, out = (aroma_preproc, 'outputspec.aggr_denoised_file')
+
+    outputs = {
+        'desc-cleaned_bold': (node, out)
+    }
+
+    return (wf, outputs)
+
+
+def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "ICA_AROMA_ANTsreg",
+     "config": ["nuisance_corrections", "1-ICA-AROMA"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "from-bold_to-template_mode-image_xfm",
+                "from-template_to-bold_mode-image_xfm",
+                "T1w_brain_template_funcreg"],
+     "outputs": ["desc-cleaned_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    if reg_tool != 'ants':
+        return (wf, None)
+
+    aroma_preproc = create_aroma(tr=None, wf_name=f'create_aroma_{pipe_num}')
+    aroma_preproc.inputs.params.denoise_type = \
+        cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type']
+
+    wf, outputs = warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num)
+    for key, val in outputs.items():
+        node, out = val
+
+    wf.connect(node, out, aroma_preproc, 'inputspec.denoise_file')
+
+    apply_xfm = apply_transform(f'ICA-AROMA_ANTs_template_to_bold_{pipe_num}',
+                                reg_tool=reg_tool)
+    apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+
+    if cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type'] == 'nonaggr':
+        node, out = (aroma_preproc, 'outputspec.nonaggr_denoised_file')
+    elif cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type'] == 'aggr':
+        node, out = (aroma_preproc, 'outputspec.aggr_denoised_file')
+
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-preproc_bold",
+                                     "desc-reorient_bold", "bold"])
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data('from-template_to-bold_mode-image_xfm')
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'desc-cleaned_bold': (apply_xfm, 'outputspec.out_file')
+    }
+
+    return (wf, outputs)
+
+
+def ICA_AROMA_EPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "ICA_AROMA_EPIreg",
+     "config": ["nuisance_corrections", "1-ICA-AROMA"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "from-bold_to-template_mode-image_xfm",
+                "EPI_template"],
+     "outputs": ["desc-cleaned_bold"]}
+    '''
+
+    aroma_preproc = create_aroma(tr=None, wf_name=f'create_aroma_{pipe_num}')
+    aroma_preproc.inputs.params.denoise_type = \
+        cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type']
+
+    wf, outputs = warp_timeseries_to_EPItemplate(wf, cfg, strat_pool,
+                                                 pipe_num)
+    for key, val in outputs.items():
+        node, out = val
+
+    wf.connect(node, out, aroma_preproc, 'inputspec.denoise_file')
+
+    if cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type'] == 'nonaggr':
+        node, out = (aroma_preproc, 'outputspec.nonaggr_denoised_file')
+    elif cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type'] == 'aggr':
+        node, out = (aroma_preproc, 'outputspec.aggr_denoised_file')
+
+    outputs = {
+        'desc-cleaned_bold': (node, out)
+    }
+
+    return (wf, outputs)
+
+
+def erode_mask_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "erode_mask_T1w",
+     "config": ["nuisance_corrections", "2-nuisance_regression",
+                "regressor_masks", "erode_anatomical_brain_mask"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-T1w_desc-brain_mask"],
+     "outputs": ["space-T1w_desc-eroded_mask"]}
+    '''
+
+    erode = erode_mask(f'erode_T1w_mask_{pipe_num}')
+    erode.inputs.inputspec.erode_mm = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks'][
+        'erode_anatomical_brain_mask']['brain_mask_erosion_mm']
+    erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks'][
+        'erode_anatomical_brain_mask']['brain_mask_erosion_prop']
+
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, erode, 'inputspec.mask')
+
+    outputs = {
+        'space-T1w_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
+    }
+
+    return (wf, outputs)
+
+
+def erode_mask_CSF(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "erode_mask_CSF",
+     "config": ["nuisance_corrections", "2-nuisance_regression",
+                "regressor_masks", "erode_csf"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["label-CSF_mask"],
+     "outputs": ["label-CSF_desc-eroded_mask"]}
+    '''
+
+    erode = erode_mask(f'erode_CSF_mask_{pipe_num}')
+    erode.inputs.inputspec.erode_mm = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_csf'][
+        'csf_erosion_mm']
+    erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_csf'][
+        'csf_erosion_prop']
+
+    node, out = strat_pool.get_data('label-CSF_mask')
+    wf.connect(node, out, erode, 'inputspec.mask')
+
+    outputs = {
+        'label-CSF_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
+    }
+
+    return (wf, outputs)
+
+
+def erode_mask_GM(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "erode_mask_GM",
+     "config": ["nuisance_corrections", "2-nuisance_regression",
+                "regressor_masks", "erode_gm"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["label-GM_mask"],
+     "outputs": ["label-GM_desc-eroded_mask"]}
+    '''
+
+    erode = erode_mask(f'erode_GM_mask_{pipe_num}')
+    erode.inputs.inputspec.erode_mm = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_gm'][
+        'gm_erosion_mm']
+    erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_gm'][
+        'gm_erosion_prop']
+
+    node, out = strat_pool.get_data('label-GM_mask')
+    wf.connect(node, out, erode, 'inputspec.mask')
+
+    outputs = {
+        'label-GM_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
+    }
+
+    return (wf, outputs)
+
+
+def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "erode_mask_WM",
+     "config": ["nuisance_corrections", "2-nuisance_regression",
+                "regressor_masks", "erode_wm"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["label-WM_mask"],
+     "outputs": ["label-WM_desc-eroded_mask"]}
+    '''
+
+    erode = erode_mask(f'erode_WM_mask_{pipe_num}')
+    erode.inputs.inputspec.erode_mm = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_wm'][
+        'wm_erosion_mm']
+    erode.inputs.inputspec.erode_prop = cfg.nuisance_corrections[
+        '2-nuisance_regression']['regressor_masks']['erode_wm'][
+        'wm_erosion_prop']
+
+    node, out = strat_pool.get_data('label-WM_desc-brain_mask')
+    wf.connect(node, out, erode, 'inputspec.mask')
+
+    outputs = {
+        'label-CSF_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
+    }
+
+    return (wf, outputs)
+
+
+def create_nuisance_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "create_nuisance_regressors",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": "None",
+     "option_key": "Regressors",
+     "option_val": "USER-DEFINED",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "space-bold_desc-brain_mask",
+                "desc-brain_T1w",
+                ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
+                ["label-CSF_desc-eroded_mask", "label-CSF_mask"],
+                ["label-WM_desc-eroded_mask", "label-WM_mask"],
+                ["label-GM_desc-eroded_mask", "label-GM_mask"],
+                "lateral_ventricles_mask",
+                "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                "from-T1w_to-bold_mode-image_desc-linear_xfm",
+                "from-template_to-T1w_mode-image_desc-linear_xfm",
+                "from-T1w_to-template_mode-image_desc-linear_xfm",
+                "movement_parameters",
+                "framewise_displacement_jenkinson",
+                "framewise_displacement_power",
+                "dvars",
+                "TR"],
+     "outputs": ["regressors"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-template_to-T1w_mode-image_desc-linear_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    use_ants = reg_tool == 'ants'
+    ventricle = strat_pool.check_rpool('lateral_ventricles_mask')
+
+    regressors = create_regressor_workflow(opt, use_ants,
+                                           ventricle_mask_exist=ventricle,
+                                           name='nuisance_regressors_'
+                                                f'{opt["Name"]}_{pipe_num}')
+
+    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-preproc_bold",
+                                     "desc-reorient_bold", "bold"])
+    wf.connect(node, out, regressors, 'inputspec.functional_file_path')
+
+    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out, regressors, 'inputspec.functional_brain_mask_file_path')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, regressors, 'inputspec.anatomical_file_path')
+
+    node, out = strat_pool.get_data(["space-T1w_desc-eroded_mask",
+                                     "space-T1w_desc-brain_mask"])
+    wf.connect(node, out, regressors, 'inputspec.anatomical_eroded_brain_mask_file_path')
+
+    node, out = strat_pool.get_data(["label-CSF_desc-eroded_mask",
+                                     "label-CSF_mask"])
+    wf.connect(node, out, regressors, 'inputspec.csf_mask_file_path')
+
+    node, out = strat_pool.get_data(["label-WM_desc-eroded_mask",
+                                     "label-WM_mask"])
+    wf.connect(node, out, regressors, 'inputspec.wm_mask_file_path')
+
+    node, out = strat_pool.get_data(["label-GM_desc-eroded_mask",
+                                     "label-GM_mask"])
+    wf.connect(node, out, regressors, 'inputspec.gm_mask_file_path')
+
+    node, out = strat_pool.get_data('lateral_ventricles_mask')
+    wf.connect(node, out, regressors, 'inputspec.lat_ventricles_mask_file_path')
+
+    node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+    wf.connect(node, out, regressors, 'inputspec.func_to_anat_linear_xfm_file_path')
+
+    # invert func2anat matrix to get anat2func_linear_xfm
+    anat2func_linear_xfm = pe.Node(interface=fsl.ConvertXFM(),
+                                   name=f'anat_to_func_linear_xfm_'
+                                        f'{opt["Name"]}_{pipe_num}')
+    anat2func_linear_xfm.inputs.invert_xfm = True
+    wf.connect(node, out, anat2func_linear_xfm, 'in_file')
+
+    wf.connect(anat2func_linear_xfm, 'out_file',
+               regressors, 'inputspec.anat_to_func_linear_xfm_file_path')
+
+    node, out = strat_pool.get_data('from-template_to-T1w_mode-image_desc-linear_xfm')
+    wf.connect(node, out, regressors, 'inputspec.mni_to_anat_linear_xfm_file_path')
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_desc-linear_xfm')
+    wf.connect(node, out, regressors, 'inputspec.anat_to_mni_linear_xfm_file_path')
+
+    node, out = strat_pool.get_data('movement_parameters')
+    wf.connect(node, out, regressors, 'inputspec.motion_parameters_file_path')
+
+    node, out = strat_pool.get_data('framewise_displacement_jenkinson')
+    wf.connect(node, out, regressors, 'inputspec.fd_j_file_path')
+
+    node, out = strat_pool.get_data('framewise_displacement_power')
+    wf.connect(node, out, regressors, 'inputspec.fd_p_file_path')
+
+    node, out = strat_pool.get_data('dvars')
+    wf.connect(node, out, regressors, 'inputspec.dvars_file_path')
+
+    node, out = strat_pool.get_data('TR')
+    wf.connect(node, out, regressors, 'inputspec.tr')
+
+    outputs = {
+        'regressors': (regressors, 'outputspec.regressors_file_path')
+    }
+
+    return (wf, outputs)
+
+
+def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "nuisance_regression",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["run"],
+     "option_key": "Regressors",
+     "option_val": "USER-DEFINED",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "regressors",
+                "space-bold_desc-brain_mask",
+                "framewise_displacement_jenkinson",
+                "framewise_displacement_power",
+                "dvars"],
+     "outputs": ["desc-cleaned_bold"]}
+    '''
+
+    nuis = create_nuisance_regression_workflow(opt, name='nuisance_regression'
+                                               f'_{opt["Name"]}_{pipe_num}')
+
+    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-preproc_bold",
+                                     "desc-reorient_bold", "bold"])
+    wf.connect(node, out, nuis, 'inputspec.functional_file_path')
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, nuis, 'inputspec.functional_brain_mask_file_path')
+
+    node, out = strat_pool.get_data("regressors")
+    wf.connect(node, out, nuis, 'inputspec.regressor_file')
+
+    node, out = strat_pool.get_data("framewise_displacement_jenkinson")
+    wf.connect(node, out, nuis, 'inputspec.fd_j_file_path')
+
+    node, out = strat_pool.get_data("framewise_displacement_power")
+    wf.connect(node, out, nuis, 'inputspec.fd_p_file_path')
+
+    node, out = strat_pool.get_data("dvars")
+    wf.connect(node, out, nuis, 'inputspec.dvars_file_path')
+
+    outputs = {
+        'desc-cleaned_bold': (nuis, 'outputspec.residual_file_path')
+    }
+
+    return (wf, outputs)
+
+
+def frequency_filter(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "frequency_filter",
+     "config": ["nuisance_corrections", "2-nuisance_regression"],
+     "switch": ["run"],
+     "option_key": "Regressors",
+     "option_val": "USER-DEFINED",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "regressors"],
+     "outputs": ["desc-cleaned_bold",
+                 "regressors"]}
+    '''
+
+    filt = filtering_bold_and_regressors(opt, name=f'filtering_bold_and_'
+                                         f'regressors_{opt["Name"]}_{pipe_num}')
+
+    filt.inputs.inputspec.nuisance_selectors = opt
+
+    node, out = strat_pool.get_data(["desc-cleaned_bold", "desc-preproc_bold",
+                                     "desc-reorient_bold", "bold"])
+    wf.connect(node, out, filt, 'inputspec.functional_file_path')
+
+    node, out = strat_pool.get_data(["regressors"])
+    wf.connect(node, out, filt, 'inputspec.regressors_file_path')
+
+    outputs = {
+        'desc-cleaned_bold':
+            (filt, 'outputspec.residual_file_path'),
+        'regressors':
+            (filt, 'outputspec.residual_regressor')
+    }
+
+    return (wf, outputs)

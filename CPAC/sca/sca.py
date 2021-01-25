@@ -5,7 +5,14 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
+
 from CPAC.sca.utils import *
+from CPAC.utils.utils import extract_one_d
+from CPAC.utils.datasource import resample_func_roi, \
+    create_roi_mask_dataflow, create_spatial_map_dataflow
+
+from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
+    get_spatial_map_timeseries
 
 
 def create_sca(name_sca='sca'):
@@ -371,3 +378,290 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                       outputNode, 'temp_reg_map_z_files')
 
     return wflow
+
+
+def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Run Seed-Based Correlation Analysis.
+
+    Node Block:
+    {"name": "SCA_AVG",
+     "config": ["seed_based_correlation_analysis"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"]],
+     "outputs": ["desc-MeanSCA_timeseries",
+                 "desc-MeanSCA_correlations",
+                 "atlas_name"]}
+    '''
+
+    # same workflow, except to run TSE and send it to the resource
+    # pool so that it will not get sent to SCA
+    resample_functional_roi_for_sca = pe.Node(util.Function(input_names=['in_func',
+                                                                    'in_roi',
+                                                                    'realignment',
+                                                                    'identity_matrix'],
+                                                       output_names=[
+                                                           'out_func',
+                                                           'out_roi'],
+                                                       function=resample_func_roi,
+                                                       as_module=True),
+                                              name=f'resample_functional_roi_for_sca_{pipe_num}')
+
+    resample_functional_roi_for_sca.inputs.realignment = \
+        cfg.timeseries_extraction['realignment']
+    resample_functional_roi_for_sca.inputs.identity_matrix = \
+    cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+
+    roi_dataflow_for_sca = create_roi_mask_dataflow(
+        cfg.seed_based_correlation_analysis['sca_atlases']['Avg'],
+        f'roi_dataflow_for_sca_{pipe_num}'
+    )
+
+    roi_dataflow_for_sca.inputs.inputspec.set(
+        creds_path=cfg.pipeline_setup['input_creds_path'],
+        dl_dir=cfg.pipeline_setup['working_directory']['path']
+    )
+
+    roi_timeseries_for_sca = get_roi_timeseries(
+        f'roi_timeseries_for_sca_{pipe_num}')
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    # resample the input functional file to roi
+    wf.connect(node, out,
+                     resample_functional_roi_for_sca, 'in_func')
+    wf.connect(roi_dataflow_for_sca, 'outputspec.out_file',
+                     resample_functional_roi_for_sca, 'in_roi')
+
+    # connect it to the roi_timeseries
+    wf.connect(resample_functional_roi_for_sca, 'out_roi',
+                     roi_timeseries_for_sca, 'input_roi.roi')
+    wf.connect(resample_functional_roi_for_sca, 'out_func',
+                     roi_timeseries_for_sca, 'inputspec.rest')
+
+    sca_roi = create_sca(f'sca_roi_{pipe_num}')
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    wf.connect(node, out, sca_roi, 'inputspec.functional_file')
+
+    wf.connect(roi_timeseries_for_sca,
+               ('outputspec.roi_outputs', extract_one_d),
+               sca_roi, 'inputspec.timeseries_one_d')
+
+    outputs = {
+        'desc-MeanSCA_timeseries': (roi_timeseries_for_sca,
+                                    ('outputspec.roi_outputs',
+                                     extract_one_d)),
+        'desc-MeanSCA_correlations':
+            (sca_roi, 'outputspec.correlation_files'),
+        'atlas_name': (roi_dataflow_for_sca, 'outputspec.out_name')
+    }
+
+    return (wf, outputs)
+
+
+def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Run Dual Regression - spatial regression and then temporal regression.
+
+    Node Block:
+    {"name": "dual_regression",
+     "config": ["seed_based_correlation_analysis"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"],
+                "space-template_desc-bold_mask"],
+     "outputs": ["desc-DualReg_correlations",
+                 "desc-DualReg_statmap",
+                 "atlas_name"]}
+    '''
+
+    resample_spatial_map_to_native_space_for_dr = pe.Node(
+        interface=fsl.FLIRT(),
+        name=f'resample_spatial_map_to_native_space_for_DR_{pipe_num}'
+    )
+    resample_spatial_map_to_native_space_for_dr.inputs.set(
+        interp='nearestneighbour',
+        apply_xfm=True,
+        in_matrix_file=
+        cfg.registration_workflows['functional_registration'][
+            'func_registration_to_template']['FNIRT_pipelines'][
+            'identity_matrix']
+    )
+
+    spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
+        cfg.seed_based_correlation_analysis['sca_atlases']['DualReg'],
+        f'spatial_map_dataflow_for_DR_{pipe_num}'
+    )
+
+    spatial_map_dataflow_for_dr.inputs.inputspec.set(
+        creds_path=cfg.pipeline_setup['input_creds_path'],
+        dl_dir=cfg.pipeline_setup['working_directory']['path']
+    )
+
+    spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
+        f'spatial_map_timeseries_for_DR_{pipe_num}'
+    )
+    spatial_map_timeseries_for_dr.inputs.inputspec.demean = True
+
+    # resample the input functional file and functional mask
+    # to spatial map
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    wf.connect(node, out,
+               resample_spatial_map_to_native_space_for_dr, 'reference')
+    wf.connect(node, out,
+               spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
+
+    wf.connect(spatial_map_dataflow_for_dr, 'select_spatial_map.out_file',
+               resample_spatial_map_to_native_space_for_dr, 'in_file')
+
+    # connect it to the spatial_map_timeseries
+    wf.connect(resample_spatial_map_to_native_space_for_dr, 'out_file',
+               spatial_map_timeseries_for_dr, 'inputspec.spatial_map'
+    )
+
+    dr_temp_reg = create_temporal_reg(f'temporal_regression_{pipe_num}')
+    dr_temp_reg.inputs.inputspec.normalize = \
+        cfg.seed_based_correlation_analysis['norm_timeseries_for_DR']
+    dr_temp_reg.inputs.inputspec.demean = True
+
+    wf.connect(spatial_map_timeseries_for_dr, 'outputspec.subject_timeseries',
+               dr_temp_reg, 'inputspec.subject_timeseries')
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    wf.connect(node, out, dr_temp_reg, 'inputspec.subject_rest')
+
+    node, out = strat_pool.get_data("space-template_desc-bold_mask")
+    wf.connect(node, out, dr_temp_reg, 'inputspec.subject_mask')
+
+    outputs = {
+        'desc-DualReg_correlations':
+            (dr_temp_reg, 'outputspec.temp_reg_map_files'),
+        'desc-DualReg_statmap':
+            (dr_temp_reg, 'outputspec.temp_reg_map_z_files'),
+        'atlas_name':
+            (spatial_map_dataflow_for_dr, 'select_spatial_map.out_name')
+    }
+
+    return (wf, outputs)
+
+
+def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Run Multiple Regression.
+
+    Node Block:
+    {"name": "multiple_regression",
+     "config": ["seed_based_correlation_analysis"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"],
+                "space-template_desc-bold_mask"],
+     "outputs": ["desc-MultReg_correlations",
+                 "desc-MultReg_statmap",
+                 "atlas_name"]}
+    '''
+
+    # same workflow, except to run TSE and send it to the resource
+    # pool so that it will not get sent to SCA
+    resample_functional_roi_for_multreg = pe.Node(
+        util.Function(input_names=['in_func',
+                              'in_roi',
+                              'realignment',
+                              'identity_matrix'],
+                 output_names=['out_func',
+                               'out_roi'],
+                 function=resample_func_roi,
+                 as_module=True),
+        name=f'resample_functional_roi_for_multreg_{pipe_num}')
+
+    resample_functional_roi_for_multreg.inputs.realignment = \
+    cfg.timeseries_extraction['realignment']
+    resample_functional_roi_for_multreg.inputs.identity_matrix = \
+    cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+
+    roi_dataflow_for_multreg = create_roi_mask_dataflow(
+        cfg.seed_based_correlation_analysis['sca_atlases']['MultReg'],
+        f'roi_dataflow_for_mult_reg_{pipe_num}')
+
+    roi_dataflow_for_multreg.inputs.inputspec.set(
+        creds_path=cfg.pipeline_setup['input_creds_path'],
+        dl_dir=cfg.pipeline_setup['working_directory']['path']
+    )
+
+    roi_timeseries_for_multreg = get_roi_timeseries(
+        f'roi_timeseries_for_mult_reg_{pipe_num}')
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    # resample the input functional file to roi
+    wf.connect(node, out, resample_functional_roi_for_multreg, 'in_func')
+    wf.connect(roi_dataflow_for_multreg,
+                     'outputspec.out_file',
+                     resample_functional_roi_for_multreg,
+                     'in_roi')
+
+    # connect it to the roi_timeseries
+    wf.connect(resample_functional_roi_for_multreg,
+                     'out_roi',
+                     roi_timeseries_for_multreg,
+                     'input_roi.roi')
+    wf.connect(resample_functional_roi_for_multreg,
+                     'out_func',
+                     roi_timeseries_for_multreg,
+                     'inputspec.rest')
+
+    sc_temp_reg = create_temporal_reg(
+        f'temporal_regression_sca_{pipe_num}',
+        which='RT')
+    sc_temp_reg.inputs.inputspec.normalize = \
+    cfg.seed_based_correlation_analysis['norm_timeseries_for_DR']
+    sc_temp_reg.inputs.inputspec.demean = True
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    wf.connect(node, out, sc_temp_reg, 'inputspec.subject_rest')
+
+    wf.connect(roi_timeseries_for_multreg, ('outputspec.roi_outputs',
+                                            extract_one_d),
+                     sc_temp_reg, 'inputspec.subject_timeseries')
+
+    node, out = strat_pool.get_data('space-template_desc-bold_mask')
+    wf.connect(node, out, sc_temp_reg, 'inputspec.subject_mask')
+
+    outputs = {
+        'desc-MultReg_correlations':
+            (sc_temp_reg, 'outputspec.temp_reg_map_files'),
+        'desc-MultReg_statmap':
+            (sc_temp_reg, 'outputspec.temp_reg_map_z_files'),
+        'atlas_name': (roi_dataflow_for_multreg, 'outputspec.out_name')
+    }
+
+    return (wf, outputs)

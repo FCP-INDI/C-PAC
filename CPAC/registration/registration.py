@@ -3,17 +3,237 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
 
+from nipype.interfaces.afni import utils as afni_utils
+
+import nipype.interfaces.c3 as c3
+
+
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 
+from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
+
 from CPAC.registration.utils import seperate_warps_list, \
-    check_transforms, \
-    generate_inverse_transform_flags, \
-    single_ants_xfm_to_list, \
-    interpolation_string, \
-    hardcoded_reg
+                                    check_transforms, \
+                                    generate_inverse_transform_flags, \
+                                    single_ants_xfm_to_list, \
+                                    interpolation_string, \
+                                    change_itk_transform_type, \
+                                    hardcoded_reg
+
+from CPAC.utils.utils import check_prov_for_regtool
+
+
+def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
+                    num_cpus=1, num_ants_cores=1):
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=['input_image',
+                                       'reference',
+                                       'transform',
+                                       'interpolation']),
+        name='inputspec')
+
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=['output_image']),
+        name='outputspec')
+
+    if int(num_cpus) > 1 and time_series:
+        # parallelize time series warp application
+        # we need the node to be a MapNode to feed in the list of functional
+        # time series chunks
+        multi_input = True
+
+    if reg_tool == 'ants':
+
+        input_image_type = 1
+        if time_series:
+            input_image_type = 3
+
+        if multi_input:
+            apply_warp = pe.MapNode(interface=ants.ApplyTransforms(),
+                                    name=f'apply_warp_{wf_name}',
+                                    iterfield=['input_image'])
+        else:
+            apply_warp = pe.Node(interface=ants.ApplyTransforms(),
+                                 name=f'apply_warp_{wf_name}')
+
+        apply_warp.inputs.dimension = 3
+        apply_warp.inputs.input_image_type = input_image_type
+        apply_warp.interface.num_threads = int(num_ants_cores)
+
+        wf.connect(inputNode, 'reference', apply_warp, 'reference_image')
+
+        interp_string = pe.Node(util.Function(input_names=['interpolation',
+                                                           'reg_tool'],
+                                              output_names=['interpolation'],
+                                              function=interpolation_string),
+                                name=f'interp_string')
+        interp_string.inputs.reg_tool = reg_tool
+
+        wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
+        wf.connect(interp_string, 'interpolation',
+                   apply_warp, 'interpolation')
+
+        ants_xfm_list = \
+            pe.Node(util.Function(input_names=['transform'],
+                                  output_names=['transform_list'],
+                                  function=single_ants_xfm_to_list),
+                    name=f'single_ants_xfm_to_list')
+
+        wf.connect(inputNode, 'transform', ants_xfm_list, 'transform')
+        wf.connect(ants_xfm_list, 'transform_list', apply_warp, 'transforms')
+
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
+        if int(num_cpus) > 1 and time_series:
+
+            chunk_imports = ['import nibabel as nb']
+            chunk = pe.Node(util.Function(input_names=['func_file',
+                                                       'n_cpus'],
+                                     output_names=['TR_ranges'],
+                                     function=chunk_ts,
+                                     imports=chunk_imports),
+                            name=f'chunk_{wf_name}')
+
+            chunk.inputs.n_cpus = int(num_cpus)
+            wf.connect(inputNode, 'input_image', chunk, 'func_file')
+
+            split_imports = ['import os', 'import subprocess']
+            split = pe.Node(util.Function(input_names=['func_file',
+                                                       'tr_ranges'],
+                                     output_names=['split_funcs'],
+                                     function=split_ts_chunks,
+                                     imports=split_imports),
+                            name=f'split_{wf_name}')
+
+            wf.connect(inputNode, 'input_image', split, 'func_file')
+            wf.connect(chunk, 'TR_ranges', split, 'tr_ranges')
+
+            wf.connect(split, 'split_funcs', apply_warp, 'input_image')
+
+            func_concat = pe.Node(interface=afni_utils.TCat(),
+                                  name=f'func_concat_{wf_name}')
+            func_concat.inputs.outputtype = 'NIFTI_GZ'
+
+            wf.connect(apply_warp, 'output_image', func_concat, 'in_files')
+
+            wf.connect(func_concat, 'out_file', outputNode, 'output_image')
+
+        else:
+            wf.connect(inputNode, 'input_image', apply_warp, 'input_image')
+            wf.connect(apply_warp, 'output_image', outputNode, 'output_image')
+
+    elif reg_tool == 'fsl':
+
+        if multi_input:
+            apply_warp = pe.MapNode(interface=fsl.FLIRT(),
+                                    name=f'fsl_apply_warp',
+                                    iterfield=['in_file'])
+        else:
+            apply_warp = pe.Node(interface=fsl.FLIRT(),
+                                 name='fsl_apply_warp')
+
+        apply_warp.inputs.apply_xfm = True
+
+        interp_string = pe.Node(util.Function(input_names=['interpolation',
+                                                           'reg_tool'],
+                                              output_names=['interpolation'],
+                                              function=interpolation_string),
+                                name=f'interp_string')
+        interp_string.inputs.reg_tool = reg_tool
+
+        wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
+        wf.connect(interp_string, 'interpolation', apply_warp, 'interp')
+
+        # mni to t1
+        wf.connect(inputNode, 'reference', apply_warp, 'reference')
+        wf.connect(inputNode, 'transform', apply_warp, 'in_matrix_file')
+
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
+        if int(num_cpus) > 1 and time_series:
+
+            chunk_imports = ['import nibabel as nb']
+            chunk = pe.Node(util.Function(input_names=['func_file',
+                                                       'n_cpus'],
+                                     output_names=['TR_ranges'],
+                                     function=chunk_ts,
+                                     imports=chunk_imports),
+                            name=f'chunk_{wf_name}')
+
+            chunk.inputs.n_cpus = int(num_cpus)
+
+            wf.connect(inputNode, 'input_image', chunk, 'func_file')
+
+            split_imports = ['import os', 'import subprocess']
+            split = pe.Node(util.Function(input_names=['func_file',
+                                                       'tr_ranges'],
+                                     output_names=['split_funcs'],
+                                     function=split_ts_chunks,
+                                     imports=split_imports),
+                            name=f'split_{wf_name}')
+
+            wf.connect(inputNode, 'input_image', split, 'func_file')
+            wf.connect(chunk, 'TR_ranges', split, 'tr_ranges')
+
+            wf.connect(split, 'split_funcs', apply_warp, 'in_file')
+
+            func_concat = pe.Node(interface=afni_utils.TCat(),
+                                  name=f'func_concat{wf_name}')
+            func_concat.inputs.outputtype = 'NIFTI_GZ'
+
+            wf.connect(apply_warp, 'out_file', func_concat, 'in_files')
+
+            wf.connect(func_concat, 'out_file', outputNode, 'output_image')
+
+        else:
+            wf.connect(inputNode, 'input_image', apply_warp, 'in_file')
+            wf.connect(apply_warp, 'out_file', outputNode, 'output_image')
+
+    return wf
+
+
+def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
+                         ants_interp=None, fsl_interp=None, opt=None):
+    '''Transform output derivatives to template space.
+
+    This function is designed for use with the NodeBlock connection engine.
+    '''
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['in_file',
+                                                       'reference',
+                                                       'transform']),
+                        name='inputspec')
+
+
+
+    apply_xfm = apply_transform(f'warp_{label}_to_template', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = ants_interp
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = fsl_interp
+
+    wf.connect(inputnode, 'in_file', apply_xfm, 'inputspec.input_image')
+    wf.connect(inputnode, 'reference', apply_xfm, 'inputspec.reference')
+    wf.connect(inputnode, 'transform', apply_xfm, 'inputspec.transform')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
+                         name='outputspec')
+
+    wf.connect(apply_xfm, 'outputspec.output_image', outputnode, 'out_file')
+
+    return wf
 
 
 def create_fsl_flirt_linear_reg(name='fsl_flirt_linear_reg'):
+
     linear_register = pe.Workflow(name=name)
 
     inputspec = pe.Node(util.IdentityInterface(fields=['input_brain',
@@ -173,132 +393,9 @@ def create_fsl_fnirt_nonlinear_reg(name='fsl_fnirt_nonlinear_reg'):
     return nonlinear_register
 
 
-def create_register_func_to_mni(name='register_func_to_mni'):
-    """
-    Registers a functional scan in native space to MNI standard space.
-    This is meant to be used after create_nonlinear_register() has been
-    run and relies on some of it's outputs.
-
-    Parameters
-    ----------
-    name : string, optional
-        Name of the workflow.
-
-    Returns
-    -------
-    register_func_to_mni : nipype.pipeline.engine.Workflow
-
-    Notes
-    -----
-
-    Workflow Inputs::
-
-        inputspec.func : string (nifti file)
-            Input functional scan to be registered to MNI space
-        inputspec.mni : string (nifti file)
-            Reference MNI file
-        inputspec.anat : string (nifti file)
-            Corresponding anatomical scan of subject
-        inputspec.interp : string
-            Type of interpolation to use
-            ('trilinear' or 'nearestneighbour' or 'sinc')
-        inputspec.anat_to_mni_nonlinear_xfm : string (warp file)
-            Corresponding anatomical native space to MNI warp file
-        inputspec.anat_to_mni_linear_xfm : string (mat file)
-            Corresponding anatomical native space to MNI mat file
-
-    Workflow Outputs::
-
-        outputspec.func_to_anat_linear_xfm : string (mat file)
-            Affine transformation from functional to anatomical native space
-        outputspec.func_to_mni_linear_xfm : string (mat file)
-            Affine transformation from functional to MNI space
-        outputspec.mni_to_func_linear_xfm : string (mat file)
-            Affine transformation from MNI to functional space
-        outputspec.mni_func : string (nifti file)
-            Functional scan registered to MNI standard space
-
-    .. exec::
-        from CPAC.registration import create_register_func_to_mni
-        wf = create_register_func_to_mni()
-        wf.write_graph(
-            graph2use='orig',
-            dotfilename='./images/generated/register_func_to_mni.dot'
-        )
-
-    Workflow Graph:
-
-    .. image:: ../../images/generated/register_func_to_mni.png
-        :width: 500
-
-    Detailed Workflow Graph:
-    .. image:: ../images/register_func_to_mni_detailed.dot.png
-        :width: 500
-    """
-    register_func_to_mni = pe.Workflow(name=name)
-
-    inputspec = pe.Node(util.IdentityInterface(
-        fields=['func', 'mni', 'anat', 'interp', 'anat_to_mni_nonlinear_xfm',
-                'anat_to_mni_linear_xfm']),
-        name='inputspec')
-    outputspec = pe.Node(util.IdentityInterface(
-        fields=['func_to_anat_linear_xfm', 'func_to_mni_linear_xfm',
-                'mni_to_func_linear_xfm', 'mni_func']),
-        name='outputspec')
-
-    linear_reg = pe.Node(interface=fsl.FLIRT(),
-                         name='linear_func_to_anat')
-    linear_reg.inputs.cost = 'corratio'
-    linear_reg.inputs.dof = 6
-
-    mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-                       name='mni_warp')
-
-    mni_affine = pe.Node(interface=fsl.ConvertXFM(),
-                         name='mni_affine')
-    mni_affine.inputs.concat_xfm = True
-    register_func_to_mni.connect(linear_reg, 'out_matrix_file',
-                                 mni_affine, 'in_file2')
-    register_func_to_mni.connect(inputspec, 'anat_to_mni_linear_xfm',
-                                 mni_affine, 'in_file')
-    register_func_to_mni.connect(mni_affine, 'out_file',
-                                 outputspec, 'func_to_mni_linear_xfm')
-
-    inv_mni_affine = pe.Node(interface=fsl.ConvertXFM(),
-                             name='inv_mni_affine')
-    inv_mni_affine.inputs.invert_xfm = True
-    register_func_to_mni.connect(mni_affine, 'out_file',
-                                 inv_mni_affine, 'in_file')
-    register_func_to_mni.connect(inv_mni_affine, 'out_file',
-                                 outputspec, 'mni_to_func_linear_xfm')
-
-    register_func_to_mni.connect(inputspec, 'func',
-                                 linear_reg, 'in_file')
-    register_func_to_mni.connect(inputspec, 'anat',
-                                 linear_reg, 'reference')
-    register_func_to_mni.connect(inputspec, 'interp',
-                                 linear_reg, 'interp')
-
-    register_func_to_mni.connect(inputspec, 'func',
-                                 mni_warp, 'in_file')
-    register_func_to_mni.connect(inputspec, 'mni',
-                                 mni_warp, 'ref_file')
-    register_func_to_mni.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
-                                 mni_warp, 'field_file')
-
-    register_func_to_mni.connect(linear_reg, 'out_matrix_file',
-                                 mni_warp, 'premat')
-
-    register_func_to_mni.connect(linear_reg, 'out_matrix_file',
-                                 outputspec, 'func_to_anat_linear_xfm')
-    register_func_to_mni.connect(mni_warp, 'out_file',
-                                 outputspec, 'mni_func')
-
-    return register_func_to_mni
-
-
 def create_register_func_to_anat(phase_diff_distcor=False,
                                  name='register_func_to_anat'):
+
     """
     Registers a functional scan in native space to anatomical space using a
     linear transform and does not include bbregister.
@@ -406,6 +503,7 @@ def create_register_func_to_anat(phase_diff_distcor=False,
 
 def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                    name='bbregister_func_to_anat'):
+
     """
     Registers a functional scan in native space to structural.  This is
     meant to be used after create_nonlinear_register() has been run and
@@ -455,8 +553,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                                        'anat_wm_segmentation',
                                                        'bbr_schedule',
                                                        'fieldmap',
-                                                       'fieldmapmask'
-                                                       ]),
+                                                       'fieldmapmask']),
                         name='inputspec')
 
     inputNode_echospacing = pe.Node(
@@ -546,177 +643,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
     return register_bbregister_func_to_anat
 
 
-def create_register_func_to_epi(
-        name='register_func_to_epi', reg_option='ANTS', reg_ants_skull=1
-):
-    register_func_to_epi = pe.Workflow(name=name)
-
-    inputspec = pe.Node(util.IdentityInterface(fields=['func_4d',
-                                                       'func_3d',
-                                                       'func_3d_mask',
-                                                       'epi',
-                                                       'interp',
-                                                       'ants_para']),
-                        name='inputspec')
-
-    outputspec = pe.Node(util.IdentityInterface(fields=['ants_initial_xfm',
-                                                        'ants_rigid_xfm',
-                                                        'ants_affine_xfm',
-                                                        'warp_field',
-                                                        'inverse_warp_field',
-                                                        'fsl_flirt_xfm',
-                                                        'fsl_fnirt_xfm',
-                                                        'invlinear_xfm',
-                                                        'func_in_epi']),
-                         # 'func_mask_in_epi']),
-                         name='outputspec')
-
-    if reg_option == 'ANTS':
-        # linear + non-linear registration
-        func_to_epi_ants = \
-            create_wf_calculate_ants_warp(
-                name='func_to_epi_ants',
-                num_threads=1,
-                reg_ants_skull=1)
-
-        register_func_to_epi.connect([
-            (inputspec, func_to_epi_ants, [
-                ('func_3d', 'inputspec.moving_brain'),
-                ('epi', 'inputspec.reference_brain'),
-                ('func_3d', 'inputspec.moving_skull'),
-                ('epi', 'inputspec.reference_skull'),
-                ('interp', 'inputspec.interp'),
-                ('ants_para', 'inputspec.ants_para')
-            ]),
-        ])
-
-        register_func_to_epi.connect([
-            (func_to_epi_ants, outputspec, [
-                ('outputspec.ants_initial_xfm', 'ants_initial_xfm'),
-                ('outputspec.ants_rigid_xfm', 'ants_rigid_xfm'),
-                ('outputspec.ants_affine_xfm', 'ants_affine_xfm'),
-                ('outputspec.warp_field', 'warp_field'),
-                ('outputspec.inverse_warp_field', 'inverse_warp_field'),
-            ]),
-        ])
-
-        # combine transforms
-        collect_transforms = pe.Node(util.Merge(4),
-                                     name='collect_transforms_ants')
-        register_func_to_epi.connect([
-            (func_to_epi_ants, collect_transforms, [
-                ('outputspec.ants_initial_xfm', 'in1'),
-                ('outputspec.ants_rigid_xfm', 'in2'),
-                ('outputspec.ants_affine_xfm', 'in3'),
-                ('outputspec.warp_field', 'in4'),
-            ]),
-        ])
-
-        # check transform list to exclude Nonetype (missing) init/rig/affine
-        check_transform = pe.Node(util.Function(
-            input_names=['transform_list'],
-            output_names=['checked_transform_list', 'list_length'],
-            function=check_transforms), name='{0}_check_transforms'.format(
-            name))
-
-        register_func_to_epi.connect(
-            collect_transforms, 'out', check_transform, 'transform_list')
-
-        # apply transform to func
-        func_in_epi = pe.Node(
-            interface=ants.ApplyTransforms(), name='func_in_epi_ants')
-        func_in_epi.inputs.dimension = 3
-        func_in_epi.inputs.input_image_type = 3
-        register_func_to_epi.connect(
-            inputspec, 'func_4d', func_in_epi, 'input_image')
-        register_func_to_epi.connect(
-            inputspec, 'epi', func_in_epi, 'reference_image')
-        register_func_to_epi.connect(
-            check_transform, 'checked_transform_list',
-            func_in_epi, 'transforms')
-        register_func_to_epi.connect(
-            func_in_epi, 'output_image', outputspec, 'func_in_epi')
-
-        # # apply transform to functional mask
-        # func_mask_in_epi = pe.Node(
-        #    interface=ants.ApplyTransforms(), name='func_mask_in_epi_ants')
-        # func_mask_in_epi.inputs.dimension = 3
-        # func_mask_in_epi.inputs.input_image_type = 0
-        # register_func_to_epi.connect(
-        #    inputspec, 'func_3d_mask', func_mask_in_epi, 'input_image')
-        # register_func_to_epi.connect(
-        #    inputspec, 'epi', func_mask_in_epi, 'reference_image')
-        # register_func_to_epi.connect(
-        #     check_transform, 'checked_transform_list',
-        #    func_mask_in_epi, 'transforms')
-        # register_func_to_epi.connect(
-        #     func_mask_in_epi, 'output_image', outputspec, 'func_mask_in_epi')
-
-    elif reg_option == 'FSL':
-        # flirt linear registration
-        func_to_epi_linear = pe.Node(
-            interface=fsl.FLIRT(), name='func_to_epi_linear_fsl')
-        func_to_epi_linear.inputs.dof = 6
-
-        register_func_to_epi.connect(
-            inputspec, 'func_3d', func_to_epi_linear, 'in_file')
-        register_func_to_epi.connect(
-            inputspec, 'epi', func_to_epi_linear, 'reference')
-        register_func_to_epi.connect(
-            func_to_epi_linear, 'out_matrix_file', outputspec,
-            'fsl_flirt_xfm')
-
-        inv_flirt_xfm = pe.Node(
-            interface=fsl.utils.ConvertXFM(), name='inv_linear_reg0_xfm')
-        inv_flirt_xfm.inputs.invert_xfm = True
-
-        # fnirt non-linear registration
-        func_to_epi_nonlinear = pe.Node(
-            interface=fsl.FNIRT(), name='func_to_epi_nonlinear_fsl')
-        func_to_epi_nonlinear.inputs.fieldcoeff_file = True
-
-        register_func_to_epi.connect(
-            inputspec, 'func_3d', func_to_epi_nonlinear, 'in_file')
-        register_func_to_epi.connect(
-            inputspec, 'epi', func_to_epi_nonlinear, 'ref_file')
-        register_func_to_epi.connect(
-            func_to_epi_linear, 'out_matrix_file',
-            func_to_epi_nonlinear, 'affine_file')
-        register_func_to_epi.connect(
-            func_to_epi_nonlinear, 'fieldcoeff_file',
-            outputspec, 'fsl_fnirt_xfm')
-
-        register_func_to_epi.connect(
-            func_to_epi_linear, 'out_matrix_file', inv_flirt_xfm, 'in_file')
-        register_func_to_epi.connect(
-            inv_flirt_xfm, 'out_file', outputspec, 'invlinear_xfm')
-
-        # apply warp
-        func_in_epi = pe.Node(
-            interface=fsl.ApplyWarp(), name='func_in_epi_fsl')
-        func_in_epi.inputs.interp = 'sinc'
-
-        register_func_to_epi.connect(
-            inputspec, 'func_4d', func_in_epi, 'in_file')
-        register_func_to_epi.connect(inputspec, 'epi', func_in_epi,
-                                     'ref_file')
-
-        # --premat input disabled because it was throwing off the transform
-        # application quality --- why, though?
-        # register_func_to_epi.connect(
-        # func_to_epi_linear, 'out_matrix_file', func_in_epi, 'premat')
-
-        register_func_to_epi.connect(
-            func_to_epi_nonlinear, 'fieldcoeff_file',
-            func_in_epi, 'field_file')
-        register_func_to_epi.connect(
-            func_in_epi, 'out_file', outputspec, 'func_in_epi')
-
-    return register_func_to_epi
-
-
 def create_wf_calculate_ants_warp(
-        name='create_wf_calculate_ants_warp', num_threads=1, reg_ants_skull=1
+    name='create_wf_calculate_ants_warp', num_threads=1, reg_ants_skull=1
 ):
     '''
     Calculates the nonlinear ANTS registration transform. This workflow
@@ -857,7 +785,7 @@ def create_wf_calculate_ants_warp(
                 'fixed_image_mask',
                 'ants_para',
                 'interp']),
-        name='inputspec')
+                name='inputspec')
 
     outputspec = pe.Node(util.IdentityInterface(
         fields=['ants_initial_xfm',
@@ -962,13 +890,13 @@ def create_wf_calculate_ants_warp(
         calculate_ants_warp, 'fixed_image_mask')
 
     calc_ants_warp_wf.connect(inputspec, 'reference_mask',
-                              calculate_ants_warp, 'reference_mask')
+            calculate_ants_warp, 'reference_mask')
 
     calc_ants_warp_wf.connect(inputspec, 'moving_mask',
-                              calculate_ants_warp, 'moving_mask')
+            calculate_ants_warp, 'moving_mask')
 
     calc_ants_warp_wf.connect(inputspec, 'ants_para',
-                              calculate_ants_warp, 'ants_para')
+            calculate_ants_warp, 'ants_para')
 
     calc_ants_warp_wf.connect(
         inputspec, 'interp',
@@ -1025,323 +953,23 @@ def create_wf_calculate_ants_warp(
     return calc_ants_warp_wf
 
 
-def connect_func_to_anat_init_reg(workflow, strat_list, c):
-    new_strat_list = []
+def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
+                               symmetric=False):
 
-    diff_complete = False
-    if True in c.functional_registration['1-coregistration']['run']:
-
-        for num_strat, strat in enumerate(strat_list):
-
-            diff_complete = False
-            if "despiked_fieldmap" in strat and "fieldmap_mask" in strat:
-                diff_complete = True
-
-            # if field map-based distortion correction is on, but BBR is off,
-            # send in the distortion correction files here
-            # TODO: is this robust to the possibility of forking both
-            # TODO: distortion correction and BBR at the same time?
-            # TODO: (note if you are forking with BBR on/off, at this point
-            # TODO:  there is still only one strat, so you would have to fork
-            # TODO:  here instead to have a func->anat with fieldmap and
-            # TODO:  without, and send the without-fieldmap to the BBR fork)
-
-            # TODO: if we're moving the distortion correction warp
-            #       application, then the below is unnecessary
-            '''
-            dist_corr = False
-            if (
-                'diff_distcor' in nodes and
-                True not in c.functional_registration[
-                    '1-coregistration'
-                ]['boundary_based_registration']['run']
-            ):
-                dist_corr = True
-                # TODO: for now, disabling dist corr when BBR is disabled
-                err = "\n\n[!] Field map distortion correction is enabled, " \
-                    "but Boundary-Based Registration is off- BBR is " \
-                    "required for distortion correction.\n\n"
-                raise Exception(err)
-            '''
-
-            func_to_anat = create_register_func_to_anat(
-                diff_complete, f'func_to_anat_FLIRT_{num_strat}')
-
-            # Input registration parameters
-            func_to_anat.inputs.inputspec.interp = 'trilinear'
-
-            if 'Mean Functional' in c.functional_registration[
-                '1-coregistration'
-            ]['func_input_prep']['input']:
-                # Input functional image (mean functional)
-                node, out_file = strat['mean_functional']
-                workflow.connect(node, out_file,
-                                 func_to_anat, 'inputspec.func')
-
-            elif 'Selected Functional Volume' in c.functional_registration[
-                '1-coregistration'
-            ]['func_input_prep']['input']:
-                # Input functional image (specific volume)
-                node, out_file = strat['selected_func_volume']
-                workflow.connect(node, out_file,
-                                 func_to_anat, 'inputspec.func')
-
-            # Input skull-stripped anatomical
-            node, out_file = strat['anatomical_brain']
-            workflow.connect(node, out_file,
-                             func_to_anat, 'inputspec.anat')
-
-            if diff_complete:
-                # apply field map distortion correction outputs to
-                # the func->anat registration
-                node, out_file = strat['diff_phase_dwell']
-                workflow.connect(node, out_file,
-                                 func_to_anat,
-                                 'echospacing_input.echospacing')
-
-                node, out_file = strat['diff_phase_pedir']
-                workflow.connect(node, out_file,
-                                 func_to_anat, 'pedir_input.pedir')
-
-                node, out_file = strat["despiked_fieldmap"]
-                workflow.connect(node, out_file,
-                                 func_to_anat, 'inputspec.fieldmap')
-
-                node, out_file = strat["fieldmap_mask"]
-                workflow.connect(node, out_file,
-                                 func_to_anat, 'inputspec.fieldmapmask')
-
-            if False in c.functional_registration['1-coregistration']['run']:
-                strat = strat.fork()
-                new_strat_list.append(strat)
-
-            strat.append_name(func_to_anat.name)
-
-            strat.update_resource_pool({
-                'mean_functional_in_anat': (
-                    func_to_anat, 'outputspec.anat_func_nobbreg'),
-                'functional_to_anat_linear_xfm': (
-                    func_to_anat,
-                    'outputspec.func_to_anat_linear_xfm_nobbreg')
-            })
-
-    strat_list += new_strat_list
-
-    return workflow, strat_list, diff_complete
-
-
-def connect_func_to_anat_bbreg(workflow, strat_list, c, diff_complete):
-    from CPAC.utils.utils import pick_wm
-
-    new_strat_list = []
-
-    if (
-                    True in c.functional_registration['1-coregistration'][
-                    'run'] and
-                    True in c.functional_registration[
-                    '1-coregistration'
-                ]['boundary_based_registration']['run']
-    ):
-
-        template_based_segmentation = c.anatomical_preproc[
-            'segmentation_workflow'
-        ]['1-segmentation']['Template_Based']['template_for_segmentation']
-
-        for num_strat, strat in enumerate(strat_list):
-
-            # this is needed here in case tissue segmentation is set on/off
-            # and you have bbreg enabled- this will ensure bbreg will run for
-            # the strat that has segmentation but will not run (thus avoiding
-            # a crash) on the strat without segmentation
-            if 'anatomical_wm_mask' in strat:
-
-                func_to_anat_bbreg = create_bbregister_func_to_anat(
-                    diff_complete,
-                    f'func_to_anat_bbreg_{num_strat}'
-                )
-
-                # Input registration parameters
-                func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
-                    c.functional_registration[
-                        '1-coregistration'
-                    ]['boundary_based_registration']['bbr_schedule']
-
-                if 'Mean Functional' in c.functional_registration[
-                    '1-coregistration'
-                ]['func_input_prep']['input']:
-                    # Input functional image (mean functional)
-                    node, out_file = strat['mean_functional']
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg, 'inputspec.func')
-
-                elif 'Selected Functional Volume' in \
-                        c.functional_registration[
-                            '1-coregistration'
-                        ]['func_input_prep']['input']:
-                    # Input functional image (specific volume)
-                    node, out_file = strat['selected_func_volume']
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg, 'inputspec.func')
-
-                # Input anatomical whole-head image (reoriented)
-                node, out_file = strat['anatomical_skull_leaf']
-                workflow.connect(node, out_file,
-                                 func_to_anat_bbreg,
-                                 'inputspec.anat_skull')
-
-                node, out_file = strat['functional_to_anat_linear_xfm']
-                workflow.connect(node, out_file,
-                                 func_to_anat_bbreg,
-                                 'inputspec.linear_reg_matrix')
-
-                if (
-                                True in c.anatomical_preproc[
-                                'segmentation_workflow'
-                            ]['1-segmentation']['Template_Based']['run'] or
-                                True in c.anatomical_preproc[
-                                'segmentation_workflow'
-                            ]['1-segmentation']['ANTs_Prior_Based']['run']
-                ):
-                    # Input segmentation mask since template-based
-                    # segmentation and ANTs-prior-based segmentation do not
-                    # generate probability maps
-                    node, out_file = strat['anatomical_wm_mask']
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg,
-                                     'inputspec.anat_wm_segmentation')
-                else:
-                    # Input segmentation probability maps for white matter
-                    # segmentation
-                    node, out_file = strat['seg_probability_maps']
-                    workflow.connect(node, (out_file, pick_wm),
-                                     func_to_anat_bbreg,
-                                     'inputspec.anat_wm_segmentation')
-
-                # apply field map distortion correction outputs to
-                # the func->anat registration
-                if diff_complete:
-                    node, out_file = strat['diff_phase_dwell']
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg,
-                                     'echospacing_input.echospacing')
-
-                    node, out_file = strat['diff_phase_pedir']
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg,
-                                     'pedir_input.pedir')
-
-                    node, out_file = strat["despiked_fieldmap"]
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg,
-                                     'inputspec.fieldmap')
-
-                    node, out_file = strat["fieldmap_mask"]
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg,
-                                     'inputspec.fieldmapmask')
-
-                if False in c.functional_registration[
-                    '1-coregistration'
-                ]['boundary_based_registration']['run']:
-                    strat = strat.fork()
-                    new_strat_list.append(strat)
-
-                strat.append_name(func_to_anat_bbreg.name)
-
-                strat.update_resource_pool({
-                    'mean_functional_in_anat': (
-                        func_to_anat_bbreg, 'outputspec.anat_func'),
-                    'functional_to_anat_linear_xfm': (
-                        func_to_anat_bbreg,
-                        'outputspec.func_to_anat_linear_xfm')
-                }, override=True)
-
-            else:
-                # anatomical segmentation is not being run in this particular
-                # strategy/fork - we don't want this to stop workflow building
-                # unless there is only one strategy
-                if len(strat_list) > 1:
-                    pass
-                else:
-                    err = "\n\n[!] Boundary-based registration (BBR) " \
-                          "for functional-to-anatomical registration is " \
-                          "enabled, but anatomical segmentation is not. " \
-                          "BBR requires the outputs of segmentation. " \
-                          "Please modify your pipeline configuration and " \
-                          "run again.\n\n"
-                    raise Exception(err)
-
-    strat_list += new_strat_list
-
-    return workflow, strat_list
-
-
-def apply_transform(wf_name, reg_tool):
     wf = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(
-        util.IdentityInterface(fields=['input_image',
-                                       'reference',
+        util.IdentityInterface(fields=['input_brain',
+                                       'reference_brain',
+                                       'input_head',
+                                       'reference_head',
+                                       'input_mask',
+                                       'reference_mask',
                                        'transform',
-                                       'interpolation']),
+                                       'interpolation',
+                                       'fnirt_config']),
         name='inputspec')
 
-    outputNode = pe.Node(
-        util.IdentityInterface(fields=['output_image']),
-        name='outputspec')
-
-    if reg_tool == 'ants':
-        apply_warp = pe.Node(interface=ants.ApplyTransforms(),
-                             name=f'apply_warp_{wf_name}')
-
-        wf.connect(inputNode, 'input_image', apply_warp, 'input_image')
-        wf.connect(inputNode, 'reference', apply_warp, 'reference_image')
-
-        interp_string = pe.Node(util.Function(input_names=['interpolation',
-                                                           'reg_tool'],
-                                              output_names=['interpolation'],
-                                              function=interpolation_string),
-                                name=f'interp_string')
-        interp_string.inputs.reg_tool = reg_tool
-
-        wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
-        wf.connect(interp_string, 'interpolation', apply_warp,
-                   'interpolation')
-
-        ants_xfm_list = pe.Node(util.Function(input_names=['transform'],
-                                              output_names=['transform_list'],
-                                              function=single_ants_xfm_to_list),
-                                name=f'single_ants_xfm_to_list')
-
-        wf.connect(inputNode, 'transform', ants_xfm_list, 'transform')
-        wf.connect(ants_xfm_list, 'transform_list', apply_warp, 'transforms')
-
-        wf.connect(apply_warp, 'output_image', outputNode, 'output_image')
-
-    elif reg_tool == 'fsl':
-        tissueprior_mni_to_t1 = pe.Node(interface=fsl.FLIRT(),
-                                        name='{0}_prior_mni_to_t1'.format(
-                                            wf_name))
-        tissueprior_mni_to_t1.inputs.apply_xfm = True
-        tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
-
-        # mni to t1
-        preproc.connect(inputNode, 'tissue_prior',
-                        tissueprior_mni_to_t1, 'in_file')
-        preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1,
-                        'reference')
-
-        preproc.connect(inputNode, 'standard2highres_mat',
-                        tissueprior_mni_to_t1, 'in_matrix_file')
-
-        preproc.connect(tissueprior_mni_to_t1, 'out_file',
-                        overlap_segmentmap_with_prior, 'operand_files')
-
-    return wf
-
-
-def FSL_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
-                               symmetric=False):
     sym = ''
     symm = ''
     if symmetric:
@@ -1349,76 +977,64 @@ def FSL_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
         symm = '_symmetric'
 
     if opt == 'FSL' or opt == 'FSL-linear':
-        # this is to prevent the user from running FNIRT if they are
-        # providing already-skullstripped inputs. this is because
-        # FNIRT requires an input with the skull still on
 
         flirt_reg_anat_mni = create_fsl_flirt_linear_reg(
-            f'anat_mni_flirt_register{symm}_{pipe_num}'
+            f'anat_mni_flirt_register{symm}'
         )
 
         # Input registration parameters
-        flirt_reg_anat_mni.inputs.inputspec.interp = \
-            cfg['registration_workflows']['anatomical_registration'][
-                'FSL-FNIRT']['interpolation']
+        wf.connect(inputNode, 'interpolation', flirt_reg_anat_mni, 'interp')
 
-        node, out = strat_pool.get_data('desc-brain_T1w')
-        wf.connect(node, out, flirt_reg_anat_mni, 'inputspec.input_brain')
+        wf.connect(inputNode, 'input_brain',
+                   flirt_reg_anat_mni, 'inputspec.input_brain')
 
-        node, out = strat_pool.get_data(f'T1w_brain_template{symm}')
-        wf.connect(node, out, flirt_reg_anat_mni,
+        wf.connect(inputNode, 'reference_brain', flirt_reg_anat_mni,
                    'inputspec.reference_brain')
 
         outputs = {
-            f'space-{sym}template_desc-brain_T1w': (
+            f'space-{sym}template_desc-brain_{orig}': (
                 flirt_reg_anat_mni, 'outputspec.output_brain'),
-            f'from-T1w_to-{sym}template_mode-image_desc-linear_xfm': (
+            f'from-{orig}_to-{sym}template_mode-image_desc-linear_xfm': (
                 flirt_reg_anat_mni, 'outputspec.linear_xfm'),
-            f'from-{sym}template_to-T1w_mode-image_desc-linear_xfm': (
+            f'from-{sym}template_to-{orig}_mode-image_desc-linear_xfm': (
                 flirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
-            f'from-T1w_to-{sym}template_mode-image_xfm': (
+            f'from-{orig}_to-{sym}template_mode-image_xfm': (
                 flirt_reg_anat_mni, 'outputspec.linear_xfm')
         }
 
     if opt == 'FSL':
         fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
-            f'anat_mni_fnirt_register{symm}_{pipe_num}'
+            f'anat_mni_fnirt_register{symm}'
         )
 
-        node, out = strat_pool.get_data('desc-brain_T1w')
-        wf.connect(node, out, fnirt_reg_anat_mni, 'inputspec.input_brain')
+        wf.connect(inputNode, 'input_brain',
+                   fnirt_reg_anat_mni, 'inputspec.input_brain')
 
-        node, out = strat_pool.get_data(f'T1w_brain_template{sym}')
-        wf.connect(node, out, fnirt_reg_anat_mni, 'inputspec.reference_brain')
+        wf.connect(inputNode, 'reference_brain',
+                   fnirt_reg_anat_mni, 'inputspec.reference_brain')
 
-        node, out = strat_pool.get_data(["desc-preproc_T1w",
-                                         "desc-reorient_T1w", "T1w"])
-        wf.connect(node, out, fnirt_reg_anat_mni, 'inputspec.input_skull')
+        wf.connect(inputNode, 'input_head',
+                   fnirt_reg_anat_mni, 'inputspec.input_skull')
 
         # NOTE: crossover from above opt block
         wf.connect(flirt_reg_anat_mni, 'outputspec.linear_xfm',
                    fnirt_reg_anat_mni, 'inputspec.linear_aff')
 
-        node, out = strat_pool.get_data(f'T1w_template{sym}')
-        wf.connect(node, out, fnirt_reg_anat_mni, 'inputspec.reference_skull')
+        wf.connect(inputNode, 'reference_head',
+                   fnirt_reg_anat_mni, 'inputspec.reference_skull')
 
-        ref_mask = 'ref_mask'
-        if symmetric:
-            ref_mask = 'dilated_symmetric_brain_mask'
-        node, out = strat_pool.get_data(ref_mask)
-        wf.connect(node, out, fnirt_reg_anat_mni, 'inputspec.ref_mask')
+        wf.connect(inputNode, 'reference_mask',
+                   fnirt_reg_anat_mni, 'inputspec.ref_mask')
 
         # assign the FSL FNIRT config file specified in pipeline config.yml
-        fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = \
-            cfg['registration_workflow'][
-                'registration']['FSL-FNIRT']['fnirt_config']
+        wf.connect(inputNode, 'fnirt_config',
+                   fnirt_reg_anat_mni, 'inputspec.fnirt_config')
 
         write_composite_xfm = pe.Node(interface=fsl.ConvertWarp(),
-                                      name=f'combine_fsl_warps{symm}_'
-                                           f'{pipe_num}')
+                                      name=f'combine_fsl_warps{symm}')
 
-        node, out = strat_pool.get_data(f'T1w_template{sym}')
-        wf.connect(node, out, write_composite_xfm, 'reference')
+        wf.connect(inputNode, 'reference_head',
+                   write_composite_xfm, 'reference')
 
         wf.connect(flirt_reg_anat_mni, 'outputspec.linear_xfm',
                    write_composite_xfm, 'premat')
@@ -1428,11 +1044,11 @@ def FSL_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
 
         # NOTE: this is an UPDATE because of the opt block above
         added_outputs = {
-            f'space-{sym}template_desc-brain_T1w': (
+            f'space-{sym}template_desc-brain_{orig}': (
                 fnirt_reg_anat_mni, 'outputspec.output_brain'),
-            f'from-T1w_to-{sym}template_mode-image_desc-nonlinear_xfm': (
+            f'from-{orig}_to-{sym}template_mode-image_desc-nonlinear_xfm': (
                 fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
-            f'from-T1w_to-{sym}template_mode-image_xfm': (
+            f'from-{orig}_to-{sym}template_mode-image_xfm': (
                 write_composite_xfm, 'out_file')
         }
         outputs.update(added_outputs)
@@ -1440,16 +1056,29 @@ def FSL_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
     return (wf, outputs)
 
 
-def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
+def ANTs_registration_connector(wf_name, cfg, params, orig='T1w',
                                 symmetric=False):
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=['input_brain',
+                                       'reference_brain',
+                                       'input_head',
+                                       'reference_head',
+                                       'input_mask',
+                                       'reference_mask',
+                                       'transform',
+                                       'interpolation']),
+        name='inputspec')
+
     sym = ''
     symm = ''
     if symmetric:
         sym = 'sym'
         symm = '_symmetric'
 
-    if cfg.registration_workflows['anatomical_registration']['registration'][
-        'ANTs']['T1_registration'] is None:
+    if params is None:
         err_msg = '\n\n[!] C-PAC says: \nYou have selected ANTs as your ' \
                   'anatomical registration method.\n' \
                   'However, no ANTs parameters were specified.\n' \
@@ -1458,85 +1087,77 @@ def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
 
     ants_reg_anat_mni = \
         create_wf_calculate_ants_warp(
-            f'anat_mni_ants_register{symm}_{pipe_num}',
+            f'anat_mni_ants_register{symm}',
             num_threads=cfg.pipeline_setup['system_config'][
                 'num_ants_threads'],
             reg_ants_skull=cfg['registration_workflows'][
                 'anatomical_registration']['reg_with_skull']
         )
-    ants_reg_anat_mni.inputs.inputspec.ants_para = \
-        cfg.registration_workflows['anatomical_registration']['registration'][
-            'ANTs']['T1_registration']
-    ants_reg_anat_mni.inputs.inputspec.interp = \
-        cfg.registration_workflows['anatomical_registration']['registration'][
-            'ANTs']['interpolation']
+    ants_reg_anat_mni.inputs.inputspec.ants_para = params
+
+    wf.connect(inputNode, 'interpolation',
+               ants_reg_anat_mni, 'inputspec.interp')
 
     # calculating the transform with the skullstripped is
     # reported to be better, but it requires very high
     # quality skullstripping. If skullstripping is imprecise
     # registration with skull is preferred
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
-    wf.connect(node, out, ants_reg_anat_mni, 'inputspec.moving_brain')
+    wf.connect(inputNode, 'input_brain',
+               ants_reg_anat_mni, 'inputspec.moving_brain')
 
-    node, out = strat_pool.get_data(f'T1w_brain_template{symm}')
-    wf.connect(node, out, ants_reg_anat_mni, 'inputspec.reference_brain')
+    wf.connect(inputNode, 'reference_brain',
+               ants_reg_anat_mni, 'inputspec.reference_brain')
 
-    node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
-                                     "T1w"])
-    wf.connect(node, out, ants_reg_anat_mni, 'inputspec.moving_skull')
+    wf.connect(inputNode, 'input_head',
+               ants_reg_anat_mni, 'inputspec.moving_skull')
 
-    node, out = strat_pool.get_data(f'T1w_template{symm}')
-    wf.connect(node, out, ants_reg_anat_mni, 'inputspec.reference_skull')
+    wf.connect(inputNode, 'reference_head',
+               ants_reg_anat_mni, 'inputspec.reference_skull')
 
-    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
-    wf.connect(node, out, ants_reg_anat_mni, 'inputspec.moving_mask')
+    wf.connect(inputNode, 'input_mask',
+               ants_reg_anat_mni, 'inputspec.moving_mask')
 
-    if not symmetric:
-        node, out = strat_pool.get_data('T1w_brain_template_mask')
-    if symmetric:
-        node, out = strat_pool.get_data('dilated_symmetric_brain_mask')
-    wf.connect(node, out, ants_reg_anat_mni, 'inputspec.reference_mask')
+    wf.connect(inputNode, 'reference_mask',
+               ants_reg_anat_mni, 'inputspec.reference_mask')
 
     ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = None
 
-    if strat_pool.check_rpool('label-lesion_mask') and cfg[
-        'registration_workflow']['registration']['ANTs'][
-        'use_lesion_mask']:
-        # Create lesion preproc node to apply afni Refit and Resample
-        lesion_preproc = create_lesion_preproc(
-            wf_name=f'lesion_preproc{symm}_{pipe_num}'
-        )
-
-        node, out = strat_pool.get_data('label-lesion_mask')
-
-        wf.connect(node, out, lesion_preproc, 'inputspec.lesion')
-        wf.connect(lesion_preproc, 'outputspec.reorient',
-                   ants_reg_anat_mni, 'inputspec.fixed_image_mask')
+    if orig == 'T1w':
+        if cfg.registration_workflows['anatomical_registration'][
+            'registration']['ANTs']['use_lesion_mask']:
+            # Create lesion preproc node to apply afni Refit and Resample
+            lesion_preproc = create_lesion_preproc(
+                wf_name=f'lesion_preproc{symm}'
+            )
+            wf.connect(inputNode, 'lesion_mask',
+                       lesion_preproc, 'inputspec.lesion')
+            wf.connect(lesion_preproc, 'outputspec.reorient',
+                       ants_reg_anat_mni, 'inputspec.fixed_image_mask')
 
     # combine the linear xfm's into one - makes it easier downstream
     write_composite_linear_xfm = pe.Node(
         interface=ants.ApplyTransforms(),
-        name=f'write_composite_linear{symm}_xfm_{pipe_num}',
+        name=f'write_composite_linear{symm}_xfm',
         mem_gb=1.5)
     write_composite_linear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_linear_xfm.inputs.output_image = \
         "from-T1w_to-template_mode-image_desc-linear_xfm.nii.gz"
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
-    wf.connect(node, out, write_composite_linear_xfm, 'input_image')
+    wf.connect(inputNode, 'input_brain',
+               write_composite_linear_xfm, 'input_image')
 
-    node, out = strat_pool.get_data(f'T1w_brain_template{symm}')
-    wf.connect(node, out, write_composite_linear_xfm, 'reference_image')
+    wf.connect(inputNode, 'reference_brain',
+               write_composite_linear_xfm, 'reference_image')
+
+    wf.connect(inputNode, 'interpolation',
+               write_composite_linear_xfm, 'interpolation')
 
     write_composite_linear_xfm.inputs.input_image_type = 0
     write_composite_linear_xfm.inputs.dimension = 3
-    write_composite_linear_xfm.inputs.interpolation = \
-        cfg.registration_workflows['anatomical_registration']['registration'][
-            'ANTs']['interpolation']
 
     collect_transforms = pe.Node(util.Merge(3),
-                                 name=f'collect_transforms{symm}_{pipe_num}')
+                                 name=f'collect_transforms{symm}')
 
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
                collect_transforms, 'in1')
@@ -1553,7 +1174,7 @@ def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
                       output_names=['checked_transform_list',
                                     'list_length'],
                       function=check_transforms),
-        name=f'check_transforms_{pipe_num}')
+        name=f'check_transforms')
 
     wf.connect(collect_transforms, 'out', check_transform, 'transform_list')
 
@@ -1563,27 +1184,27 @@ def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
     # combine the linear xfm's into one - makes it easier downstream
     write_composite_invlinear_xfm = pe.Node(
         interface=ants.ApplyTransforms(),
-        name=f'write_composite_invlinear{symm}_xfm_{pipe_num}',
+        name=f'write_composite_invlinear{symm}_xfm',
         mem_gb=1.5)
     write_composite_invlinear_xfm.inputs.print_out_composite_warp_file = True
     write_composite_invlinear_xfm.inputs.output_image = \
         "from-template_to-T1w_mode-image_desc-linear_xfm.nii.gz"
 
-    node, out = strat_pool.get_data(f'T1w_brain_template{symm}')
-    wf.connect(node, out, write_composite_invlinear_xfm, 'input_image')
+    wf.connect(inputNode, 'reference_brain',
+               write_composite_invlinear_xfm, 'input_image')
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
-    wf.connect(node, out, write_composite_invlinear_xfm, 'reference_image')
+    wf.connect(inputNode, 'input_brain',
+               write_composite_invlinear_xfm, 'reference_image')
+
+    wf.connect(inputNode, 'interpolation',
+               write_composite_invlinear_xfm, 'interpolation')
 
     write_composite_invlinear_xfm.inputs.input_image_type = 0
     write_composite_invlinear_xfm.inputs.dimension = 3
-    write_composite_invlinear_xfm.inputs.interpolation = \
-        cfg.registration_workflows['anatomical_registration']['registration'][
-            'ANTs']['interpolation']
 
     collect_inv_transforms = pe.Node(util.Merge(3),
                                      name='collect_inv_transforms'
-                                          f'{symm}_{pipe_num}')
+                                          f'{symm}')
 
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
                collect_inv_transforms, 'in1')
@@ -1595,17 +1216,17 @@ def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
                collect_inv_transforms, 'in3')
 
     # check transform list to exclude Nonetype (missing) init/rig/affine
-    check_inv_transform = pe.Node(
+    check_invlinear_transform = pe.Node(
         util.Function(input_names=['transform_list'],
                       output_names=['checked_transform_list',
                                     'list_length'],
                       function=check_transforms),
-        name=f'check_inv_transforms_{pipe_num}')
+        name=f'check_inv_transforms')
 
-    wf.connect(collect_transforms, 'out',
-               check_inv_transform, 'transform_list')
+    wf.connect(collect_inv_transforms, 'out',
+               check_invlinear_transform, 'transform_list')
 
-    wf.connect(check_inv_transform, 'checked_transform_list',
+    wf.connect(check_invlinear_transform, 'checked_transform_list',
                write_composite_invlinear_xfm, 'transforms')
 
     # generate inverse transform flags, which depends on the
@@ -1614,9 +1235,9 @@ def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
         util.Function(input_names=['transform_list'],
                       output_names=['inverse_transform_flags'],
                       function=generate_inverse_transform_flags),
-        name=f'inverse_transform_flags_{pipe_num}')
+        name=f'inverse_transform_flags')
 
-    wf.connect(check_inv_transform, 'checked_transform_list',
+    wf.connect(check_invlinear_transform, 'checked_transform_list',
                inverse_transform_flags, 'transform_list')
 
     wf.connect(inverse_transform_flags, 'inverse_transform_flags',
@@ -1625,27 +1246,26 @@ def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
     # combine ALL xfm's into one - makes it easier downstream
     write_composite_xfm = pe.Node(
         interface=ants.ApplyTransforms(),
-        name=f'write_composite_{symm}_xfm_{pipe_num}',
+        name=f'write_composite_{symm}xfm',
         mem_gb=1.5)
     write_composite_xfm.inputs.print_out_composite_warp_file = True
     write_composite_xfm.inputs.output_image = \
         "from-T1w_to-template_mode-image_xfm.nii.gz"
 
-    node, out = strat_pool.get_data('desc-brain_T1w')
-    wf.connect(node, out, write_composite_xfm, 'input_image')
+    wf.connect(inputNode, 'input_brain', write_composite_xfm, 'input_image')
 
-    node, out = strat_pool.get_data(f'T1w_brain_template{symm}')
-    wf.connect(node, out, write_composite_xfm, 'reference_image')
+    wf.connect(inputNode, 'reference_brain',
+               write_composite_xfm, 'reference_image')
+
+    wf.connect(inputNode, 'interpolation',
+               write_composite_xfm, 'interpolation')
 
     write_composite_xfm.inputs.input_image_type = 0
     write_composite_xfm.inputs.dimension = 3
-    write_composite_xfm.inputs.interpolation = \
-        cfg.registration_workflows['anatomical_registration']['registration'][
-            'ANTs']['interpolation']
 
     collect_all_transforms = pe.Node(util.Merge(4),
-                                     name=f'collect_all_transforms'
-                                          f'{symm}_{pipe_num}')
+                                 name=f'collect_all_transforms'
+                                      f'{symm}')
 
     wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
                collect_all_transforms, 'in1')
@@ -1662,20 +1282,199 @@ def ANTs_registration_connector(wf, cfg, strat_pool, pipe_num, opt=None,
     wf.connect(collect_all_transforms, 'out',
                write_composite_xfm, 'transforms')
 
+    # combine ALL xfm's into one - makes it easier downstream
+    write_composite_inv_xfm = pe.Node(
+        interface=ants.ApplyTransforms(),
+        name=f'write_composite_inv_{symm}xfm',
+        mem_gb=1.5)
+    write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
+    write_composite_inv_xfm.inputs.output_image = \
+        "from-template_to-T1w_mode-image_xfm.nii.gz"
+
+    wf.connect(inputNode, 'reference_brain',
+               write_composite_inv_xfm, 'input_image')
+
+    wf.connect(inputNode, 'input_brain',
+               write_composite_inv_xfm, 'reference_image')
+
+    wf.connect(inputNode, 'interpolation',
+               write_composite_inv_xfm, 'interpolation')
+
+    write_composite_inv_xfm.inputs.input_image_type = 0
+    write_composite_inv_xfm.inputs.dimension = 3
+    write_composite_inv_xfm.inputs.invert_transform_flags = [False, True,
+                                                             True, True]
+
+    collect_all_inv_transforms = pe.Node(util.Merge(4),
+                                         name=f'collect_all_inv_transforms'
+                                         f'{symm}')
+
+    wf.connect(ants_reg_anat_mni, 'outputspec.inverse_warp_field',
+               collect_all_inv_transforms, 'in1')
+
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_affine_xfm',
+               collect_all_inv_transforms, 'in2')
+
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm',
+               collect_all_inv_transforms, 'in3')
+
+    wf.connect(ants_reg_anat_mni, 'outputspec.ants_initial_xfm',
+               collect_all_inv_transforms, 'in4')
+
+    wf.connect(collect_all_inv_transforms, 'out',
+               write_composite_inv_xfm, 'transforms')
+
     outputs = {
-        f'space-{sym}template_desc-brain_T1w': (
+        f'space-{sym}template_desc-brain_{orig}': (
             ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
-        f'from-T1w_to-{sym}template_mode-image_xfm': (
+        f'from-{orig}_to-{sym}template_mode-image_xfm': (
             write_composite_xfm, 'output_image'),
-        f'from-T1w_to-{sym}template_mode-image_desc-linear_xfm': (
+        f'from-{sym}template_to-{orig}_mode-image_xfm': (
+            write_composite_inv_xfm, 'output_image'),
+        f'from-{orig}_to-{sym}template_mode-image_desc-linear_xfm': (
             write_composite_linear_xfm, 'output_image'),
-        f'from-{sym}template_to-T1w_mode-image_desc-linear_xfm': (
+        f'from-{sym}template_to-{orig}_mode-image_desc-linear_xfm': (
             write_composite_invlinear_xfm, 'output_image'),
-        f'from-T1w_to-{sym}template_mode-image_desc-nonlinear_xfm': (
+        f'from-{orig}_to-{sym}template_mode-image_desc-nonlinear_xfm': (
             ants_reg_anat_mni, 'outputspec.warp_field'),
-        f'from-{sym}template_to-T1w_mode-image_desc-nonlinear_xfm': (
+        f'from-{sym}template_to-{orig}_mode-image_desc-nonlinear_xfm': (
             ants_reg_anat_mni, 'outputspec.inverse_warp_field')
     }
+
+    return (wf, outputs)
+
+
+def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=['input_brain',
+                                       'mean_bold',
+                                       'coreg_xfm',
+                                       'T1w_brain_template_funcreg',
+                                       'T1w_to_template_xfm',
+                                       'template_to_T1w_xfm']),
+        name='inputspec')
+
+    sym = ''
+    if symmetric:
+        sym = 'sym'
+
+    if reg_tool == 'ants':
+        fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(), name='fsl_reg_2_itk')
+        fsl_reg_2_itk.inputs.itk_transform = True
+        fsl_reg_2_itk.inputs.fsl2ras = True
+
+        # convert the .mat from linear Func->Anat to
+        # ANTS format
+        wf.connect(inputNode, 'coreg_xfm', fsl_reg_2_itk, 'transform_file')
+
+        wf.connect(inputNode, 'input_brain', fsl_reg_2_itk, 'reference_file')
+
+        wf.connect(inputNode, 'mean_bold', fsl_reg_2_itk, 'source_file')
+
+        itk_imports = ['import os']
+        change_transform = pe.Node(util.Function(
+            input_names=['input_affine_file'],
+            output_names=['updated_affine_file'],
+            function=change_itk_transform_type,
+            imports=itk_imports),
+            name='change_transform_type')
+
+        wf.connect(fsl_reg_2_itk, 'itk_transform',
+                         change_transform, 'input_affine_file')
+
+        # combine ALL xfm's into one - makes it easier downstream
+        write_composite_xfm = pe.Node(
+            interface=ants.ApplyTransforms(),
+            name=f'write_composite_xfm',
+            mem_gb=1.5)
+        write_composite_xfm.inputs.print_out_composite_warp_file = True
+        write_composite_xfm.inputs.output_image = \
+            f"from-bold_to-{sym}template_mode-image_xfm.nii.gz"
+
+        wf.connect(inputNode, 'input_brain',
+                   write_composite_xfm, 'input_image')
+
+        wf.connect(inputNode, 'T1w_brain_template_funcreg',
+                   write_composite_xfm, 'reference_image')
+
+        write_composite_xfm.inputs.input_image_type = 0
+        write_composite_xfm.inputs.dimension = 3
+        write_composite_xfm.inputs.interpolation = \
+            cfg.registration_workflows['anatomical_registration'][
+                'registration']['ANTs']['interpolation']
+
+        collect_all_transforms = pe.Node(util.Merge(2),
+                                         name=f'collect_all_transforms')
+
+        wf.connect(change_transform, 'updated_affine_file',
+                   collect_all_transforms, 'in1')
+
+        wf.connect(inputNode, 'T1w_to_template_xfm',
+                   collect_all_transforms, 'in2')
+
+        wf.connect(collect_all_transforms, 'out',
+                   write_composite_xfm, 'transforms')
+
+        write_composite_inv_xfm = pe.Node(
+            interface=ants.ApplyTransforms(),
+            name=f'write_composite_inv_xfm',
+            mem_gb=1.5)
+        write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
+        write_composite_inv_xfm.inputs.invert_transform_flags = [False, True]
+        write_composite_inv_xfm.inputs.output_image = \
+            f"from-{sym}template_to-bold_mode-image_xfm.nii.gz"
+
+        wf.connect(inputNode, 'T1w_brain_template_funcreg',
+                   write_composite_inv_xfm, 'input_image')
+
+        wf.connect(inputNode, 'mean_bold',
+                   write_composite_inv_xfm, 'reference_image')
+
+        write_composite_inv_xfm.inputs.input_image_type = 0
+        write_composite_inv_xfm.inputs.dimension = 3
+        write_composite_inv_xfm.inputs.interpolation = \
+            cfg.registration_workflows['anatomical_registration'][
+                'registration']['ANTs']['interpolation']
+
+        collect_inv_transforms = pe.Node(util.Merge(2),
+                                         name='collect_inv_transforms')
+
+        wf.connect(inputNode, 'template_to_T1w_xfm',
+                   collect_inv_transforms, 'in1')
+
+        wf.connect(change_transform, 'updated_affine_file',
+                   collect_inv_transforms, 'in2')
+
+        wf.connect(collect_inv_transforms, 'out',
+                   write_composite_inv_xfm, 'transforms')
+
+        outputs = {
+            f'from-bold_to-{sym}template_mode-image_xfm':
+                (write_composite_xfm, 'output_image'),
+            f'from-{sym}template_to-bold_mode-image_xfm':
+                (write_composite_inv_xfm, 'output_image')
+        }
+
+    elif reg_tool == 'fsl':
+
+        write_composite_xfm = pe.Node(interface=fsl.ConvertWarp(),
+                                      name='combine_fsl_warps')
+
+        wf.connect(inputNode, 'T1w_brain_template',
+                   write_composite_xfm, 'reference')
+
+        wf.connect(inputNode, 'coreg_xfm', write_composite_xfm, 'premat')
+
+        wf.connect(inputNode, 'T1w_to_template_xfm',
+                   write_composite_xfm, 'warp1')
+
+        outputs = {
+            f'from-bold_to-{sym}template_mode-image_xfm':
+                (write_composite_xfm, 'out_file'),
+        }
 
     return (wf, outputs)
 
@@ -1700,8 +1499,31 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-T1w_to-template_mode-image_xfm"]}
     '''
 
-    wf, outputs = FSL_registration_connector(wf, cfg, strat_pool, pipe_num,
-                                             opt)
+    fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
+                                              f'template_{pipe_idx}', cfg,
+                                              'T1w', opt)
+
+    fsl.inputs.inputspec.interpolation = cfg['registration_workflows'][
+        'anatomical_registration']['FSL-FNIRT']['interpolation']
+
+    fsl.inputs.inputspec.fnirt_config = cfg['registration_workflows'][
+        'registration']['FSL-FNIRT']['fnirt_config']
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, fsl, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('T1w_brain_template')
+    wf.connect(node, out, fsl, 'inputspec.reference_brain')
+
+    node, out = strat_pool.get_data(["desc-preproc_T1w",
+                                     "desc-reorient_T1w", "T1w"])
+    wf.connect(node, out, fsl, 'inputspec.input_head')
+
+    node, out = strat_pool.get_data('T1w_template')
+    wf.connect(node, out, fsl, 'inputspec.reference_head')
+
+    node, out = strat_pool.get_data('ref_mask')
+    wf.connect(node, out, fsl, 'inputspec.reference_mask')
 
     return (wf, outputs)
 
@@ -1727,8 +1549,85 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num,
                  "from-T1w_to-symtemplate_mode-image_xfm"]}
     '''
 
-    wf, outputs = FSL_registration_connector(wf, cfg, strat_pool, pipe_num,
-                                             opt, symmetric=True)
+    fsl, outputs = FSL_registration_connector('register_FSL_anat_to_'
+                                              f'template_symmetric_'
+                                              f'{pipe_idx}', cfg, 'T1w', opt,
+                                              symmetric=True)
+
+    fsl.inputs.inputspec.interpolation = cfg['registration_workflows'][
+        'anatomical_registration']['FSL-FNIRT']['interpolation']
+
+    fsl.inputs.inputspec.fnirt_config = cfg['registration_workflows'][
+        'registration']['FSL-FNIRT']['fnirt_config']
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, fsl, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('T1w_brain_template_symmetric')
+    wf.connect(node, out, fsl, 'inputspec.reference_brain')
+
+    node, out = strat_pool.get_data(["desc-preproc_T1w",
+                                     "desc-reorient_T1w", "T1w"])
+    wf.connect(node, out, fsl, 'inputspec.input_head')
+
+    node, out = strat_pool.get_data('T1w_template_symmetric')
+    wf.connect(node, out, fsl, 'inputspec.reference_head')
+
+    node, out = strat_pool.get_data('dilated_symmetric_brain_mask')
+    wf.connect(node, out, fsl, 'inputspec.reference_mask')
+
+    return (wf, outputs)
+
+
+def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Directly register the mean functional to an EPI template. No T1w
+    involved.
+
+    Node Block:
+    {"name": "register_FSL_EPI_to_template",
+     "config": ["registration_workflows", "functional_registration",
+                "EPI_registration"],
+     "switch": ["run"],
+     "option_key": "using",
+     "option_val": ["FSL", "FSL-linear"],
+     "inputs": ["bold_coreg_input",
+                "space-bold_desc-brain_mask",
+                "EPI_template",
+                "EPI_template_mask"],
+     "outputs": ["space-template_desc-brain_bold",
+                 "from-bold_to-template_mode-image_desc-linear_xfm",
+                 "from-template_to-bold_mode-image_desc-linear_xfm",
+                 "from-bold_to-template_mode-image_desc-nonlinear_xfm",
+                 "from-template_to-bold_mode-image_desc-nonlinear_xfm",
+                 "from-bold_to-template_mode-image_xfm"]}
+    '''
+
+    fsl, outputs = FSL_registration_connector('register_FSL_EPI_to_'
+                                              f'template_{pipe_idx}', cfg,
+                                              opt, 'bold')
+
+    fsl.inputs.inputspec.interpolation = cfg['registration_workflows'][
+        'functional_registration']['EPI_registration']['FSL-FNIRT'][
+        'interpolation']
+
+    fsl.inputs.inputspec.fnirt_config = cfg['registration_workflows'][
+        'functional_registration']['EPI_registration']['FSL-FNIRT'][
+        'fnirt_config']
+
+    node, out = strat_pool.get_data('bold_coreg_input')
+    wf.connect(node, out, fsl, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('EPI_template')
+    wf.connect(node, out, fsl, 'inputspec.reference_brain')
+
+    node, out = strat_pool.get_data('bold_coreg_input')
+    wf.connect(node, out, fsl, 'inputspec.input_head')
+
+    node, out = strat_pool.get_data('EPI_template')
+    wf.connect(node, out, fsl, 'inputspec.reference_head')
+
+    node, out = strat_pool.get_data('EPI_template_mask')
+    wf.connect(node, out, fsl, 'inputspec.reference_mask')
 
     return (wf, outputs)
 
@@ -1752,10 +1651,42 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-template_to-T1w_mode-image_desc-linear_xfm",
                  "from-T1w_to-template_mode-image_desc-nonlinear_xfm",
                  "from-template_to-T1w_mode-image_desc-nonlinear_xfm",
-                 "from-T1w_to-template_mode-image_xfm"]}
+                 "from-T1w_to-template_mode-image_xfm",
+                 "from-template_to-T1w_mode-image_xfm"]}
     '''
-    wf, outputs = ANTs_registration_connector(wf, cfg, strat_pool, pipe_num,
-                                              opt)
+
+    params = cfg.registration_workflows['anatomical_registration'][
+        'registration']['ANTs']['T1_registration']
+
+    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template', cfg,
+                                                params, 'T1w')
+
+    ants.inputs.inputspec.interpolation = cfg.registration_workflows[
+        'anatomical_registration']['registration']['ANTs']['interpolation']
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, ants, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('T1w_brain_template')
+    wf.connect(node, out, ants, 'inputspec.reference_brain')
+
+    node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
+                                     "T1w"])
+    wf.connect(node, out, ants, 'inputspec.input_head')
+
+    node, out = strat_pool.get_data(f'T1w_template')
+    wf.connect(node, out, ants, 'inputspec.reference_head')
+
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, ants, 'inputspec.input_mask')
+
+    node, out = strat_pool.get_data('T1w_brain_template_mask')
+    wf.connect(node, out, ants, 'inputspec.reference_mask')
+
+    if strat_pool.check_rpool('label-lesion_mask'):
+        node, out = strat_pool.get_data('label-lesion_mask')
+        wf.connect(node, out, ants, 'inputspec.lesion_mask')
+
     return (wf, outputs)
 
 
@@ -1763,11 +1694,10 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
                                              opt=None):
     '''
     {"name": "register_symmetric_ANTs_anat_to_template",
-     "config": ["registration_workflows", "anatomical_registration",
-                "registration"],
-     "switch": "run",
-     "option_key": "using",
-     "option_val": "ANTs",
+     "config": ["registration_workflows", "anatomical_registration"],
+     "switch": ["run"],
+     "option_key": ["registration", "using"],
+     "option_val": "ANTS",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
                 "desc-brain_T1w",
                 "space-T1w_desc-brain_mask",
@@ -1780,11 +1710,97 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num,
                  "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
                  "from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm",
                  "from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm",
-                 "from-T1w_to-symtemplate_mode-image_xfm"]}
+                 "from-T1w_to-symtemplate_mode-image_xfm",
+                 "from-symtemplate_to-T1w_mode-image_xfm"]}
     '''
 
-    wf, outputs = ANTs_registration_connector(wf, cfg, strat_pool, pipe_num,
-                                              opt, symmetric=True)
+    params = cfg.registration_workflows['anatomical_registration'][
+        'registration']['ANTs']['T1_registration']
+
+    ants, outputs = ANTs_registration_connector('ANTS_T1_to_template_'
+                                                'symmetric', cfg, params,
+                                                'T1w', True)
+
+    ants.inputs.inputspec.interpolation = cfg.registration_workflows[
+        'anatomical_registration']['registration']['ANTs']['interpolation']
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, ants, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('T1w_brain_template_symmetric')
+    wf.connect(node, out, ants, 'inputspec.reference_brain')
+
+    node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
+                                     "T1w"])
+    wf.connect(node, out, ants, 'inputspec.input_head')
+
+    node, out = strat_pool.get_data('T1w_template_symmetric')
+    wf.connect(node, out, ants, 'inputspec.reference_head')
+
+    node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
+    wf.connect(node, out, ants, 'inputspec.input_mask')
+
+    node, out = strat_pool.get_data('dilated_symmetric_brain_mask')
+    wf.connect(node, out, ants, 'inputspec.reference_mask')
+
+    if strat_pool.check_rpool('label-lesion_mask'):
+        node, out = strat_pool.get_data('label-lesion_mask')
+        wf.connect(node, out, ants, 'inputspec.lesion_mask')
+
+    return (wf, outputs)
+
+
+def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Directly register the mean functional to an EPI template. No T1w
+    involved.
+
+    Node Block:
+    {"name": "register_ANTs_EPI_to_template",
+     "config": ["registration_workflows", "functional_registration",
+                "EPI_registration"],
+     "switch": ["run"],
+     "option_key": "using",
+     "option_val": "ANTS",
+     "inputs": ["bold_coreg_input",
+                "space-bold_desc-brain_mask",
+                "EPI_template",
+                "EPI_template_mask"],
+     "outputs": ["space-template_desc-brain_bold",
+                 "from-bold_to-template_mode-image_desc-linear_xfm",
+                 "from-template_to-bold_mode-image_desc-linear_xfm",
+                 "from-bold_to-template_mode-image_desc-nonlinear_xfm",
+                 "from-template_to-bold_mode-image_desc-nonlinear_xfm",
+                 "from-bold_to-template_mode-image_xfm",
+                 "from-template_to-bold_mode-image_xfm"]}
+    '''
+
+    params = cfg.registration_workflows['functional_registration'][
+        'EPI_registration']['ANTs']['parameters']
+
+    ants, outputs = ANTs_registration_connector('ANTS_T1_to_EPI_template',
+                                                cfg, params, 'bold')
+
+    ants.inputs.inputspec.interpolation = cfg.registration_workflows[
+        'functional_registration']['EPI_registration']['ANTs'][
+        'interpolation']
+
+    node, out = strat_pool.get_data('bold_coreg_input')
+    wf.connect(node, out, ants, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('EPI_template')
+    wf.connect(node, out, ants, 'inputspec.reference_brain')
+
+    node, out = strat_pool.get_data('bold_coreg_input')
+    wf.connect(node, out, ants, 'inputspec.input_head')
+
+    node, out = strat_pool.get_data('EPI_template')
+    wf.connect(node, out, ants, 'inputspec.reference_head')
+
+    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
+    wf.connect(node, out, ants, 'inputspec.input_mask')
+
+    node, out = strat_pool.get_data('EPI_template_mask')
+    wf.connect(node, out, ants, 'inputspec.reference_mask')
 
     return (wf, outputs)
 
@@ -1836,12 +1852,13 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     coreg_input = strat_pool.get_data("desc-mean_bold")
 
     if cfg.registration_workflows['functional_registration'][
-        'coregistration']['func_input_prep']['Mean Functional'][
-        'n4_correct_func']:
+            'coregistration']['func_input_prep']['Mean Functional'][
+            'n4_correct_func']:
         n4_correct_func = pe.Node(
-            interface=ants.N4BiasFieldCorrection(dimension=3,
-                                                 copy_header=True,
-                                                 bspline_fitting_distance=200),
+            interface=
+            ants.N4BiasFieldCorrection(dimension=3,
+                                       copy_header=True,
+                                       bspline_fitting_distance=200),
             shrink_factor=2,
             name=f'func_mean_n4_corrected_{pipe_num}')
         n4_correct_func.inputs.args = '-r True'
@@ -1873,7 +1890,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 "despiked_fieldmap",
                 "fieldmap_mask"],
      "outputs": ["space-T1w_desc-mean_bold",
-                 "from-bold_to-T1_mode-image_desc-linear_xfm"]}
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm"]}
     '''
 
     diff_complete = False
@@ -1883,13 +1900,6 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # if field map-based distortion correction is on, but BBR is off,
     # send in the distortion correction files here
-    # TODO: is this robust to the possibility of forking both
-    # TODO: distortion correction and BBR at the same time?
-    # TODO: (note if you are forking with BBR on/off, at this point
-    # TODO:  there is still only one strat, so you would have to fork
-    # TODO:  here instead to have a func->anat with fieldmap and
-    # TODO:  without, and send the without-fieldmap to the BBR fork)
-
     func_to_anat = create_register_func_to_anat(diff_complete,
                                                 f'func_to_anat_FLIRT_'
                                                 f'{pipe_num}')
@@ -1917,7 +1927,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         'space-T1w_desc-mean_bold':
             (func_to_anat, 'outputspec.anat_func_nobbreg'),
-        'from-bold_to-T1_mode-image_desc-linear_xfm':
+        'from-bold_to-T1w_mode-image_desc-linear_xfm':
             (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')
     }
 
@@ -1934,14 +1944,14 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["bold_coreg_input",
                 "T1w",
-                "from-bold_to-T1_mode-image_desc-linear_xfm",
+                "from-bold_to-T1w_mode-image_desc-linear_xfm",
                 "label-CSF_probseg",
                 "diff_phase_dwell",
                 "diff_phase_pedir",
                 "despiked_fieldmap",
                 "fieldmap_mask"],
      "outputs": ["space-T1w_desc-mean_bold",
-                 "from-bold_to-T1_mode-image_desc-linear_xfm"]}
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm"]}
     '''
 
     diff_complete = False
@@ -1965,7 +1975,7 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat_skull')
 
     node, out = strat_pool.get_data(
-        'from-bold_to-T1_mode-image_desc-linear_xfm')
+        'from-bold_to-T1w_mode-image_desc-linear_xfm')
     wf.connect(node, out,
                func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
 
@@ -1989,10 +1999,355 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                    func_to_anat_bbreg, 'inputspec.fieldmapmask')
 
     outputs = {
-        'space-T1w_desc-mean_bold': (
-        func_to_anat_bbreg, 'outputspec.anat_func'),
-        'from-bold_to-T1_mode-image_desc-linear_xfm':
+        'space-T1w_desc-mean_bold':
+            (func_to_anat_bbreg, 'outputspec.anat_func'),
+        'from-bold_to-T1w_mode-image_desc-linear_xfm':
             (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')
+    }
+
+    return (wf, outputs)
+
+
+def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Condense the BOLD-to-T1 coregistration transform and the T1-to-template
+    transform into one transform matrix.
+
+    Node Block:
+    {"name": "create_func_to_T1template_xfm",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["target_template", "using"],
+     "option_val": "T1_template",
+     "inputs": ["from-bold_to-T1w_mode-image_desc-linear_xfm",
+                "from-T1w_to-template_mode-image_xfm",
+                "from-template_to-T1w_mode-image_xfm",
+                "desc-mean_bold",
+                "desc-brain_T1w",
+                "T1w_brain_template_funcreg"],
+     "outputs": ["from-bold_to-template_mode-image_xfm",
+                 "from-template_to-bold_mode-image_xfm"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-T1w_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    xfm, outputs = bold_to_T1template_xfm_connector('create_func_to_T1w'
+                                                    f'template_xfm_{pipe_num}',
+                                                    cfg, reg_tool,
+                                                    symmetric=False)
+
+    node, out = strat_pool.get_data(
+        'from-bold_to-T1w_mode-image_desc-linear_xfm')
+    wf.connect(node, out, xfm, 'inputspec.coreg_xfm')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, xfm, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('desc-mean_bold')
+    wf.connect(node, out, xfm, 'inputspec.mean_bold')
+
+    node, out = strat_pool.get_data('T1w_brain_template_funcreg')
+    wf.connect(node, out, xfm, 'inputspec.T1w_brain_template_funcreg')
+
+    node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
+    wf.connect(node, out, xfm, 'inputspec.T1w_to_template_xfm')
+
+    # FNIRT pipelines don't have an inverse nonlinear warp, make optional
+    if strat_pool.check_rpool('from-template_to-T1w_mode-image_xfm'):
+        node, out = strat_pool.get_data('from-template_to-T1w_mode-image_xfm')
+        wf.connect(node, out, xfm, 'inputspec.template_to_T1w_xfm')
+
+    return (wf, outputs)
+
+
+def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
+                                            opt=None):
+    '''Condense the BOLD-to-T1 coregistration transform and the T1-to-
+    symmetric-template transform into one transform matrix.
+
+    Node Block:
+    {"name": "create_func_to_T1template_symmetric_xfm",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["target_template", "using"],
+     "option_val": "T1_template",
+     "inputs": ["from-bold_to-T1w_mode-image_desc-linear_xfm",
+                "from-T1w_to-symtemplate_mode-image_xfm",
+                "from-symtemplate_to-T1w_mode-image_xfm",
+                "desc-mean_bold",
+                "desc-brain_T1w",
+                "T1w_brain_template_symmetric_deriv"],
+     "outputs": ["from-bold_to-symtemplate_mode-image_xfm",
+                 "from-symtemplate_to-bold_mode-image_xfm"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-T1w_to-symtemplate_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    xfm, outputs = bold_to_T1template_xfm_connector('create_func_to_T1wsymtem'
+                                                    f'plate_xfm_{pipe_num}',
+                                                    cfg, reg_tool,
+                                                    symmetric=True)
+
+    node, out = strat_pool.get_data(
+        'from-bold_to-T1w_mode-image_desc-linear_xfm')
+    wf.connect(node, out, xfm, 'inputspec.coreg_xfm')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, xfm, 'inputspec.input_brain')
+
+    node, out = strat_pool.get_data('desc-mean_bold')
+    wf.connect(node, out, xfm, 'inputspec.mean_bold')
+
+    node, out = strat_pool.get_data('T1w_brain_template_symmetric_deriv')
+    wf.connect(node, out, xfm, 'inputspec.T1w_brain_template_funcreg')
+
+    node, out = strat_pool.get_data('from-T1w_to-symtemplate_mode-image_xfm')
+    wf.connect(node, out, xfm, 'inputspec.T1w_to_template_xfm')
+
+    # FNIRT pipelines don't have an inverse nonlinear warp, make optional
+    if strat_pool.check_rpool('from-symtemplate_to-T1w_mode-image_xfm'):
+        node, out = \
+            strat_pool.get_data('from-symtemplate_to-T1w_mode-image_xfm')
+        wf.connect(node, out, xfm, 'inputspec.template_to_T1w_xfm')
+
+    return (wf, outputs)
+
+
+def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_timeseries_to_T1template",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["target_template", "using"],
+     "option_val": "T1_template",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "from-bold_to-template_mode-image_xfm",
+                "T1w_brain_template_funcreg"],
+     "outputs": ["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    connect, resource = strat_pool.get_data(["desc-cleaned_bold",
+                                             "desc-preproc_bold",
+                                             "desc-reorient_bold",
+                                             "bold"],
+                                            report_fetched=True)
+
+    node, out = connect
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("T1w_brain_template_funcreg")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        f'space-template_{resource}': (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+
+def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_bold_mask_to_T1template",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-bold_desc-brain_mask",
+                "from-bold_to-template_mode-image_xfm",
+                "T1w_brain_template_funcreg"],
+     "outputs": ["space-template_desc-bold_mask"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("T1w_brain_template_funcreg")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        'space-template_desc-bold_mask':
+            (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+
+def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Transform the BOLD mask to template space and to the resolution set for
+    the derivative outputs.
+
+    Node Block:
+    {"name": "transform_bold_mask_to_T1template",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": ["space-bold_desc-brain_mask",
+                "from-bold_to-template_mode-image_xfm",
+                "T1w_brain_template_deriv"],
+     "outputs": ["space-template_res-derivative_desc-bold_mask"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("T1w_brain_template_deriv")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        f'space-template_res-derivative_desc-bold_mask':
+            (apply_xfm, 'outputspec.output_image')
+    }
+
+    return (wf, outputs)
+
+
+def warp_timeseries_to_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    Node Block:
+    {"name": "transform_timeseries_to_EPItemplate",
+     "config": ["registration_workflows", "functional_registration",
+                "func_registration_to_template"],
+     "switch": ["run"],
+     "option_key": ["target_template", "using"],
+     "option_val": "EPI_template",
+     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+                 "desc-reorient_bold", "bold"],
+                "from-bold_to-template_mode-image_xfm",
+                "EPI_template"],
+     "outputs": ["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"]}
+    '''
+
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
+    reg_tool = check_prov_for_regtool(xfm_prov)
+
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+    apply_xfm = apply_transform('warp_ts_to_EPItemplate', reg_tool,
+                                time_series=True, num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
+
+    if reg_tool == 'ants':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'ANTs_pipelines']['interpolation']
+    elif reg_tool == 'fsl':
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            'functional_registration']['func_registration_to_template'][
+            'FNIRT_pipelines']['interpolation']
+
+    connect, resource = strat_pool.get_data(["desc-cleaned_bold",
+                                             "desc-preproc_bold",
+                                             "desc-reorient_bold",
+                                             "bold"],
+                                            report_fetched=True)
+    node, out = connect
+    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+    node, out = strat_pool.get_data("EPI_template")
+    wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+    node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+    outputs = {
+        f'space-template_{resource}': (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)

@@ -176,6 +176,7 @@ def motion_power_statistics(name='motion_stats',
                                                         'movement_parameters',
                                                         'max_displacement',
                                                         'motion_correct',
+                                                        'mask',
                                                         'transformations']),
                          name='inputspec')
 
@@ -186,7 +187,7 @@ def motion_power_statistics(name='motion_stats',
                                                          'motion_params']),
                           name='outputspec')
 
-    cal_DVARS = pe.Node(Function(input_names=['func_brain'],
+    cal_DVARS = pe.Node(Function(input_names=['func_brain', 'mask'],
                                  output_names=['out_file'],
                                  function=calculate_DVARS,
                                  as_module=True),
@@ -194,6 +195,7 @@ def motion_power_statistics(name='motion_stats',
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'func_brain')
+    wf.connect(input_node, 'mask', cal_DVARS, 'mask')
     wf.connect(cal_DVARS, 'out_file', output_node, 'DVARS_1D')
 
     # Calculating mean Framewise Displacement as per power et al., 2012
@@ -261,8 +263,10 @@ def motion_power_statistics(name='motion_stats',
                calc_power_parameters, 'subject_id')
     wf.connect(input_node, 'scan_id',
                calc_power_parameters, 'scan_id')
+
     wf.connect(cal_DVARS, 'out_file',
                calc_power_parameters, 'dvars')
+
     wf.connect(calculate_FDP, 'out_file',
                calc_power_parameters, 'fdp')
 
@@ -535,7 +539,7 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
     return out_file
 
 
-def calculate_DVARS(func_brain):
+def calculate_DVARS(func_brain, mask):
     """
     Method to calculate DVARS as per power's method
 
@@ -543,6 +547,8 @@ def calculate_DVARS(func_brain):
     ----------
     func_brain : string (nifti file)
         path to motion correct functional data
+    mask : string (nifti file)
+        path to brain only mask for functional data
 
     Returns
     -------
@@ -551,9 +557,13 @@ def calculate_DVARS(func_brain):
     """
 
     rest_data = nb.load(func_brain).get_data().astype(np.float32)
+    mask_data = nb.load(mask).get_data().astype('bool')
 
     # square of relative intensity value for each voxel across every timepoint
     data = np.square(np.diff(rest_data, axis=3))
+
+    # applying mask, getting the data in the brain only
+    data = data[mask_data]
 
     # square root and mean across all timepoints inside mask
     dvars = np.sqrt(np.mean(data, axis=0))

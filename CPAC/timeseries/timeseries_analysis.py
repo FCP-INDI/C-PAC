@@ -5,6 +5,11 @@ from nipype.interfaces import fsl
 from nipype.interfaces import afni
 from nipype import logging
 
+from nipype.interfaces.utility import Function
+
+from CPAC.utils.datasource import create_roi_mask_dataflow, \
+    create_spatial_map_dataflow, resample_func_roi
+
 
 def get_voxel_timeseries(wf_name='voxel_timeseries'):
     """
@@ -746,3 +751,232 @@ def gen_vertices_timeseries(rh_surface_file,
     out_list.append(lh_file)
 
     return out_list
+
+
+def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "timeseries_extraction_AVG",
+     "config": ["timeseries_extraction"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"]],
+     "outputs": ["desc-Mean_timeseries",
+                 "desc-ndmg_correlations",
+                 "atlas_name"]}
+    '''
+
+    resample_functional_roi = pe.Node(Function(input_names=['in_func',
+                                                            'in_roi',
+                                                            'realignment',
+                                                            'identity_matrix'],
+                                               output_names=['out_func',
+                                                             'out_roi'],
+                                               function=resample_func_roi,
+                                               as_module=True),
+                                      name=f'resample_functional_roi_'
+                                           f'{pipe_num}')
+
+    resample_functional_roi.inputs.realignment = cfg.timeseries_extraction[
+        'realignment']
+    resample_functional_roi.inputs.identity_matrix = \
+    cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+
+    roi_dataflow = create_roi_mask_dataflow(
+        cfg.timeseries_extraction['tse_atlases']['Avg'],
+        f'roi_dataflow_{pipe_num}')
+
+    roi_dataflow.inputs.inputspec.set(
+        creds_path=cfg.pipeline_setup['input_creds_path'],
+        dl_dir=cfg.pipeline_setup['working_directory']['path']
+    )
+
+    roi_timeseries = get_roi_timeseries(f'roi_timeseries_{pipe_num}')
+    roi_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
+        'roi_tse_outputs']
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    wf.connect(node, out, resample_functional_roi, 'in_func')
+
+    wf.connect(roi_dataflow, 'outputspec.out_file',
+               resample_functional_roi, 'in_roi')
+
+    # connect it to the roi_timeseries
+    # workflow.connect(roi_dataflow, 'outputspec.out_file',
+    #                  roi_timeseries, 'input_roi.roi')
+    wf.connect(resample_functional_roi, 'out_roi',
+               roi_timeseries, 'input_roi.roi')
+    wf.connect(resample_functional_roi, 'out_func',
+               roi_timeseries, 'inputspec.rest')
+
+    # create the graphs
+    from CPAC.utils.ndmg_utils import ndmg_create_graphs
+
+    ndmg_graph = pe.MapNode(Function(
+        input_names=['ts', 'labels'],
+        output_names=['out_file'],
+        function=ndmg_create_graphs,
+        as_module=True
+    ), name=f'ndmg_graphs_{pipe_num}',
+        iterfield=['labels'])
+
+    wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
+    wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
+
+    outputs = {
+        'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_outputs'),
+        'desc-ndmg_correlations': (ndmg_graph, 'out_file'),
+        'atlas_name': (roi_dataflow, 'outputspec.out_name')
+    }
+
+    return (wf, outputs)
+
+
+def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "timeseries_extraction_Voxel",
+     "config": ["timeseries_extraction"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"]],
+     "outputs": ["desc-Voxel_timeseries",
+                 "atlas_name"]}
+    '''
+
+    resample_functional_to_mask = pe.Node(Function(input_names=['in_func',
+                                                                'in_roi',
+                                                                'realignment',
+                                                                'identity_matrix'],
+                                                   output_names=['out_func',
+                                                                 'out_roi'],
+                                                   function=resample_func_roi,
+                                                   as_module=True),
+                                          name=f'resample_functional_to_mask_'
+                                               f'{pipe_num}')
+
+    resample_functional_to_mask.inputs.realignment = cfg.timeseries_extraction[
+        'realignment']
+    resample_functional_to_mask.inputs.identity_matrix = \
+    cfg.registration_workflows['functional_registration'][
+        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+
+    mask_dataflow = create_roi_mask_dataflow(cfg.timeseries_extraction[
+                                                 'tse_atlases']['Voxel'],
+                                             f'mask_dataflow_{pipe_num}')
+
+    voxel_timeseries = get_voxel_timeseries(
+        f'voxel_timeseries_{pipe_num}')
+    voxel_timeseries.inputs.inputspec.output_type = c.timeseries_extraction[
+        'roi_tse_outputs']
+
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    # resample the input functional file to mask
+    wf.connect(node, out,
+                     resample_functional_to_mask, 'in_func')
+    wf.connect(mask_dataflow, 'outputspec.out_file',
+                     resample_functional_to_mask, 'in_roi')
+
+    # connect it to the voxel_timeseries
+    wf.connect(resample_functional_to_mask, 'out_roi',
+                     voxel_timeseries, 'input_mask.mask')
+    wf.connect(resample_functional_to_mask, 'out_func',
+                     voxel_timeseries, 'inputspec.rest')
+
+    outputs = {
+        'desc-Voxel_timeseries':
+            (voxel_timeseries, 'outputspec.mask_outputs'),
+        'atlas_name': (mask_dataflow, 'outputspec.out_name')
+    }
+
+    return (wf, outputs)
+
+
+def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Performs spatial regression, extracting the spatial map timeseries of
+    the given atlases.
+
+    Note: this is a standalone function for when only spatial regression is
+          selected for the given atlases - if dual regression is selected,
+          that spatial regression is performed in the dual_regression function
+
+    Node Block:
+    {"name": "spatial_regression",
+     "config": ["timeseries_extraction"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"],
+                "space-template_desc-bold_mask"],
+     "outputs": ["desc-SpatReg_timeseries",
+                 "atlas_name"]}
+    '''
+
+    resample_spatial_map_to_native_space = pe.Node(
+        interface=fsl.FLIRT(),
+        name=f'resample_spatial_map_to_native_space_{pipe_num}')
+
+    resample_spatial_map_to_native_space.inputs.set(
+        interp='nearestneighbour',
+        apply_xfm=True,
+        in_matrix_file=cfg.registration_workflows['functional_registration'][
+            'func_registration_to_template']['FNIRT_pipelines'][
+            'identity_matrix'])
+
+    spatial_map_dataflow = create_spatial_map_dataflow(
+        cfg.timeseries_extraction['tse_atlases']['SpatialReg'],
+        f'spatial_map_dataflow_{pipe_num}')
+
+    spatial_map_dataflow.inputs.inputspec.set(
+        creds_path=cfg.pipeline_setup['input_creds_path'],
+        dl_dir=cfg.pipeline_setup['working_directory']['path'])
+
+    spatial_map_timeseries = get_spatial_map_timeseries(
+        f'spatial_map_timeseries_{pipe_num}')
+    spatial_map_timeseries.inputs.inputspec.demean = True
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+
+    # resample the input functional file and functional mask
+    # to spatial map
+    wf.connect(node, out, resample_spatial_map_to_native_space, 'reference')
+    wf.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
+               resample_spatial_map_to_native_space, 'in_file')
+
+    wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_rest')
+
+    # connect it to the spatial_map_timeseries
+    wf.connect(resample_spatial_map_to_native_space, 'out_file',
+               spatial_map_timeseries, 'inputspec.spatial_map')
+
+    node, out = strat_pool.get_data('space-template_desc-bold_mask')
+    wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_mask')
+
+    # 'atlas_name' will be an iterable and will carry through
+    outputs = {
+        'desc-SpatReg_timeseries':
+            (spatial_map_timeseries, 'outputspec.subject_timeseries'),
+        'atlas_name': (spatial_map_dataflow, 'select_spatial_map.out_name')
+    }
+
+    return (wf, outputs)

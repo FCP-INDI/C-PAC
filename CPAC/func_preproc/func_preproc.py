@@ -155,94 +155,6 @@ def anat_refined_mask(init_bold_mask=True, wf_name='init_bold_mask'):
     return wf
 
 
-def anat_based_mask(wf_name='bold_mask'):
-    # reference DCAN lab BOLD mask
-    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
-    wf = pe.Workflow(name=wf_name)
-
-    input_node = pe.Node(util.IdentityInterface(fields=['func',
-                                                        'anat_brain',
-                                                        'anat_head']),
-                         name='inputspec')
-
-    output_node = pe.Node(util.IdentityInterface(fields=['func_brain_mask']),
-                          name='outputspec')
-
-    # 0. Take single volume of func
-    func_single_volume = pe.Node(interface=afni.Calc(),
-                                 name='func_single_volume')
-
-    func_single_volume.inputs.set(
-        expr='a',
-        single_idx=1,
-        outputtype='NIFTI_GZ'
-    )
-
-    wf.connect(input_node, 'func',
-               func_single_volume, 'in_file_a')
-
-    # 1. Register func head to anat head to get func2anat matrix
-    linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
-                                      name='func_to_anat_linear_reg')
-    linear_reg_func_to_anat.inputs.dof = 6
-    linear_reg_func_to_anat.inputs.interp = 'spline'
-    linear_reg_func_to_anat.inputs.searchr_x = [30, 30]
-    linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
-    linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
-
-    wf.connect(func_single_volume, 'out_file',
-               linear_reg_func_to_anat, 'in_file')
-
-    wf.connect(input_node, 'anat_head',
-               linear_reg_func_to_anat, 'reference')
-
-    # 2. Inverse func to anat affine, to get anat-to-func transform
-    inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
-                                      name='inv_func2anat_affine')
-    inv_func_to_anat_affine.inputs.invert_xfm = True
-
-    wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
-               inv_func_to_anat_affine, 'in_file')
-
-    # 3. get BOLD mask
-    # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space
-    reg_anat_brain_to_func = pe.Node(interface=fsl.ApplyWarp(),
-                                     name='reg_anat_brain_to_func')
-    reg_anat_brain_to_func.inputs.interp = 'nn'
-    reg_anat_brain_to_func.inputs.relwarp = True
-
-    wf.connect(input_node, 'anat_brain',
-               reg_anat_brain_to_func, 'in_file')
-
-    wf.connect(input_node, 'func',
-               reg_anat_brain_to_func, 'ref_file')
-
-    wf.connect(inv_func_to_anat_affine, 'out_file',
-               reg_anat_brain_to_func, 'premat')
-
-    # 3.2 Binarize transfered image
-    func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
-                            name='func_mask_bin')
-    func_mask_bin.inputs.op_string = '-abs -bin'
-
-    wf.connect(reg_anat_brain_to_func, 'out_file',
-               func_mask_bin, 'in_file')
-
-    # 3.3 Fill holes to get BOLD mask
-    func_mask_fill_holes = pe.Node(interface=afni.MaskTool(),
-                                   name='func_mask_fill_holes')
-    func_mask_fill_holes.inputs.fill_holes = True
-    func_mask_fill_holes.inputs.outputtype = 'NIFTI_GZ'
-
-    wf.connect(func_mask_bin, 'out_file',
-               func_mask_fill_holes, 'in_file')
-
-    wf.connect(func_mask_fill_holes, 'out_file',
-               output_node, 'func_brain_mask')
-
-    return wf
-
-
 def normalize_motion_parameters(in_file):
     """
     Convert FSL mcflirt motion parameters to AFNI space
@@ -263,325 +175,6 @@ def normalize_motion_parameters(in_file):
     np.savetxt(out_file, motion_params)
 
     return out_file
-
-
-def skullstrip_functional(skullstrip_tool='afni', config=None,
-                          wf_name='skullstrip_functional'):
-    skullstrip_tool = skullstrip_tool.lower()
-    if skullstrip_tool != 'afni' and skullstrip_tool != 'fsl' and skullstrip_tool != 'fsl_afni' and skullstrip_tool != 'anatomical_refined' and skullstrip_tool != 'anatomical_based':
-        raise Exception("\n\n[!] Error: The 'tool' parameter of the "
-                        "'skullstrip_functional' workflow must be either "
-                        "'afni' or 'fsl' or 'fsl_afni' or 'anatomical_refined' or 'anatomical_based'.\n\nTool input: "
-                        "{0}\n\n".format(skullstrip_tool))
-
-    wf = pe.Workflow(name=wf_name)
-
-    input_node = pe.Node(util.IdentityInterface(fields=['raw_func',
-                                                        'func',
-                                                        'anatomical_brain_mask',
-                                                        'anat_brain',
-                                                        'anat_head']),
-                         name='inputspec')
-
-    output_node = pe.Node(util.IdentityInterface(fields=['func_brain',
-                                                         'func_brain_mask']),
-                          name='outputspec')
-
-    if skullstrip_tool == 'afni':
-        func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
-                                      name='func_get_brain_mask_AFNI')
-        func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
-
-        wf.connect(input_node, 'func', func_get_brain_mask, 'in_file')
-
-        wf.connect(func_get_brain_mask, 'out_file',
-                   output_node, 'func_brain_mask')
-
-    elif skullstrip_tool == 'fsl':
-        inputnode_bet = pe.Node(
-            util.IdentityInterface(fields=['frac',
-                                           'mesh_boolean',
-                                           'outline',
-                                           'padding',
-                                           'radius',
-                                           'reduce_bias',
-                                           'remove_eyes',
-                                           'robust',
-                                           'skull',
-                                           'surfaces',
-                                           'threshold',
-                                           'vertical_gradient']),
-            name='BET_options')
-
-        func_get_brain_mask = pe.Node(interface=fsl.BET(),
-                                      name='func_get_brain_mask_BET')
-        func_get_brain_mask.inputs.output_type = 'NIFTI_GZ'
-        func_get_brain_mask.inputs.mask = True
-
-        inputnode_bet.inputs.set(
-            frac=config.functional_preproc['func_masking']['FSL-BET']['frac'],
-            # 0.3
-            mesh_boolean=config.functional_preproc['func_masking']['FSL-BET'][
-                'mesh_boolean'],
-            outline=config.functional_preproc['func_masking']['FSL-BET'][
-                'outline'],
-            padding=config.functional_preproc['func_masking']['FSL-BET'][
-                'padding'],
-            radius=config.functional_preproc['func_masking']['FSL-BET'][
-                'radius'],
-            reduce_bias=config.functional_preproc['func_masking']['FSL-BET'][
-                'reduce_bias'],
-            remove_eyes=config.functional_preproc['func_masking']['FSL-BET'][
-                'remove_eyes'],
-            robust=config.functional_preproc['func_masking']['FSL-BET'][
-                'robust'],
-            skull=config.functional_preproc['func_masking']['FSL-BET'][
-                'skull'],
-            surfaces=config.functional_preproc['func_masking']['FSL-BET'][
-                'surfaces'],
-            threshold=config.functional_preproc['func_masking']['FSL-BET'][
-                'threshold'],
-            vertical_gradient=
-            config.functional_preproc['func_masking']['FSL-BET'][
-                'vertical_gradient'],
-        )
-
-        wf.connect([
-            (inputnode_bet, func_get_brain_mask, [
-                ('frac', 'frac'),
-                ('mesh_boolean', 'mesh'),
-                ('outline', 'outline'),
-                ('padding', 'padding'),
-                ('radius', 'radius'),
-                ('reduce_bias', 'reduce_bias'),
-                ('remove_eyes', 'remove_eyes'),
-                ('robust', 'robust'),
-                ('skull', 'skull'),
-                ('surfaces', 'surfaces'),
-                ('threshold', 'threshold'),
-                ('vertical_gradient', 'vertical_gradient'),
-            ])
-        ])
-
-        if config.functional_preproc['func_masking']['FSL-BET'][
-            'functional_mean_boolean']:
-            func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                                      name='func_mean_skull_{0}'.format(
-                                          wf_name))
-            func_skull_mean.inputs.options = '-mean'
-            func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
-
-            wf.connect(input_node, 'func',
-                       func_skull_mean, 'in_file')
-            wf.connect(func_skull_mean, 'out_file',
-                       func_get_brain_mask, 'in_file')
-
-        else:
-            func_get_brain_mask.inputs.functional = True
-            wf.connect(input_node, 'func',
-                       func_get_brain_mask, 'in_file')
-
-        # erode one voxel of functional brian mask
-        erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
-                                  name='erode_one_voxel')
-
-        erode_one_voxel.inputs.kernel_shape = 'box'
-        erode_one_voxel.inputs.kernel_size = 1.0
-
-        wf.connect(func_get_brain_mask, 'mask_file',
-                   erode_one_voxel, 'in_file')
-
-        wf.connect(erode_one_voxel, 'out_file',
-                   output_node, 'func_brain_mask')
-
-    elif skullstrip_tool == 'fsl_afni':
-        func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                                  name='func_mean_skull')
-        func_skull_mean.inputs.options = '-mean'
-        func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
-
-        skullstrip_first_pass = pe.Node(
-            fsl.BET(frac=0.2, mask=True, functional=False),
-            name='skullstrip_first_pass')
-        bet_dilate = pe.Node(
-            fsl.DilateImage(operation='max', kernel_shape='sphere',
-                            kernel_size=6.0, internal_datatype='char'),
-            name='skullstrip_first_dilate')
-        bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
-        unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ',
-                                             args='-clfrac 0.2 -rbt 18.3 65.0 90.0',
-                                             out_file="uni.nii.gz"),
-                          name='unifize')
-        skullstrip_second_pass = pe.Node(
-            preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'),
-            name='skullstrip_second_pass')
-        combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
-                                name='combine_masks')
-
-        wf.connect([(input_node, func_skull_mean, [('func', 'in_file')]),
-                    (func_skull_mean, skullstrip_first_pass,
-                     [('out_file', 'in_file')]),
-                    (skullstrip_first_pass, bet_dilate,
-                     [('mask_file', 'in_file')]),
-                    (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
-                    (skullstrip_first_pass, bet_mask,
-                     [('out_file', 'in_file')]),
-                    (bet_mask, unifize, [('out_file', 'in_file')]),
-                    (unifize, skullstrip_second_pass,
-                     [('out_file', 'in_file')]),
-                    (skullstrip_first_pass, combine_masks,
-                     [('mask_file', 'in_file')]),
-                    (skullstrip_second_pass, combine_masks,
-                     [('out_file', 'operand_file')]),
-                    (combine_masks, output_node,
-                     [('out_file', 'func_brain_mask')])])
-
-    # Refine functional mask by registering anatomical mask to functional space
-    elif skullstrip_tool == 'anatomical_refined':
-
-        # binarize anat mask, in case of it is not a binary mask.
-        anat_brain_mask_bin = pe.Node(interface=fsl.ImageMaths(),
-                                      name='anat_brain_mask_bin')
-        anat_brain_mask_bin.inputs.op_string = '-bin'
-
-        wf.connect(input_node, 'anatomical_brain_mask',
-                   anat_brain_mask_bin, 'in_file')
-
-        # fill holes of anat mask
-        anat_mask_filled = pe.Node(interface=afni.MaskTool(),
-                                   name='anat_brain_mask_filled')
-        anat_mask_filled.inputs.fill_holes = True
-        anat_mask_filled.inputs.outputtype = 'NIFTI_GZ'
-
-        wf.connect(anat_brain_mask_bin, 'out_file',
-                   anat_mask_filled, 'in_file')
-
-        # init_bold_mask : input raw func
-        init_bold_mask = anat_refined_mask(init_bold_mask=True,
-                                           wf_name='init_bold_mask')
-
-        func_deoblique = pe.Node(interface=afni_utils.Refit(),
-                                 name='raw_func_deoblique')
-        func_deoblique.inputs.deoblique = True
-
-        wf.connect(input_node, 'raw_func',
-                   func_deoblique, 'in_file')
-
-        func_reorient = pe.Node(interface=afni_utils.Resample(),
-                                name='raw_func_reorient')
-
-        func_reorient.inputs.orientation = 'RPI'
-        func_reorient.inputs.outputtype = 'NIFTI_GZ'
-
-        wf.connect(func_deoblique, 'out_file',
-                   func_reorient, 'in_file')
-
-        wf.connect(func_reorient, 'out_file',
-                   init_bold_mask, 'inputspec.func')
-
-        wf.connect(anat_mask_filled, 'out_file',
-                   init_bold_mask, 'inputspec.anatomical_brain_mask')
-
-        wf.connect(input_node, 'anat_brain',
-                   init_bold_mask, 'inputspec.anat_brain')
-
-        # dilate init func brain mask
-        func_tmp_brain_mask = pe.Node(interface=fsl.ImageMaths(),
-                                      name='func_tmp_brain_mask_dil')
-        func_tmp_brain_mask.inputs.op_string = '-dilM'
-
-        wf.connect(init_bold_mask, 'outputspec.func_brain_mask',
-                   func_tmp_brain_mask, 'in_file')
-
-        # refined_bold_mask : input motion corrected func
-        refined_bold_mask = anat_refined_mask(init_bold_mask=False,
-                                              wf_name='refined_bold_mask')
-
-        wf.connect(input_node, 'func',
-                   refined_bold_mask, 'inputspec.func')
-
-        wf.connect(input_node, 'anat_brain',
-                   refined_bold_mask, 'inputspec.anat_brain')
-
-        wf.connect(func_tmp_brain_mask, 'out_file',
-                   refined_bold_mask, 'inputspec.init_func_brain_mask')
-
-        # Dialate anatomical mask
-        if config.functional_preproc['func_masking']['Anatomical_Refined'][
-            'anatomical_mask_dilation']:
-            anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
-                                       name='anat_mask_dilate')
-            anat_mask_dilate.inputs.dilate_inputs = '1'
-            anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
-
-            wf.connect(anat_mask_filled, 'out_file',
-                       anat_mask_dilate, 'in_file')
-            wf.connect(anat_mask_dilate, 'out_file',
-                       refined_bold_mask, 'inputspec.anatomical_brain_mask')
-
-        else:
-            wf.connect(anat_mask_filled, 'out_file',
-                       refined_bold_mask, 'inputspec.anatomical_brain_mask')
-
-        # get final func mask
-        func_mask_final = pe.Node(interface=fsl.MultiImageMaths(),
-                                  name='func_mask_final')
-        func_mask_final.inputs.op_string = "-mul %s"
-
-        wf.connect(func_tmp_brain_mask, 'out_file',
-                   func_mask_final, 'in_file')
-
-        wf.connect(refined_bold_mask, 'outputspec.func_brain_mask',
-                   func_mask_final, 'operand_files')
-
-        wf.connect(func_mask_final, 'out_file',
-                   output_node, 'func_brain_mask')
-
-    # simply transforms the anatomical brain mask to the functional BOLD data.
-    elif skullstrip_tool == 'anatomical_based':
-
-        # refined_bold_mask : input motion corrected func
-        bold_mask = anat_based_mask(wf_name='bold_mask')
-
-        wf.connect(input_node, 'func',
-                   bold_mask, 'inputspec.func')
-
-        wf.connect(input_node, 'anat_brain',
-                   bold_mask, 'inputspec.anat_brain')
-
-        wf.connect(input_node, 'anat_head',
-                   bold_mask, 'inputspec.anat_head')
-
-        wf.connect(bold_mask, 'outputspec.func_brain_mask',
-                   output_node, 'func_brain_mask')
-
-    func_edge_detect = pe.Node(interface=afni_utils.Calc(),
-                               name='func_extract_brain')
-
-    func_edge_detect.inputs.expr = 'a*b'
-    func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
-
-    wf.connect(input_node, 'func', func_edge_detect, 'in_file_a')
-
-    if skullstrip_tool == 'afni':
-        wf.connect(func_get_brain_mask, 'out_file',
-                   func_edge_detect, 'in_file_b')
-    elif skullstrip_tool == 'fsl':
-        wf.connect(erode_one_voxel, 'out_file',
-                   func_edge_detect, 'in_file_b')
-    elif skullstrip_tool == 'fsl_afni':
-        wf.connect(combine_masks, 'out_file',
-                   func_edge_detect, 'in_file_b')
-    elif skullstrip_tool == 'anatomical_refined':
-        wf.connect(func_mask_final, 'out_file',
-                   func_edge_detect, 'in_file_b')
-    elif skullstrip_tool == 'anatomical_based':
-        wf.connect(bold_mask, 'outputspec.func_brain_mask',
-                   func_edge_detect, 'in_file_b')
-
-    wf.connect(func_edge_detect, 'out_file', output_node, 'func_brain')
-
-    return wf
 
 
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
@@ -1323,16 +916,6 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data(['desc-preproc_bold', 'bold'])
         wf.connect(node, out, func_get_RPI, 'in_file_a')
 
-    '''
-    func_motion_correct_ref = func_get_RPI.clone(f'func_get_{opt}_motion')
-
-    wf.connect(out_motion, 'out_file',
-                    func_motion_correct_ref, 'in_file_a')
-
-    wf.connect(func_motion_correct_ref, 'out_file',
-                    output_node, 'motion_correct_ref')
-    '''
-
     outputs = {
         'motion_basefile': (func_get_RPI, 'out_file')
     }
@@ -1478,14 +1061,15 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-brain_bold", "desc-motion_bold"],
+     "inputs": ["desc-motion_bold",
+                "space-bold_desc-brain_mask",
                 "movement_parameters",
                 "max_displacement",
                 "coordinate_transformation",
                 "subject",
                 "scan"],
-     "outputs": ["frame_wise_displacement_power",
-                 "frame_wise_displacement_jenkinson",
+     "outputs": ["framewise_displacement_power",
+                 "framewise_displacement_jenkinson",
                  "dvars",
                  "power_params",
                  "motion_params"]}
@@ -1508,10 +1092,13 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.scan_id')
 
-    node, out_file = strat_pool.get_data(["desc-brain_bold",
-                                          "desc-motion_bold"])
+    node, out_file = strat_pool.get_data("desc-motion_bold")
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.motion_correct')
+
+    node, out_file = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out_file,
+               gen_motion_stats, 'inputspec.mask')
 
     node, out_file = strat_pool.get_data('movement_parameters')
     wf.connect(node, out_file,
@@ -1529,9 +1116,9 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                'inputspec.transformations')
 
     outputs = {
-        'frame_wise_displacement_power':
+        'framewise_displacement_power':
             (gen_motion_stats, 'outputspec.FDP_1D'),
-        'frame_wise_displacement_jenkinson':
+        'framewise_displacement_jenkinson':
             (gen_motion_stats, 'outputspec.FDJ_1D'),
         'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
         'power_params': (gen_motion_stats, 'outputspec.power_params'),
@@ -1541,71 +1128,441 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def func_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "func_masking",
+    {"name": "bold_mask_afni",
      "config": ["functional_preproc"],
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
-     "option_val": ["AFNI", "FSL", "FSL_AFNI"],
-     "inputs": ["bold",
-                ["desc-motion_bold", "desc-preproc_bold"]],
-     "outputs": ["desc-brain_bold",
-                 "space-bold_desc-brain_mask"]}
+     "option_val": "AFNI",
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
+     "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
-    skullstrip_func = skullstrip_functional(skullstrip_tool=opt, config=cfg,
-                                            wf_name=f"bold_masking_{pipe_num}")
+    func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
+                                  name=f'func_get_brain_mask_AFNI_{pipe_num}')
+    func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold"])
-    wf.connect(node, out, skullstrip_func, 'inputspec.func')
-
-    node, out = strat_pool.get_data('bold')
-    wf.connect(node, out, skullstrip_func, 'inputspec.raw_func')
+    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, func_get_brain_mask, 'in_file')
 
     outputs = {
-        'desc-brain_bold': (skullstrip_func, 'outputspec.func_brain'),
-        'space-bold_desc-brain_mask':
-            (skullstrip_func, 'outputspec.func_brain_mask')
+        'space-bold_desc-brain_mask': (func_get_brain_mask, 'out_file')
     }
 
     return (wf, outputs)
 
 
-def func_masking_using_anat(wf, cfg, strat_pool, pipe_num, opt=None):
+def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
-    {"name": "func_masking_using_anat",
+    {"name": "bold_mask_fsl",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": ["func_masking", "using"],
+     "option_val": "FSL",
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
+     "outputs": ["space-bold_desc-brain_mask"]}
+    '''
+
+    inputnode_bet = pe.Node(
+        util.IdentityInterface(fields=['frac',
+                                       'mesh_boolean',
+                                       'outline',
+                                       'padding',
+                                       'radius',
+                                       'reduce_bias',
+                                       'remove_eyes',
+                                       'robust',
+                                       'skull',
+                                       'surfaces',
+                                       'threshold',
+                                       'vertical_gradient']),
+        name='BET_options')
+
+    func_get_brain_mask = pe.Node(interface=fsl.BET(),
+                                  name=f'func_get_brain_mask_BET_{pipe_num}')
+    func_get_brain_mask.inputs.output_type = 'NIFTI_GZ'
+    func_get_brain_mask.inputs.mask = True
+
+    inputnode_bet.inputs.set(
+        frac=cfg.functional_preproc['func_masking']['FSL-BET']['frac'],
+        mesh_boolean=cfg.functional_preproc['func_masking']['FSL-BET'][
+            'mesh_boolean'],
+        outline=cfg.functional_preproc['func_masking']['FSL-BET'][
+            'outline'],
+        padding=cfg.functional_preproc['func_masking']['FSL-BET'][
+            'padding'],
+        radius=cfg.functional_preproc['func_masking']['FSL-BET']['radius'],
+        reduce_bias=cfg.functional_preproc['func_masking']['FSL-BET'][
+            'reduce_bias'],
+        remove_eyes=cfg.functional_preproc['func_masking']['FSL-BET'][
+            'remove_eyes'],
+        robust=cfg.functional_preproc['func_masking']['FSL-BET']['robust'],
+        skull=cfg.functional_preproc['func_masking']['FSL-BET']['skull'],
+        surfaces=cfg.functional_preproc['func_masking']['FSL-BET'][
+            'surfaces'],
+        threshold=cfg.functional_preproc['func_masking']['FSL-BET'][
+            'threshold'],
+        vertical_gradient=
+        cfg.functional_preproc['func_masking']['FSL-BET'][
+            'vertical_gradient'],
+    )
+
+    wf.connect([
+        (inputnode_bet, func_get_brain_mask, [
+            ('frac', 'frac'),
+            ('mesh_boolean', 'mesh'),
+            ('outline', 'outline'),
+            ('padding', 'padding'),
+            ('radius', 'radius'),
+            ('reduce_bias', 'reduce_bias'),
+            ('remove_eyes', 'remove_eyes'),
+            ('robust', 'robust'),
+            ('skull', 'skull'),
+            ('surfaces', 'surfaces'),
+            ('threshold', 'threshold'),
+            ('vertical_gradient', 'vertical_gradient'),
+        ])
+    ])
+
+    if cfg.functional_preproc['func_masking']['FSL-BET'][
+        'functional_mean_boolean']:
+        func_skull_mean = pe.Node(interface=afni_utils.TStat(),
+                                  name=f'func_mean_skull_{pipe_num}')
+        func_skull_mean.inputs.options = '-mean'
+        func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+
+        node, out = strat_pool.get_data(["desc-motion_bold",
+                                         "desc-preproc_bold", "bold"])
+        wf.connect(node, out, func_skull_mean, 'in_file')
+        wf.connect(func_skull_mean, 'out_file',
+                   func_get_brain_mask, 'in_file')
+
+    else:
+        func_get_brain_mask.inputs.functional = True
+
+        node, out = strat_pool.get_data(["desc-motion_bold",
+                                         "desc-preproc_bold", "bold"])
+        wf.connect(node, out, func_get_brain_mask, 'in_file')
+
+    # erode one voxel of functional brian mask
+    erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
+                              name=f'erode_one_voxel_{pipe_num}')
+
+    erode_one_voxel.inputs.kernel_shape = 'box'
+    erode_one_voxel.inputs.kernel_size = 1.0
+
+    wf.connect(func_get_brain_mask, 'mask_file',
+               erode_one_voxel, 'in_file')
+
+    outputs = {
+        'space-bold_desc-brain_mask': (erode_one_voxel, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "bold_mask_fsl_afni",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": ["func_masking", "using"],
+     "option_val": "FSL_AFNI",
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"]],
+     "outputs": ["space-bold_desc-brain_mask"]}
+    '''
+
+    func_skull_mean = pe.Node(interface=afni_utils.TStat(),
+                              name=f'func_mean_skull_{pipe_num}')
+    func_skull_mean.inputs.options = '-mean'
+    func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
+
+    skullstrip_first_pass = pe.Node(
+        fsl.BET(frac=0.2, mask=True, functional=False),
+        name=f'skullstrip_first_pass_{pipe_num}')
+    bet_dilate = pe.Node(
+        fsl.DilateImage(operation='max', kernel_shape='sphere',
+                        kernel_size=6.0, internal_datatype='char'),
+        name=f'skullstrip_first_dilate_{pipe_num}')
+    bet_mask = pe.Node(fsl.ApplyMask(), name=f'skullstrip_first_mask_'
+                                             f'{pipe_num}')
+    unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ',
+                                         args='-clfrac 0.2 -rbt 18.3 65.0 90.0',
+                                         out_file="uni.nii.gz"),
+                      name=f'unifize_{pipe_num}')
+    skullstrip_second_pass = pe.Node(
+        preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'),
+        name=f'skullstrip_second_pass_{pipe_num}')
+    combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
+                            name=f'combine_masks_{pipe_num}')
+
+    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, func_skull_mean, [('func', 'in_file')])
+
+    wf.connect([(func_skull_mean, skullstrip_first_pass,
+                 [('out_file', 'in_file')]),
+                (skullstrip_first_pass, bet_dilate,
+                 [('mask_file', 'in_file')]),
+                (bet_dilate, bet_mask, [('out_file', 'mask_file')]),
+                (skullstrip_first_pass, bet_mask, [('out_file', 'in_file')]),
+                (bet_mask, unifize, [('out_file', 'in_file')]),
+                (unifize, skullstrip_second_pass, [('out_file', 'in_file')]),
+                (skullstrip_first_pass, combine_masks,
+                 [('mask_file', 'in_file')]),
+                (skullstrip_second_pass, combine_masks,
+                 [('out_file', 'operand_file')])])
+
+    outputs = {
+        'space-bold_desc-brain_mask': (combine_masks, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "bold_mask_anatomical_refined",
      "config": ["functional_preproc"],
      "switch": ["run"],
      "option_key": ["func_masking", "using"],
      "option_val": "Anatomical_Refined",
      "inputs": ["bold",
-                ["desc-motion_bold", "desc-preproc_bold"],
+                ["desc-motion_bold", "desc-preproc_bold", "bold"],
                 "desc-brain_T1w",
                 "space-T1w_desc-brain_mask"],
-     "outputs": ["desc-brain_bold",
-                 "space-bold_desc-brain_mask"]}
+     "outputs": ["space-bold_desc-brain_mask"]}
     '''
 
-    skullstrip_func = skullstrip_functional(skullstrip_tool=opt, config=cfg,
-                                            wf_name=f"bold_masking_{pipe_num}")
-
-    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold"])
-    wf.connect(node, out, skullstrip_func, 'inputspec.func')
-
-    node, out = strat_pool.get_data('bold')
-    wf.connect(node, out, skullstrip_func, 'inputspec.raw_func')
-
-    node, out = strat_pool.get_data('desc-brain_T1w')
-    wf.connect(node, out, 'inputspec.anat_brain')
+    # binarize anat mask, in case of it is not a binary mask.
+    anat_brain_mask_bin = pe.Node(interface=fsl.ImageMaths(),
+                                  name='anat_brain_mask_bin')
+    anat_brain_mask_bin.inputs.op_string = '-bin'
 
     node, out = strat_pool.get_data('space-T1w_desc-brain_mask')
-    wf.connect(node, out, 'inputspec.anatomical_brain_mask')
+    wf.connect(node, out, anat_brain_mask_bin, 'in_file')
+
+    # fill holes of anat mask
+    anat_mask_filled = pe.Node(interface=afni.MaskTool(),
+                               name='anat_brain_mask_filled')
+    anat_mask_filled.inputs.fill_holes = True
+    anat_mask_filled.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(anat_brain_mask_bin, 'out_file',
+               anat_mask_filled, 'in_file')
+
+    # init_bold_mask : input raw func
+    init_bold_mask = anat_refined_mask(init_bold_mask=True,
+                                       wf_name='init_bold_mask')
+
+    func_deoblique = pe.Node(interface=afni_utils.Refit(),
+                             name='raw_func_deoblique')
+    func_deoblique.inputs.deoblique = True
+
+    node, out = strat_pool.get_data('bold')
+    wf.connect(node, out, func_deoblique, 'in_file')
+
+    func_reorient = pe.Node(interface=afni_utils.Resample(),
+                            name='raw_func_reorient')
+
+    func_reorient.inputs.orientation = 'RPI'
+    func_reorient.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(func_deoblique, 'out_file',
+               func_reorient, 'in_file')
+
+    wf.connect(func_reorient, 'out_file',
+               init_bold_mask, 'inputspec.func')
+
+    wf.connect(anat_mask_filled, 'out_file',
+               init_bold_mask, 'inputspec.anatomical_brain_mask')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, init_bold_mask, 'inputspec.anat_brain')
+
+    # dilate init func brain mask
+    func_tmp_brain_mask = pe.Node(interface=fsl.ImageMaths(),
+                                  name='func_tmp_brain_mask_dil')
+    func_tmp_brain_mask.inputs.op_string = '-dilM'
+
+    wf.connect(init_bold_mask, 'outputspec.func_brain_mask',
+               func_tmp_brain_mask, 'in_file')
+
+    # refined_bold_mask : input motion corrected func
+    refined_bold_mask = anat_refined_mask(init_bold_mask=False,
+                                          wf_name='refined_bold_mask')
+
+    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, refined_bold_mask, 'inputspec.func')
+
+    node, out = strat_pool.get_data('desc-brain_T1w')
+    wf.connect(node, out, refined_bold_mask, 'inputspec.anat_brain')
+
+    wf.connect(func_tmp_brain_mask, 'out_file',
+               refined_bold_mask, 'inputspec.init_func_brain_mask')
+
+    # Dialate anatomical mask
+    if cfg.functional_preproc['func_masking']['Anatomical_Refined'][
+        'anatomical_mask_dilation']:
+        anat_mask_dilate = pe.Node(interface=afni.MaskTool(),
+                                   name='anat_mask_dilate')
+        anat_mask_dilate.inputs.dilate_inputs = '1'
+        anat_mask_dilate.inputs.outputtype = 'NIFTI_GZ'
+
+        wf.connect(anat_mask_filled, 'out_file',
+                   anat_mask_dilate, 'in_file')
+        wf.connect(anat_mask_dilate, 'out_file',
+                   refined_bold_mask, 'inputspec.anatomical_brain_mask')
+
+    else:
+        wf.connect(anat_mask_filled, 'out_file',
+                   refined_bold_mask, 'inputspec.anatomical_brain_mask')
+
+    # get final func mask
+    func_mask_final = pe.Node(interface=fsl.MultiImageMaths(),
+                              name='func_mask_final')
+    func_mask_final.inputs.op_string = "-mul %s"
+
+    wf.connect(func_tmp_brain_mask, 'out_file',
+               func_mask_final, 'in_file')
+
+    wf.connect(refined_bold_mask, 'outputspec.func_brain_mask',
+               func_mask_final, 'operand_files')
 
     outputs = {
-        'desc-brain_bold': (skullstrip_func, 'outputspec.func_brain'),
-        'space-bold_desc-brain_mask':
-            (skullstrip_func, 'outputspec.func_brain_mask')
+        'space-bold_desc-brain_mask': (func_mask_final, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Generate the BOLD mask by basing it off of the anatomical brain mask.
+
+    Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
+        https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh
+
+    Node Block:
+    {"name": "bold_mask_anatomical_based",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": ["func_masking", "using"],
+     "option_val": "Anatomical_Based",
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
+                "desc-brain_T1w",
+                ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
+     "outputs": ["space-bold_desc-brain_mask"]}
+    '''
+
+    # 0. Take single volume of func
+    func_single_volume = pe.Node(interface=afni.Calc(),
+                                 name='func_single_volume')
+
+    func_single_volume.inputs.set(
+        expr='a',
+        single_idx=1,
+        outputtype='NIFTI_GZ'
+    )
+
+    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, func_single_volume, 'in_file_a')
+
+    # 1. Register func head to anat head to get func2anat matrix
+    linear_reg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
+                                      name='func_to_anat_linear_reg')
+    linear_reg_func_to_anat.inputs.dof = 6
+    linear_reg_func_to_anat.inputs.interp = 'spline'
+    linear_reg_func_to_anat.inputs.searchr_x = [30, 30]
+    linear_reg_func_to_anat.inputs.searchr_y = [30, 30]
+    linear_reg_func_to_anat.inputs.searchr_z = [30, 30]
+
+    wf.connect(func_single_volume, 'out_file',
+               linear_reg_func_to_anat, 'in_file')
+
+    node, out = strat_pool.get_data(["desc-preproc_T1w", "desc-reorient_T1w",
+                                     "T1w"])
+    wf.connect(node, out, linear_reg_func_to_anat, 'reference')
+
+    # 2. Inverse func to anat affine, to get anat-to-func transform
+    inv_func_to_anat_affine = pe.Node(interface=fsl.ConvertXFM(),
+                                      name='inv_func2anat_affine')
+    inv_func_to_anat_affine.inputs.invert_xfm = True
+
+    wf.connect(linear_reg_func_to_anat, 'out_matrix_file',
+               inv_func_to_anat_affine, 'in_file')
+
+    # 3. get BOLD mask
+    # 3.1 Apply anat-to-func transform to transfer anatomical brain to functional space
+    reg_anat_brain_to_func = pe.Node(interface=fsl.ApplyWarp(),
+                                     name='reg_anat_brain_to_func')
+    reg_anat_brain_to_func.inputs.interp = 'nn'
+    reg_anat_brain_to_func.inputs.relwarp = True
+
+    node, out = strat_pool.get_data("desc-brain_T1w")
+    wf.connect(node, out, reg_anat_brain_to_func, 'in_file')
+
+    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, reg_anat_brain_to_func, 'ref_file')
+
+    wf.connect(inv_func_to_anat_affine, 'out_file',
+               reg_anat_brain_to_func, 'premat')
+
+    # 3.2 Binarize transfered image
+    func_mask_bin = pe.Node(interface=fsl.ImageMaths(),
+                            name='func_mask_bin')
+    func_mask_bin.inputs.op_string = '-abs -bin'
+
+    wf.connect(reg_anat_brain_to_func, 'out_file',
+               func_mask_bin, 'in_file')
+
+    # 3.3 Fill holes to get BOLD mask
+    func_mask_fill_holes = pe.Node(interface=afni.MaskTool(),
+                                   name='func_mask_fill_holes')
+    func_mask_fill_holes.inputs.fill_holes = True
+    func_mask_fill_holes.inputs.outputtype = 'NIFTI_GZ'
+
+    wf.connect(func_mask_bin, 'out_file',
+               func_mask_fill_holes, 'in_file')
+
+    outputs = {
+        'space-bold_desc-brain_mask': (func_mask_fill_holes, 'out_file')
+    }
+
+    return (wf, outputs)
+
+
+def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
+    {"name": "bold_masking",
+     "config": ["functional_preproc"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
+                "space-bold_desc-brain_mask"],
+     "outputs": ["desc-brain_bold"]}
+    '''
+
+    func_edge_detect = pe.Node(interface=afni_utils.Calc(),
+                               name=f'func_extract_brain_{pipe_num}')
+
+    func_edge_detect.inputs.expr = 'a*b'
+    func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
+
+    node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
+                                     "bold"])
+    wf.connect(node, out, func_edge_detect, 'in_file_a')
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, func_edge_detect, 'in_file_b')
+
+    outputs = {
+        'desc-brain_bold': (func_edge_detect, 'out_file')
     }
 
     return (wf, outputs)
@@ -1623,7 +1580,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     func_mean = pe.Node(interface=afni_utils.TStat(),
-                        name='func_mean')
+                        name=f'func_mean_{pipe_num}')
 
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'
@@ -1645,7 +1602,8 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-brain_bold"],
+     "inputs": ["desc-brain_bold",
+                "space-bold_desc-brain_mask"],
      "outputs": ["desc-brain_bold",
                  "space-bold_desc-brain_mask"]}
     '''

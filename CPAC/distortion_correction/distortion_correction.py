@@ -10,19 +10,22 @@ from nipype.interfaces import afni, fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 
+from CPAC.pipeline.engine import wrap_block
+
 from CPAC.utils import function
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.datasource import match_epi_fmaps
-from CPAC.func_preproc import skullstrip_functional
+
+from CPAC.func_preproc.func_preproc import bold_mask_afni, bold_masking
 
 
-def createAFNIiterable(shrink_fac):
+def create_afni_arg(shrink_fac):
     expr = '-shrink_fac {0} '.format(shrink_fac)
     return expr
 
 
-def create_EPI_DistCorr(use_BET, wf_name='epi_distcorr'):
-    """
+def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''
     Fieldmap correction takes in an input magnitude image which is
     Skull Stripped (Tight).
     The magnitude images are obtained from each echo series. It also
@@ -81,115 +84,109 @@ def create_EPI_DistCorr(use_BET, wf_name='epi_distcorr'):
                                  dwell time = 0.0005 ms
                                  in_file = field map which is a 4D
                                            image (containing 2
-                                           unwarpped image)
-    """
+                                           unwarped image)
 
-    preproc = pe.Workflow(name=wf_name)
-
-    inputNode = pe.Node(util.IdentityInterface(fields=['anat_file',
-                                                       'fmap_pha',
-                                                       'fmap_mag']),
-                        name='inputspec')
-
-    inputNode_delTE = pe.Node(util.IdentityInterface(fields=['deltaTE']),
-                              name='deltaTE_input')
-
-    inputNode_dwellT = pe.Node(util.IdentityInterface(fields=['dwellT']),
-                               name='dwellT_input')
-
-    inputNode_dwell_asym_ratio = pe.Node(util.IdentityInterface(
-        fields=['dwell_asym_ratio']
-    ),
-                                         name='dwell_asym_ratio_input')
-
-    inputNode_bet_frac = pe.Node(util.IdentityInterface(fields=['bet_frac']),
-                                 name='bet_frac_input')
-
-    inputNode_afni_threshold = pe.Node(util.IdentityInterface(
-        fields=['afni_threshold']
-    ),
-                                       name='afni_threshold_input')
-
-    outputNode = pe.Node(util.IdentityInterface(fields=['fieldmap',
-                                                        'fmap_despiked',
-                                                        'fmapmagbrain',
-                                                        'fieldmapmask']),
-                         name='outputspec')
+    Node Block:
+    {"name": "distcor_phasediff_fsl_fugue",
+     "config": ["functional_preproc", "distortion_correction"],
+     "switch": ["run"],
+     "option_key": "using",
+     "option_val": "PhaseDiff",
+     "inputs": ["diff_phase",
+                "diff_mag_one",
+                "deltaTE",
+                "diff_phase_dwell",
+                "dwell_asym_ratio"],
+     "outputs": ["despiked_fieldmap",
+                 "fieldmap_mask"]}
+    '''
 
     # Skull-strip, outputs a masked image file
-    if use_BET is False:
+    if cfg.functional_preproc['distortion_correction']['PhaseDiff'][
+            'fmap_skullstrip_option'] == 'AFNI':
+
         skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac'],
                                                 output_names=['expr'],
-                                                function=createAFNIiterable),
-                                  name='distcorr_skullstrip_arg')
+                                                function=create_afni_arg),
+                                  name=f'distcorr_skullstrip_arg_{pipe_num}')
+        skullstrip_args.inputs.shrink_fac = cfg.functional_preproc[
+            'distortion_correction']['PhaseDiff'][
+            'fmap_skullstrip_AFNI_threshold']
 
-        preproc.connect(
-            inputNode_afni_threshold, 'afni_threshold',
-            skullstrip_args, 'shrink_fac')
+        afni = pe.Node(interface=afni.SkullStrip(), name=f'distcor_phasediff_'
+                                                         f'afni_skullstrip_'
+                                                         f'{pipe_num}')
+        afni.inputs.outputtype = 'NIFTI_GZ'
+        wf.connect(skullstrip_args, 'expr', afni, 'args')
 
-        bet = pe.Node(interface=afni.SkullStrip(), name='bet')
-        bet.inputs.outputtype = 'NIFTI_GZ'
-        preproc.connect(skullstrip_args, 'expr', bet, 'args')
-        preproc.connect(inputNode, 'fmap_mag', bet, 'in_file')
-        preproc.connect(bet, 'out_file', outputNode, 'magnitude_image')
-    else:
-        bet = pe.Node(interface=fsl.BET(), name='bet')
+        node, out = strat_pool.get_data('diff_mag_one')
+        wf.connect(node, out, afni, 'in_file')
+
+        brain_node, brain_out = (afni, 'out_file')
+
+    elif cfg.functional_wf['distortion_correction']['PhaseDiff'][
+            'fmap_skullstrip_option'] == 'BET':
+
+        bet = pe.Node(interface=fsl.BET(), name='distcor_phasediff_bet_'
+                                                f'skullstrip_{pipe_num}')
         bet.inputs.output_type = 'NIFTI_GZ'
-        preproc.connect(inputNode_bet_frac, 'bet_frac', bet, 'frac')
-        preproc.connect(inputNode, 'fmap_mag', bet, 'in_file')
-        preproc.connect(bet, 'out_file', outputNode, 'magnitude_image')
+        bet.inputs.frac = cfg.functional_preproc['distortion_correction'][
+            'PhaseDiff']['fmap_skullstrip_BET_frac']
+
+        node, out = strat_pool.get_data('diff_mag_one')
+        wf.connect(node, out, bet, 'in_file')
+
+        brain_node, brain_out = (bet, 'out_file')
 
     # Prepare Fieldmap
 
     # prepare the field map
     prepare = pe.Node(interface=fsl.epi.PrepareFieldmap(), name='prepare')
     prepare.inputs.output_type = "NIFTI_GZ"
-    preproc.connect(inputNode_delTE, 'deltaTE', prepare, 'delta_TE')
-    preproc.connect(inputNode, 'fmap_pha', prepare, 'in_phase')
-    preproc.connect(bet, 'out_file', prepare, 'in_magnitude')
-    preproc.connect(prepare, 'out_fieldmap', outputNode, 'fieldmap')
+
+    node, out = strat_pool.get_data('deltaTE')
+    wf.connect(node, out, prepare, 'delta_TE')
+
+    node, out = strat_pool.get_data('diff_phase')
+    wf.connect(node, out, prepare, 'in_phase')
+
+    wf.connect(brain_node, brain_out, prepare, 'in_magnitude')
 
     # erode the masked magnitude image
     fslmath_mag = pe.Node(interface=fsl.ErodeImage(), name='fslmath_mag')
-    preproc.connect(bet, 'out_file', fslmath_mag, 'in_file')
-    preproc.connect(fslmath_mag, 'out_file', outputNode, 'fmapmagbrain')
+    wf.connect(brain_node, brain_out, fslmath_mag, 'in_file')
 
     # calculate the absolute value of the eroded and masked magnitude
     # image
     fslmath_abs = pe.Node(interface=fsl.UnaryMaths(), name='fslmath_abs')
     fslmath_abs.inputs.operation = 'abs'
-    preproc.connect(fslmath_mag, 'out_file', fslmath_abs, 'in_file')
-    preproc.connect(fslmath_abs, 'out_file', outputNode, 'fmapmag_abs')
+    wf.connect(fslmath_mag, 'out_file', fslmath_abs, 'in_file')
 
     # binarize the absolute value of the eroded and masked magnitude
     # image
     fslmath_bin = pe.Node(interface=fsl.UnaryMaths(), name='fslmath_bin')
     fslmath_bin.inputs.operation = 'bin'
-    preproc.connect(fslmath_abs, 'out_file', fslmath_bin, 'in_file')
-    preproc.connect(fslmath_bin, 'out_file', outputNode, 'fmapmag_bin')
+    wf.connect(fslmath_abs, 'out_file', fslmath_bin, 'in_file')
 
     # take the absolute value of the fieldmap calculated in the prepare step
     fslmath_mask_1 = pe.Node(interface=fsl.UnaryMaths(),
                              name='fslmath_mask_1')
     fslmath_mask_1.inputs.operation = 'abs'
-    preproc.connect(prepare, 'out_fieldmap', fslmath_mask_1, 'in_file')
-    preproc.connect(fslmath_mask_1, 'out_file', outputNode, 'fieldmapmask_abs')
+    wf.connect(prepare, 'out_fieldmap', fslmath_mask_1, 'in_file')
 
     # binarize the absolute value of the fieldmap calculated in the
     # prepare step
     fslmath_mask_2 = pe.Node(interface=fsl.UnaryMaths(),
                              name='fslmath_mask_2')
     fslmath_mask_2.inputs.operation = 'bin'
-    preproc.connect(fslmath_mask_1, 'out_file', fslmath_mask_2, 'in_file')
-    preproc.connect(fslmath_mask_2, 'out_file', outputNode, 'fieldmapmask_bin')
+    wf.connect(fslmath_mask_1, 'out_file', fslmath_mask_2, 'in_file')
 
     # multiply together the binarized magnitude and fieldmap images
     fslmath_mask = pe.Node(interface=fsl.BinaryMaths(),
                            name='fslmath_mask')
     fslmath_mask.inputs.operation = 'mul'
-    preproc.connect(fslmath_mask_2, 'out_file', fslmath_mask, 'in_file')
-    preproc.connect(fslmath_bin, 'out_file', fslmath_mask, 'operand_file')
-    preproc.connect(fslmath_mask, 'out_file', outputNode, 'fieldmapmask')
+    wf.connect(fslmath_mask_2, 'out_file', fslmath_mask, 'in_file')
+    wf.connect(fslmath_bin, 'out_file', fslmath_mask, 'operand_file')
 
     # Note for the user. Ensure the phase image is within 0-4096 (upper
     # threshold is 90% of 4096), fsl_prepare_fieldmap will only work in the
@@ -200,14 +197,23 @@ def create_EPI_DistCorr(use_BET, wf_name='epi_distcorr'):
     fugue1 = pe.Node(interface=fsl.FUGUE(), name='fugue1')
     fugue1.inputs.save_fmap = True
     fugue1.outputs.fmap_out_file = 'fmap_rads'
-    preproc.connect(fslmath_mask, 'out_file', fugue1, 'mask_file')
-    preproc.connect(inputNode_dwellT, 'dwellT', fugue1, 'dwell_time')
-    preproc.connect(inputNode_dwell_asym_ratio, 'dwell_asym_ratio',
-                    fugue1, 'dwell_to_asym_ratio')
-    preproc.connect(prepare, 'out_fieldmap', fugue1, 'fmap_in_file')
-    preproc.connect(fugue1, 'fmap_out_file', outputNode, 'fmap_despiked')
 
-    return preproc
+    wf.connect(fslmath_mask, 'out_file', fugue1, 'mask_file')
+
+    node, out = strat_pool.get_data('diff_phase_dwell')
+    wf.connect(node, out, fugue1, 'dwell_time')
+
+    node, out = strat_pool.get_data('dwell_asym_ratio')
+    wf.connect(node, out, fugue1, 'dwell_to_asym_ratio')
+
+    wf.connect(prepare, 'out_fieldmap', fugue1, 'fmap_in_file')
+
+    outputs = {
+        'despiked_fieldmap': (fugue1, 'fmap_out_file'),
+        'fieldmap_mask': (fslmath_mask, 'out_file')
+    }
+
+    return (wf, outputs)
 
 
 def same_pe_direction_prep(same_pe_epi, func_mean):
@@ -283,8 +289,8 @@ def convert_afni_to_ants(afni_warp):
     return ants_warp
 
 
-def blip_distcor_wf(wf_name='blip_distcor'):
-    """Execute AFNI 3dQWarp to calculate the distortion "unwarp" for
+def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Execute AFNI 3dQWarp to calculate the distortion "unwarp" for
     phase encoding direction EPI field map distortion correction.
 
         1. Skull-strip the opposite-direction phase encoding EPI.
@@ -303,35 +309,63 @@ def blip_distcor_wf(wf_name='blip_distcor'):
            3dQWarp. The output of this can then proceed to
            func_preproc.
 
-    :param wf_name:
-    :return:
-    """
+    Node Block:
+    {"name": "distcor_blip_afni_qwarp",
+     "config": ["functional_preproc", "distortion_correction"],
+     "switch": ["run"],
+     "option_key": "using",
+     "option_val": "Blip",
+     "inputs": ["epi_1",
+                "epi_1_scan_params",
+                "epi_2",
+                "epi_2_scan_params",
+                "pe_direction"],
+     "outputs": []}
+    '''
 
-    wf = pe.Workflow(name=wf_name)
+    match_epi_imports = ['import json']
+    match_epi_fmaps_node = \
+        pe.Node(Function(input_names=['bold_pedir',
+                                      'epi_fmap_one',
+                                      'epi_fmap_params_one',
+                                      'epi_fmap_two',
+                                      'epi_fmap_params_two'],
+                         output_names=['opposite_pe_epi',
+                                       'same_pe_epi'],
+                         function=match_epi_fmaps,
+                         imports=match_epi_imports,
+                         as_module=True),
+                name=f'match_epi_fmaps_{pipe_num}')
 
-    input_node = pe.Node(util.IdentityInterface(fields=['func_mean',
-                                                        'opposite_pe_epi',
-                                                        'same_pe_epi']),
-                         name='inputspec')
+    node, out = strat_pool.get_data('epi_1')
+    wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_one')
 
-    output_node = pe.Node(util.IdentityInterface(fields=['blip_warp',
-                                                         'blip_warp_inverse',
-                                                         'new_func_mean',
-                                                         'new_func_mask']),
-                          name='outputspec')
+    node, out = strat_pool.get_data('epi_1_scan_params')
+    wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_params_one')
 
-    skullstrip_opposite_pe = skullstrip_functional(
-        skullstrip_tool='afni', wf_name=f'{wf_name}_skullstrip_opp_pe')
+    if strat_pool.check_rpool('epi_2'):
+        node, out = strat_pool.get_data('epi_2')
+        wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_two')
 
-    wf.connect(input_node, 'opposite_pe_epi',
-               skullstrip_opposite_pe, 'inputspec.func')
+        node, out = strat_pool.get_data('epi_2_scan_params')
+        wf.connect(node, out, match_epi_fmaps_node, 'epi_fmap_params_two')
+
+    node, out = strat_pool.get_data('pe_direction')
+    wf.connect(node, out, match_epi_fmaps_node, 'bold_pedir')
+
+    interface = {'bold': (match_epi_fmaps_node, 'opposite_pe_epi'),
+                 'desc-brain_bold': 'opposite_pe_epi_brain'}
+    wf, strat_pool = wrap_block([bold_mask_afni, bold_masking],
+                                interface, wf, cfg, strat_pool, pipe_num, opt)
 
     opp_pe_to_func = pe.Node(interface=fsl.FLIRT(), name='opp_pe_to_func')
     opp_pe_to_func.inputs.cost = 'corratio'
 
-    wf.connect(skullstrip_opposite_pe, 'outputspec.func_brain',
-               opp_pe_to_func, 'in_file')
-    wf.connect(input_node, 'func_mean', opp_pe_to_func, 'reference')
+    node, out = strat_pool.get_data('opposite_pe_epi_brain')
+    wf.connect(node, out, opp_pe_to_func, 'in_file')
+
+    node, out = strat_pool.get_data('desc-mean_bold')
+    wf.connect(node, out, opp_pe_to_func, 'reference')
 
     prep_qwarp_input_imports = ['import os', 'import subprocess']
     prep_qwarp_input = \
@@ -342,8 +376,11 @@ def blip_distcor_wf(wf_name='blip_distcor'):
                                   imports=prep_qwarp_input_imports),
                 name='prep_qwarp_input')
 
-    wf.connect(input_node, 'same_pe_epi', prep_qwarp_input, 'same_pe_epi')
-    wf.connect(input_node, 'func_mean', prep_qwarp_input, 'func_mean')
+    wf.connect(match_epi_fmaps_node, 'same_pe_epi',
+               prep_qwarp_input, 'same_pe_epi')
+
+    node, out = strat_pool.get_data('desc-mean_bold')
+    wf.connect(node, out, prep_qwarp_input, 'func_mean')
 
     calculate_blip_warp_imports = ['import os', 'import subprocess']
     calc_blip_warp = pe.Node(function.Function(
@@ -379,190 +416,24 @@ def blip_distcor_wf(wf_name='blip_distcor'):
     undistort_func_mean.inputs.dimension = 3
     undistort_func_mean.inputs.input_image_type = 0
 
-    wf.connect(input_node, 'func_mean',
-               undistort_func_mean, 'input_image')
-    wf.connect(input_node, 'func_mean',
-               undistort_func_mean, 'reference_image')
+    node, out = strat_pool.get_data('desc-mean_bold')
+    wf.connect(node, out, undistort_func_mean, 'input_image')
+    wf.connect(node, out, undistort_func_mean, 'reference_image')
     wf.connect(convert_afni_warp, 'ants_warp',
                undistort_func_mean, 'transforms')
 
-    create_new_mask = skullstrip_functional(skullstrip_tool='afni',
-                                            wf_name="{0}_new_func_mask".format(
-                                                wf_name))
-    wf.connect(undistort_func_mean, 'output_image',
-               create_new_mask, 'inputspec.func')
+    interface = {'bold': (undistort_func_mean, 'output_image'),
+                 'space-bold_desc-brain_mask': 'opposite_pe_epi_brain'}
+    wf, strat_pool = wrap_block([bold_mask_afni],
+                                interface, wf, cfg, strat_pool, pipe_num, opt)
 
-    wf.connect(convert_afni_warp, 'ants_warp',
-               output_node, 'blip_warp')
+    outputs = {
+        'blip_warp': (convert_afni_warp, 'ants_warp'),
+        'blip_warp_inverse': None,  # TODO
+        'desc-mean_bold': (undistort_func_mean, 'output_image'),
+        'space-bold_desc-brain_mask':
+            strat_pool.get_data('space-bold_desc-brain_mask')
+    }
 
-    wf.connect(undistort_func_mean, 'output_image',
-               output_node, 'new_func_mean')
-    wf.connect(create_new_mask, 'outputspec.func_brain_mask',
-               output_node, 'new_func_mask')
+    return (wf, outputs)
 
-    return wf
-
-
-def connect_distortion_correction(workflow, strat_list, c, diff, blip,
-                                  fmap_rp_list, unique_id=None):
-
-    # No need to fork if not running distortion_correction
-    if True not in c.functional_preproc['distortion_correction']['run']:
-        return (workflow, strat_list)
-
-    # Distortion Correction
-    new_strat_list = []
-
-    # Distortion Correction - Field Map Phase-difference
-    if "PhaseDiff" in c.functional_preproc[
-        'distortion_correction'
-    ]['using'] and diff:
-        for num_strat, strat in enumerate(strat_list):
-            if unique_id is None:
-                workflow_name = f'diff_distcor_{num_strat}'
-            else:
-                workflow_name = f'diff_distcor_{unique_id}_{num_strat}'
-
-            if 'BET' in c.functional_preproc[
-                'distortion_correction'
-            ]['PhaseDiff']['fmap_skullstrip_option']:
-                epi_distcorr = create_EPI_DistCorr(
-                    use_BET=True,
-                    wf_name=workflow_name
-                )
-                epi_distcorr.inputs.bet_frac_input.bet_frac = \
-                    c.functional_preproc[
-                        'distortion_correction'
-                    ]['PhaseDiff']['fmap_skullstrip_frac']
-                epi_distcorr.get_node('bet_frac_input').iterables = \
-                    ('bet_frac',
-                     c.functional_preproc[
-                         'distortion_correction'
-                     ]['PhaseDiff']['fmap_skullstrip_frac'])
-            else:
-                epi_distcorr = create_EPI_DistCorr(
-                    use_BET=False,
-                    wf_name=workflow_name
-                )
-                epi_distcorr.inputs.afni_threshold_input.afni_threshold = \
-                    c.functional_preproc[
-                        'distortion_correction'
-                    ]['PhaseDiff']['fmap_skullstrip_threshold']
-
-            node, out_file = strat['anatomical_skull_leaf']
-            workflow.connect(node, out_file, epi_distcorr,
-                             'inputspec.anat_file')
-
-            node, out_file = strat['diff_phase']
-            workflow.connect(node, out_file, epi_distcorr,
-                             'inputspec.fmap_pha')
-
-            node, out_file = strat['diff_mag_one']
-            workflow.connect(node, out_file, epi_distcorr,
-                             'inputspec.fmap_mag')
-
-            node, out_file = strat['deltaTE']
-            workflow.connect(node, out_file, epi_distcorr,
-                             'deltaTE_input.deltaTE')
-
-            node, out_file = strat['diff_phase_dwell']
-            workflow.connect(node, out_file, epi_distcorr,
-                             'dwellT_input.dwellT')
-
-            node, out_file = strat['dwell_asym_ratio']
-            workflow.connect(node, out_file, epi_distcorr,
-                             'dwell_asym_ratio_input.dwell_asym_ratio')
-
-            if False in c.functional_preproc['distortion_correction']['run']:
-                strat = strat.fork()
-                new_strat_list.append(strat)
-
-            strat.append_name(epi_distcorr.name)
-
-            strat.update_resource_pool({
-                'despiked_fieldmap': (epi_distcorr,
-                                      'outputspec.fmap_despiked'),
-                'fieldmap_mask': (epi_distcorr, 'outputspec.fieldmapmask'),
-            })
-
-    strat_list += new_strat_list
-
-    # Distortion Correction - "Blip-Up / Blip-Down"
-    if "Blip" in c.functional_preproc[
-        'distortion_correction'
-    ]['using'] and blip:
-        for num_strat, strat in enumerate(strat_list):
-            match_epi_imports = ['import json']
-            match_epi_fmaps_node = \
-                pe.Node(Function(input_names=['bold_pedir',
-                                              'epi_fmap_one',
-                                              'epi_fmap_params_one',
-                                              'epi_fmap_two',
-                                              'epi_fmap_params_two'],
-                                 output_names=['opposite_pe_epi',
-                                               'same_pe_epi'],
-                                 function=match_epi_fmaps,
-                                 imports=match_epi_imports,
-                                 as_module=True),
-                        name='match_epi_fmaps_{0}'.format(num_strat))
-
-            if fmap_rp_list:
-                epi_rp_key = fmap_rp_list[0]
-                epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
-                node, node_out = strat[epi_rp_key]
-                workflow.connect(node, node_out,
-                                 match_epi_fmaps_node, 'epi_fmap_one')
-                node, node_out = strat[epi_param_rp_key]
-                workflow.connect(node, node_out,
-                                 match_epi_fmaps_node, 'epi_fmap_params_one')
-                if len(epi_rp_key) > 1:
-                    epi_rp_key = fmap_rp_list[1]
-                    epi_param_rp_key = "{0}_scan_params".format(epi_rp_key)
-                    node, node_out = strat[epi_rp_key]
-                    workflow.connect(node, node_out,
-                                     match_epi_fmaps_node, 'epi_fmap_two')
-                    node, node_out = strat[epi_param_rp_key]
-                    workflow.connect(node, node_out,
-                                     match_epi_fmaps_node,
-                                     'epi_fmap_params_two')
-
-            node, node_out = strat['pe_direction']
-            workflow.connect(node, node_out,
-                             match_epi_fmaps_node, 'bold_pedir')
-
-            if unique_id is None:
-                workflow_name = f'blip_correct_{num_strat}'
-            else:
-                workflow_name = f'blip_correct_{unique_id}_{num_strat}'
-
-            blip_correct = blip_distcor_wf(
-                wf_name=workflow_name)
-
-            node, out_file = strat["mean_functional"]
-            workflow.connect(node, out_file,
-                             blip_correct, 'inputspec.func_mean')
-
-            workflow.connect(match_epi_fmaps_node, 'opposite_pe_epi',
-                             blip_correct, 'inputspec.opposite_pe_epi')
-
-            workflow.connect(match_epi_fmaps_node, 'same_pe_epi',
-                             blip_correct, 'inputspec.same_pe_epi')
-
-            if False in c.functional_preproc['distortion_correction']['run']:
-                strat = strat.fork()
-                new_strat_list.append(strat)
-
-            strat.append_name(blip_correct.name)
-
-            strat.update_resource_pool({
-                'blip_warp': (blip_correct, 'outputspec.blip_warp'),
-                'blip_warp_inverse': (blip_correct,
-                                      'outputspec.blip_warp_inverse'),
-                'mean_functional': (blip_correct, 'outputspec.new_func_mean'),
-                'functional_brain_mask': (blip_correct,
-                                          'outputspec.new_func_mask')
-            }, override=True)
-
-    strat_list += new_strat_list
-
-    return (workflow, strat_list)

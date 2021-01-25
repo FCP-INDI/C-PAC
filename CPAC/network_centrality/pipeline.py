@@ -1,5 +1,6 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
+import nipype.interfaces.utility as util
 
 from nipype import logging
 
@@ -11,66 +12,9 @@ from CPAC.pipeline.schema import valid_options
 logger = logging.getLogger('workflow')
 
 
-def create_network_centrality_workflow(workflow, c, strategies):
-    if True not in c.network_centrality['run'] or not any([
-        c.network_centrality[option]['weight_options'] for option in
-        valid_options['centrality']['method_options']
-    ]):
-        return strategies
-
-    for num_strat, strat in enumerate(strategies[:]):
-
-        # Resample the functional mni to the centrality mask resolution
-        resample_functional_to_template = pe.Node(
-            interface=fsl.FLIRT(),
-            name='resample_functional_to_template_%d' % num_strat
-
-        )
-        resample_functional_to_template.inputs.set(
-            interp='trilinear',
-            in_matrix_file=c.functional_registration[
-                '2-func_registration_to_template'
-            ]['FNIRT_pipelines']['identity_matrix'],
-            apply_xfm=True
-        )
-
-        node, out_file = strat['functional_to_standard']
-
-        workflow.connect(node, out_file,
-                         resample_functional_to_template, 'in_file')
-
-        workflow.connect(c.network_centrality['template_specification_file'],
-                         'local_path', resample_functional_to_template,
-                         'reference')
-
-        merge_node = pe.Node(Function(input_names=['deg_list',
-                                                   'eig_list',
-                                                   'lfcd_list'],
-                                      output_names=['merged_list'],
-                                      function=merge_lists,
-                                      as_module=True),
-                             name='merge_node_%d' % num_strat)
-
-        [connect_centrality_workflow(workflow, c, strat, num_strat,
-                                     resample_functional_to_template,
-                                     merge_node, option) for option in
-         valid_options['centrality']['method_options'] if
-         c.network_centrality[option]['weight_options']]
-
-        if False in c.network_centrality['run']:
-            strategies += [strat.fork()]
-
-        strat.update_resource_pool({
-            'centrality': (merge_node, 'merged_list')
-        })
-
-    return strategies
-
-
-# Function to connect the into pipeline
-def connect_centrality_workflow(workflow, c, strat, num_strat,
-                                resample_functional_to_template,
-                                merge_node, method_option):
+def connect_centrality_workflow(workflow, c, resample_functional_to_template,
+                                template_node, template_out, merge_node,
+                                method_option, pipe_num):
     template = c.network_centrality['template_specification_file']
 
     # Set method_options variables
@@ -87,7 +31,7 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
     threshold = c.network_centrality[method_option]['correlation_threshold']
 
     # Init workflow name and resource limits
-    wf_name = 'afni_centrality_%d_%s' % (num_strat, method_option)
+    wf_name = f'afni_centrality_{method_option}_{pipe_num}'
     num_threads = c.pipeline_setup['system_config'][
         'max_cores_per_participant'
     ]
@@ -113,10 +57,68 @@ def connect_centrality_workflow(workflow, c, strat, num_strat,
     workflow.connect(resample_functional_to_template, 'out_file',
                      afni_centrality_wf, 'inputspec.in_file')
 
-    workflow.connect(template, 'local_path',
+    workflow.connect(template_node, template_out,
                      afni_centrality_wf, 'inputspec.template')
 
-    workflow.connect(afni_centrality_wf,
-                     'outputspec.outfile_list',
-                     merge_node,
-                     out_list)
+    workflow.connect(afni_centrality_wf, 'outputspec.outfile_list',
+                     merge_node, out_list)
+
+
+def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
+    '''Run Network Centrality.
+
+    Node Block:
+    {"name": "network_centrality",
+     "config": ["network_centrality"],
+     "switch": ["run"],
+     "option_key": "None",
+     "option_val": "None",
+     "inputs": [["space-template_desc-cleaned_bold",
+                 "space-template_desc-preproc_bold",
+                 "space-template_desc-reorient_bold",
+                 "space-template_bold"],
+                "template_specification_file"],
+     "outputs": ["centrality"]}
+    '''
+
+    # Resample the functional mni to the centrality mask resolution
+    resample_functional_to_template = pe.Node(
+        interface=fsl.FLIRT(),
+        name=f'resample_functional_to_template_{pipe_num}')
+
+    resample_functional_to_template.inputs.set(
+        interp='trilinear',
+        in_matrix_file=cfg.registration_workflows['functional_registration'][
+            'func_registration_to_template']['FNIRT_pipelines'][
+            'identity_matrix'],
+        apply_xfm=True
+    )
+
+    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
+                                     "space-template_desc-preproc_bold",
+                                     "space-template_desc-reorient_bold",
+                                     "space-template_bold"])
+    wf.connect(node, out, resample_functional_to_template, 'in_file')
+
+    node, out = strat_pool.get_data("template_specification_file")
+    wf.connect(node, out, resample_functional_to_template, 'reference')
+
+    merge_node = pe.Node(Function(input_names=['deg_list',
+                                               'eig_list',
+                                               'lfcd_list'],
+                                  output_names=['merged_list'],
+                                  function=merge_lists,
+                                  as_module=True),
+                         name=f'merge_node_{pipe_num}')
+
+    [connect_centrality_workflow(wf, cfg, resample_functional_to_template,
+                                 node, out, merge_node,
+                                 option, pipe_num) for option in
+     valid_options['centrality']['method_options'] if
+     cfg.network_centrality[option]['weight_options']]
+
+    outputs = {
+        'centrality': (merge_node, 'merged_list')
+    }
+
+    return (wf, outputs)

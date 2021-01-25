@@ -1,9 +1,15 @@
 import csv
 import json
-import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+from nipype import logging
+import nipype.pipeline.engine as pe
+import nipype.interfaces.afni as afni
+
+logger = logging.getLogger('workflow')
 
 from CPAC.utils import function
+from CPAC.utils.interfaces.function import Function
+from CPAC.utils.utils import get_scan_params
 
 
 def get_rest(scan, rest_dict, resource="scan"):
@@ -121,10 +127,10 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path',
-                                        'dl_dir'],
-                                mandatory_inputs=True),
-                        name='inputnode')
+        fields=['subject', 'scan', 'creds_path',
+                'dl_dir'],
+        mandatory_inputs=True),
+        name='inputnode')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
                                                         'scan', 'scan_params',
@@ -217,10 +223,10 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path',
-                                        'dl_dir'],
-                                mandatory_inputs=True),
-                        name='inputnode')
+        fields=['subject', 'scan', 'creds_path',
+                'dl_dir'],
+        mandatory_inputs=True),
+        name='inputnode')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
                                                         'scan', 'scan_params',
@@ -290,9 +296,8 @@ def create_fmap_datasource(fmap_dct, wf_name='fmap_datasource'):
 
 
 def get_fmap_phasediff_metadata(data_config_scan_params):
-
     if not isinstance(data_config_scan_params, dict) and \
-            ".json" in data_config_scan_params:
+                    ".json" in data_config_scan_params:
         with open(data_config_scan_params, 'r') as f:
             data_config_scan_params = json.load(f)
 
@@ -305,7 +310,6 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
 
 def calc_deltaTE_and_asym_ratio(dwell_time, echo_time_one, echo_time_two,
                                 echo_time_three=None):
-
     echo_times = [echo_time_one, echo_time_two]
     if echo_time_three:
         # get only the two different ones
@@ -369,19 +373,205 @@ def match_epi_fmaps(bold_pedir, epi_fmap_one, epi_fmap_params_one,
     return (opposite_pe_epi, same_pe_epi)
 
 
-def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None, dl_dir=None, map_node=False):
+def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
+                          input_creds_path, unique_id=None):
+    # Grab field maps
+    diff = False
+    blip = False
+    fmap_rp_list = []
+    fmap_TE_list = []
 
+    if "fmap" in sub_dict:
+        for key in sub_dict["fmap"]:
+            gather_fmap = create_fmap_datasource(sub_dict["fmap"],
+                                                 f"fmap_gather_{part_id}")
+            gather_fmap.inputs.inputnode.set(
+                subject=subject_id,
+                creds_path=input_creds_path,
+                dl_dir=cfg.pipeline_setup['working_directory']['path']
+            )
+            gather_fmap.inputs.inputnode.scan = key
+
+            second = False
+            if 'epi' in key:
+                key = 'epi_1'
+                second = True
+            if 'epi' in key and second:
+                key = 'epi_2'
+
+            rpool.set_data(key, gather_fmap, 'outputspec.rest', {}, "",
+                           "fmap_ingress")
+            rpool.set_data(f'{key}_scan_params', gather_fmap,
+                           'outputspec.scan_params', {}, "",
+                           "fmap_params_ingress")
+
+            fmap_rp_list.append(key)
+
+            if key == "diff_phase" or key == "diff_mag_one" or \
+                            key == "diff_mag_two":
+                diff = True
+
+                get_fmap_metadata_imports = ['import json']
+                get_fmap_metadata = pe.Node(Function(
+                    input_names=['data_config_scan_params'],
+                    output_names=['echo_time',
+                                  'dwell_time',
+                                  'pe_direction'],
+                    function=get_fmap_phasediff_metadata,
+                    imports=get_fmap_metadata_imports),
+                    name=f'{key}_get_metadata')
+
+                wf.connect(gather_fmap, 'outputspec.scan_params',
+                           get_fmap_metadata, 'data_config_scan_params')
+
+                rpool.set_data(f'{key}_TE', get_fmap_metadata, 'echo_time',
+                               {}, "", "fmap_TE_ingress")
+                rpool.set_data(f'{key}_dwell', get_fmap_metadata,
+                               'dwell_time', {}, "", "fmap_dwell_ingress")
+                rpool.set_data(f'{key}_pedir', get_fmap_metadata,
+                               'pe_direction', {}, "", "fmap_pedir_ingress")
+
+                fmap_TE_list.append(f"{key}_TE")
+
+            if key == "epi_AP" or key == "epi_PA":
+                blip = True
+
+        if diff:
+            calc_delta_ratio = pe.Node(Function(
+                input_names=['dwell_time',
+                             'echo_time_one',
+                             'echo_time_two',
+                             'echo_time_three'],
+                output_names=['deltaTE',
+                              'dwell_asym_ratio'],
+                function=calc_deltaTE_and_asym_ratio),
+                name='diff_distcor_calc_delta')
+
+            node, out_file = rpool.get('diff_phase_dwell')[
+                'diff_phase_dwell:fmap_dwell_ingress'][
+                'data']  # <--- there will only be one pipe_idx
+            wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
+
+            node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
+                f'{fmap_TE_list[0]}:fmap_TE_ingress']['data']
+            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
+
+            node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
+                f'{fmap_TE_list[1]}:fmap_TE_ingress']['data']
+            wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
+
+            if len(fmap_TE_list) > 2:
+                node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
+                    f'{fmap_TE_list[2]}:fmap_TE_ingress']['data']
+                wf.connect(node, out_file,
+                           calc_delta_ratio, 'echo_time_three')
+
+            rpool.set_data('deltaTE', calc_delta_ratio, 'deltaTE', {}, "",
+                           "deltaTE_ingress")
+            rpool.set_data('dwell_asym_ratio',
+                           calc_delta_ratio, 'dwell_asym_ratio', {}, "",
+                           "dwell_asym_ratio_ingress")
+
+    # Add in nodes to get parameters from configuration file
+    # a node which checks if scan_parameters are present for each scan
+    scan_params_imports = ['from CPAC.utils.utils import check, '
+                           'try_fetch_parameter']
+    scan_params = \
+        pe.Node(Function(
+            input_names=['data_config_scan_params',
+                         'subject_id',
+                         'scan',
+                         'pipeconfig_tr',
+                         'pipeconfig_tpattern',
+                         'pipeconfig_start_indx',
+                         'pipeconfig_stop_indx'],
+            output_names=['tr',
+                          'tpattern',
+                          'ref_slice',
+                          'start_indx',
+                          'stop_indx',
+                          'pe_direction'],
+            function=get_scan_params,
+            imports=scan_params_imports
+        ), name="bold_scan_params")
+    scan_params.inputs.subject_id = subject_id
+    scan_params.inputs.set(
+        pipeconfig_start_indx=cfg.functional_preproc['truncation'][
+            'start_tr'],
+        pipeconfig_stop_indx=cfg.functional_preproc['truncation']['stop_tr']
+    )
+
+    # wire in the scan parameter workflow
+    node, out = rpool.get('scan_params')[
+        "['scan_params:scan_params_ingress']"]['data']
+    wf.connect(node, out, scan_params, 'data_config_scan_params')
+
+    node, out = rpool.get('scan')["['scan:func_ingress']"]['data']
+    wf.connect(node, out, scan_params, 'scan')
+
+    rpool.set_data('TR', scan_params, 'tr', {}, "", "func_metadata_ingress")
+    rpool.set_data('tpattern', scan_params, 'tpattern', {}, "",
+                   "func_metadata_ingress")
+    rpool.set_data('start_tr', scan_params, 'start_indx', {}, "",
+                   "func_metadata_ingress")
+    rpool.set_data('stop_tr', scan_params, 'stop_indx', {}, "",
+                   "func_metadata_ingress")
+    rpool.set_data('pe_direction', scan_params, 'pe_direction', {}, "",
+                   "func_metadata_ingress")
+
+    return (wf, rpool, diff, blip, fmap_rp_list)
+
+
+def create_general_datasource(wf_name):
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    wf = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(
+        fields=['unique_id', 'data', 'creds_path',
+                'dl_dir'],
+        mandatory_inputs=True),
+        name='inputnode')
+
+    check_s3_node = pe.Node(function.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'dl_dir',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3,
+                                              as_module=True),
+                            name='check_for_s3')
+    check_s3_node.inputs.img_type = "other"
+
+    wf.connect(inputnode, 'data', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['unique_id',
+                                                        'data']),
+                         name='outputspec')
+
+    wf.connect(inputnode, 'unique_id', outputnode, 'unique_id')
+    wf.connect(check_s3_node, 'local_path', outputnode, 'data')
+
+    return wf
+
+
+def create_check_for_s3_node(name, file_path, img_type='other',
+                             creds_path=None, dl_dir=None, map_node=False):
     if map_node:
         check_s3_node = pe.MapNode(function.Function(input_names=['file_path',
                                                                   'creds_path',
                                                                   'dl_dir',
                                                                   'img_type'],
-                                                     output_names=['local_path'],
+                                                     output_names=[
+                                                         'local_path'],
                                                      function=check_for_s3,
                                                      as_module=True),
-                                                     iterfield=['file_path'],
+                                   iterfield=['file_path'],
                                    name='check_for_s3_%s' % name)
-    else: 
+    else:
         check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                                'creds_path',
                                                                'dl_dir',
@@ -404,7 +594,6 @@ def create_check_for_s3_node(name, file_path, img_type='other', creds_path=None,
 # Check if passed-in file is on S3
 def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
                  verbose=False):
-
     # Import packages
     import os
     import nibabel as nib
@@ -415,7 +604,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
     s3_str = 's3://'
     if creds_path:
         if "None" in creds_path or "none" in creds_path or \
-                "null" in creds_path:
+                        "null" in creds_path:
             creds_path = None
 
     if dl_dir is None:
@@ -433,7 +622,7 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
         return local_path
 
     if file_path.lower().startswith(s3_str):
-        
+
         file_path = s3_str + file_path[len(s3_str):]
 
         # Get bucket name and bucket object
@@ -458,27 +647,29 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
             # Download file
             try:
                 bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-                print("Attempting to download from AWS S3: {0}".format(file_path))
+                print("Attempting to download from AWS S3: {0}".format(
+                    file_path))
                 bucket.download_file(Key=s3_key, Filename=local_path)
             except botocore.exceptions.ClientError as exc:
                 error_code = int(exc.response['Error']['Code'])
 
                 err_msg = str(exc)
                 if error_code == 403:
-                    err_msg = 'Access to bucket: "%s" is denied; using credentials '\
-                              'in subject list: "%s"; cannot access the file "%s"'\
+                    err_msg = 'Access to bucket: "%s" is denied; using credentials ' \
+                              'in subject list: "%s"; cannot access the file "%s"' \
                               % (bucket_name, creds_path, file_path)
                 elif error_code == 404:
-                    err_msg = 'File: {0} does not exist; check spelling and try '\
-                              'again'.format(os.path.join(bucket_name, s3_key))
+                    err_msg = 'File: {0} does not exist; check spelling and try ' \
+                              'again'.format(
+                        os.path.join(bucket_name, s3_key))
                 else:
-                    err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                    err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s' \
                               % (bucket_name, exc)
 
                 raise Exception(err_msg)
 
             except Exception as exc:
-                err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s' \
                           % (bucket_name, exc)
                 raise Exception(err_msg)
 
@@ -491,15 +682,17 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
         # alert users to 2020-07-20 Neuroparc atlas update (v0 to v1)
         ndmg_atlases = {}
         with open(
-            os.path.join(
-                os.path.dirname(os.path.dirname(__file__)),
-                'resources/templates/ndmg_atlases.csv'
-            )
+                os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    'resources/templates/ndmg_atlases.csv'
+                )
         ) as ndmg_atlases_file:
             ndmg_atlases['v0'], ndmg_atlases['v1'] = zip(*[(
-                f'/ndmg_atlases/label/Human/{atlas[0]}',
-                f'/ndmg_atlases/label/Human/{atlas[1]}'
-            ) for atlas in csv.reader(ndmg_atlases_file)])
+                                                               f'/ndmg_atlases/label/Human/{atlas[0]}',
+                                                               f'/ndmg_atlases/label/Human/{atlas[1]}'
+                                                           ) for atlas in
+                                                           csv.reader(
+                                                               ndmg_atlases_file)])
         if local_path in ndmg_atlases['v0']:
             raise FileNotFoundError(
                 ''.join([
@@ -527,56 +720,119 @@ def check_for_s3(file_path, creds_path=None, dl_dir=None, img_type='other',
 
         if img_type == 'anat':
             if len(img_nii.shape) != 3:
-                raise IOError('File: %s must be an anatomical image with 3 '\
+                raise IOError('File: %s must be an anatomical image with 3 ' \
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
         elif img_type == 'func':
             if len(img_nii.shape) != 4:
-                raise IOError('File: %s must be a functional image with 4 '\
+                raise IOError('File: %s must be a functional image with 4 ' \
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
 
     return local_path
 
 
-def resolve_resolution(resolution, template, template_name, tag = None):
+def gather_extraction_maps(c):
+    ts_analysis_dict = {}
+    sca_analysis_dict = {}
 
+    if hasattr(c, 'timeseries_extraction'):
+
+        tsa_roi_dict = c.timeseries_extraction['tse_roi_paths']
+
+        # Timeseries and SCA config selections processing
+
+        # flip the dictionary
+        for roi_path in tsa_roi_dict.keys():
+            ts_analysis_to_run = [
+                x.strip() for x in tsa_roi_dict[roi_path].split(",")
+                ]
+
+            if any(
+                            corr in ts_analysis_to_run for corr in [
+                        "PearsonCorr", "PartialCorr"
+                    ]
+            ) and "Avg" not in ts_analysis_to_run:
+                ts_analysis_to_run += ["Avg"]
+
+            for analysis_type in ts_analysis_to_run:
+                if analysis_type not in ts_analysis_dict.keys():
+                    ts_analysis_dict[analysis_type] = []
+                ts_analysis_dict[analysis_type].append(roi_path)
+
+        if c.timeseries_extraction['run'] is True:
+
+            if not tsa_roi_dict:
+                err = "\n\n[!] CPAC says: Time Series Extraction is " \
+                      "set to run, but no ROI NIFTI file paths were " \
+                      "provided!\n\n"
+                raise Exception(err)
+
+    if c.seed_based_correlation_analysis['run'] is True:
+
+        try:
+            sca_roi_dict = c.seed_based_correlation_analysis[
+                'sca_roi_paths'
+            ]
+        except KeyError:
+            err = "\n\n[!] CPAC says: Seed-based Correlation Analysis " \
+                  "is set to run, but no ROI NIFTI file paths were " \
+                  "provided!\n\n"
+            raise Exception(err)
+
+        # flip the dictionary
+        for roi_path in sca_roi_dict.keys():
+            # update analysis dict
+            for analysis_type in sca_roi_dict[roi_path].split(","):
+                analysis_type = analysis_type.replace(" ", "")
+
+                if analysis_type not in sca_analysis_dict.keys():
+                    sca_analysis_dict[analysis_type] = []
+
+                sca_analysis_dict[analysis_type].append(roi_path)
+
+    return (ts_analysis_dict, sca_analysis_dict)
+
+
+def resolve_resolution(resolution, template, template_name, tag=None):
     import nipype.interfaces.afni as afni
     import nipype.pipeline.engine as pe
     from CPAC.utils.datasource import check_for_s3
 
     tagname = None
     local_path = None
-    
+
     if "{" in template and tag is not None:
-            tagname = "${" + tag + "}"
+        tagname = "${" + tag + "}"
     try:
         if tagname is not None:
-            local_path = check_for_s3(template.replace(tagname, str(resolution)))     
+            local_path = check_for_s3(
+                template.replace(tagname, str(resolution)))
     except (IOError, OSError):
         local_path = None
 
     ## TODO debug - it works in ipython but doesn't work in nipype wf
     # try:
-    #     local_path = check_for_s3('/usr/local/fsl/data/standard/MNI152_T1_3.438mmx3.438mmx3.4mm_brain_mask_dil.nii.gz')     
+    #     local_path = check_for_s3('/usr/local/fsl/data/standard/MNI152_T1_3.438mmx3.438mmx3.4mm_brain_mask_dil.nii.gz')
     # except (IOError, OSError):
     #     local_path = None
 
     if local_path is None:
         if tagname is not None:
-            ref_template = template.replace(tagname, '1mm') 
+            ref_template = template.replace(tagname, '1mm')
             local_path = check_for_s3(ref_template)
         elif tagname is None and "s3" in template:
             local_path = check_for_s3(template)
         else:
-            local_path = template    
+            local_path = template
 
         if "x" in str(resolution):
-            resolution = tuple(float(i.replace('mm', '')) for i in resolution.split("x"))
+            resolution = tuple(
+                float(i.replace('mm', '')) for i in resolution.split("x"))
         else:
-            resolution = (float(resolution.replace('mm', '')), ) * 3
+            resolution = (float(resolution.replace('mm', '')),) * 3
 
-        resample = pe.Node(interface = afni.Resample(), name=template_name)
+        resample = pe.Node(interface=afni.Resample(), name=template_name)
         resample.inputs.voxel_size = resolution
         resample.inputs.outputtype = 'NIFTI_GZ'
         resample.inputs.resample_mode = 'Cu'
@@ -590,17 +846,16 @@ def resolve_resolution(resolution, template, template_name, tag = None):
 
 
 def create_anat_datasource(wf_name='anat_datasource'):
-
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'anat', 'creds_path',
-                                        'dl_dir', 'img_type'],
-                                mandatory_inputs=True),
-                        name='inputnode')
+        fields=['subject', 'anat', 'creds_path',
+                'dl_dir', 'img_type'],
+        mandatory_inputs=True),
+        name='inputnode')
 
     check_s3_node = pe.Node(function.Function(input_names=['file_path',
                                                            'creds_path',
@@ -628,7 +883,6 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
 
 def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
-
     import os
 
     mask_dict = {}
@@ -649,7 +903,7 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
                 base_file[:-len(ext)]
                 for ext in valid_extensions
                 if base_file.endswith(ext)
-            ][0]
+                ][0]
 
             if base_name in mask_dict:
                 raise ValueError(
@@ -668,8 +922,7 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
         except Exception as e:
             raise e
 
-
-    wf = pe.Workflow(name=wf_name)  
+    wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(fields=['mask',
                                                        'mask_file',
@@ -701,22 +954,23 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
     check_s3_node.inputs.img_type = 'mask'
 
-    outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file',
+                                                        'out_name']),
                          name='outputspec')
 
     wf.connect(check_s3_node, 'local_path', outputnode, 'out_file')
+    wf.connect(inputnode, 'mask', outputnode, 'out_name')
 
     return wf
 
 
 def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
-
     import os
 
     wf = pe.Workflow(name=wf_name)
-    
+
     spatial_map_dict = {}
-    
+
     for spatial_map_file in spatial_maps:
 
         spatial_map_file = spatial_map_file.rstrip('\r\n')
@@ -729,7 +983,7 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
                 base_file[:-len(ext)]
                 for ext in valid_extensions
                 if base_file.endswith(ext)
-            ][0]
+                ][0]
 
             if base_name in spatial_map_dict:
                 raise ValueError(
@@ -738,9 +992,9 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
                         spatial_map_dict[base_name]
                     )
                 )
-        
+
             spatial_map_dict[base_name] = spatial_map_file
-        
+
         except IndexError as e:
             raise Exception('Error in spatial_map_dataflow: '
                             'File extension not in .nii and .nii.gz')
@@ -775,17 +1029,18 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
     wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
     check_s3_node.inputs.img_type = 'mask'
 
-    select_spatial_map = pe.Node(util.IdentityInterface(fields=['out_file'],
+    select_spatial_map = pe.Node(util.IdentityInterface(fields=['out_file',
+                                                                'out_name'],
                                                         mandatory_inputs=True),
                                  name='select_spatial_map')
 
     wf.connect(check_s3_node, 'local_path', select_spatial_map, 'out_file')
+    wf.connect(inputnode, 'spatial_map', select_spatial_map, 'out_name')
 
     return wf
 
 
 def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
-
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
     from CPAC.utils.datasource import select_model_files
@@ -793,9 +1048,9 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
-                                                        'grp_model',
-                                                        'model_name'],
-                                                mandatory_inputs=True),
+                                                       'grp_model',
+                                                       'model_name'],
+                                               mandatory_inputs=True),
                         name='inputspec')
 
     selectmodel = pe.Node(function.Function(input_names=['model',
@@ -810,9 +1065,9 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
                           name='selectnode')
 
     wf.connect(inputnode, 'ftest',
-                selectmodel, 'ftest')
+               selectmodel, 'ftest')
     wf.connect(inputnode, 'grp_model',
-                selectmodel, 'model')
+               selectmodel, 'model')
     wf.connect(inputnode, 'model_name', selectmodel, 'model_name')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['fts',
@@ -820,61 +1075,62 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
                                                         'mat',
                                                         'con'],
                                                 mandatory_inputs=True),
-                            name='outputspec')
+                         name='outputspec')
 
     wf.connect(selectmodel, 'mat_file',
-                outputnode, 'mat')
+               outputnode, 'mat')
     wf.connect(selectmodel, 'grp_file',
-                outputnode, 'grp')
+               outputnode, 'grp')
     wf.connect(selectmodel, 'fts_file',
-                outputnode, 'fts')
+               outputnode, 'fts')
     wf.connect(selectmodel, 'con_file',
-                outputnode, 'con')
+               outputnode, 'con')
 
     return wf
 
 
 def resample_func_roi(in_func, in_roi, realignment, identity_matrix):
-
     import os, subprocess
-    import nibabel as nb    
+    import nibabel as nb
 
     # load func and ROI dimension
     func_img = nb.load(in_func)
-    func_shape = func_img.shape 
+    func_shape = func_img.shape
     roi_img = nb.load(in_roi)
-    roi_shape = roi_img.shape 
+    roi_shape = roi_img.shape
 
-    # check if func size = ROI size, return func and ROI; else resample using flirt 
+    # check if func size = ROI size, return func and ROI; else resample using flirt
     if roi_shape != func_shape:
 
         # resample func to ROI: in_file = func, reference = ROI
-        if 'func_to_ROI' in realignment: 
+        if 'func_to_ROI' in realignment:
             in_file = in_func
             reference = in_roi
-            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex(
+                '/') + 1:in_file.rindex('.nii')] + '_resampled.nii.gz')
             out_func = out_file
             out_roi = in_roi
             interp = 'trilinear'
 
         # resample ROI to func: in_file = ROI, reference = func
-        elif 'ROI_to_func' in realignment: 
+        elif 'ROI_to_func' in realignment:
             in_file = in_roi
             reference = in_func
-            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex('/')+1:in_file.rindex('.nii')]+'_resampled.nii.gz')
+            out_file = os.path.join(os.getcwd(), in_file[in_file.rindex(
+                '/') + 1:in_file.rindex('.nii')] + '_resampled.nii.gz')
             out_func = in_func
             out_roi = out_file
             interp = 'nearestneighbour'
 
-        cmd = ['flirt', '-in', in_file, 
-                '-ref', reference, 
-                '-out', out_file, 
-                '-interp', interp, 
-                '-applyxfm', '-init', identity_matrix]
+        cmd = ['flirt', '-in', in_file,
+               '-ref', reference,
+               '-out', out_file,
+               '-interp', interp,
+               '-applyxfm', '-init', identity_matrix]
         subprocess.check_output(cmd)
 
     else:
         out_func = in_func
         out_roi = in_roi
-    
+
     return out_func, out_roi

@@ -1,5 +1,4 @@
-from .seg_preproc import create_seg_preproc, process_segment_map, \
-                         create_seg_preproc_template_based, \
+from .seg_preproc import process_segment_map, \
                          tissue_mask_template_to_t1, \
                          create_seg_preproc_antsJointLabel_method
 
