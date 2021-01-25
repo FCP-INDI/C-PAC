@@ -308,13 +308,13 @@ class ResourcePool(object):
         if len_inputs > 1:
             strats = itertools.product(*total_pool)
 
-            # we now currently have "strats", the combined permutations of all the strategies, as a list of tuples, each tuple being a permutation.
+            # we now currently have "strats", the combined permutations of all the strategies, as a list of tuples, each tuple combining one version of input each, being one of the permutations.
             # OF ALL THE DIFFERENT INPUTS. and they are tagged by their fetched inputs with {name}:{strat}.
             # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
 
             new_strats = {}
             for strat_tuple in strats:
-                strat_list = list(strat_tuple)     # <------- strat_list is now a list of combined strats, one of the permutations. keep in mind each strat in the combo comes from a different data source/input
+                strat_list = list(strat_tuple)     # <------- strat_list is now a list of strats all combined together, one of the permutations. keep in mind each strat in the combo comes from a different data source/input
                                                    #          like this:   strat_list = [desc-preproc_T1w:pipe_idx_anat_1, desc-brain_mask:pipe_idx_mask_1]
                 # drop the incorrect permutations
                 #drop = False
@@ -586,7 +586,6 @@ class ResourcePool(object):
                         subdir = 'func'
 
             for pipe_idx in self.rpool[resource]:
-                pipe_num = self.get_pipe_number(pipe_idx)
                 unique_id = self.get_name()
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
@@ -696,7 +695,6 @@ class ResourcePool(object):
 
                         temp_rsc_idx = None
                         for spot, entry in enumerate(prov):
-                            print(f'spot {spot}: {entry}')
                             if isinstance(entry, list):
                                 if entry[-1].split(':')[0] == temp_rsc:
                                     temp_rsc_prov = entry
@@ -705,7 +703,6 @@ class ResourcePool(object):
                             elif isinstance(entry, str):
                                 if entry.split(':')[0] == temp_rsc:
                                     temp_rsc_prov = prov[spot-1]
-                                    print(temp_rsc_prov)
                                     temp_rsc_idx = self.generate_prov_string(temp_rsc_prov)[1]
                                     break
                         new_idx = temp_rsc_idx
@@ -842,12 +839,6 @@ class NodeBlock(object):
 
             block_function = block_dct['block_function']
 
-            # NOTE: this has been moved up to the node-block-pipeline level
-            #exists = [rpool.check_rpool(out) for out in outputs]
-            #if False not in exists:
-            #    print(f'{outputs} already exist, bypassing {name}')
-            #    return wf
-
             opts = []
             if option_key and option_val:
                 if not isinstance(option_key, list):
@@ -858,9 +849,13 @@ class NodeBlock(object):
                     key_list = config + option_key
                 else:
                     key_list = option_key
-                for option in option_val:
-                    if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
-                        opts.append(option)
+                if 'USER-DEFINED' in option_val:
+                    # load custom config data into each 'opt'
+                    opts = self.grab_tiered_dct(cfg, key_list)
+                else:
+                    for option in option_val:
+                        if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                            opts.append(option)
             else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]                                               #         THIS ALSO MEANS the multiple option-val's in docstring node blocks can be entered once in the entire node-block sequence, not in a list of multiples
             if not opts:
@@ -895,7 +890,11 @@ class NodeBlock(object):
                         # strat_pool has all of the JSON information of all the inputs!
                         # so when we set_data below for the TOP-LEVEL MAIN RPOOL (not the strat_pool), we can generate new merged JSON information for each output.
                         #    particularly, our custom 'CpacProvenance' field.
+
+                        node_name = name
+
                         pipe_x = rpool.get_pipe_number(pipe_idx)
+
                         wf, outs = block_function(wf, cfg, strat_pool,
                                                   pipe_x, opt)
 
@@ -903,7 +902,15 @@ class NodeBlock(object):
                             continue
 
                         if opt and len(option_val) > 1:
-                            name = f'{name}_{opt}'
+                            node_name = f'{node_name}_{opt}'
+                        elif opt and 'USER-DEFINED' in option_val:
+                            node_name = f'{node_name}_{opt["Name"]}'
+
+                        print(node_name)
+                        print(opt)
+                        print(pipe_x)
+                        print(pipe_idx)
+                        print('\n')
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
@@ -921,7 +928,7 @@ class NodeBlock(object):
                                            connection[0],
                                            connection[1],
                                            json_info,
-                                           pipe_idx, name, fork)
+                                           pipe_idx, node_name, fork)
 
                             if rpool.func_reg:
                                 wf = rpool.derivative_xfm(wf, label,
@@ -1386,6 +1393,7 @@ def initiate_rpool(wf, cfg, data_paths):
                        "template_resample", inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
     '''
 
+    '''
     if cfg.nuisance_corrections['2-nuisance_regression']['Regressors']:
         regressor_strats = []
         regressor_strat_names = []
@@ -1412,6 +1420,7 @@ def initiate_rpool(wf, cfg, data_paths):
                        {}, "", "regressor_ingress")
         rpool.set_data('regressor_name', nuisance_strat, 'strat_name',
                        {}, "", "regressor_name_ingress")
+    '''
 
     return (wf, rpool)
 

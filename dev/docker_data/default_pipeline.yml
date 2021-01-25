@@ -1029,34 +1029,6 @@ nuisance_corrections:
            bottom_frequency: 0.01
            top_frequency: 0.1
 
-      -  Name: 'defaultNoGSR'
-
-         Motion:
-           include_delayed: true
-           include_squared: true
-           include_delayed_squared: true
-
-         aCompCor:
-           summary:
-             method: DetrendPC
-             components: 5
-           tissues:
-             - WhiteMatter
-             - CerebrospinalFluid
-           extraction_resolution: 2
-
-         CerebrospinalFluid:
-           summary: Mean
-           extraction_resolution: 2
-           erode_mask: true
-
-         PolyOrt:
-          degree: 2
-
-         Bandpass:
-           bottom_frequency: 0.01
-           top_frequency: 0.1
-
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
@@ -1275,7 +1247,7 @@ voxel_mirrored_homotopic_connectivity:
 
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: On
+  run: Off
 
   symmetric_registration:
 

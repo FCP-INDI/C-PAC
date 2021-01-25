@@ -37,6 +37,7 @@ def smooth_func_vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "desc-preproc_bold",
                                      "desc-reorient_bold",
                                      "bold"])
+
     wf.connect(node, out, smooth, 'inputspec.in_file')
 
     node, out = strat_pool.get_data("space-bold_desc-brain_mask")

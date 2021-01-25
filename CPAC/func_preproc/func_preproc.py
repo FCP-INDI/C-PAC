@@ -1068,8 +1068,8 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                 "coordinate_transformation",
                 "subject",
                 "scan"],
-     "outputs": ["frame_wise_displacement_power",
-                 "frame_wise_displacement_jenkinson",
+     "outputs": ["framewise_displacement_power",
+                 "framewise_displacement_jenkinson",
                  "dvars",
                  "power_params",
                  "motion_params"]}
@@ -1116,9 +1116,9 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
                'inputspec.transformations')
 
     outputs = {
-        'frame_wise_displacement_power':
+        'framewise_displacement_power':
             (gen_motion_stats, 'outputspec.FDP_1D'),
-        'frame_wise_displacement_jenkinson':
+        'framewise_displacement_jenkinson':
             (gen_motion_stats, 'outputspec.FDJ_1D'),
         'dvars': (gen_motion_stats, 'outputspec.DVARS_1D'),
         'power_params': (gen_motion_stats, 'outputspec.power_params'),
@@ -1181,7 +1181,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
         name='BET_options')
 
     func_get_brain_mask = pe.Node(interface=fsl.BET(),
-                                  name='func_get_brain_mask_BET')
+                                  name=f'func_get_brain_mask_BET_{pipe_num}')
     func_get_brain_mask.inputs.output_type = 'NIFTI_GZ'
     func_get_brain_mask.inputs.mask = True
 
@@ -1229,7 +1229,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
     if cfg.functional_preproc['func_masking']['FSL-BET'][
         'functional_mean_boolean']:
         func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                                  name='func_mean_skull_{0}'.format(wf_name))
+                                  name=f'func_mean_skull_{pipe_num}')
         func_skull_mean.inputs.options = '-mean'
         func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
 
@@ -1248,7 +1248,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # erode one voxel of functional brian mask
     erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
-                              name='erode_one_voxel')
+                              name=f'erode_one_voxel_{pipe_num}')
 
     erode_one_voxel.inputs.kernel_shape = 'box'
     erode_one_voxel.inputs.kernel_size = 1.0
@@ -1275,27 +1275,28 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     func_skull_mean = pe.Node(interface=afni_utils.TStat(),
-                              name='func_mean_skull')
+                              name=f'func_mean_skull_{pipe_num}')
     func_skull_mean.inputs.options = '-mean'
     func_skull_mean.inputs.outputtype = 'NIFTI_GZ'
 
     skullstrip_first_pass = pe.Node(
         fsl.BET(frac=0.2, mask=True, functional=False),
-        name='skullstrip_first_pass')
+        name=f'skullstrip_first_pass_{pipe_num}')
     bet_dilate = pe.Node(
         fsl.DilateImage(operation='max', kernel_shape='sphere',
                         kernel_size=6.0, internal_datatype='char'),
-        name='skullstrip_first_dilate')
-    bet_mask = pe.Node(fsl.ApplyMask(), name='skullstrip_first_mask')
+        name=f'skullstrip_first_dilate_{pipe_num}')
+    bet_mask = pe.Node(fsl.ApplyMask(), name=f'skullstrip_first_mask_'
+                                             f'{pipe_num}')
     unifize = pe.Node(afni_utils.Unifize(t2=True, outputtype='NIFTI_GZ',
                                          args='-clfrac 0.2 -rbt 18.3 65.0 90.0',
                                          out_file="uni.nii.gz"),
-                      name='unifize')
+                      name=f'unifize_{pipe_num}')
     skullstrip_second_pass = pe.Node(
         preprocess.Automask(dilate=1, outputtype='NIFTI_GZ'),
-        name='skullstrip_second_pass')
+        name=f'skullstrip_second_pass_{pipe_num}')
     combine_masks = pe.Node(fsl.BinaryMaths(operation='mul'),
-                            name='combine_masks')
+                            name=f'combine_masks_{pipe_num}')
 
     node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
                                      "bold"])
@@ -1579,7 +1580,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     func_mean = pe.Node(interface=afni_utils.TStat(),
-                        name='func_mean')
+                        name=f'func_mean_{pipe_num}')
 
     func_mean.inputs.options = '-mean'
     func_mean.inputs.outputtype = 'NIFTI_GZ'

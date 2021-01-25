@@ -940,8 +940,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [create_func_to_T1template_xfm]
 
         if cfg.voxel_mirrored_homotopic_connectivity['run']:
-            if rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
-                pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
+            pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
     if not rpool.check_rpool('desc-cleaned_bold'):
@@ -1047,7 +1046,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     try:
         # Get path to creds file
         creds_path = ''
-        if c.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']:
+        if cfg.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']:
             creds_path = str(cfg.pipeline_setup['Amazon-AWS'][
                                  'aws_output_bucket_credentials'])
             creds_path = os.path.abspath(creds_path)

@@ -73,17 +73,20 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         interp_string.inputs.reg_tool = reg_tool
 
         wf.connect(inputNode, 'interpolation', interp_string, 'interpolation')
-        wf.connect(interp_string, 'interpolation', apply_warp, 'interpolation')
+        wf.connect(interp_string, 'interpolation',
+                   apply_warp, 'interpolation')
 
-        ants_xfm_list = pe.Node(util.Function(input_names=['transform'],
-                                              output_names=['transform_list'],
-                                              function=single_ants_xfm_to_list),
-                                name=f'single_ants_xfm_to_list')
+        ants_xfm_list = \
+            pe.Node(util.Function(input_names=['transform'],
+                                  output_names=['transform_list'],
+                                  function=single_ants_xfm_to_list),
+                    name=f'single_ants_xfm_to_list')
 
         wf.connect(inputNode, 'transform', ants_xfm_list, 'transform')
         wf.connect(ants_xfm_list, 'transform_list', apply_warp, 'transforms')
 
-        # parallelize the apply warp, if multiple CPUs, and it's a time series!
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
         if int(num_cpus) > 1 and time_series:
 
             chunk_imports = ['import nibabel as nb']
@@ -148,7 +151,8 @@ def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
         wf.connect(inputNode, 'reference', apply_warp, 'reference')
         wf.connect(inputNode, 'transform', apply_warp, 'in_matrix_file')
 
-        # parallelize the apply warp, if multiple CPUs, and it's a time series!
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
         if int(num_cpus) > 1 and time_series:
 
             chunk_imports = ['import nibabel as nb']
@@ -549,8 +553,7 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
                                                        'anat_wm_segmentation',
                                                        'bbr_schedule',
                                                        'fieldmap',
-                                                       'fieldmapmask'
-                                                       ]),
+                                                       'fieldmapmask']),
                         name='inputspec')
 
     inputNode_echospacing = pe.Node(
@@ -567,7 +570,8 @@ def create_bbregister_func_to_anat(phase_diff_distcor=False,
                          name='wm_bb_mask')
     wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
 
-    register_bbregister_func_to_anat.connect(inputspec, 'anat_wm_segmentation',
+    register_bbregister_func_to_anat.connect(inputspec,
+                                             'anat_wm_segmentation',
                                              wm_bb_mask, 'in_file')
 
     def bbreg_args(bbreg_target):
@@ -821,31 +825,36 @@ def create_wf_calculate_ants_warp(
     calculate_ants_warp.interface.num_threads = num_threads
 
     select_forward_initial = pe.Node(util.Function(
-        input_names=['warp_list', 'selection'], output_names=['selected_warp'],
+        input_names=['warp_list', 'selection'],
+        output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_initial')
 
     select_forward_initial.inputs.selection = "Initial"
 
     select_forward_rigid = pe.Node(util.Function(
-        input_names=['warp_list', 'selection'], output_names=['selected_warp'],
+        input_names=['warp_list', 'selection'],
+        output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_rigid')
 
     select_forward_rigid.inputs.selection = "Rigid"
 
     select_forward_affine = pe.Node(util.Function(
-        input_names=['warp_list', 'selection'], output_names=['selected_warp'],
+        input_names=['warp_list', 'selection'],
+        output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_affine')
 
     select_forward_affine.inputs.selection = "Affine"
 
     select_forward_warp = pe.Node(util.Function(
-        input_names=['warp_list', 'selection'], output_names=['selected_warp'],
+        input_names=['warp_list', 'selection'],
+        output_names=['selected_warp'],
         function=seperate_warps_list), name='select_forward_warp')
 
     select_forward_warp.inputs.selection = "Warp"
 
     select_inverse_warp = pe.Node(util.Function(
-        input_names=['warp_list', 'selection'], output_names=['selected_warp'],
+        input_names=['warp_list', 'selection'],
+        output_names=['selected_warp'],
         function=seperate_warps_list), name='select_inverse_warp')
 
     select_inverse_warp.inputs.selection = "Inverse"
@@ -1846,9 +1855,10 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
             'coregistration']['func_input_prep']['Mean Functional'][
             'n4_correct_func']:
         n4_correct_func = pe.Node(
-            interface=ants.N4BiasFieldCorrection(dimension=3,
-                                                 copy_header=True,
-                                                 bspline_fitting_distance=200),
+            interface=
+            ants.N4BiasFieldCorrection(dimension=3,
+                                       copy_header=True,
+                                       bspline_fitting_distance=200),
             shrink_factor=2,
             name=f'func_mean_n4_corrected_{pipe_num}')
         n4_correct_func.inputs.args = '-r True'
@@ -1964,7 +1974,8 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('T1w')
     wf.connect(node, out, func_to_anat_bbreg, 'inputspec.anat_skull')
 
-    node, out = strat_pool.get_data('from-bold_to-T1w_mode-image_desc-linear_xfm')
+    node, out = strat_pool.get_data(
+        'from-bold_to-T1w_mode-image_desc-linear_xfm')
     wf.connect(node, out,
                func_to_anat_bbreg, 'inputspec.linear_reg_matrix')
 
@@ -1988,7 +1999,8 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                    func_to_anat_bbreg, 'inputspec.fieldmapmask')
 
     outputs = {
-        'space-T1w_desc-mean_bold': (func_to_anat_bbreg, 'outputspec.anat_func'),
+        'space-T1w_desc-mean_bold':
+            (func_to_anat_bbreg, 'outputspec.anat_func'),
         'from-bold_to-T1w_mode-image_desc-linear_xfm':
             (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')
     }
@@ -2125,7 +2137,8 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                  "space-template_bold"]}
     '''
 
-    xfm_prov = strat_pool.get_cpac_provenance('from-bold_to-template_mode-image_xfm')
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     num_cpus = cfg.pipeline_setup['system_config'][
@@ -2183,7 +2196,8 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-template_desc-bold_mask"]}
     '''
 
-    xfm_prov = strat_pool.get_cpac_provenance('from-bold_to-template_mode-image_xfm')
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     num_cpus = cfg.pipeline_setup['system_config'][
@@ -2214,7 +2228,8 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, apply_xfm, 'inputspec.transform')
 
     outputs = {
-        'space-template_desc-bold_mask': (apply_xfm, 'outputspec.output_image')
+        'space-template_desc-bold_mask':
+            (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)
@@ -2237,7 +2252,8 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["space-template_res-derivative_desc-bold_mask"]}
     '''
 
-    xfm_prov = strat_pool.get_cpac_provenance('from-bold_to-template_mode-image_xfm')
+    xfm_prov = strat_pool.get_cpac_provenance(
+        'from-bold_to-template_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     num_cpus = cfg.pipeline_setup['system_config'][
@@ -2268,7 +2284,8 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, apply_xfm, 'inputspec.transform')
 
     outputs = {
-        f'space-template_res-derivative_desc-bold_mask': (apply_xfm, 'outputspec.output_image')
+        f'space-template_res-derivative_desc-bold_mask':
+            (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)

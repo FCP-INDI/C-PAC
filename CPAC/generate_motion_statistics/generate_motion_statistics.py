@@ -263,8 +263,10 @@ def motion_power_statistics(name='motion_stats',
                calc_power_parameters, 'subject_id')
     wf.connect(input_node, 'scan_id',
                calc_power_parameters, 'scan_id')
+
     wf.connect(cal_DVARS, 'out_file',
                calc_power_parameters, 'dvars')
+
     wf.connect(calculate_FDP, 'out_file',
                calc_power_parameters, 'fdp')
 

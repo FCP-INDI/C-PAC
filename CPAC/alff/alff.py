@@ -266,7 +266,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "desc-preproc_bold", "bold"])
     wf.connect(node, out, alff, 'inputspec.rest_res')
 
-    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
+    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
     wf.connect(node, out, alff, 'inputspec.rest_mask')
 
     outputs = {
