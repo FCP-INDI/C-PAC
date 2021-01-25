@@ -269,11 +269,13 @@ class ResourcePool(object):
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
 
+    '''
     def update_cpac_provenance(self, new_resource, prov, inputs, new_node_id):
         if new_resource not in prov:
             prov[new_resource] = [inputs]
         prov[new_resource].append(new_node_id)
         self.set_json_info(new_resource, )
+    '''
 
     def get_strats(self, resources):
 
@@ -638,7 +640,7 @@ class ResourcePool(object):
                         break
                     else:
                         resource_idx = f'{resource}{num_variant}'
-                print(f'resource_idx: {resource_idx}')
+
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
@@ -721,16 +723,10 @@ class ResourcePool(object):
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
-                print('id string node')
-                print(id_string)
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
 
                 node, out = self.rpool[resource][pipe_idx]['data']
-                print(f'resource: {resource}')
-                print(node)
-                print(out)
-                print('\n\n')
                 wf.connect(node, out, nii_name, 'in_file')
 
                 write_json_imports = ['import os', 'import json']
@@ -905,12 +901,6 @@ class NodeBlock(object):
                             node_name = f'{node_name}_{opt}'
                         elif opt and 'USER-DEFINED' in option_val:
                             node_name = f'{node_name}_{opt["Name"]}'
-
-                        print(node_name)
-                        print(opt)
-                        print(pipe_x)
-                        print(pipe_idx)
-                        print('\n')
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
