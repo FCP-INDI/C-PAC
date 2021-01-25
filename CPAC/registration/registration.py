@@ -1414,14 +1414,14 @@ def bold_to_T1template_xfm_connector(wf_name, cfg, reg_tool, symmetric=False):
             name=f'write_composite_inv_xfm',
             mem_gb=1.5)
         write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
-        write_composite_inv_xfm.inputs.invert_transform_flags = [True, False]
+        write_composite_inv_xfm.inputs.invert_transform_flags = [False, True]
         write_composite_inv_xfm.inputs.output_image = \
             f"from-{sym}template_to-bold_mode-image_xfm.nii.gz"
 
         wf.connect(inputNode, 'T1w_brain_template_funcreg',
                    write_composite_inv_xfm, 'input_image')
 
-        wf.connect(inputNode, 'input_brain',
+        wf.connect(inputNode, 'mean_bold',
                    write_composite_inv_xfm, 'reference_image')
 
         write_composite_inv_xfm.inputs.input_image_type = 0
@@ -2022,8 +2022,9 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     xfm, outputs = bold_to_T1template_xfm_connector('create_func_to_T1w'
-                                                    'template_xfm', cfg,
-                                                    reg_tool, symmetric=False)
+                                                    f'template_xfm_{pipe_num}',
+                                                    cfg, reg_tool,
+                                                    symmetric=False)
 
     node, out = strat_pool.get_data(
         'from-bold_to-T1w_mode-image_desc-linear_xfm')
@@ -2075,9 +2076,10 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
         'from-T1w_to-symtemplate_mode-image_xfm')
     reg_tool = check_prov_for_regtool(xfm_prov)
 
-    xfm, outputs = bold_to_T1template_xfm_connector('create_func_to_T1w'
-                                                    'symtemplate_xfm', cfg,
-                                                    reg_tool, symmetric=True)
+    xfm, outputs = bold_to_T1template_xfm_connector('create_func_to_T1wsymtem'
+                                                    f'plate_xfm_{pipe_num}',
+                                                    cfg, reg_tool,
+                                                    symmetric=True)
 
     node, out = strat_pool.get_data(
         'from-bold_to-T1w_mode-image_desc-linear_xfm')

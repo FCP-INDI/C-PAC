@@ -555,9 +555,6 @@ class ResourcePool(object):
         motions = ['motion', 'movement', 'coordinate', 'displacement',
                    'dvars', 'power_params']
 
-        # TODO: TEMP
-        excl += motions
-
         for resource in self.rpool.keys():
             # TODO: cpac_outputs.csv etc
             if resource in excl:
@@ -621,6 +618,8 @@ class ResourcePool(object):
                 num_variant = ""
             for pipe_idx in self.rpool[resource]:
 
+                pipe_x = self.get_pipe_number(pipe_idx)
+
                 try:
                     num_variant += 1
                 except TypeError:
@@ -640,14 +639,14 @@ class ResourcePool(object):
                         break
                     else:
                         resource_idx = f'{resource}{num_variant}'
-
+                print(f'resource_idx: {resource_idx}')
                 id_string = pe.Node(Function(input_names=['unique_id',
                                                           'resource',
                                                           'scan_id',
                                                           'atlas_id'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
-                                    name=f'id_string_{resource_idx}')
+                                    name=f'id_string_{resource_idx}_{pipe_x}')
                 id_string.inputs.unique_id = unique_id
                 id_string.inputs.resource = resource_idx
 
@@ -722,13 +721,19 @@ class ResourcePool(object):
                     node, out = self.rpool['atlas_name'][atlas_idx]['data']
                     wf.connect(node, out, id_string, 'atlas_id')
 
-                nii_name = pe.Node(Rename(), name=f'{resource_idx}')
+                nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
+                                                  f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
-
+                print('id string node')
+                print(id_string)
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
 
                 node, out = self.rpool[resource][pipe_idx]['data']
+                print(f'resource: {resource}')
+                print(node)
+                print(out)
+                print('\n\n')
                 wf.connect(node, out, nii_name, 'in_file')
 
                 write_json_imports = ['import os', 'import json']
@@ -737,12 +742,13 @@ class ResourcePool(object):
                                               output_names=['json_file'],
                                               function=write_output_json,
                                               imports=write_json_imports),
-                                     name=f'json_{resource_idx}')
+                                     name=f'json_{resource_idx}_{pipe_x}')
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, 'out_filename', write_json, 'filename')
 
-                ds = pe.Node(DataSink(), name=f'sinker_{resource_idx}')
+                ds = pe.Node(DataSink(), name=f'sinker_{resource_idx}_'
+                                              f'{pipe_x}')
                 ds.inputs.parameterization = False
                 ds.inputs.base_directory = out_dct['out_dir']
                 ds.inputs.encrypt_bucket_keys = cfg.pipeline_setup['Amazon-AWS']['s3_encryption']

@@ -1140,7 +1140,7 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
-                                  name='func_get_brain_mask_AFNI')
+                                  name=f'func_get_brain_mask_AFNI_{pipe_num}')
     func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
     node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",

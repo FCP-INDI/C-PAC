@@ -14,7 +14,7 @@ logger = logging.getLogger('workflow')
 
 def connect_centrality_workflow(workflow, c, resample_functional_to_template,
                                 template_node, template_out, merge_node,
-                                method_option):
+                                method_option, pipe_num):
     template = c.network_centrality['template_specification_file']
 
     # Set method_options variables
@@ -31,7 +31,7 @@ def connect_centrality_workflow(workflow, c, resample_functional_to_template,
     threshold = c.network_centrality[method_option]['correlation_threshold']
 
     # Init workflow name and resource limits
-    wf_name = f'afni_centrality_{method_option}'
+    wf_name = f'afni_centrality_{method_option}_{pipe_num}'
     num_threads = c.pipeline_setup['system_config'][
         'max_cores_per_participant'
     ]
@@ -84,7 +84,7 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
     # Resample the functional mni to the centrality mask resolution
     resample_functional_to_template = pe.Node(
         interface=fsl.FLIRT(),
-        name='resample_functional_to_template')
+        name=f'resample_functional_to_template_{pipe_num}')
 
     resample_functional_to_template.inputs.set(
         interp='trilinear',
@@ -109,10 +109,11 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
                                   output_names=['merged_list'],
                                   function=merge_lists,
                                   as_module=True),
-                         name='merge_node')
+                         name=f'merge_node_{pipe_num}')
 
     [connect_centrality_workflow(wf, cfg, resample_functional_to_template,
-                                 node, out, merge_node, option) for option in
+                                 node, out, merge_node,
+                                 option, pipe_num) for option in
      valid_options['centrality']['method_options'] if
      cfg.network_centrality[option]['weight_options']]
 
