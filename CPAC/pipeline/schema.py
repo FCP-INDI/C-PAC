@@ -2,8 +2,13 @@ from itertools import chain, permutations
 from voluptuous import All, Any, In, Length, Match, Range, Required, Schema
 from voluptuous.validators import Maybe
 
+scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}([0-9]+)*)*$'
+Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
 forkable = Any(bool, [bool])
-resolution_regex = r'^(x*[0-9](\.[0-9]+)*mm)*$'
+resolution_regex = {
+    'mm': r'^(x*[0-9]+(\.[0-9]+)*mm)*$',
+    'unitless': r'^(x*[0-9]+(\.[0-9]+)*)*$',
+}
 valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
@@ -24,13 +29,13 @@ valid_options = {
     },
     'segmentation': {
         'using': ['FSL-FAST', 'ANTs_Prior_Based', 'Template_Based'],
-        'template': ['EPI Template', 'T1 Template']
+        'template': ['EPI_Template', 'T1_Template']
     },
     'Regressors': {
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
-                int, float, All(str, Match(resolution_regex))
+                int, float, All(str, Match(resolution_regex['mm']))
             ),
             'summary': Any(
                 str, {'components': int, 'method': str}
@@ -56,6 +61,53 @@ mutex = {  # mutually exclusive booleans
         }
     }
 }
+ANTs_parameter_transforms = {
+    'gradientStep': Number,
+    'metric': {
+        'type': str,
+        'metricWeight': int,
+        'numberOfBins': int,
+        'samplingStrategy': str,
+        'samplingPercentage': Number,
+        'radius': Number,
+    },
+    'convergence': {
+        'iteration': All(str, Match(
+            resolution_regex['unitless'])),
+        'convergenceThreshold': Number,
+        'convergenceWindowSize': int,
+    },
+    'smoothing-sigmas': All(str, Match(
+        resolution_regex['unitless'])),
+    'shrink-factors': All(str, Match(
+        resolution_regex['unitless'])),
+    'use-histogram-matching': bool,
+    'updateFieldVarianceInVoxelSpace': Number,
+    'totalFieldVarianceInVoxelSpace': Number,
+    'winsorize-image-intensities': {
+        'lowerQuantile': float,
+        'upperQuantile': float,
+    },
+}
+ANTs_parameters = [Any(
+    {
+        'collapse-output-transforms': int
+    }, {
+        'dimensionality': int
+    }, {
+        'initial-moving-transform': {
+            'initializationFeature': int,
+        },
+    }, {
+        'transforms': [Any({
+            'Rigid': ANTs_parameter_transforms,
+        }, {
+            'Affine': ANTs_parameter_transforms,
+        }, {
+            'SyN': ANTs_parameter_transforms,
+        })],
+    }
+)]
 
 schema = Schema({
     'FROM': Maybe(str),
@@ -89,7 +141,7 @@ schema = Schema({
                     'queue': Maybe(str),
                 },
             },
-            'maximum_memory_per_participant': Any(float, int),
+            'maximum_memory_per_participant': Number,
             'max_cores_per_participant': int,
             'num_ants_threads': int,
             'num_OMP_threads': int,
@@ -129,9 +181,9 @@ schema = Schema({
             'using': [In(valid_options['brain_extraction']['using'])],
             'AFNI-3dSkullStrip': {
                 'mask_vol': bool,
-                'shrink_factor': Any(float, int),
+                'shrink_factor': Number,
                 'var_shrink_fac': bool,
-                'shrink_factor_bot_lim': Any(float, int),
+                'shrink_factor_bot_lim': Number,
                 'avoid_vent': bool,
                 'n_iterations': int,
                 'pushout': bool,
@@ -141,13 +193,13 @@ schema = Schema({
                 'smooth_final': int,
                 'avoid_eyes': bool,
                 'use_edge': bool,
-                'exp_frac': Any(float, int),
+                'exp_frac': Number,
                 'push_to_edge': bool,
                 'use_skull': bool,
-                'perc_int': Any(float, int),
+                'perc_int': Number,
                 'max_inter_iter': int,
-                'fac': Any(float, int),
-                'blur_fwhm': Any(float, int),
+                'fac': Number,
+                'blur_fwhm': Number,
                 'monkey': bool,
             },
             'FSL-FNIRT': {
@@ -156,7 +208,7 @@ schema = Schema({
                 }),
             },
             'FSL-BET': {
-                'frac': Any(float, int),
+                'frac': Number,
                 'mask_boolean': bool,
                 'mesh_boolean': bool,
                 'outline': bool,
@@ -229,7 +281,7 @@ schema = Schema({
     'registration_workflows': {
         'anatomical_registration': {
             'run': forkable,
-            'resolution_for_anat': All(str, Match(resolution_regex)),
+            'resolution_for_anat': All(str, Match(resolution_regex['mm'])),
             'T1w_brain_template': str,
             'T1w_template': str,
             'T1w_brain_template_mask': str,
@@ -238,9 +290,7 @@ schema = Schema({
                 'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
                 'ANTs': {
                     'use_lesion_mask': bool,
-                    'T1_registration': Maybe(Any(
-                        dict, [dict]
-                    )),
+                    'T1_registration': ANTs_parameters,
                     'interpolation': In({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'
                     }),
@@ -275,39 +325,53 @@ schema = Schema({
                     )),
                     'run': forkable,
                     'bbr_schedule': str
-                }
+                },
+            },
+            'EPI_registration': {
+                'run': forkable,
+                'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
+                'EPI_template': str,
+                'EPI_template_mask': Maybe(str),
+                'ANTs': {
+                    'parameters': ANTs_parameters,
+                    'interpolation': In({
+                        'Linear', 'BSpline', 'LanczosWindowedSinc'
+                    }),
+                },
+                'FSL-FNIRT': {
+                    'fnirt_config': str,
+                    'interpolation': In({'trilinear', 'sinc', 'spline'}),
+                    'identity_matrix': str,
+                },
             },
             'func_registration_to_template': {
                 'run': forkable,
                 'output_resolution': {
-                    'func_preproc_outputs': All(str, Match(resolution_regex)),
+                    'func_preproc_outputs': All(
+                        str, Match(resolution_regex['mm'])),
                     'func_derivative_outputs': All(
-                        str, Match(resolution_regex)
+                        str, Match(resolution_regex['mm'])
                     ),
-                    'template_for_resample': str,
                 },
                 'target_template': {
                     'using': [In({'T1_template', 'EPI_template'})],
                     'T1_template': {
-                        'T1w_brain_template': str,
-                        'T1w_template': str,
-                        'T1w_brain_template_mask': Maybe(str),
+                        'T1w_brain_template_funcreg': str,
+                        'T1w_template_funcreg': Maybe(str),
+                        'T1w_template_for_resample': Maybe(str),
                     },
                     'EPI_template': {
-                        'template_epi': str,
-                        'template_epi_mask': Maybe(str),
+                        'EPI_template_funcreg': str,
+                        'EPI_template_for_resample': Maybe(str)
                     },
                 },
                 'ANTs_pipelines': {
-                    'EPI_registration': Maybe(Any(
-                        dict, [dict]
-                    )),
                     'interpolation': In({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'})
                 },
                 'FNIRT_pipelines': {
                     'interpolation': In({'trilinear', 'sinc', 'spline'}),
-                    'identity_matrix': str
+                    'identity_matrix': str,
                 },
             },
         },
@@ -324,7 +388,7 @@ schema = Schema({
             'corratio', 'mutualinfo', 'normmi', 'normcorr', 'leastsq',
             'labeldiff', 'bbr'}),
         'thread_pool': int,
-        'convergence_threshold': Any(int, float),
+        'convergence_threshold': Number,
     },
     'functional_preproc': {
         'run': forkable,
@@ -334,7 +398,7 @@ schema = Schema({
         },
         'scaling': {
             'run': forkable,
-            'scaling_factor': Any(int, float)
+            'scaling_factor': Number
         },
         'despiking': {
             'run': forkable
@@ -358,47 +422,47 @@ schema = Schema({
                     'run': Maybe(Any([False], False)),
                     'filter_type': Maybe(In({'notch', 'lowpass'})),
                     'filter_order': Maybe(int),
-                    'breathing_rate_min': Maybe(Any(float, int)),
-                    'breathing_rate_max': Maybe(Any(float, int)),
-                    'center_frequency': Maybe(Any(float, int)),
-                    'filter_bandwidth': Maybe(Any(float, int)),
-                    'lowpass_cutoff': Maybe(Any(float, int)),
+                    'breathing_rate_min': Maybe(Number),
+                    'breathing_rate_max': Maybe(Number),
+                    'center_frequency': Maybe(Number),
+                    'filter_bandwidth': Maybe(Number),
+                    'lowpass_cutoff': Maybe(Number),
                 }, {
                     'run': forkable,
                     'filter_type': 'notch',
                     'filter_order': int,
-                    'breathing_rate_min': Any(float, int),
-                    'breathing_rate_max': Any(float, int),
+                    'breathing_rate_min': Number,
+                    'breathing_rate_max': Number,
                     'center_frequency': None,
                     'filter_bandwidth': None,
-                    'lowpass_cutoff': Maybe(Any(float, int)),
+                    'lowpass_cutoff': Maybe(Number),
                 }, {
                     'run': forkable,
                     'filter_type': 'notch',
                     'filter_order': int,
                     'breathing_rate_min': None,
                     'breathing_rate_max': None,
-                    'center_frequency': Any(float, int),
-                    'filter_bandwidth': Any(float, int),
-                    'lowpass_cutoff': Maybe(Any(float, int)),
+                    'center_frequency': Number,
+                    'filter_bandwidth': Number,
+                    'lowpass_cutoff': Maybe(Number),
                 }, {
                     'run': forkable,
                     'filter_type': 'lowpass',
                     'filter_order': int,
-                    'breathing_rate_min': Any(float, int),
-                    'breathing_rate_max': Maybe(Any(float, int)),
-                    'center_frequency': Maybe(Any(float, int)),
-                    'filter_bandwidth': Maybe(Any(float, int)),
+                    'breathing_rate_min': Number,
+                    'breathing_rate_max': Maybe(Number),
+                    'center_frequency': Maybe(Number),
+                    'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': None,
                 }, {
                     'run': forkable,
                     'filter_type': 'lowpass',
                     'filter_order': int,
                     'breathing_rate_min': None,
-                    'breathing_rate_max': Maybe(Any(float, int)),
-                    'center_frequency': Maybe(Any(float, int)),
-                    'filter_bandwidth': Maybe(Any(float, int)),
-                    'lowpass_cutoff': Maybe(Any(float, int)),
+                    'breathing_rate_max': Maybe(Number),
+                    'center_frequency': Maybe(Number),
+                    'filter_bandwidth': Maybe(Number),
+                    'lowpass_cutoff': Maybe(Number),
                 },),
                 msg='Some mutually exclusive filter options are ambiguous in '
                     'this pipeline configuration'
@@ -409,8 +473,8 @@ schema = Schema({
             'using': [In(['PhaseDiff', 'Blip'])],
             'PhaseDiff': {
                 'fmap_skullstrip_option': In(['BET', 'AFNI']),
-                'fmap_skullstrip_frac': float,
-                'fmap_skullstrip_threshold': float,
+                'fmap_skullstrip_BET_frac': float,
+                'fmap_skullstrip_AFNI_threshold': float,
             },
         },
         'func_masking': {
@@ -452,6 +516,7 @@ schema = Schema({
         '2-nuisance_regression': {
             'run': forkable,
             'Regressors': Maybe([{
+                'Name': str,
                 'Censor': {
                     'method': str,
                     'thresholds': [{
@@ -513,27 +578,27 @@ schema = Schema({
             'regressor_masks': {
                 'erode_anatomical_brain_mask': {
                     'run': forkable,
-                    'brain_mask_erosion_prop': Any(float, int),
-                    'brain_mask_erosion_mm': Any(float, int),
-                    'brain_erosion_mm': Any(float, int)
+                    'brain_mask_erosion_prop': Number,
+                    'brain_mask_erosion_mm': Number,
+                    'brain_erosion_mm': Number
                 },
                 'erode_csf': {
                     'run': forkable,
-                    'csf_erosion_prop': Any(float, int),
-                    'csf_mask_erosion_mm': Any(float, int),
-                    'csf_erosion_mm': Any(float, int),
+                    'csf_erosion_prop': Number,
+                    'csf_mask_erosion_mm': Number,
+                    'csf_erosion_mm': Number,
                 },
                 'erode_wm': {
                     'run': forkable,
-                    'wm_erosion_prop': Any(float, int),
-                    'wm_mask_erosion_mm': Any(float, int),
-                    'wm_erosion_mm': Any(float, int),
+                    'wm_erosion_prop': Number,
+                    'wm_mask_erosion_mm': Number,
+                    'wm_erosion_mm': Number,
                 },
                 'erode_gm': {
                     'run': forkable,
-                    'gm_erosion_prop': Any(float, int),
-                    'gm_mask_erosion_mm': Any(float, int),
-                    'gm_erosion_mm': Any(float, int),
+                    'gm_erosion_prop': Number,
+                    'gm_mask_erosion_mm': Number,
+                    'gm_erosion_mm': Number,
                 }
             },
         },
@@ -552,9 +617,6 @@ schema = Schema({
             'T1w_template_symmetric_for_resample': str,
             'dilated_symmetric_brain_mask': str,
             'dilated_symmetric_brain_mask_for_resample': str,
-            'FNIRT_pipelines': {
-                'config_file': str
-            },
         },
     },
     'regional_homogeneity': {
@@ -563,13 +625,13 @@ schema = Schema({
     },
     'post_processing': {
         'spatial_smoothing': {
-            'run': forkable,
-            'smoothing_method': In({'FSL', 'AFNI'}),
+            'output': [In({'smoothed', 'nonsmoothed'})],
+            'smoothing_method': [In({'FSL', 'AFNI'})],
             'fwhm': [int],
             'smoothing_order': In({'Before', 'After'})
         },
         'z-scoring': {
-            'run': forkable,
+            'output': [In({'z-scored', 'raw'})],
         },
     },
     'timeseries_extraction': {
@@ -599,7 +661,7 @@ schema = Schema({
     },
     'network_centrality': {
         'run': forkable,
-        'memory_allocation': Any(float, int),
+        'memory_allocation': Number,
         'template_specification_file': str,
         'degree_centrality': {
             'weight_options': [In(
