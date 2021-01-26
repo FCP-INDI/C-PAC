@@ -1655,6 +1655,11 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
     if reg_tool != 'ants':
         return (wf, None)
 
+    num_cpus = cfg.pipeline_setup['system_config'][
+        'max_cores_per_participant']
+
+    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
     aroma_preproc = create_aroma(tr=None, wf_name=f'create_aroma_{pipe_num}')
     aroma_preproc.inputs.params.denoise_type = \
         cfg.nuisance_corrections['1-ICA-AROMA']['denoising_type']
@@ -1666,7 +1671,9 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, aroma_preproc, 'inputspec.denoise_file')
 
     apply_xfm = apply_transform(f'ICA-AROMA_ANTs_template_to_bold_{pipe_num}',
-                                reg_tool=reg_tool)
+                                reg_tool=reg_tool, time_series=True,
+                                num_cpus=num_cpus,
+                                num_ants_cores=num_ants_cores)
     apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
             'functional_registration']['func_registration_to_template'][
             'ANTs_pipelines']['interpolation']
@@ -1686,7 +1693,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, apply_xfm, 'inputspec.transform')
 
     outputs = {
-        'desc-cleaned_bold': (apply_xfm, 'outputspec.out_file')
+        'desc-cleaned_bold': (apply_xfm, 'outputspec.output_image')
     }
 
     return (wf, outputs)
@@ -1969,13 +1976,13 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "Regressors",
      "option_val": "USER-DEFINED",
-     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
-                 "desc-reorient_bold", "bold"],
-                "regressors",
-                "space-bold_desc-brain_mask",
-                "framewise_displacement_jenkinson",
-                "framewise_displacement_power",
-                "dvars"],
+     "inputs": [("regressors",
+                 ["desc-cleaned_bold", "desc-preproc_bold",
+                  "desc-reorient_bold", "bold"],
+                 "space-bold_desc-brain_mask",
+                 "framewise_displacement_jenkinson",
+                 "framewise_displacement_power",
+                 "dvars")],
      "outputs": ["desc-cleaned_bold"]}
     '''
 
