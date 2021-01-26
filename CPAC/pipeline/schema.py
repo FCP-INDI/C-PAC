@@ -2,13 +2,18 @@ from itertools import chain, permutations
 from voluptuous import All, Any, In, Length, Match, Range, Required, Schema
 from voluptuous.validators import Maybe
 
-scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}([0-9]+)*)*$'
+# 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
+scientific_notation_str_regex = r'^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$'
+
+# (1 or more digits, optional decimal, 0 or more lowercase characters (units))
+# ('x',
+#  1 or more digits, optional decimal, 0 or more lowercase characters (units)
+# ) 0 or more times
+resolution_regex = r'^[0-9]+(\.[0-9]*){0,1}[a-z]*' \
+                   r'(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$'
+
 Number = Any(float, int, All(str, Match(scientific_notation_str_regex)))
 forkable = Any(bool, [bool])
-resolution_regex = {
-    'mm': r'^(x*[0-9]+(\.[0-9]+)*mm)*$',
-    'unitless': r'^(x*[0-9]+(\.[0-9]+)*)*$',
-}
 valid_options = {
     'acpc': {
         'target': ['brain', 'whole-head']
@@ -35,7 +40,7 @@ valid_options = {
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
-                int, float, All(str, Match(resolution_regex['mm']))
+                int, float, All(str, Match(resolution_regex))
             ),
             'summary': Any(
                 str, {'components': int, 'method': str}
@@ -72,15 +77,12 @@ ANTs_parameter_transforms = {
         'radius': Number,
     },
     'convergence': {
-        'iteration': All(str, Match(
-            resolution_regex['unitless'])),
+        'iteration': All(str, Match(resolution_regex)),
         'convergenceThreshold': Number,
         'convergenceWindowSize': int,
     },
-    'smoothing-sigmas': All(str, Match(
-        resolution_regex['unitless'])),
-    'shrink-factors': All(str, Match(
-        resolution_regex['unitless'])),
+    'smoothing-sigmas': All(str, Match(resolution_regex)),
+    'shrink-factors': All(str, Match(resolution_regex)),
     'use-histogram-matching': bool,
     'updateFieldVarianceInVoxelSpace': Number,
     'totalFieldVarianceInVoxelSpace': Number,
@@ -106,7 +108,16 @@ ANTs_parameters = [Any(
         }, {
             'SyN': ANTs_parameter_transforms,
         })],
-    }
+    }, {
+        'verbose': Any(bool, In({0, 1})),
+    }, {
+        'float': Any(bool, In({0, 1})),
+    }, {
+        'masks': {
+            'fixed_image_mask': bool,
+            'moving_image_mask': bool,
+        },
+    }, dict  # TODO: specify other valid ANTs parameters 
 )]
 
 schema = Schema({
@@ -281,7 +292,7 @@ schema = Schema({
     'registration_workflows': {
         'anatomical_registration': {
             'run': forkable,
-            'resolution_for_anat': All(str, Match(resolution_regex['mm'])),
+            'resolution_for_anat': All(str, Match(resolution_regex)),
             'T1w_brain_template': str,
             'T1w_template': str,
             'T1w_brain_template_mask': str,
@@ -290,13 +301,13 @@ schema = Schema({
                 'using': [In({'ANTS', 'FSL', 'FSL-linear'})],
                 'ANTs': {
                     'use_lesion_mask': bool,
-                    'T1_registration': ANTs_parameters,
+                    'T1_registration': Maybe(ANTs_parameters),
                     'interpolation': In({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'
                     }),
                 },
                 'FSL-FNIRT': {
-                    'fnirt_config': str,
+                    'fnirt_config': Maybe(str),
                     'ref_mask': str,
                     'interpolation': In({
                         'trilinear', 'sinc', 'spline'
@@ -333,13 +344,13 @@ schema = Schema({
                 'EPI_template': str,
                 'EPI_template_mask': Maybe(str),
                 'ANTs': {
-                    'parameters': ANTs_parameters,
+                    'parameters': Maybe(ANTs_parameters),
                     'interpolation': In({
                         'Linear', 'BSpline', 'LanczosWindowedSinc'
                     }),
                 },
                 'FSL-FNIRT': {
-                    'fnirt_config': str,
+                    'fnirt_config': Maybe(str),
                     'interpolation': In({'trilinear', 'sinc', 'spline'}),
                     'identity_matrix': str,
                 },
@@ -348,9 +359,9 @@ schema = Schema({
                 'run': forkable,
                 'output_resolution': {
                     'func_preproc_outputs': All(
-                        str, Match(resolution_regex['mm'])),
+                        str, Match(resolution_regex)),
                     'func_derivative_outputs': All(
-                        str, Match(resolution_regex['mm'])
+                        str, Match(resolution_regex)
                     ),
                 },
                 'target_template': {

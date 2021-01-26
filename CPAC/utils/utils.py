@@ -13,10 +13,12 @@ from itertools import repeat
 from optparse import OptionError
 from voluptuous.error import Invalid
 
-NESTED_CONFIG_MAPPING = yaml.safe_load(open(
-    os.path.abspath(os.path.join(
-        __file__, *repeat(os.path.pardir, 2),
-        'resources/configs/1.7-1.8-nesting-mappings.yml')), 'r'))
+CONFIGS_DIR = os.path.abspath(os.path.join(
+    __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
+NESTED_CONFIG_MAPPING = yaml.safe_load(open(os.path.join(
+    CONFIGS_DIR, '1.7-1.8-nesting-mappings.yml'), 'r'))
+NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(open(os.path.join(
+    CONFIGS_DIR, '1.7-1.8-deprecations.yml'), 'r'))
 
 
 def get_last_prov_entry(prov):
@@ -1809,6 +1811,8 @@ def update_config_dict(old_dict):
                 current_value = [current_value]
             else:
                 current_value = []
+        else:
+            current_value = [v for v in current_value if v is not None]
         if isinstance(new_value, list):
             for i in new_value:
                 if i and i not in current_value and i != 'Off':
@@ -1900,6 +1904,10 @@ def update_config_dict(old_dict):
                 'runRegisterFuncToEPI',
                 'fsl_linear_reg_only',
                 'functional_registration',
+                'template_for_resample',
+                'fnirtConfig',
+                'run_smoothing',
+                'runZScoring'
             }
             if key in special_cases:
                 old_dict, new_dict, old_value, current_value = _get_old_values(
@@ -1911,8 +1919,6 @@ def update_config_dict(old_dict):
                     current_value = True if old_value.lower(
                     ) == 'before' else False if old_value.lower(
                     ) == 'after' else None
-                    print(old_value)
-                    print(current_value)
 
                 # anatomical_preproc.acpc_alignment.acpc_target
                 if key == 'acpc_template_brain':
@@ -1959,10 +1965,48 @@ def update_config_dict(old_dict):
                 elif key == 'fsl_linear_reg_only':
                     new_value = _bool_to_str(old_value, 'FSL-linear')
 
-                # set updated value
-                if key not in {
+                # registration_workflows.functional_registration.
+                # func_registration_to_template.target_template.
+                # EPI_template.EPI_template_for_resample
+                elif key == 'template_for_resample':
+                    new_dict = set_nested_value(
+                        new_dict,
+                        ['registration_workflows', 'functional_registration',
+                         'func_registration_to_template', 'target_template',
+                         'EPI_template', 'EPI_template_for_resample'],
+                         current_value
+                    )
+
+                # registration_workflows.functional_registration.
+                # EPI_registration.FSL-FNIRT.fnirt_config
+                elif key == 'fnirtConfig':
+                    current_value = old_value
+                    new_dict = set_nested_value(
+                        new_dict,
+                        ['registration_workflows', 'functional_registration',
+                         'EPI_registration', 'FSL-FNIRT', 'fnirt_config'],
+                         current_value
+                    )
+                
+                # post_processing.spatial_smoothing.output
+                elif key == 'run_smoothing':
+                    new_value = [_bool_to_str(old_value, 'smoothed')]
+                    if any([not bool(value) for value in old_value]):
+                        new_value.append('nonsmoothed')
+                    current_value = new_value
+                
+                # post_processing.z-scoring.output
+                elif key == 'runZScoring':
+                    new_value = [_bool_to_str(old_value, 'z-scored')]
+                    if any([not bool(value) for value in old_value]):
+                        new_value.append('raw')
+                    current_value = new_value
+
+                # make sure list values are cast as lists
+                if key not in {  # if key not in non-list-valued keys
                     'acpc_run_preprocessing', 'acpc_template_brain',
-                    'functional_registration'
+                    'functional_registration', 'template_for_resample',
+                    'fnirtConfig'
                 }:
                     current_value = _append_to_list(current_value, new_value)
 
@@ -1975,6 +2019,8 @@ def update_config_dict(old_dict):
 
             new_dict = set_nested_value(
                 new_dict, NESTED_CONFIG_MAPPING[key], current_value)
+        elif key in NESTED_CONFIG_DEPRECATIONS:
+            old_dict.pop(key)
 
     return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
 

@@ -105,6 +105,12 @@ segmentation:
 
     Template_Based: 
 
+      # These masks should be in the same space of your registration template, e.g. if
+      # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
+      #
+      # Options: ['T1_Template', 'EPI_Template']
+      template_for_segmentation: [EPI_Template]
+
       # These masks are included as part of the 'Image Resource Files' package available
       # on the Install page of the User Guide.
 
@@ -173,8 +179,7 @@ registration_workflows:
 
       FSL-FNIRT: 
 
-        # Configuration file to be used by FSL to set FNIRT parameters.
-        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+        # Reference mask for FSL registration.
         ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${registration_workflows.anatomical_registration.resolution_for_anat}_brain_mask_dil.nii.gz
 
   functional_registration: 
@@ -191,52 +196,13 @@ registration_workflows:
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [Off]
 
-    func_registration_to_template: 
+    EPI_registration: 
 
-      output_resolution: 
-
-        # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
-        # NOTE:
-        #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
-        #   for most cases, 3 mm or 4 mm resolutions are suggested.
-        # NOTE:
-        #   this also includes the single-volume 3D preprocessed functional data,
-        #   such as the mean functional (mean EPI) in template space
-        func_preproc_outputs: 2.3mmx2.3mmx6mm
-
-        # The resolution (in mm) to which the registered derivative outputs are written into.
-        # NOTE:
-        #   this is for the single-volume functional-space outputs (i.e. derivatives)
-        #   thus, a higher resolution may not result in a large increase in RAM needs as above
-        func_derivative_outputs: 2.3mmx2.3mmx6mm
-
-        # a standard template for resampling if using float resolution
-        template_for_resample: /template/study_based_functional_template_sk.nii.gz
-
-      target_template: 
-
-        # option parameters
-        T1_template: 
-
-          # Standard Skull Stripped Template. Used as a reference image for functional registration.
-          # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template: /template/study_based_functional_template_sk.nii.gz
-
-          # Standard Anatomical Brain Image with Skull.
-          # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template: /template/study_based_functional_template.nii.gz
-
-        EPI_template: 
-
-          # EPI template for direct functional-to-template registration
-          # (bypassing coregistration and the anatomical-to-template transforms)
-          template_epi: /template/study_based_functional_template_sk.nii.gz
-
-      ANTs_pipelines: 
+      ANTs: 
 
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
-        EPI_registration: 
+        parameters: 
           - dimensionality: 3
           - initial-moving-transform:
               initializationFeature: 1
@@ -264,6 +230,46 @@ registration_workflows:
                 totalFieldVarianceInVoxelSpace: 1
                 updateFieldVarianceInVoxelSpace: 5
 
+    func_registration_to_template: 
+
+      output_resolution: 
+
+        # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
+        # NOTE:
+        #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
+        #   for most cases, 3 mm or 4 mm resolutions are suggested.
+        # NOTE:
+        #   this also includes the single-volume 3D preprocessed functional data,
+        #   such as the mean functional (mean EPI) in template space
+        func_preproc_outputs: 2.3mmx2.3mmx6mm
+
+        # The resolution (in mm) to which the registered derivative outputs are written into.
+        # NOTE:
+        #   this is for the single-volume functional-space outputs (i.e. derivatives)
+        #   thus, a higher resolution may not result in a large increase in RAM needs as above
+        func_derivative_outputs: 2.3mmx2.3mmx6mm
+
+      target_template: 
+
+        # option parameters
+        T1_template: 
+
+          # Standard Skull Stripped Template. Used as a reference image for functional registration.
+          # This can be different than the template used as the reference/fixed for T1-to-template registration.
+          T1w_brain_template_funcreg: /template/study_based_functional_template_sk.nii.gz
+
+          # Standard Anatomical Brain Image with Skull.
+          # This can be different than the template used as the reference/fixed for T1-to-template registration.
+          T1w_template_funcreg: /template/study_based_functional_template.nii.gz
+
+        EPI_template: 
+
+          # EPI template for direct functional-to-template registration
+          # (bypassing coregistration and the anatomical-to-template transforms)
+          EPI_template_funcreg: /template/study_based_functional_template_sk.nii.gz
+
+      ANTs_pipelines: 
+
         # Interpolation method for writing out transformed functional images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
@@ -279,15 +285,25 @@ functional_preproc:
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
 
+  motion_estimates_and_correction: 
+
+    motion_correction: 
+
+      # option parameters
+      AFNI-3dvolreg: 
+
+        # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
+        functional_volreg_twopass: On
+
   func_masking: 
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based']
     # this is a fork point
     using: [FSL]
 
     FSL-BET: 
 
-      # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off.
+      # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean: Off.
       # Mutually exclusive with functional, reduce_bias, robust, padding, remove_eyes, surfaces
       # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: On
@@ -327,13 +343,10 @@ post_processing:
 
   spatial_smoothing: 
 
-    # Smooth the derivative outputs.
-    run: [On]
-
     # Tool to use for smoothing.
     # 'FSL' for FSL MultiImageMaths for FWHM provided
     # 'AFNI' for AFNI 3dBlurToFWHM for FWHM provided
-    smoothing_method: AFNI
+    smoothing_method: [AFNI]
 
     # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
     # this is a fork point
@@ -343,7 +356,11 @@ post_processing:
   z-scoring: 
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: [Off]
+    # Set as ['raw'] to disable z-scoring. Set as both to get both.
+    #
+    # Options:
+    #     ['z-scored', 'raw']
+    output: [raw]
 
 timeseries_extraction: 
 
@@ -396,12 +413,6 @@ voxel_mirrored_homotopic_connectivity:
 
     # A reference symmetric brain mask template for resampling
     dilated_symmetric_brain_mask_for_resample: /template/tudy_based_functional_template_mask.nii.gz
-
-    FNIRT_pipelines: 
-
-      # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-      # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-      config_file: $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
 
 network_centrality: 
 

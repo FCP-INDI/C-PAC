@@ -111,8 +111,7 @@ registration_workflows:
 
       FSL-FNIRT: 
 
-        # Configuration file to be used by FSL to set FNIRT parameters.
-        # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+        # Reference mask for FSL registration.
         ref_mask: $FSLDIR/data/standard/MNI152_T1_${registration_workflows.anatomical_registration.resolution_for_anat}_brain_mask_dil.nii.gz
 
   functional_registration: 
@@ -128,6 +127,14 @@ registration_workflows:
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
+
+    EPI_registration: 
+
+      FSL-FNIRT: 
+
+        # Identity matrix used during FSL-based resampling of BOLD-space data throughout the pipeline.
+        # It is not necessary to change this path unless you intend to use a different template.
+        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     func_registration_to_template: 
 
@@ -146,17 +153,11 @@ registration_workflows:
 
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_brain_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+          T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
-          T1w_template: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
-
-      FNIRT_pipelines: 
-
-        # Identity matrix used during FSL-based resampling of functional-space data throughout the pipeline.
-        # It is not necessary to change this path unless you intend to use a different template.
-        identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
+          T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 functional_preproc: 
 
@@ -293,12 +294,20 @@ post_processing:
   spatial_smoothing: 
 
     # Smooth the derivative outputs.
-    run: [On, Off]
+    # Set as ['nonsmoothed'] to disable smoothing. Set as both to get both.
+    #
+    # Options:
+    #     ['smoothed', 'nonsmoothed']
+    output: [smoothed, nonsmoothed]
 
   z-scoring: 
 
     # z-score standardize the derivatives. This may be needed for group-level analysis.
-    run: [On, Off]
+    # Set as ['raw'] to disable z-scoring. Set as both to get both.
+    #
+    # Options:
+    #     ['z-scored', 'raw']
+    output: [z-scored, raw]
 
 timeseries_extraction: 
 
@@ -354,12 +363,6 @@ voxel_mirrored_homotopic_connectivity:
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
     dilated_symmetric_brain_mask: $FSLDIR/data/standard/MNI152_T1_${registration_workflows.anatomical_registration.resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
-
-    FNIRT_pipelines: 
-
-      # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
-      # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
-      config_file: $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
 
 network_centrality: 
 

@@ -123,7 +123,7 @@ acpc_template_brain:
 acpc_run_preprocessing:
    - anatomical_preproc
    - acpc_alignment
-   - run_before_preproc
+   - run_before_preproc  # changed from string to boolean
 already_skullstripped:
    - anatomical_preproc
    - brain_extraction
@@ -131,7 +131,7 @@ already_skullstripped:
 skullstrip_option:
    - anatomical_preproc
    - brain_extraction
-   - using
+   - using  # values changed
 unet_model:
    - anatomical_preproc
    - brain_extraction
@@ -373,9 +373,9 @@ ANTs_para_T1_registration:
 ANTs_para_EPI_registration:
    - registration_workflows
    - functional_registration
-   - func_registration_to_template
-   - ANTs_pipelines
    - EPI_registration
+   - ANTs
+   - parameters
 use_lesion_mask:
    - registration_workflows
    - anatomical_registration
@@ -386,13 +386,20 @@ fsl_linear_reg_only:
    - registration_workflows
    - anatomical_registration
    - registration
-   - using
+   - using  # changed from boolean to string
 fnirtConfig:
    - registration_workflows
    - anatomical_registration
    - registration
    - FSL-FNIRT
    - fnirt_config
+# --- ALSO ---
+# fnirtConfig:
+#    - registration_workflows
+#    - functional_registration
+#    - EPI_registration
+#    - FSL-FNIRT
+#    - fnirt_config
 ref_mask:
    - registration_workflows
    - anatomical_registration
@@ -409,7 +416,7 @@ runSegmentationPreprocessing:
 segmentation_method:
    - segmentation
    - tissue_segmentation
-   - using
+   - using  # values changed
 ANTs_prior_seg_template_brain_list:
    - segmentation
    - tissue_segmentation
@@ -449,7 +456,7 @@ template_based_segmentation:
    - segmentation
    - tissue_segmentation
    - Template_Based
-   - template_for_segmentation
+   - template_for_segmentation  # removed 'None' from valid options; use empty list for 'None'
 template_based_segmentation_WHITE:
    - segmentation
    - tissue_segmentation
@@ -500,7 +507,7 @@ seg_use_threshold:
    - tissue_segmentation
    - FSL-FAST
    - thresholding
-   - use
+   - use  # values changed
 seg_CSF_threshold_value:
    - segmentation
    - tissue_segmentation
@@ -677,7 +684,7 @@ stopIdx:
 distortion_correction:
    - functional_preproc
    - distortion_correction
-   - using
+   - using  # removed 'None' from valid options; use empty list for 'None'
 fmap_distcorr_skullstrip:
    - functional_preproc
    - distortion_correction
@@ -687,12 +694,12 @@ fmap_distcorr_frac:
    - functional_preproc
    - distortion_correction
    - PhaseDiff
-   - fmap_skullstrip_frac
+   - fmap_skullstrip_BET_frac
 fmap_distcorr_threshold:
    - functional_preproc
    - distortion_correction
    - PhaseDiff
-   - fmap_skullstrip_threshold
+   - fmap_skullstrip_AFNI_threshold
 runRegisterFuncToAnat:
    - registration_workflows
    - functional_registration
@@ -734,8 +741,8 @@ funcRegANTSinterpolation:
 funcRegFSLinterpolation:
    - registration_workflows
    - functional_registration
-   - func_registration_to_template
-   - FNIRT_pipelines
+   - EPI_registration
+   - FSL-FNIRT
    - interpolation
 func_reg_input:
    - registration_workflows
@@ -760,7 +767,7 @@ n4_correct_func_reg_input:
 functionalMasking:
    - functional_preproc
    - func_masking
-   - using
+   - using  # values changed
 bold_bet_functional_mean_boolean:
    - functional_preproc
    - func_masking
@@ -836,7 +843,7 @@ runRegisterFuncToTemplate:
    - functional_registration
    - func_registration_to_template
    - target_template
-   - using
+   - using  # removed 'Off' from valid options; use empty list for 'Off'
 resolution_for_func_preproc:
    - registration_workflows
    - functional_registration
@@ -853,41 +860,43 @@ template_for_resample:
    - registration_workflows
    - functional_registration
    - func_registration_to_template
-   - output_resolution
-   - template_for_resample
+   - target_template
+   - T1_template
+   - T1w_template_for_resample
+# --- ALSO ---
+# template_for_resample:
+#   - registration_workflows
+#   - functional_registration
+#   - func_registration_to_template
+#   - target_template
+#   - EPI_template
+#   - EPI_template_for_resample
 template_brain_only_for_func:
    - registration_workflows
    - functional_registration
    - func_registration_to_template
    - target_template
    - T1_template
-   - T1w_brain_template
+   - T1w_brain_template_funcreg
 template_skull_for_func:
    - registration_workflows
    - functional_registration
    - func_registration_to_template
    - target_template
    - T1_template
-   - T1w_template
-template_brain_mask_for_func:
-   - registration_workflows
-   - functional_registration
-   - func_registration_to_template
-   - target_template
-   - T1_template
-   - T1w_brain_template_mask
+   - T1w_template_funcreg
 template_epi:
    - registration_workflows
    - functional_registration
    - func_registration_to_template
    - target_template
    - EPI_template
-   - template_epi
+   - EPI_template_funcreg
 identityMatrix:
    - registration_workflows
    - functional_registration
-   - func_registration_to_template
-   - FNIRT_pipelines
+   - EPI_registration
+   - FSL-FNIRT
    - identity_matrix
 runICA:
    - nuisance_corrections
@@ -924,7 +933,7 @@ tsa_roi_paths:
    - tse_roi_paths
 roiTSOutputs:
    - timeseries_extraction
-   - roi_tse_outputs
+   - roi_tse_outputs  # changed from boolean to string
 runSCA:
    - seed_based_correlation_analysis
    - run
@@ -961,11 +970,6 @@ dilated_symmetric_brain_mask_for_resample:
    - voxel_mirrored_homotopic_connectivity
    - symmetric_registration
    - dilated_symmetric_brain_mask_for_resample
-configFileTwomm:
-   - voxel_mirrored_homotopic_connectivity
-   - symmetric_registration
-   - FNIRT_pipelines
-   - config_file
 runALFF:
    - amplitude_low_frequency_fluctuation
    - run
@@ -990,7 +994,7 @@ templateSpecificationFile:
 degWeightOptions:
    - network_centrality
    - degree_centrality
-   - weight_options
+   - weight_options  # changed from boolean to string
 degCorrelationThresholdOption:
    - network_centrality
    - degree_centrality
@@ -1002,7 +1006,7 @@ degCorrelationThreshold:
 eigWeightOptions:
    - network_centrality
    - eigenvector_centrality
-   - weight_options
+   - weight_options  # changed from boolean to string
 eigCorrelationThresholdOption:
    - network_centrality
    - eigenvector_centrality
@@ -1014,7 +1018,7 @@ eigCorrelationThreshold:
 lfcdWeightOptions:
    - network_centrality
    - local_functional_connectivity_density
-   - weight_options
+   - weight_options  # changed from boolean to string
 lfcdCorrelationThresholdOption:
    - network_centrality
    - local_functional_connectivity_density
@@ -1029,7 +1033,7 @@ memoryAllocatedForDegreeCentrality:
 run_smoothing:
    - post_processing
    - spatial_smoothing
-   - run
+   - output  # changed from boolean to string
 smoothing_method:
    - post_processing
    - spatial_smoothing
@@ -1045,7 +1049,7 @@ smoothing_order:
 runZScoring:
    - post_processing
    - z-scoring
-   - run
+   - output  # changed from boolean to string
 run_freesurfer:
    - surface_analysis
    - run_freesurfer
@@ -1091,11 +1095,11 @@ runRegisterFuncToEPI:
    - functional_registration
    - func_registration_to_template
    - target_template
-   - using
+   - using  # moved from its own boolean key to a string value
 ANTs_prior_based_segmentation:
    - segmentation
    - tissue_segmentation
-   - using
+   - using  # moved from its own boolean key to a string value
 bold_bet_mask_boolean:
    - functional_preproc
    - func_masking
