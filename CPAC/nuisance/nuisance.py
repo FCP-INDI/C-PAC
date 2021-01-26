@@ -1979,13 +1979,13 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "Regressors",
      "option_val": "USER-DEFINED",
-     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
-                 "desc-reorient_bold", "bold"],
-                "regressors",
-                "space-bold_desc-brain_mask",
-                "framewise_displacement_jenkinson",
-                "framewise_displacement_power",
-                "dvars"],
+     "inputs": [("regressors",
+                 ["desc-cleaned_bold", "desc-preproc_bold",
+                  "desc-reorient_bold", "bold"],
+                 "space-bold_desc-brain_mask",
+                 "framewise_displacement_jenkinson",
+                 "framewise_displacement_power",
+                 "dvars")],
      "outputs": ["desc-cleaned_bold"]}
     '''
 

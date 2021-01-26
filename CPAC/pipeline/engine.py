@@ -269,6 +269,22 @@ class ResourcePool(object):
         resource = last_entry.split(':')[0]
         return (resource, str(prov))
 
+    def get_resource_strats_from_prov(self, prov):
+        # if you provide the provenance of a resource pool output, this will
+        # return a dictionary of all the preceding resource pool entries that
+        # led to that one specific output:
+        #   {rpool entry}: {that entry's provenance}
+        #   {rpool entry}: {that entry's provenance}
+        resource_strat_dct = {}
+        for spot, entry in enumerate(prov):
+            if isinstance(entry, list):
+                resource = entry[-1].split(':')[0]
+                resource_strat_dct[resource] = entry
+            elif isinstance(entry, str):
+                resource = entry.split(':')[0]
+                resource_strat_dct[resource] = entry
+        return resource_strat_dct
+
     '''
     def update_cpac_provenance(self, new_resource, prov, inputs, new_node_id):
         if new_resource not in prov:
@@ -284,9 +300,31 @@ class ResourcePool(object):
 
         import itertools
 
-        total_pool = []
-        len_inputs = len(resources)
+        linked_resources = {}
+        linked = []
+        resource_list = []
         for resource in resources:
+            # grab the linked-input tuples
+            if isinstance(resource, tuple):
+                for label in list(resource):
+                    if isinstance(label, list):
+                        rp_dct, fetched_resource = self.get(label,
+                                                            report_fetched=True,
+                                                            optional=True)
+                        if not rp_dct:
+                            continue
+                        linked.append(fetched_resource)
+                    else:
+                        linked.append(label)
+                linked_resources[linked[0]] = linked[1:]
+                resource_list += linked
+            else:
+                resource_list.append(resource)
+
+        total_pool = []
+        len_inputs = len(resource_list)
+        for resource in resource_list:
+
             rp_dct, fetched_resource = self.get(resource, report_fetched=True,   # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
                                                 optional=True)                   # oh, and we make the resource fetching in get_strats optional so we can have optional inputs, but they won't be optional in the node block unless we want them to be
             if not rp_dct:
@@ -313,11 +351,39 @@ class ResourcePool(object):
             # we now currently have "strats", the combined permutations of all the strategies, as a list of tuples, each tuple combining one version of input each, being one of the permutations.
             # OF ALL THE DIFFERENT INPUTS. and they are tagged by their fetched inputs with {name}:{strat}.
             # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
-
             new_strats = {}
             for strat_tuple in strats:
                 strat_list = list(strat_tuple)     # <------- strat_list is now a list of strats all combined together, one of the permutations. keep in mind each strat in the combo comes from a different data source/input
                                                    #          like this:   strat_list = [desc-preproc_T1w:pipe_idx_anat_1, desc-brain_mask:pipe_idx_mask_1]
+                all_resource_strat_dcts = {}
+                strat_dct = {}
+                for strat in strat_list:
+                    # strat is a provenance list, not a string!
+                    key = strat[-1].split(':')[0]
+                    resource_strat_dct = \
+                        self.get_resource_strats_from_prov(strat)
+                    all_resource_strat_dcts[key] = resource_strat_dct
+                    strat_dct[key] = strat[:-1]
+
+                drop = False
+                for key, sub_dct in all_resource_strat_dcts.items():
+                    if key in linked_resources:
+                        # 'younger' linked resources, linked to key
+                        younger_links = linked_resources[key]
+                        for link in younger_links:
+                            main_idx = self.generate_prov_string(strat_dct[key])[1]
+                            link_idx = self.generate_prov_string(sub_dct[link])[1]
+                            if link_idx[1:-1] not in main_idx:
+                                drop = True
+                                break
+                    if drop:
+                        break
+                if drop:
+                    print(f'main_idx = {main_idx}')
+                    print(f'link_idx = {link_idx}')
+                    print(f'DROPPING = {strat_tuple}')
+                    continue
+
                 # drop the incorrect permutations
                 #drop = False
                 #for idx in range(0, len(strat_list) - 1):
@@ -791,11 +857,15 @@ class NodeBlock(object):
                            'option_val', 'inputs', 'outputs']
         if 'Node Block:' in fn_docstring:
             fn_docstring = fn_docstring.split('Node Block:')[1]
-        try:
-            dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
-        except Exception as e:
-            raise Exception('\n\n[!] Node block docstring error.\n\n'
-                            f'Docstring:\n{fn_docstring}\n\n')
+        fn_docstring = fn_docstring.replace('\n', '').replace(' ', '')
+        #dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
+        import ast
+        dct = ast.literal_eval(fn_docstring)
+        #try:
+        #    dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
+        #except Exception as e:
+        #    raise Exception('\n\n[!] Node block docstring error.\n\n'
+        #                    f'Docstring:\n{fn_docstring}\n\n')
         for key in init_dct_schema:
             if key not in dct.keys():
                 raise Exception('\n[!] Developer info: At least one of the '
@@ -901,6 +971,10 @@ class NodeBlock(object):
                             node_name = f'{node_name}_{opt}'
                         elif opt and 'USER-DEFINED' in option_val:
                             node_name = f'{node_name}_{opt["Name"]}'
+
+                        if cfg.pipeline_setup['Debugging']['verbose']:
+                            print(f'Node name: {node_name}')
+                            print(f'pipe_idx = {pipe_idx}')
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)

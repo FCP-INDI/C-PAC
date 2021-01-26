@@ -26,10 +26,6 @@ pipeline_setup:
     # Include extra outputs in the output directory that may be of interest when more information is needed.
     write_debugging_outputs: False
 
-    # Output directory format and structure.
-    # Options: default, ndmg
-    output_tree: "default"
-
     # Generate quality control pages containing preprocessing and derivative outputs.
     generate_quality_control_images: True
 
@@ -55,11 +51,6 @@ pipeline_setup:
     run_logging: True
 
     path: /logs
-
-  crash_log_directory:
-
-    # Directory where CPAC should write crash logs.
-    path: /crash
 
   system_config:
 
@@ -125,6 +116,11 @@ pipeline_setup:
 
     # Enable server-side 256-AES encryption on data to the S3 bucket
     s3_encryption: False
+
+  Debugging:
+
+    # Verbose developer messages.
+    verbose: False
 
   pipeline_IMPORT: None
 
@@ -758,6 +754,10 @@ registration_workflows:
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}.nii.gz
 
+          # Template to be used during registration.
+          # It is not necessary to change this path unless you intend to use a non-standard template.
+          T1w_brain_template_mask_funcreg: /usr/share/fsl/5.0/data/standard/MNI152_T1_${func_resolution}_brain_mask.nii.gz
+
           # a standard template for resampling if using float resolution
           T1w_template_for_resample:  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
@@ -766,6 +766,9 @@ registration_workflows:
           # EPI template for direct functional-to-template registration
           # (bypassing coregistration and the anatomical-to-template transforms)
           EPI_template_funcreg: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
+
+          # EPI template mask.
+          EPI_template_mask_funcreg: None
 
           # a standard template for resampling if using float resolution
           EPI_template_for_resample:  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
