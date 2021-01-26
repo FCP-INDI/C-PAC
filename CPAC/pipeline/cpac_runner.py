@@ -242,7 +242,6 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
     c.pipeline_setup['working_directory']['path'] = os.path.abspath(c.pipeline_setup['working_directory']['path'])
     if 's3://' not in c.pipeline_setup['output_directory']['path']:
         c.pipeline_setup['output_directory']['path'] = os.path.abspath(c.pipeline_setup['output_directory']['path'])
-    c.pipeline_setup['crash_log_directory']['path'] = os.path.abspath(c.pipeline_setup['crash_log_directory']['path'])
     if debug:
         c.pipeline_setup['output_directory']['path']['write_debugging_outputs'] = "[1]"
 

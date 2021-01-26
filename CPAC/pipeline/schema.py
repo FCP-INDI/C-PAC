@@ -53,9 +53,6 @@ schema = Schema({
             'run_logging': bool,
             Required('path'): str,
         },
-        Required('crash_log_directory'): {
-            Required('path'): str,
-        },
         Required('system_config'): {
             'on_grid':{
                 Required('run'): bool,
