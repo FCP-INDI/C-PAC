@@ -51,10 +51,6 @@ workingDirectory:
    - pipeline_setup
    - working_directory
    - path
-crashLogDirectory:
-   - pipeline_setup
-   - crash_log_directory
-   - path
 outputDirectory:
    - pipeline_setup
    - output_directory
@@ -83,10 +79,6 @@ write_debugging_outputs:
    - pipeline_setup
    - output_directory
    - write_debugging_outputs
-output_tree:
-   - pipeline_setup
-   - output_directory
-   - output_tree
 generateQualityControlImages:
    - pipeline_setup
    - output_directory
@@ -885,6 +877,13 @@ template_skull_for_func:
    - target_template
    - T1_template
    - T1w_template_funcreg
+template_brain_mask_for_func:
+   - registration_workflows
+   - functional_registration
+   - func_registration_to_template
+   - target_template
+   - T1_template
+   - T1w_brain_template_mask_funcreg
 template_epi:
    - registration_workflows
    - functional_registration

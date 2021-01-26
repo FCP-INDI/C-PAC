@@ -162,6 +162,9 @@ schema = Schema({
             'aws_output_bucket_credentials': Maybe(str),
             's3_encryption': bool,
         },
+        'Debugging': {
+            'verbose': bool
+        },
     },
     'anatomical_preproc': {
         'run': forkable,
@@ -369,10 +372,12 @@ schema = Schema({
                     'T1_template': {
                         'T1w_brain_template_funcreg': str,
                         'T1w_template_funcreg': Maybe(str),
+                        'T1w_brain_template_mask_funcreg': Maybe(str),
                         'T1w_template_for_resample': Maybe(str),
                     },
                     'EPI_template': {
                         'EPI_template_funcreg': str,
+                        'EPI_template_mask_funcreg': Maybe(str),
                         'EPI_template_for_resample': Maybe(str)
                     },
                 },

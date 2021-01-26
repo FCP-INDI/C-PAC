@@ -19,11 +19,6 @@ pipeline_setup:
 
     path: /tmp
 
-  crash_log_directory: 
-
-    # Directory where CPAC should write crash logs.
-    path: /tmp
-
   system_config: 
 
     # The maximum amount of memory each participant's workflow can allocate.

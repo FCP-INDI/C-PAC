@@ -39,11 +39,6 @@ pipeline_setup:
 
     path: /outputs/log
 
-  crash_log_directory: 
-
-    # Directory where CPAC should write crash logs.
-    path: /outputs/crash
-
   system_config: 
 
     # Select Off if you intend to run CPAC on a single machine.

@@ -15,19 +15,8 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   pipeline_name: ndmg
 
-  output_directory: 
-
-    # Output directory format and structure.
-    # Options: default, ndmg
-    output_tree: ndmg
-
   log_directory: 
 
-    path: /tmp
-
-  crash_log_directory: 
-
-    # Directory where CPAC should write crash logs.
     path: /tmp
 
   system_config: 

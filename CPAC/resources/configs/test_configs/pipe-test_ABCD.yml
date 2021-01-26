@@ -19,11 +19,6 @@ pipeline_setup:
 
     path: /tmp
 
-  crash_log_directory: 
-
-    # Directory where CPAC should write crash logs.
-    path: /tmp
-
   system_config: 
 
     # The maximum amount of memory each participant's workflow can allocate.
@@ -229,6 +224,10 @@ registration_workflows:
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}.nii.gz
+
+          # Template to be used during registration.
+          # It is not necessary to change this path unless you intend to use a non-standard template.
+          T1w_brain_template_mask_funcreg: /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}_brain_mask.nii.gz
 
       ANTs_pipelines: 
 

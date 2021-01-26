@@ -122,8 +122,6 @@ pipeline_setup:
     # Verbose developer messages.
     verbose: False
 
-  pipeline_IMPORT: None
-
 
 # PREPROCESSING
 # -------------
