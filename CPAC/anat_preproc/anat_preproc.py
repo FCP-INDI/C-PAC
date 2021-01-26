@@ -892,6 +892,9 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
         ### ABCD harmonization - recon-all ###
         # Ref: https://github.com/Washington-University/HCPpipelines/blob/master/FreeSurfer/scripts/FreeSurferHiresWhite.sh
 
+        # export environment variable for mri_surf2surf, equivalent to 'export SUBJECTS_DIR=${SubjectDIR}' in shell script
+        os.environ['SUBJECTS_DIR'] = SubjectDIR
+
         mridir=os.path.join(SubjectDIR, SubjectID, 'mri')
         surfdir=os.path.join(SubjectDIR, SubjectID, 'surf')
         labeldir=os.path.join(SubjectDIR, SubjectID, 'label')
@@ -997,10 +1000,11 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
 
         #deform the white surfaces (i.e., tweak white surfaces using hires inputs)
         #Note that the ".deformed" suffix that is appended through use of -output flag is hard-coded into FreeSurferHiresPial.sh as well.
-        cmd = 'mris_make_surfaces -first_wm_peak -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s lh' % (SubjectDIR, SubjectID)
+        # remove -first_wm_peak first because of unknown option error
+        cmd = 'mris_make_surfaces -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s lh' % (SubjectDIR, SubjectID)
         os.system(cmd)
 
-        cmd = 'mris_make_surfaces -first_wm_peak -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s rh' % (SubjectDIR, SubjectID)
+        cmd = 'mris_make_surfaces -whiteonly -noaparc -aseg aseg.hires -orig white.hires -filled filled.hires -wm wm.hires -sdir %s -T1 T1w_hires.masked.norm -orig_white white.hires -output .deformed -w 0 %s rh' % (SubjectDIR, SubjectID)
         os.system(cmd)
 
         ###Fine Tune T2w to T1w Registration
