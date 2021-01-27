@@ -183,7 +183,7 @@ def init_brain_extraction_wf(tpl_target_path,
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_file', 'out_mask', 'bias_corrected', 'bias_image']),
-        name='copy_xform', run_without_submitting=True)
+        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
 
     trunc = pe.MapNode(ImageMath(operation='TruncateImageIntensity', op2='0.01 0.999 256'),
                        name='truncate_images', iterfield=['op1'])
@@ -417,7 +417,7 @@ def init_atropos_wf(name='atropos_wf',
 
     copy_xform = pe.Node(CopyXForm(
         fields=['out_mask', 'out_segm', 'out_tpms']),
-        name='copy_xform', run_without_submitting=True)
+        name='copy_xform', run_without_submitting=True, mem_gb=2.5)
 
     # Run atropos (core node)
     atropos = pe.Node(Atropos(

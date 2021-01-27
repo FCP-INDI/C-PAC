@@ -319,7 +319,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
         elif step == 'resolution':
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
                                   name='{}_flirt'
-                                       .format(node_mask_key))
+                                       .format(node_mask_key),
+                                  mem_gb=8.0)
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 

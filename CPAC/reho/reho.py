@@ -101,7 +101,7 @@ def create_reho(wf_name):
                                          output_names=['out_file'],
                                          function=compute_reho,
                                          imports=reho_imports),
-                           name='reho_map')
+                           name='reho_map', mem_gb=6.0)
 
     reHo.connect(inputNode, 'rest_res_filt', raw_reho_map, 'in_file')
     reHo.connect(inputNode, 'rest_mask', raw_reho_map, 'mask_file')

@@ -191,7 +191,7 @@ def motion_power_statistics(name='motion_stats',
                                  output_names=['out_file'],
                                  function=calculate_DVARS,
                                  as_module=True),
-                        name='cal_DVARS')
+                        name='cal_DVARS', mem_gb=3.5)
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'func_brain')
