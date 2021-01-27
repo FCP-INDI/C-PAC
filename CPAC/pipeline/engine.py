@@ -1,4 +1,5 @@
 import os
+import ast
 import six
 import json
 import warnings
@@ -859,7 +860,6 @@ class NodeBlock(object):
             fn_docstring = fn_docstring.split('Node Block:')[1]
         fn_docstring = fn_docstring.replace('\n', '').replace(' ', '')
         #dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
-        import ast
         dct = ast.literal_eval(fn_docstring)
         #try:
         #    dct = json.loads(fn_docstring.replace('\n', '').replace(' ', ''))
@@ -958,9 +958,7 @@ class NodeBlock(object):
                         #    particularly, our custom 'CpacProvenance' field.
 
                         node_name = name
-
                         pipe_x = rpool.get_pipe_number(pipe_idx)
-
                         wf, outs = block_function(wf, cfg, strat_pool,
                                                   pipe_x, opt)
 
@@ -973,8 +971,21 @@ class NodeBlock(object):
                             node_name = f'{node_name}_{opt["Name"]}'
 
                         if cfg.pipeline_setup['Debugging']['verbose']:
+                            print('\n=======================')
                             print(f'Node name: {node_name}')
-                            print(f'pipe_idx = {pipe_idx}')
+                            prov_dct = \
+                                rpool.get_resource_strats_from_prov(ast.literal_eval(pipe_idx))
+                            for key, val in prov_dct.items():
+                                print('-------------------')
+                                print(f'Input - {key}:')
+                                sub_prov_dct = \
+                                    rpool.get_resource_strats_from_prov(val)
+                                for sub_key, sub_val in sub_prov_dct.items():
+                                    sub_sub_dct = \
+                                    rpool.get_resource_strats_from_prov(sub_val)
+                                    print(f'  sub-input - {sub_key}:')
+                                    print(f'    prov = {sub_val}')
+                                    print(f'    sub_sub_inputs = {sub_sub_dct.keys()}')
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)

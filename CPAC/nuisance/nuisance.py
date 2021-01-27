@@ -1986,6 +1986,10 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["desc-cleaned_bold"]}
     '''
 
+    regressor_prov = strat_pool.get_cpac_provenance('regressors')
+    if f'regressors:create_nuisance_regressors_{opt["Name"]}' not in regressor_prov:
+        return (wf, None)
+
     nuis = create_nuisance_regression_workflow(opt, name='nuisance_regression'
                                                f'_{opt["Name"]}_{pipe_num}')
 
@@ -2029,6 +2033,10 @@ def frequency_filter(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["desc-cleaned_bold",
                  "regressors"]}
     '''
+
+    regressor_prov = strat_pool.get_cpac_provenance('regressors')
+    if f'regressors:create_nuisance_regressors_{opt["Name"]}' not in regressor_prov:
+        return (wf, None)
 
     filt = filtering_bold_and_regressors(opt, name=f'filtering_bold_and_'
                                          f'regressors_{opt["Name"]}_{pipe_num}')
