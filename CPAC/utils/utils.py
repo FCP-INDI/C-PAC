@@ -1717,6 +1717,41 @@ def remove_None(d, k):
     return set_nested_value(d, k, value)
 
 
+def replace_in_strings(d, replacements=[
+    (r'${resolution_for_func_preproc}', r'${func_resolution}')
+]):
+    '''Helper function to recursively replace substrings.
+
+    Parameters
+    ----------
+    d: any
+
+    replacements: list of 2-tuples
+        0: str
+            substring to replace
+        1: str
+            replacement substring
+
+    Returns
+    -------
+    d: any
+       same as input, but updated
+
+    Examples
+    --------
+    >>> replace_in_strings({'key': 'test${resolution_for_func_preproc}'})
+    {'key': 'test${func_resolution}'}
+    '''
+    if isinstance(d, dict):
+        return {k: replace_in_strings(d[k], replacements) for k in d}
+    if isinstance(d, list):
+        return [replace_in_strings(i, replacements) for i in d]
+    if isinstance(d, str):
+        for replacement in replacements:
+            d = d.replace(replacement[0], replacement[1])
+    return d
+
+
 def set_nested_value(d, keys, value):
     '''Helper method to look up nested values
 
@@ -1974,7 +2009,7 @@ def update_config_dict(old_dict):
                         ['registration_workflows', 'functional_registration',
                          'func_registration_to_template', 'target_template',
                          'EPI_template', 'EPI_template_for_resample'],
-                         current_value
+                        current_value
                     )
 
                 # registration_workflows.functional_registration.
@@ -1985,16 +2020,16 @@ def update_config_dict(old_dict):
                         new_dict,
                         ['registration_workflows', 'functional_registration',
                          'EPI_registration', 'FSL-FNIRT', 'fnirt_config'],
-                         current_value
+                        current_value
                     )
-                
+
                 # post_processing.spatial_smoothing.output
                 elif key == 'run_smoothing':
                     new_value = [_bool_to_str(old_value, 'smoothed')]
                     if any([not bool(value) for value in old_value]):
                         new_value.append('nonsmoothed')
                     current_value = new_value
-                
+
                 # post_processing.z-scoring.output
                 elif key == 'runZScoring':
                     new_value = [_bool_to_str(old_value, 'z-scored')]
@@ -2097,45 +2132,7 @@ def update_pipeline_values_1_8(d_old):
     '''  # noqa
     from CPAC.pipeline.schema import valid_options
 
-    d = d_old.copy()
-
-    resolution_replacements = [
-        (r'${resolution_for_anat}',
-         r'${registration_workflows.anatomical_registration.'
-         r'resolution_for_anat}'),
-        (r'${resolution_for_func_preproc}',
-         r'${registration_workflows.functional_registration.'
-         r'func_registration_to_template.output_resolution.'
-         r'func_preproc_outputs}')
-    ]
-    for keylist in [
-        ['anatomical_preproc', 'registration_workflow',
-         'T1w_brain_template'],
-        ['anatomical_preproc', 'registration_workflow',
-         'T1w_template'],
-        ['registration_workflows', 'anatomical_registration', 'registration',
-         'FSL-FNIRT', 'ref_mask'],
-        ['registration_workflows', 'functional_workflows',
-         'func_registration_to_template', 'target_template', 'T1_template',
-         'T1w_brain_template'],
-        ['registration_workflows', 'functional_workflows',
-         'func_registration_to_template', 'target_template', 'T1_template',
-         'T1w_template'],
-        ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
-         'template_symmetric_brain_only'],
-        ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
-         'template_symmetric_skull'],
-        ['voxel_mirrored_homotopic_connectivity', 'symmetric_registration',
-         'dilated_symmetric_brain_mask'],
-        ['PyPEER', 'eye_mask_path']
-    ]:
-        value = lookup_nested_value(d, keylist)
-        value = value if bool(value) else None
-        if isinstance(value, str):
-            for replacement in resolution_replacements:
-                value = value.replace(*replacement)
-            if value:
-                set_nested_value(d, keylist, value)
+    d = replace_in_strings(d_old.copy())
 
     d = _replace_changed_values(
         d,

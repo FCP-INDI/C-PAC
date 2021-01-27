@@ -172,11 +172,6 @@ registration_workflows:
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
 
-      FSL-FNIRT: 
-
-        # Reference mask for FSL registration.
-        ref_mask: /usr/share/fsl/5.0/data/standard/MNI152_T1_${registration_workflows.anatomical_registration.resolution_for_anat}_brain_mask_dil.nii.gz
-
   functional_registration: 
 
     coregistration: 
@@ -424,4 +419,4 @@ PyPEER:
   run: [Off]
 
   # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${registration_workflows.functional_registration.func_registration_to_template.output_resolution.func_preproc_outputs}_eye_mask.nii.gz
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

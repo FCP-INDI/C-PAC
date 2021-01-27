@@ -117,7 +117,7 @@ ANTs_parameters = [Any(
             'fixed_image_mask': bool,
             'moving_image_mask': bool,
         },
-    }, dict  # TODO: specify other valid ANTs parameters 
+    }, dict  # TODO: specify other valid ANTs parameters
 )]
 
 schema = Schema({

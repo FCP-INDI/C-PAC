@@ -423,4 +423,4 @@ PyPEER:
   run: [Off]
 
   # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${registration_workflows.functional_registration.func_registration_to_template.output_resolution.func_preproc_outputs}_eye_mask.nii.gz
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz
