@@ -14,7 +14,7 @@ from CPAC.seg_preproc.utils import (
     hardcoded_antsJointLabelFusion,
     pick_tissue_from_labels_file)
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import scipy.ndimage as nd
 import numpy as np
 from nipype.interfaces import freesurfer

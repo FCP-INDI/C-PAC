@@ -1,5 +1,5 @@
 import nipype.interfaces.fsl as fsl
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3

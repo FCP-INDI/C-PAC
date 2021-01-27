@@ -1,5 +1,5 @@
 import os
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio

@@ -15,7 +15,7 @@ import logging as cb_logging
 from time import strftime
 
 import nipype
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.freesurfer as freesurfer
 import nipype.interfaces.io as nio

@@ -6,7 +6,7 @@ import warnings
 import logging
 import copy
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.utility import Rename
 from CPAC.utils.interfaces.function import Function
@@ -1580,7 +1580,7 @@ def initiate_rpool(wf, cfg, data_paths):
 
 def run_node_blocks(blocks, data_paths, cfg=None):
     import os
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     from CPAC.utils.strategy import NodeBlock
 
     if not cfg:

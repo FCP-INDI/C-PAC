@@ -7,7 +7,7 @@ import threading
 import socketserver
 
 import networkx as nx
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 
 # Log initial information from all the nodes

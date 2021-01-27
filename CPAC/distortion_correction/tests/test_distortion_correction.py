@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 from CPAC.utils.test_resources import setup_test_wf
 from CPAC.func_preproc.func_preproc import create_func_preproc

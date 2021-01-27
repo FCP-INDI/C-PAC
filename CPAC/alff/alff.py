@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string

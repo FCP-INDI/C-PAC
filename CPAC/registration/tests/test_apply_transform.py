@@ -1,6 +1,6 @@
 import os
 from .mocks import configuration_strategy_mock
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from ..output_func_to_standard import fsl_apply_transform_func_to_mni
 
 def test_fsl_apply_transform_func_to_mni_nonlinear():

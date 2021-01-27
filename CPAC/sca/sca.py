@@ -1,5 +1,5 @@
 from nipype.interfaces.afni import preprocess
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl

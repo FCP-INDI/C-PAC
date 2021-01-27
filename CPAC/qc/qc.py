@@ -11,7 +11,7 @@ from CPAC.qc.utils import (
     gen_carpet_plt
 )
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces import afni
 import nipype.interfaces.fsl as fsl
