@@ -54,8 +54,9 @@ class Node(pe.Node):
 
 class MapNode(pe.MapNode):
     __doc__ = _doctest_skiplines(
-        f'mem_gb={DEFAULT_MEM_GB}\n\n{pe.MapNode.__doc__}',
+        f'mem_gb={DEFAULT_MEM_GB}\n\nn_procs=1\n\n{pe.MapNode.__doc__}',
         {"    ...                           'functional3.nii']"}
     )
 
-    __init__ = partialmethod(pe.MapNode.__init__, mem_gb=DEFAULT_MEM_GB)
+    __init__ = partialmethod(pe.MapNode.__init__, mem_gb=DEFAULT_MEM_GB,
+                             n_procs=1)
