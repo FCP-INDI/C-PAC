@@ -104,12 +104,12 @@ def clean_roi_csv(roi_csv):
 
     Parameters
     ----------
-    roi_csv: str
+    roi_csv : str
         path to CSV
 
     Returns
     -------
-    roi_array: numpy.ndarray
+    roi_array : numpy.ndarray
 
     edited_roi_csv: str
         path to CSV
@@ -615,7 +615,7 @@ def gen_voxel_timeseries(data_file, template, output_type):
         path to input functional data
     template : string (nifti file)
         path to input mask in functional native space
-    output_type :list
+    output_type : list
         list of two boolean values suggesting
         the output types - numpy npz file and csv
         format

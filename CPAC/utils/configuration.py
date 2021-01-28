@@ -148,12 +148,12 @@ class Configuration(object):
 
         Parameters
         ----------
-        d: any
+        d : any
             config item to check
 
         Returns
         -------
-        d: any
+        d : any
             same item, same type, but with 'none' strings converted to
             Nonetypes
         """
@@ -274,11 +274,11 @@ def set_from_ENV(conf):
 
     Parameters
     ----------
-    conf: any
+    conf : any
 
     Returns
     -------
-    conf: any
+    conf : any
 
     Examples
     --------

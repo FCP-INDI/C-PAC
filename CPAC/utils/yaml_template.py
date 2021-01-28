@@ -17,9 +17,9 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
     Parameters
     ----------
-    d: dict
+    d : dict
 
-    template: str
+    template : str
         path to template
 
     Examples
@@ -35,11 +35,11 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
         Parameters
         ----------
-        line: str
+        line : str
 
         Returns
         -------
-        number_of_indents: int
+        number_of_indents : int
 
         Examples
         --------
@@ -56,7 +56,7 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
         Parameters
         ----------
-        diff: dict
+        diff : dict
             output of `dct_diff`
 
         Returns
@@ -86,12 +86,12 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
         Parameters
         ----------
-        key: str
-        level: int
+        key : str
+        level : int
 
         Returns
         -------
-        yaml: str
+        yaml : str
 
         Examples
         --------
@@ -107,13 +107,13 @@ def create_yaml_from_template(d, template=DEFAULT_PIPELINE_FILE):
 
         Parameters
         ----------
-        l: list
+        l : list
         
-        line_level: int
+        line_level : int
         
         Returns
         -------
-        yaml: str
+        yaml : str
         
         Examples
         --------
@@ -275,11 +275,11 @@ def yaml_bool(value):
 
     Parameters
     ----------
-    value: any
+    value : any
 
     Returns
     -------
-    value: any
+    value : any
 
     Examples
     --------
@@ -306,7 +306,7 @@ def upgrade_pipeline_to_1_8(path):
 
     Parameters
     ----------
-    path: str
+    path : str
 
     Returns
     -------

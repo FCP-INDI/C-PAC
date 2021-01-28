@@ -690,7 +690,7 @@ def connect_anat_preproc_inputs(strat, anat_preproc, strat_name,
         name of the strategy
     strat_nodes_list_list : list
         a list of strat_nodes_list
-    workflow: Workflow
+    workflow : Workflow
         main longitudinal workflow
 
     Returns

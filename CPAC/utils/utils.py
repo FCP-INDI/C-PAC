@@ -334,7 +334,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     Parameters
     ----------
 
-    correlation_file: string
+    correlation_file : string
         Input correlations file
 
 
@@ -1428,7 +1428,7 @@ def repickle(directory):
 
     Parameters
     ----------
-    directory: str
+    directory : str
 
     Returns
     -------
@@ -1482,15 +1482,15 @@ def _pickle2(p, z=False):
 
     Parameters
     ----------
-    p: str
+    p : str
         path to pickle
 
-    z: bool
+    z : bool
         if pickle is gzipped
 
     Returns
     -------
-    pickle2: bool
+    pickle2 : bool
         True if p is a Python 2 pickle
     """
     if z:
@@ -1522,15 +1522,15 @@ def concat_list(in_list1=None, in_list2=None):
     """
     Parameters
     ----------
-    in_list1: list or str
+    in_list1 : list or str
         file path or a list of file paths
 
-    in_list2: list or str
+    in_list2 : list or str
         file path or a list of file paths
 
     Returns
     -------
-    out_list: list
+    out_list : list
         a list of file paths
     """
 
@@ -1557,13 +1557,13 @@ def dct_diff(dct1, dct2):
 
     Parameters
     ----------
-    dct1: dict
+    dct1 : dict
 
-    dct2: dict
+    dct2 : dict
 
     Returns
     -------
-    diff: set
+    diff : set
     a tuple of values from dct1, dct2 for each differing key
 
     Example
@@ -1611,17 +1611,17 @@ def list_item_replace(l, old, new):  # noqa E741
 
     Parameters
     ----------
-    l: list or string
+    l : list or string
 
-    old: any
+    old : any
         item to replace
 
-    new: any
+    new : any
         new item
 
     Returns
     -------
-    l: list or string
+    l : list or string
         updated
 
     Examples
@@ -1674,9 +1674,9 @@ def _remove_somethings(value, things_to_remove):
 
     Parameters
     ----------
-    value: list
+    value : list
 
-    things_to_remove: set
+    things_to_remove : set
 
     Returns
     -------
@@ -1694,13 +1694,13 @@ def remove_False(d, k):
 
     Parameters
     ----------
-    d: dict
+    d : dict
 
-    k: list
+    k : list
 
     Returns
     -------
-    d: dict
+    d : dict
        updated
 
     Examples
@@ -1717,13 +1717,13 @@ def remove_None(d, k):
 
     Parameters
     ----------
-    d: dict
+    d : dict
 
-    k: list
+    k : list
 
     Returns
     -------
-    d: dict
+    d : dict
        updated
 
     Examples
@@ -1742,17 +1742,17 @@ def replace_in_strings(d, replacements=[
 
     Parameters
     ----------
-    d: any
+    d : any
 
-    replacements: list of 2-tuples
-        0: str
+    replacements : list of 2-tuples
+        0 : str
             substring to replace
-        1: str
+        1 : str
             replacement substring
 
     Returns
     -------
-    d: any
+    d : any
        same as input, but updated
 
     Examples
@@ -1808,17 +1808,17 @@ def update_config_dict(old_dict):
 
     Parameters
     ----------
-    old_dict: dict
+    old_dict : dict
 
     Returns
     -------
-    new_dict: dict
+    new_dict : dict
         1.8 nested config dictionary
 
-    old_dict: dict
+    old_dict : dict
         remaining undefined mappings
 
-    combined_dict: dict
+    combined_dict : dict
         1.8 nested config dictionary plus remaining undefined mappings
 
     Examples
@@ -1838,9 +1838,9 @@ def update_config_dict(old_dict):
 
         Parameters
         ----------
-        current_value: list
+        current_value : list
 
-        new_value: list, bool, None, or str
+        new_value : list, bool, None, or str
 
         Returns
         -------
@@ -1883,9 +1883,9 @@ def update_config_dict(old_dict):
 
         Parameters
         ----------
-        old_value: list, bool, None, or str
+        old_value : list, bool, None, or str
 
-        value_if_true: str
+        value_if_true : str
 
         Returns
         -------
@@ -1919,21 +1919,21 @@ def update_config_dict(old_dict):
 
         Parameters
         ----------
-        old_dict: dict
+        old_dict : dict
 
-        new_dict: dict
+        new_dict : dict
 
-        key: str
+        key : str
 
         Returns
         -------
-        old_dict: dict
+        old_dict : dict
 
-        new_dict: dict
+        new_dict : dict
 
-        old_value: any
+        old_value : any
 
-        current_value: any
+        current_value : any
         '''
         old_value = old_dict.pop(key)
         try:
@@ -2083,15 +2083,15 @@ def update_nested_dict(d_base, d_update):
 
     Parameters
     ----------
-    d_base: dict
+    d_base : dict
         original dictionary
 
-    d_update: dict
+    d_update : dict
         dictionary with updates
 
     Returns
     -------
-    d_base: dict
+    d_base : dict
         original dictionary with updates
 
     Examples
@@ -2132,11 +2132,11 @@ def update_pipeline_values_1_8(d_old):
 
     Parameters
     ----------
-    d_old: dict
+    d_old : dict
 
     Returns
     -------
-    d: dict
+    d : dict
        updated
 
     Examples
@@ -2259,14 +2259,14 @@ def update_values_from_list(d_old, last_exception=None):
 
     Parameters
     ----------
-    d_old: dict
+    d_old : dict
 
     last_exception: Exception or None
         if the same exception recurs, raise it.
 
     Returns
     -------
-    d: dict
+    d : dict
        updated
 
     Examples
@@ -2354,19 +2354,19 @@ def _replace_changed_values(d, nested_key, replacement_list):
 
     Parameters
     ----------
-    d: dict
+    d : dict
 
-    nested_key: list of strings
+    nested_key : list of strings
 
-    replacement_list: list of tuples
-        0: any
+    replacement_list : list of tuples
+        0 : any
             value to replace
-        1: any
+        1 : any
             replacement value
 
     Returns
     -------
-    d: dict
+    d : dict
 
     Examples
     --------
@@ -2392,17 +2392,17 @@ def _replace_in_value_list(current_value, replacement_tuple):
 
     Parameters
     ----------
-    current_value: list
+    current_value : list
 
-    replacement_tuple: tuple or list of tuples
-        0: str
+    replacement_tuple : tuple or list of tuples
+        0 : str
             character value to replace
-        1: str
+        1 : str
             replacement character value
 
     Returns
     -------
-    current_value: list
+    current_value : list
 
     Examples
     --------
