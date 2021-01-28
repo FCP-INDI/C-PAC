@@ -206,12 +206,13 @@ from CPAC.utils.utils import (
     ordereddict_to_dict
 )
 
-from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
+from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
 
-
 # config.enable_debug_mode()
+
 
 def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                  plugin='MultiProc', plugin_args=None, test_config=False):
@@ -710,6 +711,9 @@ CPAC run error:
                     run_start=pipeline_start_datetime,
                     run_finish=strftime("%Y-%m-%d %H:%M:%S")
                 ))
+
+                resource_report(c.pipeline_setup['log_directory']['path'],
+                                num_cores_per_sub, logger)
 
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][

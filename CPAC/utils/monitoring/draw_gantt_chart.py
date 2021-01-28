@@ -470,3 +470,91 @@ def generate_gantt_chart(
     # save file
     with open(logfile + ".html", "w") as html_file:
         html_file.write(html_string)
+
+
+def resource_overusage_report(cblog):
+    '''Function to parse through a callback log for memory and/or
+    thread usage above estimates / limits.
+
+    Parameters
+    ----------
+    cblog: str
+        path to callback.log
+
+    Returns
+    -------
+    text_report: str
+
+    excessive: dict
+    '''
+    cb_dict_list = log_to_dict(cblog)
+    excessive = {node['id']: [
+        node['runtime_memory_gb']if node.get('runtime_memory_gb', 0)
+        > node.get('estimated_memory_gb', 1) else None,
+        node['estimated_memory_gb'] if node.get('runtime_memory_gb', 0)
+        > node.get('estimated_memory_gb', 1) else None,
+        node['runtime_threads'] - 1 if node.get('runtime_threads', 0) - 1
+        > node.get('num_threads', 1) else None,
+        node['num_threads'] if node.get('runtime_threads', 0) - 1
+        > node.get('num_threads', 1) else None
+    ] for node in [node for node in cb_dict_list if (
+        node.get('runtime_memory_gb', 0) > node.get('estimated_memory_gb', 1)
+        or node.get('runtime_threads', 0) - 1 > node.get('num_threads', 1)
+    )]}
+    text_report = ''
+    if excessive:
+        text_report += 'The following nodes used excessive resources:\n'
+        dotted_line = '-' * (len(text_report) - 1) + '\n'
+        text_report += dotted_line
+        for node in excessive:
+            node_id = '\n  .'.join(node.split('.'))
+            text_report += f'\n{node_id}\n'
+            if excessive[node][0]:
+                text_report += '      **memory_gb**\n' \
+                               '        runtime > estimated\n' \
+                               f'        {excessive[node][0]} ' \
+                               f'> {excessive[node][1]}\n'
+            if excessive[node][2]:
+                text_report += '      **threads**\n        runtime > limit\n' \
+                               f'        {excessive[node][2]} ' \
+                               f'> {excessive[node][3]}\n'
+        text_report += dotted_line
+    return text_report, excessive
+
+
+def resource_report(callback_log, num_cores, logger=None):
+    '''Function to attempt to warn any excessive resource usage and
+    generate an interactive HTML chart.
+
+    Parameters
+    ----------
+    callback_log: str
+        path to callback.log
+
+    num_cores: int
+    logger: Logger
+        https://docs.python.org/3/library/logging.html#logger-objects
+
+    Returns
+    -------
+    None
+    '''
+    e_msg = ''
+    try:
+        txt_report = resource_overusage_report(callback_log)[0]
+        if txt_report:
+            if logger is not None:
+                logger.warning(txt_report)
+            else:
+                warn(txt_report, category=ResourceWarning)
+    except Exception:
+        e_msg += f'Excessive usage report failed for {callback_log}\n'
+    try:
+        generate_gantt_chart(callback_log, num_cores)
+    except Exception:
+        e_msg += f'Report generation failed for {callback_log}'
+    if e_msg:
+        if logger is not None:
+            logger.warning(e_msg, exc_info=1)
+        else:
+            warn(e_msg, category=ResourceWarning)
