@@ -1,5 +1,7 @@
 '''Module to draw an html gantt chart from logfile produced by
-``CPAC.utils.monitoring.log_nodes_cb()``. See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gantt_chart.html
+``CPAC.utils.monitoring.log_nodes_cb()``.
+
+See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gantt_chart.html
 '''  # noqa: E501
 import datetime
 import random
@@ -57,7 +59,8 @@ def create_event_dict(start_time, nodes_list):
 
         # Populate dictionary
         if events.get(start_delta):
-            err_msg = "Event logged twice or events started at exact same time!"
+            err_msg = "Event logged twice or events started at exact same " \
+                      "time!"
             warn(str(KeyError(err_msg)), category=Warning)
         events[start_delta] = start_node
         events[finish_delta] = finish_node
@@ -86,7 +89,6 @@ def calculate_resource_timeseries(events, resource):
         a pandas Series object that contains timestamps as the indices
         and the resource amount as values
     """
-
     # Import packages
     import pandas as pd
 
@@ -122,7 +124,8 @@ def calculate_resource_timeseries(events, resource):
     return time_series
 
 
-def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes, colors):
+def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
+               colors):
     """
     Function to return the html-string of the node drawings for the
     gantt chart
@@ -160,7 +163,8 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes, co
     space_between_minutes = space_between_minutes / scale
     end_times = [
         datetime.datetime(
-            start.year, start.month, start.day, start.hour, start.minute, start.second
+            start.year, start.month, start.day, start.hour, start.minute,
+            start.second
         )
         for core in range(cores)
     ]
@@ -175,7 +179,8 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes, co
             (node_start - start).total_seconds() / 60
         ) * scale * space_between_minutes + 220
         # Scale duration
-        scale_duration = (node["duration"] / 60) * scale * space_between_minutes
+        scale_duration = (node["duration"] / 60) * scale \
+            * space_between_minutes
         if scale_duration < 5:
             scale_duration = 5
         scale_duration -= 2
@@ -279,7 +284,7 @@ def generate_gantt_chart(
     #     plugin_args={'n_procs':8, 'memory':12, 'status_callback': log_nodes_cb})
 
     # generate_gantt_chart('callback.log', 8)
-    """
+    """  # noqa: E501
 
     # add the html header
     html_string = """<!DOCTYPE html>
@@ -337,7 +342,7 @@ def generate_gantt_chart(
     <body>
         <div id="content">
             <div style="display:inline-block;">
-    """
+    """  # noqa: E501
 
     close_header = """
     </div>
@@ -346,7 +351,7 @@ def generate_gantt_chart(
         <p><span><div class="label" style="background-color:#03969D;"></div> Actual Resource</span></p>
         <p><span><div class="label" style="background-color:#f00;"></div> Failed Node</span></p>
     </div>
-    """
+    """  # noqa: E501
 
     # Read in json-log to get list of node dicts
     nodes_list = log_to_dict(logfile)
@@ -378,12 +383,15 @@ def generate_gantt_chart(
 
     # Summary strings of workflow at top
     html_string += (
-        "<p>Start: " + start_node["start"].strftime("%Y-%m-%d %H:%M:%S") + "</p>"
+        "<p>Start: " + start_node["start"].strftime("%Y-%m-%d %H:%M:%S")
+        + "</p>"
     )
     html_string += (
-        "<p>Finish: " + last_node["finish"].strftime("%Y-%m-%d %H:%M:%S") + "</p>"
+        "<p>Finish: " + last_node["finish"].strftime("%Y-%m-%d %H:%M:%S")
+        + "</p>"
     )
-    html_string += "<p>Duration: " + "{0:.2f}".format(duration / 60) + " minutes</p>"
+    html_string += "<p>Duration: " + "{0:.2f}".format(duration / 60) \
+                   + " minutes</p>"
     html_string += "<p>Nodes: " + str(len(nodes_list)) + "</p>"
     html_string += "<p>Cores: " + str(cores) + "</p>"
     html_string += close_header
@@ -401,7 +409,8 @@ def generate_gantt_chart(
     )
 
     # Get memory timeseries
-    estimated_mem_ts = calculate_resource_timeseries(events, "estimated_memory_gb")
+    estimated_mem_ts = calculate_resource_timeseries(
+        events, "estimated_memory_gb")
     runtime_mem_ts = calculate_resource_timeseries(events, "runtime_memory_gb")
     # Plot gantt chart
     resource_offset = 120 + 30 * cores
@@ -427,8 +436,10 @@ def generate_gantt_chart(
     )
 
     # Get threads timeseries
-    estimated_threads_ts = calculate_resource_timeseries(events, "estimated_threads")
-    runtime_threads_ts = calculate_resource_timeseries(events, "runtime_threads")
+    estimated_threads_ts = calculate_resource_timeseries(
+        events, "estimated_threads")
+    runtime_threads_ts = calculate_resource_timeseries(
+        events, "runtime_threads")
     # Plot gantt chart
     html_string += draw_resource_bar(
         start_node["start"],
