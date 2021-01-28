@@ -1316,9 +1316,11 @@ def initiate_rpool(wf, cfg, data_paths):
         if '${resolution_for_anat}' in val:
             val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])
         if '${func_resolution}' in val:
+            # functional registration
             if 'funcreg' in key:
                 out_res = 'func_preproc_outputs'
-            elif 'deriv' in key:
+            # functional derivatives
+            else:
                 out_res = 'func_derivative_outputs'
             val = val.replace('${func_resolution}', cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution'][out_res])
 
