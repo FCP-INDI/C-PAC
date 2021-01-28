@@ -1232,14 +1232,19 @@ def initiate_rpool(wf, cfg, data_paths):
 
     # grab already-processed data from the output directory
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
-        if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
-            if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-                out_dir = cfg.pipeline_setup['output_directory'][
-                    'source_outputs_dir']
+        if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
+            if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
+                if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+                    out_dir = cfg.pipeline_setup['output_directory'][
+                        'source_outputs_dir']
+                else:
+                    out_dir = cfg.pipeline_setup['output_directory']['path']
             else:
                 out_dir = cfg.pipeline_setup['output_directory']['path']
         else:
-            out_dir = cfg.pipeline_setup['output_directory']['path']
+            if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+                out_dir = cfg.pipeline_setup['output_directory'][
+                    'source_outputs_dir']
     else:
         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
             out_dir = cfg.pipeline_setup['output_directory']['source_outputs_dir']
