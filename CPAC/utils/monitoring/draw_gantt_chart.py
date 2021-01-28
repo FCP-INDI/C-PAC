@@ -547,6 +547,9 @@ def resource_report(callback_log, num_cores, logger=None):
                 logger.warning(txt_report)
             else:
                 warn(txt_report, category=ResourceWarning)
+            open(
+                callback_log + ".resource_overusage.txt", "w"
+            ).write(txt_report)
     except Exception:
         e_msg += f'Excessive usage report failed for {callback_log}\n'
     try:
