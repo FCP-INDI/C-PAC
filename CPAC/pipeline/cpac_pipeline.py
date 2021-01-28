@@ -111,9 +111,7 @@ from CPAC.nuisance.nuisance import (
     ICA_AROMA_ANTsreg,
     ICA_AROMA_FSLreg,
     ICA_AROMA_EPIreg,
-    create_nuisance_regressors,
-    nuisance_regression,
-    frequency_filter,
+    nuisance_regression_complete,
     erode_mask_T1w,
     erode_mask_CSF,
     erode_mask_GM,
@@ -957,14 +955,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                 erode_mask_CSF,
                 erode_mask_GM,
                 erode_mask_WM,
-                create_nuisance_regressors,
-                nuisance_regression]
-
-            if cfg.nuisance_corrections['2-nuisance_regression'][
-                'bandpass_filtering_order'] == 'After':
-                nuisance_blocks.append(frequency_filter)
-            else:
-                nuisance_blocks.insert(0, frequency_filter)
+                nuisance_regression_complete]
 
             nuisance += nuisance_blocks
 

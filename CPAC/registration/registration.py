@@ -26,6 +26,11 @@ from CPAC.utils.utils import check_prov_for_regtool
 def apply_transform(wf_name, reg_tool, time_series=False, multi_input=False,
                     num_cpus=1, num_ants_cores=1):
 
+    if not reg_tool:
+        raise Exception("\n[!] Developer info: the 'reg_tool' parameter sent "
+                        f"to the 'apply_transform' node for '{wf_name}' is "
+                        f"empty.\n")
+
     wf = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(
@@ -2074,11 +2079,11 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num,
      "switch": ["run"],
      "option_key": ["target_template", "using"],
      "option_val": "T1_template",
-     "inputs": ["from-bold_to-T1w_mode-image_desc-linear_xfm",
-                "from-T1w_to-symtemplate_mode-image_xfm",
-                "from-symtemplate_to-T1w_mode-image_xfm",
-                "desc-mean_bold",
-                "desc-brain_T1w",
+     "inputs": [("from-T1w_to-symtemplate_mode-image_xfm",
+                 "from-symtemplate_to-T1w_mode-image_xfm",
+                 "desc-brain_T1w"),
+                ("from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "desc-mean_bold"),
                 "T1w_brain_template_symmetric_deriv"],
      "outputs": ["from-bold_to-symtemplate_mode-image_xfm",
                  "from-symtemplate_to-bold_mode-image_xfm"]}
