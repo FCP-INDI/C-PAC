@@ -1296,7 +1296,8 @@ def initiate_rpool(wf, cfg, data_paths):
     ]
 
     if cfg.PyPEER['run']:
-        config_resource_paths.append(('eye_mask_path', cfg.PyPeer['eye_mask_path']))
+        config_resource_paths.append(
+            ('eye_mask_path', cfg.PyPEER['eye_mask_path']))
 
     for resource in config_resource_paths:
         key = resource[0]
