@@ -1,28 +1,14 @@
-# -*- coding: utf-8 -*-
-# emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
-# vi: set ft=python sts=4 ts=4 sw=4 et:
-"""
-Module to draw an html gantt chart from logfile produced by
-``nipype.utils.profiler.log_nodes_cb()``
-"""
-# Import packages
-import sys
-import random
+'''Module to draw an html gantt chart from logfile produced by
+``CPAC.utils.monitoring.log_nodes_cb()``. See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gantt_chart.html
+'''  # noqa: E501
 import datetime
-import simplejson as json
+import random
 
 from collections import OrderedDict
 from warnings import warn
 
-# Pandas
-try:
-    import pandas as pd
-except ImportError:
-    print(
-        "Pandas not found; in order for full functionality of this module "
-        "install the pandas package"
-    )
-    pass
+from nipype.utils.draw_gantt_chart import draw_lines, draw_resource_bar, \
+                                          log_to_dict
 
 
 def create_event_dict(start_time, nodes_list):
@@ -78,35 +64,6 @@ def create_event_dict(start_time, nodes_list):
 
     # Return events dictionary
     return events
-
-
-def log_to_dict(logfile):
-    """
-    Function to extract log node dictionaries into a list of python
-    dictionaries and return the list as well as the final node
-
-    Parameters
-    ----------
-    logfile : string
-        path to the json-formatted log file generated from a nipype
-        workflow execution
-
-    Returns
-    -------
-    nodes_list : list
-        a list of python dictionaries containing the runtime info
-        for each nipype node
-    """
-
-    # Init variables
-    with open(logfile, "r") as content:
-        # read file separating each line
-        lines = content.readlines()
-
-    nodes_list = [json.loads(l) for l in lines]
-
-    # Return list of nodes
-    return nodes_list
 
 
 def calculate_resource_timeseries(events, resource):
@@ -165,56 +122,6 @@ def calculate_resource_timeseries(events, resource):
     return time_series
 
 
-def draw_lines(start, total_duration, minute_scale, scale):
-    """
-    Function to draw the minute line markers and timestamps
-
-    Parameters
-    ----------
-    start : datetime.datetime obj
-        start time for first minute line marker
-    total_duration : float
-        total duration of the workflow execution (in seconds)
-    minute_scale : integer
-        the scale, in minutes, at which to plot line markers for the
-        gantt chart; for example, minute_scale=10 means there are lines
-        drawn at every 10 minute interval from start to finish
-    scale : integer
-        scale factor in pixel spacing between minute line markers
-
-    Returns
-    -------
-    result : string
-        the html-formatted string for producing the minutes-based
-        time line markers
-    """
-
-    # Init variables
-    result = ""
-    next_line = 220
-    next_time = start
-    num_lines = int(((total_duration // 60) // minute_scale) + 2)
-
-    # Iterate through the lines and create html line markers string
-    for line in range(num_lines):
-        # Line object
-        new_line = "<hr class='line' width='98%%' style='top:%dpx;'>" % next_line
-        result += new_line
-        # Time digits
-        time = "<p class='time' style='top:%dpx;'> %02d:%02d </p>" % (
-            next_line - 20,
-            next_time.hour,
-            next_time.minute,
-        )
-        result += time
-        # Increment line spacing and digits
-        next_line += minute_scale * scale
-        next_time += datetime.timedelta(minutes=minute_scale)
-
-    # Return html string for time line markers
-    return result
-
-
 def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes, colors):
     """
     Function to return the html-string of the node drawings for the
@@ -247,7 +154,6 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes, co
         the html-formatted string for producing the minutes-based
         time line markers
     """
-
     # Init variables
     result = ""
     scale = space_between_minutes / minute_scale
@@ -319,80 +225,6 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes, co
     return result
 
 
-def draw_resource_bar(
-    start_time,
-    finish_time,
-    time_series,
-    space_between_minutes,
-    minute_scale,
-    color,
-    left,
-    resource,
-):
-    """
-    """
-
-    # Memory header
-    result = "<p class='time' style='top:198px;left:%dpx;'>%s</p>" % (left, resource)
-    # Image scaling factors
-    scale = space_between_minutes / minute_scale
-    space_between_minutes = space_between_minutes / scale
-
-    # Iterate through time series
-    ts_items = time_series.items()
-
-    ts_len = len(time_series)
-    for idx, (ts_start, amount) in enumerate(ts_items):
-        if idx < ts_len - 1:
-            ts_end = time_series.index[idx + 1]
-        else:
-            ts_end = finish_time
-        # Calculate offset from start at top
-        offset = (
-            (ts_start - start_time).total_seconds() / 60.0
-        ) * scale * space_between_minutes + 220
-        # Scale duration
-        duration_mins = (ts_end - ts_start).total_seconds() / 60.0
-        height = duration_mins * scale * space_between_minutes
-        if height < 5:
-            height = 5
-        height -= 2
-
-        # Bar width is proportional to resource amount
-        width = amount * 20
-
-        if resource.lower() == "memory":
-            label = "%.3f GB" % amount
-        else:
-            label = "%d threads" % amount
-
-        # Setup dictionary for bar html string insertion
-        bar_dict = {
-            "color": color,
-            "height": height,
-            "width": width,
-            "offset": offset,
-            "left": left,
-            "label": label,
-            "duration": duration_mins,
-            "start": ts_start.strftime("%Y-%m-%d %H:%M:%S"),
-            "finish": ts_end.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-
-        bar_html = (
-            "<div class='bar' style='background-color:%(color)s;"
-            "height:%(height).3fpx;width:%(width).3fpx;"
-            "left:%(left)dpx; top:%(offset).3fpx;'"
-            "title='%(label)s\nduration:%(duration).3f\n"
-            "start:%(start)s\nend:%(finish)s'></div>"
-        )
-        # Add another bar to html line
-        result += bar_html % bar_dict
-
-    # Return bar-formatted html string
-    return result
-
-
 def generate_gantt_chart(
     logfile,
     cores,
@@ -421,7 +253,6 @@ def generate_gantt_chart(
     colors : list (optional)
         a list of colors to choose from when coloring the nodes in the
         gantt chart
-
 
     Returns
     -------
