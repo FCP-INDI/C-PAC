@@ -1053,7 +1053,7 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
 
     wmparc = os.path.join(SubjectDIR, SubjectID, 'mri/wmparc.mgz')
 
-    return wmparc
+    return wmparc, SubjectDIR
 
 
 def create_anat_preproc(method='afni', already_skullstripped=False,
@@ -1504,7 +1504,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                           'SubjectID',
                                                           'SubjectDIR',
                                                           'openmp'],
-                                            output_names=['wmparc'],
+                                            output_names=['wmparc',
+                                                          'SubjectDIR'],
                                             function=abcd_reconall),
                                 name='anat_freesurfer')
 

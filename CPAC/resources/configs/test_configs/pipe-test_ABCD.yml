@@ -698,7 +698,7 @@ motion_correction : ['mcflirt']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume
-motion_correction_reference: ['mean']
+motion_correction_reference: ['selected volume']
 
 
 # Choose motion correction reference volume
@@ -969,9 +969,8 @@ resolution_for_func_derivative :  2mm
 template_for_resample :  $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 
-# Standard FSL Skull Stripped Template. Used as a reference image for functional registration
-# changed
-template_brain_only_for_func :  /ABCD_pipeline_template/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
+# Standard FSL Skull Stripped Template. Used as a reference image for functional registration changed
+template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
