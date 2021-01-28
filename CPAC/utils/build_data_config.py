@@ -1700,8 +1700,7 @@ def util_copy_template(template_type=None):
     elif type == 'pipeline_config':
         print("This file can be edited and then used in a C-PAC run by "
               "running 'cpac run --pipe_config {pipeline config file} "
-              "{data config file}', or by loading it into the C-PAC GUI "
-              "under 'Pipelines'.\n")
+              "{data config file}'.\n")
 
 
 def run(data_settings_yml):

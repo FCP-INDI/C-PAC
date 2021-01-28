@@ -133,10 +133,10 @@ parser.add_argument('output_dir', help='The directory where the output files '
 parser.add_argument('analysis_level', help='Level of the analysis that will '
                                            ' be performed. Multiple participant level analyses can be run '
                                            ' independently (in parallel) using the same output_dir. '
-                                           ' GUI will open the CPAC gui (currently only works with singularity) and'
                                            ' test_config will run through the entire configuration process but will'
                                            ' not execute the pipeline.',
-                    choices=['participant', 'group', 'test_config', 'gui', 'cli'], type=str.lower)
+                    choices=['participant', 'group', 'test_config', 'cli'],
+                    type=str.lower)
 
 parser.add_argument('--pipeline_file', help='Path for the pipeline '
                                             ' configuration file to use. '
@@ -248,15 +248,7 @@ args = parser.parse_args(
     ]
 )
 
-# if we are running the GUI, then get to it
-if args.analysis_level == "gui":
-    print("Starting CPAC GUI")
-    import CPAC.GUI
-
-    CPAC.GUI.run()
-    sys.exit(0)
-
-elif args.analysis_level == "cli":
+if args.analysis_level == "cli":
     from CPAC.__main__ import main
     main.main(args=sys.argv[sys.argv.index('--') + 1:])
     sys.exit(0)

@@ -1,7 +1,0 @@
-runRegisterFuncToMNI,Register functional images to a standard MNI152 template. This option must be enabled if you wish to calculate any derivatives.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
-resolution_for_func,The resolution (in mm) to which functional images are transformed during registration.,"1mm,2mm,3mm,4mm"
-template_brain_only_for_func,Standard FSL Skull Stripped Template. Used as a reference image for functional registration.,"A path (e.g., $FSLDIR/data/standard/MNI152_T1_${resolution_for_func}_brain.nii.gz)."
-template_skull_for_anat,Standard FSL Template with skull. Used as a reference image for functional registration.,"A path (e.g., $FSLDIR/data/standard/MNI152_T1_${resolution_for_func}.nii.gz)."
-identityMatrix,Matrix containing all 1’s. Used as an identity matrix during registration. It is not necessary to change this path unless you intend to use non-standard MNI registration.,"A path (e.g., $FSLDIR/etc/flirtsch/ident.mat)."
-resolution_for_func_derivative,The resolutions to resample the normalized functional timeseries to.,"1mm,2mm,3mm,4mm"
-
