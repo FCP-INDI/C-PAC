@@ -52,11 +52,11 @@ def get_voxel_timeseries(wf_name='voxel_timeseries'):
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
     >>> wf = t.get_voxel_timeseries()
-    >>> wf.inputs.inputspec.rest = '/home/data/rest.nii.gz'
-    >>> wf.inputs.input_mask.mask = '/usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz'
+    >>> wf.inputs.inputspec.rest = '/home/data/rest.nii.gz'  # doctest: +SKIP
+    >>> wf.inputs.input_mask.mask = '/usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz'  # doctest: +SKIP
     >>> wf.inputs.inputspec.output_type = [True,True]
     >>> wf.base_dir = './'
-    >>> wf.run()
+    >>> wf.run()  # doctest: +SKIP
 
     """
 
@@ -216,11 +216,11 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
     >>> wf = t.get_roi_timeseries()
-    >>> wf.inputs.inputspec.rest = '/home/data/rest.nii.gz'
-    >>> wf.inputs.input_roi.roi = '/usr/local/fsl/data/atlases/HarvardOxford/HarvardOxford-cort-maxprob-thr0-2mm.nii.gz'
+    >>> wf.inputs.inputspec.rest = '/home/data/rest.nii.gz'  # doctest: +SKIP
+    >>> wf.inputs.input_roi.roi = '/usr/local/fsl/data/atlases/HarvardOxford/HarvardOxford-cort-maxprob-thr0-2mm.nii.gz'  # doctest: +SKIP
     >>> wf.inputs.inputspec.output_type = [True,True]
     >>> wf.base_dir = './'
-    >>> wf.run()
+    >>> wf.run()  # doctest: +SKIP
 
     """
 
@@ -319,12 +319,12 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
     >>> wf = t.get_spatial_map_timeseries()
-    >>> wf.inputs.inputspec.subject_rest = '/home/data/rest.nii.gz'
-    >>> wf.inputs.inputspec.subject_mask = '/home/data/rest_mask.nii.gz'
-    >>> wf.inputs.inputspec.ICA_map = '/home/data/spatialmaps/spatial_map.nii.gz'
+    >>> wf.inputs.inputspec.subject_rest = '/home/data/rest.nii.gz'  # doctest: +SKIP
+    >>> wf.inputs.inputspec.subject_mask = '/home/data/rest_mask.nii.gz'  # doctest: +SKIP
+    >>> wf.inputs.inputspec.ICA_map = '/home/data/spatialmaps/spatial_map.nii.gz'  # doctest: +SKIP
     >>> wf.inputs.inputspec.demean = True
     >>> wf.base_dir = './'
-    >>> wf.run()
+    >>> wf.run()  # doctest: +SKIP
 
     """
 
@@ -391,10 +391,10 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
     >>> wf = t.get_vertices_timeseries()
-    >>> wf.inputs.inputspec.lh_surface_file = '/home/data/outputs/SurfaceRegistration/lh_surface_file.nii.gz'
-    >>> wf.inputs.inputspec.rh_surface_file = '/home/data/outputs/SurfaceRegistration/rh_surface_file.nii.gz'
+    >>> wf.inputs.inputspec.lh_surface_file = '/home/data/outputs/SurfaceRegistration/lh_surface_file.nii.gz'  # doctest: +SKIP
+    >>> wf.inputs.inputspec.rh_surface_file = '/home/data/outputs/SurfaceRegistration/rh_surface_file.nii.gz'  # doctest: +SKIP
     >>> wf.base_dir = './'
-    >>> wf.run()
+    >>> wf.run()  # doctest: +SKIP
     """
 
     wflow = pe.Workflow(name=wf_name)
@@ -455,10 +455,10 @@ def get_normalized_moments(wf_name='normalized_moments'):
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
-    >>> wf = t.get_normalized_moments()
-    >>> wf.inputs.inputspec.spatial_timeseries = '/home/data/outputs/SurfaceRegistration/lh_surface_file.nii.gz'
-    >>> wf.base_dir = './'
-    >>> wf.run()
+    >>> wf = t.get_normalized_moments()  # doctest: +SKIP
+    >>> wf.inputs.inputspec.spatial_timeseries = '/home/data/outputs/SurfaceRegistration/lh_surface_file.nii.gz'  # doctest: +SKIP
+    >>> wf.base_dir = './'  # doctest: +SKIP
+    >>> wf.run()  # doctest: +SKIP
     """
 
     wflow = pe.Workflow(name=wf_name)
