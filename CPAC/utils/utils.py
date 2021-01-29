@@ -186,12 +186,11 @@ def get_zscore(map_node=False, wf_name='z_score'):
 
     Example
     -------
-    >>> import get_zscore as z
-    >>> wf = z.get_zscore()
-    >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
-    >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
-    >>> wf.run()
-
+    >>> from CPAC.utils import get_zscore as z
+    >>> wf = z()
+    >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'  # doctest: +SKIP
+    >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'  # doctest: +SKIP
+    >>> wf.run()  # doctest: +SKIP
     """
 
     import nipype.pipeline.engine as pe
