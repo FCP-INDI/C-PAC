@@ -1,6 +1,7 @@
-import yaml
+import pytest
 import shutil
 import tempfile
+import yaml
 from copy import copy
 from unittest import mock
 
@@ -8,6 +9,8 @@ from unittest import mock
 def accept_all(object, name, value):
     return value
 
+
+@pytest.mark.skip(reason='needs refactored')
 def test_trimmer():
 
     from CPAC.utils.trimmer import the_trimmer, is_datasink, expand_workflow, compute_datasink_dirs
