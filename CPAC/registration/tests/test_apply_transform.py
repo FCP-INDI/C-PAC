@@ -1,8 +1,11 @@
 import os
+import pytest
 from .mocks import configuration_strategy_mock
 import nipype.pipeline.engine as pe
 from ..output_func_to_standard import fsl_apply_transform_func_to_mni
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_fsl_apply_transform_func_to_mni_nonlinear():
 
     c, strat = configuration_strategy_mock(method='FSL')
@@ -23,6 +26,8 @@ def test_fsl_apply_transform_func_to_mni_nonlinear():
 
     workflow.run()
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_fsl_apply_transform_func_to_mni_nonlinear_mapnode():
 
     c, strat = configuration_strategy_mock(method='FSL')
@@ -43,6 +48,8 @@ def test_fsl_apply_transform_func_to_mni_nonlinear_mapnode():
 
     workflow.run()
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_fsl_apply_transform_func_to_mni_linear():
 
     c, strat = configuration_strategy_mock(method='FSL')
@@ -63,6 +70,8 @@ def test_fsl_apply_transform_func_to_mni_linear():
 
     workflow.run()
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_fsl_apply_transform_func_to_mni_linear_mapnode():
 
     c, strat = configuration_strategy_mock(method='FSL')

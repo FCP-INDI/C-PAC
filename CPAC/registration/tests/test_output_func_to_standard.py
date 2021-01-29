@@ -2,12 +2,16 @@ import os
 import nibabel as nb
 import numpy as np
 import nipype.pipeline.engine as pe
+import pytest
+
 from CPAC.registration import output_func_to_standard
 from .mocks import configuration_strategy_mock
 import nipype.interfaces.afni.utils as afni_utils
 import nipype.interfaces.utility as util
 import CPAC.utils.test_init as test_utils
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_output_func_to_standard_ANTS():
 
     test_name = 'test_output_func_to_standard_ANTS'
@@ -49,6 +53,8 @@ def test_output_func_to_standard_ANTS():
 
     assert(test_utils.pearson_correlation(out1_name, out2_name) > 0.99)
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_output_func_to_standard_FSL_linear():
 
     test_name = 'test_output_func_to_standard_FSL_linear'
@@ -92,6 +98,7 @@ def test_output_func_to_standard_FSL_linear():
     assert(test_utils.pearson_correlation(out1_name, out2_name) > 0.99)
 
 
+@pytest.mark.skip(reason='needs refactoring')
 def test_output_func_to_standard_FSL_nonlinear():
 
     test_name = 'test_output_func_to_standard_FSL_nonlinear'

@@ -1,4 +1,7 @@
+import pytest
 
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_nonlinear_register():
     from ..registration import create_nonlinear_register
     
@@ -63,7 +66,9 @@ def test_nonlinear_register():
     
     mni_workflow.base_dir = './'
     mni_workflow.run()    
-    
+
+
+@pytest.mark.skip(reason='needs refactoring')
 def test_registration():
     from ..registration import create_nonlinear_register
     from ..registration import create_register_func_to_mni
@@ -97,6 +102,7 @@ def test_registration():
     mni_workflow.run()
 
 
+@pytest.mark.skip(reason='needs refactoring')
 def test_registration_lesion():
     import os
     import nipype.pipeline.engine as pe
