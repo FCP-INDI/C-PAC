@@ -83,8 +83,8 @@ def create_sca(name_sca='sca'):
     --------
 
     >>> sca_w = create_sca("sca_wf")
-    >>> sca_w.inputs.inputspec.functional_file = '/home/data/subject/func/rest_bandpassed.nii.gz'
-    >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D'
+    >>> sca_w.inputs.inputspec.functional_file = '/home/data/subject/func/rest_bandpassed.nii.gz'  # doctest: +SKIP
+    >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D'  # doctest: +SKIP
     >>> sca_w.run() # doctest: +SKIP
 
     """
@@ -257,10 +257,10 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     Examples
     --------
 
-    >>> tr_wf = create_temporal_reg('temporal regression')
-    >>> tr_wf.inputs.inputspec.subject_rest = '/home/data/subject/func/rest_bandpassed.nii.gz'
-    >>> tr_wf.inputs.inputspec.subject_timeseries = '/home/data/subject/func/timeseries.txt'
-    >>> tr_wf.inputs.inputspec.subject_mask = '/home/data/spatialmaps/spatial_map.nii.gz'
+    >>> tr_wf = create_temporal_reg('temporal-regression')
+    >>> tr_wf.inputs.inputspec.subject_rest = '/home/data/subject/func/rest_bandpassed.nii.gz'  # doctest: +SKIP
+    >>> tr_wf.inputs.inputspec.subject_timeseries = '/home/data/subject/func/timeseries.txt'  # doctest: +SKIP
+    >>> tr_wf.inputs.inputspec.subject_mask = '/home/data/spatialmaps/spatial_map.nii.gz'  # doctest: +SKIP
     >>> tr_wf.inputs.inputspec.demean = True
     >>> tr_wf.inputs.inputspec.normalize = True
     >>> tr_wf.run() # doctest: +SKIP
