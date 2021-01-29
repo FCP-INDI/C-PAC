@@ -1048,7 +1048,7 @@ def abcd_reconall(T1wImage, T1wImageFile, T1wImageBrainFile, SubjectID, SubjectD
 
     # recon-all -subjid $SubjectID -sd $SubjectDIR -surfvolume -parcstats -cortparc2 -parcstats2 -cortparc3 -parcstats3 -cortribbon -segstats -aparc2aseg -wmparc -balabels -label-exvivo-ec -openmp ${num_cores} ${seed_cmd_appendix}
     # remove -label-exvivo-ec because FreeSurfer complains "ERROR: Flag -label-exvivo-ec unrecognized."
-    cmd = 'recon-all -subjid %s -sd %s -surfvolume -parcstats -cortparc2 -parcstats2 -cortparc3 -parcstats3 -cortribbon -segstats -aparc2aseg -wmparc -balabels -openmp %s' % (SubjectID, SubjectDIR, openmp)
+    cmd = 'recon-all -subjid %s -sd %s -pial -surfvolume -parcstats -cortparc2 -parcstats2 -cortparc3 -parcstats3 -cortribbon -segstats -aparc2aseg -wmparc -balabels -openmp %s' % (SubjectID, SubjectDIR, openmp)
     os.system(cmd)
 
     wmparc = os.path.join(SubjectDIR, SubjectID, 'mri/wmparc.mgz')
