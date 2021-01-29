@@ -77,11 +77,11 @@ def create_reho(wf_name):
     Examples
     --------
     >>> from CPAC import reho
-    >>> wf = reho.create_reho()
-    >>> wf.inputs.inputspec.rest_res_filt = '/home/data/Project/subject/func/rest_res_filt.nii.gz'
-    >>> wf.inputs.inputspec.rest_mask = '/home/data/Project/subject/func/rest_mask.nii.gz'
+    >>> wf = reho.create_reho('reho')
+    >>> wf.inputs.inputspec.rest_res_filt = '/home/data/Project/subject/func/rest_res_filt.nii.gz'  # doctest: +SKIP
+    >>> wf.inputs.inputspec.rest_mask = '/home/data/Project/subject/func/rest_mask.nii.gz'  # doctest: +SKIP
     >>> wf.inputs.inputspec.cluster_size = 27
-    >>> wf.run()
+    >>> wf.run()  # doctest: +SKIP
     """
 
     reHo = pe.Workflow(name=wf_name)
