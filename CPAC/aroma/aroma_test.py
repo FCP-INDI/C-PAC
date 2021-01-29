@@ -1,21 +1,37 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+"""This script runs the warp_nipype workflow to execute the interfaces
+and with the inputs already provided.
+
+It accepts as its arguments the input whihc you'd give the warp_nipe
+file, an output_dir which can be either be mentioned or if it is set to
+None will write it in the current working directory.
+
+The argument run can either be tset to true(default) or to false. If
+set to False, it should connect to the nipype workflow and return the
+workflow object instead.
+
+What all should it return?:
+    If the run had been set to true, it would generate the filepath of
+    the output from the workflow. If the run was set to false, then it
+    will return the file path of the base directory, the workflow
+    object, etc.
+
 Created on Thu Nov  9 10:36:37 2017
 
 @author: nrajamani
 """
-import os
 import glob
+import os
+import pytest
+
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
 from nipype.interfaces.fsl import ImageStats
-#rom nose.tools import *
-## This script runs the warp_nipype workflow to execute the interfaces and with the inputs already provided
-## It accepts as it's arguments the input whihc you;d give the warp_nipe file, an output_dir which can be either be mentioned or if it is set to none will write it in the current working directory.
-## The argument run can either be tset to true(default) or to false. If set to false, it should connect to the nipype workflow and return the workflow object instead
-##What all should it return?: if the run had been set to true, it would generate the filepath of the output from the workflow. If the run was set to false, then it will return the file path of the 
-##base directory, the workflow object, etc.
+# from nose.tools import *
+
+
+@pytest.mark.skip(reason='needs refactoring')
 def run_warp_nipype(inputs,output_dir=None,run=True):
    import EPI_DistCorr
    warp_workflow = pe.Workflow(name = 'preproc')
@@ -70,10 +86,16 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    else:
        return warp_workflow, warp_workflow.base_dir
 
-run_warp_nipype(['anat_file','func_file','fmap_pha','fmap_mag','deltaTE','dwellT','dwell_asym_ratio','bet_frac','bbr_schedule'],output_dir=None,run=True)
-    
-    
-    
-    
-    
-    
+
+if __name__ == '__main__':
+    run_warp_nipype([
+        'anat_file',
+        'func_file',
+        'fmap_pha',
+        'fmap_mag',
+        'deltaTE',
+        'dwellT',
+        'dwell_asym_ratio',
+        'bet_frac',
+        'bbr_schedule'
+    ], output_dir=None, run=True)
