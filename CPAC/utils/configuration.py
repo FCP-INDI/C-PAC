@@ -5,6 +5,9 @@ import yaml
 from itertools import repeat
 from warnings import warn
 
+SPECIAL_REPLACEMENT_STRINGS = {r'${resolution_for_anat}',
+                               r'${func_resolution}'}
+
 # Find default config
 # in-container location
 DEFAULT_PIPELINE_FILE = '/cpac_resources/default_pipeline.yml'
@@ -197,7 +200,8 @@ class Configuration(object):
                 try:
                     orig_key = self.sub_pattern(pattern, orig_key)
                 except AttributeError as ae:
-                    warn(str(ae), category=SyntaxWarning)
+                    if pattern not in SPECIAL_REPLACEMENT_STRINGS:
+                        warn(str(ae), category=SyntaxWarning)
         return orig_key
 
     # method to find any pattern ($) in the configuration
