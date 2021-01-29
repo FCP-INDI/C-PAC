@@ -1165,6 +1165,8 @@ def initiate_rpool(wf, cfg, data_paths):
 
     part_id = data_paths['subject_id']
     ses_id = data_paths['unique_id']
+    if not data_paths.get('creds_path'):
+        data_paths['creds_path'] = ''
 
     unique_id = f'{part_id}_{ses_id}'
 
