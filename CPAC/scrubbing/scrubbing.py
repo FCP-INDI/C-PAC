@@ -72,12 +72,12 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
        
     Example
     -------
-    >>> import scrubbing
+    >>> from CPAC import scrubbing
     >>> sc = scrubbing.create_scrubbing_preproc()
-    >>> sc.inputs.inputspec.frames_in_ID = 'frames_in.1D'
-    >>> sc.inputs.inputpsec.movement_parameters = 'rest_mc.1D'
-    >>> sc.inputs.inputpsec.preprocessed = 'rest_pp.nii.gz'
-    >>> sc.run()  -- SKIP doctest
+    >>> sc.inputs.inputspec.frames_in_ID = 'frames_in.1D'  # doctest: +SKIP
+    >>> sc.inputs.inputpsec.movement_parameters = 'rest_mc.1D'  # doctest: +SKIP
+    >>> sc.inputs.inputpsec.preprocessed = 'rest_pp.nii.gz'  # doctest: +SKIP
+    >>> sc.run()  # doctest: +SKIP
     
     """
 
