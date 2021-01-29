@@ -1,4 +1,3 @@
-
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
@@ -236,17 +235,19 @@ def create_fsl_flame_wf(ftest=False, wf_name='groupAnalysis'):
     Examples
     --------
     
-    >>> from group_analysis_preproc import create_group_analysis
-    >>> preproc = create_group_analysis()
-    >>> preproc.inputs.inputspec.mat_file = '../group_models/anova_with_meanFD/anova_with_meanFD.mat'
-    >>> preproc.inputs.inputspec.con_file = '../group_models/anova_with_meanFD/anova_with_meanFD.con'
-    >>> preproc.inputs.inputspec.grp_file = '../group_models/anova_with_meanFD/anova_with_meanFD.grp'
-    >>> preproc.inputs.inputspec.zmap_files = ['subjects/sub01/seeds_rest_Dickstein_DLPFC/sca_Z_FWHM.nii.gz', 
-                                               'subjects/sub02/seeds_rest_Dickstein_DLPFC/sca_Z_FWHM.nii.gz']
+    >>> from CPAC.group_analysis import create_fsl_flame_wf
+    >>> preproc = create_fsl_flame_wf()
+    >>> preproc.inputs.inputspec.mat_file = '../group_models/anova_with_meanFD/anova_with_meanFD.mat'  # doctest: +SKIP
+    >>> preproc.inputs.inputspec.con_file = '../group_models/anova_with_meanFD/anova_with_meanFD.con'  # doctest: +SKIP
+    >>> preproc.inputs.inputspec.grp_file = '../group_models/anova_with_meanFD/anova_with_meanFD.grp'  # doctest: +SKIP
+    >>> preproc.inputs.inputspec.zmap_files = [
+    ...     'subjects/sub01/seeds_rest_Dickstein_DLPFC/sca_Z_FWHM.nii.gz', 
+    ...     'subjects/sub02/seeds_rest_Dickstein_DLPFC/sca_Z_FWHM.nii.gz'
+    ... ]  # doctest: +SKIP
     >>> preproc.inputs.inputspec.z_threshold = 2.3
     >>> preproc.inputs.inputspec.p_threshold = 0.05
     >>> preproc.inputs.inputspec.parameters = ('/usr/local/fsl/', 'MNI152')
-    >>> preproc.run()  -- SKIP doctest
+    >>> preproc.run()    # doctest: +SKIP
             
     """
     grp_analysis = pe.Workflow(name=wf_name)
