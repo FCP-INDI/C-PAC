@@ -42,7 +42,7 @@ def generate_inverse_transform_flags(transform_list):
 
 def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                   reference_skull, reference_mask, moving_mask, ants_para, 
-                  fixed_image_mask=None, interp=None, reg_ants_skull=0):
+                  fixed_image_mask=None, interp=None, reg_with_skull=0):
 
     #TODO: expand transforms to cover all in ANTs para
     
@@ -90,7 +90,7 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                     raise Exception(err_msg)
                 else:
                     regcmd.append("--initial-moving-transform")
-                    if reg_ants_skull == 1:
+                    if reg_with_skull == 1:
                         regcmd.append("[{0},{1},{2}]".format(
                             reference_skull, moving_skull, ants_para[para_index][para_type]['initializationFeature']))
                     else:
@@ -144,7 +144,7 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                                         ants_para[para_index][para_type][trans_index][trans_type]['metric']['samplingPercentage']))
                                 MI_para = ','.join([str(elem) for elem in MI_para])
                                 regcmd.append("--metric")
-                                if reg_ants_skull == 1:
+                                if reg_with_skull == 1:
                                     regcmd.append("MI[{0},{1},{2}]".format(
                                         reference_skull, moving_skull, MI_para))
                                 else:
