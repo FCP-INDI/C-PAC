@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 from CPAC.isc.pipeline import create_isc, create_isfc
 
 
+@pytest.mark.skip(reason='needs refactored')
 def test_pipeline_isc():
 
     wf = create_isc()
@@ -13,6 +15,7 @@ def test_pipeline_isc():
     wf.run(plugin='Linear')
 
 
+@pytest.mark.skip(reason='needs refactored')
 def test_pipeline_isfc():
 
     wf = create_isfc()
