@@ -1,5 +1,6 @@
-import mock
 from nipype.utils.filemanip import loadpkl
+from unittest import mock
+
 
 def test_nipype_mock():
 

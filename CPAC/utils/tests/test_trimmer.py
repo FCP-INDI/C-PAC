@@ -1,8 +1,9 @@
-import mock
 import yaml
 import shutil
 import tempfile
 from copy import copy
+from unittest import mock
+
 
 def accept_all(object, name, value):
     return value
