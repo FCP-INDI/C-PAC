@@ -1,5 +1,6 @@
-import yaml
 import glob
+import pytest
+import yaml
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
@@ -77,7 +78,7 @@ def identity_input(name, field, val):
     return pool_input, field
 
 
-
+@pytest.mark.skip(reason='needs refactoring')
 def test_nuisance_workflow_type1():
 
     base_dir = '/tmp/nuisance_working_dir'
