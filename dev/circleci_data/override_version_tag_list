@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Helper for handling of auto-tagged version info. Leaves version-tagged files with other changes.
+Helper for CI handling of auto-tagged version info. Leaves version-tagged files with other changes.
 """
 import re
 
