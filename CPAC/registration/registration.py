@@ -894,7 +894,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', num_thre
 
     if reg_ants_skull == 1 and not reg_ants_skull == 0:
         
-        calc_ants_warp_wf.inputs.reg_ants_skull = 1
+        calculate_ants_warp.inputs.reg_ants_skull = 1
 
         calc_ants_warp_wf.connect(inputspec, 'moving_skull',
                 calculate_ants_warp, 'moving_skull')
