@@ -126,6 +126,8 @@ schema = Schema({
         'pipeline_name': All(str, Length(min=1)),
         'output_directory': {
             'path': str,
+            'source_outputs_dir': Maybe(str),
+            'pull_source_once': bool,
             'write_func_outputs': bool,
             'write_debugging_outputs': bool,
             'output_tree': str,
@@ -140,7 +142,7 @@ schema = Schema({
             'path': str,
         },
         'crash_log_directory': {
-            'path': str,
+            'path': Maybe(str),
         },
         'system_config': {
             'FSLDIR': Maybe(str),

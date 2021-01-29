@@ -210,8 +210,6 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality: 
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  # this is a fork point
-  #   run: [On, Off] - this will run both and fork the pipeline
   run: [Off]
 
 # PACKAGE INTEGRATIONS
