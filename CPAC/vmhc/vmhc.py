@@ -37,7 +37,6 @@ def smooth_func_vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "desc-preproc_bold",
                                      "desc-reorient_bold",
                                      "bold"])
-
     wf.connect(node, out, smooth, 'inputspec.in_file')
 
     node, out = strat_pool.get_data("space-bold_desc-brain_mask")
@@ -60,13 +59,10 @@ def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["from-bold_to-symtemplate_mode-image_xfm",
-                "desc-sm_bold",
+     "inputs": ["desc-sm_bold",
+                "from-bold_to-symtemplate_mode-image_xfm",
                 "T1w_brain_template_symmetric"],
-     "outputs": ["space-symtemplate_desc-cleaned_bold",
-                 "space-symtemplate_desc-preproc_bold",
-                 "space-symtemplate_desc-reorient_bold",
-                 "space-symtemplate_bold"]}
+     "outputs": ["space-symtemplate_desc-sm_bold"]}
     '''
 
     xfm_prov = strat_pool.get_cpac_provenance(

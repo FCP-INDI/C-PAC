@@ -127,6 +127,16 @@ class ResourcePool(object):
         #TODO: key checks
         return self.rpool[resource][pipe_idx][key]
 
+    def get_resource_from_prov(self, prov):
+        # each resource (i.e. "desc-cleaned_bold" AKA nuisance-regressed BOLD
+        # data) has its own provenance list. the name of the resource, and
+        # the node that produced it, is always the last item in the provenance
+        # list, with the two separated by a colon :
+        if isinstance(prov[-1], list):
+            return prov[-1][-1].split(':')[0]
+        elif isinstance(prov[-1], str):
+            return prov[-1].split(':')[0]
+
     def set_data(self, resource, node, output, json_info, pipe_idx, node_name,
                  fork=False, inject=False):
         '''
@@ -171,7 +181,8 @@ class ResourcePool(object):
         self.rpool[resource][new_pipe_idx]['data'] = (node, output)
         self.rpool[resource][new_pipe_idx]['json'] = json_info
 
-    def get(self, resource, pipe_idx=None, report_fetched=False, optional=False):
+    def get(self, resource, pipe_idx=None, report_fetched=False,
+            optional=False):
         # NOTE!!!
         #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
@@ -277,13 +288,17 @@ class ResourcePool(object):
         #   {rpool entry}: {that entry's provenance}
         #   {rpool entry}: {that entry's provenance}
         resource_strat_dct = {}
-        for spot, entry in enumerate(prov):
-            if isinstance(entry, list):
-                resource = entry[-1].split(':')[0]
-                resource_strat_dct[resource] = entry
-            elif isinstance(entry, str):
-                resource = entry.split(':')[0]
-                resource_strat_dct[resource] = entry
+        if isinstance(prov, str):
+            resource = prov.split(':')[0]
+            resource_strat_dct[resource] = prov
+        else:
+            for spot, entry in enumerate(prov):
+                if isinstance(entry, list):
+                    resource = entry[-1].split(':')[0]
+                    resource_strat_dct[resource] = entry
+                elif isinstance(entry, str):
+                    resource = entry.split(':')[0]
+                    resource_strat_dct[resource] = entry
         return resource_strat_dct
 
     '''
@@ -301,7 +316,7 @@ class ResourcePool(object):
 
         import itertools
 
-        linked_resources = {}
+        linked_resources = []
         linked = []
         resource_list = []
         for resource in resources:
@@ -317,7 +332,7 @@ class ResourcePool(object):
                         linked.append(fetched_resource)
                     else:
                         linked.append(label)
-                linked_resources[linked[0]] = linked[1:]
+                linked_resources.append(linked)
                 resource_list += linked
             else:
                 resource_list.append(resource)
@@ -325,8 +340,8 @@ class ResourcePool(object):
         total_pool = []
         len_inputs = len(resource_list)
         for resource in resource_list:
-
-            rp_dct, fetched_resource = self.get(resource, report_fetched=True,   # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
+            rp_dct, fetched_resource = self.get(resource,
+                                                report_fetched=True,             # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
                                                 optional=True)                   # oh, and we make the resource fetching in get_strats optional so we can have optional inputs, but they won't be optional in the node block unless we want them to be
             if not rp_dct:
                 len_inputs -= 1
@@ -354,8 +369,33 @@ class ResourcePool(object):
             # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
             new_strats = {}
             for strat_tuple in strats:
+                # the strats are still in provenance-list form
+                #   not string-based pipe_idx's yet
                 strat_list = list(strat_tuple)     # <------- strat_list is now a list of strats all combined together, one of the permutations. keep in mind each strat in the combo comes from a different data source/input
                                                    #          like this:   strat_list = [desc-preproc_T1w:pipe_idx_anat_1, desc-brain_mask:pipe_idx_mask_1]
+
+                variants = {}
+                for strat in strat_list:
+                    # strat is a prov list
+                    strat_resource, strat_idx = \
+                        self.generate_prov_string(strat)
+                    strat_json = self.get_json(strat_resource,
+                                               strat=strat_idx)
+                    cpac_var = None
+                    if 'CpacVariant' in strat_json:
+                        cpac_var = strat_json['CpacVariant']
+                    variants[strat_resource] = cpac_var
+
+                if linked_resources:
+                    for linked in linked_resources:
+                        variant_lists = []
+                        #print('\nnew linked resources list')
+                        for label in linked:
+                            variant_lists.append(variants[label])
+                            #print(f'label: {label}')
+                            #print(f'variants: {variants[label]}')
+
+                '''
                 all_resource_strat_dcts = {}
                 strat_dct = {}
                 for strat in strat_list:
@@ -371,6 +411,8 @@ class ResourcePool(object):
                     if key in linked_resources:
                         # 'younger' linked resources, linked to key
                         younger_links = linked_resources[key]
+                        print(f'key = {key}')
+                        print(f'sub_dct = {sub_dct}')
                         for link in younger_links:
                             main_idx = self.generate_prov_string(strat_dct[key])[1]
                             link_idx = self.generate_prov_string(sub_dct[link])[1]
@@ -384,6 +426,7 @@ class ResourcePool(object):
                     print(f'link_idx = {link_idx}')
                     print(f'DROPPING = {strat_tuple}')
                     continue
+                '''
 
                 # drop the incorrect permutations
                 #drop = False
@@ -853,7 +896,6 @@ class NodeBlock(object):
         return self.name
 
     def grab_docstring_dct(self, fn_docstring):
-        import json
         init_dct_schema = ['name', 'config', 'switch', 'option_key',
                            'option_val', 'inputs', 'outputs']
         if 'Node Block:' in fn_docstring:
@@ -947,7 +989,6 @@ class NodeBlock(object):
                     switch = [switch]
 
             #print(f'switch and opts for {name}: {switch} --- {opts}')
-
             if True in switch:
                 for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
@@ -991,6 +1032,7 @@ class NodeBlock(object):
                             self.check_output(outputs, label, name)
                             json_info = dict(strat_pool.get('json'))
                             json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
+
                             if strat_pool.check_rpool(label):
                                 # so we won't get extra forks if we are
                                 # merging strats (multiple inputs) plus the
@@ -998,6 +1040,11 @@ class NodeBlock(object):
                                 old_pipe_prov = list(strat_pool.get_cpac_provenance(label))
                                 json_info['CpacProvenance'] = old_pipe_prov
                                 pipe_idx = strat_pool.generate_prov_string(old_pipe_prov)[1]
+
+                            if fork or len(opts) > 1:
+                                if 'CpacVariant' not in json_info:
+                                    json_info['CpacVariant'] = []
+                                json_info['CpacVariant'].append(node_name)
 
                             rpool.set_data(label,
                                            connection[0],
@@ -1184,24 +1231,52 @@ def initiate_rpool(wf, cfg, data_paths):
                               data_paths['creds_path'])
 
     # grab already-processed data from the output directory
-    out_dir = cfg.pipeline_setup['output_directory']['path']
+    if cfg.pipeline_setup['output_directory']['pull_source_once']:
+        if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
+            if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
+                if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+                    out_dir = cfg.pipeline_setup['output_directory'][
+                        'source_outputs_dir']
+                else:
+                    out_dir = cfg.pipeline_setup['output_directory']['path']
+            else:
+                out_dir = cfg.pipeline_setup['output_directory']['path']
+        else:
+            if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+                out_dir = cfg.pipeline_setup['output_directory'][
+                    'source_outputs_dir']
+    else:
+        if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
+            out_dir = cfg.pipeline_setup['output_directory']['source_outputs_dir']
+        else:
+            out_dir = cfg.pipeline_setup['output_directory']['path']
+
+    print(f"\nPulling outputs from {out_dir}.\n")
+
     cpac_dir = os.path.join(out_dir, 'cpac', unique_id)
     cpac_dir_anat = os.path.join(cpac_dir, 'anat')
     cpac_dir_func = os.path.join(cpac_dir, 'func')
 
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt']
+
     all_output_dir = []
     if os.path.isdir(cpac_dir_anat):
         for filename in os.listdir(cpac_dir_anat):
-            if '.nii' in filename or '.mat' in filename:
-                all_output_dir.append(os.path.join(cpac_dir_anat, filename))
+            for ext in exts:
+                if ext in filename:
+                    all_output_dir.append(os.path.join(cpac_dir_anat,
+                                                       filename))
     if os.path.isdir(cpac_dir_func):
         for filename in os.listdir(cpac_dir_func):
-            if '.nii' in filename or '.mat' in filename:
-                all_output_dir.append(os.path.join(cpac_dir_func, filename))
+            for ext in exts:
+                if ext in filename:
+                    all_output_dir.append(os.path.join(cpac_dir_func,
+                                                       filename))
 
     for filepath in all_output_dir:
-        filename = filepath.split("/")[-1].replace('.nii', '').replace('.gz', '')
-        filename = filename.replace('.mat', '')
+        filename = str(filepath)
+        for ext in exts:
+            filename = filename.split("/")[-1].replace(ext, '')
         data_label = filename.split(unique_id)[1].lstrip('_')
         if 'task-' in data_label:
             for tag in data_label.split('_'):
@@ -1219,8 +1294,11 @@ def initiate_rpool(wf, cfg, data_paths):
         for tag in data_label.split('_'):
             if 'desc-' in tag:
                 desc_val = tag
-        jsonpath = filepath.replace('.gz', '').replace('.nii', '.json')
-        jsonpath = jsonpath.replace('.mat', '.json')
+        jsonpath = str(filepath)
+        for ext in exts:
+            jsonpath = jsonpath.replace(ext, '')
+        jsonpath = f"{jsonpath}.json"
+
         if not os.path.exists(jsonpath):
             raise Exception('\n\n[!] No JSON found for file '
                             f'{filepath}.\n\n')

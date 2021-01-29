@@ -56,6 +56,24 @@ def check_prov_for_regtool(prov):
                 return 'fsl'
             else:
                 return None
+        elif 'from-T1w_to-symtemplate_mode-image_xfm:' in str(prov):
+            splitprov = str(prov).split(
+                'from-T1w_to-symtemplate_mode-image_xfm:')
+            node_name = splitprov[1].split("']")[0]
+            if 'ANTs' in node_name:
+                return 'ants'
+            elif 'FSL' in node_name:
+                return 'fsl'
+        elif 'from-bold_to-symtemplate_mode-image_xfm:' in str(prov):
+            splitprov = str(prov).split(
+                'from-bold_to-symtemplate_mode-image_xfm:')
+            node_name = splitprov[1].split("']")[0]
+            if 'ANTs' in node_name:
+                return 'ants'
+            elif 'FSL' in node_name:
+                return 'fsl'
+            else:
+                return None
         else:
             return None
 

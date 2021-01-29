@@ -20,11 +20,32 @@ pipeline_setup:
     # - If running outside a container, this should be a full path to a directory.
     path: /output
 
+    # (Optional) Path to a BIDS-Derivatives directory that already has outputs.
+    #   - If provided, C-PAC will ingress the already-computed outputs from this directory and
+    #     continue the pipeline from where they leave off.
+    #   - If left as 'None', C-PAC will ingress any already-computed outputs from the
+    #     output directory you provide above in 'path' instead, the default behavior.
+    #   - This option may be useful if you want to ingress already-existing resources
+    #     but don't want to write new outputs back into the same directory.
+    source_outputs_dir: /source/output
+
+    # Set to True to make C-PAC ingress the outputs from the primary output directory if they
+    # exist, even if a source_outputs_dir is provided
+    #   - Setting to False will pull from source_outputs_dir every time, over-writing any
+    #     calculated outputs in the main output directory
+    #   - C-PAC will still pull from source_outputs_dir if the main output directory is
+    #     empty, however
+    pull_source_once: True
+
     # Include extra versions and intermediate steps of functional preprocessing in the output directory.
     write_func_outputs: False
 
     # Include extra outputs in the output directory that may be of interest when more information is needed.
     write_debugging_outputs: False
+
+    # Output directory format and structure.
+    # Options: default, ndmg
+    output_tree: "default"
 
     # Generate quality control pages containing preprocessing and derivative outputs.
     generate_quality_control_images: True
@@ -51,6 +72,11 @@ pipeline_setup:
     run_logging: True
 
     path: /logs
+
+  crash_log_directory:
+
+    # Directory where CPAC should write crash logs.
+    path: /crash
 
   system_config:
 
@@ -120,7 +146,7 @@ pipeline_setup:
   Debugging:
 
     # Verbose developer messages.
-    verbose: False
+    verbose: Off
 
 
 # PREPROCESSING
@@ -1305,8 +1331,6 @@ voxel_mirrored_homotopic_connectivity:
 network_centrality:
 
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
-  # this is a fork point
-  #   run: [On, Off] - this will run both and fork the pipeline
   run: [On]
 
   # Maximum amount of RAM (in GB) to be used when calculating Degree Centrality.
