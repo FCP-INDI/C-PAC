@@ -8,7 +8,7 @@ Created on Thu Nov  9 10:36:37 2017
 import os
 import glob
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces.fsl import ImageStats
 #rom nose.tools import *
 ## This script runs the warp_nipype workflow to execute the interfaces and with the inputs already provided

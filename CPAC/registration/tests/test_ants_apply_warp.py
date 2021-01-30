@@ -1,5 +1,5 @@
 import os
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from ..output_func_to_standard import ants_apply_warps_func_mni
 from .mocks import configuration_strategy_mock
 import CPAC.utils.test_init as test_utils

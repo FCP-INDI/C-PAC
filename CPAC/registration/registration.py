@@ -1,4 +1,4 @@
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
@@ -825,7 +825,7 @@ def create_wf_calculate_ants_warp(
                                                       'warped_image'],
                                         function=hardcoded_reg,
                                         imports=reg_imports),
-                name='calc_ants_warp')
+                name='calc_ants_warp', mem_gb=6.0)
 
     calculate_ants_warp.interface.num_threads = num_threads
 

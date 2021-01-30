@@ -1,5 +1,5 @@
 import nipype.interfaces.fsl as fsl
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
@@ -563,12 +563,12 @@ def ants_apply_warps_func_mni(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_mapnode_{1}_{2}_{3}'.format(output_name,
                     inverse_string, registration_template, num_strat),
-                iterfield=['input_image'], mem_gb=1.5)
+                iterfield=['input_image'], mem_gb=10.0)
     else:
         apply_ants_warp = pe.Node(
                 interface=ants.ApplyTransforms(),
                 name='apply_ants_warp_{0}_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat), mem_gb=1.5)
+                    inverse_string, registration_template, num_strat), mem_gb=10.0)
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = int(num_ants_cores)
@@ -597,7 +597,7 @@ def ants_apply_warps_func_mni(
         write_composite_xfm = pe.Node(
                 interface=ants.ApplyTransforms(),
                 name='write_composite_xfm_{0}_{1}_{2}_{3}'.format(output_name,
-                    inverse_string, registration_template, num_strat), mem_gb=1.5)
+                    inverse_string, registration_template, num_strat), mem_gb=8.0)
         write_composite_xfm.inputs.print_out_composite_warp_file = True
         write_composite_xfm.inputs.output_image = "func_to_standard_xfm.nii.gz"
 

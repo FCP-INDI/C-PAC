@@ -11,7 +11,7 @@ from CPAC.qc.utils import (
     gen_carpet_plt
 )
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces import afni
 import nipype.interfaces.fsl as fsl
@@ -429,7 +429,7 @@ def create_qc_carpet(wf_name='qc_carpet', output_image='qc_carpet'):
                                    output_names=['carpet_plot'],
                                    function=gen_carpet_plt,
                                    as_module=True),
-                          name='carpet_plot')
+                          name='carpet_plot', mem_gb=4.0)
 
     carpet_plot.inputs.output = output_image
     wf.connect(gm_mask, 'out_file', carpet_plot, 'gm_mask')

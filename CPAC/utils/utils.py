@@ -94,7 +94,7 @@ def get_flag(in_flag):
 
 
 def get_flag_wf(wf_name='get_flag'):
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
@@ -203,7 +203,7 @@ def get_zscore(map_node=False, wf_name='z_score'):
     >>> wf.run()  # doctest: +SKIP
     """  # noqa
 
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.fsl as fsl
 
@@ -278,7 +278,7 @@ def get_fisher_zscore(input_name, map_node=False, wf_name='fisher_z_score'):
     Runs the compute_fisher_z_score function as part of a one-node workflow.
     """
 
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.fsl as fsl
 
@@ -1029,7 +1029,7 @@ def create_log(wf_name="log", scan_id=None):
     Workflow to create log
     """
 
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
     import CPAC.utils.interfaces.function as function
 

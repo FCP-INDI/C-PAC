@@ -3,7 +3,7 @@ from nipype.interfaces import ants
 
 logger = logging.getLogger('workflow')
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from nipype.interfaces import afni
@@ -683,7 +683,7 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     elif opt == 'mcflirt':
         func_motion_correct_A = pe.Node(
             interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
-            name=f'func_motion_correct_mcflirt_{pipe_num}')
+            name=f'func_motion_correct_mcflirt_{pipe_num}', mem_gb=2.5)
 
         func_motion_correct_A.inputs.save_mats = True
         func_motion_correct_A.inputs.save_plots = True
@@ -1609,7 +1609,8 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     '''
 
     func_normalize = pe.Node(interface=fsl.ImageMaths(),
-                             name=f'func_normalize_{pipe_num}')
+                             name=f'func_normalize_{pipe_num}',
+                             mem_gb=3.0)
     func_normalize.inputs.op_string = '-ing 10000'
     func_normalize.inputs.out_data_type = 'float'
 
@@ -1617,7 +1618,8 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, func_normalize, 'in_file')
 
     func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
-                                  name=f'func_mask_normalize_{pipe_num}')
+                                  name=f'func_mask_normalize_{pipe_num}',
+                                  mem_gb=3.0)
     func_mask_normalize.inputs.op_string = '-Tmin -bin'
     func_mask_normalize.inputs.out_data_type = 'char'
 

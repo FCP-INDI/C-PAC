@@ -5,7 +5,7 @@ from collections import OrderedDict
 import nipype.interfaces.ants as ants
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni
 
 from CPAC.nuisance.utils.compcor import calc_compcor_components
@@ -319,7 +319,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
         elif step == 'resolution':
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
                                   name='{}_flirt'
-                                       .format(node_mask_key))
+                                       .format(node_mask_key),
+                                  mem_gb=8.0)
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 

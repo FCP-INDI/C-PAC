@@ -1,6 +1,6 @@
 import nipype.interfaces.fsl as fsl
 from nipype.interfaces.afni import preprocess as afni
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils import Outputs
 
@@ -51,13 +51,16 @@ def spatial_smoothing(wf_name, fwhm, input_image_type='func_derivative',
                                       ', '.join(image_types)))
 
     if opt == 'FSL':
+        output_smooth_mem_gb = 4.0
         if input_image_type == 'func_derivative_multi':
             output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                        name='smooth_multi',
-                                       iterfield=['in_file'])
+                                       iterfield=['in_file'],
+                                       mem_gb=output_smooth_mem_gb)
         else:
             output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                    name='smooth')
+                                    name='smooth',
+                                    mem_gb=output_smooth_mem_gb)
 
     elif opt == 'AFNI':
         if input_image_type == 'func_derivative_multi':

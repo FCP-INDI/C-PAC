@@ -1,4 +1,4 @@
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 
 from nipype.interfaces import fsl
@@ -237,7 +237,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                          name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
-                             name='3dROIstats')
+                             name='3dROIstats', mem_gb=3.0)
     timeseries_roi.inputs.quiet = False
     timeseries_roi.inputs.args = "-1Dformat"
     # TODO: add -mask_f2short for float parcellation mask
@@ -341,7 +341,7 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
                          name='outputspec')
 
     spatialReg = pe.Node(interface=fsl.GLM(),
-                         name='spatial_regression')
+                         name='spatial_regression', mem_gb=4.5)
 
     spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'
 
