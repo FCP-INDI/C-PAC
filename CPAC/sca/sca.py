@@ -16,7 +16,6 @@ from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
 
 
 def create_sca(name_sca='sca'):
-
     """
     Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
@@ -159,7 +158,6 @@ def create_sca(name_sca='sca'):
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
-
     """
     Temporal multiple regression workflow
     Provides a spatial map of parameter estimates corresponding to each

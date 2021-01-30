@@ -86,7 +86,7 @@ def create_cwas(name='cwas', working_dir=None, crash_dir=None):
     .. [1] Shehzad Z, Kelly C, Reiss PT, Emerson JW, McMahon K, Copland DA, Castellanos FX, Milham MP. An Analytic Framework for Connectome-Wide Association Studies. Under Review.
     
     """
-    
+
     if not working_dir:
         working_dir = os.path.join(os.getcwd(), 'MDMR_work_dir')
     if not crash_dir:

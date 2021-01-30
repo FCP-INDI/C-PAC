@@ -1,4 +1,5 @@
 import os
+import collections.abc
 import fnmatch
 import gzip
 import numbers
@@ -6,8 +7,18 @@ import pickle
 import threading
 import numpy as np
 import json
+import yaml
 
-from inspect import currentframe, getframeinfo, stack
+from itertools import repeat
+from optparse import OptionError
+from voluptuous.error import Invalid
+
+CONFIGS_DIR = os.path.abspath(os.path.join(
+    __file__, *repeat(os.path.pardir, 2), 'resources/configs/'))
+NESTED_CONFIG_MAPPING = yaml.safe_load(open(os.path.join(
+    CONFIGS_DIR, '1.7-1.8-nesting-mappings.yml'), 'r'))
+NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(open(os.path.join(
+    CONFIGS_DIR, '1.7-1.8-deprecations.yml'), 'r'))
 
 
 def get_last_prov_entry(prov):
@@ -186,13 +197,11 @@ def get_zscore(map_node=False, wf_name='z_score'):
 
     Example
     -------
-    >>> import get_zscore as z
-    >>> wf = z.get_zscore()
+    >>> wf = get_zscore('example_input')
     >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
     >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
-    >>> wf.run()
-
-    """
+    >>> wf.run()  # doctest: +SKIP
+    """  # noqa
 
     from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.utility as util
@@ -325,7 +334,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     Parameters
     ----------
 
-    correlation_file: string
+    correlation_file : string
         Input correlations file
 
 
@@ -414,7 +423,7 @@ def get_roi_num_list(timeseries_file, prefix=None):
                 roi_list = [x for x in roi_list if "Mean" in x]
                 # rename labels
                 roi_list = [
-                    x.replace("Mean", "ROI").replace(" ", "").replace("#", "") \
+                    x.replace("Mean", "ROI").replace(" ", "").replace("#", "")
                     for x in roi_list]
             except:
                 raise Exception(roi_err)
@@ -465,7 +474,7 @@ def extract_one_d(list_timeseries):
         if '.1D' in timeseries or '.csv' in timeseries:
             return timeseries
 
-    raise Exception("Unable to retrieve roi timeseries 1D or csv" \
+    raise Exception("Unable to retrieve roi timeseries 1D or csv"
                     " file. Files found:" + list_timeseries)
 
 
@@ -484,8 +493,8 @@ def extract_txt(list_timeseries):
             out_file = timeseries
 
     if not out_file:
-        raise Exception("Unable to retrieve roi timeseries txt" \
-                        " file required for dual regression." \
+        raise Exception("Unable to retrieve roi timeseries txt"
+                        " file required for dual regression."
                         " Existing files are:%s" % (list_timeseries))
 
     return out_file
@@ -1102,8 +1111,9 @@ def extract_output_mean(in_file, output_name):
 
         split_fullpath = in_file.split("/")
 
-        if "_mask_" in in_file and \
-                ("sca_roi" in in_file or "sca_tempreg" in in_file):
+        if "_mask_" in in_file and (
+           "sca_roi" in in_file or "sca_tempreg" in in_file
+        ):
 
             for dirname in split_fullpath:
                 if "_mask_" in dirname:
@@ -1190,13 +1200,13 @@ def create_output_mean_csv(subject_dir):
                         val = mean_file.readline()
                         val = val.strip('\n')
                     except:
-                        print('\n\n[!] CPAC says: Could not open the output ' \
+                        print('\n\n[!] CPAC says: Could not open the output '
                               'mean text file.\n')
                         print('Path: ', filepath, '\n\n')
                         raise Exception
 
                 else:
-                    print('\n\n[!] CPAC says: Could not find the output mean ' \
+                    print('\n\n[!] CPAC says: Could not find the output mean '
                           'text file.\n')
                     print('Path not found: ', filepath, '\n\n')
                     raise Exception
@@ -1325,7 +1335,7 @@ def check_config_resources(c):
         num_cores_per_sub = num_cores / c.pipeline_setup['system_config'][
             'num_participants_at_once']
 
-        # Now check ANTS
+    # Now check ANTS
     if 'ANTS' in c.registration_workflows['anatomical_registration'][
         'registration']['using']:
         if c.pipeline_setup['system_config']['num_ants_threads'] is None:
@@ -1377,14 +1387,14 @@ def load_preconfig(pipeline_label):
                 "configs")
         )
     avail_configs = os.listdir(avail_configs)
-    avail_configs = [x.split('_')[2].replace('.yml', '') for x \
+    avail_configs = [x.split('_')[2].replace('.yml', '') for x
                      in avail_configs if 'pipeline_config' in x]
 
     if pipeline_label not in avail_configs:
-        raise Exception("The pre-configured pipeline name '{0}' you provided "
-                        "is not one of the available pipelines.\n\nAvailable "
-                        "pipelines:\n{1}\n".format(pipeline_label,
-                                                   str(avail_configs)))
+        raise OptionError(
+            "The pre-configured pipeline name '{0}' you provided is not one "
+            "of the available pipelines.\n\nAvailable pipelines:\n"
+            "{1}\n".format(pipeline_label, str(avail_configs)), pipeline_label)
 
     pipeline_file = \
         p.resource_filename(
@@ -1402,8 +1412,6 @@ def load_preconfig(pipeline_label):
 
 
 def ordereddict_to_dict(value):
-    import yamlordereddictloader
-
     '''
     this function convert ordereddict into regular dict
     '''
@@ -1420,7 +1428,7 @@ def repickle(directory):
 
     Parameters
     ----------
-    directory: str
+    directory : str
 
     Returns
     -------
@@ -1442,8 +1450,8 @@ def repickle(directory):
                         )
                     except Exception as e:
                         print(
-                            f"Could not convert Python 2 pickle {p} because {e}"
-                            "\n"
+                            f"Could not convert Python 2 pickle {p} "
+                            f"because {e}\n"
                         )
                 else:
                     print(f"Pickle {fn} is a Python 3 pickle.")
@@ -1460,8 +1468,8 @@ def repickle(directory):
                         )
                     except Exception as e:
                         print(
-                            f"Could not convert Python 2 pickle {p} because {e}"
-                            "\n"
+                            f"Could not convert Python 2 pickle {p} "
+                            f"because {e}\n"
                         )
                 else:
                     print(f"Pickle {fn} is a Python 3 pickle.")
@@ -1474,23 +1482,23 @@ def _pickle2(p, z=False):
 
     Parameters
     ----------
-    p: str
+    p : str
         path to pickle
 
-    z: bool
+    z : bool
         if pickle is gzipped
 
     Returns
     -------
-    pickle2: bool
+    pickle2 : bool
         True if p is a Python 2 pickle
     """
     if z:
         with gzip.open(p, 'rb') as fp:
             try:
-                f = pickle.load(fp)
+                pickle.load(fp)
             except UnicodeDecodeError:
-                return (True)
+                return True
             except Exception as e:
                 print(
                     f"Pickle {p} may be a Python 3 pickle, but raised "
@@ -1499,40 +1507,40 @@ def _pickle2(p, z=False):
     else:
         with open(p, 'rb') as fp:
             try:
-                f = pickle.load(fp)
+                pickle.load(fp)
             except UnicodeDecodeError:
-                return (True)
+                return True
             except Exception as e:
                 print(
                     f"Pickle {p} may be a Python 3 pickle, but raised "
                     f"exception {e}"
                 )
-    return (False)
+    return False
 
 
 def concat_list(in_list1=None, in_list2=None):
     """
     Parameters
     ----------
-    in_list1: list or str
+    in_list1 : list or str
         file path or a list of file paths
 
-    in_list2: list or str
+    in_list2 : list or str
         file path or a list of file paths
 
     Returns
     -------
-    out_list: list
+    out_list : list
         a list of file paths
     """
 
-    if in_list1 != None:
+    if in_list1 is not None:
         if not isinstance(in_list1, list):
             in_list1 = [in_list1]
     else:
         in_list1 = []
 
-    if in_list2 != None:
+    if in_list2 is not None:
         if not isinstance(in_list2, list):
             in_list2 = [in_list2]
     else:
@@ -1541,3 +1549,878 @@ def concat_list(in_list1=None, in_list2=None):
     out_list = in_list1 + in_list2
 
     return out_list
+
+
+def dct_diff(dct1, dct2):
+    '''Function to compare 2 nested dicts, dropping values unspecified
+    in the second. Adapted from https://github.com/sgiavasis/CPAC_regtest_pack/blob/9056ef63cbe693f436c4ea8a5fee669f8d2e35f7/cpac_pipe_diff.py#L31-L78
+
+    Parameters
+    ----------
+    dct1 : dict
+
+    dct2 : dict
+
+    Returns
+    -------
+    diff : set
+    a tuple of values from dct1, dct2 for each differing key
+
+    Example
+    -------
+    >>> import yaml
+    >>> def read_yaml_file(yaml_file):
+    ...     return yaml.safe_load(open(yaml_file, 'r'))
+    >>> pipeline = read_yaml_file('/code/dev/docker_data/default_pipeline.yml')
+    >>> dct_diff(pipeline, pipeline)
+    {}
+    >>> pipeline2 = read_yaml_file('/code/CPAC/resources/configs/'
+    ...     'pipeline_config_fmriprep-options.yml')
+    >>> dct_diff(pipeline, pipeline2)['pipeline_setup']['pipeline_name']
+    ('cpac-default-pipeline', 'cpac_fmriprep-options')
+    '''  # noqa
+    diff = {}
+    for key in dct1:
+        if isinstance(dct1[key], dict):
+            if not isinstance(dct2, dict):
+                raise Exception(dct2)
+            diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
+        else:
+            dct1_val = dct1.get(key)
+            dct2_val = dct2.get(key) if isinstance(dct2, dict) else None
+
+            # skip unspecified values
+            if dct2_val in [None, 'None']:
+                continue
+
+            if dct1_val != dct2_val:
+                diff[key] = (dct1_val, dct2_val)
+
+    # add any new keys
+    if isinstance(dct2, dict):
+        for key in dct2:
+            if key not in dct1:
+                diff[key] = dct2[key]
+
+    # only return non-empty diffs
+    return {k: diff[k] for k in diff if diff[k]}
+
+
+def list_item_replace(l, old, new):  # noqa E741
+    '''Function to replace an item in a list
+
+    Parameters
+    ----------
+    l : list or string
+
+    old : any
+        item to replace
+
+    new : any
+        new item
+
+    Returns
+    -------
+    l : list or string
+        updated
+
+    Examples
+    --------
+    >>> list_item_replace(['AFNI', 'FSL'], 'AFNI', '3dSkullStrip')
+    ['3dSkullStrip', 'FSL']
+    >>> list_item_replace(['AFNI', 'FSL'], 'FSL', 'BET')
+    ['AFNI', 'BET']
+    '''
+    if isinstance(l, list) and old in l:
+        l[l.index(old)] = new
+    elif isinstance(l, str):
+        l = l.replace(old, new)  # noqa E741
+    return l
+
+
+def lookup_nested_value(d, keys):
+    '''Helper method to look up nested values
+
+    Paramters
+    ---------
+    d: dict
+    keys: list or tuple
+
+    Returns
+    -------
+    yaml: str or dict
+
+    Examples
+    --------
+    >>> lookup_nested_value({'nested': {'True': True}}, ['nested', 'True'])
+    True
+    >>> lookup_nested_value({'nested': {'None': None}}, ['nested', 'None'])
+    ''
+    '''
+    if not isinstance(d, dict):
+        return d
+    if len(keys) == 1:
+        value = d.get(keys[0])
+        if value is None:
+            return ''
+        return value
+    else:
+        return lookup_nested_value(d.get(keys[0], {}), keys[1:])
+
+
+def _remove_somethings(value, things_to_remove):
+    '''Helper function to remove instances of any in a given set of
+    values from a list.
+
+    Parameters
+    ----------
+    value : list
+
+    things_to_remove : set
+
+    Returns
+    -------
+    list
+    '''
+    if isinstance(value, list):
+        for thing in things_to_remove:
+            while thing in value:
+                value.remove(thing)
+    return value
+
+
+def remove_False(d, k):
+    '''Function to remove "Off" and False from a list at a given nested key.
+
+    Parameters
+    ----------
+    d : dict
+
+    k : list
+
+    Returns
+    -------
+    d : dict
+       updated
+
+    Examples
+    --------
+    >>> remove_False({'a': {'b': [1, False, 2, "Off", 3]}}, ['a', 'b'])
+    {'a': {'b': [1, 2, 3]}}
+    '''
+    value = _remove_somethings(lookup_nested_value(d, k), {False, 'Off'})
+    return set_nested_value(d, k, value)
+
+
+def remove_None(d, k):
+    '''Function to remove "None" and None from a list at a given nested key.
+
+    Parameters
+    ----------
+    d : dict
+
+    k : list
+
+    Returns
+    -------
+    d : dict
+       updated
+
+    Examples
+    --------
+    >>> remove_None({'a': {'b': [1, None, 2, "None", 3]}}, ['a', 'b'])
+    {'a': {'b': [1, 2, 3]}}
+    '''
+    value = _remove_somethings(lookup_nested_value(d, k), {None, 'None'})
+    return set_nested_value(d, k, value)
+
+
+def replace_in_strings(d, replacements=[
+    (r'${resolution_for_func_preproc}', r'${func_resolution}')
+]):
+    '''Helper function to recursively replace substrings.
+
+    Parameters
+    ----------
+    d : any
+
+    replacements : list of 2-tuples
+        0 : str
+            substring to replace
+        1 : str
+            replacement substring
+
+    Returns
+    -------
+    d : any
+       same as input, but updated
+
+    Examples
+    --------
+    >>> replace_in_strings({'key': 'test${resolution_for_func_preproc}'})
+    {'key': 'test${func_resolution}'}
+    '''
+    if isinstance(d, dict):
+        return {k: replace_in_strings(d[k], replacements) for k in d}
+    if isinstance(d, list):
+        return [replace_in_strings(i, replacements) for i in d]
+    if isinstance(d, str):
+        for replacement in replacements:
+            d = d.replace(replacement[0], replacement[1])
+    return d
+
+
+def set_nested_value(d, keys, value):
+    '''Helper method to look up nested values
+
+    Paramters
+    ---------
+    d: dict
+    keys: list or tuple
+    value: any
+
+    Returns
+    -------
+    dict
+        updated
+
+    Examples
+    --------
+    >>> set_nested_value({}, ['nested', 'keys'], 'value')
+    {'nested': {'keys': 'value'}}
+    '''
+    if not isinstance(d, dict):
+        raise TypeError(f'Expected dict, got {type(d).__name__}: {str(d)}')
+    if not isinstance(keys, list):
+        raise TypeError(f'Expected list, got {type(keys).__name}: {str(keys)}')
+    if len(keys) == 1:
+        d.update({keys[0]: value})
+        return d
+    if not len(keys):
+        return d
+    return update_nested_dict(d, {
+        keys[0]: set_nested_value(d.get(keys[0], {}), keys[1:], value)
+    })
+
+
+def update_config_dict(old_dict):
+    '''Function to convert an old config dict to a new config dict
+
+    Parameters
+    ----------
+    old_dict : dict
+
+    Returns
+    -------
+    new_dict : dict
+        1.8 nested config dictionary
+
+    old_dict : dict
+        remaining undefined mappings
+
+    combined_dict : dict
+        1.8 nested config dictionary plus remaining undefined mappings
+
+    Examples
+    --------
+    >>> a, b, c = update_config_dict({'pipelineName': 'example-pipeline', '2': None})
+    >>> a
+    {'pipeline_setup': {'pipeline_name': 'example-pipeline'}}
+    >>> b
+    {'2': None}
+    >>> c
+    {'pipeline_setup': {'pipeline_name': 'example-pipeline'}, '2': None}
+    ''' # noqa
+    def _append_to_list(current_value, new_value):
+        '''Helper function to add new_value to the current_value list
+        or create a list if one does not exist. Skips falsy elements
+        in new_value
+
+        Parameters
+        ----------
+        current_value : list
+
+        new_value : list, bool, None, or str
+
+        Returns
+        -------
+        list
+
+        Examples
+        --------
+        >>> _append_to_list([1], [2])
+        [1, 2]
+        >>> _append_to_list([1, 2], [2])
+        [1, 2]
+        >>> _append_to_list(None, [2])
+        [2]
+        >>> _append_to_list([1], [1, 2])
+        [1, 2]
+        >>> _append_to_list([1], [None, 2])
+        [1, 2]
+        '''
+        if not isinstance(current_value, list):
+            if current_value:
+                current_value = [current_value]
+            else:
+                current_value = []
+        else:
+            current_value = [v for v in current_value if v is not None]
+        if isinstance(new_value, list):
+            for i in new_value:
+                if i and i not in current_value and i != 'Off':
+                    current_value.append(i)
+        elif (
+            new_value and new_value not in current_value and
+            new_value != 'Off'
+        ):
+            current_value.append(new_value)
+        return current_value
+
+    def _bool_to_str(old_value, value_if_true):
+        '''Helper function to convert a True or a list containing a
+        True to a given string
+
+        Parameters
+        ----------
+        old_value : list, bool, None, or str
+
+        value_if_true : str
+
+        Returns
+        -------
+        str or None
+
+        Examples
+        --------
+        >>> _bool_to_str([0], 'test_str')
+        >>> _bool_to_str([1], 'test_str')
+        'test_str'
+        >>> _bool_to_str(0, 'test_str')
+        >>> _bool_to_str(1, 'test_str')
+        'test_str'
+        >>> _bool_to_str([True, False], 'test_str')
+        'test_str'
+        >>> _bool_to_str(None, 'test_str')
+        >>> _bool_to_str([0, None, False], 'test_str')
+        >>> _bool_to_str([0, None, False, 1], 'test_str')
+        'test_str'
+        '''
+        if isinstance(old_value, list):
+            if any([bool(i) for i in old_value]):
+                return value_if_true
+        elif bool(old_value):
+            return value_if_true
+        return None
+
+    def _get_old_values(old_dict, new_dict, key):
+        '''Helper function to get old and current values of a special key
+        being updated.
+
+        Parameters
+        ----------
+        old_dict : dict
+
+        new_dict : dict
+
+        key : str
+
+        Returns
+        -------
+        old_dict : dict
+
+        new_dict : dict
+
+        old_value : any
+
+        current_value : any
+        '''
+        old_value = old_dict.pop(key)
+        try:
+            current_value = lookup_nested_value(
+                new_dict, NESTED_CONFIG_MAPPING[key]
+            )
+        except KeyError:
+            current_value = []
+        return old_dict, new_dict, old_value, current_value
+
+    new_dict = {}
+    for key in old_dict.copy():
+        if key in NESTED_CONFIG_MAPPING:
+            # handle special cases
+            special_cases = {
+                'acpc_run_preprocessing',
+                'acpc_template_brain',
+                'ANTs_prior_based_segmentation',
+                'func_reg_input',
+                'runRegisterFuncToTemplate',
+                'runRegisterFuncToEPI',
+                'fsl_linear_reg_only',
+                'functional_registration',
+                'template_for_resample',
+                'fnirtConfig',
+                'run_smoothing',
+                'runZScoring'
+            }
+            if key in special_cases:
+                old_dict, new_dict, old_value, current_value = _get_old_values(
+                    old_dict, new_dict, key
+                )
+
+                # anatomical_preproc.acpc_alignment.run_before_preproc
+                if key == 'acpc_run_preprocessing':
+                    current_value = True if old_value.lower(
+                    ) == 'before' else False if old_value.lower(
+                    ) == 'after' else None
+
+                # anatomical_preproc.acpc_alignment.acpc_target
+                if key == 'acpc_template_brain':
+                    if current_value in {'None', None, ''}:
+                        new_dict = set_nested_value(
+                            new_dict,
+                            ['anatomical_preproc', 'acpc_alignment',
+                             'acpc_target'],
+                            'whole-head'
+                        )
+
+                # segmentation.tissue_segmentation.using
+                elif key == 'ANTs_prior_based_segmentation':
+                    new_value = _bool_to_str(old_value, 'ANTs_Prior_Based')
+                    if new_value == 'ANTs_Prior_Based':
+                        new_dict = set_nested_value(
+                            new_dict,
+                            NESTED_CONFIG_MAPPING[key][:-1] +
+                            [new_value, 'run'],
+                            old_value
+                        )
+
+                # registration_workflows.functional_registration.
+                # coregistration.func_input_prep.input
+                elif key == 'func_reg_input':
+                    new_value = _replace_in_value_list(old_value, (' ', '_'))
+                    current_value = _replace_in_value_list(
+                        current_value, (' ', '_'))
+
+                # registration_workflows.functional_registration.
+                # func_registration_to_template.target_template.using
+                elif key in {
+                    'runRegisterFuncToTemplate', 'runRegisterFuncToEPI'
+                }:
+                    current_value = _replace_in_value_list(
+                        current_value, (' ', '_'))
+                    if key == 'runRegisterFuncToTemplate':
+                        new_value = None
+                    if key == 'runRegisterFuncToEPI':
+                        new_value = _bool_to_str(old_value, 'EPI_template')
+
+                # registration_workflows.anatomical_registration.registration.
+                # using
+                elif key == 'fsl_linear_reg_only':
+                    new_value = _bool_to_str(old_value, 'FSL-linear')
+
+                # registration_workflows.functional_registration.
+                # func_registration_to_template.target_template.
+                # EPI_template.EPI_template_for_resample
+                elif key == 'template_for_resample':
+                    new_dict = set_nested_value(
+                        new_dict,
+                        ['registration_workflows', 'functional_registration',
+                         'func_registration_to_template', 'target_template',
+                         'EPI_template', 'EPI_template_for_resample'],
+                        current_value
+                    )
+
+                # registration_workflows.functional_registration.
+                # EPI_registration.FSL-FNIRT.fnirt_config
+                elif key == 'fnirtConfig':
+                    current_value = old_value
+                    new_dict = set_nested_value(
+                        new_dict,
+                        ['registration_workflows', 'functional_registration',
+                         'EPI_registration', 'FSL-FNIRT', 'fnirt_config'],
+                        current_value
+                    )
+
+                # post_processing.spatial_smoothing.output
+                elif key == 'run_smoothing':
+                    new_value = [_bool_to_str(old_value, 'smoothed')]
+                    if any([not bool(value) for value in old_value]):
+                        new_value.append('nonsmoothed')
+                    current_value = new_value
+
+                # post_processing.z-scoring.output
+                elif key == 'runZScoring':
+                    new_value = [_bool_to_str(old_value, 'z-scored')]
+                    if any([not bool(value) for value in old_value]):
+                        new_value.append('raw')
+                    current_value = new_value
+
+                # make sure list values are cast as lists
+                if key not in {  # if key not in non-list-valued keys
+                    'acpc_run_preprocessing', 'acpc_template_brain',
+                    'functional_registration', 'template_for_resample',
+                    'fnirtConfig'
+                }:
+                    current_value = _append_to_list(current_value, new_value)
+
+            # update remaining keys
+            else:
+                current_value = old_dict.pop(key)
+
+            if current_value == 'None':
+                current_value = None
+
+            new_dict = set_nested_value(
+                new_dict, NESTED_CONFIG_MAPPING[key], current_value)
+        elif key in NESTED_CONFIG_DEPRECATIONS:
+            old_dict.pop(key)
+
+    return new_dict, old_dict, update_nested_dict(new_dict.copy(), old_dict)
+
+
+def update_nested_dict(d_base, d_update):
+    """Update dictionary of varying depth.
+
+    Parameters
+    ----------
+    d_base : dict
+        original dictionary
+
+    d_update : dict
+        dictionary with updates
+
+    Returns
+    -------
+    d_base : dict
+        original dictionary with updates
+
+    Examples
+    --------
+    >>> d_base = {'pipeline_name': 'cpac-default-pipeline',
+    ...     'output_directory': {'path': '/output',
+    ...     'write_func_outputs': False,
+    ...     'write_debugging_outputs': False,
+    ...     'output_tree': 'default',
+    ...     'generate_quality_control_images': True},
+    ...     'working_directory': {'path': '/tmp', 'remove_working_dir': True},
+    ...     'log_directory': {'run_logging': True, 'path': '/logs'},
+    ...     'system_config': {'maximum_memory_per_participant': 1,
+    ...     'max_cores_per_participant': 1,
+    ...     'num_ants_threads': 4,
+    ...     'num_participants_at_once': 1},
+    ...     'Amazon-AWS': {'aws_output_bucket_credentials': None,
+    ...                    's3_encryption': False}}
+    >>> d_update = {'pipeline_name': 'cpac_fmriprep-options',
+    ...     'system_config': {'num_ants_threads': 1},
+    ...     'Amazon-AWS': {'s3_encryption': True}}
+    >>> update_nested_dict(d_base, d_update)
+    {'pipeline_name': 'cpac_fmriprep-options', 'output_directory': {'path': '/output', 'write_func_outputs': False, 'write_debugging_outputs': False, 'output_tree': 'default', 'generate_quality_control_images': True}, 'working_directory': {'path': '/tmp', 'remove_working_dir': True}, 'log_directory': {'run_logging': True, 'path': '/logs'}, 'system_config': {'maximum_memory_per_participant': 1, 'max_cores_per_participant': 1, 'num_ants_threads': 1, 'num_participants_at_once': 1}, 'Amazon-AWS': {'aws_output_bucket_credentials': None, 's3_encryption': True}}
+    """  # noqa
+    if d_base is None:
+        d_base = {}
+    for k, v in d_update.items():
+        if isinstance(v, collections.abc.Mapping):
+            d_base[k] = update_nested_dict(d_base.get(k, {}), v)
+        else:
+            d_base[k] = v
+    return d_base
+
+
+def update_pipeline_values_1_8(d_old):
+    '''Function to update pipeline config values that changed from
+    C-PAC 1.7 to 1.8.
+
+    Parameters
+    ----------
+    d_old : dict
+
+    Returns
+    -------
+    d : dict
+       updated
+
+    Examples
+    --------
+    >>> update_pipeline_values_1_8({'segmentation': {'tissue_segmentation': {
+    ...     'using': ['FSL-FAST Thresholding', 'Customized Thresholding']}}})
+    {'segmentation': {'tissue_segmentation': {'using': ['FSL-FAST'], 'FSL-FAST': {'thresholding': {'use': 'Custom'}}}}}
+    >>> update_pipeline_values_1_8({'segmentation': {'tissue_segmentation': {
+    ...     'using': ['FSL-FAST Thresholding']}}})
+    {'segmentation': {'tissue_segmentation': {'using': ['FSL-FAST'], 'FSL-FAST': {'thresholding': {'use': 'Auto'}}}}}
+    '''  # noqa
+    from CPAC.pipeline.schema import valid_options
+
+    d = replace_in_strings(d_old.copy())
+
+    d = _replace_changed_values(
+        d,
+        ['anatomical_preproc', 'brain_extraction', 'using'],
+        [('AFNI', '3dSkullStrip'), ('FSL', 'BET'), ('unet', 'UNet')]
+    )
+
+    d = _replace_changed_values(
+        d,
+        ['functional_preproc', 'func_masking', 'using'],
+        [('3dAutoMask', 'AFNI'), ('BET', 'FSL')]
+    )
+
+    seg_use_threshold = lookup_nested_value(d, [
+        'segmentation', 'tissue_segmentation', 'using'])
+    if not (seg_use_threshold and isinstance(seg_use_threshold, list)):
+        seg_use_threshold = [seg_use_threshold]
+    if 'FSL-FAST Thresholding' in seg_use_threshold:
+        if 'using' in d['segmentation'].get(
+            'tissue_segmentation', {}
+        ):
+            d['segmentation'][
+                'tissue_segmentation'
+            ]['using'].append('FSL-FAST')
+        else:
+            set_nested_value(d, [
+                'segmentation', 'tissue_segmentation',
+                'using'], ['FSL-FAST'])
+        seg_use_threshold.remove('FSL-FAST Thresholding')
+    if 'Customized Thresholding' in seg_use_threshold:
+        set_nested_value(d, [
+            'segmentation', 'tissue_segmentation',
+            'FSL-FAST', 'thresholding', 'use'], 'Custom')
+        seg_use_threshold.remove('Customized Thresholding')
+    else:
+        set_nested_value(d, [
+            'segmentation', 'tissue_segmentation',
+            'FSL-FAST', 'thresholding', 'use'], 'Auto')
+
+    for centr in ['degree_centrality', 'eigenvector_centrality',
+                  'local_functional_connectivity_density']:
+        centr_keys = ['network_centrality', centr, 'weight_options']
+        centr_value = lookup_nested_value(d, centr_keys)
+        if any([isinstance(v, bool) for v in centr_value]):
+            for i in range(2):
+                if centr_value[i] is True:
+                    centr_value[i] = valid_options['centrality'][
+                        'weight_options'][i]
+            while False in centr_value:
+                centr_value.remove(False)
+            set_nested_value(d, centr_keys, centr_value)
+
+    seg_template_key = [
+        'segmentation', 'tissue_segmentation',
+        'Template_Based', 'template_for_segmentation']
+    seg_template = lookup_nested_value(d, seg_template_key)
+
+    if seg_template:
+        for replacement in [
+            ('EPI_template', valid_options['segmentation']['template'][0]),
+            ('T1_template', valid_options['segmentation']['template'][1])
+        ]:
+            seg_template = list_item_replace(seg_template, *replacement)
+        while 'Off' in seg_template:
+            seg_template.remove('Off')
+        while False in seg_template:
+            seg_template.remove(False)
+        d = set_nested_value(d, seg_template_key, seg_template)
+        d = remove_None(d, seg_template_key)
+
+    distcor_key = ['functional_preproc', 'distortion_correction', 'using']
+    if lookup_nested_value(d, distcor_key):
+        d = remove_None(d, distcor_key)
+
+    tse_key = ['timeseries_extraction', 'roi_tse_outputs']
+    tse = lookup_nested_value(d, tse_key)
+    if isinstance(tse, list) and isinstance(tse[0], bool):
+        new_tse = []
+        if len(tse) and tse[0]:
+            new_tse.append('csv')
+        if len(tse) > 1 and tse[1]:
+            new_tse.append('numpy')
+        d = set_nested_value(d, tse_key, new_tse)
+
+    if 'functional_registration' in d and isinstance(
+        d['functional_registration'], dict
+    ):
+        if '1-coregistration' in d['functional_registration']:
+            coreg = d['functional_registration'].pop('1-coregistration')
+            set_nested_value(
+                d, ['registration_workflows', 'functional_registration',
+                    'coregistration'],
+                coreg
+            )
+        if not(bool(d['functional_registration'])):
+            d.pop('functional_registration')
+
+    return update_values_from_list(d)
+
+
+def update_values_from_list(d_old, last_exception=None):
+    '''Function to convert 1-length lists of an expected type to
+    single items of that type, or to convert singletons of an expected
+    list of a type into lists thereof. Also handles some type
+    conversions against the schema.
+
+    Parameters
+    ----------
+    d_old : dict
+
+    last_exception: Exception or None
+        if the same exception recurs, raise it.
+
+    Returns
+    -------
+    d : dict
+       updated
+
+    Examples
+    --------
+    >>> update_values_from_list({'pipeline_setup': {
+    ...     'pipeline_name': ['one_string']}})
+    {'pipeline_setup': {'pipeline_name': 'one_string'}}
+    >>> update_values_from_list({'regional_homogeneity': {'run': [False]}})
+    {'regional_homogeneity': {'run': [False]}}
+    '''  # noqa
+    from CPAC.pipeline.schema import schema
+
+    d = d_old.copy()
+
+    try:
+        schema(d)
+    except Invalid as e:
+        if (
+            last_exception and last_exception.path == e.path and
+            last_exception.msg == e.msg
+        ):
+            raise e
+        observed = lookup_nested_value(d, e.path)
+        if observed == 'None':
+            return update_values_from_list(
+                set_nested_value(d, e.path, None), e)
+
+        expected = e.msg.split('expected')[-1].strip(
+        ) if 'expected' in e.msg else 'unknown'
+
+        if (
+            expected != 'bool' and isinstance(observed, list) and
+            len(observed) == 1
+        ):
+            try:
+                return update_values_from_list(
+                    set_nested_value(d, e.path, observed[0]), e)
+            except TypeError:
+                raise e
+
+        if expected == 'bool':
+            if isinstance(observed, int):
+                return update_values_from_list(
+                    set_nested_value(d, e.path, bool(observed)), e)
+            elif isinstance(observed, list):
+                if len(observed) == 0:
+                    return update_values_from_list(set_nested_value(
+                        d, e.path, False), e)
+                else:
+                    # maintain a list if list expected
+                    list_expected = (e.path[-1] == 0)
+                    e_path = e.path[:-1] if list_expected else e.path
+                    if len(observed) == 1:
+                        if isinstance(observed[0], int):
+                            value = bool(observed[0])
+                        elif observed[0] in {'On', 'True'}:
+                            value = True
+                        elif observed[0] in {'Off', 'False'}:
+                            value = False
+                        return update_values_from_list(set_nested_value(
+                            d, e_path, [value] if list_expected else value), e)
+                    else:
+                        return update_values_from_list(set_nested_value(
+                            d, e_path, [bool(value) for value in observed]), e)
+            elif observed in {'On', 'True'}:
+                return update_values_from_list(
+                    set_nested_value(d, e.path, True), e)
+            elif observed in {'Off', 'False'}:
+                return update_values_from_list(
+                    set_nested_value(d, e.path, False), e)
+            else:
+                return update_values_from_list(
+                    set_nested_value(d, e_path, observed[0]), e)
+
+        elif expected == 'a list':
+            return update_values_from_list(
+                set_nested_value(d, e.path, [observed]), e)
+        else:
+            raise e
+    return d
+
+
+def _replace_changed_values(d, nested_key, replacement_list):
+    '''Helper function to replace values changed from C-PAC 1.7 to C-PAC 1.8.
+
+    Parameters
+    ----------
+    d : dict
+
+    nested_key : list of strings
+
+    replacement_list : list of tuples
+        0 : any
+            value to replace
+        1 : any
+            replacement value
+
+    Returns
+    -------
+    d : dict
+
+    Examples
+    --------
+    >>> d = {'test': {'this': ['function']}}
+    >>> _replace_changed_values(d, ['test', 'this'], [('function', 'success')])
+    {'test': {'this': ['success']}}
+    '''
+    current_value = lookup_nested_value(d, nested_key)
+    if bool(current_value):
+        if isinstance(current_value, list):
+            current_value = _replace_in_value_list(
+                current_value, replacement_list)
+        else:
+            for replacement in replacement_list:
+                current_value = list_item_replace(current_value, *replacement)
+        return set_nested_value(d, nested_key, current_value)
+    return d
+
+
+def _replace_in_value_list(current_value, replacement_tuple):
+    '''Helper function to make character replacements in
+    `current_value` and drop falsy values.
+
+    Parameters
+    ----------
+    current_value : list
+
+    replacement_tuple : tuple or list of tuples
+        0 : str
+            character value to replace
+        1 : str
+            replacement character value
+
+    Returns
+    -------
+    current_value : list
+
+    Examples
+    --------
+    >>> current_value = ['EPI Template', 'T1_Template', 'None']
+    >>> _replace_in_value_list(current_value, (' ', '_'))
+    ['EPI_Template', 'T1_Template']
+    >>> current_value = ['AFNI', 'FSL', 'None', None, False]
+    >>> _replace_in_value_list(current_value, [
+    ...     ('AFNI', '3dSkullStrip'), ('FSL', 'BET')])
+    ['3dSkullStrip', 'BET']
+    '''
+    if isinstance(replacement_tuple, list):
+        for rt in replacement_tuple:
+            current_value = _replace_in_value_list(current_value, rt)
+        return current_value
+    if not isinstance(current_value, list):
+        current_value = [current_value]
+    return [
+        v.replace(*replacement_tuple) for v in current_value
+        if bool(v) and v not in {'None', 'Off', ''}
+    ]

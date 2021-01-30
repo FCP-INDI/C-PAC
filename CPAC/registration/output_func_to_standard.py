@@ -33,35 +33,35 @@ def fsl_apply_transform_func_to_mni(
 
     Parameters
     ----------
-    workflow: Nipype workflow object
+    workflow : Nipype workflow object
         the workflow containing the resources involved
-    output_name: str
+    output_name : str
         what the name of the warped functional should be when written to the
         resource pool
-    func_key: string
+    func_key : string
         resource pool key correspoding to the node containing the 3D or 4D
         functional file to be written into MNI space, use 'leaf' for a
         leaf node
-    ref_key: string
+    ref_key : string
         resource pool key correspoding to the file path to the template brain
         used for functional-to-template registration
-    num_strat: int
+    num_strat : int
         the number of strategy objects
-    strat: C-PAC Strategy object
+    strat : C-PAC Strategy object
         a strategy with one or more resource pools
-    interpolation_method: str
+    interpolation_method : str
         which interpolation to use when applying the warps
-    distcor: boolean
+    distcor : boolean
         indicates whether a distortion correction transformation should be
         added to the transforms, this of course requires that a distortion
         correction map exist in the resource pool
-    map_node: boolean
+    map_node : boolean
         indicates whether a mapnode should be used, if TRUE func_key is
         expected to correspond to a list of resources that should each
         be written into standard space with the other parameters
-    func_ts: boolean
+    func_ts : boolean
         indicates whether the input image is a 4D time series
-    num_cpus: int
+    num_cpus : int
         the number of CPUs dedicated to each participant workflow - this
         is used to determine how to parallelize the warp application step
 

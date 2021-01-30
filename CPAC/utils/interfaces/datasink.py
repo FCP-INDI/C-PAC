@@ -370,8 +370,8 @@ class DataSink(IOBase):
         # Return the bucket
         return bucket
 
-
     # Send up to S3 method
+
     def _upload_to_s3(self, bucket, src, dst):
         '''
         Method to upload outputs to S3 bucket instead of on local disk

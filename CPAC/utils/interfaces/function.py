@@ -45,10 +45,10 @@ class Function(IOBase):
         Parameters
         ----------
 
-        input_names: single str or list or None
+        input_names : single str or list or None
             names corresponding to function inputs
             if ``None``, derive input names from function argument names
-        output_names: single str or list
+        output_names : single str or list
             names corresponding to function outputs (default: 'out').
             if list of length > 1, has to match the number of outputs
         function : callable

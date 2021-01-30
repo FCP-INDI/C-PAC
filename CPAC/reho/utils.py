@@ -9,7 +9,7 @@ def getOpString(mean, std_dev):
     Parameters
     ----------
 
-    mean: string
+    mean : string
         mean value in string format
 
     std_dev : string

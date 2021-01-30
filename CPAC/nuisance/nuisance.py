@@ -853,7 +853,6 @@ def create_regressor_workflow(nuisance_selectors,
             if not regressor_selector['summary'].get('components'):
                 regressor_selector['summary']['components'] = 1
 
-
         # If regressor is not present, build up the regressor
         if not regressor_resource[1]:
 
@@ -871,7 +870,6 @@ def create_regressor_workflow(nuisance_selectors,
                 regressor_descriptor = {
                     'tissue': regressor_selector['tissues']
                 }
-
 
             if regressor_type == 'tCompCor':
                 if not regressor_selector.get('threshold'):
@@ -966,7 +964,6 @@ def create_regressor_workflow(nuisance_selectors,
             if type(regressor_descriptor['tissue']) is not list:
                 regressor_descriptor['tissue'] = \
                     [regressor_descriptor['tissue']]
-
 
             if regressor_selector.get('extraction_resolution') and \
                     regressor_selector["extraction_resolution"] != "Functional":

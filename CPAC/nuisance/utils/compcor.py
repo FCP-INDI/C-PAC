@@ -117,13 +117,13 @@ def _cosine_drift(period_cut, frametimes):
      Create a cosine drift matrix with periods greater or equals to period_cut
     Parameters
     ----------
-    period_cut: float
+    period_cut : float
          Cut period of the low-pass filter (in sec)
-    frametimes: array of shape(nscans)
+    frametimes : array of shape(nscans)
          The sampling times (in sec)
     Returns
     -------
-    cdrift:  array of shape(n_scans, n_drifts)
+    cdrift :  array of shape(n_scans, n_drifts)
              cosin drifts plus a constant regressor at cdrift[:,0]
     Ref: http://en.wikipedia.org/wiki/Discrete_cosine_transform DCT-II
     """
@@ -152,11 +152,11 @@ def _full_rank(X, cmax=1e15):
     to guarantee that the condition number is smaller than a given threshold.
     Parameters
     ----------
-    X: array of shape(nrows, ncols)
+    X : array of shape(nrows, ncols)
     cmax=1.e-15, float tolerance for condition number
     Returns
     -------
-    X: array of shape(nrows, ncols) after regularization
+    X : array of shape(nrows, ncols) after regularization
     cmax=1.e-15, float tolerance for condition number
     """
     U, s, V = fallback_svd(X, full_matrices=False)
