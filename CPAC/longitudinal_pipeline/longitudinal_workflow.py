@@ -1392,6 +1392,122 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     return reg_strat_list  # strat_nodes_list_list # for func wf?
 
 
+def longitudinal_T1w_pipeline(participant, sub_data_config, cfg):
+
+    wf = pe.Workflow(
+        name=f"longitudinal_T1w_pipeline_{participant}")
+    wf.base_dir = config.pipeline_setup['working_directory']['path']
+    wf.config['execution'] = {
+        'hash_method': 'timestamp',
+        'crashdump_dir': os.path.abspath(
+            config.pipeline_setup['log_directory']['path'])
+    }
+
+    resampled_template = pe.Node(Function(
+        input_names=['resolution', 'template', 'template_name', 'tag'],
+        output_names=['resampled_template'],
+        function=resolve_resolution,
+        as_module=True), name='template_skull_for_anat')
+
+    resampled_template.inputs.resolution = \
+    cfg.anatomical_preproc['registration_workflow']['resolution_for_anat']
+
+    resampled_template.inputs.template = \
+    cfg.anatomical_preproc['registration_workflow']['template_skull_for_anat']
+
+    resampled_template.inputs.template_name = 'template_skull_for_anat'
+    resampled_template.inputs.tag = 'resolution_for_anat'
+
+    # Node to calculate the center of mass of the standard template to align the images with it.
+    template_center_of_mass = pe.Node(
+        interface=afni.CenterMass(),
+        name='template_skull_for_anat_center_of_mass'
+    )
+
+    template_center_of_mass.inputs.cm_file = "template_center_of_mass.txt"
+
+    wf.connect(resampled_template, 'resampled_template',
+               template_center_of_mass, 'in_file')
+
+    session_id_list = []
+
+    # Loop over the sessions to create the input for the longitudinal algorithm
+    for session in sub_data_config:
+
+        wf, rpool = initiate_rpool(wf, cfg, session)
+
+        pipeline_blocks = []
+
+        # T1w Anatomical Preprocessing
+        if not rpool.check_rpool('desc-reorient_T1w'):
+            anat_init_blocks = [
+                anatomical_init
+            ]
+            pipeline_blocks += anat_init_blocks
+
+        if not rpool.check_rpool('desc-preproc_T1w'):
+
+            # brain masking for ACPC alignment
+            if cfg.anatomical_preproc['acpc_alignment']['acpc_target'] == 'brain':
+                if rpool.check_rpool('space-T1w_desc-brain_mask'):
+                    acpc_blocks = [
+                        brain_extraction,
+                        acpc_align_brain_with_mask
+                        # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
+                    ]
+                else:
+                    acpc_blocks = [
+                        [brain_mask_acpc_afni,
+                         brain_mask_acpc_fsl,
+                         brain_mask_acpc_niworkflows_ants,
+                         brain_mask_acpc_unet,
+                         brain_mask_acpc_freesurfer],
+                        # we don't want these masks to be used later
+                        brain_extraction,
+                        acpc_align_brain
+                    ]
+            elif cfg.anatomical_preproc['acpc_alignment'][
+                'acpc_target'] == 'whole-head':
+                if rpool.check_rpool('space-T1w_desc-brain_mask'):
+                    acpc_blocks = [
+                        acpc_align_head_with_mask
+                        # outputs space-T1w_desc-brain_mask for later - keep the mask (the user provided)
+                    ]
+                else:
+                    acpc_blocks = [
+                        acpc_align_head  # does not output nor generate a mask
+                    ]
+
+            anat_preproc_blocks = [
+                non_local_means,
+                n4_bias_correction
+            ]
+            if cfg.anatomical_preproc['acpc_alignment']['run_before_preproc']:
+                anat_blocks = acpc_blocks + anat_preproc_blocks
+            else:
+                anat_blocks = anat_preproc_blocks + acpc_blocks
+
+            pipeline_blocks += anat_blocks
+
+        # Anatomical brain masking
+        if not rpool.check_rpool('space-T1w_desc-brain_mask'):
+            anat_brain_mask_blocks = [
+                [brain_mask_afni,
+                 brain_mask_fsl,
+                 brain_mask_niworkflows_ants,
+                 brain_mask_unet,
+                 brain_mask_freesurfer]
+            ]
+            pipeline_blocks += anat_brain_mask_blocks
+
+        if not rpool.check_rpool('desc-brain_T1w'):
+            anat_brain_blocks = [
+                brain_extraction
+            ]
+            pipeline_blocks += anat_brain_blocks
+
+
+
 # TODO check:
 # 1 func alone works
 # 2 anat + func works, pass anat strategy list?

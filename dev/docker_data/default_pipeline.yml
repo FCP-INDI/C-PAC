@@ -73,11 +73,6 @@ pipeline_setup:
 
     path: /logs
 
-  crash_log_directory:
-
-    # Directory where CPAC should write crash logs.
-    path: /crash
-
   system_config:
 
     # Select Off if you intend to run CPAC on a single machine.
@@ -201,10 +196,10 @@ anatomical_preproc:
   run: On
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: False
+  non_local_means_filtering: Off
 
   # N4 bias field correction via ANTs
-  n4_bias_field_correction: False
+  n4_bias_field_correction: Off
 
   acpc_alignment:
 

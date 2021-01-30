@@ -116,6 +116,80 @@ def resolve_aws_credential(source):
             .format(source)
         )
 
+
+def create_cpac_data_config(bids_dir, participant_label=None,
+                            aws_input_creds=None, skip_bids_validator=False):
+    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
+
+    print("Parsing {0}..".format(bids_dir))
+
+    (file_paths, config) = collect_bids_files_configs(bids_dir,
+                                                      aws_input_creds)
+
+    if participant_label:
+        file_paths = [
+            file_path
+            for file_path in file_paths
+            if any(
+                participant_label in file_path
+                for participant_label in participant_labels
+            )
+            ]
+
+    if not file_paths:
+        print("Did not find data for {0}".format(
+            ", ".join(participant_label)
+        ))
+        sys.exit(1)
+
+    raise_error = not skip_bids_validator
+
+    sub_list = bids_gen_cpac_sublist(
+        bids_dir,
+        file_paths,
+        config,
+        aws_input_creds,
+        raise_error=raise_error
+    )
+
+    if not sub_list:
+        print("Did not find data in {0}".format(bids_dir))
+        sys.exit(1)
+
+    return sub_list
+
+
+def load_cpac_data_config(data_config_file, participant_label,
+                          aws_input_creds):
+    # load the file as a check to make sure it is available and readable
+    sub_list = load_yaml_config(data_config_file, aws_input_creds)
+
+    if participant_label:
+
+        sub_list = [
+            d
+            for d in sub_list
+            if (
+                d["subject_id"]
+                if d["subject_id"].startswith('sub-')
+                else 'sub-' + d["subject_id"]
+            ) in participant_labels
+        ]
+
+        if not sub_list:
+            print("Did not find data for {0} in {1}".format(
+                ", ".join(participant_label),
+                (
+                    data_config_file
+                    if not data_config_file.startswith("data:")
+                    else "data URI"
+                )
+            ))
+            sys.exit(1)
+
+    return sub_list
+
+
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
                                      'formatted according to the BIDS standard. '
@@ -476,70 +550,14 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     # otherwise we move on to conforming the data configuration
     if not args.data_config_file:
-
-        from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
-
-        print("Parsing {0}..".format(args.bids_dir))
-
-        (file_paths, config) = collect_bids_files_configs(
-            args.bids_dir, args.aws_input_creds)
-
-        if args.participant_label:
-            file_paths = [
-                file_path
-                for file_path in file_paths
-                if any(
-                    participant_label in file_path
-                    for participant_label in participant_labels
-                )
-            ]
-
-        if not file_paths:
-            print("Did not find data for {0}".format(
-                ", ".join(args.participant_label)
-            ))
-            sys.exit(1)
-
-        raise_error = not args.skip_bids_validator
-
-        sub_list = bids_gen_cpac_sublist(
-            args.bids_dir,
-            file_paths,
-            config,
-            args.aws_input_creds,
-            raise_error=raise_error
-        )
-
-        if not sub_list:
-            print("Did not find data in {0}".format(args.bids_dir))
-            sys.exit(1)
-
+        sub_list = create_cpac_data_config(args.bids_dir,
+                                           args.participant_label,
+                                           args.aws_input_creds,
+                                           args.skip_bids_validator)
     else:
-        # load the file as a check to make sure it is available and readable
-        sub_list = load_yaml_config(args.data_config_file, args.aws_input_creds)
-
-        if args.participant_label:
-
-            sub_list = [
-                d
-                for d in sub_list
-                if (
-                    d["subject_id"]
-                    if d["subject_id"].startswith('sub-')
-                    else 'sub-' + d["subject_id"]
-                ) in participant_labels
-            ]
-
-            if not sub_list:
-                print("Did not find data for {0} in {1}".format(
-                    ", ".join(args.participant_label),
-                    (
-                        args.data_config_file
-                        if not args.data_config_file.startswith("data:")
-                        else "data URI"
-                    )
-                ))
-                sys.exit(1)
+        sub_list = load_cpac_data_config(args.data_config_file,
+                                         args.participant_label,
+                                         args.aws_input_creds)
 
     if args.participant_ndx:
 
