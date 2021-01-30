@@ -230,7 +230,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     if not var_shrink_fac:
         expr += ' -no_var_shrink_fac'
-    
+
     if mask_vol:
         expr += ' -mask_vol'
 
@@ -266,7 +266,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     if int(NN_smooth) != defaults['NN_smooth']:
         expr += ' -NN_smooth {0}'.format(NN_smooth)
-        
+
     if int(smooth_final) != defaults['smooth_final']:
         expr += ' -smooth_final {0}'.format(smooth_final)
 

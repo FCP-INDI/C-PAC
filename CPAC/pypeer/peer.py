@@ -78,7 +78,7 @@ def motion_scrub(_ms_filename, _motion_threshold):
     ----------
     _ms_filename : string
         Pathname of the CSV file containing the framewise displacement per time point for a given fMRI scan
-    _motion_threshold  : float
+    _motion_threshold : float
         Threshold for high motion (framewise displacement, defined by Power et al. 2012)
     Returns
     -------

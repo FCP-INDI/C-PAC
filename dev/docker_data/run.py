@@ -9,13 +9,17 @@ import time
 import shutil
 import yaml
 from base64 import b64decode
+from urllib import request
+from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.utils.yaml_template import create_yaml_from_template
+from CPAC.utils.configuration import Configuration
+from CPAC.utils.yaml_template import create_yaml_from_template, \
+                                     upgrade_pipeline_to_1_8
 from CPAC.utils.utils import load_preconfig
 
 import yamlordereddictloader
-from warnings import simplefilter
+from warnings import simplefilter, warn
 simplefilter(action='ignore', category=FutureWarning)
 
 DEFAULT_TMP_DIR = "/tmp"
@@ -433,6 +437,41 @@ elif args.analysis_level in ["test_config", "participant"]:
     # otherwise, if we are running group, participant, or dry run we
     # begin by conforming the configuration
     c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
+
+    if 'pipeline_setup' not in c:
+        url_version = f'v{__version__}'
+        _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
+            'user/pipelines/1.7-1.8-nesting-mappings')
+        try:
+            request.urlopen(_url)
+
+        except HTTPError:
+            if 'dev' in url_version:
+                url_version = 'nightly'
+            else:
+                url_version = 'latest'
+
+        _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
+            'user/pipelines/1.7-1.8-nesting-mappings')
+
+        warn('\nC-PAC changed its pipeline configuration format in v1.8.0.\n'
+             f'See {_url} for details.\n',
+             category=DeprecationWarning)
+
+        updated_config = os.path.join(
+            args.output_dir,
+            'updated_config',
+            os.path.basename(args.pipeline_file)
+        )
+        os.makedirs(
+            os.path.join(args.output_dir, 'updated_config'), exist_ok=True)
+
+        open(updated_config, 'w').write(yaml.dump(c))
+
+        upgrade_pipeline_to_1_8(updated_config)
+        c = load_yaml_config(updated_config, args.aws_input_creds)
+
+    c = Configuration(c).dict()
 
     overrides = {}
     if args.pipeline_override:

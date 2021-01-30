@@ -690,7 +690,7 @@ def connect_anat_preproc_inputs(strat, anat_preproc, strat_name,
         name of the strategy
     strat_nodes_list_list : list
         a list of strat_nodes_list
-    workflow: Workflow
+    workflow : Workflow
         main longitudinal workflow
 
     Returns
@@ -943,27 +943,27 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     wf_name=preproc_wf_name)
                 '''
                 anat_preproc.inputs.AFNI_options.set(
-                    mask_vol=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['mask_vol'],
-                    shrink_factor=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['shrink_factor'],
-                    var_shrink_fac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['var_shrink_fac'],
-                    shrink_fac_bot_lim=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['shrink_factor_bot_lim'],
-                    avoid_vent=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['avoid_vent'],
-                    niter=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['n_iterations'],
-                    pushout=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['pushout'],
-                    touchup=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['touchup'],
-                    fill_hole=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['fill_hole'],
-                    NN_smooth=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['NN_smooth'],
-                    smooth_final=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['smooth_final'],
-                    avoid_eyes=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['avoid_eyes'],
-                    use_edge=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['use_edge'],
-                    exp_frac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['exp_frac'],
-                    push_to_edge=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['push_to_edge'],
-                    use_skull=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['use_skull'],
-                    perc_int=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['perc_int'],
-                    max_inter_iter=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['max_inter_iter'],
-                    fac=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['fac'],
-                    blur_fwhm=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['blur_fwhm'],
-                    monkey=config.anatomical_preproc['brain_extraction']['extraction']['AFNI-3dSkullStrip']['monkey'],
+                    mask_vol=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['mask_vol'],
+                    shrink_factor=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['shrink_factor'],
+                    var_shrink_fac=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['var_shrink_fac'],
+                    shrink_fac_bot_lim=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['shrink_factor_bot_lim'],
+                    avoid_vent=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['avoid_vent'],
+                    niter=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['n_iterations'],
+                    pushout=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['pushout'],
+                    touchup=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['touchup'],
+                    fill_hole=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['fill_hole'],
+                    NN_smooth=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['NN_smooth'],
+                    smooth_final=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['smooth_final'],
+                    avoid_eyes=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['avoid_eyes'],
+                    use_edge=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['use_edge'],
+                    exp_frac=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['exp_frac'],
+                    push_to_edge=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['push_to_edge'],
+                    use_skull=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['use_skull'],
+                    perc_int=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['perc_int'],
+                    max_inter_iter=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['max_inter_iter'],
+                    fac=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['fac'],
+                    blur_fwhm=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['blur_fwhm'],
+                    monkey=config.anatomical_preproc['brain_extraction']['AFNI-3dSkullStrip']['monkey'],
                 )
                 '''
                 new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(
@@ -982,19 +982,19 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     wf_name=preproc_wf_name)
                 '''
                 anat_preproc.inputs.BET_options.set(
-                    frac=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['frac'],
-                    mask_boolean=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['mask_boolean'],
-                    mesh_boolean=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['mesh_boolean'],
-                    outline=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['outline'],
-                    padding=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['padding'],
-                    radius=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['radius'],
-                    reduce_bias=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['reduce_bias'],
-                    remove_eyes=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['remove_eyes'],
-                    robust=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['robust'],
-                    skull=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['skull'],
-                    surfaces=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['surfaces'],
-                    threshold=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['threshold'],
-                    vertical_gradient=config.anatomical_preproc['brain_extraction']['extraction']['FSL-BET']['vertical_gradient'],
+                    frac=config.anatomical_preproc['brain_extraction']['FSL-BET']['frac'],
+                    mask_boolean=config.anatomical_preproc['brain_extraction']['FSL-BET']['mask_boolean'],
+                    mesh_boolean=config.anatomical_preproc['brain_extraction']['FSL-BET']['mesh_boolean'],
+                    outline=config.anatomical_preproc['brain_extraction']['FSL-BET']['outline'],
+                    padding=config.anatomical_preproc['brain_extraction']['FSL-BET']['padding'],
+                    radius=config.anatomical_preproc['brain_extraction']['FSL-BET']['radius'],
+                    reduce_bias=config.anatomical_preproc['brain_extraction']['FSL-BET']['reduce_bias'],
+                    remove_eyes=config.anatomical_preproc['brain_extraction']['FSL-BET']['remove_eyes'],
+                    robust=config.anatomical_preproc['brain_extraction']['FSL-BET']['robust'],
+                    skull=config.anatomical_preproc['brain_extraction']['FSL-BET']['skull'],
+                    surfaces=config.anatomical_preproc['brain_extraction']['FSL-BET']['surfaces'],
+                    threshold=config.anatomical_preproc['brain_extraction']['FSL-BET']['threshold'],
+                    vertical_gradient=config.anatomical_preproc['brain_extraction']['FSL-BET']['vertical_gradient'],
                 )
                 '''
                 new_strat, strat_nodes_list_list = connect_anat_preproc_inputs(

@@ -200,8 +200,8 @@ def easy_thresh(wf_name):
     zstat_mask.inputs.op_string = '-mas %s'
 
     # fslcpgeom
-    #copy certain parts of the header information (image dimensions, 
-    #voxel dimensions, voxel dimensions units string, image orientation/origin 
+    #copy certain parts of the header information (image dimensions,
+    #voxel dimensions, voxel dimensions units string, image orientation/origin
     #or qform/sform info) from one image to another
     geo_imports = ['import subprocess']
     copy_geometry = pe.MapNode(util.Function(input_names=['infile_a', 'infile_b'],
@@ -212,15 +212,15 @@ def easy_thresh(wf_name):
                                              iterfield=['infile_a', 'infile_b'])
 
     ##cluster-based thresholding
-    #After carrying out the initial statistical test, the resulting 
-    #Z statistic image is then normally thresholded to show which voxels or 
+    #After carrying out the initial statistical test, the resulting
+    #Z statistic image is then normally thresholded to show which voxels or
     #clusters of voxels are activated at a particular significance level.
-    #A Z statistic threshold is used to define contiguous clusters. 
-    #Then each cluster's estimated significance level (from GRF-theory) is 
-    #compared with the cluster probability threshold. Significant clusters 
-    #are then used to mask the original Z statistic image for later production 
-    #of colour blobs.This method of thresholding is an alternative to 
-    #Voxel-based correction, and is normally more sensitive to activation. 
+    #A Z statistic threshold is used to define contiguous clusters.
+    #Then each cluster's estimated significance level (from GRF-theory) is
+    #compared with the cluster probability threshold. Significant clusters
+    #are then used to mask the original Z statistic image for later production
+    #of colour blobs.This method of thresholding is an alternative to
+    #Voxel-based correction, and is normally more sensitive to activation.
 #    cluster = pe.MapNode(interface=fsl.Cluster(),
 #                            name='cluster',
 #                            iterfield=['in_file', 'volume', 'dlh'])
@@ -350,9 +350,9 @@ def easy_thresh(wf_name):
 
 
 def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
-  
+
     out_name = re.match('z(\w)*stat(\d)+', os.path.basename(in_file))
-    
+
     filename, ext = os.path.splitext(os.path.basename(in_file))
     ext=  os.path.splitext(filename)[1] + ext
     filename = os.path.splitext(filename)[0]
@@ -363,15 +363,15 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
         out_name = filename
 
     FSLDIR = parameters[0]
-    
+
     index_file = os.path.join(os.getcwd(), 'cluster_mask_' + out_name + ext)
     threshold_file = os.path.join(os.getcwd(), 'thresh_' + out_name + ext)
     localmax_txt_file = os.path.join(os.getcwd(), 'cluster_' + out_name + '.txt')
 
-    cmd_path = os.path.join(FSLDIR, 'bin/cluster')    
-        
+    cmd_path = os.path.join(FSLDIR, 'bin/cluster')
+
     f = open(localmax_txt_file,'wb')
-    
+
     cmd = sb.Popen([ cmd_path,
                     '--dlh=' + str(dlh),
                     '--in=' + in_file,
@@ -381,13 +381,13 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
                     '--thresh=' +  str(threshold),
                     '--volume=' + str(volume)],
                     stdout= f)
-        
+
     stdout_value, stderr_value = cmd.communicate()
     f.close()
-    
+
     return index_file, threshold_file, localmax_txt_file
-    
- 
+
+
 def copy_geom(infile_a, infile_b):
     """
     Method to call fsl fslcpgeom command to copy 
@@ -423,7 +423,7 @@ def copy_geom(infile_a, infile_b):
         return out_file
     except Exception:
         raise Exception("Error while using fslcpgeom to copy geometry")
-    
+
 
 def get_standard_background_img(in_file, file_parameters):
     """
@@ -465,7 +465,6 @@ def get_standard_background_img(in_file, file_parameters):
 
 
 def get_tuple(infile_a, infile_b):
-
     """
     Simple method to return tuple of z_threhsold
     maximum intensity values of Zstatistic image

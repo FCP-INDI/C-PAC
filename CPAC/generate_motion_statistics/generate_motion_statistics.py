@@ -469,9 +469,9 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
         subject name or id
     scan_id : string
         scan name or id
-    FDP_1D: string
+    FDP_1D : string
         framewise displacement(FD as per power et al., 2012) file path
-    FDJ_1D: string
+    FDJ_1D : string
         framewise displacement(FD as per jenkinson et al., 2002) file path
     threshold : float
         scrubbing threshold set in the configuration

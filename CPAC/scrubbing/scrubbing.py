@@ -4,7 +4,6 @@ import nipype.interfaces.utility as util
 
 
 def create_scrubbing_preproc(wf_name = 'scrubbing'):
-
     """
     This workflow essentially takes the list of offending timepoints that are to be removed
     and removes it from the motion corrected input image. Also, it removes the information
@@ -98,19 +97,19 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
                                               function=get_indx),
                                 name = 'scrubbing_craft_input_string')
 
-    scrubbed_movement_parameters = pe.Node(util.Function(input_names=['infile_a', 'infile_b'], 
+    scrubbed_movement_parameters = pe.Node(util.Function(input_names=['infile_a', 'infile_b'],
                                                  output_names=['out_file'],
-                                                 function=get_mov_parameters), 
+                                                 function=get_mov_parameters),
                                    name='scrubbed_movement_parameters')
 
     # THIS commented out until Nipype has an input for this interface that
     # allows for the selection of specific volumes to include
-    
-    #scrubbed_preprocessed = pe.Node(interface=e_afni.Calc(), 
+
+    #scrubbed_preprocessed = pe.Node(interface=e_afni.Calc(),
     #                           name='scrubbed_preprocessed')
     #scrubbed_preprocessed.inputs.expr = 'a'
-    #scrubbed_preprocessed.inputs.outputtype = 'NIFTI_GZ'   
-    
+    #scrubbed_preprocessed.inputs.outputtype = 'NIFTI_GZ'
+
     scrubbed_preprocessed = pe.Node(util.Function(input_names=['scrub_input'],
                                                   output_names=['scrubbed_image'],
                                                   function=scrub_image),
@@ -118,8 +117,8 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
 
     scrub.connect(inputNode, 'preprocessed', craft_scrub_input, 'scrub_input')
     scrub.connect(inputNode, 'frames_in_1D', craft_scrub_input, 'frames_in_1D_file')
-    
-    scrub.connect(craft_scrub_input, 'scrub_input_string', scrubbed_preprocessed, 'scrub_input')    
+
+    scrub.connect(craft_scrub_input, 'scrub_input_string', scrubbed_preprocessed, 'scrub_input')
 
     scrub.connect(inputNode, 'movement_parameters', scrubbed_movement_parameters, 'infile_b')
     scrub.connect(inputNode, 'frames_in_1D', scrubbed_movement_parameters, 'infile_a' )
@@ -131,7 +130,6 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
 
 
 def get_mov_parameters(infile_a, infile_b):
-
     """
     Method to get the new movement parameters
     file after removing the offending time frames 
@@ -154,7 +152,7 @@ def get_mov_parameters(infile_a, infile_b):
     """
     import os
     import warnings
-    
+
     out_file = os.path.join(os.getcwd(), 'rest_mc_scrubbed.1D')
 
     f1= open(infile_a)
@@ -163,7 +161,7 @@ def get_mov_parameters(infile_a, infile_b):
     l2=f2.readlines()
     f1.close()
     f2.close()
-    
+
     if l1:
         l1=l1.rstrip(',').split(',')
         warnings.warn("number of timepoints remaining after scrubbing -> %d"%len(l1))
@@ -179,7 +177,6 @@ def get_mov_parameters(infile_a, infile_b):
 
 
 def get_indx(scrub_input, frames_in_1D_file):
-
     """
     Method to get the list of time 
     frames that are to be included
@@ -205,14 +202,13 @@ def get_indx(scrub_input, frames_in_1D_file):
         indx = map(int, line.split(","))
     else:
         raise Exception("No time points remaining after scrubbing.")
-    
-    scrub_input_string = scrub_input + str(indx).replace(" ", "")
-    
-    return scrub_input_string
-    
-    
-def scrub_image(scrub_input):
 
+    scrub_input_string = scrub_input + str(indx).replace(" ", "")
+
+    return scrub_input_string
+
+
+def scrub_image(scrub_input):
     """
     Method to run 3dcalc in order to scrub the image. This is used instead of
     the Nipype interface for 3dcalc because functionality is needed for

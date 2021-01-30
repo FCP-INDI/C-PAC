@@ -39,13 +39,13 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
     ----------
     wf_name : string
         Workflow Name
-    use_priors: boolean
+    use_priors : boolean
         Whether or not to use template-space tissue priors to further refine
         the resulting segmentation tissue masks.
-    use_threshold: list
+    use_threshold : list
         Choose threshold to further refine
         the resulting segmentation tissue masks.
-    use_erosion: boolean
+    use_erosion : boolean
         Whether or not to erode the resulting segmentation tissue masks.
     use_ants : boolean
         Whether or not to use ANTs or FSL for transform application.

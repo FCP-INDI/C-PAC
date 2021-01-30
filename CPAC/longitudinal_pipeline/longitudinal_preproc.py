@@ -64,7 +64,7 @@ def norm_transformation(input_mat):
     
     Parameters
     ----------
-    input_mat: str or numpy.ndarray
+    input_mat : str or numpy.ndarray
         Either the path to text file matrix or a matrix already imported.
 
     Returns
@@ -105,12 +105,12 @@ def template_convergence(mat_file, mat_type='matrix',
 
     Parameters
     ----------
-    mat_file: str
+    mat_file : str
         path to an fsl flirt matrix
-    mat_type: str
+    mat_type : str
         'matrix'(default), 'ITK'
         The type of matrix used to represent the transformations
-    convergence_threshold: float
+    convergence_threshold : float
         (numpy.finfo(np.float64).eps (default)) threshold for the convergence
         The threshold is how different from no transformation is the
         transformation matrix.
@@ -141,22 +141,22 @@ def create_temporary_template(input_brain_list, input_skull_list,
 
     Parameters
     ----------
-    input_brain_list: list of str
+    input_brain_list : list of str
         list of brain image paths
-    input_skull_list: list of str
+    input_skull_list : list of str
         list of skull image paths
-    output_brain_path: Nifti1Image
+    output_brain_path : Nifti1Image
         temporary longitudinal brain template
-    output_skull_path: Nifti1Image
+    output_skull_path : Nifti1Image
         temporary longitudinal skull template
-    avg_method: str
+    avg_method : str
         function names from numpy library such as 'median', 'mean', 'std' ...
 
     Returns
     -------
-    output_brain_path: Nifti1Image
+    output_brain_path : Nifti1Image
         temporary longitudinal brain template
-    output_skull_path: Nifti1Image
+    output_skull_path : Nifti1Image
         temporary longitudinal skull template
     """
 
@@ -189,29 +189,29 @@ def register_img_list(input_brain_list, ref_img, dof=12, interp='trilinear', cos
 
     Parameters
     ----------
-    input_brain_list: list of str
+    input_brain_list : list of str
         list of brain image paths
-    ref_img: str
+    ref_img : str
         path to the reference image to which the images will be registered
-    dof: integer (int of long)
+    dof : integer (int of long)
         number of transform degrees of freedom (FLIRT) (12 by default)
-    interp: str
+    interp : str
         ('trilinear' (default) or 'nearestneighbour' or 'sinc' or 'spline')
         final interpolation method used in reslicing
-    cost: str
+    cost : str
         ('mutualinfo' or 'corratio' (default) or 'normcorr' or 'normmi' or
          'leastsq' or 'labeldiff' or 'bbr')
         cost function
-    thread_pool: int or multiprocessing.dummy.Pool
+    thread_pool : int or multiprocessing.dummy.Pool
         (default 2) number of threads. You can also provide a Pool so the
         node will be added to it to be run.
-    duplicated_basename: boolean
+    duplicated_basename : boolean
         whether there exists duplicated basename which may happen in non-BIDS dataset
-    unique_id_list: list
+    unique_id_list : list
         a list of unique IDs in data
     Returns
     -------
-    node_list: list of Node
+    node_list : list of Node
         each Node 'node' has been run and
         node.inputs.out_file contains the path to the registered image
         node.inputs.out_matrix_file contains the path to the transformation

@@ -143,8 +143,6 @@ pipeline_setup:
     # Verbose developer messages.
     verbose: Off
 
-  pipeline_IMPORT: None
-
 
 # PREPROCESSING
 # -------------
@@ -220,7 +218,7 @@ anatomical_preproc:
 
     # ACPC aligned template
     T1w_ACPC_template: /usr/share/fsl/5.0/data/standard/MNI152_T1_1mm.nii.gz
-    T1w_brain_ACPC_template: None
+    T1w_brain_ACPC_template:
 
   brain_extraction:
 
@@ -299,7 +297,7 @@ anatomical_preproc:
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
       frac: 0.5
 
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
+      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking:  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
       mask_boolean: On
 
       # Mesh created along with skull stripping
@@ -333,12 +331,12 @@ anatomical_preproc:
       threshold: Off
 
       # Vertical gradient in fractional intensity threshold (-1,1)
-      vertical_gradient : 0.0
+      vertical_gradient: 0.0
 
     UNet:
 
       # UNet model
-      unet_model : s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
+      unet_model: s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 
     niworkflows-ants:
 
@@ -346,13 +344,13 @@ anatomical_preproc:
       # It is not necessary to change this path unless you intend to use a non-standard template.
 
       # niworkflows-ants Brain extraction template
-      template_path : /ants_template/oasis/T_template0.nii.gz
+      template_path: /ants_template/oasis/T_template0.nii.gz
 
       # niworkflows-ants probability mask
-      mask_path : /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
+      mask_path: /ants_template/oasis/T_template0_BrainCerebellumProbabilityMask.nii.gz
 
       # niworkflows-ants registration mask (can be optional)
-      regmask_path : /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
+      regmask_path: /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
 
 segmentation:
@@ -382,13 +380,13 @@ segmentation:
           # A good starting point is 0.95.
 
           # CSF (cerebrospinal fluid) threshold.
-          CSF_threshold_value : 0.95
+          CSF_threshold_value: 0.95
 
           # White matter threshold.
-          WM_threshold_value : 0.95
+          WM_threshold_value: 0.95
 
           # Gray matter threshold.
-          GM_threshold_value : 0.95
+          GM_threshold_value: 0.95
 
       use_priors:
 
@@ -440,7 +438,7 @@ segmentation:
       # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
 
       # The atlas image assumed to be used in ANTs Prior-based Segmentation.
-      template_brain_list :
+      template_brain_list:
         - /monkey_seg/templates/JointLabelCouncil/MacaqueYerkes19_T1w_0.5mm/T1w_brain.nii.gz
         - /monkey_seg/templates/JointLabelCouncil/J_Macaque_11mo_atlas_nACQ_194x252x160space_0.5mm/T1w_brain.nii.gz
 
@@ -448,7 +446,7 @@ segmentation:
       # For performing ANTs Prior-based segmentation method
       # the number of specified segmentations should be identical to the number of atlas brain image sets.
       # eg.
-      # ANTs_prior_seg_template_brain_list :
+      # ANTs_prior_seg_template_brain_list:
       #   - atlas1.nii.gz
       #   - atlas2.nii.gz
       # ANTs_prior_seg_template_segmentation_list:
@@ -463,19 +461,19 @@ segmentation:
       # https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/AnatomicalROI/FreeSurferColorLUT
 
       # Label value corresponding to CSF in multiatlas file
-      CSF_label : 24
+      CSF_label: 24
 
       # Label value corresponding to Left Gray Matter in multiatlas file
-      left_GM_label : 3
+      left_GM_label: 3
 
       # Label value corresponding to Right Gray Matter in multiatlas file
-      right_GM_label : 42
+      right_GM_label: 42
 
       # Label value corresponding to Left White Matter in multiatlas file
-      left_WM_label : 2
+      left_WM_label: 2
 
       # Label value corresponding to Right White Matter in multiatlas file
-      right_WM_label : 41
+      right_WM_label: 41
 
 
 registration_workflows:
@@ -522,60 +520,60 @@ registration_workflows:
 
           - collapse-output-transforms: 0
           - dimensionality: 3
-          - initial-moving-transform :
+          - initial-moving-transform:
              initializationFeature: 0
 
           - transforms:
              - Rigid:
-                 gradientStep : 0.1
-                 metric :
-                   type : MI
+                 gradientStep: 0.1
+                 metric:
+                   type: MI
                    metricWeight: 1
-                   numberOfBins : 32
-                   samplingStrategy : Regular
-                   samplingPercentage : 0.25
+                   numberOfBins: 32
+                   samplingStrategy: Regular
+                   samplingPercentage: 0.25
                  convergence:
-                   iteration : 1000x500x250x100
-                   convergenceThreshold : 1e-08
-                   convergenceWindowSize : 10
-                 smoothing-sigmas : 3.0x2.0x1.0x0.0
-                 shrink-factors : 8x4x2x1
-                 use-histogram-matching : True
+                   iteration: 1000x500x250x100
+                   convergenceThreshold: 1e-08
+                   convergenceWindowSize: 10
+                 smoothing-sigmas: 3.0x2.0x1.0x0.0
+                 shrink-factors: 8x4x2x1
+                 use-histogram-matching: True
 
              - Affine:
-                 gradientStep : 0.1
-                 metric :
-                   type : MI
+                 gradientStep: 0.1
+                 metric:
+                   type: MI
                    metricWeight: 1
-                   numberOfBins : 32
-                   samplingStrategy : Regular
-                   samplingPercentage : 0.25
+                   numberOfBins: 32
+                   samplingStrategy: Regular
+                   samplingPercentage: 0.25
                  convergence:
-                   iteration : 1000x500x250x100
-                   convergenceThreshold : 1e-08
-                   convergenceWindowSize : 10
-                 smoothing-sigmas : 3.0x2.0x1.0x0.0
-                 shrink-factors : 8x4x2x1
-                 use-histogram-matching : True
+                   iteration: 1000x500x250x100
+                   convergenceThreshold: 1e-08
+                   convergenceWindowSize: 10
+                 smoothing-sigmas: 3.0x2.0x1.0x0.0
+                 shrink-factors: 8x4x2x1
+                 use-histogram-matching: True
 
              - SyN:
-                 gradientStep : 0.1
-                 updateFieldVarianceInVoxelSpace : 3.0
-                 totalFieldVarianceInVoxelSpace : 0.0
+                 gradientStep: 0.1
+                 updateFieldVarianceInVoxelSpace: 3.0
+                 totalFieldVarianceInVoxelSpace: 0.0
                  metric:
-                   type : CC
+                   type: CC
                    metricWeight: 1
-                   radius : 4
+                   radius: 4
                  convergence:
-                   iteration : 100x100x70x20
-                   convergenceThreshold : 1e-09
-                   convergenceWindowSize : 15
-                 smoothing-sigmas : 3.0x2.0x1.0x0.0
-                 shrink-factors : 6x4x2x1
-                 use-histogram-matching : True
-                 winsorize-image-intensities :
-                   lowerQuantile : 0.01
-                   upperQuantile : 0.99
+                   iteration: 100x100x70x20
+                   convergenceThreshold: 1e-09
+                   convergenceWindowSize: 15
+                 smoothing-sigmas: 3.0x2.0x1.0x0.0
+                 shrink-factors: 6x4x2x1
+                 use-histogram-matching: True
+                 winsorize-image-intensities:
+                   lowerQuantile: 0.01
+                   upperQuantile: 0.99
 
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
@@ -608,7 +606,7 @@ registration_workflows:
       func_input_prep:
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
-        # input: ['Mean Functional', 'Selected_Functional_Volume']
+        # input: ['Mean_Functional', 'Selected_Functional_Volume']
         input: ['Mean_Functional']
 
         Mean Functional:
@@ -659,60 +657,60 @@ registration_workflows:
 
           - collapse-output-transforms: 0
           - dimensionality: 3
-          - initial-moving-transform :
+          - initial-moving-transform:
              initializationFeature: 0
 
           - transforms:
              - Rigid:
-                 gradientStep : 0.1
-                 metric :
-                   type : MI
+                 gradientStep: 0.1
+                 metric:
+                   type: MI
                    metricWeight: 1
-                   numberOfBins : 32
-                   samplingStrategy : Regular
-                   samplingPercentage : 0.25
+                   numberOfBins: 32
+                   samplingStrategy: Regular
+                   samplingPercentage: 0.25
                  convergence:
-                   iteration : 1000x500x250x100
-                   convergenceThreshold : 1e-08
-                   convergenceWindowSize : 10
-                 smoothing-sigmas : 3.0x2.0x1.0x0.0
-                 shrink-factors : 8x4x2x1
-                 use-histogram-matching : True
+                   iteration: 1000x500x250x100
+                   convergenceThreshold: 1e-08
+                   convergenceWindowSize: 10
+                 smoothing-sigmas: 3.0x2.0x1.0x0.0
+                 shrink-factors: 8x4x2x1
+                 use-histogram-matching: True
 
              - Affine:
-                 gradientStep : 0.1
-                 metric :
-                   type : MI
+                 gradientStep: 0.1
+                 metric:
+                   type: MI
                    metricWeight: 1
-                   numberOfBins : 32
-                   samplingStrategy : Regular
-                   samplingPercentage : 0.25
+                   numberOfBins: 32
+                   samplingStrategy: Regular
+                   samplingPercentage: 0.25
                  convergence:
-                   iteration : 1000x500x250x100
-                   convergenceThreshold : 1e-08
-                   convergenceWindowSize : 10
-                 smoothing-sigmas : 3.0x2.0x1.0x0.0
-                 shrink-factors : 8x4x2x1
-                 use-histogram-matching : True
+                   iteration: 1000x500x250x100
+                   convergenceThreshold: 1e-08
+                   convergenceWindowSize: 10
+                 smoothing-sigmas: 3.0x2.0x1.0x0.0
+                 shrink-factors: 8x4x2x1
+                 use-histogram-matching: True
 
              - SyN:
-                 gradientStep : 0.1
-                 updateFieldVarianceInVoxelSpace : 3.0
-                 totalFieldVarianceInVoxelSpace : 0.0
+                 gradientStep: 0.1
+                 updateFieldVarianceInVoxelSpace: 3.0
+                 totalFieldVarianceInVoxelSpace: 0.0
                  metric:
-                   type : CC
+                   type: CC
                    metricWeight: 1
-                   radius : 4
+                   radius: 4
                  convergence:
-                   iteration : 100x100x70x20
-                   convergenceThreshold : 1e-09
-                   convergenceWindowSize : 15
-                 smoothing-sigmas : 3.0x2.0x1.0x0.0
-                 shrink-factors : 6x4x2x1
-                 use-histogram-matching : True
-                 winsorize-image-intensities :
-                   lowerQuantile : 0.01
-                   upperQuantile : 0.99
+                   iteration: 100x100x70x20
+                   convergenceThreshold: 1e-09
+                   convergenceWindowSize: 15
+                 smoothing-sigmas: 3.0x2.0x1.0x0.0
+                 shrink-factors: 6x4x2x1
+                 use-histogram-matching: True
+                 winsorize-image-intensities:
+                   lowerQuantile: 0.01
+                   upperQuantile: 0.99
 
         # Interpolation method for writing out transformed EPI images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
@@ -953,7 +951,7 @@ functional_preproc:
 
     FSL-BET:
 
-      # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off.
+      # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean: Off.
       # Mutually exclusive with functional, reduce_bias, robust, padding, remove_eyes, surfaces
       # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: Off
@@ -1101,11 +1099,11 @@ nuisance_corrections:
         # Erosion proportion, if using erosion.
         # Default proportion is 0 for anatomical brain mask.
         # Recommend that do not use erosion in both proportion and millimeter method.
-        brain_mask_erosion_prop : 0
+        brain_mask_erosion_prop: 0
 
         # Erode brain mask in millimeter, default of brain is 30 mm
         # brain erosion default is using millimeter erosion method when use erosion for brain.
-        brain_mask_erosion_mm : 30
+        brain_mask_erosion_mm: 30
 
         # Erode binarized brain mask in millimeter
         brain_erosion_mm: 0
@@ -1118,7 +1116,7 @@ nuisance_corrections:
         # Erosion proportion, if use erosion.
         # Default proportion is 0 for CSF (cerebrospinal fluid)  mask.
         # Recommend to do not use erosion in both proportion and millimeter method.
-        csf_erosion_prop : 0
+        csf_erosion_prop: 0
 
         # Erode brain mask in millimeter, default of csf is 30 mm
         # CSF erosion default is using millimeter erosion method when use erosion for CSF.
@@ -1136,7 +1134,7 @@ nuisance_corrections:
         # Default proportion is 0.6 for White Matter mask.
         # Recommend to do not use erosion in both proportion and millimeter method.
         # White Matter erosion default is using proportion erosion method when use erosion for White Matter.
-        wm_erosion_prop : 0.6
+        wm_erosion_prop: 0.6
 
         # Erode brain mask in millimeter, default of White Matter is 0 mm
         wm_mask_erosion_mm: 0
@@ -1151,7 +1149,7 @@ nuisance_corrections:
 
         # Erosion proportion, if use erosion.
         # Recommend to do not use erosion in both proportion and millimeter method.
-        gm_erosion_prop : 0.6
+        gm_erosion_prop: 0.6
 
         # Erode brain mask in millimeter, default of csf is 30 mm
         gm_mask_erosion_mm: 30
@@ -1411,7 +1409,7 @@ PyPEER:
   data_scan_names: []
 
   # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz
 
   # PyPEER Stimulus File Path
   # This is a file describing the stimulus locations from the calibration sequence.
