@@ -771,7 +771,7 @@ def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["desc-preproc_T1w"]}
     '''
-    # TODO: naming, and put two of these in a row and try!
+
     denoise = pe.Node(interface=ants.DenoiseImage(),
                       name=f'anat_denoise_{pipe_num}')
 
