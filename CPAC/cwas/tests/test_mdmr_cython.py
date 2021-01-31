@@ -13,4 +13,4 @@ def test_mdmr():
 
     F_value, p_value = calc_cwas(X, Y, np.array([0, 1, 2], dtype=int), 500, [0])
 
-    assert np.isclose(p_value.mean(), 1.0, rtol=0.03)
+    assert np.isclose(p_value.mean(), 1.0, rtol=0.1)
