@@ -40,6 +40,9 @@ commands:
       variant:
         type: string
         default: ""
+      first-build:
+        type: boolean
+        default: false
     steps:
       - run:
           name: "Setting up variant"
@@ -72,7 +75,7 @@ commands:
       - install-singularity-requirements
       - when:
           condition:
-            equal: [ "", "<< parameters.variant >>" ]
+            equal: [ true, "<< parameters.first-build >>" ]
           steps:
             - run: 
                 name: "Cloning Singularity 2.5.2"
@@ -171,7 +174,8 @@ jobs:
               fi
               cd ..
             fi
-      - build-images
+      - build-images:
+          first-build: true
       - store_artifacts:
           path: cpac-docker-image.tar.gz
       - store_artifacts:
@@ -191,6 +195,7 @@ jobs:
       - set-python-version
       - build-images:
           variant: ABCD-HCP
+          first-build: true
       - store_artifacts:
           path: cpac-docker-image.tar.gz
       - store_artifacts:
