@@ -63,7 +63,7 @@ def create_aroma(tr=None, wf_name='create_aroma'):
     preproc.connect(inputNode,'denoise_file', bet_aroma,'in_file')
     preproc.connect(bet_aroma,'mask_file', outputNode,'mask_aroma')
     
-    aroma = pe.Node(ICA_AROMA(), name='aroma_wf')
+    aroma = pe.Node(ICA_AROMA(), name='aroma_wf', mem_gb=8.0)
     aroma.inputs.out_dir = '.'
     if tr:
         aroma.inputs.TR = tr

@@ -437,7 +437,10 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
 
                 else:
                     # perform the transform using FLIRT
-                    lat_ven_mni_to_anat = pe.Node(interface=fsl.FLIRT(), name='{}_flirt'.format(ventricles_key))
+                    lat_ven_mni_to_anat = pe.Node(
+                        interface=fsl.FLIRT(),
+                        name='{}_flirt'.format(ventricles_key),
+                        mem_gb=8.0)
                     lat_ven_mni_to_anat.inputs.interp = 'nearestneighbour'
 
                     nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (lat_ven_mni_to_anat, 'in_matrix_file')))
