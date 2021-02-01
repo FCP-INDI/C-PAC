@@ -39,9 +39,9 @@ commands:
               - "<< parameters.variant >>"
           steps:
             - get-singularity:
-                version: "2.5.2"
+                version: "2.6.1"
             - set-up-singularity:
-                version: "2.5.2"
+                version: "2.6.1"
                 libssl_version: "1.0"
             - run:
                 name: "Building Singularity 2 image from Docker image"
@@ -139,7 +139,7 @@ commands:
       version:
         description: "Version of Singularity to set up"
         type: string
-        default: v3.6.4
+        default: v3.5.2
       libssl_version:
         description: "Version of libssl to install"
         type: string
@@ -150,14 +150,23 @@ commands:
           command: sudo apt-get update && sudo apt-get install flawfinder squashfs-tools uuid-dev libuuid1 libffi-dev libssl-dev libssl<< parameters.libssl_version >> libarchive-dev libgpgme11-dev libseccomp-dev -y
       - run:
           name: "Setting up Singularity << parameters.version >>"
-          # TODO: Set up Singularity 3
           command: |
-            cd singularity-<< parameters.version >>
-            ./autogen.sh
-            ./configure --prefix=/usr/local --sysconfdir=/etc
-            make
-            sudo make install
-            cd ..
+            VERSION=<< parameters.version >>
+            if [[ ! ${VERSION:0:1} == 'v' ]]
+            then
+               VERSION=v${VERSION}
+            fi
+            if [[ ${VERSION} = v3.5.2 ]]
+            then
+              curl -LOJ http://http.us.debian.org/debian/pool/main/s/singularity-container/singularity-container_3.5.2+ds1-1_amd64.deb
+              sudo dpkg -i singularity-container_3.5.2+ds1-1_amd64.deb || true
+              sudo apt-get install --fix-broken || true
+            elif [[ << parameters.version >> = 2.6.1 ]]
+            then
+              sudo wget -O- http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list &&     sudo apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 &&     sudo apt-get update
+              sudo apt-get install singularity-container=<< parameters.version >>*
+            # TODO: install from source (else)
+            fi
 
 jobs:
   build:
@@ -248,13 +257,14 @@ jobs:
           paths: project/.coverage*
           root: /home/circleci/
   pytest-singularity-2:
-    machine: true
+    machine:
+      image: "ubuntu-2004:202010-01"
     steps:
       - attach_workspace:
           at: /home/circleci/
       - set-python-version
       - set-up-singularity:
-          version: "2.5.2"
+          version: "2.6.1"
           libssl_version: "1.0"
       - run:
           command: |
@@ -262,7 +272,32 @@ jobs:
               coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors dev/circleci_data/test_install.py
           name: "Testing C-PAC installation in Singularity 2 Image"
       - run:
-          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity singularity exec -B $PWD:/code cpac-singularity-image.simg ./dev/circleci_data/test_in_image.sh"
+          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity2 singularity exec -B $PWD:/code cpac-singularity-image.simg ./dev/circleci_data/test_in_image.sh"
+          name: "Running unit tests in Singularity image"
+      - set-tests-exit-code:
+          code: "$?"
+      - store_test_results:
+          path: test-results
+      - persist_to_workspace:
+          paths: project/.coverage*
+          root: /home/circleci/
+  pytest-singularity-3:
+    machine:
+      image: "ubuntu-2004:202010-01"
+    steps:
+      - attach_workspace:
+          at: /home/circleci/
+      - set-python-version
+      - set-up-singularity:
+          version: "3.5.2"
+          libssl_version: "1.1"
+      - run:
+          command: |
+              COVERAGE_FILE=.coverage.singularity-install
+              coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors dev/circleci_data/test_install.py
+          name: "Testing C-PAC installation in Singularity 3 Image"
+      - run:
+          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity3 singularity exec -B $PWD:/code cpac-singularity-image.simg ./dev/circleci_data/test_in_image.sh"
           name: "Running unit tests in Singularity image"
       - set-tests-exit-code:
           code: "$?"
@@ -303,11 +338,36 @@ jobs:
       - check-for-built-images
       - set-python-version
       - set-up-singularity:
-          version: "2.5.2"
+          version: "2.6.1"
           libssl_version: "1.0"
       - generate-random-run
       - run:
-          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs cpac-singularity-image.simg dev/circleci_data/run_command.sh"
+          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity2-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs cpac-singularity-image.simg dev/circleci_data/run_command.sh"
+          name: "Running one participant in Singularity"
+          no_output_timeout: 5h
+      - set-tests-exit-code:
+          code: "$?"
+      - persist_to_workspace:
+          paths: project/.coverage*
+          root: /home/circleci/
+      - store_artifacts:
+          path: dev/circleci_data/run_command.sh
+      - store_artifacts:
+          path: outputs
+  run-singularity-3:
+    machine:
+      image: "ubuntu-2004:202010-01"
+    steps:
+      - attach_workspace:
+          at: /home/circleci/
+      - check-for-built-images
+      - set-python-version
+      - set-up-singularity:
+          version: "3.5.2"
+          libssl_version: "1.0"
+      - generate-random-run
+      - run:
+          command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity3-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs cpac-singularity-image.simg dev/circleci_data/run_command.sh"
           name: "Running one participant in Singularity"
           no_output_timeout: 5h
       - set-tests-exit-code:
@@ -332,18 +392,26 @@ workflows:
       - pytest-singularity-2:
           requires:
             - build
+      - pytest-singularity-3:
+          requires:
+            - build
       - run-docker:
           requires:
             - build
       - run-singularity-2:
           requires:
             - build
+      - run-singularity-3:
+          requires:
+            - build
       - combine-coverage:
           requires:
             - pytest-docker
             - pytest-singularity-2
+            - pytest-singularity-3
             - run-docker
             - run-singularity-2
+            - run-singularity-3
       - overall-success:
           requires:
             - combine-coverage
