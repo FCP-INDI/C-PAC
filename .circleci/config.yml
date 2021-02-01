@@ -122,6 +122,18 @@ commands:
               pyenv install -v 3.7.9
               pyenv global 3.7.9
               pip install pyyaml
+  set-tests-exit-code:
+    parameters:
+      code:
+        description: "Overall exit code"
+        type: string
+        # actually an integer, but passed by the special variable "$?"
+        default: "0"
+    steps:
+      - run:
+          name: "Setting exit code from tests"
+          command: echo "export EXIT_CODE=$(expr ${EXIT_CODE} + << parameters.code >>)" >> $BASH_ENV
+          when: always
   set-up-singularity:
     parameters:
       version:
@@ -154,6 +166,8 @@ jobs:
     steps:
       - checkout
       - set-python-version
+      - set-tests-exit-code:
+          code: "0"
       - run:
           name: "Installing build requirements"
           command: "pip install -r dev/circleci_data/requirements.txt"
@@ -198,10 +212,19 @@ jobs:
           at: /home/circleci
       - set-python-version
       - combine-coverage
+      - set-tests-exit-code:
+          code: "$?"
       - store_test_results:
           path: test-results
       - store_artifacts:
           path: htmlcov
+  overall-success:
+    machine:
+      image: "ubuntu-2004:202010-01"
+    steps:
+      - run:
+          name: "Applying exit code"
+          command: $(exit ${EXIT_CODE})
   pytest-docker:
     machine:
       image: "ubuntu-2004:202010-01"
@@ -217,6 +240,8 @@ jobs:
       - run:
           command: "docker exec docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh"
           name: "Running unit tests in Docker image"
+      - set-tests-exit-code:
+          code: "$?"
       - store_test_results:
           path: test-results
       - persist_to_workspace:
@@ -239,6 +264,8 @@ jobs:
       - run:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity singularity exec -B $PWD:/code cpac-singularity-image.simg ./dev/circleci_data/test_in_image.sh"
           name: "Running unit tests in Singularity image"
+      - set-tests-exit-code:
+          code: "$?"
       - store_test_results:
           path: test-results
       - persist_to_workspace:
@@ -258,6 +285,8 @@ jobs:
           command: "docker exec docker_test dev/circleci_data/run_command.sh"
           name: "Running one participant in Docker"
           no_output_timeout: 5h
+      - set-tests-exit-code:
+          code: "$?"
       - persist_to_workspace:
           paths: project/.coverage*
           root: /home/circleci/
@@ -281,6 +310,8 @@ jobs:
           command: "SINGULARITYENV_COVERAGE_FILE=.coverage.singularity-test-run singularity exec -H /home/circleci/project -B CPAC/resources/configs/test_configs:/test_configs cpac-singularity-image.simg dev/circleci_data/run_command.sh"
           name: "Running one participant in Singularity"
           no_output_timeout: 5h
+      - set-tests-exit-code:
+          code: "$?"
       - persist_to_workspace:
           paths: project/.coverage*
           root: /home/circleci/
@@ -313,4 +344,7 @@ workflows:
             - pytest-singularity-2
             - run-docker
             - run-singularity-2
+      - overall-success:
+          requires:
+            - combine-coverage
 
