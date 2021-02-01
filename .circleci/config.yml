@@ -197,14 +197,14 @@ jobs:
           variant: ABCD-HCP
           first-build: true
       - store_artifacts:
-          path: cpac-docker-image.tar.gz
+          path: cpac-docker-image-ABCD-HCP.tar.gz
       - store_artifacts:
-          path: cpac-singularity-image.simg
+          path: cpac-singularity-image-ABCD-HCP.simg
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - cpac-docker-image.tar.gz
-            - cpac-singularity-image.simg
+            - cpac-docker-image-ABCD-HCP.tar.gz
+            - cpac-singularity-image-ABCD-HCP.simg
             - project
   check-version:
     machine:
