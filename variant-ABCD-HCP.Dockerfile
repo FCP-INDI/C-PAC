@@ -246,29 +246,14 @@ COPY dev/docker_data/default_pipeline.yml /cpac_resources/default_pipeline.yml
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 
 # install FreeSurfer
-RUN mkdir -p /usr/lib/freesurfer && \
-    echo "Downloading FreeSurfer ..." \
-    && curl -sSL --retry 5 https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/5.3.0-HCP/freesurfer-Linux-centos6_x86_64-stable-pub-v5.3.0-HCP.tar.gz \
-    | tar xz -C /usr/lib \
-    --exclude='freesurfer/average/mult-comp-cor' \
-    --exclude='freesurfer/lib/cuda' \
-    --exclude='freesurfer/lib/qt' \
-    --exclude='freesurfer/subjects/V1_average' \
-    --exclude='freesurfer/subjects/bert' \
-    --exclude='freesurfer/subjects/cvs_avg35' \
-    --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
-    --exclude='freesurfer/subjects/fsaverage3' \
-    --exclude='freesurfer/subjects/fsaverage4' \
-    --exclude='freesurfer/subjects/fsaverage5' \
-    --exclude='freesurfer/subjects/fsaverage6' \
-    --exclude='freesurfer/subjects/fsaverage_sym' \
-    --exclude='freesurfer/trctrain'
-RUN chmod 777 /usr/lib/freesurfer
 # set shell to BASH
+RUN mkdir -p /usr/lib/freesurfer
 ENV FREESURFER_HOME="/usr/lib/freesurfer" \
     PATH="/usr/lib/freesurfer/bin:$PATH"
 SHELL ["/bin/bash", "-c"]
-RUN source $FREESURFER_HOME/SetUpFreeSurfer.sh
+RUN curl -fsSL --retry 5 https://dl.dropbox.com/s/nnzcfttc41qvt31/recon-all-freesurfer6-3.min.tgz \
+    | tar -xz -C /usr/lib/freesurfer --strip-components 1 && \
+    source $FREESURFER_HOME/SetUpFreeSurfer.sh
 RUN printf 'source $FREESURFER_HOME/SetUpFreeSurfer.sh' > ~/.bashrc
 # restore shell to default (sh)
 SHELL ["/bin/sh", "-c"]
