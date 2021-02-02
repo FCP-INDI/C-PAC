@@ -159,7 +159,7 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
 
 RUN echo "Downloading ANTs ..." \
     && mkdir -p /usr/lib/ants \
-    && curl -fsSL --retry 5 https://dl.dropbox.com/s/gwf51ykkk5bifyj/ants-Linux-centos6_x86_64-v2.3.4.tar.gz \
+    && curl -fsSL --retry 5 https://dl.dropbox.com/s/2f4sui1z6lcgyek/ANTs-Linux-centos5_x86_64-v2.2.0-0740f91.tar.gz \
     | tar -xz -C /usr/lib/ants --strip-components 1
 
 # download OASIS templates for niworkflows-ants skullstripping
