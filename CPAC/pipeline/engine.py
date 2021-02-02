@@ -1169,6 +1169,8 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 
 def ingress_raw_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
     anat_flow = create_anat_datasource(f'anat_gather_{part_id}_{ses_id}')
     anat_flow.inputs.inputnode.set(
@@ -1341,6 +1343,8 @@ def initiate_rpool(wf, cfg, data_paths):
 
     part_id = data_paths['subject_id']
     ses_id = data_paths['unique_id']
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
     unique_id = f'{part_id}_{ses_id}'
 
