@@ -131,8 +131,9 @@ ENV PATH=/opt/afni:$PATH
 
 # install FSL
 RUN echo "Downloading FSL ..." \
+    && mkdir -p /usr/share/fsl/5.0 \
     && curl -sSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz \
-    | tar zx -C /usr/share \
+    | tar zx -C /usr/share/fsl/5.0 --strip-components=1 \
     --exclude=fsl/bin/mist \
     --exclude=fsl/bin/possum \
     --exclude=fsl/data/possum \
@@ -140,15 +141,15 @@ RUN echo "Downloading FSL ..." \
     --exclude=fsl/data/first
 
 # setup FSL environment
-ENV FSLDIR=/usr/share/fsl \
-    FSL_DIR=/usr/share/fsl \
+ENV FSLDIR=/usr/share/fsl/5.0 \
+    FSL_DIR=/usr/share/fsl/5.0 \
     FSLOUTPUTTYPE=NIFTI_GZ \
     FSLMULTIFILEQUIT=TRUE \
-    POSSUMDIR=/usr/share/fsl \
-    LD_LIBRARY_PATH=/usr/share/fsl:$LD_LIBRARY_PATH \
+    POSSUMDIR=/usr/share/fsl/5.0 \
+    LD_LIBRARY_PATH=/usr/share/fsl/5.0:$LD_LIBRARY_PATH \
     FSLTCLSH=/usr/bin/tclsh \
     FSLWISH=/usr/bin/wish \
-    PATH=/usr/share/fsl/bin:$PATH
+    PATH=/usr/share/fsl/5.0/bin:$PATH
 
 # install CPAC resources into FSL
 RUN curl -sL http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz -o /tmp/cpac_resources.tar.gz && \
