@@ -1300,7 +1300,8 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
                                      "bold"])
-    wf.connect(node, out, func_skull_mean, [('func', 'in_file')])
+
+    wf.connect(node, out, func_skull_mean, 'in_file')
 
     wf.connect([(func_skull_mean, skullstrip_first_pass,
                  [('out_file', 'in_file')]),
