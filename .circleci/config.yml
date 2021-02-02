@@ -163,8 +163,7 @@ commands:
               sudo apt-get install --fix-broken || true
             elif [[ << parameters.version >> = 2.6.1 ]]
             then
-              sudo wget -O- http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list &&     sudo apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 &&     sudo apt-get update
-              sudo apt-get install singularity-container=<< parameters.version >>*
+              sudo wget -O- http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list &&     sudo apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 &&     sudo apt-get update && sudo apt-get install singularity-container
             # TODO: install from source (else)
             fi
 
@@ -289,7 +288,7 @@ jobs:
           at: /home/circleci/
       - set-python-version
       - set-up-singularity:
-          version: "3.5.2"
+          version: "v3.5.2"
           libssl_version: "1.1"
       - run:
           command: |
@@ -363,7 +362,7 @@ jobs:
       - check-for-built-images
       - set-python-version
       - set-up-singularity:
-          version: "3.5.2"
+          version: "v3.5.2"
           libssl_version: "1.0"
       - generate-random-run
       - run:
