@@ -2,11 +2,22 @@ version: 2.1
 
 commands:
   check-for-built-images:
+    parameters:
+      variant:
+        type: string
+        default: ""
     steps:
       - run:
           name: "Checking for locally built images"
           command: |
-            if [[ ! -f cpac-docker-image.tar.gz || ! -f cpac-singularity-image.simg ]]
+            VARIANT=<< parameters.variant >>
+            if [[ ! $VARIANT = "" ]]
+            then
+              VARIANT="-$VARIANT"
+            else
+              VARIANT=""
+            fi
+            if [[ ! -f cpac-docker-image${VARIANT}.tar.gz || ! -f cpac-singularity-image${VARIANT}.simg ]]
             then
               circleci step halt
             fi
@@ -130,6 +141,32 @@ jobs:
       - store_artifacts:
           path: htmlcov
           no_output_timeout: 5h
+  pytest-docker-ABCD-HCP:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: /home/circleci/
+      - check-for-built-images:
+          variant: ABCD-HCP
+      - set-python-version
+      - run:
+          name: Getting Sample BIDS Data
+          command: git clone https://github.com/bids-standard/bids-examples.git
+      - run:
+          name: Running pytest on Docker image
+          command: |
+            docker load < cpac-docker-image-ABCD-HCP.tar.gz
+            docker run -dit -P -v /home/circleci/project/test-results:/code/test-results -v /home/circleci/project/htmlcov:/code/htmlcov --entrypoint=/bin/bash --name docker_test fcpindi/c-pac:${CIRCLE_BRANCH//\//_}-ABCD-HCP
+            docker exec docker_test /bin/bash ./code/dev/circleci_data/test_in_image.sh
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+      - store_artifacts:
+          path: htmlcov
+          no_output_timeout: 5h
   pytest-singularity:
     machine:
       image: ubuntu-2004:202010-01
@@ -145,6 +182,22 @@ jobs:
           command: |
             pip install -r dev/circleci_data/requirements.txt
             coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
+  pytest-singularity-ABCD-HCP:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - attach_workspace:
+          at: /home/circleci/
+      - check-for-built-images:
+          variant: ABCD-HCP
+      - set-python-version
+      - install-singularity-requirements
+      - set-up-singularity
+      - run:
+          name: Testing Singularity installation
+          command: |
+            pip install -r dev/circleci_data/requirements.txt
+            coverage run -m pytest --singularity_image=/home/circleci/project/C-PAC-CI-ABCD-HCP.simg --junitxml=test-results/junit.xml --continue-on-collection-errors  dev/circleci_data/test_install.py
   build:
     machine:
       image: ubuntu-2004:202010-01
@@ -254,6 +307,12 @@ workflows:
       - pytest-docker:
           requires:
             - build
+      - pytest-docker-ABCD-HCP:
+          requires:
+            - build-ABCD-HCP
       - pytest-singularity:
           requires:
             - build
+      - pytest-singularity-ABCD-HCP:
+          requires:
+            - build-ABCD-HCP
