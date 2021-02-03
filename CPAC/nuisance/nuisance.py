@@ -30,6 +30,8 @@ from CPAC.nuisance.utils.compcor import (
     cosine_filter,
     TR_string_to_float)
 
+from CPAC.seg_preproc.utils import erosion
+
 from CPAC.utils.datasource import check_for_s3
 from .bandpass import bandpass_voxels
 
@@ -1851,11 +1853,11 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
         '2-nuisance_regression']['regressor_masks']['erode_wm'][
         'wm_erosion_prop']
 
-    node, out = strat_pool.get_data('label-WM_desc-brain_mask')
+    node, out = strat_pool.get_data('label-WM_mask')
     wf.connect(node, out, erode, 'inputspec.mask')
 
     outputs = {
-        'label-CSF_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
+        'label-WM_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
     }
 
     return (wf, outputs)
