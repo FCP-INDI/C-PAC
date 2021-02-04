@@ -97,7 +97,9 @@ class Configuration(object):
         )):
             # set Regressor 'Name's if not provided
             if 'Name' not in regressor:
-                regressor['Name'] = f'Regressor {str(i + 1)}'
+                regressor['Name'] = f'Regressor-{str(i + 1)}'
+            # replace spaces with hyphens in Regressor 'Name's
+            regressor['Name'] = regressor['Name'].replace(' ', '-')
 
         config_map = schema(self.nonestr_to_None(config_map))
 
