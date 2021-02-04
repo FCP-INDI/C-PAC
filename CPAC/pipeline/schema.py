@@ -645,8 +645,7 @@ schema = Schema({
         'spatial_smoothing': {
             'output': [In({'smoothed', 'nonsmoothed'})],
             'smoothing_method': [In({'FSL', 'AFNI'})],
-            'fwhm': [int],
-            'smoothing_order': In({'Before', 'After'})
+            'fwhm': [int]
         },
         'z-scoring': {
             'output': [In({'z-scored', 'raw'})],
