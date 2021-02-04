@@ -216,12 +216,12 @@ class ResourcePool(object):
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n\n[!] C-PAC says: The listed resource is "
-                                f"not in the resource pool:\n{resource}\n\n"
-                                "Developer Note: This may be due to a mis"
-                                "match between the node block's docstring "
-                                "'input' field and a strat_pool.get_data() "
-                                "call within the block function.\n")
+                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
+                                  f"not in the resource pool:\n{resource}\n\n"
+                                  "Developer Note: This may be due to a mis"
+                                  "match between the node block's docstring "
+                                  "'input' field and a strat_pool.get_data() "
+                                  "call within the block function.\n")
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)

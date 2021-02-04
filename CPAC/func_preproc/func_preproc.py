@@ -1096,7 +1096,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.motion_correct')
 
-    node, out_file = strat_pool.get_data("space-bold_desc-brain_mask")
+    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.mask')
 
