@@ -71,7 +71,8 @@ class Configuration(object):
     """
     def __init__(self, config_map=None):
         from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import load_preconfig, update_nested_dict
+        from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
+            update_nested_dict
         from optparse import OptionError
 
         if config_map is None:
@@ -89,6 +90,15 @@ class Configuration(object):
                 base_config = base_config
             from_config = yaml.safe_load(open(base_config, 'r'))
             config_map = update_nested_dict(from_config, config_map)
+
+        for i, regressor in enumerate(lookup_nested_value(
+            config_map,
+            ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
+        )):
+            # set Regressor 'Name's if not provided
+            if 'Name' not in regressor:
+                regressor['Name'] = f'Regressor {str(i + 1)}'
+
         config_map = schema(self.nonestr_to_None(config_map))
 
         # remove 'FROM' before setting attributes now that it's imported
@@ -104,6 +114,7 @@ class Configuration(object):
         for key in config_map:
             # set attribute
             setattr(self, key, set_from_ENV(config_map[key]))
+
         self.__update_attr()
 
     def __str__(self):
