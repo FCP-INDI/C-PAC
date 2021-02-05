@@ -590,8 +590,8 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     use_custom_threshold = cfg['segmentation']['tissue_segmentation'][
                                'FSL-FAST']['thresholding'] == 'Custom'
 
-    use_priors = cfg['segmentation']['tissue_segmentation']['FSL-FAST'][
-        'use_priors']['run']
+    use_priors = True in cfg['segmentation']['tissue_segmentation'][
+        'FSL-FAST']['use_priors']['run']
 
     xfm_prov = strat_pool.get_cpac_provenance(
         'from-template_to-T1w_mode-image_desc-linear_xfm')
