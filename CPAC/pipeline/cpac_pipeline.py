@@ -945,8 +945,11 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
-    if 'T1_template' in cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['target_template']['using']:
+    if True in cfg.registration_workflows['functional_registration'][
+        'coregistration']['run'
+    ] and 'T1_template' in cfg.registration_workflows[
+        'functional_registration']['func_registration_to_template'][
+            'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
         if True in cfg.voxel_mirrored_homotopic_connectivity['run']:
@@ -974,7 +977,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += nuisance
 
     # Warp the functional time series to template space
-    apply_func_warp = True
+    apply_func_warp = True in cfg.registration_workflows[
+        'functional_registration']['coregistration']['run']
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-preproc_bold',
