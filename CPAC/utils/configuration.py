@@ -79,17 +79,18 @@ class Configuration(object):
             config_map = {}
 
         base_config = config_map.get('FROM', 'default_pipeline')
-        # base on default pipeline if FROM not specified or specified 'default'
-        if base_config in ['default', 'default_pipeline']:
-            config_map = update_nested_dict(default_config, config_map)
-        # base on another config (specified with 'FROM' key)
-        else:
+
+        # import another config (specified with 'FROM' key)
+        if base_config not in ['default', 'default_pipeline']:
             try:
                 base_config = load_preconfig(base_config)
             except OptionError:
                 base_config = base_config
             from_config = yaml.safe_load(open(base_config, 'r'))
             config_map = update_nested_dict(from_config, config_map)
+
+        # base everything on default pipeline
+        config_map = update_nested_dict(default_config, config_map)
 
         for i, regressor in enumerate(lookup_nested_value(
             config_map,
