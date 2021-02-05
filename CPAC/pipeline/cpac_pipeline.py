@@ -964,7 +964,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'using']:
             nuisance += [ICA_AROMA_EPIreg]
 
-        if cfg.nuisance_corrections['2-nuisance_regression']['Regressors']:
+        if True in cfg.nuisance_corrections['2-nuisance_regression']['run'] \
+            and cfg.nuisance_corrections['2-nuisance_regression'][
+                'Regressors']:
             nuisance_blocks = [
                 erode_mask_T1w,
                 erode_mask_CSF,
