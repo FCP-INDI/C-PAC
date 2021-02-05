@@ -436,7 +436,7 @@ schema = Schema({
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
-                Any({
+                Any({  # no motion estimate filter
                     'run': Maybe(Any([False], False)),
                     'filter_type': Maybe(In({'notch', 'lowpass'})),
                     'filter_order': Maybe(int),
@@ -445,16 +445,16 @@ schema = Schema({
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
-                }, {
+                }, {  # notch filter with breathing_rate_* set
                     'run': forkable,
                     'filter_type': 'notch',
                     'filter_order': int,
                     'breathing_rate_min': Number,
                     'breathing_rate_max': Number,
-                    'center_frequency': None,
-                    'filter_bandwidth': None,
+                    'center_frequency': Maybe(Number),
+                    'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
-                }, {
+                }, {  # notch filter with manual parameters set
                     'run': forkable,
                     'filter_type': 'notch',
                     'filter_order': int,
@@ -463,7 +463,7 @@ schema = Schema({
                     'center_frequency': Number,
                     'filter_bandwidth': Number,
                     'lowpass_cutoff': Maybe(Number),
-                }, {
+                }, {  # lowpass filter with breathing_rate_min
                     'run': forkable,
                     'filter_type': 'lowpass',
                     'filter_order': int,
@@ -471,8 +471,8 @@ schema = Schema({
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': None,
-                }, {
+                    'lowpass_cutoff': Maybe(Number),
+                }, {  # lowpass filter with lowpass_cutoff
                     'run': forkable,
                     'filter_type': 'lowpass',
                     'filter_order': int,
@@ -480,10 +480,9 @@ schema = Schema({
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
+                    'lowpass_cutoff': Number,
                 },),
-                msg='Some mutually exclusive filter options are ambiguous in '
-                    'this pipeline configuration'
+                msg='motion_estimate_filter configuration is invalid.'
             ),
         },
         'distortion_correction': {
