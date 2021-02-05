@@ -1,7 +1,6 @@
 import os
 import nibabel as nb
 import numpy as np
-import nipype.pipeline.engine as pe
 import pytest
 
 from CPAC.registration import output_func_to_standard

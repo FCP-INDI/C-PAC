@@ -9,13 +9,17 @@ import time
 import shutil
 import yaml
 from base64 import b64decode
+from urllib import request
+from urllib.error import HTTPError
 
 from CPAC import __version__
-from CPAC.utils.yaml_template import create_yaml_from_template
+from CPAC.utils.configuration import Configuration
+from CPAC.utils.yaml_template import create_yaml_from_template, \
+                                     upgrade_pipeline_to_1_8
 from CPAC.utils.utils import load_preconfig
 
 import yamlordereddictloader
-from warnings import simplefilter
+from warnings import simplefilter, warn
 simplefilter(action='ignore', category=FutureWarning)
 
 DEFAULT_TMP_DIR = "/tmp"
@@ -115,6 +119,80 @@ def resolve_aws_credential(source):
             "Could not find aws credentials {0}"
             .format(source)
         )
+
+
+def create_cpac_data_config(bids_dir, participant_label=None,
+                            aws_input_creds=None, skip_bids_validator=False):
+    from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
+
+    print("Parsing {0}..".format(bids_dir))
+
+    (file_paths, config) = collect_bids_files_configs(bids_dir,
+                                                      aws_input_creds)
+
+    if participant_label:
+        file_paths = [
+            file_path
+            for file_path in file_paths
+            if any(
+                participant_label in file_path
+                for participant_label in participant_labels
+            )
+            ]
+
+    if not file_paths:
+        print("Did not find data for {0}".format(
+            ", ".join(participant_label)
+        ))
+        sys.exit(1)
+
+    raise_error = not skip_bids_validator
+
+    sub_list = bids_gen_cpac_sublist(
+        bids_dir,
+        file_paths,
+        config,
+        aws_input_creds,
+        raise_error=raise_error
+    )
+
+    if not sub_list:
+        print("Did not find data in {0}".format(bids_dir))
+        sys.exit(1)
+
+    return sub_list
+
+
+def load_cpac_data_config(data_config_file, participant_label,
+                          aws_input_creds):
+    # load the file as a check to make sure it is available and readable
+    sub_list = load_yaml_config(data_config_file, aws_input_creds)
+
+    if participant_label:
+
+        sub_list = [
+            d
+            for d in sub_list
+            if (
+                d["subject_id"]
+                if d["subject_id"].startswith('sub-')
+                else 'sub-' + d["subject_id"]
+            ) in participant_labels
+        ]
+
+        if not sub_list:
+            print("Did not find data for {0} in {1}".format(
+                ", ".join(participant_label),
+                (
+                    data_config_file
+                    if not data_config_file.startswith("data:")
+                    else "data URI"
+                )
+            ))
+            sys.exit(1)
+
+    return sub_list
+
 
 parser = argparse.ArgumentParser(description='C-PAC Pipeline Runner')
 parser.add_argument('bids_dir', help='The directory with the input dataset '
@@ -352,6 +430,41 @@ elif args.analysis_level in ["test_config", "participant"]:
     # begin by conforming the configuration
     c = load_yaml_config(args.pipeline_file, args.aws_input_creds)
 
+    if 'pipeline_setup' not in c:
+        url_version = f'v{__version__}'
+        _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
+            'user/pipelines/1.7-1.8-nesting-mappings')
+        try:
+            request.urlopen(_url)
+
+        except HTTPError:
+            if 'dev' in url_version:
+                url_version = 'nightly'
+            else:
+                url_version = 'latest'
+
+        _url = (f'https://fcp-indi.github.io/docs/{url_version}/'
+            'user/pipelines/1.7-1.8-nesting-mappings')
+
+        warn('\nC-PAC changed its pipeline configuration format in v1.8.0.\n'
+             f'See {_url} for details.\n',
+             category=DeprecationWarning)
+
+        updated_config = os.path.join(
+            args.output_dir,
+            'updated_config',
+            os.path.basename(args.pipeline_file)
+        )
+        os.makedirs(
+            os.path.join(args.output_dir, 'updated_config'), exist_ok=True)
+
+        open(updated_config, 'w').write(yaml.dump(c))
+
+        upgrade_pipeline_to_1_8(updated_config)
+        c = load_yaml_config(updated_config, args.aws_input_creds)
+
+    c = Configuration(c)
+
     overrides = {}
     if args.pipeline_override:
         overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
@@ -468,70 +581,14 @@ elif args.analysis_level in ["test_config", "participant"]:
 
     # otherwise we move on to conforming the data configuration
     if not args.data_config_file:
-
-        from bids_utils import collect_bids_files_configs, bids_gen_cpac_sublist
-
-        print("Parsing {0}..".format(args.bids_dir))
-
-        (file_paths, config) = collect_bids_files_configs(
-            args.bids_dir, args.aws_input_creds)
-
-        if args.participant_label:
-            file_paths = [
-                file_path
-                for file_path in file_paths
-                if any(
-                    participant_label in file_path
-                    for participant_label in participant_labels
-                )
-            ]
-
-        if not file_paths:
-            print("Did not find data for {0}".format(
-                ", ".join(args.participant_label)
-            ))
-            sys.exit(1)
-
-        raise_error = not args.skip_bids_validator
-
-        sub_list = bids_gen_cpac_sublist(
-            args.bids_dir,
-            file_paths,
-            config,
-            args.aws_input_creds,
-            raise_error=raise_error
-        )
-
-        if not sub_list:
-            print("Did not find data in {0}".format(args.bids_dir))
-            sys.exit(1)
-
+        sub_list = create_cpac_data_config(args.bids_dir,
+                                           args.participant_label,
+                                           args.aws_input_creds,
+                                           args.skip_bids_validator)
     else:
-        # load the file as a check to make sure it is available and readable
-        sub_list = load_yaml_config(args.data_config_file, args.aws_input_creds)
-
-        if args.participant_label:
-
-            sub_list = [
-                d
-                for d in sub_list
-                if (
-                    d["subject_id"]
-                    if d["subject_id"].startswith('sub-')
-                    else 'sub-' + d["subject_id"]
-                ) in participant_labels
-            ]
-
-            if not sub_list:
-                print("Did not find data for {0} in {1}".format(
-                    ", ".join(args.participant_label),
-                    (
-                        args.data_config_file
-                        if not args.data_config_file.startswith("data:")
-                        else "data URI"
-                    )
-                ))
-                sys.exit(1)
+        sub_list = load_cpac_data_config(args.data_config_file,
+                                         args.participant_label,
+                                         args.aws_input_creds)
 
     if args.participant_ndx:
 

@@ -14,12 +14,12 @@ def file_diffs(x):
 
     Parameters
     ----------
-    x: str
+    x : str
        git diff --stat output
 
     Returns
     -------
-    file_diff_stats: list
+    file_diff_stats : list
        of 2-tuples of (filename, diff_stat)
     """
     return [
@@ -33,7 +33,7 @@ def overwrite_list(file_diff_stats):
     """
     Parameters
     ----------
-    file_diff_stats: list
+    file_diff_stats : list
        of 2-tuples of (filename, diff_stat)
 
     Returns
@@ -58,7 +58,7 @@ def print_checkout_file_list(git_diff_stat):
     """
     Parameters
     ----------
-    git_diff_stat: str
+    git_diff_stat : str
         git diff --stat output
 
     Returns

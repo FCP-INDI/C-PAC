@@ -5,7 +5,7 @@ import pytest
 def test_nonlinear_register():
     from ..registration import create_nonlinear_register
     
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.fsl as fsl
     
     ## necessary inputs
@@ -73,7 +73,7 @@ def test_registration():
     from ..registration import create_nonlinear_register
     from ..registration import create_register_func_to_mni
     
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     import nipype.interfaces.fsl as fsl
     
     func_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/nuisance_preproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/regress_nuisance/mapflow/_regress_nuisance0/residual.nii.gz'
@@ -105,7 +105,7 @@ def test_registration():
 @pytest.mark.skip(reason='needs refactoring')
 def test_registration_lesion():
     import os
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     from ..registration import create_wf_calculate_ants_warp
     from CPAC.anat_preproc.anat_preproc import create_anat_preproc
     from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc

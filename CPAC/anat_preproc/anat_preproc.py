@@ -4,7 +4,7 @@ from nipype.interfaces import afni
 from nipype.interfaces import ants
 from nipype.interfaces import fsl
 from nipype.interfaces.fsl import utils as fsl_utils
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from nipype.interfaces import freesurfer
@@ -316,36 +316,36 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
 
     inputnode_bet.inputs.set(
-        frac=cfg.anatomical_wf['brain_extraction']['extraction'][
+        frac=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['frac'],
         mask_boolean=
-        cfg.anatomical_wf['brain_extraction']['extraction'][
+        cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['mask_boolean'],
         mesh_boolean=
-        cfg.anatomical_wf['brain_extraction']['extraction'][
+        cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['mesh_boolean'],
-        outline=cfg.anatomical_wf['brain_extraction']['extraction'][
+        outline=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['outline'],
-        padding=cfg.anatomical_wf['brain_extraction']['extraction'][
+        padding=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['padding'],
-        radius=cfg.anatomical_wf['brain_extraction']['extraction'][
+        radius=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['radius'],
         reduce_bias=
-        cfg.anatomical_wf['brain_extraction']['extraction'][
+        cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['reduce_bias'],
         remove_eyes=
-        cfg.anatomical_wf['brain_extraction']['extraction'][
+        cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['remove_eyes'],
-        robust=cfg.anatomical_wf['brain_extraction']['extraction'][
+        robust=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['robust'],
-        skull=cfg.anatomical_wf['brain_extraction']['extraction'][
+        skull=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['skull'],
-        surfaces=cfg.anatomical_wf['brain_extraction']['extraction'][
+        surfaces=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['surfaces'],
-        threshold=cfg.anatomical_wf['brain_extraction']['extraction'][
+        threshold=cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['threshold'],
         vertical_gradient=
-        cfg.anatomical_wf['brain_extraction']['extraction'][
+        cfg.anatomical_wf['brain_extraction'][
             'FSL-BET']['vertical_gradient'],
     )
 
@@ -383,19 +383,16 @@ def niworkflows_ants_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     anat_skullstrip_ants = init_brain_extraction_wf(tpl_target_path=
                                                     cfg.anatomical_preproc[
                                                         'brain_extraction'][
-                                                        'extraction'][
                                                         'niworkflows-ants'][
                                                         'template_path'],
                                                     tpl_mask_path=
                                                     cfg.anatomical_preproc[
                                                         'brain_extraction'][
-                                                        'extraction'][
                                                         'niworkflows-ants'][
                                                         'mask_path'],
                                                     tpl_regmask_path=
                                                     cfg.anatomical_preproc[
                                                         'brain_extraction'][
-                                                        'extraction'][
                                                         'niworkflows-ants'][
                                                         'regmask_path'],
                                                     name='anat_skullstrip_ants')
@@ -774,7 +771,7 @@ def non_local_means(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"]],
      "outputs": ["desc-preproc_T1w"]}
     '''
-    # TODO: naming, and put two of these in a row and try!
+
     denoise = pe.Node(interface=ants.DenoiseImage(),
                       name=f'anat_denoise_{pipe_num}')
 

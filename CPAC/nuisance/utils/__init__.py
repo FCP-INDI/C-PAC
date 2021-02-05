@@ -5,13 +5,14 @@ from collections import OrderedDict
 import nipype.interfaces.ants as ants
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni
 
 from CPAC.nuisance.utils.compcor import calc_compcor_components
 from CPAC.nuisance.utils.crc import encode as crc_encode
 from CPAC.utils.interfaces.function import Function
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+
 
 def find_offending_time_points(fd_j_file_path=None, fd_p_file_path=None, dvars_file_path=None,
                                fd_j_threshold=None, fd_p_threshold=None, dvars_threshold=None,
@@ -221,7 +222,6 @@ def temporal_variance_mask(threshold, by_slice=False, erosion=False, degree=1):
         wf.connect(mapper_list, 'out', mapper, 'out_file')
         wf.connect(mask_mapper_list, 'out', mapper, 'mask_file')
 
-
     if threshold_method is "PCT":
         threshold_node = pe.MapNode(Function(input_names=['in_file', 'mask', 'threshold_pct'],
                                              output_names=['threshold'],
@@ -319,7 +319,8 @@ def generate_summarize_tissue_mask(nuisance_wf,
         elif step == 'resolution':
             mask_to_epi = pe.Node(interface=fsl.FLIRT(),
                                   name='{}_flirt'
-                                       .format(node_mask_key))
+                                       .format(node_mask_key),
+                                  mem_gb=8.0)
 
             mask_to_epi.inputs.interp = 'nearestneighbour'
 
@@ -332,7 +333,7 @@ def generate_summarize_tissue_mask(nuisance_wf,
                     (mask_to_epi, 'reference')
                 ))
                 nuisance_wf.connect(*(
-                    pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] + 
+                    pipeline_resource_pool['Transformations']['anat_to_func_linear_xfm'] +
                     (mask_to_epi, 'in_matrix_file')
                 ))
 
@@ -379,7 +380,6 @@ def generate_summarize_tissue_mask(nuisance_wf,
 
             pipeline_resource_pool[mask_key] = \
                 (erode_mask_node, 'out_file')
-
 
     return pipeline_resource_pool, full_mask_key
 
@@ -465,7 +465,7 @@ class NuisanceRegressor(object):
         if 'Bandpass' in self.selector:
             s = self.selector['Bandpass']
             if type(s) is not dict or \
-               (not s.get('bottom_frequency') and \
+               (not s.get('bottom_frequency') and
                 not s.get('top_frequency')):
 
                 del self.selector['Bandpass']

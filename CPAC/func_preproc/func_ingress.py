@@ -1,7 +1,7 @@
 from nipype import logging
 logger = logging.getLogger('workflow')
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 import nipype.interfaces.afni as afni
 
@@ -17,6 +17,7 @@ from CPAC.utils.datasource import (
     calc_deltaTE_and_asym_ratio
 )
 
+
 def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
                          input_creds_path, unique_id=None):
 
@@ -31,10 +32,10 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
             workflow_name=f'func_gather_{num_strat}'
         else:
             workflow_name=f'func_gather_{unique_id}_{num_strat}'
-        
+
         func_wf = create_func_datasource(func_paths_dict,
                                         workflow_name)
-        
+
         func_wf.inputs.inputnode.set(
             subject=subject_id,
             creds_path=input_creds_path,
@@ -144,7 +145,7 @@ def connect_func_ingress(workflow, strat_list, c, sub_dict, subject_id,
             workflow_name=f'scan_params_{num_strat}'
         else:
             workflow_name=f'scan_params_{unique_id}_{num_strat}'
-        
+
         scan_params = \
             pe.Node(Function(
                 input_names=['data_config_scan_params',

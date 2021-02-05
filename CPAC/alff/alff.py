@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string
@@ -169,7 +169,8 @@ def create_alff(wf_name='alff_workflow'):
 
     # filtering
     bandpass = pe.Node(interface=preprocess.Bandpass(),
-                       name='bandpass_filtering')
+                       name='bandpass_filtering',
+                       mem_gb=13.0)
     bandpass.inputs.outputtype = 'NIFTI_GZ'
     bandpass.inputs.out_file = os.path.join(os.path.curdir,
                                             'residual_filtered.nii.gz')

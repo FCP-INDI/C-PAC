@@ -6,7 +6,7 @@ import warnings
 import logging
 import copy
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces.utility import Rename
 from CPAC.utils.interfaces.function import Function
@@ -33,10 +33,7 @@ logger = logging.getLogger('workflow')
 
 
 class ResourcePool(object):
-    def __init__(self, rpool=None, name=None, cfg=None, num_cpus=None,
-                 num_ants_cores=None, ants_interp=None, fsl_interp=None,
-                 run_smooth=True, fwhm=4, smoothing_opts=None,
-                 run_zscoring=True, func_reg=True):
+    def __init__(self, rpool=None, name=None, cfg=None):
 
         if not rpool:
             self.rpool = {}
@@ -48,18 +45,29 @@ class ResourcePool(object):
         if cfg:
             self.logdir = cfg.pipeline_setup['log_directory']['path']
 
-        self.num_cpus = num_cpus
-        self.num_ants_cores = num_ants_cores
+            self.num_cpus = cfg.pipeline_setup['system_config'][
+                'max_cores_per_participant']
+            self.num_ants_cores = cfg.pipeline_setup['system_config'][
+                'num_ants_threads']
 
-        self.ants_interp = ants_interp
-        self.fsl_interp = fsl_interp
+            self.ants_interp = cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'ANTs_pipelines']['interpolation']
+            self.fsl_interp = cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'FNIRT_pipelines']['interpolation']
 
-        self.func_reg = func_reg
+            self.func_reg = cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'run']
 
-        self.run_smoothing = run_smooth
-        self.run_zscoring = run_zscoring
-        self.fwhm = fwhm
-        self.smooth_opts = smoothing_opts
+            self.run_smoothing = 'smoothed' in cfg.post_processing[
+                'spatial_smoothing']['output']
+            self.run_zscoring = 'z-scored' in cfg.post_processing[
+                'z-scoring']['output']
+            self.fwhm = cfg.post_processing['spatial_smoothing']['fwhm']
+            self.smooth_opts = cfg.post_processing['spatial_smoothing'][
+                'smoothing_method']
 
         self.xfm = ['alff', 'falff', 'reho', 'desc-MeanSCA_correlations',
                     'desc-DualReg_correlations', 'desc-MultReg_correlations']
@@ -208,12 +216,12 @@ class ResourcePool(object):
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n\n[!] C-PAC says: The listed resource is "
-                                f"not in the resource pool:\n{resource}\n\n"
-                                "Developer Note: This may be due to a mis"
-                                "match between the node block's docstring "
-                                "'input' field and a strat_pool.get_data() "
-                                "call within the block function.\n")
+                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
+                                  f"not in the resource pool:\n{resource}\n\n"
+                                  "Developer Note: This may be due to a mis"
+                                  "match between the node block's docstring "
+                                  "'input' field and a strat_pool.get_data() "
+                                  "call within the block function.\n")
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -632,7 +640,7 @@ class ResourcePool(object):
 
         return wf
 
-    def gather_pipes(self, wf, cfg):
+    def gather_pipes(self, wf, cfg, all=False):
         # TODO: cpac_outputs.csv etc
         # TODO: might be better to do an inclusion instead
         excl = ['T1w', 'bold', 'scan', 'scan_params', 'TR', 'tpattern',
@@ -666,6 +674,9 @@ class ResourcePool(object):
         func = ['bold', 'timeseries', 'alff', 'falff', 'reho']
         motions = ['motion', 'movement', 'coordinate', 'displacement',
                    'dvars', 'power_params']
+
+        if all:
+            excl = []
 
         for resource in self.rpool.keys():
             # TODO: cpac_outputs.csv etc
@@ -1157,44 +1168,9 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
     return (wf, strat_pool)
 
 
-def initiate_rpool(wf, cfg, data_paths):
-
-    # TODO: refactor further, integrate with the ingress_data functionality
-    # TODO: used for BIDS-Derivatives (below), and possible refactoring of
-    # TODO: the raw data config to use 'T1w' label instead of 'anat' etc.
-
-    part_id = data_paths['subject_id']
-    ses_id = data_paths['unique_id']
-
-    unique_id = f'{part_id}_{ses_id}'
-
-    num_cpus = cfg.pipeline_setup['system_config'][
-        'max_cores_per_participant']
-
-    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
-
-    ants_interp = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['ANTs_pipelines']['interpolation']
-
-    fsl_interp = cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['FNIRT_pipelines']['interpolation']
-
-    smooth = 'smoothed' in cfg.post_processing['spatial_smoothing']['output']
-    zscore = 'z-scored' in cfg.post_processing['z-scoring']['output']
-
-    rpool = ResourcePool(name=unique_id,
-                         cfg=cfg,
-                         num_cpus=num_cpus,
-                         num_ants_cores=num_ants_cores,
-                         ants_interp=ants_interp,
-                         fsl_interp=fsl_interp,
-                         run_smooth=smooth,
-                         fwhm=cfg.post_processing['spatial_smoothing'][
-                             'fwhm'],
-                         smoothing_opts=cfg.post_processing[
-                             'spatial_smoothing']['smoothing_method'],
-                         run_zscoring=zscore,
-                         func_reg=cfg.registration_workflows['functional_registration']['func_registration_to_template']['run'])
+def ingress_raw_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
     anat_flow = create_anat_datasource(f'anat_gather_{part_id}_{ses_id}')
     anat_flow.inputs.inputnode.set(
@@ -1207,9 +1183,9 @@ def initiate_rpool(wf, cfg, data_paths):
     rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
                    "", "anat_ingress")
 
-    func_paths_dict = data_paths['func']
+    func_paths_dct = data_paths['func']
 
-    func_wf = create_func_datasource(func_paths_dict,
+    func_wf = create_func_datasource(func_paths_dct,
                                      f'func_ingress_{part_id}_{ses_id}')
     func_wf.inputs.inputnode.set(
         subject=part_id,
@@ -1217,7 +1193,7 @@ def initiate_rpool(wf, cfg, data_paths):
         dl_dir=cfg.pipeline_setup['working_directory']['path']
     )
     func_wf.get_node('inputnode').iterables = \
-        ("scan", list(func_paths_dict.keys()))
+        ("scan", list(func_paths_dct.keys()))
 
     rpool.set_data('subject', func_wf, 'outputspec.subject', {}, "",
                    "func_ingress")
@@ -1230,7 +1206,11 @@ def initiate_rpool(wf, cfg, data_paths):
         ingress_func_metadata(wf, cfg, rpool, data_paths, part_id,
                               data_paths['creds_path'])
 
-    # grab already-processed data from the output directory
+    return (wf, rpool, diff, blip, fmap_rp_list)
+
+
+def ingress_output_dir(cfg, rpool, data_paths, unique_id):
+
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
         if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
             if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
@@ -1336,6 +1316,48 @@ def initiate_rpool(wf, cfg, data_paths):
         rpool.set_data(resource, ingress, 'outputspec.data', json_info,
                        pipe_idx, node_name, inject=True)
 
+    return rpool
+
+
+def initiate_rpool(wf, cfg, data_paths):
+    '''
+
+    data_paths format:
+      {'anat': '{T1w path}',
+       'creds_path': {None OR path to credentials CSV},
+       'func': {
+           '{scan ID}':
+               {
+                   'scan': '{path to BOLD}',
+                   'scan_parameters': {scan parameter dictionary}
+               }
+       },
+       'site_id': 'site-ID',
+       'subject_id': 'sub-01',
+       'unique_id': 'ses-1'}
+    '''
+
+    # TODO: refactor further, integrate with the ingress_data functionality
+    # TODO: used for BIDS-Derivatives (below), and possible refactoring of
+    # TODO: the raw data config to use 'T1w' label instead of 'anat' etc.
+
+    part_id = data_paths['subject_id']
+    ses_id = data_paths['unique_id']
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
+
+    unique_id = f'{part_id}_{ses_id}'
+
+    rpool = ResourcePool(name=unique_id, cfg=cfg)
+
+    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_data(wf, rpool, cfg,
+                                                           data_paths,
+                                                           unique_id,
+                                                           part_id, ses_id)
+
+    # grab already-processed data from the output directory
+    rpool = ingress_output_dir(cfg, rpool, data_paths, unique_id)
+
     # ingress config file paths
     # TODO: pull this from some external list instead
     # TODO: nah, even better: just loop through the config for .nii's
@@ -1374,7 +1396,8 @@ def initiate_rpool(wf, cfg, data_paths):
     ]
 
     if cfg.PyPEER['run']:
-        config_resource_paths.append(('eye_mask_path', cfg.PyPeer['eye_mask_path']))
+        config_resource_paths.append(
+            ('eye_mask_path', cfg.PyPEER['eye_mask_path']))
 
     for resource in config_resource_paths:
         key = resource[0]
@@ -1393,9 +1416,11 @@ def initiate_rpool(wf, cfg, data_paths):
         if '${resolution_for_anat}' in val:
             val = val.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])
         if '${func_resolution}' in val:
+            # functional registration
             if 'funcreg' in key:
                 out_res = 'func_preproc_outputs'
-            elif 'deriv' in key:
+            # functional derivatives
+            else:
                 out_res = 'func_derivative_outputs'
             val = val.replace('${func_resolution}', cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution'][out_res])
 
@@ -1580,7 +1605,7 @@ def initiate_rpool(wf, cfg, data_paths):
 
 def run_node_blocks(blocks, data_paths, cfg=None):
     import os
-    import nipype.pipeline.engine as pe
+    from CPAC.pipeline import nipype_pipeline_engine as pe
     from CPAC.utils.strategy import NodeBlock
 
     if not cfg:

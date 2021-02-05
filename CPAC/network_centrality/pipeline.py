@@ -1,4 +1,4 @@
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 
@@ -84,7 +84,8 @@ def network_centrality(wf, cfg, strat_pool, pipe_num, opt=None):
     # Resample the functional mni to the centrality mask resolution
     resample_functional_to_template = pe.Node(
         interface=fsl.FLIRT(),
-        name=f'resample_functional_to_template_{pipe_num}')
+        name=f'resample_functional_to_template_{pipe_num}',
+        mem_gb=4.0)
 
     resample_functional_to_template.inputs.set(
         interp='trilinear',

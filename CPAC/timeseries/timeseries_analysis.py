@@ -1,4 +1,4 @@
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 
 from nipype.interfaces import fsl
@@ -104,12 +104,12 @@ def clean_roi_csv(roi_csv):
 
     Parameters
     ----------
-    roi_csv: str
+    roi_csv : str
         path to CSV
 
     Returns
     -------
-    roi_array: numpy.ndarray
+    roi_array : numpy.ndarray
 
     edited_roi_csv: str
         path to CSV
@@ -173,7 +173,6 @@ def write_roi_npz(roi_csv, out_type=None):
 
 
 def get_roi_timeseries(wf_name='roi_timeseries'):
-
     """
     Workflow to extract timeseries for each node in the ROI mask.
     For each node, mean across all the timepoint is calculated and stored
@@ -238,7 +237,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                          name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
-                             name='3dROIstats')
+                             name='3dROIstats', mem_gb=3.0)
     timeseries_roi.inputs.quiet = False
     timeseries_roi.inputs.args = "-1Dformat"
     # TODO: add -mask_f2short for float parcellation mask
@@ -342,7 +341,7 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
                          name='outputspec')
 
     spatialReg = pe.Node(interface=fsl.GLM(),
-                         name='spatial_regression')
+                         name='spatial_regression', mem_gb=4.5)
 
     spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'
 
@@ -356,7 +355,6 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
 
 
 def get_vertices_timeseries(wf_name='vertices_timeseries'):
-
     """
     Workflow to get vertices time series from a FreeSurfer surface file
 
@@ -424,7 +422,6 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
 
 def get_normalized_moments(wf_name='normalized_moments'):
-
     """
     Workflow to calculate the normalized moments for skewedness calculations
 
@@ -618,7 +615,7 @@ def gen_voxel_timeseries(data_file, template, output_type):
         path to input functional data
     template : string (nifti file)
         path to input mask in functional native space
-    output_type :list
+    output_type : list
         list of two boolean values suggesting
         the output types - numpy npz file and csv
         format
@@ -705,7 +702,6 @@ def gen_voxel_timeseries(data_file, template, output_type):
 
 def gen_vertices_timeseries(rh_surface_file,
                         lh_surface_file):
-
     """
     Method to extract timeseries from vertices
     of a freesurfer surface file

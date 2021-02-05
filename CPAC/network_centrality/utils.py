@@ -98,20 +98,20 @@ def check_centrality_params(method_option, threshold_option, threshold):
 
     Parameters
     ----------
-    method_option: str or int
+    method_option : str or int
         one of {m_options} or index of option
 
-    threshold_option: str
+    threshold_option : str
         one of {t_options} or index of option
 
     threshold: float
 
     Returns
     -------
-    method_option: str
+    method_option : str
         one of {m_options}
 
-    threshold_option: str
+    threshold_option : str
         one of {t_options}
     '''
 

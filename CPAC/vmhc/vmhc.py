@@ -1,5 +1,5 @@
 import os
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -127,7 +127,8 @@ def vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
     # write out a swapped version of the file
     # copy and L/R swap file
     copy_and_L_R_swap = pe.Node(interface=fsl.SwapDimensions(),
-                                name=f'copy_and_L_R_swap_{pipe_num}')
+                                name=f'copy_and_L_R_swap_{pipe_num}',
+                                mem_gb=3.0)
 
     copy_and_L_R_swap.inputs.new_dims = ('-x', 'y', 'z')
 
@@ -136,7 +137,8 @@ def vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # calculate correlation between original and swapped images
     pearson_correlation = pe.Node(interface=preprocess.TCorrelate(),
-                                  name=f'pearson_correlation_{pipe_num}')
+                                  name=f'pearson_correlation_{pipe_num}',
+                                  mem_gb=3.0)
 
     pearson_correlation.inputs.pearson = True
     pearson_correlation.inputs.polort = -1

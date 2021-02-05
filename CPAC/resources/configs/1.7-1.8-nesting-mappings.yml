@@ -1041,10 +1041,6 @@ fwhm:
    - post_processing
    - spatial_smoothing
    - fwhm
-smoothing_order:
-   - post_processing
-   - spatial_smoothing
-   - smoothing_order
 runZScoring:
    - post_processing
    - z-scoring

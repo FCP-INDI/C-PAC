@@ -1,5 +1,5 @@
 from nipype.interfaces.afni import preprocess
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
@@ -16,7 +16,6 @@ from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
 
 
 def create_sca(name_sca='sca'):
-
     """
     Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
@@ -106,7 +105,7 @@ def create_sca(name_sca='sca'):
 
     # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
-                      name='3dTCorr1D')
+                      name='3dTCorr1D', mem_gb=3.0)
     corr.inputs.pearson = True
     corr.inputs.outputtype = 'NIFTI_GZ'
 
@@ -159,7 +158,6 @@ def create_sca(name_sca='sca'):
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
-
     """
     Temporal multiple regression workflow
     Provides a spatial map of parameter estimates corresponding to each
@@ -292,7 +290,8 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(inputNode, 'subject_timeseries',
                   check_timeseries, 'in_file')
 
-    temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression')
+    temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression',
+        mem_gb=4.0)
     temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 
@@ -402,16 +401,15 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
-    resample_functional_roi_for_sca = pe.Node(util.Function(input_names=['in_func',
-                                                                    'in_roi',
-                                                                    'realignment',
-                                                                    'identity_matrix'],
-                                                       output_names=[
-                                                           'out_func',
-                                                           'out_roi'],
-                                                       function=resample_func_roi,
-                                                       as_module=True),
-                                              name=f'resample_functional_roi_for_sca_{pipe_num}')
+    resample_functional_roi_for_sca = pe.Node(
+        util.Function(input_names=['in_func',
+                                   'in_roi',
+                                   'realignment',
+                                   'identity_matrix'],
+                      output_names=['out_func', 'out_roi'],
+                      function=resample_func_roi,
+                      as_module=True),
+        name=f'resample_functional_roi_for_sca_{pipe_num}')
 
     resample_functional_roi_for_sca.inputs.realignment = \
         cfg.timeseries_extraction['realignment']

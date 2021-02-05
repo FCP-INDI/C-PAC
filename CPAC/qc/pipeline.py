@@ -1,6 +1,6 @@
 import os
 import pkg_resources as p
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import afni
 from nipype.interfaces import fsl
 from CPAC.utils.interfaces.function import Function

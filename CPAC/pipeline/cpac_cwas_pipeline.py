@@ -1,7 +1,7 @@
 import os
 
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 from CPAC.utils.configuration import Configuration
 

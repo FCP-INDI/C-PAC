@@ -17,6 +17,9 @@ develop-eggs
 .installed.cfg
 .env*
 
+# Copy from packaging
+CPAC/resources/configs/default_pipeline.yml
+
 # Installer logs
 pip-log.txt
 

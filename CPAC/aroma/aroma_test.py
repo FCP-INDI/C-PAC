@@ -26,7 +26,7 @@ import os
 import pytest
 
 import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces.fsl import ImageStats
 # from nose.tools import *
 

@@ -14,7 +14,7 @@ from CPAC.seg_preproc.utils import (
     hardcoded_antsJointLabelFusion,
     pick_tissue_from_labels_file)
 
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import scipy.ndimage as nd
 import numpy as np
 from nipype.interfaces import freesurfer
@@ -39,13 +39,13 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
     ----------
     wf_name : string
         Workflow Name
-    use_priors: boolean
+    use_priors : boolean
         Whether or not to use template-space tissue priors to further refine
         the resulting segmentation tissue masks.
-    use_threshold: list
+    use_threshold : list
         Choose threshold to further refine
         the resulting segmentation tissue masks.
-    use_erosion: boolean
+    use_erosion : boolean
         Whether or not to erode the resulting segmentation tissue masks.
     use_ants : boolean
         Whether or not to use ANTs or FSL for transform application.

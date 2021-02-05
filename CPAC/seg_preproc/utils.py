@@ -1,6 +1,6 @@
 # Import packages
 import os
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import scipy.ndimage as nd
 import numpy as np
 import nibabel as nb
@@ -316,13 +316,13 @@ def hardcoded_antsJointLabelFusion(anatomical_brain, anatomical_brain_mask,
     anatomical_brain : string (nifti file)
         Target image to be labeled.
 
-    anatomical_brain_mask: string (nifti file)
+    anatomical_brain_mask : string (nifti file)
         Target mask image
 
-    template_brain_list: list
+    template_brain_list : list
         Atlas to be warped to target image.
 
-    template_segmentation_list: list
+    template_segmentation_list : list
         Labels corresponding to atlas.
 
     Returns
@@ -401,22 +401,22 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
 
     multiatlas_Labels : string (nifti file)
 
-    csf_label: integer
+    csf_label : integer
         label value corresponding to CSF in multiatlas file
 
-    left_gm_label: integer
+    left_gm_label : integer
         label value corresponding to Left Gray Matter in multiatlas file
 
-    left_wm_label: integer
+    left_wm_label : integer
         label value corresponding to Left White Matter in multiatlas file
 
-    right_gm_label: integer
+    right_gm_label : integer
         label value corresponding to Right Gray Matter in multiatlas file
 
-    right_wm_label: integer
+    right_wm_label : integer
         label value corresponding to Right White Matter in multiatlas file
 
-    include_ventricles: boolean
+    include_ventricles : boolean
         whether include labels of ventricles in CSF or not
 
     Returns
@@ -452,7 +452,7 @@ def pick_tissue_from_labels_file(multiatlas_Labels, csf_label=24,
 
     gm = data.copy()
 
-    gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0 
+    gm[np.logical_and(gm != right_gm_label, gm != left_gm_label)] = 0
     gm[np.logical_or(gm == right_gm_label, gm == left_gm_label)] = 1
 
     wm = data.copy()

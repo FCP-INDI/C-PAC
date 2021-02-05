@@ -15,7 +15,7 @@ import logging as cb_logging
 from time import strftime
 
 import nipype
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.freesurfer as freesurfer
 import nipype.interfaces.io as nio
@@ -206,12 +206,13 @@ from CPAC.utils.utils import (
     ordereddict_to_dict
 )
 
-from CPAC.utils.monitoring import log_nodes_initial, log_nodes_cb
+from CPAC.utils.monitoring import log_nodes_cb, log_nodes_initial
+from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 
 logger = logging.getLogger('nipype.workflow')
 
-
 # config.enable_debug_mode()
+
 
 def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
                  plugin='MultiProc', plugin_args=None, test_config=False):
@@ -711,6 +712,9 @@ CPAC run error:
                     run_finish=strftime("%Y-%m-%d %H:%M:%S")
                 ))
 
+                resource_report(c.pipeline_setup['log_directory']['path'],
+                                num_cores_per_sub, logger)
+
                 # Remove working directory when done
                 if c.pipeline_setup['working_directory'][
                     'remove_working_dir']:
@@ -724,17 +728,25 @@ CPAC run error:
                                     working_dir)
 
 
-def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
-                   num_ants_cores=1):
-    # Workflow setup
-    workflow_name = 'cpac_' + str(subject_id)
+def initialize_nipype_wf(cfg, sub_data_dct):
+
+    workflow_name = f'cpac_{sub_data_dct["subject_id"]}'
     wf = pe.Workflow(name=workflow_name)
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
         'hash_method': 'timestamp',
         'crashdump_dir': os.path.abspath(cfg.pipeline_setup['log_directory'][
-                                             'path'])
+                                         'path'])
     }
+
+    return wf
+
+
+def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
+                   num_ants_cores=1):
+
+    # Workflow setup
+    wf = initialize_nipype_wf(cfg, sub_dict)
 
     # Extract credentials path if it exists
     try:
@@ -1023,7 +1035,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Connect the entire pipeline!
     for block in pipeline_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        try:
+            nb = NodeBlock(block)
+            wf = nb.connect_block(wf, cfg, rpool)
+        except LookupError as e:
+            previous_nb_str = (
+                f"after node block '{previous_nb.get_name()}':"
+            ) if previous_nb else 'at beginning:'
+            # Alert user to block that raises error
+            e.args = (
+                'When trying to connect node block '
+                f"'{NodeBlock(block).get_name()}' "
+                f"to workflow '{wf}' " + previous_nb_str + e.args[0],
+            )
+            raise
+        previous_nb = nb
 
     # Write out the data
     # TODO enforce value with schema validation

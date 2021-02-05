@@ -218,10 +218,10 @@ def extract_data(c, param_map):
         anat_sub : string
             string containing subject/ concatenated
             subject-session path for anatomical file
-        func_sub: string
+        func_sub : string
             string containing subject/ concatenated
             subject-session path for functional file
-        session_id: string
+        session_id : string
             session
 
         Raises

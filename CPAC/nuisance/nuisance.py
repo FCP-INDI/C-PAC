@@ -2,7 +2,7 @@ import re
 import os
 import numpy as np
 import nibabel as nb
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 import CPAC
 
@@ -29,6 +29,8 @@ from CPAC.nuisance.utils.compcor import (
     calc_compcor_components,
     cosine_filter,
     TR_string_to_float)
+
+from CPAC.seg_preproc.utils import erosion
 
 from CPAC.utils.datasource import check_for_s3
 from .bandpass import bandpass_voxels
@@ -853,7 +855,6 @@ def create_regressor_workflow(nuisance_selectors,
             if not regressor_selector['summary'].get('components'):
                 regressor_selector['summary']['components'] = 1
 
-
         # If regressor is not present, build up the regressor
         if not regressor_resource[1]:
 
@@ -871,7 +872,6 @@ def create_regressor_workflow(nuisance_selectors,
                 regressor_descriptor = {
                     'tissue': regressor_selector['tissues']
                 }
-
 
             if regressor_type == 'tCompCor':
                 if not regressor_selector.get('threshold'):
@@ -967,7 +967,6 @@ def create_regressor_workflow(nuisance_selectors,
                 regressor_descriptor['tissue'] = \
                     [regressor_descriptor['tissue']]
 
-
             if regressor_selector.get('extraction_resolution') and \
                     regressor_selector["extraction_resolution"] != "Functional":
 
@@ -984,7 +983,8 @@ def create_regressor_workflow(nuisance_selectors,
                     anat_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(anatomical_at_resolution_key)
+                             .format(anatomical_at_resolution_key),
+                        mem_gb=8.0
                     )
                     anat_resample.inputs.apply_isoxfm = regressor_selector["extraction_resolution"]
 
@@ -1006,7 +1006,8 @@ def create_regressor_workflow(nuisance_selectors,
                     func_resample = pe.Node(
                         interface=fsl.FLIRT(),
                         name='{}_flirt'
-                             .format(functional_at_resolution_key)
+                             .format(functional_at_resolution_key),
+                        mem_gb=8.0
                     )
                     func_resample.inputs.apply_xfm = True
 
@@ -1127,7 +1128,7 @@ def create_regressor_workflow(nuisance_selectors,
                                                         'compcor_file'],
                                                     function=calc_compcor_components,
                                                     imports=compcor_imports),
-                                           name='{}_DetrendPC'.format(regressor_type), mem_gb=2.0)
+                                           name='{}_DetrendPC'.format(regressor_type), mem_gb=12.5)
 
                     compcor_node.inputs.num_components = regressor_selector['summary']['components']
 
@@ -1150,13 +1151,14 @@ def create_regressor_workflow(nuisance_selectors,
                                              'import nibabel as nb',
                                              'from nipype import logging']
 
-                        cosfilter_node = pe.Node(util.Function(input_names=['input_image_path',
-                                                                            'timestep'],
-                                                               output_names=[
-                                                                   'cosfiltered_img'],
-                                                               function=cosine_filter,
-                                                               imports=cosfilter_imports),
-                                                 name='{}_cosine_filter'.format(regressor_type))
+                        cosfilter_node = pe.Node(
+                            util.Function(input_names=['input_image_path',
+                                                       'timestep'],
+                                          output_names=['cosfiltered_img'],
+                                          function=cosine_filter,
+                                          imports=cosfilter_imports),
+                            name='{}_cosine_filter'.format(regressor_type),
+                            mem_gb=8.0)
                         nuisance_wf.connect(
                             summary_filter_input[0], summary_filter_input[1],
                             cosfilter_node, 'input_image_path'
@@ -1228,7 +1230,8 @@ def create_regressor_workflow(nuisance_selectors,
 
                         mean_node = pe.Node(
                             afni.ROIStats(quiet=False, args='-1Dformat'),
-                            name='{}_mean'.format(regressor_type)
+                            name='{}_mean'.format(regressor_type),
+                            mem_gb=5.0
                         )
                         nuisance_wf.connect(
                             summary_method_input[0], summary_method_input[1],
@@ -1564,7 +1567,7 @@ def filtering_bold_and_regressors(nuisance_selectors,
                                        'regressor_file'],
                          function=bandpass_voxels,
                          as_module=True),
-                name='frequency_filter'
+                name='frequency_filter', mem_gb=6.0
             )
 
     frequency_filter.inputs.bandpass_freqs = [
@@ -1850,11 +1853,11 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
         '2-nuisance_regression']['regressor_masks']['erode_wm'][
         'wm_erosion_prop']
 
-    node, out = strat_pool.get_data('label-WM_desc-brain_mask')
+    node, out = strat_pool.get_data('label-WM_mask')
     wf.connect(node, out, erode, 'inputspec.mask')
 
     outputs = {
-        'label-CSF_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
+        'label-WM_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
     }
 
     return (wf, outputs)

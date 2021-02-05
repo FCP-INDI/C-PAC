@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import nibabel as nb
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 from CPAC.utils.interfaces.function import Function
 
@@ -191,7 +191,7 @@ def motion_power_statistics(name='motion_stats',
                                  output_names=['out_file'],
                                  function=calculate_DVARS,
                                  as_module=True),
-                        name='cal_DVARS')
+                        name='cal_DVARS', mem_gb=3.5)
 
     # calculate mean DVARS
     wf.connect(input_node, 'motion_correct', cal_DVARS, 'func_brain')
@@ -469,9 +469,9 @@ def gen_power_parameters(subject_id, scan_id, fdp=None, fdj=None, dvars=None,
         subject name or id
     scan_id : string
         scan name or id
-    FDP_1D: string
+    FDP_1D : string
         framewise displacement(FD as per power et al., 2012) file path
-    FDJ_1D: string
+    FDJ_1D : string
         framewise displacement(FD as per jenkinson et al., 2002) file path
     threshold : float
         scrubbing threshold set in the configuration

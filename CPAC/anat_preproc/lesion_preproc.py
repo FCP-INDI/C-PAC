@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from nipype.interfaces import afni
-import nipype.pipeline.engine as pe
+from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
 
 
@@ -12,12 +12,12 @@ def inverse_lesion(lesion_path):
 
     Parameters
     ----------
-    lesion_path: str
+    lesion_path : str
         path to the nifti file to be checked and inverted if needed
 
     Returns
     -------
-    lesion_out: str
+    lesion_out : str
         path to the output file, if the lesion does not require to be inverted
         it returns the unchanged lesion_path input
     """
