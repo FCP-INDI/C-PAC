@@ -399,8 +399,8 @@ ANTs_para_T1_registration:
       initializationFeature: 1 #changed
 
    - masks:
-      fixed_image_mask : False  #changed
-      moving_image_mask : False  #changed
+      fixed_image_mask : True  #changed
+      moving_image_mask : True  #changed
 
    - transforms:
       - Rigid:
