@@ -121,7 +121,7 @@ commands:
               cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
               pyenv install -v 3.7.9
               pyenv global 3.7.9
-              pip install pyyaml
+              pip install -r dev/circleci_data/requirements.txt
   set-tests-exit-code:
     parameters:
       code:
@@ -176,9 +176,6 @@ jobs:
       - set-python-version
       - set-tests-exit-code:
           code: "0"
-      - run:
-          name: "Installing build requirements"
-          command: "pip install -r dev/circleci_data/requirements.txt"
       - configure-git-user
       - run:
           name: "Checking if version needs updated"
