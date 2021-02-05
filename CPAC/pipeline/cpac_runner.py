@@ -328,7 +328,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
             print("Usage tracking failed for this run.")
 
     # If we're running on cluster, execute job scheduler
-    if c.pipeline_setup['system_config']['on_grid']['run']:
+    if True in c.pipeline_setup['system_config']['on_grid']['run']:
 
         # Create cluster log dir
         cluster_files_dir = os.path.join(c.pipeline_setup['log_directory']['path'], 'cluster_files')
@@ -365,7 +365,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         '''
 
         # BEGIN LONGITUDINAL TEMPLATE PIPELINE
-        if hasattr(c, 'longitudinal_template_generation') and c.longitudinal_template_generation['run']:
+        if hasattr(c, 'longitudinal_template_generation') and True in c.longitudinal_template_generation['run']:
             subject_id_dict = {}
             for sub in sublist:
                 if sub['subject_id'] in subject_id_dict:
@@ -524,7 +524,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 print('\n\n' + 'Longitudinal pipeline completed.' + '\n\n')
                 
                 # skip main preprocessing
-                if not c.anatomical_preproc['run'] and not c.functional_preproc['run']:
+                if not True in c.anatomical_preproc['run'] and not True in c.functional_preproc['run']:
                     import sys
                     sys.exit()
 

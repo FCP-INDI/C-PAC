@@ -760,7 +760,7 @@ def gather_extraction_maps(c):
                     ts_analysis_dict[analysis_type] = []
                 ts_analysis_dict[analysis_type].append(roi_path)
 
-        if c.timeseries_extraction['run'] is True:
+        if True in c.timeseries_extraction['run']:
 
             if not tsa_roi_dict:
                 err = "\n\n[!] CPAC says: Time Series Extraction is " \
@@ -768,7 +768,7 @@ def gather_extraction_maps(c):
                       "provided!\n\n"
                 raise Exception(err)
 
-    if c.seed_based_correlation_analysis['run'] is True:
+    if True in c.seed_based_correlation_analysis['run']:
 
         try:
             sca_roi_dict = c.seed_based_correlation_analysis[

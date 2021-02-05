@@ -850,7 +850,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template]
         ]
-    if cfg.voxel_mirrored_homotopic_connectivity['run']:
+    if True in cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
             reg_blocks.append([register_symmetric_ANTs_anat_to_template,
                                register_symmetric_FSL_anat_to_template])
@@ -872,7 +872,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += seg_blocks
 
     # Functional Preprocessing, including motion correction and BOLD masking
-    if cfg.functional_preproc['run'] and \
+    if True in cfg.functional_preproc['run'] and \
             not rpool.check_rpool('desc-brain_bold'):
         func_init_blocks = [
             func_scaling,
@@ -926,7 +926,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += func_blocks
 
     # BOLD to T1 coregistration
-    if cfg.registration_workflows['functional_registration'][
+    if True in cfg.registration_workflows['functional_registration'][
         'coregistration']['run'] and \
             not rpool.check_rpool('space-T1w_desc-mean_bold'):
         coreg_blocks = [
@@ -949,7 +949,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         'func_registration_to_template']['target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
-        if cfg.voxel_mirrored_homotopic_connectivity['run']:
+        if True in cfg.voxel_mirrored_homotopic_connectivity['run']:
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction

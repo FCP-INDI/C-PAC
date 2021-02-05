@@ -1395,7 +1395,7 @@ def initiate_rpool(wf, cfg, data_paths):
         ('template_specification_file', cfg.network_centrality['template_specification_file'])
     ]
 
-    if cfg.PyPEER['run']:
+    if True in cfg.PyPEER['run']:
         config_resource_paths.append(
             ('eye_mask_path', cfg.PyPEER['eye_mask_path']))
 
@@ -1534,7 +1534,7 @@ def initiate_rpool(wf, cfg, data_paths):
         (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'resolution_for_func_derivative')
     ]
 
-    if cfg.PyPEER['run']:
+    if True in cfg.PyPEER['run']:
         templates_for_resampling.append((cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.PyPEER['eye_mask_path'], 'template_eye_mask', 'resolution_for_func_preproc'))
         #Outputs.any.append("template_eye_mask")
 
