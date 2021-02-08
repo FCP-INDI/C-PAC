@@ -92,17 +92,21 @@ class Configuration(object):
         # base everything on default pipeline
         config_map = _enforce_forkability(update_nested_dict(default_config, config_map))
 
-        for i, regressor in enumerate(lookup_nested_value(
+        config_map = self.nonestr_to_None(config_map)
+
+        regressors = lookup_nested_value(
             config_map,
             ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
-        )):
-            # set Regressor 'Name's if not provided
-            if 'Name' not in regressor:
-                regressor['Name'] = f'Regressor-{str(i + 1)}'
-            # replace spaces with hyphens in Regressor 'Name's
-            regressor['Name'] = regressor['Name'].replace(' ', '-')
+        )
+        if isinstance(regressors, list):
+            for i, regressor in enumerate(regressors):
+                # set Regressor 'Name's if not provided
+                if 'Name' not in regressor:
+                    regressor['Name'] = f'Regressor-{str(i + 1)}'
+                # replace spaces with hyphens in Regressor 'Name's
+                regressor['Name'] = regressor['Name'].replace(' ', '-')
 
-        config_map = schema(self.nonestr_to_None(config_map))
+        config_map = schema(config_map)
 
         # remove 'FROM' before setting attributes now that it's imported
         if 'FROM' in config_map:
