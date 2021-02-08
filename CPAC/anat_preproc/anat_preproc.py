@@ -284,13 +284,25 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     preproc.connect(bias_raw, 'out_file', OutputBiasField, 'in_file')
 
     # 6. Use bias field output to create corrected images
+    def file_to_a_list(infile_1, infile_2):
+        return list(infile_1, infile_2)
+    
+    file_to_a_list = pe.Node(util.Function(input_names=['infile_1', 'infile_2'],
+                                      output_names=['out_list'],
+                                      function=file_to_a_list),
+                                      name='file_to_a_list')
+
+    preproc.connect(OutputBiasField, 'out_file', file_to_a_list, 'infile_1')
+    preproc.connect(inputnode, 'T1w_brain', file_to_a_list, 'infile_2')
+
     # ${FSLDIR}/bin/fslmaths $T1wImage -div $OutputBiasField -mas $T1wImageBrain $OutputT1wRestoredBrainImage -odt float
     OutputT1wRestoredBrainImage = pe.Node(interface=fsl.MultiImageMaths(),
                                   name='OutputT1wRestoredBrainImage')
-    OutputT1wRestoredBrainImage.inputs.op_string = "-div %s -mas %s " % ((OutputBiasField, 'out_file'), (inputnode, 'T1w_brain'))
-    
-    preproc.connect(inputnode, 'T1w', OutputT1wRestoredBrainImage, 'in_file')
+    OutputT1wRestoredBrainImage.inputs.op_string = "-div %s -mas %s " 
 
+    preproc.connect(inputnode, 'T1w', OutputT1wRestoredBrainImage, 'in_file')
+    preproc.connect(file_to_a_list,'out_list',OutputT1wRestoredBrainImage, 'operand_files')
+    
     # ${FSLDIR}/bin/fslmaths $T1wImage -div $OutputBiasField $OutputT1wRestoredImage -odt float
     OutputT1wRestoredImage = pe.Node(interface=fsl.MultiImageMaths(),
                                   name='OutputT1wRestoredImage')
@@ -305,6 +317,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     OutputT2wRestoredBrainImage.inputs.op_string = "-div %s -mas %s "  % ((OutputBiasField, 'out_file'), (inputnode, 'T1w_brain'))
     
     preproc.connect(inputnode, 'T2w', OutputT2wRestoredBrainImage, 'in_file')
+    preproc.connect(file_to_a_list,'out_list',OutputT2wRestoredBrainImage, 'operand_files')
 
     # ${FSLDIR}/bin/fslmaths $T2wImage -div $OutputBiasField $OutputT2wRestoredImage -odt float
     OutputT2wRestoredImage = pe.Node(interface=fsl.MultiImageMaths(),
@@ -318,6 +331,9 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     preproc.connect(OutputT1wRestoredBrainImage, 'out_file', outputnode, 'T1w_brain_biascorrected')
     preproc.connect(OutputT2wRestoredImage, 'out_file', outputnode, 'T2w_biascorrected')
     preproc.connect(OutputT2wRestoredBrainImage, 'out_file', outputnode, 'T2w_brain_biascorrected')
+
+    return preproc
+    # preproc.run()
 
 
 def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
