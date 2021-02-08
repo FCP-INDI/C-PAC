@@ -533,7 +533,7 @@ schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'Regressors': [{
+            'Regressors': Maybe([{
                 Required('Name'): str,
                 'Censor': {
                     'method': str,
@@ -589,7 +589,7 @@ schema = Schema({
                     'top_frequency': float,
                     'method': str,
                 }  # how to check if [0] is > than [1]?
-            }],
+            }]),
             'lateral_ventricles_mask': Maybe(str),
             'bandpass_filtering_order': Maybe(
                 In({'After', 'Before'})),

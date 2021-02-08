@@ -154,6 +154,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-1
         PolyOrt:
           degree: 2
         aCompCor:
@@ -175,6 +176,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-2
         PolyOrt:
           degree: 2
         aCompCor:
@@ -189,12 +191,6 @@ nuisance_corrections:
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
-
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing: 
-
-  spatial_smoothing: 
 
 timeseries_extraction: 
 
