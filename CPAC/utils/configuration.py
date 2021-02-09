@@ -87,7 +87,8 @@ class Configuration(object):
             except OptionError:
                 base_config = base_config
             from_config = yaml.safe_load(open(base_config, 'r'))
-            config_map = update_nested_dict(from_config, config_map)
+            config_map = update_nested_dict(
+                Configuration(from_config).dict(), config_map)
 
         # base everything on default pipeline
         config_map = _enforce_forkability(update_nested_dict(default_config, config_map))
