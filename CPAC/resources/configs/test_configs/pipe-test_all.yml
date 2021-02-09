@@ -66,10 +66,6 @@ pipeline_setup:
 
 segmentation: 
 
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: [On]
-
   tissue_segmentation: 
 
     # option parameters
@@ -110,10 +106,6 @@ registration_workflows:
 
     coregistration: 
 
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-
-      run: [On]
-
       boundary_based_registration: 
 
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
@@ -150,10 +142,6 @@ registration_workflows:
           # Standard Anatomical Brain Image with Skull.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}.nii.gz
-
-functional_preproc: 
-
-  run: [On]
 
 nuisance_corrections: 
 
@@ -300,8 +288,6 @@ post_processing:
 
 timeseries_extraction: 
 
-  run: [On]
-
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and SpatialReg, you would enter: '/path/to/ROI.nii.gz': Avg, SpatialReg
   # available analyses:
@@ -310,34 +296,13 @@ timeseries_extraction:
 
 seed_based_correlation_analysis: 
 
-  # SCA - Seed-Based Correlation Analysis
-  # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
-  # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
-  run: [On]
-
   # Enter paths to region-of-interest (ROI) NIFTI files (.nii or .nii.gz) to be used for time-series extraction, and then select which types of analyses to run.
   # Denote which analyses to run for each ROI path by listing the names below. For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': Avg, MultReg
   # available analyses:
   #   /path/to/atlas.nii.gz: Avg, DualReg, MultReg
   sca_roi_paths: 
 
-amplitude_low_frequency_fluctuation: 
-
-  # ALFF & f/ALFF
-  # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.
-  run: [On]
-
-regional_homogeneity: 
-
-  # ReHo
-  # Calculate Regional Homogeneity (ReHo) for all voxels.
-  run: [On]
-
 voxel_mirrored_homotopic_connectivity: 
-
-  # VMHC
-  # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
-  run: [On]
 
   symmetric_registration: 
 

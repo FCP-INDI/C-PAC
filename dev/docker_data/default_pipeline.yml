@@ -1432,7 +1432,7 @@ PyPEER:
   data_scan_names: []
 
   # Template-space eye mask
-  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${resolution_for_func_preproc}_eye_mask.nii.gz
+  eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz
 
   # PyPEER Stimulus File Path
   # This is a file describing the stimulus locations from the calibration sequence.
