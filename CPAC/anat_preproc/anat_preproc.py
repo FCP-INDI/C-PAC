@@ -10,7 +10,9 @@ from CPAC.anat_preproc.ants import init_brain_extraction_wf
 from nipype.interfaces import freesurfer
 from CPAC.anat_preproc.utils import create_3dskullstrip_arg_string, \
     fsl_aff_to_rigid, \
-    mri_convert
+    mri_convert, \
+    VolumeRemoveIslands
+    
 from CPAC.unet.function import predict_volumes
 
 from CPAC.seg_preproc.utils import pick_tissue_from_labels_file
@@ -158,7 +160,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     # ${FSLDIR}/bin/fslmaths $T1wImage -mul $T2wImage -abs -sqrt $WD/T1wmulT2w.nii.gz -odt float
     T1wmulT2w = pe.Node(interface=fsl.MultiImageMaths(),
                                   name='T1wmulT2w')
-    T1wmulT2w.inputs.op_string = "-mul %s -abs -sqrt -odt float"
+    T1wmulT2w.inputs.op_string = "-mul %s -abs -sqrt"
     
     preproc.connect(inputnode, 'T1w', T1wmulT2w, 'in_file')
     preproc.connect(inputnode, 'T2w', T1wmulT2w, 'operand_files')
@@ -180,7 +182,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     preproc.connect(T1wmulT2w_brain, 'out_file', meanbrainval, 'in_file')
 
     # ${FSLDIR}/bin/fslmaths $WD/T1wmulT2w_brain.nii.gz -div $meanbrainval $WD/T1wmulT2w_brain_norm.nii.gz
-    T1wmulT2w_brain_norm = pe.Node(interface=fsl.MultiImageMaths(),
+    T1wmulT2w_brain_norm = pe.Node(interface=fsl.ImageMaths(),
                                   name='T1wmulT2w_brain_norm')
     
     def form_meanbrainval_string(meanbrainval):
@@ -192,23 +194,29 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
 
     # 2. Smooth the normalised sqrt image, using within-mask smoothing : s(Mask*X)/s(Mask)
     # ${FSLDIR}/bin/fslmaths $WD/T1wmulT2w_brain_norm.nii.gz -bin -s $BiasFieldSmoothingSigma $WD/SmoothNorm_s${BiasFieldSmoothingSigma}.nii.gz
-    SmoothNorm = pe.Node(interface=fsl.MultiImageMaths(),
+    SmoothNorm = pe.Node(interface=fsl.ImageMaths(),
                                   name='SmoothNorm')
-    sigma = 5 ## HJ delete later
-    # SmoothNorm.inputs.op_string = "-bin -s %f" % (config.anatomical_preproc['t1t2_bias_field_correction']['BiasFieldSmoothingSigma'])
-    SmoothNorm.inputs.op_string = "-bin -s %f" % (sigma)
+    SmoothNorm.inputs.op_string = "-bin -s %f" % (config.anatomical_preproc['t1t2_bias_field_correction']['BiasFieldSmoothingSigma'])
 
     preproc.connect(T1wmulT2w_brain_norm, 'out_file', SmoothNorm, 'in_file')
 
     # ${FSLDIR}/bin/fslmaths $WD/T1wmulT2w_brain_norm.nii.gz -s $BiasFieldSmoothingSigma -div $WD/SmoothNorm_s${BiasFieldSmoothingSigma}.nii.gz $WD/T1wmulT2w_brain_norm_s${BiasFieldSmoothingSigma}.nii.gz
-    T1wmulT2w_brain_norm_s = pe.Node(interface=fsl.MultiImageMaths(),
-                                  name='T1wmulT2w_brain_norm_s')
-    # T1wmulT2w_brain_norm_s.inputs.op_string = "-s %f -div %s" % (config.anatomical_preproc['t1t2_bias_field_correction']['BiasFieldSmoothingSigma'])
-    T1wmulT2w_brain_norm_s.inputs.op_string = "-s %f -div %s" % (sigma, (SmoothNorm, 'out_file'))
-    # HJ delete later
+    def T1wmulT2w_brain_norm_s_string(sigma, in_file):
+        return "-s %f -div %s" %(sigma, in_file)
 
+    T1wmulT2w_brain_norm_s_string = pe.Node(util.Function(input_names=['sigma', 'in_file'],
+                                      output_names=['out_str'],
+                                      function=T1wmulT2w_brain_norm_s_string),
+                                      name='T1wmulT2w_brain_norm_s_string')
+    T1wmulT2w_brain_norm_s_string.inputs.sigma = config.anatomical_preproc['t1t2_bias_field_correction']['BiasFieldSmoothingSigma']
+
+    preproc.connect(SmoothNorm, 'out_file', T1wmulT2w_brain_norm_s_string, 'in_file')
+    
+    T1wmulT2w_brain_norm_s = pe.Node(interface=fsl.ImageMaths(),
+                                  name='T1wmulT2w_brain_norm_s')
+    
     preproc.connect(T1wmulT2w_brain_norm, 'out_file', T1wmulT2w_brain_norm_s, 'in_file')
-    # preproc.connect(SmoothNorm, 'out_file', T1wmulT2w_brain_norm_s, 'operand_files')
+    preproc.connect(T1wmulT2w_brain_norm_s_string, 'out_str', T1wmulT2w_brain_norm_s, 'op_string')
 
     # 3. Divide normalised sqrt image by smoothed version (to do simple bias correction)
     # ${FSLDIR}/bin/fslmaths $WD/T1wmulT2w_brain_norm.nii.gz -div $WD/T1wmulT2w_brain_norm_s$BiasFieldSmoothingSigma.nii.gz $WD/T1wmulT2w_brain_norm_modulate.nii.gz
@@ -251,41 +259,37 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     preproc.connect(STD, 'out_stat', form_lower_string, 'std')
 
     # ${FSLDIR}/bin/fslmaths $WD/T1wmulT2w_brain_norm_modulate -thr $Lower -bin -ero -mul 255 $WD/T1wmulT2w_brain_norm_modulate_mask
-    T1wmulT2w_brain_norm_modulate_mask = pe.Node(interface=fsl.MultiImageMaths(),
+    T1wmulT2w_brain_norm_modulate_mask = pe.Node(interface=fsl.ImageMaths(),
                                                 name='T1wmulT2w_brain_norm_modulate_mask')
 
     preproc.connect(T1wmulT2w_brain_norm_modulate, 'out_file', T1wmulT2w_brain_norm_modulate_mask, 'in_file')
     preproc.connect(form_lower_string, 'out_str', T1wmulT2w_brain_norm_modulate_mask, 'op_string')
 
     # ${CARET7DIR}/wb_command -volume-remove-islands $WD/T1wmulT2w_brain_norm_modulate_mask.nii.gz $WD/T1wmulT2w_brain_norm_modulate_mask.nii.gz
-    T1wmulT2w_brain_norm_modulate_mask_roi = pe.Node(util.IdentityInterface(fields=['data']),
-                                                    name='T1wmulT2w_brain_norm_modulate_mask_roi')
-    from nipype.interfaces.workbench.base import WBCommand
-    remove_islands = pe.Node(interface=WBCommand(command='wb_command'),
+    T1wmulT2w_brain_norm_modulate_mask_roi = pe.Node(interface=VolumeRemoveIslands(),
                                                     name='remove_islands')
-    remove_islands.inputs.args = "-volume-remove-islands %s %s " % ((T1wmulT2w_brain_norm_modulate_mask, 'out_file'), (T1wmulT2w_brain_norm_modulate_mask_roi, 'data'))
+
+    preproc.connect(T1wmulT2w_brain_norm_modulate_mask, 'out_file', T1wmulT2w_brain_norm_modulate_mask_roi, 'in_file')
 
     # 5. Extrapolate normalised sqrt image from mask region out to whole FOV
     # ${FSLDIR}/bin/fslmaths $WD/T1wmulT2w_brain_norm.nii.gz -mas $WD/T1wmulT2w_brain_norm_modulate_mask.nii.gz -dilall $WD/bias_raw.nii.gz -odt float
     bias_raw = pe.Node(interface=fsl.MultiImageMaths(),
                         name='bias_raw')
-    bias_raw.inputs.op_string = "-mas %s -dilall -odt float "
+    bias_raw.inputs.op_string = "-mas %s -dilall "
 
     preproc.connect(T1wmulT2w_brain_norm, 'out_file', bias_raw, 'in_file')
-    preproc.connect(T1wmulT2w_brain_norm_modulate_mask_roi, 'data', bias_raw, 'operand_files')
+    preproc.connect(T1wmulT2w_brain_norm_modulate_mask_roi, 'out_file', bias_raw, 'operand_files')
 
     # ${FSLDIR}/bin/fslmaths $WD/bias_raw.nii.gz -s $BiasFieldSmoothingSigma $OutputBiasField
-    OutputBiasField = pe.Node(interface=fsl.MultiImageMaths(),
+    OutputBiasField = pe.Node(interface=fsl.ImageMaths(),
                                   name='OutputBiasField')
-    # OutputBiasField.inputs.op_string = "-s %f " % (config.anatomical_preproc['t1t2_bias_field_correction']['BiasFieldSmoothingSigma'])
-    OutputBiasField.inputs.op_string = "-s %f " % (sigma)
-    # HJ delete later
+    OutputBiasField.inputs.op_string = "-s %f " % (config.anatomical_preproc['t1t2_bias_field_correction']['BiasFieldSmoothingSigma'])
 
     preproc.connect(bias_raw, 'out_file', OutputBiasField, 'in_file')
 
     # 6. Use bias field output to create corrected images
     def file_to_a_list(infile_1, infile_2):
-        return list(infile_1, infile_2)
+        return list([infile_1,infile_2])
     
     file_to_a_list = pe.Node(util.Function(input_names=['infile_1', 'infile_2'],
                                       output_names=['out_list'],
@@ -314,7 +318,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     # ${FSLDIR}/bin/fslmaths $T2wImage -div $OutputBiasField -mas $T1wImageBrain $OutputT2wRestoredBrainImage -odt float
     OutputT2wRestoredBrainImage = pe.Node(interface=fsl.MultiImageMaths(),
                                   name='OutputT2wRestoredBrainImage')
-    OutputT2wRestoredBrainImage.inputs.op_string = "-div %s -mas %s "  % ((OutputBiasField, 'out_file'), (inputnode, 'T1w_brain'))
+    OutputT2wRestoredBrainImage.inputs.op_string = "-div %s -mas %s " 
     
     preproc.connect(inputnode, 'T2w', OutputT2wRestoredBrainImage, 'in_file')
     preproc.connect(file_to_a_list,'out_list',OutputT2wRestoredBrainImage, 'operand_files')
@@ -333,7 +337,6 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t
     preproc.connect(OutputT2wRestoredBrainImage, 'out_file', outputnode, 'T2w_brain_biascorrected')
 
     return preproc
-    # preproc.run()
 
 
 def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):

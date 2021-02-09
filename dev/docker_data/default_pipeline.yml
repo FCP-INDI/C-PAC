@@ -199,6 +199,14 @@ anatomical_preproc:
   # N4 bias field correction via ANTs
   n4_bias_field_correction: Off
 
+  # Bias field correction based on square root of T1w * T2w
+  t1t2_bias_field_correction: 
+
+    run: Off 
+    
+    BiasFieldSmoothingSigma: 
+    
+
   acpc_alignment:
 
     run: Off

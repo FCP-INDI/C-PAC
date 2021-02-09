@@ -351,3 +351,52 @@ def fslmaths_command(in_file, number, out_file_suffix):
     os.system(cmd)
 
     return out_file
+
+
+"""This module provides interfaces for workbench -volume-remove-islands commands"""
+from nipype.interfaces.base import TraitedSpec, File, traits, CommandLineInputSpec
+from nipype.interfaces.workbench.base import WBCommand
+from nipype import logging
+
+iflogger = logging.getLogger("nipype.interface")
+
+
+class VolumeRemoveIslandsInputSpec(CommandLineInputSpec):
+    in_file = File(
+        exists=True,
+        mandatory=True,
+        argstr="%s",
+        position=0,
+        desc="the input ROI volume",
+    )
+    out_file = File(
+        name_source=["in_file"],
+        name_template="%s_generated.nii.gz",
+        argstr="%s",
+        position=1,
+        desc="the output ROI volume",
+    )
+
+
+
+class VolumeRemoveIslandsOutputSpec(TraitedSpec):
+    out_file = File(exists=True, desc="the output ROI volume")
+
+
+class VolumeRemoveIslands(WBCommand):
+    """
+    workbench
+    -volume-remove-islands
+    REMOVE ISLANDS FROM AN ROI VOLUME
+    wb_command -volume-remove-islands
+        <volume-in> - the input ROI volume
+        <volume-out> - output - the output ROI volume
+
+        Finds all face-connected parts of the ROI, and zeros out all but the
+        largest one.
+
+    """
+
+    input_spec = VolumeRemoveIslandsInputSpec
+    output_spec = VolumeRemoveIslandsOutputSpec
+    _cmd = "/Applications/workbench/bin_macosx64/wb_command -volume-remove-islands" ##TODO: correct path to call wb_command
