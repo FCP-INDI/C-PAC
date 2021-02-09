@@ -230,12 +230,12 @@ class ResourcePool(object):
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n\n[!] C-PAC says: The listed resource is "
-                                f"not in the resource pool:\n{resource}\n\n"
-                                "Developer Note: This may be due to a mis"
-                                "match between the node block's docstring "
-                                "'input' field and a strat_pool.get_data() "
-                                "call within the block function.\n")
+                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
+                                  f"not in the resource pool:\n{resource}\n\n"
+                                  "Developer Note: This may be due to a mis"
+                                  "match between the node block's docstring "
+                                  "'input' field and a strat_pool.get_data() "
+                                  "call within the block function.\n")
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -1251,6 +1251,8 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 
 def ingress_raw_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
     anat_flow = create_anat_datasource(f'anat_gather_{part_id}_{ses_id}')
     anat_flow.inputs.inputnode.set(
@@ -1436,6 +1438,8 @@ def initiate_rpool(wf, cfg, data_paths):
 
     part_id = data_paths['subject_id']
     ses_id = data_paths['unique_id']
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
     unique_id = f'{part_id}_{ses_id}'
 

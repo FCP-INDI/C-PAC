@@ -303,18 +303,13 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-1
         PolyOrt:
           degree: 2
         WhiteMatter:
           summary:
             components: 5
             method: PC
-
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing: 
-
-  spatial_smoothing: 
 
 timeseries_extraction: 
 

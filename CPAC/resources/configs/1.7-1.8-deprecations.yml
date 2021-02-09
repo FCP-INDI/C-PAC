@@ -20,3 +20,4 @@
 - runFristonModel
 - runMotionSpike
 - spikeThreshold
+- smoothing_order

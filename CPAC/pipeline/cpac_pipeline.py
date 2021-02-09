@@ -1040,7 +1040,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Connect the entire pipeline!
     for block in pipeline_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        try:
+            nb = NodeBlock(block)
+            wf = nb.connect_block(wf, cfg, rpool)
+        except LookupError as e:
+            previous_nb_str = (
+                f"after node block '{previous_nb.get_name()}':"
+            ) if previous_nb else 'at beginning:'
+            # Alert user to block that raises error
+            e.args = (
+                'When trying to connect node block '
+                f"'{NodeBlock(block).get_name()}' "
+                f"to workflow '{wf}' " + previous_nb_str + e.args[0],
+            )
+            raise
+        previous_nb = nb
 
     # Write out the data
     # TODO enforce value with schema validation

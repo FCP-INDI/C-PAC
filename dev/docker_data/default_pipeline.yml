@@ -895,19 +895,34 @@ functional_preproc:
       # Number of filter coefficients.
       filter_order: 4
 
-      # Dataset-wide respiratory rate data from breathing belt required.
-      # mutually exclusive with cutoff, center frequency, and bandwidth options further below
+      # Dataset-wide respiratory rate data from breathing belt.
+      # Notch filter requires either:
+      #     "breathing_rate_min" and "breathing_rate_max"
+      # or
+      #     "center_frequency" and "filter_bandwitdh".
+      # Lowpass filter requires either:
+      #     "breathing_rate_min"
+      # or
+      #     "lowpass_cutoff".
+      # If "breathing_rate_min" (for lowpass and notch filter)
+      # and "breathing_rate_max" (for notch filter) are set,
+      # the values set in "lowpass_cutoff" (for lowpass filter),
+      # "center_frequency" and "filter_bandwidth" (for notch filter)
+      # options are ignored.
 
       # Lowest Breaths-Per-Minute in dataset.
-      # Required for both notch and lowpass filters.
+      # For both notch and lowpass filters.
       breathing_rate_min:
 
       # Highest Breaths-Per-Minute in dataset.
-      # Required for the notch filter.
+      # For notch filter.
       breathing_rate_max:
 
       # notch filter direct customization parameters
-      # mutually exclusive with breathing_rate options above
+
+      # mutually exclusive with breathing_rate options above.
+      # If breathing_rate_min and breathing_rate_max are provided,
+      # the following parameters will be ignored.
 
       # the center frequency of the notch filter
       center_frequency:
@@ -915,8 +930,11 @@ functional_preproc:
       # the width of the notch filter
       filter_bandwidth:
 
-      # lowpass filter direct customization parameters
-      # mutually exclusive with breathing_rate options above
+      # lowpass filter direct customization parameter
+
+      # mutually exclusive with breathing_rate options above.
+      # If breathing_rate_min is provided, the following
+      # parameter will be ignored.
 
       # the frequency cutoff of the filter
       lowpass_cutoff:

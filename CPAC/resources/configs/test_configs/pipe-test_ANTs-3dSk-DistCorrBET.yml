@@ -179,6 +179,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-1
         PolyOrt:
           degree: 2
         WhiteMatter:
@@ -217,6 +218,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-2
         PolyOrt:
           degree: 2
         WhiteMatter:
@@ -255,6 +257,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-3
         PolyOrt:
           degree: 2
         WhiteMatter:
