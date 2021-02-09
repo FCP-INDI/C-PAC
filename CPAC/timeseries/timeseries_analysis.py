@@ -920,11 +920,11 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["space-template_desc-cleaned_bold",
-                 "space-template_desc-preproc_bold",
-                 "space-template_desc-reorient_bold",
-                 "space-template_bold"],
-                "space-template_desc-bold_mask"],
+     "inputs": [(["space-template_desc-cleaned_bold",
+                  "space-template_desc-preproc_bold",
+                  "space-template_desc-reorient_bold",
+                  "space-template_bold"],
+                 "space-template_desc-bold_mask")],
      "outputs": ["desc-SpatReg_timeseries",
                  "atlas_name"]}
     '''
@@ -951,7 +951,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     spatial_map_timeseries = get_spatial_map_timeseries(
         f'spatial_map_timeseries_{pipe_num}')
     spatial_map_timeseries.inputs.inputspec.demean = True
-
+    print(strat_pool.get_entire_rpool())
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
                                      "space-template_desc-preproc_bold",
                                      "space-template_desc-reorient_bold",

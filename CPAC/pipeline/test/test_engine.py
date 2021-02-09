@@ -41,9 +41,9 @@ def test_ingress_raw_data(pipe_config, bids_dir, test_dir):
             "    {1}"
             "\n\n".format(config_file, e)
         )
-    cfg['pipeline_setup']['output_directory']['path'] = \
+    cfg.pipeline_setup['output_directory']['path'] = \
         os.path.join(test_dir, 'out')
-    cfg['pipeline_setup']['working_directory']['path'] = \
+    cfg.pipeline_setup['working_directory']['path'] = \
         os.path.join(test_dir, 'work')
 
     wf = initialize_nipype_wf(cfg, sub_data_dct)
@@ -59,8 +59,12 @@ def test_ingress_raw_data(pipe_config, bids_dir, test_dir):
                                                            sub_data_dct,
                                                            unique_id,
                                                            part_id, ses_id)
-
+    print(rpool.get_entire_rpool())
+    print(diff)
+    print('---')
     rpool.gather_pipes(wf, cfg, all=True)
+
+    wf.run()
 
 
 cfg = "/code/default_pipeline.yml"

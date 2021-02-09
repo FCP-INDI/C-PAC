@@ -170,8 +170,8 @@ schema = Schema({
     },
     'anatomical_preproc': {
         'run': forkable,
-        'non_local_means_filtering': bool,
-        'n4_bias_field_correction': bool,
+        'non_local_means_filtering': forkable,
+        'n4_bias_field_correction': forkable,
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
