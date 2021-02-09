@@ -74,6 +74,7 @@ from CPAC.registration import (
     connect_func_to_anat_bbreg,
     connect_func_to_template_reg,
     output_func_to_standard,
+    anat_brain_to_standard_abcd,
     func_brain_mask_to_standard_abcd
 )
 
@@ -1191,7 +1192,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     new_strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
                     new_strat.update_resource_pool({
                         'anatomical_brain': (anat_preproc, 'outputspec.brain'),
+                        'anatomical_brain_restore': (anat_preproc, 'outputspec.anat_brain_restore'),
                         'anatomical_skull_leaf': (anat_preproc, 'outputspec.anat_skull_leaf'),
+                        'anatomical_skull_restore': (anat_preproc, 'outputspec.anat_skull_restore'),
                         'anatomical_brain_mask': (anat_preproc, 'outputspec.brain_mask'),
                         'freesurfer_subject_dir': (anat_preproc, 'outputspec.freesurfer_subject_dir'),
                     })
@@ -1372,6 +1375,7 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
 
                 ants_reg_anat_mni.inputs.inputspec.interp = c.anatRegANTSinterpolation
 
+                # TODO check abcd restored brain for registration
                 # get the skull-stripped anatomical from resource pool
                 node, out_file = strat['anatomical_brain']
 
@@ -1388,8 +1392,11 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'inputspec.reference_brain'
                     )
 
-                # get the reorient skull-on anatomical from resource pool
-                node, out_file = strat['anatomical_skull_leaf']
+                if "FreeSurfer-ABCD" in c.skullstrip_option:
+                    node, out_file = strat['anatomical_skull_restore']
+                else:
+                    # get the reorient skull-on anatomical from resource pool
+                    node, out_file = strat['anatomical_skull_leaf']
 
                 # pass the anatomical to the workflow
                 workflow.connect(node, out_file,
@@ -1469,6 +1476,9 @@ def build_workflow(subject_id, sub_dict, c, pipeline_name=None, num_ants_cores=1
                     'anatomical_to_standard': (ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
                     'anatomical_brain_mask_to_standard': (ants_reg_anat_mni, 'outputspec.output_brain_mask')
                 })
+
+                # perform ABCD style registration
+                anat_brain_to_standard_abcd(workflow, num_strat, strat, config=c)
 
                 # generate ABCD style functional brain mask in standard: resample anatomical brain mask in standard to functinal resolution
                 func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=c)

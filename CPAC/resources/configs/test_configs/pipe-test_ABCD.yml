@@ -398,10 +398,6 @@ ANTs_para_T1_registration:
    - initial-moving-transform :
       initializationFeature: 1 #changed
 
-   - masks:
-      fixed_image_mask : False  #changed
-      moving_image_mask : False  #changed
-
    - transforms:
       - Rigid:
           gradientStep : 0.1
@@ -418,6 +414,7 @@ ANTs_para_T1_registration:
           smoothing-sigmas : 3.0x2.0x1.0x0.0
           shrink-factors : 8x4x2x1
           use-histogram-matching : False #changed
+          masks: False
 
       - Affine:
           gradientStep : 0.1
@@ -434,6 +431,7 @@ ANTs_para_T1_registration:
           smoothing-sigmas : 3.0x2.0x1.0x0.0
           shrink-factors : 8x4x2x1
           use-histogram-matching : False #changed
+          masks: False
 
       - SyN:
           gradientStep : 0.1
@@ -453,6 +451,7 @@ ANTs_para_T1_registration:
           winsorize-image-intensities :
             lowerQuantile : 0.005 #changed
             upperQuantile : 0.995 #changed
+          masks: True
 
 
 
@@ -698,7 +697,7 @@ motion_correction : ['mcflirt']
 
 
 # Choose motion correction reference. Options: mean, median, selected volume
-motion_correction_reference: ['mean']
+motion_correction_reference: ['selected volume']
 
 
 # Choose motion correction reference volume
@@ -757,7 +756,7 @@ runDespike : [0]
 
 
 # Interpolate voxel time courses so they are sampled at the same time points.
-slice_timing_correction :  [1]
+slice_timing_correction :  [0]
 
 
 # Specify the TR (in seconds) at which images were acquired.
@@ -869,7 +868,7 @@ funcRegFSLinterpolation: sinc
 
 # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
 # Options: ['Mean Functional', 'Selected Functional Volume']
-func_reg_input :  ['Mean Functional']
+func_reg_input :  ['Selected Functional Volume']
 
 
 # Run ANTs’ N4 Bias Field Correction on the input BOLD average(mean EPI)

@@ -1418,3 +1418,17 @@ def concat_list(in_list1=None, in_list2=None):
     out_list = in_list1 + in_list2
     
     return out_list
+
+
+def run_c4d(input, output_name):
+    
+    import os
+
+    output1 = os.path.join(os.getcwd(), output_name+'1.nii.gz')
+    output2 = os.path.join(os.getcwd(), output_name+'2.nii.gz')
+    output3 = os.path.join(os.getcwd(), output_name+'3.nii.gz')
+
+    cmd = 'c4d -mcs %s -oo %s %s %s' % (input, output1, output2, output3)
+    os.system(cmd)
+
+    return output1, output2, output3

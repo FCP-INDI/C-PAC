@@ -982,6 +982,8 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
                                                         'brain',
                                                         'brain_mask',
                                                         'anat_skull_leaf',
+                                                        'anat_skull_restore',
+                                                        'anat_brain_restore',
                                                         'freesurfer_subject_dir',
                                                         'center_of_mass',
                                                         'wm_mask',
@@ -1231,6 +1233,12 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             preproc.connect(brain_extraction, 'outputspec.anat_brain_mask',
                             fast_correction, 'inputspec.anat_brain_mask')
 
+            preproc.connect(fast_correction, 'outputspec.anat_restore',
+                            outputnode, 'anat_skull_restore')
+            
+            preproc.connect(fast_correction, 'outputspec.anat_brain_restore',
+                            outputnode, 'anat_brain_restore')
+            
             ### ABCD Harmonization ###
             # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L140-L144
 
@@ -1313,36 +1321,12 @@ def create_anat_preproc(method='afni', already_skullstripped=False,
             reconall.inputs.subjects_dir = freesurfer_subject_dir
             reconall.inputs.openmp = config.num_omp_threads
 
-            # preproc.connect(anat_leaf2, 'anat_data',
-            #                 reconall, 'T1_files')
-
             preproc.connect(normalize_head, 'out_file',
                             reconall, 'T1_files')
 
             preproc.connect(reconall, 'subjects_dir',
                             outputnode, 'freesurfer_subject_dir')
-            
-            '''
-            ### ABCD Harmonization - FreeSurfer brain mask refinement ###
-            # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/92913242419d492aee733a45d454ea319fbaac35/FreeSurfer/FreeSurferPipeline.sh#L169-L172
 
-            # mri_convert "$T1wImageBrainFile"_1mm.nii.gz "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz --conform
-            t1_brain_to_mgz = pe.Node(util.Function(input_names=['in_file'],
-                                                    output_names=['out_file'],
-                                                    function=mri_convert),
-                                        name='t1_brain_to_mgz')
-
-            preproc.connect(applywarp_brain_to_head_1mm, 'out_file',
-                            t1_brain_to_mgz, 'in_file')
-
-            # mri_em_register -mask "$SubjectDIR"/"$SubjectID"/mri/brainmask.mgz "$SubjectDIR"/"$SubjectID"/mri/nu.mgz $FREESURFER_HOME/average/RB_all_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta
-            # TODO write a function node
-
-            # preproc.connect(t1_brain_to_mgz, 'out_file',
-            #                 mri_em_register, 'brain_mask')
-
-            # mri_watershed -T1 -brain_atlas $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca "$SubjectDIR"/"$SubjectID"/mri/transforms/talairach_with_skull.lta "$SubjectDIR"/"$SubjectID"/mri/T1.mgz "$SubjectDIR"/"$SubjectID"/mri/brainmask.auto.mgz 
-            '''
 
         anat_skullstrip = skullstrip_anatomical(method=method, config=config,
                                                 wf_name="{0}_skullstrip".format(wf_name))

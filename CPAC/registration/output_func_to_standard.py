@@ -3,11 +3,12 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
-from CPAC.registration.utils import change_itk_transform_type, check_transforms, generate_inverse_transform_flags
+from CPAC.registration.utils import change_itk_transform_type, check_transforms, generate_inverse_transform_flags, run_ants_apply_warp
 
 from nipype.interfaces.afni import utils as afni_utils
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.utils.interfaces.function import Function
+from CPAC.utils.utils import run_c4d
 
 # Todo: CC distcor is not implement for fsl apply xform func to mni, why ??
 
@@ -840,3 +841,274 @@ def func_brain_mask_to_standard_abcd(workflow, num_strat, strat, config=None, ov
     strat.append_name(applywarp_brain_mask_to_func_res.name)
 
     return workflow
+
+
+def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
+    
+    """
+    Apply head-to-head transforms on brain using ABCD-style registration
+
+    Parameters
+    ----------    
+    workflow : Nipype workflow object
+        the workflow containing the resources involved
+
+    config : configuration
+        Pipeline configuration object
+    
+    num_strat : int
+        the number of strategy objects
+
+    strat : C-PAC Strategy object
+        a strategy with one or more resource pools
+
+    Returns
+    -------
+    workflow : nipype.pipeline.engine.Workflow
+
+    Reference
+    ---------
+    DCAN-HCP GitHub : https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/AtlasRegistrationToMNI152_ANTsbased.sh#L134-L172
+    """
+
+    # antsApplyTransforms -d 3 -i ${T1wRestore}.nii.gz -r ${Reference} -t ${WD}/xfms/T1w_to_MNI_3Warp.nii.gz -t ${WD}/xfms/T1w_to_MNI_2Affine.mat -t ${WD}/xfms/T1w_to_MNI_1Rigid.mat -t ${WD}/xfms/T1w_to_MNI_0DerivedInitialMovingTranslation.mat -o [${WD}/xfms/ANTs_CombinedWarp.nii.gz,1]
+    ants_apply_warp_t1_restore = pe.Node(util.Function(input_names=['moving_image',
+                                                                    'reference',
+                                                                    'initial',
+                                                                    'rigid',
+                                                                    'affine',
+                                                                    'nonlinear'],
+                                                        output_names=['out_image'],
+                                                        function=run_ants_apply_warp),
+                                        name='ants_apply_warp_t1_restore_to_standard_{0}'.format(num_strat))
+
+    node, out_file = strat['anatomical_skull_restore']
+    # node, out_file = strat['anatomical_skull_leaf']
+    workflow.connect(node, out_file, 
+        ants_apply_warp_t1_restore, 'moving_image')
+
+    node, out_file = strat['template_skull_for_anat']
+    workflow.connect(node, out_file, 
+        ants_apply_warp_t1_restore, 'reference')
+
+    # TODO check xfm order
+    node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_warp_t1_restore, 'nonlinear')
+
+    node, out_file = strat['ants_affine_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_warp_t1_restore, 'affine')
+
+    node, out_file = strat['ants_rigid_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_warp_t1_restore, 'rigid')
+
+    node, out_file = strat['ants_initial_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_warp_t1_restore, 'initial')
+
+
+    # antsApplyTransforms -d 3 -i ${T1wImage}.nii.gz -r ${Reference} -t [${WD}/xfms/T1w_to_MNI_0DerivedInitialMovingTranslation.mat,1] -t [${WD}/xfms/T1w_to_MNI_1Rigid.mat,1] -t [${WD}/xfms/T1w_to_MNI_2Affine.mat,1] -t ${WD}/xfms/T1w_to_MNI_3InverseWarp.nii.gz -o [${WD}/xfms/ANTs_CombinedInvWarp.nii.gz,1]
+    ants_apply_inv_warp_t1_acpc = pe.Node(util.Function(input_names=['moving_image',
+                                                                    'reference',
+                                                                    'initial',
+                                                                    'rigid',
+                                                                    'affine',
+                                                                    'nonlinear'],
+                                                        output_names=['out_image'],
+                                                        function=run_ants_apply_warp),
+                                        name='ants_apply_inv_warp_t1_acpc_{0}'.format(num_strat))
+    
+    ants_apply_inv_warp_t1_acpc.inputs.inverse = True
+
+    node, out_file = strat['anatomical_skull_leaf']
+    workflow.connect(node, out_file, 
+        ants_apply_inv_warp_t1_acpc, 'moving_image')
+
+    node, out_file = strat['template_skull_for_anat']
+    workflow.connect(node, out_file, 
+        ants_apply_inv_warp_t1_acpc, 'reference')
+
+    node, out_file = strat['ants_initial_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_inv_warp_t1_acpc, 'initial')
+    
+    node, out_file = strat['ants_rigid_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_inv_warp_t1_acpc, 'rigid')
+    
+    node, out_file = strat['ants_affine_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_inv_warp_t1_acpc, 'affine')
+
+    node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+    workflow.connect(node, out_file, 
+        ants_apply_inv_warp_t1_acpc, 'nonlinear')
+
+
+    # c4d -mcs ${WD}/xfms/ANTs_CombinedWarp.nii.gz -oo ${WD}/xfms/e1.nii.gz ${WD}/xfms/e2.nii.gz ${WD}/xfms/e3.nii.gz
+    # -mcs: -multicomponent-split, -oo: -output-multiple
+    c4d_split_xfm = pe.Node(util.Function(input_names=['input',
+                                                       'output_name'],
+                                          output_names=['output1',
+                                                        'output2',
+                                                        'output3'],
+                                          function=run_c4d),
+                            name='split_xfm')
+
+    c4d_split_xfm.inputs.output_name = 'e'
+
+    workflow.connect(ants_apply_warp_t1_restore, 'out_image', 
+        c4d_split_xfm, 'input')
+
+
+    # c4d -mcs ${WD}/xfms/ANTs_CombinedInvWarp.nii.gz -oo ${WD}/xfms/e1inv.nii.gz ${WD}/xfms/e2inv.nii.gz ${WD}/xfms/e3inv.nii.gz
+    c4d_split_inv_xfm = pe.Node(util.Function(input_names=['input',
+                                                           'output_name'],
+                                              output_names=['output1',
+                                                            'output2',
+                                                            'output3'],
+                                              function=run_c4d),
+                                name='split_inv_xfm')
+
+    c4d_split_inv_xfm.inputs.output_name = 'einv'
+
+    workflow.connect(ants_apply_inv_warp_t1_acpc, 'out_image', 
+        c4d_split_inv_xfm, 'input')
+
+
+    # fslmaths ${WD}/xfms/e2.nii.gz -mul -1 ${WD}/xfms/e-2.nii.gz
+    fslmaths_e2 = pe.Node(interface=fsl.maths.MathsCommand(),
+                          name='e2_mul')
+
+    fslmaths_e2.inputs.args = '-mul -1'
+
+    workflow.connect(c4d_split_xfm, 'output2',
+        fslmaths_e2, 'in_file')
+
+
+    # fslmaths ${WD}/xfms/e2inv.nii.gz -mul -1 ${WD}/xfms/e-2inv.nii.gz
+    fslmaths_e2inv = pe.Node(interface=fsl.maths.MathsCommand(),
+                             name='e2inv_mul')
+
+    fslmaths_e2inv.inputs.args = '-mul -1'
+
+    workflow.connect(c4d_split_inv_xfm, 'output2',
+        fslmaths_e2inv, 'in_file')
+
+
+    # fslmerge -t ${OutputTransform} ${WD}/xfms/e1.nii.gz ${WD}/xfms/e-2.nii.gz ${WD}/xfms/e3.nii.gz
+    merge_xfms_to_list = pe.Node(util.Merge(3), 
+                                name='merge_xfms_to_list')
+    
+    workflow.connect(c4d_split_xfm, 'output1',
+        merge_xfms_to_list, 'in1')
+    workflow.connect(fslmaths_e2, 'out_file',
+        merge_xfms_to_list, 'in2')
+    workflow.connect(c4d_split_xfm, 'output3',
+        merge_xfms_to_list, 'in3')
+
+    merge_xfms = pe.Node(interface=fsl.Merge(), 
+                         name='merge_xfms')
+
+    merge_xfms.inputs.dimension = 't'
+
+    workflow.connect(merge_xfms_to_list, 'out',
+        merge_xfms, 'in_files')
+
+
+    # fslmerge -t ${OutputInvTransform} ${WD}/xfms/e1inv.nii.gz ${WD}/xfms/e-2inv.nii.gz ${WD}/xfms/e3inv.nii.gz
+    merge_inv_xfms_to_list = pe.Node(util.Merge(3), 
+                                     name='merge_inv_xfms_to_list')
+
+    workflow.connect(c4d_split_inv_xfm, 'output1', 
+        merge_inv_xfms_to_list, 'in1')
+    workflow.connect(fslmaths_e2inv, 'out_file', 
+        merge_inv_xfms_to_list, 'in2')
+    workflow.connect(c4d_split_inv_xfm, 'output3', 
+        merge_inv_xfms_to_list, 'in3')
+
+
+    merge_inv_xfms = pe.Node(interface=fsl.Merge(),
+                             name='merge_inv_xfms')
+
+    merge_inv_xfms.inputs.dimension = 't'
+
+    workflow.connect(merge_inv_xfms_to_list, 'out', 
+        merge_inv_xfms, 'in_files')
+
+
+    # CreateJacobianDeterminantImage 3 ${OutputTransform} ${WD}/xfms/NonlinearRegJacobians.nii.gz [doLogJacobian=0] [useGeometric=0]
+    # create_jacobian_determinant_image = pe.Node(interface=ants.CreateJacobianDeterminantImage(),
+    #                              name='create_jacobian_determinant_image')
+    # create_jacobian_determinant_image.inputs.imageDimension = 3
+    # create_jacobian_determinant_image.inputs.doLogJacobian = 0
+    # create_jacobian_determinant_image.inputs.useGeometric = 0
+    # workflow.connect(merge_xfms, 'merged_file', 
+    #   create_jacobian_determinant_image, 'deformationField')
+
+    # applywarp --rel --interp=spline -i ${T1wImage} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImage}
+    apply_warp_t1_acpc = pe.Node(interface=fsl.ApplyWarp(),
+                                 name='fsl_apply_warp_t1_acpc')
+    apply_warp_t1_acpc.inputs.interp = 'spline'
+
+    node, out_file = strat['anatomical_skull_leaf']
+    workflow.connect(node, out_file, 
+        apply_warp_t1_acpc, 'in_file')
+
+    node, out_file = strat['template_skull_for_anat']
+    workflow.connect(node, out_file, 
+        apply_warp_t1_acpc, 'ref_file')
+
+    workflow.connect(merge_xfms, 'merged_file', 
+        apply_warp_t1_acpc, 'field_file')
+
+
+    # applywarp --rel --interp=spline -i ${T1wRestore} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestore}
+    apply_warp_t1_restore = pe.Node(interface=fsl.ApplyWarp(),
+                                    name='fsl_apply_warp_t1_restore')
+    apply_warp_t1_restore.inputs.interp = 'spline'
+    
+    node, out_file = strat['anatomical_skull_restore']    
+    workflow.connect(node, out_file, 
+        apply_warp_t1_restore, 'in_file')
+
+    node, out_file = strat['template_skull_for_anat']
+    workflow.connect(node, out_file, 
+        apply_warp_t1_restore, 'ref_file')
+
+    workflow.connect(merge_xfms, 'merged_file', 
+        apply_warp_t1_restore, 'field_file')
+
+
+    # applywarp --rel --interp=nn -i ${T1wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestoreBrain}
+    apply_warp_t1_restore_brain = pe.Node(interface=fsl.ApplyWarp(),
+                                          name='apply_warp_t1_restore_brain')
+    apply_warp_t1_restore_brain.inputs.interp = 'nn'
+    
+    # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
+    # node, out_file = strat['anatomical_brain_restore']
+    node, out_file = strat['anatomical_brain']
+    workflow.connect(node, out_file, 
+        apply_warp_t1_restore_brain, 'in_file')
+
+    node, out_file = strat['template_skull_for_anat']
+    workflow.connect(node, out_file, 
+        apply_warp_t1_restore_brain, 'ref_file')
+
+    workflow.connect(merge_xfms, 'merged_file', 
+        apply_warp_t1_restore_brain, 'field_file')
+
+
+    # fslmaths ${OutputT1wImageRestore} -mas ${OutputT1wImageRestoreBrain} ${OutputT1wImageRestoreBrain}
+    fslmaths_mask = pe.Node(interface=fsl.maths.MathsCommand(),
+                             name='mask')
+
+    fslmaths_mask.inputs.args = '-mas'
+    workflow.connect(apply_warp_t1_restore_brain, 'out_file',
+                    fslmaths_mask, 'in_file')
+    
+    strat.update_resource_pool({
+        'anatomical_to_standard': (fslmaths_mask, 'out_file')
+    }, override=True)

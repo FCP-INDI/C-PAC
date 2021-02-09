@@ -90,13 +90,12 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                     raise Exception(err_msg)
                 else:
                     regcmd.append("--initial-moving-transform")
-                    # Note: registration with skull will make the result failed
-                    # if reg_with_skull == 1:
-                    #     regcmd.append("[{0},{1},{2}]".format(
-                    #         reference_skull, moving_skull, ants_para[para_index][para_type]['initializationFeature']))
-                    # else:
-                    regcmd.append("[{0},{1},{2}]".format(
-                        reference_brain, moving_brain, ants_para[para_index][para_type]['initializationFeature']))
+                    if reg_with_skull == 1:
+                        regcmd.append("[{0},{1},{2}]".format(
+                            reference_skull, moving_skull, ants_para[para_index][para_type]['initializationFeature']))
+                    else:
+                        regcmd.append("[{0},{1},{2}]".format(
+                            reference_brain, moving_brain, ants_para[para_index][para_type]['initializationFeature']))
 
             elif para_type == 'transforms':
                 for trans_index in range(len(ants_para[para_index][para_type])):
@@ -145,12 +144,12 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                                         ants_para[para_index][para_type][trans_index][trans_type]['metric']['samplingPercentage']))
                                 MI_para = ','.join([str(elem) for elem in MI_para])
                                 regcmd.append("--metric")
-                                # if reg_with_skull == 1:
-                                #     regcmd.append("MI[{0},{1},{2}]".format(
-                                #         reference_skull, moving_skull, MI_para))
-                                # else:
-                                regcmd.append("MI[{0},{1},{2}]".format(
-                                    reference_brain, moving_brain, MI_para))
+                                if reg_with_skull == 1:
+                                    regcmd.append("MI[{0},{1},{2}]".format(
+                                        reference_skull, moving_skull, MI_para))
+                                else:
+                                    regcmd.append("MI[{0},{1},{2}]".format(
+                                        reference_brain, moving_brain, MI_para))
 
                         if ants_para[para_index][para_type][trans_index][trans_type]['metric']['type'] == 'CC':
                             if ants_para[para_index][para_type][trans_index][trans_type]['metric']['metricWeight'] is None or ants_para[para_index][para_type][trans_index][trans_type]['metric']['radius'] is None:
@@ -204,14 +203,20 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                             if ants_para[para_index][para_type][trans_index][trans_type]['use-histogram-matching']:
                                 regcmd.append("--use-histogram-matching")
                                 regcmd.append("1")
-                            else:
-                                continue
 
                         if 'winsorize-image-intensities' in ants_para[para_index][para_type][trans_index][trans_type] and ants_para[para_index][para_type][trans_index][trans_type]['winsorize-image-intensities']['lowerQuantile'] is not None and ants_para[para_index][para_type][trans_index][trans_type]['winsorize-image-intensities']['upperQuantile'] is not None:
                             regcmd.append("--winsorize-image-intensities")
                             regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type][trans_index][trans_type]['winsorize-image-intensities']
                                                             ['lowerQuantile'], ants_para[para_index][para_type][trans_index][trans_type]['winsorize-image-intensities']['upperQuantile']))
-    
+
+                        if 'masks' in ants_para[para_index][para_type][trans_index][trans_type] and ants_para[para_index][para_type][trans_index][trans_type]['masks'] is not None:
+                            if ants_para[para_index][para_type][trans_index][trans_type]['masks']:
+                                regcmd.append("--masks")
+                                regcmd.append("[{0},{1}]".format(reference_mask, moving_mask))
+                            else:
+                                regcmd.append("--masks")
+                                regcmd.append("[NULL,NULL]")
+
             elif para_type == 'masks':
                 # lesion preproc has 
                 if fixed_image_mask is not None:
@@ -307,11 +312,6 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
     import os
     import subprocess
 
-    # if inverse:
-    #     inverse = 1
-    # else:
-    #     inverse = 0
-
     if func_to_anat:
         # this assumes the func->anat affine transform is FSL-based and needs
         # to be converted to ITK format via c3d_affine_tool
@@ -364,19 +364,3 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
     retcode = subprocess.check_output(cmd)
 
     return out_image
-
-
-def cpac_ants_apply_nonlinear_inverse_warp(cpac_dir, moving_image, reference,
-                                           dim=3, interp='Linear'):
-    """Run antsApplyTransforms for inverse warping when given a C-PAC output
-    directory."""
-
-    import os
-
-    cpac_dir = os.path.abspath(cpac_dir)
-
-    for dir in os.listdir(cpac_dir):
-        if 'ants_initial_xfm' in dir:
-            pass
-
-    #run_ants_apply_warp()
