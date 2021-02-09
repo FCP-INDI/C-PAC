@@ -534,7 +534,7 @@ schema = Schema({
         '2-nuisance_regression': {
             'run': forkable,
             'Regressors': Maybe([{
-                'Name': str,
+                Required('Name'): str,
                 'Censor': {
                     'method': str,
                     'thresholds': [{
@@ -645,8 +645,7 @@ schema = Schema({
         'spatial_smoothing': {
             'output': [In({'smoothed', 'nonsmoothed'})],
             'smoothing_method': [In({'FSL', 'AFNI'})],
-            'fwhm': [int],
-            'smoothing_order': In({'Before', 'After'})
+            'fwhm': [int]
         },
         'z-scoring': {
             'output': [In({'z-scored', 'raw'})],

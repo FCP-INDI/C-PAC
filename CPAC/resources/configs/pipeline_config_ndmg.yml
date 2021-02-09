@@ -132,6 +132,7 @@ nuisance_corrections:
         CerebrospinalFluid:
           extraction_resolution: 2
           summary: Mean
+        Name: Regressor-1
         PolyOrt:
           degree: 2
         aCompCor:
@@ -142,12 +143,6 @@ nuisance_corrections:
           tissues:
           - WhiteMatter
           - CerebrospinalFluid
-
-# OUTPUTS AND DERIVATIVES
-# -----------------------
-post_processing: 
-
-  spatial_smoothing: 
 
 timeseries_extraction: 
 

@@ -274,6 +274,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-1
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions
