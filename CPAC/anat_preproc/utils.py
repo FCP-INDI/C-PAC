@@ -399,4 +399,5 @@ class VolumeRemoveIslands(WBCommand):
 
     input_spec = VolumeRemoveIslandsInputSpec
     output_spec = VolumeRemoveIslandsOutputSpec
-    _cmd = "/Applications/workbench/bin_macosx64/wb_command -volume-remove-islands" ##TODO: correct path to call wb_command
+    _cmd = "wb_command -volume-remove-islands" 
+    

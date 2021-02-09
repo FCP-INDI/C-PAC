@@ -204,9 +204,8 @@ anatomical_preproc:
 
     run: Off 
     
-    BiasFieldSmoothingSigma: 
+    BiasFieldSmoothingSigma: 5
     
-
   acpc_alignment:
 
     run: Off
