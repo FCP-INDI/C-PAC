@@ -658,8 +658,15 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(segment, ('probability_maps', pick_wm_prob_2),
                process_wm, 'inputspec.probability_tissue_map')
 
+    get_csf = pe.Node(util.Function(input_names=['probability_maps'],
+                                    output_names=['filename'],
+                                    function=pick_wm_prob_0),
+                      name=f'get_csf_{pipe_num}')
+
+    wf.connect(segment, 'probability_maps', get_csf, 'probability_maps')
+
     outputs = {
-        'label-CSF_probseg': (segment, ('probability_maps', pick_wm_prob_0)),
+        'label-CSF_probseg': (get_csf, 'filename'),
         'label-GM_probseg': (segment, ('probability_maps', pick_wm_prob_1)),
         'label-WM_probseg': (segment, ('probability_maps', pick_wm_prob_2)),
         'label-CSF_mask': (process_csf, 'outputspec.segment_mask'),

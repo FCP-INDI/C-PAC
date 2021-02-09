@@ -471,7 +471,7 @@ elif args.analysis_level in ["test_config", "participant"]:
         upgrade_pipeline_to_1_8(updated_config)
         c = load_yaml_config(updated_config, args.aws_input_creds)
 
-    c = Configuration(c).dict()
+    c = Configuration(c)
 
     overrides = {}
     if args.pipeline_override:

@@ -170,8 +170,8 @@ schema = Schema({
     },
     'anatomical_preproc': {
         'run': forkable,
-        'non_local_means_filtering': bool,
-        'n4_bias_field_correction': bool,
+        'non_local_means_filtering': forkable,
+        'n4_bias_field_correction': forkable,
         'acpc_alignment': Required(
             # require 'T1w_brain_ACPC_template' if 'acpc_target' is 'brain'
             Any({
@@ -436,7 +436,7 @@ schema = Schema({
                 'motion_correction_reference_volume': int,
             },
             'motion_estimate_filter': Required(
-                Any({
+                Any({  # no motion estimate filter
                     'run': Maybe(Any([False], False)),
                     'filter_type': Maybe(In({'notch', 'lowpass'})),
                     'filter_order': Maybe(int),
@@ -445,16 +445,16 @@ schema = Schema({
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
-                }, {
+                }, {  # notch filter with breathing_rate_* set
                     'run': forkable,
                     'filter_type': 'notch',
                     'filter_order': int,
                     'breathing_rate_min': Number,
                     'breathing_rate_max': Number,
-                    'center_frequency': None,
-                    'filter_bandwidth': None,
+                    'center_frequency': Maybe(Number),
+                    'filter_bandwidth': Maybe(Number),
                     'lowpass_cutoff': Maybe(Number),
-                }, {
+                }, {  # notch filter with manual parameters set
                     'run': forkable,
                     'filter_type': 'notch',
                     'filter_order': int,
@@ -463,7 +463,7 @@ schema = Schema({
                     'center_frequency': Number,
                     'filter_bandwidth': Number,
                     'lowpass_cutoff': Maybe(Number),
-                }, {
+                }, {  # lowpass filter with breathing_rate_min
                     'run': forkable,
                     'filter_type': 'lowpass',
                     'filter_order': int,
@@ -471,8 +471,8 @@ schema = Schema({
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': None,
-                }, {
+                    'lowpass_cutoff': Maybe(Number),
+                }, {  # lowpass filter with lowpass_cutoff
                     'run': forkable,
                     'filter_type': 'lowpass',
                     'filter_order': int,
@@ -480,10 +480,9 @@ schema = Schema({
                     'breathing_rate_max': Maybe(Number),
                     'center_frequency': Maybe(Number),
                     'filter_bandwidth': Maybe(Number),
-                    'lowpass_cutoff': Maybe(Number),
+                    'lowpass_cutoff': Number,
                 },),
-                msg='Some mutually exclusive filter options are ambiguous in '
-                    'this pipeline configuration'
+                msg='motion_estimate_filter configuration is invalid.'
             ),
         },
         'distortion_correction': {
@@ -534,7 +533,7 @@ schema = Schema({
         '2-nuisance_regression': {
             'run': forkable,
             'Regressors': Maybe([{
-                'Name': str,
+                Required('Name'): str,
                 'Censor': {
                     'method': str,
                     'thresholds': [{
@@ -645,8 +644,7 @@ schema = Schema({
         'spatial_smoothing': {
             'output': [In({'smoothed', 'nonsmoothed'})],
             'smoothing_method': [In({'FSL', 'AFNI'})],
-            'fwhm': [int],
-            'smoothing_order': In({'Before', 'After'})
+            'fwhm': [int]
         },
         'z-scoring': {
             'output': [In({'z-scored', 'raw'})],

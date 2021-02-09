@@ -931,8 +931,8 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [["desc-preproc_bold", "bold"],
-                "motion_basefile"],
+     "inputs": [(["desc-preproc_bold", "bold"],
+                 "motion_basefile")],
      "outputs": ["desc-motion_bold",
                  "max_displacement",
                  "movement_parameters",
@@ -953,8 +953,8 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [["desc-preproc_bold", "bold"],
-                "motion_basefile"],
+     "inputs": [(["desc-preproc_bold", "bold"],
+                 "motion_basefile")],
      "outputs": ["max_displacement",
                  "movement_parameters",
                  "coordinate_transformation"]}
@@ -980,8 +980,8 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "using",
      "option_val": ["3dvolreg", "mcflirt"],
-     "inputs": [["desc-preproc_bold", "bold"],
-                "motion_basefile"],
+     "inputs": [(["desc-preproc_bold", "bold"],
+                 "motion_basefile")],
      "outputs": ["desc-motion_bold"]}
     '''
 
@@ -1061,11 +1061,11 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-motion_bold",
-                "space-bold_desc-brain_mask",
-                "movement_parameters",
-                "max_displacement",
-                "coordinate_transformation",
+     "inputs": [("desc-motion_bold",
+                 "space-bold_desc-brain_mask",
+                 "movement_parameters",
+                 "max_displacement",
+                 "coordinate_transformation"),
                 "subject",
                 "scan"],
      "outputs": ["framewise_displacement_power",
@@ -1096,7 +1096,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.motion_correct')
 
-    node, out_file = strat_pool.get_data("space-bold_desc-brain_mask")
+    node, out_file = strat_pool.get_data('space-bold_desc-brain_mask')
     wf.connect(node, out_file,
                gen_motion_stats, 'inputspec.mask')
 
@@ -1178,7 +1178,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
                                        'surfaces',
                                        'threshold',
                                        'vertical_gradient']),
-        name='BET_options')
+        name=f'BET_options_{pipe_num}')
 
     func_get_brain_mask = pe.Node(interface=fsl.BET(),
                                   name=f'func_get_brain_mask_BET_{pipe_num}')
@@ -1300,7 +1300,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data(["desc-motion_bold", "desc-preproc_bold",
                                      "bold"])
-    wf.connect(node, out, func_skull_mean, [('func', 'in_file')])
+    wf.connect(node, out, func_skull_mean, 'in_file')
 
     wf.connect([(func_skull_mean, skullstrip_first_pass,
                  [('out_file', 'in_file')]),
@@ -1543,8 +1543,8 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-motion_bold", "desc-preproc_bold", "bold"],
-                "space-bold_desc-brain_mask"],
+     "inputs": [(["desc-motion_bold", "desc-preproc_bold", "bold"],
+                 "space-bold_desc-brain_mask")],
      "outputs": ["desc-brain_bold"]}
     '''
 
@@ -1602,8 +1602,8 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "None",
      "option_val": "None",
-     "inputs": ["desc-brain_bold",
-                "space-bold_desc-brain_mask"],
+     "inputs": [("desc-brain_bold",
+                 "space-bold_desc-brain_mask")],
      "outputs": ["desc-brain_bold",
                  "space-bold_desc-brain_mask"]}
     '''

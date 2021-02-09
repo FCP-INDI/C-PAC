@@ -1306,7 +1306,7 @@ def check_config_resources(c):
             'maximum_memory_per_participant']
 
     # If centrality is enabled, check to mem_sub >= mem_centrality
-    if c.network_centrality['run'][0]:
+    if c.network_centrality['run']:
         if sub_mem_gb < c.network_centrality['memory_allocation']:
             err_msg = 'Memory allocated for subject: %d needs to be greater ' \
                       'than the memory allocated for centrality: %d. Fix ' \
@@ -1583,7 +1583,10 @@ def dct_diff(dct1, dct2):
     for key in dct1:
         if isinstance(dct1[key], dict):
             if not isinstance(dct2, dict):
-                raise Exception(dct2)
+                try:
+                    dct2 = dct2.dict()
+                except AttributeError:
+                    raise TypeError(f'{dct2} is not a dict.')
             diff[key] = dct_diff(dct1[key], dct2.get(key, {}))
         else:
             dct1_val = dct1.get(key)

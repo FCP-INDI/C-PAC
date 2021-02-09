@@ -384,7 +384,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     if "fmap" in sub_dict:
         for key in sub_dict["fmap"]:
             gather_fmap = create_fmap_datasource(sub_dict["fmap"],
-                                                 f"fmap_gather_{part_id}")
+                                                 f"fmap_gather_{subject_id}")
             gather_fmap.inputs.inputnode.set(
                 subject=subject_id,
                 creds_path=input_creds_path,
