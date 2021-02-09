@@ -5,6 +5,7 @@ import json
 import warnings
 import logging
 import copy
+from unittest import TestCase
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
@@ -106,6 +107,17 @@ class ResourcePool(object):
     def get_entire_rpool(self):
         return self.rpool
 
+    def get_resources(self):
+        return self.rpool.keys()
+
+    def get_raw_label(self, resource):
+        # remove desc-* label
+        for tag in resource.split('_'):
+            if 'desc-' in tag:
+                resource = resource.replace(f'{tag}_', '')
+                break
+        return resource
+
     def get_strat_info(self, prov, label=None, logdir=None):
         strat_info = {}
         for entry in prov:
@@ -163,6 +175,8 @@ class ResourcePool(object):
             new_name = f',{node_name}'
         new_pipe_idx = f'{pipe_idx}{new_name}'
         '''
+        json_info = json_info.copy()
+
         cpac_prov = []
         if 'CpacProvenance' in json_info:
             cpac_prov = json_info['CpacProvenance']
@@ -216,12 +230,12 @@ class ResourcePool(object):
                     if report_fetched:
                         return (None, None)
                     return None
-                raise Exception("\n\n[!] C-PAC says: The listed resource is "
-                                f"not in the resource pool:\n{resource}\n\n"
-                                "Developer Note: This may be due to a mis"
-                                "match between the node block's docstring "
-                                "'input' field and a strat_pool.get_data() "
-                                "call within the block function.\n")
+                raise LookupError("\n\n[!] C-PAC says: The listed resource is "
+                                  f"not in the resource pool:\n{resource}\n\n"
+                                  "Developer Note: This may be due to a mis"
+                                  "match between the node block's docstring "
+                                  "'input' field and a strat_pool.get_data() "
+                                  "call within the block function.\n")
             if report_fetched:
                 if pipe_idx:
                     return (self.rpool[resource][pipe_idx], resource)
@@ -309,13 +323,17 @@ class ResourcePool(object):
                     resource_strat_dct[resource] = entry
         return resource_strat_dct
 
-    '''
-    def update_cpac_provenance(self, new_resource, prov, inputs, new_node_id):
-        if new_resource not in prov:
-            prov[new_resource] = [inputs]
-        prov[new_resource].append(new_node_id)
-        self.set_json_info(new_resource, )
-    '''
+    def flatten_prov(self, prov):
+        if isinstance(prov, str):
+            return [prov]
+        elif isinstance(prov, list):
+            flat_prov = []
+            for entry in prov:
+                if isinstance(entry, list):
+                    flat_prov += self.flatten_prov(entry)
+                else:
+                    flat_prov.append(entry)
+            return flat_prov
 
     def get_strats(self, resources):
 
@@ -331,15 +349,15 @@ class ResourcePool(object):
             # grab the linked-input tuples
             if isinstance(resource, tuple):
                 for label in list(resource):
-                    if isinstance(label, list):
-                        rp_dct, fetched_resource = self.get(label,
-                                                            report_fetched=True,
-                                                            optional=True)
-                        if not rp_dct:
-                            continue
-                        linked.append(fetched_resource)
-                    else:
-                        linked.append(label)
+                    #if isinstance(label, list):
+                    rp_dct, fetched_resource = self.get(label,
+                                                        report_fetched=True,
+                                                        optional=True)
+                    if not rp_dct:
+                        continue
+                    linked.append(fetched_resource)
+                    #else:
+                    #    linked.append(label)
                 linked_resources.append(linked)
                 resource_list += linked
             else:
@@ -359,7 +377,9 @@ class ResourcePool(object):
                 json_info = self.get_json(fetched_resource, strat)
                 cpac_prov = json_info['CpacProvenance']
                 sub_pool.append(cpac_prov)
+
             total_pool.append(sub_pool)
+
 
         # TODO: right now total_pool is:
         # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
@@ -367,7 +387,6 @@ class ResourcePool(object):
 
         # TODO: and the code below thinks total_pool is a list of lists, like [[pipe_idx, pipe_idx], [pipe_idx, pipe_idx, pipe_idx], etc.]
         # TODO: and the actual resource is encoded in the tag: of the last item, every time!
-
         # keying the strategies to the resources, inverting it
         if len_inputs > 1:
             strats = itertools.product(*total_pool)
@@ -377,81 +396,102 @@ class ResourcePool(object):
             # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
             new_strats = {}
             for strat_tuple in strats:
+                print('...')
                 # the strats are still in provenance-list form
                 #   not string-based pipe_idx's yet
                 strat_list = list(strat_tuple)     # <------- strat_list is now a list of strats all combined together, one of the permutations. keep in mind each strat in the combo comes from a different data source/input
                                                    #          like this:   strat_list = [desc-preproc_T1w:pipe_idx_anat_1, desc-brain_mask:pipe_idx_mask_1]
 
-                variants = {}
+                json_dct = {}
                 for strat in strat_list:
-                    # strat is a prov list
+                    # strat is a prov list for a single resource/input
                     strat_resource, strat_idx = \
                         self.generate_prov_string(strat)
                     strat_json = self.get_json(strat_resource,
                                                strat=strat_idx)
-                    cpac_var = None
-                    if 'CpacVariant' in strat_json:
-                        cpac_var = strat_json['CpacVariant']
-                    variants[strat_resource] = cpac_var
-
-                if linked_resources:
-                    for linked in linked_resources:
-                        variant_lists = []
-                        #print('\nnew linked resources list')
-                        for label in linked:
-                            variant_lists.append(variants[label])
-                            #print(f'label: {label}')
-                            #print(f'variants: {variants[label]}')
-
-                '''
-                all_resource_strat_dcts = {}
-                strat_dct = {}
-                for strat in strat_list:
-                    # strat is a provenance list, not a string!
-                    key = strat[-1].split(':')[0]
-                    resource_strat_dct = \
-                        self.get_resource_strats_from_prov(strat)
-                    all_resource_strat_dcts[key] = resource_strat_dct
-                    strat_dct[key] = strat[:-1]
+                    json_dct[strat_resource] = strat_json
 
                 drop = False
-                for key, sub_dct in all_resource_strat_dcts.items():
-                    if key in linked_resources:
-                        # 'younger' linked resources, linked to key
-                        younger_links = linked_resources[key]
-                        print(f'key = {key}')
-                        print(f'sub_dct = {sub_dct}')
-                        for link in younger_links:
-                            main_idx = self.generate_prov_string(strat_dct[key])[1]
-                            link_idx = self.generate_prov_string(sub_dct[link])[1]
-                            if link_idx[1:-1] not in main_idx:
-                                drop = True
-                                break
-                    if drop:
-                        break
-                if drop:
-                    print(f'main_idx = {main_idx}')
-                    print(f'link_idx = {link_idx}')
-                    print(f'DROPPING = {strat_tuple}')
-                    continue
-                '''
+                if linked_resources:
+                    for linked in linked_resources:  # <--- 'linked' is each tuple
+                        for label in linked:
+                            xjson = json_dct[label]
+                            for ylabel in linked:
+                                if label == ylabel:
+                                    continue
+                                yjson = json_dct[ylabel]
 
-                # drop the incorrect permutations
-                #drop = False
-                #for idx in range(0, len(strat_list) - 1):
-                #    for idy in range(idx+1, len(strat_list) - 1):
-                #        cpac_prov = strat_list[idx]
-                #        resource_suff = cpac_prov[-1].split(':')[0].split('_')[-1]
-                #        next_prov = strat_list[idy]
-                #        copy_list = []
-                #        for node in next_prov:
-                #            if resource_suff in node:
-                #                copy_list.append(node)
-                #        for node, other in zip(cpac_prov, copy_list):
-                #            if node != other:
-                #                drop = True
-                #if drop:
-                #    continue
+                                if 'CpacVariant' not in xjson and 'CpacVariant' in yjson:
+                                    raw_label = self.get_raw_label(label)
+                                    if raw_label in yjson['CpacVariant']:
+                                        drop = True
+
+                                elif 'CpacVariant' not in yjson and 'CpacVariant' in xjson:
+                                    raw_ylabel = self.get_raw_label(ylabel)
+                                    if raw_ylabel in xjson['CpacVariant']:
+                                        drop = True
+
+                                elif 'CpacVariant' not in xjson and 'CpacVariant' not in yjson:
+                                    continue
+
+                                else:
+                                    for younger_resource in xjson['CpacVariant']:
+                                        if younger_resource in yjson['CpacVariant']:
+                                            if xjson['CpacVariant'][younger_resource] != yjson['CpacVariant'][younger_resource]:
+                                                drop = True
+                                                break
+                                    else:
+                                        # if no drops - but we still need to
+                                        # look for absences of CpacVariant
+                                        # younger resources
+                                        for younger_resource, variant_list in xjson['CpacVariant'].items():
+                                            yprov = copy.deepcopy(yjson['CpacProvenance'])
+                                            flat_yprov = self.flatten_prov(yprov)
+                                            raw_labels = []
+                                            flat_raw_yprov = []
+                                            for entry in flat_yprov:
+                                                raw_resource = self.get_raw_label(entry.split(':')[0])
+                                                entry = entry.replace(entry.split(':')[0],
+                                                                      raw_resource)
+                                                raw_labels.append(raw_resource)
+                                                flat_raw_yprov.append(entry)
+                                            print(f'flat raw yprov: {flat_raw_yprov}')
+                                            if younger_resource in raw_labels:
+                                                for variant in variant_list:
+                                                    if f'{younger_resource}:{variant}' not in flat_raw_yprov:
+                                                        print(f'{younger_resource}:{variant}')
+                                                        print('and drop')
+                                                        drop = True
+
+                                    for younger_resource in yjson['CpacVariant']:
+                                        if younger_resource in xjson['CpacVariant']:
+                                            if xjson['CpacVariant'][younger_resource] != yjson['CpacVariant'][younger_resource]:
+                                                drop = True
+                                                break
+                                    else:
+                                        # if no drops - but we still need to
+                                        # look for absences of CpacVariant
+                                        # younger resources
+                                        for younger_resource, variant_list in yjson['CpacVariant'].items():
+                                            xprov = copy.deepcopy(xjson['CpacProvenance'])
+                                            flat_xprov = self.flatten_prov(xprov)
+                                            raw_labels = []
+                                            flat_raw_xprov = []
+                                            for entry in flat_xprov:
+                                                raw_resource = self.get_raw_label(entry.split(':')[0])
+                                                entry = entry.replace(entry.split(':')[0],
+                                                                      raw_resource)
+                                                raw_labels.append(raw_resource)
+                                                flat_raw_xprov.append(entry)
+                                            print(f'flat raw xprov: {flat_raw_xprov}')
+                                            if younger_resource in raw_labels:
+                                                for variant in variant_list:
+                                                    if f'{younger_resource}:{variant}' not in flat_raw_xprov:
+                                                        print(f'{younger_resource}:{variant}')
+                                                        print('and drop')
+                                                        drop = True
+                if drop:
+                    continue
 
                 # make the merged strat label from the multiple inputs
                 # strat_list is actually the merged CpacProvenance lists
@@ -466,6 +506,12 @@ class ResourcePool(object):
                     resource_strat_dct = self.rpool[resource][strat]   # <----- remember, this is the dct of 'data' and 'json'.
                     new_strats[pipe_idx].rpool[resource] = resource_strat_dct   # <----- new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS! each one is a new slice of the resource pool combined together.
                     self.pipe_list.append(pipe_idx)
+                    if 'CpacVariant' in resource_strat_dct['json']:
+                        if 'CpacVariant' not in new_strats[pipe_idx].rpool['json']:
+                            new_strats[pipe_idx].rpool['json']['CpacVariant'] = {}
+                        for younger_resource, variant_list in resource_strat_dct['json']['CpacVariant'].items():
+                            if younger_resource not in new_strats[pipe_idx].rpool['json']['CpacVariant']:
+                                new_strats[pipe_idx].rpool['json']['CpacVariant'][younger_resource] = variant_list
         else:
             new_strats = {}
             for resource_strat_list in total_pool:       # total_pool will have only one list of strats, for the one input
@@ -643,6 +689,8 @@ class ResourcePool(object):
     def gather_pipes(self, wf, cfg, all=False):
         # TODO: cpac_outputs.csv etc
         # TODO: might be better to do an inclusion instead
+        non_sink = ['scan', 'TR', 'tpattern', 'start_tr', 'stop_tr',
+                    'pe_direction', 'subject', 'atlas_name']
         excl = ['T1w', 'bold', 'scan', 'scan_params', 'TR', 'tpattern',
                 'start_tr', 'stop_tr', 'pe_direction', 'subject',
                 'motion_basefile', 'atlas_name', 'bold_coreg_input']
@@ -669,6 +717,7 @@ class ResourcePool(object):
                         'T1w_brain_template_symmetric_funcreg',
                         'T1w_brain_template_for_resample',
                         'T1w_template_for_resample']
+        excl += non_sink
         excl += config_paths
         anat = ['T1w', 'probseg']
         func = ['bold', 'timeseries', 'alff', 'falff', 'reho']
@@ -676,7 +725,7 @@ class ResourcePool(object):
                    'dvars', 'power_params']
 
         if all:
-            excl = []
+            excl = non_sink
 
         for resource in self.rpool.keys():
             # TODO: cpac_outputs.csv etc
@@ -871,8 +920,10 @@ class ResourcePool(object):
                 if cfg.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']:
                     ds.inputs.creds_path = cfg.pipeline_setup['Amazon-AWS']['aws_output_bucket_credentials']
 
-                wf.connect(nii_name, 'out_file', ds, f'{out_dct["subdir"]}.@data')
-                wf.connect(write_json, 'json_file', ds, f'{out_dct["subdir"]}.@json')
+                wf.connect(nii_name, 'out_file',
+                           ds, f'{out_dct["subdir"]}.@data')
+                wf.connect(write_json, 'json_file',
+                           ds, f'{out_dct["subdir"]}.@json')
 
 
 class NodeBlock(object):
@@ -947,8 +998,33 @@ class NodeBlock(object):
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
-        for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+        all_opts = []
+        for name, block_dct in self.node_blocks.items():
+            opts = []
+            config = self.check_null(block_dct['config'])
+            option_key = self.check_null(block_dct['option_key'])
+            option_val = self.check_null(block_dct['option_val'])
+            if option_key and option_val:
+                if not isinstance(option_key, list):
+                    option_key = [option_key]
+                if not isinstance(option_val, list):
+                    option_val = [option_val]
+                if config:
+                    key_list = config + option_key
+                else:
+                    key_list = option_key
+                if 'USER-DEFINED' in option_val:
+                    # load custom config data into each 'opt'
+                    opts = self.grab_tiered_dct(cfg, key_list)
+                else:
+                    for option in option_val:
+                        if option in self.grab_tiered_dct(cfg, key_list):   # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                            opts.append(option)
+            else:                                                           #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+                opts = [None]
+            all_opts += opts
 
+        for name, block_dct in self.node_blocks.items():    # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
             switch = self.check_null(block_dct['switch'])
             config = self.check_null(block_dct['config'])
             option_key = self.check_null(block_dct['option_key'])
@@ -1001,6 +1077,8 @@ class NodeBlock(object):
 
             #print(f'switch and opts for {name}: {switch} --- {opts}')
             if True in switch:
+                print('\n')
+                print(f"Connecting {name}...")
                 for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
@@ -1008,7 +1086,6 @@ class NodeBlock(object):
                         # strat_pool has all of the JSON information of all the inputs!
                         # so when we set_data below for the TOP-LEVEL MAIN RPOOL (not the strat_pool), we can generate new merged JSON information for each output.
                         #    particularly, our custom 'CpacProvenance' field.
-
                         node_name = name
                         pipe_x = rpool.get_pipe_number(pipe_idx)
                         wf, outs = block_function(wf, cfg, strat_pool,
@@ -1041,37 +1118,42 @@ class NodeBlock(object):
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
-                            json_info = dict(strat_pool.get('json'))
-                            json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
+                            new_json_info = copy.deepcopy(strat_pool.get('json'))
+                            new_json_info['Sources'] = [x for x in strat_pool.get_entire_rpool() if x != 'json']
 
                             if strat_pool.check_rpool(label):
                                 # so we won't get extra forks if we are
                                 # merging strats (multiple inputs) plus the
                                 # output name is one of the input names
                                 old_pipe_prov = list(strat_pool.get_cpac_provenance(label))
-                                json_info['CpacProvenance'] = old_pipe_prov
+                                new_json_info['CpacProvenance'] = old_pipe_prov
                                 pipe_idx = strat_pool.generate_prov_string(old_pipe_prov)[1]
 
-                            if fork or len(opts) > 1:
-                                if 'CpacVariant' not in json_info:
-                                    json_info['CpacVariant'] = []
-                                json_info['CpacVariant'].append(node_name)
+                            if fork or len(opts) > 1 or len(all_opts) > 1:
+                                if 'CpacVariant' not in new_json_info:
+                                    new_json_info['CpacVariant'] = {}
+                                print(f'label: {label}')
+                                raw_label = rpool.get_raw_label(label)
+                                print(f'raw label: {raw_label}')
+                                if raw_label not in new_json_info['CpacVariant']:
+                                    new_json_info['CpacVariant'][raw_label] = []
+                                new_json_info['CpacVariant'][raw_label].append(node_name)
 
                             rpool.set_data(label,
                                            connection[0],
                                            connection[1],
-                                           json_info,
+                                           new_json_info,
                                            pipe_idx, node_name, fork)
 
                             if rpool.func_reg:
                                 wf = rpool.derivative_xfm(wf, label,
                                                           connection,
-                                                          json_info,
+                                                          new_json_info,
                                                           pipe_idx,
                                                           pipe_x)
 
                             wf = rpool.post_process(wf, label, connection,
-                                                    json_info, pipe_idx,
+                                                    new_json_info, pipe_idx,
                                                     pipe_x, outs)
 
         return wf
@@ -1169,6 +1251,8 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 
 def ingress_raw_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
     anat_flow = create_anat_datasource(f'anat_gather_{part_id}_{ses_id}')
     anat_flow.inputs.inputnode.set(
@@ -1209,6 +1293,8 @@ def ingress_raw_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
 
 def ingress_output_dir(cfg, rpool, data_paths, unique_id):
 
+    out_dir = cfg.pipeline_setup['output_directory']['path']
+
     if cfg.pipeline_setup['output_directory']['pull_source_once']:
         if os.path.isdir(cfg.pipeline_setup['output_directory']['path']):
             if not os.listdir(cfg.pipeline_setup['output_directory']['path']):
@@ -1225,9 +1311,20 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
                     'source_outputs_dir']
     else:
         if cfg.pipeline_setup['output_directory']['source_outputs_dir']:
-            out_dir = cfg.pipeline_setup['output_directory']['source_outputs_dir']
+            out_dir = cfg.pipeline_setup['output_directory'][
+                'source_outputs_dir']
         else:
             out_dir = cfg.pipeline_setup['output_directory']['path']
+
+    if os.path.isdir(out_dir):
+        if not os.listdir(out_dir):
+            print(f"\nOutput directory {out_dir} does not exist yet, "
+                  f"initializing.")
+            return rpool
+    else:
+        print(f"\nOutput directory {out_dir} does not exist yet, "
+              f"initializing.")
+        return rpool
 
     print(f"\nPulling outputs from {out_dir}.\n")
 
@@ -1341,6 +1438,8 @@ def initiate_rpool(wf, cfg, data_paths):
 
     part_id = data_paths['subject_id']
     ses_id = data_paths['unique_id']
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
     unique_id = f'{part_id}_{ses_id}'
 
@@ -1522,16 +1621,16 @@ def initiate_rpool(wf, cfg, data_paths):
         (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric'], 'T1w_template_symmetric', 'resolution_for_anat'),
         (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask'], 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
         (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_mask'], 'template_ref_mask', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'resolution_for_func_preproc'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'resolution_for_func_preproc'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_funcreg', 'resolution_for_func_preproc'),  # no difference of skull and only brain
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_funcreg', 'func_preproc_outputs'),  # no difference of skull and only brain
         (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_deriv', 'resolution_for_func_derivative'),  # no difference of skull and only brain
         (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'resolution_for_func_derivative'),
         (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'resolution_for_func_derivative')
     ]
 
     if True in cfg.PyPEER['run']:
-        templates_for_resampling.append((cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.PyPEER['eye_mask_path'], 'template_eye_mask', 'resolution_for_func_preproc'))
+        templates_for_resampling.append((cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.PyPEER['eye_mask_path'], 'template_eye_mask', 'func_preproc_outputs'))
         #Outputs.any.append("template_eye_mask")
 
     # update resampled template to resource pool

@@ -1,11 +1,10 @@
 import os
 import glob
 import warnings
+import yaml
 from multiprocessing import Process
 from time import strftime
-
-import yaml
-import yamlordereddictloader
+from voluptuous.error import Invalid
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.ga import track_run
@@ -14,6 +13,8 @@ from CPAC.longitudinal_pipeline.longitudinal_workflow import (
     func_preproc_longitudinal_wf,
     func_longitudinal_template_wf
 )
+from CPAC.utils.yaml_template import upgrade_pipeline_to_1_8
+
 
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
@@ -215,7 +216,22 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         if not os.path.exists(config_file):
             raise IOError
         else:
-            c = Configuration(yaml.safe_load(open(config_file, 'r')))
+            try:
+                c = Configuration(yaml.safe_load(open(config_file, 'r')))
+            except Invalid:
+                try:
+                    upgrade_pipeline_to_1_8(config_file)
+                    c = Configuration(yaml.safe_load(open(config_file, 'r')))
+                except Exception as e:
+                    import sys
+                    print(
+                        'C-PAC could not upgrade pipeline configuration file '
+                        f'{config_file} to v1.8 syntax',
+                        file=sys.stderr
+                    )
+                    raise e
+            except Exception as e:
+                raise e
     except IOError:
         print("config file %s doesn't exist" % config_file)
         raise

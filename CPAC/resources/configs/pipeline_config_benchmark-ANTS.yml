@@ -155,6 +155,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: true
           include_squared: true
+        Name: Regressor-1
         PolyOrt:
           degree: 1
         aCompCor:
@@ -175,6 +176,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: false
           include_squared: true
+        Name: Regressor-2
         aCompCor:
           extraction_resolution: 2
           summary:
@@ -193,6 +195,7 @@ nuisance_corrections:
           include_delayed: true
           include_delayed_squared: false
           include_squared: false
+        Name: Regressor-3
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------

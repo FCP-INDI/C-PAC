@@ -71,18 +71,17 @@ class Configuration(object):
     """
     def __init__(self, config_map=None):
         from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import load_preconfig, update_nested_dict
+        from CPAC.utils.utils import load_preconfig, lookup_nested_value, \
+            update_nested_dict
         from optparse import OptionError
 
         if config_map is None:
             config_map = {}
 
         base_config = config_map.get('FROM', 'default_pipeline')
-        # base on default pipeline if FROM not specified or specified 'default'
-        if base_config in ['default', 'default_pipeline']:
-            config_map = update_nested_dict(default_config, config_map)
-        # base on another config (specified with 'FROM' key)
-        else:
+
+        # import another config (specified with 'FROM' key)
+        if base_config not in ['default', 'default_pipeline']:
             try:
                 base_config = load_preconfig(base_config)
             except OptionError:
@@ -90,9 +89,24 @@ class Configuration(object):
             from_config = yaml.safe_load(open(base_config, 'r'))
             config_map = update_nested_dict(from_config, config_map)
 
-        config_map = _enforce_forkability(config_map)
+        # base everything on default pipeline
+        config_map = _enforce_forkability(update_nested_dict(default_config, config_map))
 
-        config_map = schema(self.nonestr_to_None(config_map))
+        config_map = self.nonestr_to_None(config_map)
+
+        regressors = lookup_nested_value(
+            config_map,
+            ['nuisance_corrections', '2-nuisance_regression', 'Regressors']
+        )
+        if isinstance(regressors, list):
+            for i, regressor in enumerate(regressors):
+                # set Regressor 'Name's if not provided
+                if 'Name' not in regressor:
+                    regressor['Name'] = f'Regressor-{str(i + 1)}'
+                # replace spaces with hyphens in Regressor 'Name's
+                regressor['Name'] = regressor['Name'].replace(' ', '-')
+
+        config_map = schema(config_map)
 
         # remove 'FROM' before setting attributes now that it's imported
         if 'FROM' in config_map:
@@ -107,6 +121,7 @@ class Configuration(object):
         for key in config_map:
             # set attribute
             setattr(self, key, set_from_ENV(config_map[key]))
+
         self.__update_attr()
 
     def __str__(self):

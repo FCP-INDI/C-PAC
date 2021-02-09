@@ -30,6 +30,8 @@ from CPAC.nuisance.utils.compcor import (
     cosine_filter,
     TR_string_to_float)
 
+from CPAC.seg_preproc.utils import erosion
+
 from CPAC.utils.datasource import check_for_s3
 from .bandpass import bandpass_voxels
 
@@ -127,7 +129,7 @@ def gather_nuisance(functional_file_path,
 
     regressor_length = functional_image.shape[3]
 
-    selector = selector.selector
+    #selector = selector.selector
 
     if not isinstance(selector, dict):
         raise ValueError("Invalid type for selectors {0}, expecting dict"
@@ -1644,10 +1646,10 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
-                 "desc-reorient_bold", "bold"],
-                "from-bold_to-template_mode-image_xfm",
-                "from-template_to-bold_mode-image_xfm",
+     "inputs": [(["desc-cleaned_bold", "desc-preproc_bold",
+                  "desc-reorient_bold", "bold"],
+                 "from-bold_to-template_mode-image_xfm",
+                 "from-template_to-bold_mode-image_xfm"),
                 "T1w_brain_template_funcreg"],
      "outputs": ["desc-cleaned_bold"]}
     '''
@@ -1711,9 +1713,9 @@ def ICA_AROMA_EPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
-                 "desc-reorient_bold", "bold"],
-                "from-bold_to-template_mode-image_xfm",
+     "inputs": [(["desc-cleaned_bold", "desc-preproc_bold",
+                  "desc-reorient_bold", "bold"],
+                 "from-bold_to-template_mode-image_xfm"),
                 "EPI_template"],
      "outputs": ["desc-cleaned_bold"]}
     '''
@@ -1851,11 +1853,11 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
         '2-nuisance_regression']['regressor_masks']['erode_wm'][
         'wm_erosion_prop']
 
-    node, out = strat_pool.get_data('label-WM_desc-brain_mask')
+    node, out = strat_pool.get_data('label-WM_mask')
     wf.connect(node, out, erode, 'inputspec.mask')
 
     outputs = {
-        'label-CSF_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
+        'label-WM_desc-eroded_mask': (erode, 'outputspec.eroded_mask')
     }
 
     return (wf, outputs)
@@ -1869,23 +1871,23 @@ def create_nuisance_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "Regressors",
      "option_val": "USER-DEFINED",
-     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
-                 "desc-reorient_bold", "bold"],
-                "space-bold_desc-brain_mask",
-                "desc-brain_T1w",
-                ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
-                ["label-CSF_desc-eroded_mask", "label-CSF_mask"],
-                ["label-WM_desc-eroded_mask", "label-WM_mask"],
-                ["label-GM_desc-eroded_mask", "label-GM_mask"],
+     "inputs": [(["desc-cleaned_bold", "desc-preproc_bold",
+                  "desc-reorient_bold", "bold"],
+                 "space-bold_desc-brain_mask",
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "from-T1w_to-bold_mode-image_desc-linear_xfm",
+                 "movement_parameters",
+                 "framewise_displacement_jenkinson",
+                 "framewise_displacement_power",
+                 "dvars"),
+                ("desc-brain_T1w",
+                 ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
+                 ["label-CSF_desc-eroded_mask", "label-CSF_mask"],
+                 ["label-WM_desc-eroded_mask", "label-WM_mask"],
+                 ["label-GM_desc-eroded_mask", "label-GM_mask"],
+                 "from-template_to-T1w_mode-image_desc-linear_xfm",
+                 "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral_ventricles_mask",
-                "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                "from-T1w_to-bold_mode-image_desc-linear_xfm",
-                "from-template_to-T1w_mode-image_desc-linear_xfm",
-                "from-T1w_to-template_mode-image_desc-linear_xfm",
-                "movement_parameters",
-                "framewise_displacement_jenkinson",
-                "framewise_displacement_power",
-                "dvars",
                 "TR"],
      "outputs": ["regressors"]}
     '''
@@ -2072,23 +2074,22 @@ def nuisance_regression_complete(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "Regressors",
      "option_val": "USER-DEFINED",
-     "inputs": [["desc-cleaned_bold", "desc-preproc_bold",
+     "inputs": [(["desc-cleaned_bold", "desc-preproc_bold",
                  "desc-reorient_bold", "bold"],
-                "space-bold_desc-brain_mask",
-                "desc-brain_T1w",
-                ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
-                ["label-CSF_desc-eroded_mask", "label-CSF_mask"],
-                ["label-WM_desc-eroded_mask", "label-WM_mask"],
-                ["label-GM_desc-eroded_mask", "label-GM_mask"],
+                 "space-bold_desc-brain_mask",
+                 "from-bold_to-T1w_mode-image_desc-linear_xfm",
+                 "movement_parameters",
+                 "framewise_displacement_jenkinson",
+                 "framewise_displacement_power",
+                 "dvars"),
+                ("desc-brain_T1w",
+                 ["space-T1w_desc-eroded_mask", "space-T1w_desc-brain_mask"],
+                 ["label-CSF_desc-eroded_mask", "label-CSF_mask"],
+                 ["label-WM_desc-eroded_mask", "label-WM_mask"],
+                 ["label-GM_desc-eroded_mask", "label-GM_mask"],
+                 "from-template_to-T1w_mode-image_desc-linear_xfm",
+                 "from-T1w_to-template_mode-image_desc-linear_xfm"),
                 "lateral_ventricles_mask",
-                "from-bold_to-T1w_mode-image_desc-linear_xfm",
-                "from-T1w_to-bold_mode-image_desc-linear_xfm",
-                "from-template_to-T1w_mode-image_desc-linear_xfm",
-                "from-T1w_to-template_mode-image_desc-linear_xfm",
-                "movement_parameters",
-                "framewise_displacement_jenkinson",
-                "framewise_displacement_power",
-                "dvars",
                 "TR"],
      "outputs": ["regressors",
                  "desc-cleaned_bold"]}

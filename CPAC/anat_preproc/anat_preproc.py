@@ -160,7 +160,7 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                        'blur_fwhm',
                                        'fac',
                                        'monkey']),
-        name='AFNI_options')
+        name=f'AFNI_options_{pipe_num}')
 
     skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
                                                          'spat_norm_dxyz',
@@ -187,7 +187,7 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                                          'monkey'],
                                             output_names=['expr'],
                                             function=create_3dskullstrip_arg_string),
-                              name='anat_skullstrip_args')
+                              name=f'anat_skullstrip_args_{pipe_num}')
 
     inputnode_afni.inputs.set(
         mask_vol=cfg.anatomical_preproc['brain_extraction'][
@@ -269,7 +269,7 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     ])
 
     anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
-                              name='anat_skullstrip')
+                              name=f'anat_skullstrip_{pipe_num}')
     anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
     node, out = strat_pool.get_data(['desc-preproc_T1w', 'desc-reorient_T1w',
@@ -279,7 +279,7 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # Generate anatomical brain mask
     anat_brain_mask = pe.Node(interface=afni.Calc(),
-                              name='anat_brain_mask')
+                              name=f'anat_brain_mask_{pipe_num}')
 
     anat_brain_mask.inputs.expr = 'step(a)'
     anat_brain_mask.inputs.outputtype = 'NIFTI_GZ'
@@ -309,43 +309,43 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
                                        'surfaces',
                                        'threshold',
                                        'vertical_gradient']),
-        name='BET_options')
+        name=f'BET_options_{pipe_num}')
 
     anat_skullstrip = pe.Node(
-        interface=fsl.BET(), name='anat_skullstrip')
+        interface=fsl.BET(), name=f'anat_BET_skullstrip_{pipe_num}')
     anat_skullstrip.inputs.output_type = 'NIFTI_GZ'
 
     inputnode_bet.inputs.set(
-        frac=cfg.anatomical_wf['brain_extraction'][
+        frac=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['frac'],
         mask_boolean=
-        cfg.anatomical_wf['brain_extraction'][
+        cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['mask_boolean'],
         mesh_boolean=
-        cfg.anatomical_wf['brain_extraction'][
+        cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['mesh_boolean'],
-        outline=cfg.anatomical_wf['brain_extraction'][
+        outline=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['outline'],
-        padding=cfg.anatomical_wf['brain_extraction'][
+        padding=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['padding'],
-        radius=cfg.anatomical_wf['brain_extraction'][
+        radius=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['radius'],
         reduce_bias=
-        cfg.anatomical_wf['brain_extraction'][
+        cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['reduce_bias'],
         remove_eyes=
-        cfg.anatomical_wf['brain_extraction'][
+        cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['remove_eyes'],
-        robust=cfg.anatomical_wf['brain_extraction'][
+        robust=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['robust'],
-        skull=cfg.anatomical_wf['brain_extraction'][
+        skull=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['skull'],
-        surfaces=cfg.anatomical_wf['brain_extraction'][
+        surfaces=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['surfaces'],
-        threshold=cfg.anatomical_wf['brain_extraction'][
+        threshold=cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['threshold'],
         vertical_gradient=
-        cfg.anatomical_wf['brain_extraction'][
+        cfg.anatomical_preproc['brain_extraction'][
             'FSL-BET']['vertical_gradient'],
     )
 
@@ -600,7 +600,8 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_key": "None",
      "option_val": "None",
      "inputs": ["T1w"],
-     "outputs": ["desc-reorient_T1w"]}
+     "outputs": ["desc-preproc_T1w",
+                 "desc-reorient_T1w"]}
     '''
 
     anat_deoblique = pe.Node(interface=afni.Refit(),
@@ -617,7 +618,8 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
 
-    outputs = {'desc-reorient_T1w': (anat_reorient, 'out_file')}
+    outputs = {'desc-preproc_T1w': (anat_reorient, 'out_file'),
+               'desc-reorient_T1w': (anat_reorient, 'out_file')}
 
     return (wf, outputs)
 
@@ -661,8 +663,8 @@ def acpc_align_head_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "space-T1w_desc-brain_mask",
+     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+                 "space-T1w_desc-brain_mask"),
                 "T1w_ACPC_template"],
      "outputs": ["desc-preproc_T1w",
                  "space-T1w_desc-brain_mask"]}
@@ -697,8 +699,8 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "T1w_brain_ACPC_template"],
+     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+                 "T1w_brain_ACPC_template")],
      "outputs": ["desc-preproc_T1w"]}
     '''
 
@@ -729,8 +731,8 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                "space-T1w_desc-brain_mask",
+     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+                 "space-T1w_desc-brain_mask"),
                 "T1w_brain_ACPC_template"],
      "outputs": ["desc-preproc_T1w",
                  "space-T1w_desc-brain_mask"]}
@@ -1015,8 +1017,8 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": "None",
      "option_key": "None",
      "option_val": "None",
-     "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
-                ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"]],
+     "inputs": [(["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
+                 ["space-T1w_desc-brain_mask", "space-T1w_desc-acpcbrain_mask"])],
      "outputs": ["desc-brain_T1w"]}
     '''
 

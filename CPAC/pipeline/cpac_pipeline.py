@@ -858,7 +858,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Anatomical tissue segmentation
     if not rpool.check_rpool('label-CSF_mask') or \
-            not rpool.check_rpool('label-WM_mask'):
+            not rpool.check_rpool('label-WM_mask') or \
+                not rpool.check_rpool('label-CSF_probseg'):
         seg_blocks = [
             [tissue_seg_fsl_fast,
              tissue_seg_ants_prior]
@@ -873,7 +874,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Functional Preprocessing, including motion correction and BOLD masking
     if True in cfg.functional_preproc['run'] and \
-            not rpool.check_rpool('desc-brain_bold'):
+            (not rpool.check_rpool('desc-brain_bold') or
+             not rpool.check_rpool('space-bold_desc-brain_mask')):
         func_init_blocks = [
             func_scaling,
             func_truncate
@@ -928,7 +930,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     # BOLD to T1 coregistration
     if True in cfg.registration_workflows['functional_registration'][
         'coregistration']['run'] and \
-            not rpool.check_rpool('space-T1w_desc-mean_bold'):
+            (not rpool.check_rpool('space-T1w_desc-mean_bold') or
+             not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
         coreg_blocks = [
             [coregistration_prep_vol, coregistration_prep_mean],
             coregistration,
@@ -984,6 +987,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-preproc_bold',
+        'space-template_desc-reorient_bold',
+        'space-template_bold'
     ]
     for func in template_funcs:
         if rpool.check_rpool(func):
@@ -1041,7 +1046,21 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Connect the entire pipeline!
     for block in pipeline_blocks:
-        wf = NodeBlock(block).connect_block(wf, cfg, rpool)
+        try:
+            nb = NodeBlock(block)
+            wf = nb.connect_block(wf, cfg, rpool)
+        except LookupError as e:
+            previous_nb_str = (
+                f"after node block '{previous_nb.get_name()}':"
+            ) if previous_nb else 'at beginning:'
+            # Alert user to block that raises error
+            e.args = (
+                'When trying to connect node block '
+                f"'{NodeBlock(block).get_name()}' "
+                f"to workflow '{wf}' " + previous_nb_str + e.args[0],
+            )
+            raise
+        previous_nb = nb
 
     # Write out the data
     # TODO enforce value with schema validation

@@ -477,7 +477,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                                 f_dict["ses"]
                             ]["fmap"]["epi_{0}".format(pe_dir)] = task_info
 
-
     sublist = []
     for ksub, sub in subdict.items():
         for kses, ses in sub.items():

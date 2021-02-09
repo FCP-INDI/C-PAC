@@ -391,7 +391,6 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path, dbg=Fal
                 t_params = bids_retrieve_params(bids_config_dict,
                                                 f_dict)
                 if not t_params:
-                    print(f_dict)
                     print("Did not receive any parameters for %s," % (p) +
                           " is this a problem?")
 

@@ -328,6 +328,12 @@ def upgrade_pipeline_to_1_8(path):
     open(backup, 'w').write(original)
     # upgrade and overwrite
     orig_dict = yaml.safe_load(original)
+    # set Regressor 'Name's if not provided
+    regressors = orig_dict.get('Regressors')
+    if isinstance(regressors, list):
+        for i, regressor in enumerate(regressors):
+            if 'Name' not in regressor:
+                regressor['Name'] = f'Regressor-{str(i + 1)}'
     if 'pipelineName' in orig_dict and len(original.strip()):
         middle_dict, leftovers_dict, complete_dict = update_config_dict(
             orig_dict)
