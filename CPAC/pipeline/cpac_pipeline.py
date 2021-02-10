@@ -376,14 +376,14 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
 
-    check_centrality_degree = c.network_centrality['run'] and \
+    check_centrality_degree = True in c.network_centrality['run'] and \
                               (len(c.network_centrality['degree_centrality'][
                                        'weight_options']) != 0 or \
                                len(c.network_centrality[
                                        'eigenvector_centrality'][
                                        'weight_options']) != 0)
 
-    check_centrality_lfcd = c.network_centrality['run'] and \
+    check_centrality_lfcd = True in c.network_centrality['run'] and \
                             len(c.network_centrality[
                                     'local_functional_connectivity_density'][
                                     'weight_options']) != 0
@@ -883,7 +883,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template]
         ]
-    if cfg.voxel_mirrored_homotopic_connectivity['run']:
+    if True in cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
             reg_blocks.append([register_symmetric_ANTs_anat_to_template,
                                register_symmetric_FSL_anat_to_template])
@@ -906,7 +906,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += seg_blocks
 
     # Functional Preprocessing, including motion correction and BOLD masking
-    if cfg.functional_preproc['run'] and \
+    if True in cfg.functional_preproc['run'] and \
             (not rpool.check_rpool('desc-brain_bold') or
              not rpool.check_rpool('space-bold_desc-brain_mask')):
         func_init_blocks = [
@@ -961,7 +961,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += func_blocks
 
     # BOLD to T1 coregistration
-    if cfg.registration_workflows['functional_registration'][
+    if True in cfg.registration_workflows['functional_registration'][
         'coregistration']['run'] and \
             (not rpool.check_rpool('space-T1w_desc-mean_bold') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
@@ -981,11 +981,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
-    if 'T1_template' in cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['target_template']['using']:
+    if True in cfg.registration_workflows['functional_registration'][
+        'coregistration']['run'
+    ] and 'T1_template' in cfg.registration_workflows[
+        'functional_registration']['func_registration_to_template'][
+            'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
-        if cfg.voxel_mirrored_homotopic_connectivity['run']:
+        if True in cfg.voxel_mirrored_homotopic_connectivity['run']:
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
@@ -997,7 +1000,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
                     'using']:
             nuisance += [ICA_AROMA_EPIreg]
 
-        if cfg.nuisance_corrections['2-nuisance_regression']['Regressors']:
+        if True in cfg.nuisance_corrections['2-nuisance_regression']['run'] \
+            and cfg.nuisance_corrections['2-nuisance_regression'][
+                'Regressors']:
             nuisance_blocks = [
                 erode_mask_T1w,
                 erode_mask_CSF,
@@ -1010,7 +1015,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += nuisance
 
     # Warp the functional time series to template space
-    apply_func_warp = True
+    apply_func_warp = True in cfg.registration_workflows[
+        'functional_registration']['coregistration']['run']
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-preproc_bold',

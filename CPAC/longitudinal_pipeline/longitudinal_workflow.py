@@ -347,8 +347,8 @@ def register_anat_longitudinal_template_to_standard(
 
     new_strat_list = []
 
-    if c.voxel_mirrored_homotopic_connectivity['run'] and \
-            c.functional_preproc['run']:
+    if True in c.voxel_mirrored_homotopic_connectivity['run'] and \
+            True in c.functional_preproc['run']:
 
         for num_strat, strat in enumerate(strat_list):
 

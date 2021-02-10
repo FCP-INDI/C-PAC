@@ -71,8 +71,6 @@ pipeline_setup:
 
 anatomical_preproc: 
 
-  run: [On]
-
   # N4 bias field correction via ANTs
   n4_bias_field_correction: On
 
@@ -83,10 +81,6 @@ anatomical_preproc:
     using: [niworkflows-ants]
 
 segmentation: 
-
-  # Automatically segment anatomical images into white matter, gray matter,
-  # and CSF based on prior probability maps.
-  run: [On]
 
   tissue_segmentation: 
 
@@ -200,10 +194,6 @@ registration_workflows:
 
     coregistration: 
 
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-
-      run: [On]
-
       func_input_prep: 
 
         Mean Functional: 
@@ -259,8 +249,6 @@ registration_workflows:
           T1w_template_funcreg: /code/CPAC/resources/templates/tpl-MNI152NLin2009cAsym_res-02_T1w_reference.nii.gz
 
 functional_preproc: 
-
-  run: [On]
 
   motion_estimates_and_correction: 
 
@@ -468,9 +456,6 @@ network_centrality:
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
-  # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [Off]
 
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

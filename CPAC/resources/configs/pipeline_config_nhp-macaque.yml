@@ -160,7 +160,7 @@ segmentation:
       # For performing ANTs Prior-based segmentation method
       # the number of specified segmentations should be identical to the number of atlas brain image sets.
       # eg.
-      # ANTs_prior_seg_template_brain_list:
+      # ANTs_prior_seg_template_brain_list :
       #   - atlas1.nii.gz
       #   - atlas2.nii.gz
       # ANTs_prior_seg_template_segmentation_list:
@@ -192,10 +192,6 @@ registration_workflows:
   functional_registration: 
 
     coregistration: 
-
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-
-      run: [On]
 
       func_input_prep: 
 
@@ -252,8 +248,6 @@ registration_workflows:
           T1w_template_funcreg: s3://fcp-indi/resources/cpac/resources/MacaqueYerkes19_T1w_2mm.nii.gz
 
 functional_preproc: 
-
-  run: [On]
 
   despiking: 
 
@@ -411,9 +405,6 @@ network_centrality:
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
-  # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [Off]
 
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

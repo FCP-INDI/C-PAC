@@ -1523,7 +1523,7 @@ def ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id):
         ('template_specification_file', cfg.network_centrality['template_specification_file'])
     ]
 
-    if cfg.PyPEER['run']:
+    if True in cfg.PyPEER['run']:
         config_resource_paths.append(
             ('eye_mask_path', cfg.PyPEER['eye_mask_path']))
 

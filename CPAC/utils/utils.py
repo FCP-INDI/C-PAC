@@ -1306,7 +1306,7 @@ def check_config_resources(c):
             'maximum_memory_per_participant']
 
     # If centrality is enabled, check to mem_sub >= mem_centrality
-    if c.network_centrality['run']:
+    if True in c.network_centrality['run']:
         if sub_mem_gb < c.network_centrality['memory_allocation']:
             err_msg = 'Memory allocated for subject: %d needs to be greater ' \
                       'than the memory allocated for centrality: %d. Fix ' \
