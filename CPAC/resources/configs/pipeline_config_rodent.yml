@@ -176,10 +176,6 @@ registration_workflows:
 
     coregistration: 
 
-      # functional (BOLD/EPI) registration to anatomical (structural/T1)
-
-      run: [On]
-
       boundary_based_registration: 
 
         # this is a fork point
@@ -266,8 +262,6 @@ registration_workflows:
 
 functional_preproc: 
 
-  run: [On]
-
   slice_timing_correction: 
 
     # Interpolate voxel time courses so they are sampled at the same time points.
@@ -293,7 +287,7 @@ functional_preproc:
 
     FSL-BET: 
 
-      # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean: Off.
+      # Apply to 4D FMRI data, if bold_bet_functional_mean_boolean : Off.
       # Mutually exclusive with functional, reduce_bias, robust, padding, remove_eyes, surfaces
       # It must be 'on' if select 'reduce_bias', 'robust', 'padding', 'remove_eyes', or 'bet_surfaces' on
       functional_mean_boolean: On
@@ -413,9 +407,6 @@ network_centrality:
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER: 
-
-  # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
-  run: [Off]
 
   # Template-space eye mask
   eye_mask_path: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_eye_mask.nii.gz

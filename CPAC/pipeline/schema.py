@@ -274,7 +274,7 @@ schema = Schema({
             },
             'Freesurfer': Maybe(dict),
             'ANTs_Prior_Based': {
-                'run': Maybe([bool]),
+                'run': forkable,
                 'template_brain_list': [str],
                 'template_segmentation_list': [str],
                 'CSF_label': int,
