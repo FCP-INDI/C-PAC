@@ -1109,7 +1109,7 @@ def connect_func_to_anat_init_reg(workflow, strat_list, c, func_reg_skull=False,
 
                     get_func_volume.inputs.set(
                         expr='a',
-                        single_idx=config.func_reg_input_volume,
+                        single_idx=c.func_reg_input_volume,
                         outputtype='NIFTI_GZ'
                     )
                     node, out_file = strat['functional_skull_leaf']
