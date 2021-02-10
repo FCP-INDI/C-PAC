@@ -384,7 +384,8 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
     if "fmap" in sub_dict:
         for key in sub_dict["fmap"]:
             gather_fmap = create_fmap_datasource(sub_dict["fmap"],
-                                                 f"fmap_gather_{subject_id}")
+                                                 f"fmap_gather_{key}_"
+                                                 f"{subject_id}")
             gather_fmap.inputs.inputnode.set(
                 subject=subject_id,
                 creds_path=input_creds_path,
@@ -446,23 +447,21 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                               'dwell_asym_ratio'],
                 function=calc_deltaTE_and_asym_ratio),
                 name='diff_distcor_calc_delta')
-
             node, out_file = rpool.get('diff_phase_dwell')[
-                'diff_phase_dwell:fmap_dwell_ingress'][
-                'data']  # <--- there will only be one pipe_idx
+                "['diff_phase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[
-                f'{fmap_TE_list[0]}:fmap_TE_ingress']['data']
+                f"['{fmap_TE_list[0]}:fmap_TE_ingress']"]['data']
             wf.connect(node, out_file, calc_delta_ratio, 'echo_time_one')
 
             node, out_file = rpool.get(f'{fmap_TE_list[1]}')[
-                f'{fmap_TE_list[1]}:fmap_TE_ingress']['data']
+                f"['{fmap_TE_list[1]}:fmap_TE_ingress']"]['data']
             wf.connect(node, out_file, calc_delta_ratio, 'echo_time_two')
 
             if len(fmap_TE_list) > 2:
                 node, out_file = rpool.get(f'{fmap_TE_list[2]}')[
-                    f'{fmap_TE_list[2]}:fmap_TE_ingress']['data']
+                    f"['{fmap_TE_list[2]}:fmap_TE_ingress']"]['data']
                 wf.connect(node, out_file,
                            calc_delta_ratio, 'echo_time_three')
 

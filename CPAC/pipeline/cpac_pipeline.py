@@ -7,6 +7,7 @@ import shutil
 import pickle
 import copy
 import json
+import yaml
 
 import pandas as pd
 import pkg_resources as p
@@ -740,6 +741,38 @@ def initialize_nipype_wf(cfg, sub_data_dct):
     }
 
     return wf
+
+
+def load_cpac_pipe_config(pipe_config):
+    # Load in pipeline config file
+    config_file = os.path.realpath(pipe_config)
+    try:
+        if not os.path.exists(config_file):
+            raise IOError
+        else:
+            cfg = Configuration(yaml.safe_load(open(config_file, 'r')))
+    except IOError:
+        print("config file %s doesn't exist" % config_file)
+        raise
+    except yaml.parser.ParserError as e:
+        error_detail = "\"%s\" at line %d" % (
+            e.problem,
+            e.problem_mark.line
+        )
+        raise Exception(
+            "Error parsing config file: {0}\n\n"
+            "Error details:\n"
+            "    {1}"
+            "\n\n".format(config_file, error_detail)
+        )
+    except Exception as e:
+        raise Exception(
+            "Error parsing config file: {0}\n\n"
+            "Error details:\n"
+            "    {1}"
+            "\n\n".format(config_file, e)
+        )
+    return cfg
 
 
 def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,

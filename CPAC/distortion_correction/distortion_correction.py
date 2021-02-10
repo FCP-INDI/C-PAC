@@ -92,8 +92,8 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "switch": ["run"],
      "option_key": "using",
      "option_val": "PhaseDiff",
-     "inputs": ["diff_phase",
-                "diff_mag_one",
+     "inputs": ["diffphase",
+                "diffmag",
                 "deltaTE",
                 "diff_phase_dwell",
                 "dwell_asym_ratio"],
@@ -119,7 +119,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         afni.inputs.outputtype = 'NIFTI_GZ'
         wf.connect(skullstrip_args, 'expr', afni, 'args')
 
-        node, out = strat_pool.get_data('diff_mag_one')
+        node, out = strat_pool.get_data('diffmag')
         wf.connect(node, out, afni, 'in_file')
 
         brain_node, brain_out = (afni, 'out_file')
@@ -133,7 +133,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         bet.inputs.frac = cfg.functional_preproc['distortion_correction'][
             'PhaseDiff']['fmap_skullstrip_BET_frac']
 
-        node, out = strat_pool.get_data('diff_mag_one')
+        node, out = strat_pool.get_data('diffmag')
         wf.connect(node, out, bet, 'in_file')
 
         brain_node, brain_out = (bet, 'out_file')
@@ -147,7 +147,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('deltaTE')
     wf.connect(node, out, prepare, 'delta_TE')
 
-    node, out = strat_pool.get_data('diff_phase')
+    node, out = strat_pool.get_data('diffphase')
     wf.connect(node, out, prepare, 'in_phase')
 
     wf.connect(brain_node, brain_out, prepare, 'in_magnitude')

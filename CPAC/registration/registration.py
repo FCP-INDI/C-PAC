@@ -1892,8 +1892,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                 "desc-brain_T1w",
                 "diff_phase_dwell",
                 "diff_phase_pedir",
-                "despiked_fieldmap",
-                "fieldmap_mask"],
+                ("despiked_fieldmap",
+                 "fieldmap_mask")],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"]}
     '''
@@ -1953,8 +1953,8 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "label-CSF_probseg"),
                 "diff_phase_dwell",
                 "diff_phase_pedir",
-                "despiked_fieldmap",
-                "fieldmap_mask"],
+                ("despiked_fieldmap",
+                 "fieldmap_mask")],
      "outputs": ["space-T1w_desc-mean_bold",
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"]}
     '''
@@ -1970,8 +1970,7 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                                                         f'{pipe_num}')
     func_to_anat_bbreg.inputs.inputspec.bbr_schedule = \
         cfg.registration_workflows['functional_registration'][
-            'coregistration']['boundary_based_registration'][
-            'bbr_schedule']
+            'coregistration']['boundary_based_registration']['bbr_schedule']
 
     node, out = strat_pool.get_data('bold_coreg_input')
     wf.connect(node, out, func_to_anat_bbreg, 'inputspec.func')

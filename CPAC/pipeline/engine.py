@@ -180,7 +180,7 @@ class ResourcePool(object):
         cpac_prov = []
         if 'CpacProvenance' in json_info:
             cpac_prov = json_info['CpacProvenance']
-        new_prov_list = list(cpac_prov)   # <---- making a copy
+        new_prov_list = list(cpac_prov)   # <---- making a copy, it was already a list
         if not inject:
             new_prov_list.append(f'{resource}:{node_name}')
         res, new_pipe_idx = self.generate_prov_string(new_prov_list)
@@ -690,10 +690,11 @@ class ResourcePool(object):
         # TODO: cpac_outputs.csv etc
         # TODO: might be better to do an inclusion instead
         non_sink = ['scan', 'TR', 'tpattern', 'start_tr', 'stop_tr',
-                    'pe_direction', 'subject', 'atlas_name']
-        excl = ['T1w', 'bold', 'scan', 'scan_params', 'TR', 'tpattern',
-                'start_tr', 'stop_tr', 'pe_direction', 'subject',
-                'motion_basefile', 'atlas_name', 'bold_coreg_input']
+                    'pe_direction', 'subject', 'atlas_name', 'scan_params',
+                    'deltaTE', 'diff_phase_dwell', 'dwell_asym_ratio',
+                    'diffphase_scan_params', 'diffmag_scan_params']
+        excl = ['T1w', 'bold', 'motion_basefile', 'bold_coreg_input',
+                'diffphase', 'diffmag', 'epi']
         config_paths = ['T1w_ACPC_template', 'T1w_brain_ACPC_template',
                         'unet_model', 'T1w_brain_template', 'T1w_template',
                         'T1w_brain_template_mask',
@@ -761,7 +762,7 @@ class ResourcePool(object):
                 unique_id = self.get_name()
 
                 out_dir = cfg.pipeline_setup['output_directory']['path']
-                container = os.path.join('cpac', unique_id) #f'pipe_{pipe_num}', unique_id)
+                container = os.path.join('cpac', unique_id)
                 filename = f'{unique_id}_{resource}'
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
@@ -798,6 +799,9 @@ class ResourcePool(object):
 
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
+
+                if out_dct['subdir'] == 'other' and not all:
+                    continue
 
                 unique_id = out_dct['unique_id']
 
@@ -1414,49 +1418,78 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
     return rpool
 
 
-def initiate_rpool(wf, cfg, data_paths):
-    '''
-
-    data_paths format:
-      {'anat': '{T1w path}',
-       'creds_path': {None OR path to credentials CSV},
-       'func': {
-           '{scan ID}':
-               {
-                   'scan': '{path to BOLD}',
-                   'scan_parameters': {scan parameter dictionary}
-               }
-       },
-       'site_id': 'site-ID',
-       'subject_id': 'sub-01',
-       'unique_id': 'ses-1'}
-    '''
-
-    # TODO: refactor further, integrate with the ingress_data functionality
-    # TODO: used for BIDS-Derivatives (below), and possible refactoring of
-    # TODO: the raw data config to use 'T1w' label instead of 'anat' etc.
-
-    part_id = data_paths['subject_id']
-    ses_id = data_paths['unique_id']
-    if 'creds_path' not in data_paths:
-        data_paths['creds_path'] = None
-
-    unique_id = f'{part_id}_{ses_id}'
-
-    rpool = ResourcePool(name=unique_id, cfg=cfg)
-
-    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_data(wf, rpool, cfg,
-                                                           data_paths,
-                                                           unique_id,
-                                                           part_id, ses_id)
-
-    # grab already-processed data from the output directory
-    rpool = ingress_output_dir(cfg, rpool, data_paths, unique_id)
-
+def ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id):
     # ingress config file paths
     # TODO: pull this from some external list instead
     # TODO: nah, even better: just loop through the config for .nii's
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
+
+    templates_for_resampling = [
+        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_brain_template'], 'T1w_brain_template', 'resolution_for_anat'),
+        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_template'], 'T1w_template', 'resolution_for_anat'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'func_derivative_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'func_derivative_outputs'),
+        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric'], 'T1w_brain_template_symmetric', 'resolution_for_anat'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_brain_template_symmetric_deriv', 'func_derivative_outputs'),
+        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric'], 'T1w_template_symmetric', 'resolution_for_anat'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_template_symmetric_deriv', 'func_derivative_outputs'),
+        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask'], 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
+        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_mask'], 'template_ref_mask', 'resolution_for_anat'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_funcreg', 'func_preproc_outputs'),  # no difference of skull and only brain
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_deriv', 'func_derivative_outputs'),  # no difference of skull and only brain
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'func_derivative_outputs'),
+        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'func_derivative_outputs')
+    ]
+
+    if cfg.PyPEER['run']:
+        templates_for_resampling.append((cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.PyPEER['eye_mask_path'], 'template_eye_mask', 'func_preproc_outputs'))
+        #Outputs.any.append("template_eye_mask")
+
+    # update resampled template to resource pool
+    for resolution, template, template_name, tag in templates_for_resampling:
+
+        if '$FSLDIR' in template:
+            template = template.replace('$FSLDIR', cfg.pipeline_setup[
+                'system_config']['FSLDIR'])
+        #if '${resolution_for_anat}' in template:
+        #    template = template.replace('${resolution_for_anat}',
+        #                                cfg.registration_workflows[
+        #                                    'anatomical_registration'][
+        #                                    'resolution_for_anat'])
+        if '${func_resolution}' in template:
+            template = template.replace('func_resolution', tag)
+
+        resampled_template = pe.Node(Function(input_names=['resolution',
+                                                           'template',
+                                                           'template_name',
+                                                           'tag'],
+                                              output_names=['resampled_template'],
+                                              function=resolve_resolution,
+                                              as_module=True),
+                                     name='resampled_' + template_name)
+
+        resampled_template.inputs.resolution = resolution
+        resampled_template.inputs.template = template
+        resampled_template.inputs.template_name = template_name
+        resampled_template.inputs.tag = tag
+
+        # the set_data below is set up a little differently, because we are
+        # injecting and also over-writing already-existing entries
+        #   other alternative would have been to ingress into the
+        #   resampled_template node from the already existing entries, but we
+        #   didn't do that here
+        rpool.set_data(template_name,
+                       resampled_template,
+                       'resampled_template',
+                       #{'CpacProvenance': [f'{template_name}:{template_name}_config_ingress']},
+                       #f"['{template_name}:{template_name}_config_ingress']",
+                       {}, "",
+                       "template_resample") #, inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+
     config_resource_paths = [
         ('CSF_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['CSF_path']),
         ('WM_path', cfg.segmentation['tissue_segmentation']['FSL-FAST']['use_priors']['WM_path']),
@@ -1497,6 +1530,10 @@ def initiate_rpool(wf, cfg, data_paths):
     for resource in config_resource_paths:
         key = resource[0]
         val = resource[1]
+
+        if rpool.check_rpool(key):
+            print(f'happening for {key}')
+            continue
 
         if not val:
             continue
@@ -1614,86 +1651,50 @@ def initiate_rpool(wf, cfg, data_paths):
         cfg.set_nested(cfg, key, node)
     '''
 
-    templates_for_resampling = [
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_brain_template'], 'T1w_brain_template', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['T1w_template'], 'T1w_template', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_brain_template_symmetric'], 'T1w_brain_template_symmetric', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['T1w_template_symmetric'], 'T1w_template_symmetric', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.voxel_mirrored_homotopic_connectivity['symmetric_registration']['dilated_symmetric_brain_mask'], 'template_dilated_symmetric_brain_mask', 'resolution_for_anat'),
-        (cfg.registration_workflows['anatomical_registration']['resolution_for_anat'], cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_mask'], 'template_ref_mask', 'resolution_for_anat'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_funcreg', 'func_preproc_outputs'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_funcreg', 'func_preproc_outputs'),  # no difference of skull and only brain
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['EPI_template']['EPI_template_funcreg'], 'EPI_template_deriv', 'resolution_for_func_derivative'),  # no difference of skull and only brain
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_brain_template_funcreg'], 'T1w_brain_template_deriv', 'resolution_for_func_derivative'),
-        (cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_derivative_outputs'], cfg.registration_workflows['functional_registration']['func_registration_to_template']['target_template']['T1_template']['T1w_template_funcreg'], 'T1w_template_deriv', 'resolution_for_func_derivative')
-    ]
+    return rpool
 
-    if cfg.PyPEER['run']:
-        templates_for_resampling.append((cfg.registration_workflows['functional_registration']['func_registration_to_template']['output_resolution']['func_preproc_outputs'], cfg.PyPEER['eye_mask_path'], 'template_eye_mask', 'func_preproc_outputs'))
-        #Outputs.any.append("template_eye_mask")
 
-    # update resampled template to resource pool
-    '''
-    for resolution, template, template_name, tag in templates_for_resampling:
-
-        if '$FSLDIR' in template:
-            template = template.replace('$FSLDIR', cfg.pipeline_setup[
-                'system_config']['FSLDIR'])
-        if '${resolution_for_anat}' in template:
-            template = template.replace('${resolution_for_anat}', cfg.registration_workflows['anatomical_registration']['resolution_for_anat'])
-        if '${func_resolution}' in template:
-            template = template.replace('${func_resolution}', resolution)
-
-        resampled_template = pe.Node(Function(input_names=['resolution',
-                                                           'template',
-                                                           'template_name',
-                                                           'tag'],
-                                              output_names=['resampled_template'],
-                                              function=resolve_resolution,
-                                              as_module=True),
-                                     name='resampled_' + template_name)
-
-        resampled_template.inputs.resolution = resolution
-        resampled_template.inputs.template = template
-        resampled_template.inputs.template_name = template_name
-        resampled_template.inputs.tag = tag
-
-        rpool.set_data(template_name,
-                       resampled_template,
-                       'resampled_template', {},
-                       f"['{template_name}:{template_name}_config_ingress']",
-                       "template_resample", inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+def initiate_rpool(wf, cfg, data_paths):
     '''
 
+    data_paths format:
+      {'anat': '{T1w path}',
+       'creds_path': {None OR path to credentials CSV},
+       'func': {
+           '{scan ID}':
+               {
+                   'scan': '{path to BOLD}',
+                   'scan_parameters': {scan parameter dictionary}
+               }
+       },
+       'site_id': 'site-ID',
+       'subject_id': 'sub-01',
+       'unique_id': 'ses-1'}
     '''
-    if cfg.nuisance_corrections['2-nuisance_regression']['Regressors']:
-        regressor_strats = []
-        regressor_strat_names = []
-        for regressors_selector_i, regressors_selector in enumerate(
-                cfg.nuisance_corrections['2-nuisance_regression']['Regressors']):
 
-            # Before start nuisance_wf, covert OrderedDict(regressors_selector) to dict
-            regressors_selector = ordereddict_to_dict(regressors_selector)
+    # TODO: refactor further, integrate with the ingress_data functionality
+    # TODO: used for BIDS-Derivatives (below), and possible refactoring of
+    # TODO: the raw data config to use 'T1w' label instead of 'anat' etc.
 
-            # to guarantee immutability
-            regressor_strats.append(NuisanceRegressor(
-                copy.deepcopy(regressors_selector)))
+    part_id = data_paths['subject_id']
+    ses_id = data_paths['unique_id']
+    if 'creds_path' not in data_paths:
+        data_paths['creds_path'] = None
 
-            regressor_strat_names.append(regressors_selector.get('Name'))
+    unique_id = f'{part_id}_{ses_id}'
 
-        nuisance_strat = pe.Node(util.IdentityInterface(fields=['regressor_strat',
-                                                                'strat_name']),
-                                                        name=f'nuisance_strat')
+    rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-        nuisance_strat.iterables = [('regressor_strat', regressor_strats),
-                                    ('strat_name', regressor_strat_names)]
+    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_data(wf, rpool, cfg,
+                                                           data_paths,
+                                                           unique_id,
+                                                           part_id, ses_id)
 
-        rpool.set_data('regressors', nuisance_strat, 'regressor_strat',
-                       {}, "", "regressor_ingress")
-        rpool.set_data('regressor_name', nuisance_strat, 'strat_name',
-                       {}, "", "regressor_name_ingress")
-    '''
+    # grab already-processed data from the output directory
+    rpool = ingress_output_dir(cfg, rpool, data_paths, unique_id)
+
+    # grab any file paths from the pipeline config YAML
+    rpool = ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id)
 
     return (wf, rpool)
 
