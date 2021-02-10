@@ -3,7 +3,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
-from CPAC.registration.utils import change_itk_transform_type, check_transforms, generate_inverse_transform_flags, run_ants_apply_warp
+from CPAC.registration.utils import change_itk_transform_type, check_transforms, generate_inverse_transform_flags, run_ants_apply_warp_abcd
 
 from nipype.interfaces.afni import utils as afni_utils
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
@@ -879,7 +879,7 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
                                                                     'affine',
                                                                     'nonlinear'],
                                                         output_names=['out_image'],
-                                                        function=run_ants_apply_warp),
+                                                        function=run_ants_apply_warp_abcd),
                                         name='ants_apply_warp_t1_restore_to_standard_{0}'.format(num_strat))
 
     node, out_file = strat['anatomical_skull_restore']
@@ -917,7 +917,7 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
                                                                     'affine',
                                                                     'nonlinear'],
                                                         output_names=['out_image'],
-                                                        function=run_ants_apply_warp),
+                                                        function=run_ants_apply_warp_abcd),
                                         name='ants_apply_inv_warp_t1_acpc_{0}'.format(num_strat))
     
     ants_apply_inv_warp_t1_acpc.inputs.inverse = True

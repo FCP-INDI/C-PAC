@@ -304,8 +304,8 @@ def change_itk_transform_type(input_affine_file):
 
 
 def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
-                        affine=None, nonlinear=None, func_to_anat=None,
-                        anatomical_brain=None, dim=3, interp='Linear',
+                        affine=None, nonlinear=None, anatomical_brain=None, 
+                        func_to_anat=False, dim=3, interp='Linear',
                         inverse=False):
     """Apply a transform using ANTs transforms."""
 
@@ -360,6 +360,49 @@ def run_ants_apply_warp(moving_image, reference, initial=None, rigid=None,
             cmd.append('[{0}, {1}]'.format(os.path.abspath(func_to_anat), '1'))
         else:
             cmd.append(os.path.abspath(func_to_anat))
+
+    retcode = subprocess.check_output(cmd)
+
+    return out_image
+
+
+def run_ants_apply_warp_abcd(moving_image, reference, initial=None, rigid=None, affine=None, 
+                        nonlinear=None, dim=3, interp='Linear', inverse=False):
+    """Apply a transform using ANTs transforms for ABCD"""
+
+    import os
+    import subprocess
+
+    out_image = os.path.join(os.getcwd(), moving_image[moving_image.rindex('/')+1:moving_image.rindex('.nii.gz')]+'_warp.nii.gz')
+
+    cmd = ['antsApplyTransforms', '-d', str(dim), '-i', moving_image, '-r',
+           reference, '-o', [out_image,1], '-n', interp]
+
+    if inverse:
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(initial), '1'))
+    
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(rigid), '1'))
+
+        cmd.append('-t')
+        cmd.append('[{0}, {1}]'.format(os.path.abspath(affine), '1'))
+
+        cmd.append('-t')
+        cmd.append(os.path.abspath(nonlinear))
+
+    else:
+        cmd.append('-t')
+        cmd.append(os.path.abspath(nonlinear))
+    
+        cmd.append('-t')
+        cmd.append(os.path.abspath(affine))
+
+        cmd.append('-t')
+        cmd.append(os.path.abspath(rigid))
+
+        cmd.append('-t')
+        cmd.append(os.path.abspath(initial))
 
     retcode = subprocess.check_output(cmd)
 
