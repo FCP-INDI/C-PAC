@@ -395,6 +395,10 @@ ANTs_para_T1_registration:
 
    - dimensionality: 3
 
+   - winsorize-image-intensities:
+      lowerQuantile : 0.005 #changed
+      upperQuantile : 0.995 #changed
+
    - initial-moving-transform :
       initializationFeature: 1 #changed
 
@@ -448,9 +452,6 @@ ANTs_para_T1_registration:
           smoothing-sigmas : 3.0x2.0x1.0x0.0
           shrink-factors : 8x4x2x1 #changed
           use-histogram-matching : False #changed
-          winsorize-image-intensities :
-            lowerQuantile : 0.005 #changed
-            upperQuantile : 0.995 #changed
           masks: True
 
 

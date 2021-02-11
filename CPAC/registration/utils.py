@@ -84,6 +84,15 @@ def hardcoded_reg(moving_brain, reference_brain, moving_skull,
                 else:
                     regcmd.append("--collapse-output-transforms")
                     regcmd.append(str(ants_para[para_index][para_type]))
+            elif para_type == 'winsorize-image-intensities': 
+                if ants_para[para_index][para_type]['lowerQuantile'] is None or ants_para[para_index][para_type]['upperQuantile'] is None:
+                    err_msg = 'Please specifiy lowerQuantile and upperQuantile of ANTs parameters --winsorize-image-intensities in pipeline config. '
+                    raise Exception(err_msg)
+                else:
+                    regcmd.append("--winsorize-image-intensities")
+                    regcmd.append("[{0},{1}]".format(ants_para[para_index][para_type]['lowerQuantile'], 
+                        ants_para[para_index][para_type]['upperQuantile']))
+
             elif para_type == 'initial-moving-transform':
                 if ants_para[para_index][para_type]['initializationFeature'] is None:
                     err_msg = 'Please specifiy initializationFeature of ANTs parameters in pipeline config. '
