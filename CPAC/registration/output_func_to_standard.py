@@ -1070,7 +1070,8 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
                                     name='fsl_apply_warp_t1_restore')
     apply_warp_t1_restore.inputs.interp = 'spline'
     
-    node, out_file = strat['anatomical_skull_restore']    
+    node, out_file = strat['anatomical_skull_restore']
+    # node, out_file = strat['anatomical_skull_leaf']
     workflow.connect(node, out_file, 
         apply_warp_t1_restore, 'in_file')
 
@@ -1102,12 +1103,14 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
 
 
     # fslmaths ${OutputT1wImageRestore} -mas ${OutputT1wImageRestoreBrain} ${OutputT1wImageRestoreBrain}
-    fslmaths_mask = pe.Node(interface=fsl.maths.MathsCommand(),
-                             name='mask')
-
-    fslmaths_mask.inputs.args = '-mas'
-    workflow.connect(apply_warp_t1_restore_brain, 'out_file',
+    fslmaths_mask = pe.Node(interface=fsl.maths.ApplyMask(),
+                             name='mask_brain_restore')
+    
+    workflow.connect(apply_warp_t1_restore, 'out_file',
                     fslmaths_mask, 'in_file')
+    
+    workflow.connect(apply_warp_t1_restore_brain, 'out_file',
+                    fslmaths_mask, 'mask_file')
     
     strat.update_resource_pool({
         'anatomical_to_standard': (fslmaths_mask, 'out_file')
