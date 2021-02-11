@@ -942,7 +942,7 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
     workflow.connect(node, out_file, 
         ants_apply_inv_warp_t1_acpc, 'affine')
 
-    node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
+    node, out_file = strat['mni_to_anatomical_nonlinear_xfm']
     workflow.connect(node, out_file, 
         ants_apply_inv_warp_t1_acpc, 'nonlinear')
 
