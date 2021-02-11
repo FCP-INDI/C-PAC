@@ -910,6 +910,7 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
 
 
     # antsApplyTransforms -d 3 -i ${T1wImage}.nii.gz -r ${Reference} -t [${WD}/xfms/T1w_to_MNI_0DerivedInitialMovingTranslation.mat,1] -t [${WD}/xfms/T1w_to_MNI_1Rigid.mat,1] -t [${WD}/xfms/T1w_to_MNI_2Affine.mat,1] -t ${WD}/xfms/T1w_to_MNI_3InverseWarp.nii.gz -o [${WD}/xfms/ANTs_CombinedInvWarp.nii.gz,1]
+    # TODO rm
     ants_apply_inv_warp_t1_acpc = pe.Node(util.Function(input_names=['moving_image',
                                                                     'reference',
                                                                     'initial',
@@ -964,6 +965,7 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
 
 
     # c4d -mcs ${WD}/xfms/ANTs_CombinedInvWarp.nii.gz -oo ${WD}/xfms/e1inv.nii.gz ${WD}/xfms/e2inv.nii.gz ${WD}/xfms/e3inv.nii.gz
+    # TODO rm
     c4d_split_inv_xfm = pe.Node(util.Function(input_names=['input',
                                                            'output_name'],
                                               output_names=['output1',
@@ -989,6 +991,7 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
 
 
     # fslmaths ${WD}/xfms/e2inv.nii.gz -mul -1 ${WD}/xfms/e-2inv.nii.gz
+    # TODO rm
     fslmaths_e2inv = pe.Node(interface=fsl.maths.MathsCommand(),
                              name='e2inv_mul')
 
@@ -1019,6 +1022,7 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
 
 
     # fslmerge -t ${OutputInvTransform} ${WD}/xfms/e1inv.nii.gz ${WD}/xfms/e-2inv.nii.gz ${WD}/xfms/e3inv.nii.gz
+    # TODO rm
     merge_inv_xfms_to_list = pe.Node(util.Merge(3), 
                                      name='merge_inv_xfms_to_list')
 
@@ -1049,8 +1053,11 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
     #   create_jacobian_determinant_image, 'deformationField')
 
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImage}
+    # TODO rm
     apply_warp_t1_acpc = pe.Node(interface=fsl.ApplyWarp(),
                                  name='fsl_apply_warp_t1_acpc')
+
+    apply_warp_t1_acpc.inputs.relwarp = True
     apply_warp_t1_acpc.inputs.interp = 'spline'
 
     node, out_file = strat['anatomical_skull_leaf']
@@ -1068,6 +1075,8 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
     # applywarp --rel --interp=spline -i ${T1wRestore} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestore}
     apply_warp_t1_restore = pe.Node(interface=fsl.ApplyWarp(),
                                     name='fsl_apply_warp_t1_restore')
+
+    apply_warp_t1_restore.inputs.relwarp = True
     apply_warp_t1_restore.inputs.interp = 'spline'
     
     node, out_file = strat['anatomical_skull_restore']
@@ -1085,7 +1094,9 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
 
     # applywarp --rel --interp=nn -i ${T1wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestoreBrain}
     apply_warp_t1_restore_brain = pe.Node(interface=fsl.ApplyWarp(),
-                                          name='apply_warp_t1_restore_brain')
+                                          name='fsl_apply_warp_t1_restore_brain')
+    
+    apply_warp_t1_restore_brain.inputs.relwarp = True
     apply_warp_t1_restore_brain.inputs.interp = 'nn'
     
     # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
