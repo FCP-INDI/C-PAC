@@ -935,7 +935,7 @@ def acpc_align_brain(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'desc-brain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
+        'desc-temporal_brain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
     }
 
     return (wf, outputs)
@@ -973,7 +973,7 @@ def acpc_align_brain_with_mask(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {
         'desc-preproc_T1w': (acpc_align, 'outputspec.acpc_aligned_head'),
-        'desc-brain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
+        'desc-temporal_brain_T1w': (acpc_align, 'outputspec.acpc_aligned_brain'),
         'space-T1w_desc-brain_mask': (
         acpc_align, 'outputspec.acpc_brain_mask')
     }
@@ -1041,8 +1041,8 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": [["desc-preproc_T1w", "desc-reorient_T1w", "T1w"], 
                 ["desc-preproc_T2w", "desc-reorient_T2w", "T2w"],
-                "desc-brain_T1w"],
-     "outputs": ["desc-preproc_T1w", "desc-brain_T1w"]}
+                "desc-temporal_brain_T1w"],
+     "outputs": ["desc-preproc_T1w", "desc-temporal_brain_T1w"]}
     '''
 
     t1t2_bias_correction = BiasFieldCorrection_sqrtT1wXT1w(config=cfg, wf_name=f't1t2_bias_correction_{pipe_num}')
@@ -1055,14 +1055,14 @@ def t1t2_bias_correction(wf, cfg, strat_pool, pipe_num, opt=None):
                                      'T2w'])
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T2w')
 
-    node, out = strat_pool.get_data("desc-brain_T1w")
+    node, out = strat_pool.get_data("desc-temporal_brain_T1w")
     wf.connect(node, out, t1t2_bias_correction, 'inputspec.T1w_brain')
 
     outputs = {
         'desc-preproc_T1w': (t1t2_bias_correction, 'outputspec.T1w_biascorrected'),
-        'desc-brain_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
+        'desc-temporal_brain_T1w': (t1t2_bias_correction, 'outputspec.T1w_brain_biascorrected'),
         'desc-preproc_T2w': (t1t2_bias_correction, 'outputspec.T2w_biascorrected'),
-        'desc-brain_T2w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
+        'desc-temporal_brain_T1w': (t1t2_bias_correction, 'outputspec.T2w_brain_biascorrected'),
     }
 
     return (wf, outputs)
