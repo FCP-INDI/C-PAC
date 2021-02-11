@@ -41,6 +41,7 @@ from CPAC.anat_preproc.anat_preproc import (
     acpc_align_brain_with_mask,
     non_local_means,
     n4_bias_correction,
+    t1t2_bias_correction,
     brain_mask_afni,
     brain_mask_fsl,
     brain_mask_niworkflows_ants,
@@ -818,7 +819,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         anat_preproc_blocks = [
             non_local_means,
-            n4_bias_correction
+            n4_bias_correction,
+            t1t2_bias_correction
         ]
         if cfg.anatomical_preproc['acpc_alignment']['run_before_preproc']:
             anat_blocks = acpc_blocks + anat_preproc_blocks
