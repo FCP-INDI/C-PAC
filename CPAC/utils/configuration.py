@@ -30,6 +30,13 @@ with open(DEFAULT_PIPELINE_FILE, 'r') as dp_fp:
     default_config = yaml.safe_load(dp_fp)
 
 
+class ConfigurationDictUpdateConflation(SyntaxError):
+    def __init__(self):
+        self.msg = (
+            '`Configuration().update` requires a key and a value. '
+            'Perhaps you meant `Configuration().dict().update`?')
+
+
 class Configuration(object):
     """Class to set dictionary keys as map attributes.
 
@@ -91,7 +98,8 @@ class Configuration(object):
                 Configuration(from_config).dict(), config_map)
 
         # base everything on default pipeline
-        config_map = _enforce_forkability(update_nested_dict(default_config, config_map))
+        config_map = _enforce_forkability(
+            update_nested_dict(default_config, config_map))
 
         config_map = self.nonestr_to_None(config_map)
 
@@ -256,7 +264,9 @@ class Configuration(object):
 
     __update_attr = update_attr
 
-    def update(self, key, val):
+    def update(self, key, val=ConfigurationDictUpdateConflation):
+        if isinstance(key, dict):
+            raise ConfigurationDictUpdateConflation
         setattr(self, key, val)
 
     def get_nested(self, d, keys):
