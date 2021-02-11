@@ -376,7 +376,7 @@ def run_ants_apply_warp_abcd(moving_image, reference, initial=None, rigid=None, 
     out_image = os.path.join(os.getcwd(), moving_image[moving_image.rindex('/')+1:moving_image.rindex('.nii.gz')]+'_warp.nii.gz')
 
     cmd = ['antsApplyTransforms', '-d', str(dim), '-i', moving_image, '-r',
-           reference, '-o', [out_image,1], '-n', interp]
+           reference, '-o', '['+out_image+',1]', '-n', interp]
 
     if inverse:
         cmd.append('-t')
