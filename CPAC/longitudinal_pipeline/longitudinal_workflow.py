@@ -21,6 +21,8 @@ from CPAC.utils.interfaces.function import Function
 
 import CPAC
 
+from CPAC.pipeline.cpac_pipeline import initialize_nipype_wf
+
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
     create_fsl_fnirt_nonlinear_reg,
@@ -756,14 +758,8 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         None
     """
 
-    workflow = pe.Workflow(
-        name="anat_longitudinal_template_" + str(subject_id))
-    workflow.base_dir = config.pipeline_setup['working_directory']['path']
-    workflow.config['execution'] = {
-        'hash_method': 'timestamp',
-        'crashdump_dir': os.path.abspath(
-            config.pipeline_setup['log_directory']['path'])
-    }
+    workflow = initialize_nipype_wf(config, sub_list,
+                                    name="anat_longitudinal_template")
 
     resampled_template = pe.Node(Function(
         input_names=['resolution', 'template', 'template_name', 'tag'],
@@ -771,20 +767,19 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         function=resolve_resolution,
         as_module=True),
                                  name='template_skull_for_anat')
-    resampled_template.inputs.resolution = \
-    config.anatomical_preproc['registration_workflow']['resolution_for_anat']
-    resampled_template.inputs.template = \
-    config.anatomical_preproc['registration_workflow'][
-        'template_skull_for_anat']
-    resampled_template.inputs.template_name = 'template_skull_for_anat'
+    resampled_template.inputs.resolution = config.registration_workflows[
+        'anatomical_registration']['resolution_for_anat']
+    resampled_template.inputs.template = config.registration_workflows[
+        'anatomical_registration']['T1w_template']
+    resampled_template.inputs.template_name = 'T1w_template'
     resampled_template.inputs.tag = 'resolution_for_anat'
 
-    # Node to calculate the center of mass of the standard template to align the images with it.
+    # Node to calculate the center of mass of the standard template to align
+    # the images with it.
     template_center_of_mass = pe.Node(
         interface=afni.CenterMass(),
         name='template_skull_for_anat_center_of_mass'
     )
-
     template_center_of_mass.inputs.cm_file = "template_center_of_mass.txt"
 
     workflow.connect(resampled_template, 'resampled_template',

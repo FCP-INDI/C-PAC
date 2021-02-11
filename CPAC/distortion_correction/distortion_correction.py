@@ -95,7 +95,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
      "inputs": ["diffphase",
                 "diffmag",
                 "deltaTE",
-                "diff_phase_dwell",
+                "diffphase_dwell",
                 "dwell_asym_ratio"],
      "outputs": ["despiked_fieldmap",
                  "fieldmap_mask"]}
@@ -124,7 +124,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
 
         brain_node, brain_out = (afni, 'out_file')
 
-    elif cfg.functional_wf['distortion_correction']['PhaseDiff'][
+    elif cfg.functional_preproc['distortion_correction']['PhaseDiff'][
             'fmap_skullstrip_option'] == 'BET':
 
         bet = pe.Node(interface=fsl.BET(), name='distcor_phasediff_bet_'
@@ -200,7 +200,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(fslmath_mask, 'out_file', fugue1, 'mask_file')
 
-    node, out = strat_pool.get_data('diff_phase_dwell')
+    node, out = strat_pool.get_data('diffphase_dwell')
     wf.connect(node, out, fugue1, 'dwell_time')
 
     node, out = strat_pool.get_data('dwell_asym_ratio')

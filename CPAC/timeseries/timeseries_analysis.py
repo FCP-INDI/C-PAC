@@ -951,7 +951,7 @@ def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     spatial_map_timeseries = get_spatial_map_timeseries(
         f'spatial_map_timeseries_{pipe_num}')
     spatial_map_timeseries.inputs.inputspec.demean = True
-    print(strat_pool.get_entire_rpool())
+
     node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
                                      "space-template_desc-preproc_bold",
                                      "space-template_desc-reorient_bold",

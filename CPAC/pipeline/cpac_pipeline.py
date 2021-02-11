@@ -376,14 +376,14 @@ def run_workflow(sub_dict, c, run, pipeline_timing_info=None, p_name=None,
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
 
-    check_centrality_degree = True in c.network_centrality['run'] and \
+    check_centrality_degree = c.network_centrality['run'] and \
                               (len(c.network_centrality['degree_centrality'][
                                        'weight_options']) != 0 or \
                                len(c.network_centrality[
                                        'eigenvector_centrality'][
                                        'weight_options']) != 0)
 
-    check_centrality_lfcd = True in c.network_centrality['run'] and \
+    check_centrality_lfcd = c.network_centrality['run'] and \
                             len(c.network_centrality[
                                     'local_functional_connectivity_density'][
                                     'weight_options']) != 0
@@ -695,8 +695,7 @@ CPAC run error:
             if c.pipeline_setup['output_directory'][
                 'generate_quality_control_images']:
                 pipeline_base = os.path.join(
-                    c.pipeline_setup['output_directory']['path'],
-                    'pipeline')
+                    c.pipeline_setup['output_directory']['path'], 'cpac')
 
                 sub_output_dir = os.path.join(pipeline_base, subject_id)
                 qc_dir = os.path.join(sub_output_dir, 'qc')
@@ -729,9 +728,9 @@ CPAC run error:
                                     working_dir)
 
 
-def initialize_nipype_wf(cfg, sub_data_dct):
+def initialize_nipype_wf(cfg, sub_data_dct, name=""):
 
-    workflow_name = f'cpac_{sub_data_dct["subject_id"]}'
+    workflow_name = f'cpac_{name}_{sub_data_dct["subject_id"]}'
     wf = pe.Workflow(name=workflow_name)
     wf.base_dir = cfg.pipeline_setup['working_directory']['path']
     wf.config['execution'] = {
@@ -883,7 +882,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template]
         ]
-    if True in cfg.voxel_mirrored_homotopic_connectivity['run']:
+    if cfg.voxel_mirrored_homotopic_connectivity['run']:
         if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
             reg_blocks.append([register_symmetric_ANTs_anat_to_template,
                                register_symmetric_FSL_anat_to_template])
@@ -929,8 +928,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
         # Distortion/Susceptibility Correction
         distcor_blocks = []
-        if rpool.check_rpool('diff_phase') and \
-                rpool.check_rpool('diff_mag_one'):
+        if rpool.check_rpool('diffphase') and rpool.check_rpool('diffmag'):
             distcor_blocks.append(distcor_phasediff_fsl_fugue)
 
         if rpool.check_rpool('epi_1'):
@@ -961,7 +959,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += func_blocks
 
     # BOLD to T1 coregistration
-    if True in cfg.registration_workflows['functional_registration'][
+    if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'] and \
             (not rpool.check_rpool('space-T1w_desc-mean_bold') or
              not rpool.check_rpool('from-bold_to-T1w_mode-image_desc-linear_xfm')):
@@ -981,14 +979,14 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Generate the composite transform for BOLD-to-template for the T1
     # anatomical template (the BOLD-to- EPI template is already created above)
-    if True in cfg.registration_workflows['functional_registration'][
+    if cfg.registration_workflows['functional_registration'][
         'coregistration']['run'
     ] and 'T1_template' in cfg.registration_workflows[
         'functional_registration']['func_registration_to_template'][
             'target_template']['using']:
         pipeline_blocks += [create_func_to_T1template_xfm]
 
-        if True in cfg.voxel_mirrored_homotopic_connectivity['run']:
+        if cfg.voxel_mirrored_homotopic_connectivity['run']:
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
     # Nuisance Correction
@@ -1015,8 +1013,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += nuisance
 
     # Warp the functional time series to template space
-    apply_func_warp = True in cfg.registration_workflows[
-        'functional_registration']['coregistration']['run']
+    apply_func_warp = cfg.registration_workflows['functional_registration'][
+        'coregistration']['run']
     template_funcs = [
         'space-template_desc-cleaned_bold',
         'space-template_desc-preproc_bold',

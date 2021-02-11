@@ -408,8 +408,7 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
 
             fmap_rp_list.append(key)
 
-            if key == "diff_phase" or key == "diff_mag_one" or \
-                            key == "diff_mag_two":
+            if key == "diffphase" or key == "diffmag":
                 diff = True
 
                 get_fmap_metadata_imports = ['import json']
@@ -447,8 +446,9 @@ def ingress_func_metadata(wf, cfg, rpool, sub_dict, subject_id,
                               'dwell_asym_ratio'],
                 function=calc_deltaTE_and_asym_ratio),
                 name='diff_distcor_calc_delta')
-            node, out_file = rpool.get('diff_phase_dwell')[
-                "['diff_phase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
+
+            node, out_file = rpool.get('diffphase_dwell')[
+                "['diffphase_dwell:fmap_dwell_ingress']"]['data']  # <--- there will only be one pipe_idx
             wf.connect(node, out_file, calc_delta_ratio, 'dwell_time')
 
             node, out_file = rpool.get(f'{fmap_TE_list[0]}')[

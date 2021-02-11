@@ -396,7 +396,6 @@ class ResourcePool(object):
             # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
             new_strats = {}
             for strat_tuple in strats:
-                print('...')
                 # the strats are still in provenance-list form
                 #   not string-based pipe_idx's yet
                 strat_list = list(strat_tuple)     # <------- strat_list is now a list of strats all combined together, one of the permutations. keep in mind each strat in the combo comes from a different data source/input
@@ -455,12 +454,9 @@ class ResourcePool(object):
                                                                       raw_resource)
                                                 raw_labels.append(raw_resource)
                                                 flat_raw_yprov.append(entry)
-                                            print(f'flat raw yprov: {flat_raw_yprov}')
                                             if younger_resource in raw_labels:
                                                 for variant in variant_list:
                                                     if f'{younger_resource}:{variant}' not in flat_raw_yprov:
-                                                        print(f'{younger_resource}:{variant}')
-                                                        print('and drop')
                                                         drop = True
 
                                     for younger_resource in yjson['CpacVariant']:
@@ -483,12 +479,9 @@ class ResourcePool(object):
                                                                       raw_resource)
                                                 raw_labels.append(raw_resource)
                                                 flat_raw_xprov.append(entry)
-                                            print(f'flat raw xprov: {flat_raw_xprov}')
                                             if younger_resource in raw_labels:
                                                 for variant in variant_list:
                                                     if f'{younger_resource}:{variant}' not in flat_raw_xprov:
-                                                        print(f'{younger_resource}:{variant}')
-                                                        print('and drop')
                                                         drop = True
                 if drop:
                     continue
@@ -1136,9 +1129,7 @@ class NodeBlock(object):
                             if fork or len(opts) > 1 or len(all_opts) > 1:
                                 if 'CpacVariant' not in new_json_info:
                                     new_json_info['CpacVariant'] = {}
-                                print(f'label: {label}')
                                 raw_label = rpool.get_raw_label(label)
-                                print(f'raw label: {raw_label}')
                                 if raw_label not in new_json_info['CpacVariant']:
                                     new_json_info['CpacVariant'][raw_label] = []
                                 new_json_info['CpacVariant'][raw_label].append(node_name)
@@ -1532,7 +1523,6 @@ def ingress_pipeconfig_paths(cfg, rpool, data_paths, unique_id):
         val = resource[1]
 
         if rpool.check_rpool(key):
-            print(f'happening for {key}')
             continue
 
         if not val:

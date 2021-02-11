@@ -1890,8 +1890,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
      "option_val": "None",
      "inputs": ["bold_coreg_input",
                 "desc-brain_T1w",
-                "diff_phase_dwell",
-                "diff_phase_pedir",
+                "diffphase_dwell",
+                "diffphase_pedir",
                 ("despiked_fieldmap",
                  "fieldmap_mask")],
      "outputs": ["space-T1w_desc-mean_bold",
@@ -1917,10 +1917,10 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
     if diff_complete:
-        node, out = strat_pool.get_data('diff_phase_dwell')
+        node, out = strat_pool.get_data('diffphase_dwell')
         wf.connect(node, out, func_to_anat, 'echospacing_input.echospacing')
 
-        node, out = strat_pool.get_data('diff_phase_pedir')
+        node, out = strat_pool.get_data('diffphase_pedir')
         wf.connect(node, out, func_to_anat, 'pedir_input.pedir')
 
         node, out = strat_pool.get_data("despiked_fieldmap")
@@ -1951,8 +1951,8 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                  "from-bold_to-T1w_mode-image_desc-linear_xfm"),
                 ("T1w",
                  "label-CSF_probseg"),
-                "diff_phase_dwell",
-                "diff_phase_pedir",
+                "diffphase_dwell",
+                "diffphase_pedir",
                 ("despiked_fieldmap",
                  "fieldmap_mask")],
      "outputs": ["space-T1w_desc-mean_bold",
@@ -1988,11 +1988,11 @@ def bbr_coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
                func_to_anat_bbreg, 'inputspec.anat_wm_segmentation')
 
     if diff_complete:
-        node, out = strat_pool.get_data('diff_phase_dwell')
+        node, out = strat_pool.get_data('diffphase_dwell')
         wf.connect(node, out,
                    func_to_anat_bbreg, 'echospacing_input.echospacing')
 
-        node, out = strat_pool.get_data('diff_phase_pedir')
+        node, out = strat_pool.get_data('diffphase_pedir')
         wf.connect(node, out, func_to_anat_bbreg, 'pedir_input.pedir')
 
         node, out = strat_pool.get_data("despiked_fieldmap")

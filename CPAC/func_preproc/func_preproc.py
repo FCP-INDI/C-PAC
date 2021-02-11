@@ -177,6 +177,12 @@ def normalize_motion_parameters(in_file):
     return out_file
 
 
+def get_mcflirt_rms_abs(rms_files):
+    for path in rms_files:
+        if 'abs.rms' in path:
+            return path
+
+
 def create_scale_func_wf(scaling_factor, wf_name='scale_func'):
     """Workflow to scale func data.
     Parameters
@@ -703,9 +709,14 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         wf.connect(func_motion_correct_A, 'par_file',
                    normalize_motion_params, 'in_file')
 
+        get_rms_abs = pe.Node(Function(input_names=['rms_files'],
+                                       output_names=['abs_file'],
+                                       function=get_mcflirt_rms_abs),
+                              name=f'get_mcflirt_rms_abs_{pipe_num}')
+
         outputs = {
             'desc-motion_bold': (func_motion_correct_A, 'out_file'),
-            'max_displacement': (func_motion_correct_A, 'rms_files'),
+            'max_displacement': (get_rms_abs, 'abs_file'),
             'movement_parameters': (normalize_motion_params, 'out_file'),
             'coordinate_transformation': (func_motion_correct_A, 'mat_file')
         }
