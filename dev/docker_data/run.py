@@ -471,8 +471,6 @@ elif args.analysis_level in ["test_config", "participant"]:
         upgrade_pipeline_to_1_8(updated_config)
         c = load_yaml_config(updated_config, args.aws_input_creds)
 
-    c = Configuration(c)
-
     overrides = {}
     if args.pipeline_override:
         overrides = {k: v for d in args.pipeline_override for k, v in d.items()}
@@ -523,8 +521,10 @@ elif args.analysis_level in ["test_config", "participant"]:
             args.n_cpus
         ) // c['pipeline_setup']['system_config']['num_participants_at_once']
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
-        c['pipeline_setup']['system_config']['max_cores_per_participant'] , int(c['pipeline_setup']['system_config']['num_ants_threads'])
+        c['pipeline_setup']['system_config']['max_cores_per_participant'], int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
+
+    c = Configuration(c)
 
     c['disable_log'] = args.disable_file_logging
 
