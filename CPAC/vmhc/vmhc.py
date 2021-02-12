@@ -30,8 +30,10 @@ def smooth_func_vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["desc-sm_bold",
                  "fwhm"]}
     '''
+    fwhm = cfg.post_processing['spatial_smoothing']['fwhm']
+
     smooth = spatial_smoothing(f'smooth_symmetric_{pipe_num}',
-                               cfg, opt=opt)
+                               fwhm, opt=opt)
 
     node, out = strat_pool.get_data(["desc-cleaned_bold",
                                      "desc-preproc_bold",

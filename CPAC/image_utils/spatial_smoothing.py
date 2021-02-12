@@ -29,7 +29,7 @@ def set_gauss(fwhm):
     return op_string
 
 
-def spatial_smoothing(wf_name, cfg, input_image_type='func_derivative',
+def spatial_smoothing(wf_name, fwhm, input_image_type='func_derivative',
                       opt=None):
 
     wf = pe.Workflow(name=wf_name)
@@ -37,8 +37,6 @@ def spatial_smoothing(wf_name, cfg, input_image_type='func_derivative',
     inputnode = pe.Node(util.IdentityInterface(fields=['in_file',
                                                        'mask']),
                         name='inputspec')
-
-    fwhm = cfg.post_processing['spatial_smoothing']['fwhm']
 
     inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input')
