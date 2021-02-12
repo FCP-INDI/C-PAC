@@ -37,6 +37,18 @@ valid_options = {
         'template': ['EPI_Template', 'T1_Template']
     },
     'Regressors': {
+        'CompCor': {
+            'degree': int,
+            'erode_mask_mm': bool,
+            'summary': {
+                'method': str,
+                'components': int,
+                'filter': str,
+            },
+            'threshold': str,
+            'tissues': [str],
+            'extraction_resolution': int
+        },
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
@@ -548,30 +560,8 @@ schema = Schema({
                     'include_squared': bool,
                     'include_delayed_squared': bool
                 },
-                'aCompCor': {
-                    'degree': int,
-                    'erode_mask_mm': bool,
-                    'summary': {
-                        'method': str,
-                        'components': int,
-                        'filter': str,
-                    },
-                    'threshold': str,
-                    'tissues': [str],
-                    'extraction_resolution': int
-                },
-                'tCompCor': {
-                    'degree': int,
-                    'erode_mask_mm': bool,
-                    'summary': {
-                        'method': str,
-                        'components': int,
-                        'filter': str,
-                    },
-                    'threshold': str,
-                    'tissues': [str],
-                    'extraction_resolution': int
-                },
+                'aCompCor': valid_options['Regressors']['CompCor'],
+                'tCompCor': valid_options['Regressors']['CompCor'],
                 'CerebrospinalFluid': valid_options[
                     'Regressors'
                 ]['segmentation'],
