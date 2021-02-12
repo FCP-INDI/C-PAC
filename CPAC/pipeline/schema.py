@@ -54,6 +54,9 @@ valid_options = {
             'extraction_resolution': Any(
                 int, float, All(str, Match(resolution_regex))
             ),
+            'include_delayed': bool,
+            'include_delayed_squared': bool,
+            'include_squared': bool,
             'summary': Any(
                 str, {'components': int, 'method': str}
             ),
