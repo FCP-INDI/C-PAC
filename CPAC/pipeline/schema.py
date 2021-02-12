@@ -1,5 +1,6 @@
 from itertools import chain, permutations
-from voluptuous import All, Any, In, Length, Match, Range, Required, Schema
+from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Range, \
+                       Required, Schema
 from voluptuous.validators import Maybe
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -61,7 +62,7 @@ valid_options = {
                 str, {'components': int, 'method': str}
             ),
         },
-    },
+    }
 }
 mutex = {  # mutually exclusive booleans
     'FSL-BET': {
@@ -547,7 +548,7 @@ schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'Regressors': Maybe([{
+            'Regressors': Maybe([Schema({
                 Required('Name'): str,
                 'Censor': {
                     'method': str,
@@ -581,7 +582,7 @@ schema = Schema({
                     'top_frequency': float,
                     'method': str,
                 }  # how to check if [0] is > than [1]?
-            }]),
+            }, extra=ALLOW_EXTRA)]),
             'lateral_ventricles_mask': Maybe(str),
             'bandpass_filtering_order': Maybe(
                 In({'After', 'Before'})),
