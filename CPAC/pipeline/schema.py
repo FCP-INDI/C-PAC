@@ -1,5 +1,6 @@
 from itertools import chain, permutations
-from voluptuous import All, Any, In, Length, Match, Range, Required, Schema
+from voluptuous import All, ALLOW_EXTRA, Any, In, Length, Match, Range, \
+                       Required, Schema
 from voluptuous.validators import Maybe
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -37,16 +38,31 @@ valid_options = {
         'template': ['EPI_Template', 'T1_Template']
     },
     'Regressors': {
+        'CompCor': {
+            'degree': int,
+            'erode_mask_mm': bool,
+            'summary': {
+                'method': str,
+                'components': int,
+                'filter': str,
+            },
+            'threshold': str,
+            'tissues': [str],
+            'extraction_resolution': int
+        },
         'segmentation': {
             'erode_mask': bool,
             'extraction_resolution': Any(
                 int, float, All(str, Match(resolution_regex))
             ),
+            'include_delayed': bool,
+            'include_delayed_squared': bool,
+            'include_squared': bool,
             'summary': Any(
                 str, {'components': int, 'method': str}
             ),
         },
-    },
+    }
 }
 mutex = {  # mutually exclusive booleans
     'FSL-BET': {
@@ -532,7 +548,7 @@ schema = Schema({
         },
         '2-nuisance_regression': {
             'run': forkable,
-            'Regressors': Maybe([{
+            'Regressors': Maybe([Schema({
                 Required('Name'): str,
                 'Censor': {
                     'method': str,
@@ -548,30 +564,8 @@ schema = Schema({
                     'include_squared': bool,
                     'include_delayed_squared': bool
                 },
-                'aCompCor': {
-                    'degree': int,
-                    'erode_mask_mm': bool,
-                    'summary': {
-                        'method': str,
-                        'components': int,
-                        'filter': str,
-                    },
-                    'threshold': str,
-                    'tissues': [str],
-                    'extraction_resolution': int
-                },
-                'tCompCor': {
-                    'degree': int,
-                    'erode_mask_mm': bool,
-                    'summary': {
-                        'method': str,
-                        'components': int,
-                        'filter': str,
-                    },
-                    'threshold': str,
-                    'tissues': [str],
-                    'extraction_resolution': int
-                },
+                'aCompCor': valid_options['Regressors']['CompCor'],
+                'tCompCor': valid_options['Regressors']['CompCor'],
                 'CerebrospinalFluid': valid_options[
                     'Regressors'
                 ]['segmentation'],
@@ -588,7 +582,7 @@ schema = Schema({
                     'top_frequency': float,
                     'method': str,
                 }  # how to check if [0] is > than [1]?
-            }]),
+            }, extra=ALLOW_EXTRA)]),
             'lateral_ventricles_mask': Maybe(str),
             'bandpass_filtering_order': Maybe(
                 In({'After', 'Before'})),
