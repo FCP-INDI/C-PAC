@@ -21,13 +21,13 @@ pipeline_setup:
     path: /output
 
     # (Optional) Path to a BIDS-Derivatives directory that already has outputs.
+    #   - This option is intended to ingress already-existing resources from an output
+    #     directory without writing new outputs back into the same directory.
     #   - If provided, C-PAC will ingress the already-computed outputs from this directory and
     #     continue the pipeline from where they leave off.
     #   - If left as 'None', C-PAC will ingress any already-computed outputs from the
     #     output directory you provide above in 'path' instead, the default behavior.
-    #   - This option may be useful if you want to ingress already-existing resources
-    #     but don't want to write new outputs back into the same directory.
-    source_outputs_dir: /source/output
+    source_outputs_dir: None
 
     # Set to True to make C-PAC ingress the outputs from the primary output directory if they
     # exist, even if a source_outputs_dir is provided
@@ -1073,6 +1073,7 @@ nuisance_corrections:
          Bandpass:
            bottom_frequency: 0.01
            top_frequency: 0.1
+           method: default
 
       -  Name: 'defaultNoGSR'
 
@@ -1101,6 +1102,7 @@ nuisance_corrections:
          Bandpass:
            bottom_frequency: 0.01
            top_frequency: 0.1
+           method: default
 
     # Standard Lateral Ventricles Binary Mask
     # used in CSF mask refinement for CSF signal-related regressions

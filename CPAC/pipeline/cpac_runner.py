@@ -167,6 +167,29 @@ def run_cpac_on_cluster(config_file, subject_list_file,
         f.write(pid)
 
 
+def run_T1w_longitudinal(sublist, cfg):
+    subject_id_dict = {}
+
+    for sub in sublist:
+        if sub['subject_id'] in subject_id_dict:
+            subject_id_dict[sub['subject_id']].append(sub)
+        else:
+            subject_id_dict[sub['subject_id']] = [sub]
+
+    # subject_id_dict has the subject_id as keys and a list of
+    # sessions for each participant as value
+    valid_longitudinal_data = False
+    for subject_id, sub_list in subject_id_dict.items():
+        if len(sub_list) > 1:
+            valid_longitudinal_data = True
+            anat_longitudinal_wf(subject_id, sub_list, cfg)
+        elif len(sub_list) == 1:
+            warnings.warn("\n\nThere is only one anatomical session "
+                          "for sub-%s. Longitudinal preprocessing "
+                          "will be skipped for this subject."
+                          "\n\n" % subject_id)
+
+
 # Run C-PAC subjects via job queue
 def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         plugin_args=None, tracking=True, num_subs_at_once=None, debug=False,
@@ -365,31 +388,20 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
         '''
 
         # BEGIN LONGITUDINAL TEMPLATE PIPELINE
-        if hasattr(c, 'longitudinal_template_generation') and True in c.longitudinal_template_generation['run']:
-            subject_id_dict = {}
-            for sub in sublist:
-                if sub['subject_id'] in subject_id_dict:
-                    subject_id_dict[sub['subject_id']].append(sub)
-                else:
-                    subject_id_dict[sub['subject_id']] = [sub]
-            
-            # subject_id_dict has the subject_id as keys and a list of sessions for
-            # each participant as value
-            valid_longitudinal_data = False
-            for subject_id, sub_list in subject_id_dict.items():
-                if len(sub_list) > 1:
-                    valid_longitudinal_data = True
-                    strat_list = anat_longitudinal_wf(subject_id, sub_list, c)
-                elif len(sub_list) == 1:
-                    warnings.warn("\n\nThere is only one anatomical session for sub-%s. Longitudinal preprocessing will be skipped for this subject.\n\n" % subject_id)
-                # TODO functional longitudinal pipeline
+        if hasattr(c, 'longitudinal_template_generation') and \
+                        True in c.longitudinal_template_generation['run']:
 
+            run_T1w_longitudinal(sublist, c)
+            # TODO functional longitudinal pipeline
+
+        '''
             if valid_longitudinal_data:
                 rsc_file_list = []
-                for dirpath, dirnames, filenames in os.walk(c.pipeline_setup['output_directory']['path']):
+                for dirpath, dirnames, filenames in os.walk(c.pipeline_setup[
+                                                                'output_directory']['path']):
                     for f in filenames:
                         # TODO is there a better way to check output folder name?
-                        if f != '.DS_Store' and 'pipeline_analysis_longitudinal' in dirpath:
+                        if f != '.DS_Store' and 'T1w_longitudinal_pipeline' in dirpath:
                             rsc_file_list.append(os.path.join(dirpath, f))
 
                 subject_specific_dict = {subj: [] for subj in subject_id_dict.keys()}
@@ -527,7 +539,7 @@ def run(subject_list_file, config_file=None, p_name=None, plugin=None,
                 if not True in c.anatomical_preproc['run'] and not True in c.functional_preproc['run']:
                     import sys
                     sys.exit()
-
+        '''
         # END LONGITUDINAL TEMPLATE PIPELINE
 
         # If it only allows one, run it linearly

@@ -1154,39 +1154,6 @@ class NodeBlock(object):
         return wf
 
 
-'''
-def ingress_data(wf, cfg, rpool, data_paths):
-
-    for data_type in data_paths:
-        for label, path in data_paths[data_type].items():
-
-            check_s3_node = pe.Node(function.Function(input_names=['file_path',
-                                                                   'creds_path',
-                                                                   'dl_dir',
-                                                                   'img_type'],
-                                                      output_names=['local_path'],
-                                                      function=check_for_s3,
-                                                      as_module=True),
-                                    name=f'check_for_s3_{label}')
-
-            check_s3_node.inputs.file_path = path
-            check_s3_node.inputs.creds_path = cfg['pipeline_setup'][
-                'Amazon-AWS']['aws_bucket_credentials']
-            check_s3_node.inputs.dl_dir = cfg['pipeline_setup'][
-                'working_directory']['path']
-            check_s3_node.inputs.img_type = data_type
-
-            outputnode = pe.Node(util.IdentityInterface(fields=['file']),
-                                 name=f'outputspec_{label}')
-            wf.connect(check_s3_node, 'local_path', outputnode, 'file')
-
-            rpool.set_data(label, outputnode, 'file', {}, "",
-                           f'{label}_ingress')
-
-    return (wf, rpool)
-'''
-
-
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
     """Wrap a list of node block functions to make them easier to use within
     other node blocks.
@@ -1245,7 +1212,8 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
     return (wf, strat_pool)
 
 
-def ingress_raw_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
+def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id):
     if 'creds_path' not in data_paths:
         data_paths['creds_path'] = None
 
@@ -1259,6 +1227,12 @@ def ingress_raw_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
     )
     rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
                    "", "anat_ingress")
+
+    return rpool
+
+
+def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
+                          ses_id):
 
     func_paths_dct = data_paths['func']
 
@@ -1675,10 +1649,16 @@ def initiate_rpool(wf, cfg, data_paths):
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_data(wf, rpool, cfg,
-                                                           data_paths,
-                                                           unique_id,
-                                                           part_id, ses_id)
+    rpool = ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id,
+                                  part_id, ses_id)
+
+    wf, rpool, diff, blip, fmap_rp_list = ingress_raw_func_data(wf,
+                                                                rpool,
+                                                                cfg,
+                                                                data_paths,
+                                                                unique_id,
+                                                                part_id,
+                                                                ses_id)
 
     # grab already-processed data from the output directory
     rpool = ingress_output_dir(cfg, rpool, data_paths, unique_id)

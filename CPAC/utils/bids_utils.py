@@ -1,4 +1,5 @@
 import os
+import sys
 import yaml
 import json
 
@@ -630,10 +631,7 @@ def create_cpac_data_config(bids_dir, participant_label=None,
         file_paths = [
             file_path
             for file_path in file_paths
-            if any(
-                participant_label in file_path
-                for participant_label in participant_labels
-            )
+            if participant_label in file_path
             ]
 
     if not file_paths:

@@ -774,39 +774,10 @@ def load_cpac_pipe_config(pipe_config):
     return cfg
 
 
-def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
-                   num_ants_cores=1):
+def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
 
-    # Workflow setup
-    wf = initialize_nipype_wf(cfg, sub_dict)
-
-    # Extract credentials path if it exists
-    try:
-        creds_path = sub_dict['creds_path']
-        if creds_path and 'none' not in creds_path.lower():
-            if os.path.exists(creds_path):
-                input_creds_path = os.path.abspath(creds_path)
-            else:
-                err_msg = 'Credentials path: "%s" for subject "%s" was not ' \
-                          'found. Check this path and try again.' % (
-                              creds_path, subject_id)
-                raise Exception(err_msg)
-        else:
-            input_creds_path = None
-    except KeyError:
-        input_creds_path = None
-
-    cfg.pipeline_setup['input_creds_path'] = input_creds_path
-
-    """""""""""""""""""""""""""""""""""""""""""""""""""
-     PREPROCESSING
-    """""""""""""""""""""""""""""""""""""""""""""""""""
-
-    # TODO: longitudinal placeholder
-
-    wf, rpool = initiate_rpool(wf, cfg, sub_dict)
-
-    pipeline_blocks = []
+    if not pipeline_blocks:
+        pipeline_blocks = []
 
     # T1w Anatomical Preprocessing
     if not rpool.check_rpool('desc-reorient_T1w'):
@@ -875,6 +846,65 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
             brain_extraction
         ]
         pipeline_blocks += anat_brain_blocks
+
+    return pipeline_blocks
+
+
+def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
+
+    for block in pipeline_blocks:
+        try:
+            nb = NodeBlock(block)
+            wf = nb.connect_block(wf, cfg, rpool)
+        except LookupError as e:
+            previous_nb_str = (
+                f"after node block '{previous_nb.get_name()}':"
+            ) if previous_nb else 'at beginning:'
+            # Alert user to block that raises error
+            e.args = (
+                'When trying to connect node block '
+                f"'{NodeBlock(block).get_name()}' "
+                f"to workflow '{wf}' " + previous_nb_str + e.args[0],
+            )
+            raise
+        previous_nb = nb
+
+    return wf
+
+
+def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
+                   num_ants_cores=1):
+
+    # Workflow setup
+    wf = initialize_nipype_wf(cfg, sub_dict)
+
+    # Extract credentials path if it exists
+    try:
+        creds_path = sub_dict['creds_path']
+        if creds_path and 'none' not in creds_path.lower():
+            if os.path.exists(creds_path):
+                input_creds_path = os.path.abspath(creds_path)
+            else:
+                err_msg = 'Credentials path: "%s" for subject "%s" was not ' \
+                          'found. Check this path and try again.' % (
+                              creds_path, subject_id)
+                raise Exception(err_msg)
+        else:
+            input_creds_path = None
+    except KeyError:
+        input_creds_path = None
+
+    cfg.pipeline_setup['input_creds_path'] = input_creds_path
+
+    """""""""""""""""""""""""""""""""""""""""""""""""""
+     PREPROCESSING
+    """""""""""""""""""""""""""""""""""""""""""""""""""
+
+    # TODO: longitudinal placeholder
+
+    wf, rpool = initiate_rpool(wf, cfg, sub_dict)
+
+    pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
 
     # Anatomical to T1 template registration
     reg_blocks = []
@@ -1076,22 +1106,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         pipeline_blocks += [network_centrality]
 
     # Connect the entire pipeline!
-    for block in pipeline_blocks:
-        try:
-            nb = NodeBlock(block)
-            wf = nb.connect_block(wf, cfg, rpool)
-        except LookupError as e:
-            previous_nb_str = (
-                f"after node block '{previous_nb.get_name()}':"
-            ) if previous_nb else 'at beginning:'
-            # Alert user to block that raises error
-            e.args = (
-                'When trying to connect node block '
-                f"'{NodeBlock(block).get_name()}' "
-                f"to workflow '{wf}' " + previous_nb_str + e.args[0],
-            )
-            raise
-        previous_nb = nb
+    wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
 
     # Write out the data
     # TODO enforce value with schema validation
