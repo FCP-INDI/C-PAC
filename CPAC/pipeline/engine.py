@@ -1074,8 +1074,7 @@ class NodeBlock(object):
 
             #print(f'switch and opts for {name}: {switch} --- {opts}')
             if True in switch:
-                print('\n')
-                print(f"Connecting {name}...")
+                print(f"Connecting {name}...\n")
                 for pipe_idx, strat_pool in rpool.get_strats(inputs).items():         # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                     fork = False in switch                                            #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     for opt in opts:                                            #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
@@ -1326,7 +1325,14 @@ def ingress_output_dir(cfg, rpool, data_paths, unique_id):
             for tag in data_label.split('_'):
                 if 'task-' in tag:
                     break
+            runtag = None
+            if 'run-' in data_label:
+                for runtag in data_label.split('_'):
+                    if 'run-' in runtag:
+                        break
             data_label = data_label.replace(f'{tag}_', '')
+            if runtag:
+                data_label = data_label.replace(f'{runtag}_', '')
 
         unique_data_label = str(data_label)
 
