@@ -214,8 +214,6 @@ def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
                                                        'transform']),
                         name='inputspec')
 
-
-
     apply_xfm = apply_transform(f'warp_{label}_to_template', reg_tool,
                                 time_series=False, num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
@@ -2213,14 +2211,7 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                                 time_series=False, num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
-    if reg_tool == 'ants':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'ANTs_pipelines']['interpolation']
-    elif reg_tool == 'fsl':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'FNIRT_pipelines']['interpolation']
+    apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
 
     node, out = strat_pool.get_data("space-bold_desc-brain_mask")
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
@@ -2269,14 +2260,7 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
                                 time_series=False, num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
-    if reg_tool == 'ants':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'ANTs_pipelines']['interpolation']
-    elif reg_tool == 'fsl':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'FNIRT_pipelines']['interpolation']
+    apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
 
     node, out = strat_pool.get_data("space-bold_desc-brain_mask")
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
