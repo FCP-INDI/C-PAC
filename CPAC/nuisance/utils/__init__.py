@@ -414,7 +414,7 @@ def generate_summarize_tissue_mask_ventricles_masking(nuisance_wf,
                     # perform the transform using ANTS
                     collect_linear_transforms = pe.Node(util.Merge(3), name='{}_ants_transforms'.format(ventricles_key))
 
-                    nuisance_wf.connect(*(transforms['anat_to_mni_linear_xfm'] + (collect_linear_transforms, 'in1')))
+                    nuisance_wf.connect(*(transforms['mni_to_anat_linear_xfm'] + (collect_linear_transforms, 'in1')))
 
                     # generate inverse transform flags, which depends on the number of transforms
                     inverse_transform_flags = pe.Node(util.Function(input_names=['transform_list'],
