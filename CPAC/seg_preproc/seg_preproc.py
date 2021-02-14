@@ -554,6 +554,9 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
      "outputs": ["label-CSF_mask",
                  "label-GM_mask",
                  "label-WM_mask",
+                 "label-CSF_desc-preproc_mask",
+                 "label-GM_desc-preproc_mask",
+                 "label-WM_desc-preproc_mask",
                  "label-CSF_probseg",
                  "label-GM_probseg",
                  "label-WM_probseg"]}
@@ -669,9 +672,13 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         'label-CSF_probseg': (get_csf, 'filename'),
         'label-GM_probseg': (segment, ('probability_maps', pick_wm_prob_1)),
         'label-WM_probseg': (segment, ('probability_maps', pick_wm_prob_2)),
-        'label-CSF_mask': (process_csf, 'outputspec.segment_mask'),
-        'label-GM_mask': (process_gm, 'outputspec.segment_mask'),
-        'label-WM_mask': (process_wm, 'outputspec.segment_mask')
+        'label-CSF_mask': (segment, ('tissue_class_files', pick_wm_class_0)),
+        'label-GM_mask': (segment, ('tissue_class_files', pick_wm_class_1)),
+        'label-WM_mask': (segment, ('tissue_class_files', pick_wm_class_2)),
+        'label-CSF_desc-preproc_mask':
+            (process_csf, 'outputspec.segment_mask'),
+        'label-GM_desc-preproc_mask': (process_gm, 'outputspec.segment_mask'),
+        'label-WM_desc-preproc_mask': (process_wm, 'outputspec.segment_mask')
     }
 
     return (wf, outputs)
