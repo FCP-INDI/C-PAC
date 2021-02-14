@@ -217,7 +217,7 @@ def transform_derivative(wf_name, label, reg_tool, num_cpus, num_ants_cores,
 
 
     apply_xfm = apply_transform(f'warp_{label}_to_template', reg_tool,
-                                time_series=True, num_cpus=num_cpus,
+                                time_series=False, num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     if reg_tool == 'ants':
@@ -2210,7 +2210,7 @@ def warp_bold_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
     apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
-                                time_series=True, num_cpus=num_cpus,
+                                time_series=False, num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     if reg_tool == 'ants':
@@ -2266,7 +2266,7 @@ def warp_deriv_mask_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
 
     apply_xfm = apply_transform(f'warp_ts_to_T1template_{pipe_num}', reg_tool,
-                                time_series=True, num_cpus=num_cpus,
+                                time_series=False, num_cpus=num_cpus,
                                 num_ants_cores=num_ants_cores)
 
     if reg_tool == 'ants':
