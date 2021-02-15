@@ -1132,6 +1132,6 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
                     fslmaths_mask, 'mask_file')
     
     strat.update_resource_pool({
-        'anatomical_to_standard': (fslmaths_mask, 'out_file')
+        'anatomical_to_standard': (fslmaths_mask, 'out_file'),
         'anatomical_brain_mask_to_standard': (apply_warp_brain_mask, 'out_file')
     }, override=True)
