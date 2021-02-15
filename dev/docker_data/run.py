@@ -477,9 +477,9 @@ elif args.analysis_level in ["test_config", "participant"]:
         c.update(overrides)
 
     if args.anat_only:
-        # TODO
-        # c.update({'functional_preproc': 'run': Off})?
-        c.update({"runFunctional": [0]})
+        c.update({'FROM': 'anat-only'})
+
+    c = Configuration(c)
 
     # get the aws_input_credentials, if any are specified
     if args.aws_input_creds:
@@ -523,8 +523,6 @@ elif args.analysis_level in ["test_config", "participant"]:
     c['pipeline_setup']['system_config']['num_ants_threads'] = min(
         c['pipeline_setup']['system_config']['max_cores_per_participant'], int(c['pipeline_setup']['system_config']['num_ants_threads'])
     )
-
-    c = Configuration(c)
 
     c['disable_log'] = args.disable_file_logging
 
