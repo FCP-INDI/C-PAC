@@ -891,7 +891,6 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
     workflow.connect(node, out_file, 
         ants_apply_warp_t1_restore, 'reference')
 
-    # TODO check xfm order
     node, out_file = strat['anatomical_to_mni_nonlinear_xfm']
     workflow.connect(node, out_file, 
         ants_apply_warp_t1_restore, 'nonlinear')
@@ -1043,15 +1042,6 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
         merge_inv_xfms, 'in_files')
 
 
-    # CreateJacobianDeterminantImage 3 ${OutputTransform} ${WD}/xfms/NonlinearRegJacobians.nii.gz [doLogJacobian=0] [useGeometric=0]
-    # create_jacobian_determinant_image = pe.Node(interface=ants.CreateJacobianDeterminantImage(),
-    #                              name='create_jacobian_determinant_image')
-    # create_jacobian_determinant_image.inputs.imageDimension = 3
-    # create_jacobian_determinant_image.inputs.doLogJacobian = 0
-    # create_jacobian_determinant_image.inputs.useGeometric = 0
-    # workflow.connect(merge_xfms, 'merged_file', 
-    #   create_jacobian_determinant_image, 'deformationField')
-
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImage}
     # TODO rm
     apply_warp_t1_acpc = pe.Node(interface=fsl.ApplyWarp(),
@@ -1113,6 +1103,24 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
         apply_warp_t1_restore_brain, 'field_file')
 
 
+    apply_warp_brain_mask = pe.Node(interface=fsl.ApplyWarp(),
+                                          name='fsl_apply_warp_brain_mask')
+
+    apply_warp_brain_mask.inputs.relwarp = True
+    apply_warp_brain_mask.inputs.interp = 'nn'
+
+    node, out_file = strat['anatomical_brain_mask']
+    workflow.connect(node, out_file, 
+        apply_warp_brain_mask, 'in_file')
+
+    node, out_file = strat['template_skull_for_anat']
+    workflow.connect(node, out_file, 
+        apply_warp_brain_mask, 'ref_file')
+
+    workflow.connect(merge_xfms, 'merged_file', 
+        apply_warp_brain_mask, 'field_file')
+
+
     # fslmaths ${OutputT1wImageRestore} -mas ${OutputT1wImageRestoreBrain} ${OutputT1wImageRestoreBrain}
     fslmaths_mask = pe.Node(interface=fsl.maths.ApplyMask(),
                              name='mask_brain_restore')
@@ -1125,4 +1133,5 @@ def anat_brain_to_standard_abcd(workflow, num_strat, strat, config=None):
     
     strat.update_resource_pool({
         'anatomical_to_standard': (fslmaths_mask, 'out_file')
+        'anatomical_brain_mask_to_standard': (apply_warp_brain_mask, 'out_file')
     }, override=True)
