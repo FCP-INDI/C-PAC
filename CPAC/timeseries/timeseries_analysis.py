@@ -231,7 +231,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                             name='input_roi')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['roi_ts',
-                                                        'roi_outputs']),
+                                                        'roi_csv']),
                          name='outputspec')
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
@@ -258,6 +258,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     wflow.connect(timeseries_roi, 'out_file', clean_csv, 'roi_csv')
     wflow.connect(clean_csv, 'roi_array', outputNode, 'roi_ts')
+    wflow.connect(clean_csv, 'edited_roi_csv', outputNode, 'roi_csv')
 
     #write_npz_imports = ['import os', 'import numpy as np',
     #                     'from numpy import genfromtxt']
@@ -833,7 +834,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
 
     outputs = {
-        'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_ts'),
+        'desc-Mean_timeseries': (roi_timeseries, 'outputspec.roi_csv'),
         'desc-ndmg_correlations': (ndmg_graph, 'out_file'),
         'atlas_name': (roi_dataflow, 'outputspec.out_name')
     }
