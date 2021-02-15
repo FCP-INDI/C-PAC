@@ -150,6 +150,50 @@ def acpc_alignment(config=None, acpc_target='whole-head', mask=False,
 
     return preproc
 
+def T2wToT1wReg(wf_name='T2w_to_T1w_reg'):
+   
+    # Adapted from DCAN lab
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/T2wToT1wReg.sh
+
+    preproc = pe.Workflow(name=wf_name)
+
+    inputnode = pe.Node(util.IdentityInterface(fields=['T1w',
+                                                       'T1w_brain',
+                                                       'T2w',
+                                                       'T2w_brain']),
+                        name='inputspec')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['T2w_to_T1w']),
+                          name='outputspec')
+
+    # ${FSLDIR}/bin/epi_reg --epi="$T2wImageBrain" --t1="$T1wImage" --t1brain="$WD"/"$T1wImageBrainFile" --out="$WD"/T2w2T1w
+    T2w2T1w_reg = pe.Node(interface=fsl.EpiReg(),
+                                  name='T2w2T1w_reg')
+    T2w2T1w_reg.inputs.out_base = 'T2w2T1w'
+
+    preproc.connect(inputnode, 'T2w_brain', T2w2T1w_reg ,'epi')
+    preproc.connect(inputnode, 'T1w', T2w2T1w_reg ,'t1_head')
+    preproc.connect(inputnode, 'T1w_brain', T2w2T1w_reg ,'t1_brain')
+
+    # ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$T2wImage" --ref="$T1wImage" --premat="$WD"/T2w2T1w.mat --out="$WD"/T2w2T1w
+    T2w2T1w = pe.Node(interface=fsl.ApplyWarp(),
+                        name='T2w2T1w')
+    T2w2T1w.inputs.interp = 'spline'
+    T2w2T1w.inputs.relwarp = True
+
+    preproc.connect(inputnode, 'T2w', T2w2T1w, 'in_file')
+    preproc.connect(inputnode, 'T1w', T2w2T1w, 'ref_file')
+    preproc.connect(T2w2T1w_reg, 'epi2str_mat', T2w2T1w, 'premat')
+
+    # ${FSLDIR}/bin/fslmaths "$WD"/T2w2T1w -add 1 "$WD"/T2w2T1w -odt float
+    T2w2T1w_final = pe.Node(interface=fsl.ImageMaths(),
+                                  name='T2w2T1w_final')
+    T2w2T1w_final.inputs.op_string = "-add 1" 
+
+    preproc.connect(T2w2T1w, 'out_file', T2w2T1w_final, 'in_file')
+    preproc.connect(T2w2T1w_final, 'out_file', outputnode, 'T2w_to_T1w')
+
+    return preproc
 
 def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name='biasfield_correction_t1t2'):
    
