@@ -454,14 +454,15 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_bold"])
     wf.connect(node, out, sca_roi, 'inputspec.functional_file')
 
-    wf.connect(roi_timeseries_for_sca,
-               ('outputspec.roi_outputs', extract_one_d),
+    wf.connect(roi_timeseries_for_sca, 'outputspec.roi_ts',
+               #('outputspec.roi_outputs', extract_one_d),
                sca_roi, 'inputspec.timeseries_one_d')
 
     outputs = {
-        'desc-MeanSCA_timeseries': (roi_timeseries_for_sca,
-                                    ('outputspec.roi_outputs',
-                                     extract_one_d)),
+        'desc-MeanSCA_timeseries':
+            (roi_timeseries_for_sca, 'outputspec.roi_ts'),
+                                    #('outputspec.roi_outputs',
+                                    # extract_one_d)),
         'desc-MeanSCA_correlations':
             (sca_roi, 'outputspec.correlation_files'),
         'atlas_name': (roi_dataflow_for_sca, 'outputspec.out_name')
@@ -649,8 +650,8 @@ def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
                                      "space-template_bold"])
     wf.connect(node, out, sc_temp_reg, 'inputspec.subject_rest')
 
-    wf.connect(roi_timeseries_for_multreg, ('outputspec.roi_outputs',
-                                            extract_one_d),
+    wf.connect(roi_timeseries_for_multreg, 'outputspec.roi_ts',
+                     #('outputspec.roi_outputs', extract_one_d),
                      sc_temp_reg, 'inputspec.subject_timeseries')
 
     node, out = strat_pool.get_data('space-template_desc-bold_mask')
