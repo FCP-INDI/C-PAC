@@ -577,8 +577,10 @@ elif args.analysis_level in ["test_config", "participant"]:
             DEFAULT_TMP_DIR, "cpac_pipeline_config_{0}.yml".format(st)
         )
 
-    with open(pipeline_config_file, 'w') as f:
-        f.write(create_yaml_from_template(c, DEFAULT_PIPELINE))
+    open(pipeline_config_file, 'w').write(
+        create_yaml_from_template(c, DEFAULT_PIPELINE, True))
+    open(f'{pipeline_config_file[:-4]}_min.yml', 'w').write(
+        create_yaml_from_template(c, DEFAULT_PIPELINE, False))
 
     participant_labels = []
     if args.participant_label:
